@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
+import { colors, typography, radius, shadows, layout } from '../../theme';
 
 /**
  * AppHeader

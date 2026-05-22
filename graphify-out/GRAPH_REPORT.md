@@ -1,13 +1,18 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 37 files · ~17,274 words
+- 106 files · ~26,519 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 364 nodes · 336 edges · 43 communities (28 shown, 15 thin omitted)
+- 512 nodes · 690 edges · 56 communities (39 shown, 17 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `352bb16e`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - [[_COMMUNITY_Community 0|Community 0]]
@@ -45,28 +50,49 @@
 - [[_COMMUNITY_Community 33|Community 33]]
 - [[_COMMUNITY_Community 34|Community 34]]
 - [[_COMMUNITY_Community 35|Community 35]]
+- [[_COMMUNITY_Community 43|Community 43]]
+- [[_COMMUNITY_Community 44|Community 44]]
+- [[_COMMUNITY_Community 45|Community 45]]
+- [[_COMMUNITY_Community 46|Community 46]]
+- [[_COMMUNITY_Community 47|Community 47]]
+- [[_COMMUNITY_Community 48|Community 48]]
+- [[_COMMUNITY_Community 49|Community 49]]
+- [[_COMMUNITY_Community 50|Community 50]]
+- [[_COMMUNITY_Community 51|Community 51]]
+- [[_COMMUNITY_Community 52|Community 52]]
+- [[_COMMUNITY_Community 53|Community 53]]
+- [[_COMMUNITY_Community 54|Community 54]]
+- [[_COMMUNITY_Community 55|Community 55]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `ServeLoco V1 Implementation Plan` - 18 edges
-2. `ServeLoco Main Plan` - 13 edges
-3. `API Plan` - 13 edges
-4. `Customer Page UI Plans` - 13 edges
-5. `API Plan` - 13 edges
-6. `Frontend Plan` - 11 edges
-7. `ServeLoco Frontend Tasks` - 11 edges
-8. `Admin Page UI Plans` - 10 edges
-9. `Testing Checklist` - 10 edges
-10. `Phase 5: Admin Flow` - 10 edges
+1. `colors` - 29 edges
+2. `typography` - 23 edges
+3. `radius` - 21 edges
+4. `spacing` - 21 edges
+5. `useReducedMotion()` - 21 edges
+6. `ServeLoco V1 Implementation Plan` - 18 edges
+7. `layout` - 13 edges
+8. `ServeLoco Main Plan` - 13 edges
+9. `API Plan` - 13 edges
+10. `Customer Page UI Plans` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `App()` --calls--> `assertNoEmoji()`  [EXTRACTED]
-  Frontend-V1/App.js → Frontend-V1/src/utils/noEmojiCheck.js
+- `AnimatedQuantitySwitcher()` --calls--> `useReducedMotion()`  [EXTRACTED]
+  Frontend-V1/src/components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js → Frontend-V1/src/utils/motionPreferences.js
+- `AnimatedFadeSlide()` --calls--> `useReducedMotion()`  [EXTRACTED]
+  Frontend-V1/src/components/AnimatedFadeSlide/AnimatedFadeSlide.js → Frontend-V1/src/utils/motionPreferences.js
+- `AnimatedModalView()` --calls--> `useReducedMotion()`  [EXTRACTED]
+  Frontend-V1/src/components/AnimatedModalView/AnimatedModalView.js → Frontend-V1/src/utils/motionPreferences.js
+- `AnimatedCartBadge()` --calls--> `useReducedMotion()`  [EXTRACTED]
+  Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js → Frontend-V1/src/utils/motionPreferences.js
+- `AnimatedStickyMiniCart()` --calls--> `useReducedMotion()`  [EXTRACTED]
+  Frontend-V1/src/components/AnimatedStickyMiniCart/AnimatedStickyMiniCart.js → Frontend-V1/src/utils/motionPreferences.js
 
-## Communities (43 total, 15 thin omitted)
+## Communities (56 total, 17 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.05
-Nodes (39): Acceptance Criteria, Admin Dashboard Requirements, Backend, Backend, Backend, Backend Environment Variables, Bottom Navigation, Category Cards (+31 more)
+Cohesion: 0.13
+Nodes (14): Acceptance Criteria, Admin Dashboard Requirements, Backend Environment Variables, code:text (React Native app -> Node.js Express API -> MySQL), code:text (/Backend-V1), Default Local Admin, Goal, images (+6 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.15
@@ -85,16 +111,16 @@ Cohesion: 0.40
 Nodes (4): id, name, projectResources, resources
 
 ### Community 5 - "Community 5"
-Cohesion: 0.15
-Nodes (13): 10. Order Detail, 11. Profile, 12. Edit Profile, 1. Home Dashboard, 2. Login And Sign Up, 3. Categories, 4. Product List And Search Results, 5. Product Detail (+5 more)
+Cohesion: 0.25
+Nodes (8): Bottom Navigation, Category Cards, Combo Deals, Customer Home Dashboard Design, Mode Toggle, Offer Banner, Top Section, Visual Direction
 
 ### Community 6 - "Community 6"
 Cohesion: 0.07
 Nodes (27): Acceptance Criteria, Admin Dashboard Requirements, Backend, Backend, Backend, Backend, Backend, code:text (React Native app -> Node.js Express API -> MySQL) (+19 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.08
-Nodes (26): Admin Auth, Admin Customers, Admin Dashboard, Admin Orders, Admin Products, Admin Settings / Offers, API Plan, Backend Build Phases (+18 more)
+Cohesion: 0.06
+Nodes (34): Admin Auth, Admin Customers, Admin Dashboard, Admin Orders, Admin Products, Admin Settings / Offers, API Plan, Backend Build Phases (+26 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.12
@@ -105,36 +131,32 @@ Cohesion: 0.20
 Nodes (9): Bottom Navigation, Category Cards, Combo Deals, Frontend Home Dashboard Design, Offer Banner, ServeLoco Plan, Toggle Button, Top Section (+1 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.21
+Cohesion: 0.23
 Nodes (6): App(), displayName, name, styles, assertNoEmoji(), hasEmoji()
 
 ### Community 14 - "Community 14"
-Cohesion: 0.08
-Nodes (25): Animation And Motion Guidelines, Animations And Interactions, Auth Behavior And API, Auth UI Testing, Bottom Navigation, Category Cards, Combo Deals, First Screen: Home Dashboard (+17 more)
+Cohesion: 0.05
+Nodes (38): 10. Order Detail, 11. Profile, 12. Edit Profile, 1. Home Dashboard, 2. Login And Sign Up, 3. Categories, 4. Product List And Search Results, 5. Product Detail (+30 more)
 
 ### Community 15 - "Community 15"
 Cohesion: 0.20
 Nodes (10): 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail, 18. Admin Products, 19. Admin Product Form, 20. Admin Customers (+2 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.20
-Nodes (10): Phase 5: Admin Flow, Task F-20: Admin Entry Screen, Task F-21: Admin Login Screen, Task F-22: Admin Dashboard Screen, Task F-23: Admin Orders Screen, Task F-24: Admin Order Detail Screen, Task F-25: Admin Products Screen, Task F-26: Admin Product Form Screen (+2 more)
-
-### Community 17 - "Community 17"
 Cohesion: 0.25
 Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
+
+### Community 17 - "Community 17"
+Cohesion: 0.22
+Nodes (3): styles, styles, spacing
 
 ### Community 18 - "Community 18"
 Cohesion: 0.28
 Nodes (5): RCTDefaultReactNativeFactoryDelegate, AppDelegate, ReactNativeDelegate, UIApplicationDelegate, UIResponder
 
 ### Community 20 - "Community 20"
-Cohesion: 0.06
-Nodes (33): App Animation Standard, Folder Structure And Naming Standard, Global Frontend Rules, How To Use This Checklist, Phase 1: App Shell And Foundations, Phase 2: Auth And Preview Gate, Phase 3: Customer Shopping Flow, Phase 4: Customer Account And Orders (+25 more)
-
-### Community 21 - "Community 21"
-Cohesion: 0.25
-Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
+Cohesion: 0.05
+Nodes (43): App Animation Standard, Folder Structure And Naming Standard, Global Frontend Rules, How To Use This Checklist, Phase 1: App Shell And Foundations, Phase 2: Auth And Preview Gate, Phase 3: Customer Shopping Flow, Phase 4: Customer Account And Orders (+35 more)
 
 ### Community 22 - "Community 22"
 Cohesion: 0.40
@@ -144,24 +166,72 @@ Nodes (4): images, info, author, version
 Cohesion: 0.50
 Nodes (3): info, author, version
 
+### Community 30 - "Community 30"
+Cohesion: 0.14
+Nodes (6): styles, styles, styles, colors, palette, shadows
+
+### Community 35 - "Community 35"
+Cohesion: 0.31
+Nodes (7): themePlaceholder, easingModal, motionConfig, fontFamily, fontSizes, fontWeights, lineHeights
+
+### Community 43 - "Community 43"
+Cohesion: 0.13
+Nodes (5): styles, styles, styles, styles, typography
+
+### Community 44 - "Community 44"
+Cohesion: 0.33
+Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
+
+### Community 45 - "Community 45"
+Cohesion: 0.08
+Nodes (21): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles (+13 more)
+
+### Community 46 - "Community 46"
+Cohesion: 0.33
+Nodes (3): PAYMENT_COLORS, STATUS_COLORS, styles
+
+### Community 47 - "Community 47"
+Cohesion: 0.20
+Nodes (4): styles, styles, borderWidth, radius
+
+### Community 48 - "Community 48"
+Cohesion: 0.60
+Nodes (3): Chip(), ChipRow(), styles
+
+### Community 49 - "Community 49"
+Cohesion: 0.20
+Nodes (3): styles, styles, layout
+
+### Community 51 - "Community 51"
+Cohesion: 0.50
+Nodes (4): Backend, Databases, Frontend, Tech Stack
+
+### Community 52 - "Community 52"
+Cohesion: 0.50
+Nodes (4): Frontend Build Phases, Phase 1: App Shell, Phase 2: Customer Flow, Phase 3: Admin Flow
+
+### Community 53 - "Community 53"
+Cohesion: 0.67
+Nodes (3): Included, Not Included, V1 Scope
+
 ## Knowledge Gaps
-- **258 isolated node(s):** `id`, `name`, `resources`, `name`, `version` (+253 more)
+- **288 isolated node(s):** `id`, `name`, `resources`, `name`, `version` (+283 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **15 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **17 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `ServeLoco Main Plan` connect `Community 6` to `Community 14`, `Community 7`?**
-  _High betweenness centrality (0.063) - this node is a cross-community bridge._
-- **Why does `Frontend Plan` connect `Community 14` to `Community 5`, `Community 6`, `Community 15`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
-- **Why does `Backend Plan` connect `Community 7` to `Community 21`, `Community 6`?**
-  _High betweenness centrality (0.044) - this node is a cross-community bridge._
+  _High betweenness centrality (0.032) - this node is a cross-community bridge._
+- **Why does `Frontend Plan` connect `Community 14` to `Community 6`, `Community 15`?**
+  _High betweenness centrality (0.029) - this node is a cross-community bridge._
+- **Why does `Backend Plan` connect `Community 7` to `Community 6`?**
+  _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **What connects `id`, `name`, `resources` to the rest of the system?**
-  _258 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _288 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.05405405405405406 - nodes in this community are weakly interconnected._
 - **Should `Community 6` be split into smaller, more focused modules?**

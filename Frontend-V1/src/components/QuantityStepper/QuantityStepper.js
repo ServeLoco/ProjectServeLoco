@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { colors, typography, spacing, radius, layout } from '../../theme';
+import { colors, typography, spacing, radius } from '../../theme';
 
 /**
  * QuantityStepper

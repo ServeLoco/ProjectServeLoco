@@ -116,18 +116,18 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-03A: Animation System Components
 
-- [ ] Create reusable fade-and-slide entry helper for screen sections.
-- [ ] Create reusable staggered-list helper for product, category, order, and admin cards.
-- [ ] Create reusable press feedback wrapper for touchable cards, buttons, and icon buttons.
-- [ ] Create animated cart badge count bump.
-- [ ] Create animated sticky mini-cart show/hide behavior.
-- [ ] Create animated `Add` to quantity stepper transition.
-- [ ] Create animated segmented control active indicator.
-- [ ] Create animated bottom tab active indicator and icon scale.
-- [ ] Create animated modal wrapper with backdrop fade and dialog scale.
-- [ ] Create animated validation error helper with fade-in and optional shake.
-- [ ] Create skeleton shimmer or pulse component.
-- [ ] Add reduced-motion helper to disable decorative loops, staggered entry, and shake animations when supported.
+- [x] Create reusable fade-and-slide entry helper for screen sections.
+- [x] Create reusable staggered-list helper for product, category, order, and admin cards.
+- [x] Create reusable press feedback wrapper for touchable cards, buttons, and icon buttons.
+- [x] Create animated cart badge count bump.
+- [x] Create animated sticky mini-cart show/hide behavior.
+- [x] Create animated `Add` to quantity stepper transition.
+- [x] Create animated segmented control active indicator.
+- [x] Create animated bottom tab active indicator and icon scale.
+- [x] Create animated modal wrapper with backdrop fade and dialog scale.
+- [x] Create animated validation error helper with fade-in and optional shake.
+- [x] Create skeleton shimmer or pulse component.
+- [x] Add reduced-motion helper to disable decorative loops, staggered entry, and shake animations when supported.
 
 ### Task F-04: API Client
 

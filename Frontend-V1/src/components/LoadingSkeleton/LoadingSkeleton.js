@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import { colors, radius } from '../../theme';
+import { colors, motionConfig, radius } from '../../theme';
+import { useReducedMotion } from '../../utils';
 
 /**
  * LoadingSkeleton
@@ -13,26 +14,30 @@ import { colors, radius } from '../../theme';
  *   style        - additional style
  */
 function LoadingSkeleton({ width, height = 16, borderRadius = radius.md, style }) {
+  const reducedMotion = useReducedMotion();
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    if (reducedMotion) {
+      opacity.setValue(0.72);
+      return undefined;
+    }
+
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
           toValue: 0.4,
-          duration: 700,
-          useNativeDriver: true,
+          ...motionConfig.loop,
         }),
         Animated.timing(opacity, {
           toValue: 1,
-          duration: 700,
-          useNativeDriver: true,
+          ...motionConfig.loop,
         }),
       ]),
     );
     pulse.start();
     return () => pulse.stop();
-  }, [opacity]);
+  }, [opacity, reducedMotion]);
 
   return (
     <Animated.View
