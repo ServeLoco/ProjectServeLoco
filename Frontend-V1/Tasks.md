@@ -141,13 +141,13 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-05: Session And Stores
 
-- [ ] Create customer auth/session store.
-- [ ] Create separate admin auth/session store.
-- [ ] Persist and restore sessions on app start.
-- [ ] Add logout and admin logout actions.
-- [ ] Create cart store with items, quantities, item count, and clear cart.
-- [ ] Keep cart prices display-only until backend recalculation returns verified totals.
-- [ ] Add app settings store for shop status, minimum order, delivery charges, night charges, and active offer.
+- [x] Create customer auth/session store.
+- [x] Create separate admin auth/session store.
+- [x] Persist and restore sessions on app start.
+- [x] Add logout and admin logout actions.
+- [x] Create cart store with items, quantities, item count, and clear cart.
+- [x] Keep cart prices display-only until backend recalculation returns verified totals.
+- [x] Add app settings store for shop status, minimum order, delivery charges, night charges, and active offer.
 
 ### Task F-06: Navigation
 
