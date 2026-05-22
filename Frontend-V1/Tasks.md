@@ -131,13 +131,13 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-04: API Client
 
-- [ ] Create one backend API client wrapper.
-- [ ] Support base URL configuration.
-- [ ] Attach customer JWT to customer requests.
-- [ ] Attach admin JWT to admin requests.
-- [ ] Handle JSON responses, network errors, unauthorized errors, and backend validation errors.
-- [ ] Add methods for auth, products, cart, orders, settings, offers, admin dashboard, admin products, admin orders, admin customers, and admin images.
-- [ ] Ensure no screen imports database packages or direct database credentials.
+- [x] Create one backend API client wrapper.
+- [x] Support base URL configuration.
+- [x] Attach customer JWT to customer requests.
+- [x] Attach admin JWT to admin requests.
+- [x] Handle JSON responses, network errors, unauthorized errors, and backend validation errors.
+- [x] Add methods for auth, products, cart, orders, settings, offers, admin dashboard, admin products, admin orders, admin customers, and admin images.
+- [x] Ensure no screen imports database packages or direct database credentials.
 
 ### Task F-05: Session And Stores
 

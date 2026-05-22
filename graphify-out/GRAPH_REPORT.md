@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 106 files · ~26,519 words
+- 125 files · ~27,738 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 512 nodes · 690 edges · 56 communities (39 shown, 17 thin omitted)
+- 564 nodes · 820 edges · 54 communities (37 shown, 17 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `352bb16e`
+- Built from commit: `8444b676`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -30,7 +30,6 @@
 - [[_COMMUNITY_Community 12|Community 12]]
 - [[_COMMUNITY_Community 13|Community 13]]
 - [[_COMMUNITY_Community 14|Community 14]]
-- [[_COMMUNITY_Community 15|Community 15]]
 - [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 17|Community 17]]
 - [[_COMMUNITY_Community 18|Community 18]]
@@ -61,7 +60,6 @@
 - [[_COMMUNITY_Community 51|Community 51]]
 - [[_COMMUNITY_Community 52|Community 52]]
 - [[_COMMUNITY_Community 53|Community 53]]
-- [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
 
 ## God Nodes (most connected - your core abstractions)
@@ -71,10 +69,10 @@
 4. `spacing` - 21 edges
 5. `useReducedMotion()` - 21 edges
 6. `ServeLoco V1 Implementation Plan` - 18 edges
-7. `layout` - 13 edges
-8. `ServeLoco Main Plan` - 13 edges
-9. `API Plan` - 13 edges
-10. `Customer Page UI Plans` - 13 edges
+7. `apiClient` - 16 edges
+8. `layout` - 13 edges
+9. `ServeLoco Main Plan` - 13 edges
+10. `API Plan` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `AnimatedQuantitySwitcher()` --calls--> `useReducedMotion()`  [EXTRACTED]
@@ -88,7 +86,7 @@
 - `AnimatedStickyMiniCart()` --calls--> `useReducedMotion()`  [EXTRACTED]
   Frontend-V1/src/components/AnimatedStickyMiniCart/AnimatedStickyMiniCart.js → Frontend-V1/src/utils/motionPreferences.js
 
-## Communities (56 total, 17 thin omitted)
+## Communities (54 total, 17 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -135,20 +133,12 @@ Cohesion: 0.23
 Nodes (6): App(), displayName, name, styles, assertNoEmoji(), hasEmoji()
 
 ### Community 14 - "Community 14"
-Cohesion: 0.05
-Nodes (38): 10. Order Detail, 11. Profile, 12. Edit Profile, 1. Home Dashboard, 2. Login And Sign Up, 3. Categories, 4. Product List And Search Results, 5. Product Detail (+30 more)
-
-### Community 15 - "Community 15"
-Cohesion: 0.20
-Nodes (10): 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail, 18. Admin Products, 19. Admin Product Form, 20. Admin Customers (+2 more)
+Cohesion: 0.04
+Nodes (48): 10. Order Detail, 11. Profile, 12. Edit Profile, 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail (+40 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.25
 Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
-
-### Community 17 - "Community 17"
-Cohesion: 0.22
-Nodes (3): styles, styles, spacing
 
 ### Community 18 - "Community 18"
 Cohesion: 0.28
@@ -166,25 +156,29 @@ Nodes (4): images, info, author, version
 Cohesion: 0.50
 Nodes (3): info, author, version
 
+### Community 28 - "Community 28"
+Cohesion: 0.09
+Nodes (33): adminAuthApi, adminCustomersApi, adminDashboardApi, adminImagesApi, adminOrdersApi, adminProductsApi, adminSettingsApi, ApiError (+25 more)
+
 ### Community 30 - "Community 30"
 Cohesion: 0.14
 Nodes (6): styles, styles, styles, colors, palette, shadows
 
 ### Community 35 - "Community 35"
-Cohesion: 0.31
-Nodes (7): themePlaceholder, easingModal, motionConfig, fontFamily, fontSizes, fontWeights, lineHeights
+Cohesion: 0.16
+Nodes (8): styles, styles, themePlaceholder, layout, fontFamily, fontSizes, fontWeights, lineHeights
 
 ### Community 43 - "Community 43"
-Cohesion: 0.13
-Nodes (5): styles, styles, styles, styles, typography
+Cohesion: 0.14
+Nodes (6): styles, styles, styles, styles, spacing, typography
 
 ### Community 44 - "Community 44"
 Cohesion: 0.33
 Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
-Cohesion: 0.08
-Nodes (21): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles (+13 more)
+Cohesion: 0.07
+Nodes (23): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles (+15 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.33
@@ -197,10 +191,6 @@ Nodes (4): styles, styles, borderWidth, radius
 ### Community 48 - "Community 48"
 Cohesion: 0.60
 Nodes (3): Chip(), ChipRow(), styles
-
-### Community 49 - "Community 49"
-Cohesion: 0.20
-Nodes (3): styles, styles, layout
 
 ### Community 51 - "Community 51"
 Cohesion: 0.50
@@ -223,11 +213,11 @@ Nodes (3): Included, Not Included, V1 Scope
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `ServeLoco Main Plan` connect `Community 6` to `Community 14`, `Community 7`?**
-  _High betweenness centrality (0.032) - this node is a cross-community bridge._
-- **Why does `Frontend Plan` connect `Community 14` to `Community 6`, `Community 15`?**
-  _High betweenness centrality (0.029) - this node is a cross-community bridge._
+  _High betweenness centrality (0.026) - this node is a cross-community bridge._
+- **Why does `Frontend Plan` connect `Community 14` to `Community 6`?**
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
 - **Why does `Backend Plan` connect `Community 7` to `Community 6`?**
-  _High betweenness centrality (0.022) - this node is a cross-community bridge._
+  _High betweenness centrality (0.018) - this node is a cross-community bridge._
 - **What connects `id`, `name`, `resources` to the rest of the system?**
   _288 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
