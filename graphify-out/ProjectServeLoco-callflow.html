@@ -1,0 +1,3624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProjectServeLoco — Complete Call Flow &amp; Architecture Documentation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --border: #334155;
+  --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+  --warn: #fbbf24; --err: #f87171; --ok: #34d399;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+.container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+h1 { font-size: 2.4rem; margin-bottom: 8px; background: linear-gradient(135deg, var(--accent), #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+h2 { font-size: 1.7rem; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
+h3 { font-size: 1.25rem; margin: 32px 0 12px; color: var(--accent); }
+h4 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--warn); }
+p { margin: 8px 0; color: var(--muted); }
+.subtitle { color: var(--muted); font-size: 1.1rem; margin-bottom: 32px; }
+.mermaid { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 20px 0; overflow-x: auto; position: relative; }
+.mermaid.is-enhanced { padding: 0; overflow: hidden; min-height: 260px; }
+.mermaid-viewport { padding: 54px 24px 24px; overflow: hidden; cursor: grab; touch-action: none; min-height: 260px; }
+.mermaid-viewport.is-dragging { cursor: grabbing; }
+.mermaid-viewport svg { max-width: none !important; height: auto; transform-origin: 0 0; transition: transform 120ms ease; }
+.mermaid-toolbar { position: absolute; top: 10px; right: 10px; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(15,23,42,0.92); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
+.mermaid-toolbar button, .mermaid-toolbar .zoom-level { height: 28px; min-width: 32px; border: 1px solid var(--border); border-radius: 6px; background: #1e293b; color: var(--text); font: 600 0.78rem system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; }
+.mermaid-toolbar button { cursor: pointer; }
+.mermaid-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+.mermaid-toolbar .zoom-level { min-width: 52px; color: var(--muted); background: transparent; }
+.call-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.92rem; }
+.call-table th { background: #1a2744; color: var(--accent); text-align: left; padding: 10px 14px; border: 1px solid var(--border); }
+.call-table td { padding: 8px 14px; border: 1px solid var(--border); vertical-align: top; }
+.call-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+.tag-async { background: #7c3aed33; color: #a78bfa; }
+.tag-class { background: #05966933; color: var(--ok); }
+.tag-func { background: #2563eb33; color: var(--accent); }
+.tag-cmd { background: #d9770633; color: var(--warn); }
+.tag-endpoint { background: #dc262633; color: var(--err); }
+.tag-hook { background: #db277733; color: #f472b6; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 16px 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin: 16px 0; }
+.arrow-chain { font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--accent); padding: 10px; background: rgba(56,189,248,0.06); border-radius: 6px; }
+code { font-family: 'Fira Code', 'Cascadia Code', monospace; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 3px; font-size: 0.88em; }
+ul, ol { margin: 8px 0 8px 24px; color: var(--muted); }
+li { margin: 4px 0; }
+a { color: var(--accent); }
+hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+.nav { position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9rem; }
+.nav a { text-decoration: none; }
+.nav a:hover { text-decoration: underline; }
+@media (max-width: 768px) { .container { padding: 16px; } h1 { font-size: 1.8rem; } }
+
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>ProjectServeLoco — Complete Call Flow &amp; Architecture Documentation</h1>
+<p class="subtitle">Generated from graphify knowledge graph: 364 nodes, 336 edges, 43 communities. Commit: unknown</p>
+
+<div class="nav">
+    <a href="#overview">Architecture Overview</a>
+    <a href="#extract-pipeline">Extraction Pipeline</a>
+    <a href="#build-graph">Graph Build</a>
+    <a href="#cli-skills">CLI &amp; Skill Installers</a>
+    <a href="#serve-api">Serving API</a>
+    <a href="#community-14">Community 14</a>
+    <a href="#community-8">Community 8</a>
+    <a href="#community-1">Community 1</a>
+    <a href="#community-5">Community 5</a>
+    <a href="#community-12">Community 12</a>
+    <a href="#community-15">Community 15</a>
+    <a href="#community-16">Community 16</a>
+    <a href="#community-18">Community 18</a>
+    <a href="#community-17">Community 17</a>
+    <a href="#community-21">Community 21</a>
+    <a href="#other">Other</a>
+</div>
+
+<!-- ====== Architecture Overview ====== -->
+<h2 id="overview">1. Architecture Overview</h2>
+
+<div class="mermaid">
+
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    EXTRACT_PIPELINE_5F350230("Extraction Pipeline<br/><small>7 nodes</small>")
+    class EXTRACT_PIPELINE_5F350230 module;
+    BUILD_GRAPH_321CBB04("Graph Build<br/><small>106 nodes</small>")
+    class BUILD_GRAPH_321CBB04 module;
+    CLI_SKILLS_9964CBB8("CLI &amp; Skill Installers<br/><small>28 nodes</small>")
+    class CLI_SKILLS_9964CBB8 module;
+    SERVE_API_35EC8E86("Serving API<br/><small>62 nodes</small>")
+    class SERVE_API_35EC8E86 module;
+    COMMUNITY_14_21BC55C3("Community 14<br/><small>25 nodes</small>")
+    class COMMUNITY_14_21BC55C3 module;
+    COMMUNITY_8_9FC4FAC0("Community 8<br/><small>17 nodes</small>")
+    class COMMUNITY_8_9FC4FAC0 module;
+    COMMUNITY_1_3073A0DB("Community 1<br/><small>13 nodes</small>")
+    class COMMUNITY_1_3073A0DB module;
+    COMMUNITY_5_2966028D("Community 5<br/><small>13 nodes</small>")
+    class COMMUNITY_5_2966028D module;
+    COMMUNITY_12_82F13F05("Community 12<br/><small>10 nodes</small>")
+    class COMMUNITY_12_82F13F05 module;
+    COMMUNITY_15_4BECAAD7("Community 15<br/><small>10 nodes</small>")
+    class COMMUNITY_15_4BECAAD7 module;
+    COMMUNITY_16_BD3EE841("Community 16<br/><small>10 nodes</small>")
+    class COMMUNITY_16_BD3EE841 module;
+    COMMUNITY_18_A335126F("Community 18<br/><small>9 nodes</small>")
+    class COMMUNITY_18_A335126F module;
+    COMMUNITY_17_648F8D7C("Community 17<br/><small>8 nodes</small>")
+    class COMMUNITY_17_648F8D7C module;
+    COMMUNITY_21_47BA4108("Community 21<br/><small>8 nodes</small>")
+    class COMMUNITY_21_47BA4108 module;
+    OTHER_D0941E68("Other<br/><small>38 nodes</small>")
+    class OTHER_D0941E68 module;
+    CLI_SKILLS_9964CBB8 -->|contains| SERVE_API_35EC8E86
+    CLI_SKILLS_9964CBB8 -->|contains| COMMUNITY_14_21BC55C3
+    SERVE_API_35EC8E86 -->|contains| COMMUNITY_21_47BA4108
+    COMMUNITY_14_21BC55C3 -->|contains| COMMUNITY_5_2966028D
+    COMMUNITY_14_21BC55C3 -->|contains| COMMUNITY_15_4BECAAD7
+    SERVE_API_35EC8E86 -->|contains| COMMUNITY_16_BD3EE841
+    BUILD_GRAPH_321CBB04 -->|contains| COMMUNITY_17_648F8D7C
+    BUILD_GRAPH_321CBB04 -->|contains| COMMUNITY_1_3073A0DB
+    BUILD_GRAPH_321CBB04 -->|contains| OTHER_D0941E68
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h4>Architecture Layers</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
+      <tr><td>Extraction Pipeline</td><td>7</td><td><code>23, 25</code></td></tr><tr><td>Graph Build</td><td>106</td><td><code>0, 2, 13, 22, 4, 24, 36, 37</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>28</td><td><code>6</code></td></tr><tr><td>Serving API</td><td>62</td><td><code>20, 7, 28</code></td></tr><tr><td>Community 14</td><td>25</td><td><code>14</code></td></tr><tr><td>Community 8</td><td>17</td><td><code>8</code></td></tr><tr><td>Community 1</td><td>13</td><td><code>1</code></td></tr><tr><td>Community 5</td><td>13</td><td><code>5</code></td></tr><tr><td>Community 12</td><td>10</td><td><code>12</code></td></tr><tr><td>Community 15</td><td>10</td><td><code>15</code></td></tr><tr><td>Community 16</td><td>10</td><td><code>16</code></td></tr><tr><td>Community 18</td><td>9</td><td><code>18</code></td></tr><tr><td>Community 17</td><td>8</td><td><code>17</code></td></tr><tr><td>Community 21</td><td>8</td><td><code>21</code></td></tr><tr><td>Other</td><td>38</td><td><code>3, 26, 10, 11, 27, 29, 30, 31, 32, 33, 34, 35, 9, 19, 38, 39, 40, 41, 42</code></td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Core Flow</h4>
+    <div class="arrow-chain">Extraction Pipeline -&gt; Graph Build -&gt; Other -&gt; CLI &amp; Skill Installers -&gt; Serving API -&gt; Community 21 -&gt; Community 14</div>
+  </div>
+</div>
+<div class="grid">
+  <div class="card">
+    <h4>Graph Report Highlights</h4>
+    <ul>
+      <li>364 nodes · 336 edges · 43 communities (28 shown, 15 thin omitted)</li>
+      <li>Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS</li>
+      <li>Token cost: 0 input · 0 output</li>
+      <li>1. `ServeLoco V1 Implementation Plan` - 18 edges</li>
+      <li>2. `ServeLoco Main Plan` - 13 edges</li>
+      <li>3. `API Plan` - 13 edges</li>
+    </ul>
+  </div>
+</div>
+<hr>
+<!-- ====== 2. Extraction Pipeline ====== -->
+<h2 id="extract-pipeline">2. Extraction Pipeline</h2>
+<p>Extraction Pipeline groups implementation around frontend, android, app, com, mostly in com/serveloco/MainActivity.kt, com/serveloco/MainApplication.kt. This section covers 7 nodes and 5 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Extraction Pipeline (7 nodes, 5 edges)
+    subgraph extract_pipeline_com_serveloco_MainActivity_kt_d864e8ef["com/serveloco/MainActivity.kt"]
+        serveloco_mainactivity_mainactivity_7e1e1b76("MainActivity<br/><small>com/serveloco/MainActivity.kt</small>")
+        serveloco_mainactivity_mainactivity_getmaincompo_6f05b356("getMainComponentName()<br/><small>com/serveloco/MainActivity.kt</small>")
+        serveloco_mainactivity_mainactivity_createreacta_1257cc08("createReactActivityDelegate()<br/><small>com/serveloco/MainActivity.kt</small>")
+        frontend_v1_android_app_src_main_java_com_servel_8f713afe("MainActivity.kt")
+    end
+    subgraph extract_pipeline_com_serveloco_MainApplication_k_f9cf1f24["com/serveloco/MainApplication.kt"]
+        serveloco_mainapplication_mainapplication_206f64e3("MainApplication<br/><small>com/serveloco/MainApplication.kt</small>")
+        serveloco_mainapplication_mainapplication_oncrea_3862487e("onCreate()<br/><small>com/serveloco/MainApplication.kt</small>")
+        frontend_v1_android_app_src_main_java_com_servel_460c0366("MainApplication.kt")
+    end
+    serveloco_mainapplication_mainapplication_206f64e3 -->|method| serveloco_mainapplication_mainapplication_oncrea_3862487e
+    serveloco_mainactivity_mainactivity_7e1e1b76 -->|method| serveloco_mainactivity_mainactivity_getmaincompo_6f05b356
+    serveloco_mainactivity_mainactivity_7e1e1b76 -->|method| serveloco_mainactivity_mainactivity_createreacta_1257cc08
+    class serveloco_mainactivity_mainactivity_7e1e1b76 klass;
+    class serveloco_mainactivity_mainactivity_getmaincompo_6f05b356 ui;
+    class serveloco_mainactivity_mainactivity_createreacta_1257cc08 function;
+    class frontend_v1_android_app_src_main_java_com_servel_8f713afe klass;
+    class serveloco_mainapplication_mainapplication_206f64e3 klass;
+    class serveloco_mainapplication_mainapplication_oncrea_3862487e function;
+    class frontend_v1_android_app_src_main_java_com_servel_460c0366 klass;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>MainActivity.kt</code><br><small style="color:var(--muted)">com/serveloco/MainActivity.kt</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>MainActivity.kt node in com/serveloco/MainActivity.kt.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>MainActivity</code><br><small style="color:var(--muted)">com/serveloco/MainActivity.kt</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>createReactActivityDelegate()</code><br><small style="color:var(--muted)">com/serveloco/MainActivity.kt</small><br><code>getMainComponentName()</code><br><small style="color:var(--muted)">com/serveloco/MainActivity.kt</small></td>
+  <td>MainActivity node in com/serveloco/MainActivity.kt.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>.getMainComponentName()</code><br><small style="color:var(--muted)">com/serveloco/MainActivity.kt</small></td>
+  <td><span class="tag tag-hook">UI</span></td>
+  <td><code>MainActivity</code><br><small style="color:var(--muted)">com/serveloco/MainActivity.kt</small></td>
+  <td>No direct outbound edge</td>
+  <td>.getMainComponentName() node in com/serveloco/MainActivity.kt.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>.createReactActivityDelegate()</code><br><small style="color:var(--muted)">com/serveloco/MainActivity.kt</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>MainActivity</code><br><small style="color:var(--muted)">com/serveloco/MainActivity.kt</small></td>
+  <td>No direct outbound edge</td>
+  <td>.createReactActivityDelegate() node in com/serveloco/MainActivity.kt.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>MainApplication.kt</code><br><small style="color:var(--muted)">com/serveloco/MainApplication.kt</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>MainApplication.kt node in com/serveloco/MainApplication.kt.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>MainApplication</code><br><small style="color:var(--muted)">com/serveloco/MainApplication.kt</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>onCreate()</code><br><small style="color:var(--muted)">com/serveloco/MainApplication.kt</small></td>
+  <td>MainApplication node in com/serveloco/MainApplication.kt.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>.onCreate()</code><br><small style="color:var(--muted)">com/serveloco/MainApplication.kt</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>MainApplication</code><br><small style="color:var(--muted)">com/serveloco/MainApplication.kt</small></td>
+  <td>No direct outbound edge</td>
+  <td>.onCreate() node in com/serveloco/MainApplication.kt.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>com/serveloco/MainActivity.kt</code></td><td>4 nodes</td></tr>
+<tr><td><code>com/serveloco/MainApplication.kt</code></td><td>3 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: method x3, contains x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 3. Graph Build ====== -->
+<h2 id="build-graph">3. Graph Build</h2>
+<p>Graph Build groups implementation around frontend, backend, planmd, packagejson, mostly in Backend-V1/PLAN.md, Frontend-V1/package.json, Images.xcassets/AppIcon.appiconset/Contents.json. This section covers 106 nodes and 102 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Graph Build (106 nodes, 102 edges)
+    subgraph build_graph_antigravitycli_36cd89fe_d8b1_438e_b4_4dc413a1[".antigravitycli/36cd89fe-d8b1-438e-b41c-ffa9104fead8.json"]
+        antigravitycli_36cd89fe_d8b1_438e_b41c_ffa9104fe_d9c09a9c("36cd89fe-d8b1-438e-b41c-ffa9104fead8.json")
+        antigravitycli_36cd89fe_d8b1_438e_b41c_ffa9104fe_eba8358f("id<br/><small>.antigravitycli/36cd89fe-d8b1-438e-b41c-ffa9104fead8.json</small>")
+        antigravitycli_36cd89fe_d8b1_438e_b41c_ffa9104fe_1757deca("name<br/><small>.antigravitycli/36cd89fe-d8b1-438e-b41c-ffa9104fead8.json</small>")
+        antigravitycli_36cd89fe_d8b1_438e_b41c_ffa9104fe_669df278("projectResources<br/><small>.antigravitycli/36cd89fe-d8b1-438e-b41c-ffa9104fead8.json</small>")
+        antigravitycli_36cd89fe_d8b1_438e_b41c_ffa9104fe_193111dc("resources<br/><small>.antigravitycli/36cd89fe-d8b1-438e-b41c-ffa9104fead8.json</small>")
+    end
+    subgraph build_graph_Frontend_V1_App_js_3ca16d74["Frontend-V1/App.js"]
+        frontend_v1_app_js_794cb919("App.js")
+        frontend_v1_app_app_3fe36d59("App()<br/><small>Frontend-V1/App.js</small>")
+        frontend_v1_app_styles_ef1a87f8("styles<br/><small>Frontend-V1/App.js</small>")
+    end
+    subgraph build_graph_Frontend_V1_app_json_a979ef00["Frontend-V1/app.json"]
+        frontend_v1_app_json_a31af506("app.json")
+        frontend_v1_app_name_43042f02("name<br/><small>Frontend-V1/app.json</small>")
+        frontend_v1_app_displayname_7fa02a1d("displayName<br/><small>Frontend-V1/app.json</small>")
+    end
+    subgraph build_graph_src_utils_noEmojiCheck_js_7ad2d364["src/utils/noEmojiCheck.js"]
+        utils_noemojicheck_hasemoji_dd730c57("hasEmoji()<br/><small>src/utils/noEmojiCheck.js</small>")
+        utils_noemojicheck_assertnoemoji_765ccd3a("assertNoEmoji()<br/><small>src/utils/noEmojiCheck.js</small>")
+        frontend_v1_src_utils_noemojicheck_js_1b91a313("noEmojiCheck.js")
+    end
+    frontend_v1_tests_app_test_js_d30ee0e6("App.test.js")
+    frontend_v1_android_build_gradle_cd534878("build.gradle")
+    frontend_v1_index_js_68a90180("index.js")
+    frontend_v1_package_devdependencies_babel_core_f70aa5af("@babel/core<br/><small>Frontend-V1/package.json</small>")
+    frontend_v1_app_app_3fe36d59 -->|calls| utils_noemojicheck_assertnoemoji_765ccd3a
+    utils_noemojicheck_hasemoji_dd730c57 -->|calls| utils_noemojicheck_assertnoemoji_765ccd3a
+    frontend_v1_app_js_794cb919 -->|imports| frontend_v1_src_utils_noemojicheck_js_1b91a313
+    frontend_v1_app_js_794cb919 -->|imports| utils_noemojicheck_assertnoemoji_765ccd3a
+    frontend_v1_app_js_794cb919 -->|imports| frontend_v1_index_js_68a90180
+    frontend_v1_app_js_794cb919 -->|imports| frontend_v1_tests_app_test_js_d30ee0e6
+    frontend_v1_index_js_68a90180 -->|imports| frontend_v1_app_json_a31af506
+    frontend_v1_index_js_68a90180 -->|imports| frontend_v1_app_name_43042f02
+    %% Omitted for readability: 88 nodes, 0 edges
+    class antigravitycli_36cd89fe_d8b1_438e_b41c_ffa9104fe_d9c09a9c function;
+    class antigravitycli_36cd89fe_d8b1_438e_b41c_ffa9104fe_eba8358f function;
+    class antigravitycli_36cd89fe_d8b1_438e_b41c_ffa9104fe_1757deca function;
+    class antigravitycli_36cd89fe_d8b1_438e_b41c_ffa9104fe_669df278 function;
+    class antigravitycli_36cd89fe_d8b1_438e_b41c_ffa9104fe_193111dc function;
+    class frontend_v1_app_js_794cb919 klass;
+    class frontend_v1_app_app_3fe36d59 function;
+    class frontend_v1_app_styles_ef1a87f8 function;
+    class frontend_v1_app_json_a31af506 function;
+    class frontend_v1_app_name_43042f02 function;
+    class frontend_v1_app_displayname_7fa02a1d function;
+    class utils_noemojicheck_hasemoji_dd730c57 function;
+    class utils_noemojicheck_assertnoemoji_765ccd3a async;
+    class frontend_v1_src_utils_noemojicheck_js_1b91a313 module;
+    class frontend_v1_tests_app_test_js_d30ee0e6 test;
+    class frontend_v1_android_build_gradle_cd534878 function;
+    class frontend_v1_index_js_68a90180 module;
+    class frontend_v1_package_devdependencies_babel_core_f70aa5af function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>PLAN.md</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing PLAN.md.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>ServeLoco V1 Implementation Plan</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ServeLoco V1 Implementation Plan.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Goal</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Goal.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Tech Stack</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Tech Stack.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Frontend</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Backend</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Backend.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Databases</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Databases.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Main Rule</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Main Rule.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>code:text (React Native app -&gt; Node.js Express API -&gt; MySQL)</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing code:text (React Native app -&gt; Node.js Express API -&gt; MySQL).</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>V1 Scope</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing V1 Scope.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>Included</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Included.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Not Included</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Not Included.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>Repository Structure</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Repository Structure.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>code:text (/Backend-V1)</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing code:text (/Backend-V1).</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>Backend Environment Variables</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Backend Environment Variables.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>Default Local Admin</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Default Local Admin.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>MongoDB Image Model</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing MongoDB Image Model.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>images</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing images.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>Order Rules</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Order Rules.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>Frontend Build Phases</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend Build Phases.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>Phase 1: App Shell</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 1: App Shell.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>Phase 2: Customer Flow</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 2: Customer Flow.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>Phase 3: Admin Flow</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 3: Admin Flow.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>Admin Dashboard Requirements</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Admin Dashboard Requirements.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>Testing Checklist</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Testing Checklist.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>Backend</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Backend.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>Frontend</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>Integration</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Integration.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>Acceptance Criteria</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Acceptance Criteria.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>Immediate Next Steps</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Immediate Next Steps.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>Backend-V1/PLAN.md</code></td><td>40 nodes</td></tr>
+<tr><td><code>Frontend-V1/package.json</code></td><td>37 nodes</td></tr>
+<tr><td><code>.antigravitycli/36cd89fe-d8b1-438e-b41c-ffa9104fead8.json</code></td><td>5 nodes</td></tr>
+<tr><td><code>Images.xcassets/AppIcon.appiconset/Contents.json</code></td><td>5 nodes</td></tr>
+<tr><td><code>ServeLoco/Images.xcassets/Contents.json</code></td><td>4 nodes</td></tr>
+<tr><td><code>src/utils/noEmojiCheck.js</code></td><td>4 nodes</td></tr>
+<tr><td><code>Frontend-V1/App.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>Frontend-V1/app.json</code></td><td>3 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x93, imports x4, imports x2, calls x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 4. CLI & Skill Installers ====== -->
+<h2 id="cli-skills">4. CLI &amp; Skill Installers</h2>
+<p>CLI &amp; Skill Installers groups implementation around mainplanmd, backend, frontend, codetext, mostly in mainPLAN.md. This section covers 28 nodes and 27 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: CLI &amp; Skill Installers (28 nodes, 27 edges)
+    projectserveloco_mainplan_serveloco_main_plan_226e9e92("ServeLoco Main Plan<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_testing_checklist_cdd874d4("Testing Checklist<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_tech_stack_1d12f8f4("Tech Stack<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_v1_scope_50071749("V1 Scope<br/><small>mainPLAN.md</small>")
+    mainplan_md_8bcb58eb("mainPLAN.md")
+    projectserveloco_mainplan_main_architecture_rule_328ae66b("Main Architecture Rule<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_repository_structure_dad6f14b("Repository Structure<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_acceptance_criteria_a69f6de7("Acceptance Criteria<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_admin_dashboard_requir_05f8ac04("Admin Dashboard Requirements<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_backend_af6f331f("Backend<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_backend_1078_c32ba77d("Backend<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_backend_1052_566a8d5c("Backend<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_backend_935_e3365476("Backend<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_backend_541_4a92fd9d("Backend<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_databases_254ae2a2("Databases<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_frontend_871597aa("Frontend<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_frontend_1095_c09e6a7b("Frontend<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_frontend_1069_10b3da94("Frontend<br/><small>mainPLAN.md</small>")
+    mainplan_md_8bcb58eb -->|contains| projectserveloco_mainplan_serveloco_main_plan_226e9e92
+    projectserveloco_mainplan_serveloco_main_plan_226e9e92 -->|contains| projectserveloco_mainplan_tech_stack_1d12f8f4
+    projectserveloco_mainplan_serveloco_main_plan_226e9e92 -->|contains| projectserveloco_mainplan_main_architecture_rule_328ae66b
+    projectserveloco_mainplan_serveloco_main_plan_226e9e92 -->|contains| projectserveloco_mainplan_v1_scope_50071749
+    projectserveloco_mainplan_serveloco_main_plan_226e9e92 -->|contains| projectserveloco_mainplan_repository_structure_dad6f14b
+    projectserveloco_mainplan_serveloco_main_plan_226e9e92 -->|contains| projectserveloco_mainplan_testing_checklist_cdd874d4
+    projectserveloco_mainplan_serveloco_main_plan_226e9e92 -->|contains| projectserveloco_mainplan_acceptance_criteria_a69f6de7
+    projectserveloco_mainplan_serveloco_main_plan_226e9e92 -->|contains| projectserveloco_mainplan_admin_dashboard_requir_05f8ac04
+    projectserveloco_mainplan_tech_stack_1d12f8f4 -->|contains| projectserveloco_mainplan_frontend_871597aa
+    projectserveloco_mainplan_tech_stack_1d12f8f4 -->|contains| projectserveloco_mainplan_backend_af6f331f
+    projectserveloco_mainplan_tech_stack_1d12f8f4 -->|contains| projectserveloco_mainplan_databases_254ae2a2
+    projectserveloco_mainplan_testing_checklist_cdd874d4 -->|contains| projectserveloco_mainplan_backend_1078_c32ba77d
+    projectserveloco_mainplan_testing_checklist_cdd874d4 -->|contains| projectserveloco_mainplan_frontend_1095_c09e6a7b
+    projectserveloco_mainplan_testing_checklist_cdd874d4 -->|contains| projectserveloco_mainplan_backend_1052_566a8d5c
+    projectserveloco_mainplan_testing_checklist_cdd874d4 -->|contains| projectserveloco_mainplan_frontend_1069_10b3da94
+    projectserveloco_mainplan_testing_checklist_cdd874d4 -->|contains| projectserveloco_mainplan_backend_935_e3365476
+    projectserveloco_mainplan_testing_checklist_cdd874d4 -->|contains| projectserveloco_mainplan_backend_541_4a92fd9d
+    %% Omitted for readability: 10 nodes, 0 edges
+    class projectserveloco_mainplan_serveloco_main_plan_226e9e92 concept;
+    class projectserveloco_mainplan_testing_checklist_cdd874d4 concept;
+    class projectserveloco_mainplan_tech_stack_1d12f8f4 concept;
+    class projectserveloco_mainplan_v1_scope_50071749 concept;
+    class mainplan_md_8bcb58eb concept;
+    class projectserveloco_mainplan_main_architecture_rule_328ae66b concept;
+    class projectserveloco_mainplan_repository_structure_dad6f14b concept;
+    class projectserveloco_mainplan_acceptance_criteria_a69f6de7 concept;
+    class projectserveloco_mainplan_admin_dashboard_requir_05f8ac04 concept;
+    class projectserveloco_mainplan_backend_af6f331f concept;
+    class projectserveloco_mainplan_backend_1078_c32ba77d concept;
+    class projectserveloco_mainplan_backend_1052_566a8d5c concept;
+    class projectserveloco_mainplan_backend_935_e3365476 concept;
+    class projectserveloco_mainplan_backend_541_4a92fd9d concept;
+    class projectserveloco_mainplan_databases_254ae2a2 concept;
+    class projectserveloco_mainplan_frontend_871597aa concept;
+    class projectserveloco_mainplan_frontend_1095_c09e6a7b concept;
+    class projectserveloco_mainplan_frontend_1069_10b3da94 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>mainPLAN.md</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing mainPLAN.md.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>ServeLoco Main Plan</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ServeLoco Main Plan.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Goal</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Goal.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Non-Negotiable Rules</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Non-Negotiable Rules.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Tech Stack</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Tech Stack.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Frontend</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Backend</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Backend.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Databases</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Databases.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Main Architecture Rule</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Main Architecture Rule.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>code:text (React Native app -&gt; Node.js Express API -&gt; MySQL)</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing code:text (React Native app -&gt; Node.js Express API -&gt; MySQL).</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>V1 Scope</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing V1 Scope.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Included</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Included.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>Not Included</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Not Included.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>Repository Structure</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Repository Structure.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>code:text (/Backend-V1)</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing code:text (/Backend-V1).</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>Testing Checklist</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Testing Checklist.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>Backend</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Backend.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>Frontend</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>Integration</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Integration.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>Acceptance Criteria</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Acceptance Criteria.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>Immediate Next Steps</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Immediate Next Steps.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>Backend</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Backend.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>Frontend</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>Backend</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Backend.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>Frontend</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>Admin Dashboard Requirements</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Admin Dashboard Requirements.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>Backend</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Backend.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>Frontend</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>mainPLAN.md</code></td><td>28 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x27. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 5. Serving API ====== -->
+<h2 id="serve-api">5. Serving API</h2>
+<p>Serving API groups implementation around frontend, tasksmd, mainplanmd, task, mostly in Frontend-V1/Tasks.md, mainPLAN.md, src/api/index.js. This section covers 62 nodes and 59 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Serving API (62 nodes, 59 edges)
+    subgraph serve_api_Frontend_V1_Tasks_md_f8ac8c68["Frontend-V1/Tasks.md"]
+        frontend_v1_tasks_serveloco_frontend_tasks_8d6eed02("ServeLoco Frontend Tasks<br/><small>Frontend-V1/Tasks.md</small>")
+        frontend_v1_tasks_phase_1_app_shell_and_foundati_32da0878("Phase 1: App Shell And Foundations<br/><small>Frontend-V1/Tasks.md</small>")
+        frontend_v1_tasks_phase_3_customer_shopping_flow_079e5a4f("Phase 3: Customer Shopping Flow<br/><small>Frontend-V1/Tasks.md</small>")
+        frontend_v1_tasks_phase_4_customer_account_and_o_cedc0983("Phase 4: Customer Account And Orders<br/><small>Frontend-V1/Tasks.md</small>")
+        frontend_v1_tasks_phase_6_integration_and_qa_447bb185("Phase 6: Integration And QA<br/><small>Frontend-V1/Tasks.md</small>")
+        frontend_v1_tasks_phase_2_auth_and_preview_gate_3ab36403("Phase 2: Auth And Preview Gate<br/><small>Frontend-V1/Tasks.md</small>")
+        frontend_v1_tasks_app_animation_standard_500fbf04("App Animation Standard<br/><small>Frontend-V1/Tasks.md</small>")
+        frontend_v1_tasks_folder_structure_and_naming_st_2db76c17("Folder Structure And Naming Standard<br/><small>Frontend-V1/Tasks.md</small>")
+        frontend_v1_tasks_global_frontend_rules_a5632fcd("Global Frontend Rules<br/><small>Frontend-V1/Tasks.md</small>")
+        frontend_v1_tasks_how_to_use_this_checklist_8572fa30("How To Use This Checklist<br/><small>Frontend-V1/Tasks.md</small>")
+        frontend_v1_tasks_task_f_01_create_react_native_013c33a2("Task F-01: Create React Native App Shell<br/><small>Frontend-V1/Tasks.md</small>")
+        frontend_v1_tasks_task_f_02_theme_and_design_tok_93fa88ea("Task F-02: Theme And Design Tokens<br/><small>Frontend-V1/Tasks.md</small>")
+    end
+    subgraph serve_api_mainPLAN_md_8df3b407["mainPLAN.md"]
+        projectserveloco_mainplan_api_plan_f57a76a2("API Plan<br/><small>mainPLAN.md</small>")
+        projectserveloco_mainplan_backend_plan_7eac6429("Backend Plan<br/><small>mainPLAN.md</small>")
+        projectserveloco_mainplan_backend_build_phases_9f67e0db("Backend Build Phases<br/><small>mainPLAN.md</small>")
+        projectserveloco_mainplan_mongodb_image_model_6c9540a0("MongoDB Image Model<br/><small>mainPLAN.md</small>")
+    end
+    subgraph serve_api_src_api_index_js_e5bb1ece["src/api/index.js"]
+        frontend_v1_src_api_index_js_0dd56c03("index.js")
+        api_index_apiplaceholder_75c0233d("apiPlaceholder<br/><small>src/api/index.js</small>")
+    end
+    frontend_v1_src_api_index_js_0dd56c03 -->|contains| api_index_apiplaceholder_75c0233d
+    projectserveloco_mainplan_backend_plan_7eac6429 -->|contains| projectserveloco_mainplan_mongodb_image_model_6c9540a0
+    projectserveloco_mainplan_backend_plan_7eac6429 -->|contains| projectserveloco_mainplan_api_plan_f57a76a2
+    projectserveloco_mainplan_backend_plan_7eac6429 -->|contains| projectserveloco_mainplan_backend_build_phases_9f67e0db
+    frontend_v1_tasks_serveloco_frontend_tasks_8d6eed02 -->|contains| frontend_v1_tasks_how_to_use_this_checklist_8572fa30
+    frontend_v1_tasks_serveloco_frontend_tasks_8d6eed02 -->|contains| frontend_v1_tasks_global_frontend_rules_a5632fcd
+    frontend_v1_tasks_serveloco_frontend_tasks_8d6eed02 -->|contains| frontend_v1_tasks_folder_structure_and_naming_st_2db76c17
+    frontend_v1_tasks_serveloco_frontend_tasks_8d6eed02 -->|contains| frontend_v1_tasks_app_animation_standard_500fbf04
+    frontend_v1_tasks_serveloco_frontend_tasks_8d6eed02 -->|contains| frontend_v1_tasks_phase_1_app_shell_and_foundati_32da0878
+    frontend_v1_tasks_serveloco_frontend_tasks_8d6eed02 -->|contains| frontend_v1_tasks_phase_2_auth_and_preview_gate_3ab36403
+    frontend_v1_tasks_serveloco_frontend_tasks_8d6eed02 -->|contains| frontend_v1_tasks_phase_3_customer_shopping_flow_079e5a4f
+    frontend_v1_tasks_serveloco_frontend_tasks_8d6eed02 -->|contains| frontend_v1_tasks_phase_4_customer_account_and_o_cedc0983
+    frontend_v1_tasks_serveloco_frontend_tasks_8d6eed02 -->|contains| frontend_v1_tasks_phase_6_integration_and_qa_447bb185
+    frontend_v1_tasks_phase_1_app_shell_and_foundati_32da0878 -->|contains| frontend_v1_tasks_task_f_01_create_react_native_013c33a2
+    frontend_v1_tasks_phase_1_app_shell_and_foundati_32da0878 -->|contains| frontend_v1_tasks_task_f_02_theme_and_design_tok_93fa88ea
+    %% Omitted for readability: 44 nodes, 0 edges
+    class frontend_v1_tasks_serveloco_frontend_tasks_8d6eed02 concept;
+    class frontend_v1_tasks_phase_1_app_shell_and_foundati_32da0878 concept;
+    class frontend_v1_tasks_phase_3_customer_shopping_flow_079e5a4f concept;
+    class frontend_v1_tasks_phase_4_customer_account_and_o_cedc0983 concept;
+    class frontend_v1_tasks_phase_6_integration_and_qa_447bb185 concept;
+    class frontend_v1_tasks_phase_2_auth_and_preview_gate_3ab36403 concept;
+    class frontend_v1_tasks_app_animation_standard_500fbf04 concept;
+    class frontend_v1_tasks_folder_structure_and_naming_st_2db76c17 concept;
+    class frontend_v1_tasks_global_frontend_rules_a5632fcd concept;
+    class frontend_v1_tasks_how_to_use_this_checklist_8572fa30 concept;
+    class frontend_v1_tasks_task_f_01_create_react_native_013c33a2 concept;
+    class frontend_v1_tasks_task_f_02_theme_and_design_tok_93fa88ea concept;
+    class projectserveloco_mainplan_api_plan_f57a76a2 concept;
+    class projectserveloco_mainplan_backend_plan_7eac6429 concept;
+    class projectserveloco_mainplan_backend_build_phases_9f67e0db concept;
+    class projectserveloco_mainplan_mongodb_image_model_6c9540a0 concept;
+    class frontend_v1_src_api_index_js_0dd56c03 module;
+    class api_index_apiplaceholder_75c0233d api;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Tasks.md</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Tasks.md.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>ServeLoco Frontend Tasks</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ServeLoco Frontend Tasks.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>How To Use This Checklist</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing How To Use This Checklist.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Global Frontend Rules</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Global Frontend Rules.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Folder Structure And Naming Standard</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Folder Structure And Naming Standard.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>App Animation Standard</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing App Animation Standard.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Phase 1: App Shell And Foundations</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 1: App Shell And Foundations.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Task F-01: Create React Native App Shell</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-01: Create React Native App Shell.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Task F-02: Theme And Design Tokens</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-02: Theme And Design Tokens.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Task F-03: Reusable UI Components</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-03: Reusable UI Components.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>Task F-03A: Animation System Components</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-03A: Animation System Components.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Task F-04: API Client</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-04: API Client.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>Task F-05: Session And Stores</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-05: Session And Stores.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>Task F-06: Navigation</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-06: Navigation.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>Phase 2: Auth And Preview Gate</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 2: Auth And Preview Gate.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>Task F-07: Home Preview And Auth Gate</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-07: Home Preview And Auth Gate.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>Task F-08: Login And Sign Up Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-08: Login And Sign Up Screen.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>Phase 3: Customer Shopping Flow</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 3: Customer Shopping Flow.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>Task F-09: Home Dashboard Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-09: Home Dashboard Screen.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>Task F-10: Categories Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-10: Categories Screen.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>Task F-11: Product List And Search Results Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-11: Product List And Search Results Screen.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>Task F-12: Product Detail Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-12: Product Detail Screen.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>Task F-13: Cart Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-13: Cart Screen.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>Task F-14: Checkout Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-14: Checkout Screen.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>Task F-15: Order Confirmation Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-15: Order Confirmation Screen.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>Phase 4: Customer Account And Orders</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 4: Customer Account And Orders.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>Task F-16: Orders Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-16: Orders Screen.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>Task F-17: Order Detail Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-17: Order Detail Screen.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>Task F-18: Profile Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-18: Profile Screen.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>Task F-19: Edit Profile Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-19: Edit Profile Screen.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>Frontend-V1/Tasks.md</code></td><td>34 nodes</td></tr>
+<tr><td><code>mainPLAN.md</code></td><td>26 nodes</td></tr>
+<tr><td><code>src/api/index.js</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x59. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 6. Community 14 ====== -->
+<h2 id="community-14">6. Community 14</h2>
+<p>Community 14 groups implementation around mainplanmd, frontend, phase, structure, mostly in mainPLAN.md. This section covers 25 nodes and 24 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Community 14 (25 nodes, 24 edges)
+    projectserveloco_mainplan_frontend_plan_83f9c384("Frontend Plan<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_first_screen_home_dash_16c908a3("First Screen: Home Dashboard<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_login_and_signup_ui_de_37360f11("Login And Signup UI Design<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_frontend_build_phases_4e8d6685("Frontend Build Phases<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_stack_rules_9938bd74("Stack Rules<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_frontend_folder_struct_28a8f480("Frontend Folder Structure And Naming<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_animation_and_motion_g_a7861d46("Animation And Motion Guidelines<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_animations_and_interac_58a80f59("Animations And Interactions<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_auth_behavior_and_api_36f6ee93("Auth Behavior And API<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_auth_ui_testing_b5fdf581("Auth UI Testing<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_bottom_navigation_9281721b("Bottom Navigation<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_category_cards_565ff736("Category Cards<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_combo_deals_ff545216("Combo Deals<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_frontend_design_system_88c5f95a("Frontend Design System<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_login_fields_5ef37595("Login Fields<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_navigation_structure_352ce739("Navigation Structure<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_offer_banner_b81e7576("Offer Banner<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_phase_1_app_shell_9b7e0130("Phase 1: App Shell<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_frontend_plan_83f9c384 -->|contains| projectserveloco_mainplan_stack_rules_9938bd74
+    projectserveloco_mainplan_frontend_plan_83f9c384 -->|contains| projectserveloco_mainplan_frontend_folder_struct_28a8f480
+    projectserveloco_mainplan_frontend_plan_83f9c384 -->|contains| projectserveloco_mainplan_frontend_design_system_88c5f95a
+    projectserveloco_mainplan_frontend_plan_83f9c384 -->|contains| projectserveloco_mainplan_animation_and_motion_g_a7861d46
+    projectserveloco_mainplan_frontend_plan_83f9c384 -->|contains| projectserveloco_mainplan_navigation_structure_352ce739
+    projectserveloco_mainplan_frontend_plan_83f9c384 -->|contains| projectserveloco_mainplan_frontend_build_phases_4e8d6685
+    projectserveloco_mainplan_frontend_plan_83f9c384 -->|contains| projectserveloco_mainplan_first_screen_home_dash_16c908a3
+    projectserveloco_mainplan_frontend_plan_83f9c384 -->|contains| projectserveloco_mainplan_login_and_signup_ui_de_37360f11
+    projectserveloco_mainplan_frontend_build_phases_4e8d6685 -->|contains| projectserveloco_mainplan_phase_1_app_shell_9b7e0130
+    projectserveloco_mainplan_first_screen_home_dash_16c908a3 -->|contains| projectserveloco_mainplan_offer_banner_b81e7576
+    projectserveloco_mainplan_first_screen_home_dash_16c908a3 -->|contains| projectserveloco_mainplan_category_cards_565ff736
+    projectserveloco_mainplan_first_screen_home_dash_16c908a3 -->|contains| projectserveloco_mainplan_combo_deals_ff545216
+    projectserveloco_mainplan_first_screen_home_dash_16c908a3 -->|contains| projectserveloco_mainplan_bottom_navigation_9281721b
+    projectserveloco_mainplan_login_and_signup_ui_de_37360f11 -->|contains| projectserveloco_mainplan_login_fields_5ef37595
+    projectserveloco_mainplan_login_and_signup_ui_de_37360f11 -->|contains| projectserveloco_mainplan_animations_and_interac_58a80f59
+    projectserveloco_mainplan_login_and_signup_ui_de_37360f11 -->|contains| projectserveloco_mainplan_auth_behavior_and_api_36f6ee93
+    projectserveloco_mainplan_login_and_signup_ui_de_37360f11 -->|contains| projectserveloco_mainplan_auth_ui_testing_b5fdf581
+    %% Omitted for readability: 7 nodes, 0 edges
+    class projectserveloco_mainplan_frontend_plan_83f9c384 concept;
+    class projectserveloco_mainplan_first_screen_home_dash_16c908a3 concept;
+    class projectserveloco_mainplan_login_and_signup_ui_de_37360f11 concept;
+    class projectserveloco_mainplan_frontend_build_phases_4e8d6685 concept;
+    class projectserveloco_mainplan_stack_rules_9938bd74 concept;
+    class projectserveloco_mainplan_frontend_folder_struct_28a8f480 concept;
+    class projectserveloco_mainplan_animation_and_motion_g_a7861d46 concept;
+    class projectserveloco_mainplan_animations_and_interac_58a80f59 concept;
+    class projectserveloco_mainplan_auth_behavior_and_api_36f6ee93 concept;
+    class projectserveloco_mainplan_auth_ui_testing_b5fdf581 concept;
+    class projectserveloco_mainplan_bottom_navigation_9281721b concept;
+    class projectserveloco_mainplan_category_cards_565ff736 concept;
+    class projectserveloco_mainplan_combo_deals_ff545216 concept;
+    class projectserveloco_mainplan_frontend_design_system_88c5f95a concept;
+    class projectserveloco_mainplan_login_fields_5ef37595 concept;
+    class projectserveloco_mainplan_navigation_structure_352ce739 concept;
+    class projectserveloco_mainplan_offer_banner_b81e7576 concept;
+    class projectserveloco_mainplan_phase_1_app_shell_9b7e0130 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Frontend Plan</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend Plan.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Stack Rules</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Stack Rules.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Frontend Folder Structure And Naming</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend Folder Structure And Naming.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Frontend Design System</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend Design System.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Animation And Motion Guidelines</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Animation And Motion Guidelines.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Navigation Structure</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Navigation Structure.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Frontend Build Phases</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend Build Phases.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Phase 1: App Shell</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 1: App Shell.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Phase 2: Customer Flow</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 2: Customer Flow.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Phase 3: Admin Flow</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 3: Admin Flow.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>First Screen: Home Dashboard</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing First Screen: Home Dashboard.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Visual Direction</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Visual Direction.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>Top Section</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Top Section.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>Toggle Button</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Toggle Button.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>Offer Banner</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Offer Banner.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>Category Cards</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Category Cards.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>Combo Deals</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Combo Deals.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>Bottom Navigation</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Bottom Navigation.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>Login And Signup UI Design</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Login And Signup UI Design.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>Visual Direction</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Visual Direction.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>Login Fields</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Login Fields.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>Sign Up Fields</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Sign Up Fields.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>Animations And Interactions</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Animations And Interactions.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>Auth Behavior And API</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Auth Behavior And API.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>Auth UI Testing</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Auth UI Testing.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>mainPLAN.md</code></td><td>25 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x24. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 7. Community 8 ====== -->
+<h2 id="community-8">7. Community 8</h2>
+<p>Community 8 groups implementation around planmd, frontend, phase, flow, mostly in Frontend-V1/PLAN.md. This section covers 17 nodes and 16 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Community 8 (17 nodes, 16 edges)
+    frontend_v1_plan_first_screen_home_dashboard_d71420e7("First Screen: Home Dashboard<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_serveloco_frontend_plan_fab50e25("ServeLoco Frontend Plan<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_build_phases_664fd7df("Build Phases<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_md_5cda5fe1("PLAN.md")
+    frontend_v1_plan_goal_cec6abc8("Goal<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_stack_rules_a035c251("Stack Rules<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_bottom_navigation_22944aff("Bottom Navigation<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_category_cards_bc408af6("Category Cards<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_combo_deals_4c968c85("Combo Deals<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_offer_banner_dc40347b("Offer Banner<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_phase_1_app_shell_4acabad3("Phase 1: App Shell<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_phase_2_customer_flow_792135e4("Phase 2: Customer Flow<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_phase_3_admin_flow_329a1b31("Phase 3: Admin Flow<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_testing_checklist_3d7de8fa("Testing Checklist<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_toggle_button_52d4b543("Toggle Button<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_top_section_5f0c5e69("Top Section<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_visual_direction_6a9d77f6("Visual Direction<br/><small>Frontend-V1/PLAN.md</small>")
+    frontend_v1_plan_md_5cda5fe1 -->|contains| frontend_v1_plan_serveloco_frontend_plan_fab50e25
+    frontend_v1_plan_serveloco_frontend_plan_fab50e25 -->|contains| frontend_v1_plan_goal_cec6abc8
+    frontend_v1_plan_serveloco_frontend_plan_fab50e25 -->|contains| frontend_v1_plan_stack_rules_a035c251
+    frontend_v1_plan_serveloco_frontend_plan_fab50e25 -->|contains| frontend_v1_plan_first_screen_home_dashboard_d71420e7
+    frontend_v1_plan_serveloco_frontend_plan_fab50e25 -->|contains| frontend_v1_plan_build_phases_664fd7df
+    frontend_v1_plan_serveloco_frontend_plan_fab50e25 -->|contains| frontend_v1_plan_testing_checklist_3d7de8fa
+    frontend_v1_plan_first_screen_home_dashboard_d71420e7 -->|contains| frontend_v1_plan_visual_direction_6a9d77f6
+    frontend_v1_plan_first_screen_home_dashboard_d71420e7 -->|contains| frontend_v1_plan_top_section_5f0c5e69
+    frontend_v1_plan_first_screen_home_dashboard_d71420e7 -->|contains| frontend_v1_plan_toggle_button_52d4b543
+    frontend_v1_plan_first_screen_home_dashboard_d71420e7 -->|contains| frontend_v1_plan_offer_banner_dc40347b
+    frontend_v1_plan_first_screen_home_dashboard_d71420e7 -->|contains| frontend_v1_plan_category_cards_bc408af6
+    frontend_v1_plan_first_screen_home_dashboard_d71420e7 -->|contains| frontend_v1_plan_combo_deals_4c968c85
+    frontend_v1_plan_first_screen_home_dashboard_d71420e7 -->|contains| frontend_v1_plan_bottom_navigation_22944aff
+    frontend_v1_plan_build_phases_664fd7df -->|contains| frontend_v1_plan_phase_1_app_shell_4acabad3
+    frontend_v1_plan_build_phases_664fd7df -->|contains| frontend_v1_plan_phase_2_customer_flow_792135e4
+    frontend_v1_plan_build_phases_664fd7df -->|contains| frontend_v1_plan_phase_3_admin_flow_329a1b31
+    class frontend_v1_plan_first_screen_home_dashboard_d71420e7 concept;
+    class frontend_v1_plan_serveloco_frontend_plan_fab50e25 concept;
+    class frontend_v1_plan_build_phases_664fd7df concept;
+    class frontend_v1_plan_md_5cda5fe1 concept;
+    class frontend_v1_plan_goal_cec6abc8 concept;
+    class frontend_v1_plan_stack_rules_a035c251 concept;
+    class frontend_v1_plan_bottom_navigation_22944aff concept;
+    class frontend_v1_plan_category_cards_bc408af6 concept;
+    class frontend_v1_plan_combo_deals_4c968c85 concept;
+    class frontend_v1_plan_offer_banner_dc40347b concept;
+    class frontend_v1_plan_phase_1_app_shell_4acabad3 concept;
+    class frontend_v1_plan_phase_2_customer_flow_792135e4 concept;
+    class frontend_v1_plan_phase_3_admin_flow_329a1b31 concept;
+    class frontend_v1_plan_testing_checklist_3d7de8fa concept;
+    class frontend_v1_plan_toggle_button_52d4b543 concept;
+    class frontend_v1_plan_top_section_5f0c5e69 concept;
+    class frontend_v1_plan_visual_direction_6a9d77f6 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>PLAN.md</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing PLAN.md.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>ServeLoco Frontend Plan</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ServeLoco Frontend Plan.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Goal</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Goal.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Stack Rules</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Stack Rules.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>First Screen: Home Dashboard</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing First Screen: Home Dashboard.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Visual Direction</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Visual Direction.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Top Section</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Top Section.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Toggle Button</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Toggle Button.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Offer Banner</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Offer Banner.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Category Cards</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Category Cards.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>Combo Deals</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Combo Deals.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Bottom Navigation</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Bottom Navigation.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>Build Phases</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Build Phases.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>Phase 1: App Shell</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 1: App Shell.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>Phase 2: Customer Flow</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 2: Customer Flow.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>Phase 3: Admin Flow</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 3: Admin Flow.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>Testing Checklist</code><br><small style="color:var(--muted)">Frontend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Testing Checklist.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>Frontend-V1/PLAN.md</code></td><td>17 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x16. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 8. Community 1 ====== -->
+<h2 id="community-1">8. Community 1</h2>
+<p>Community 1 groups implementation around backend, planmd, admin, customer, mostly in Backend-V1/PLAN.md. This section covers 13 nodes and 12 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Community 1 (13 nodes, 12 edges)
+    backend_v1_plan_api_plan_d54c6209("API Plan<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_health_cacefeb3("Health<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_customer_auth_014ee634("Customer Auth<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_products_248_895a08c8("Products<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_images_253_c31e0d6e("Images<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_cart_checkout_7aa468c6("Cart / Checkout<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_admin_auth_c40f43aa("Admin Auth<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_admin_customers_296e2c6d("Admin Customers<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_admin_dashboard_307557c5("Admin Dashboard<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_admin_orders_7bfdb95b("Admin Orders<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_admin_products_a28d3c74("Admin Products<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_admin_settings_offers_eb1ef1f1("Admin Settings / Offers<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_customer_orders_8d433655("Customer Orders<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_api_plan_d54c6209 -->|contains| backend_v1_plan_health_cacefeb3
+    backend_v1_plan_api_plan_d54c6209 -->|contains| backend_v1_plan_customer_auth_014ee634
+    backend_v1_plan_api_plan_d54c6209 -->|contains| backend_v1_plan_products_248_895a08c8
+    backend_v1_plan_api_plan_d54c6209 -->|contains| backend_v1_plan_images_253_c31e0d6e
+    backend_v1_plan_api_plan_d54c6209 -->|contains| backend_v1_plan_cart_checkout_7aa468c6
+    backend_v1_plan_api_plan_d54c6209 -->|contains| backend_v1_plan_customer_orders_8d433655
+    backend_v1_plan_api_plan_d54c6209 -->|contains| backend_v1_plan_admin_auth_c40f43aa
+    backend_v1_plan_api_plan_d54c6209 -->|contains| backend_v1_plan_admin_dashboard_307557c5
+    backend_v1_plan_api_plan_d54c6209 -->|contains| backend_v1_plan_admin_products_a28d3c74
+    backend_v1_plan_api_plan_d54c6209 -->|contains| backend_v1_plan_admin_orders_7bfdb95b
+    backend_v1_plan_api_plan_d54c6209 -->|contains| backend_v1_plan_admin_customers_296e2c6d
+    backend_v1_plan_api_plan_d54c6209 -->|contains| backend_v1_plan_admin_settings_offers_eb1ef1f1
+    class backend_v1_plan_api_plan_d54c6209 concept;
+    class backend_v1_plan_health_cacefeb3 concept;
+    class backend_v1_plan_customer_auth_014ee634 concept;
+    class backend_v1_plan_products_248_895a08c8 concept;
+    class backend_v1_plan_images_253_c31e0d6e concept;
+    class backend_v1_plan_cart_checkout_7aa468c6 concept;
+    class backend_v1_plan_admin_auth_c40f43aa concept;
+    class backend_v1_plan_admin_customers_296e2c6d concept;
+    class backend_v1_plan_admin_dashboard_307557c5 concept;
+    class backend_v1_plan_admin_orders_7bfdb95b concept;
+    class backend_v1_plan_admin_products_a28d3c74 concept;
+    class backend_v1_plan_admin_settings_offers_eb1ef1f1 concept;
+    class backend_v1_plan_customer_orders_8d433655 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>API Plan</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing API Plan.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Health</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Health.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Customer Auth</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Customer Auth.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Products</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Products.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Images</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Images.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Cart / Checkout</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Cart / Checkout.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Customer Orders</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Customer Orders.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Admin Auth</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Admin Auth.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Admin Dashboard</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Admin Dashboard.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Admin Products</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Admin Products.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>Admin Orders</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Admin Orders.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Admin Customers</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Admin Customers.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>Admin Settings / Offers</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Admin Settings / Offers.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>Backend-V1/PLAN.md</code></td><td>13 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x12. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 9. Community 5 ====== -->
+<h2 id="community-5">9. Community 5</h2>
+<p>Community 5 groups implementation around mainplanmd, product, detail, order, mostly in mainPLAN.md. This section covers 13 nodes and 12 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Community 5 (13 nodes, 12 edges)
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50("Customer Page UI Plans<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_1_home_dashboard_8b88ae48("1. Home Dashboard<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_2_login_and_sign_up_00e4baee("2. Login And Sign Up<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_3_categories_681a525f("3. Categories<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_4_product_list_and_sea_4e2ea259("4. Product List And Search Results<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_5_product_detail_f70c7316("5. Product Detail<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_10_order_detail_51480e2e("10. Order Detail<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_11_profile_c6f19087("11. Profile<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_12_edit_profile_70e9727a("12. Edit Profile<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_6_cart_e7fc319b("6. Cart<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_7_checkout_d149335f("7. Checkout<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_8_order_confirmation_fbac181d("8. Order Confirmation<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_9_orders_f0da4f07("9. Orders<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50 -->|contains| projectserveloco_mainplan_1_home_dashboard_8b88ae48
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50 -->|contains| projectserveloco_mainplan_2_login_and_sign_up_00e4baee
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50 -->|contains| projectserveloco_mainplan_3_categories_681a525f
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50 -->|contains| projectserveloco_mainplan_4_product_list_and_sea_4e2ea259
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50 -->|contains| projectserveloco_mainplan_5_product_detail_f70c7316
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50 -->|contains| projectserveloco_mainplan_6_cart_e7fc319b
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50 -->|contains| projectserveloco_mainplan_7_checkout_d149335f
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50 -->|contains| projectserveloco_mainplan_8_order_confirmation_fbac181d
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50 -->|contains| projectserveloco_mainplan_9_orders_f0da4f07
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50 -->|contains| projectserveloco_mainplan_10_order_detail_51480e2e
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50 -->|contains| projectserveloco_mainplan_11_profile_c6f19087
+    projectserveloco_mainplan_customer_page_ui_plans_ef080b50 -->|contains| projectserveloco_mainplan_12_edit_profile_70e9727a
+    class projectserveloco_mainplan_customer_page_ui_plans_ef080b50 concept;
+    class projectserveloco_mainplan_1_home_dashboard_8b88ae48 concept;
+    class projectserveloco_mainplan_2_login_and_sign_up_00e4baee concept;
+    class projectserveloco_mainplan_3_categories_681a525f concept;
+    class projectserveloco_mainplan_4_product_list_and_sea_4e2ea259 concept;
+    class projectserveloco_mainplan_5_product_detail_f70c7316 concept;
+    class projectserveloco_mainplan_10_order_detail_51480e2e concept;
+    class projectserveloco_mainplan_11_profile_c6f19087 concept;
+    class projectserveloco_mainplan_12_edit_profile_70e9727a concept;
+    class projectserveloco_mainplan_6_cart_e7fc319b concept;
+    class projectserveloco_mainplan_7_checkout_d149335f concept;
+    class projectserveloco_mainplan_8_order_confirmation_fbac181d concept;
+    class projectserveloco_mainplan_9_orders_f0da4f07 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Customer Page UI Plans</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Customer Page UI Plans.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>1. Home Dashboard</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 1. Home Dashboard.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>2. Login And Sign Up</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 2. Login And Sign Up.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>3. Categories</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 3. Categories.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>4. Product List And Search Results</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 4. Product List And Search Results.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>5. Product Detail</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 5. Product Detail.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>6. Cart</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 6. Cart.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>7. Checkout</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 7. Checkout.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>8. Order Confirmation</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 8. Order Confirmation.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>9. Orders</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 9. Orders.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>10. Order Detail</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 10. Order Detail.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>11. Profile</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 11. Profile.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>12. Edit Profile</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 12. Edit Profile.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>mainPLAN.md</code></td><td>13 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x12. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 10. Community 12 ====== -->
+<h2 id="community-12">10. Community 12</h2>
+<p>Community 12 groups implementation around planmd, serveloco, plan, frontend, mostly in PLAN.md. This section covers 10 nodes and 9 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Community 12 (10 nodes, 9 edges)
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69("Frontend Home Dashboard Design<br/><small>PLAN.md</small>")
+    plan_md_b6b16249("PLAN.md")
+    projectserveloco_plan_serveloco_plan_5ed0bc65("ServeLoco Plan<br/><small>PLAN.md</small>")
+    projectserveloco_plan_visual_direction_c500756b("Visual Direction<br/><small>PLAN.md</small>")
+    projectserveloco_plan_top_section_9c6a1fa6("Top Section<br/><small>PLAN.md</small>")
+    projectserveloco_plan_toggle_button_67c63822("Toggle Button<br/><small>PLAN.md</small>")
+    projectserveloco_plan_bottom_navigation_9b361e7c("Bottom Navigation<br/><small>PLAN.md</small>")
+    projectserveloco_plan_category_cards_1319d701("Category Cards<br/><small>PLAN.md</small>")
+    projectserveloco_plan_combo_deals_412ec57a("Combo Deals<br/><small>PLAN.md</small>")
+    projectserveloco_plan_offer_banner_b5ba6ff3("Offer Banner<br/><small>PLAN.md</small>")
+    plan_md_b6b16249 -->|contains| projectserveloco_plan_serveloco_plan_5ed0bc65
+    projectserveloco_plan_serveloco_plan_5ed0bc65 -->|contains| projectserveloco_plan_frontend_home_dashboard_de_44ecaa69
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_visual_direction_c500756b
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_top_section_9c6a1fa6
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_toggle_button_67c63822
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_offer_banner_b5ba6ff3
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_category_cards_1319d701
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_combo_deals_412ec57a
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_bottom_navigation_9b361e7c
+    class projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 concept;
+    class plan_md_b6b16249 concept;
+    class projectserveloco_plan_serveloco_plan_5ed0bc65 concept;
+    class projectserveloco_plan_visual_direction_c500756b concept;
+    class projectserveloco_plan_top_section_9c6a1fa6 concept;
+    class projectserveloco_plan_toggle_button_67c63822 concept;
+    class projectserveloco_plan_bottom_navigation_9b361e7c concept;
+    class projectserveloco_plan_category_cards_1319d701 concept;
+    class projectserveloco_plan_combo_deals_412ec57a concept;
+    class projectserveloco_plan_offer_banner_b5ba6ff3 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>PLAN.md</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing PLAN.md.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>ServeLoco Plan</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing ServeLoco Plan.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Frontend Home Dashboard Design</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend Home Dashboard Design.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Visual Direction</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Visual Direction.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Top Section</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Top Section.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Toggle Button</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Toggle Button.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Offer Banner</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Offer Banner.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Category Cards</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Category Cards.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Combo Deals</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Combo Deals.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Bottom Navigation</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Bottom Navigation.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>PLAN.md</code></td><td>10 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x9. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 11. Community 15 ====== -->
+<h2 id="community-15">11. Community 15</h2>
+<p>Community 15 groups implementation around admin, mainplanmd, page, plans, mostly in mainPLAN.md. This section covers 10 nodes and 9 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Community 15 (10 nodes, 9 edges)
+    projectserveloco_mainplan_admin_page_ui_plans_623de67b("Admin Page UI Plans<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_13_admin_entry_3832000d("13. Admin Entry<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_14_admin_login_4dda417f("14. Admin Login<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_15_admin_dashboard_ec8ce099("15. Admin Dashboard<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_16_admin_orders_9e00dbea("16. Admin Orders<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_17_admin_order_detail_55553ef0("17. Admin Order Detail<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_18_admin_products_2fc4539b("18. Admin Products<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_19_admin_product_form_c1d46699("19. Admin Product Form<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_20_admin_customers_e44a85e1("20. Admin Customers<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_21_admin_settings_and_99f1f1ec("21. Admin Settings And Offers<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_admin_page_ui_plans_623de67b -->|contains| projectserveloco_mainplan_13_admin_entry_3832000d
+    projectserveloco_mainplan_admin_page_ui_plans_623de67b -->|contains| projectserveloco_mainplan_14_admin_login_4dda417f
+    projectserveloco_mainplan_admin_page_ui_plans_623de67b -->|contains| projectserveloco_mainplan_15_admin_dashboard_ec8ce099
+    projectserveloco_mainplan_admin_page_ui_plans_623de67b -->|contains| projectserveloco_mainplan_16_admin_orders_9e00dbea
+    projectserveloco_mainplan_admin_page_ui_plans_623de67b -->|contains| projectserveloco_mainplan_17_admin_order_detail_55553ef0
+    projectserveloco_mainplan_admin_page_ui_plans_623de67b -->|contains| projectserveloco_mainplan_18_admin_products_2fc4539b
+    projectserveloco_mainplan_admin_page_ui_plans_623de67b -->|contains| projectserveloco_mainplan_19_admin_product_form_c1d46699
+    projectserveloco_mainplan_admin_page_ui_plans_623de67b -->|contains| projectserveloco_mainplan_20_admin_customers_e44a85e1
+    projectserveloco_mainplan_admin_page_ui_plans_623de67b -->|contains| projectserveloco_mainplan_21_admin_settings_and_99f1f1ec
+    class projectserveloco_mainplan_admin_page_ui_plans_623de67b concept;
+    class projectserveloco_mainplan_13_admin_entry_3832000d concept;
+    class projectserveloco_mainplan_14_admin_login_4dda417f concept;
+    class projectserveloco_mainplan_15_admin_dashboard_ec8ce099 concept;
+    class projectserveloco_mainplan_16_admin_orders_9e00dbea concept;
+    class projectserveloco_mainplan_17_admin_order_detail_55553ef0 concept;
+    class projectserveloco_mainplan_18_admin_products_2fc4539b concept;
+    class projectserveloco_mainplan_19_admin_product_form_c1d46699 concept;
+    class projectserveloco_mainplan_20_admin_customers_e44a85e1 concept;
+    class projectserveloco_mainplan_21_admin_settings_and_99f1f1ec concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Admin Page UI Plans</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Admin Page UI Plans.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>13. Admin Entry</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 13. Admin Entry.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>14. Admin Login</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 14. Admin Login.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>15. Admin Dashboard</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 15. Admin Dashboard.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>16. Admin Orders</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 16. Admin Orders.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>17. Admin Order Detail</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 17. Admin Order Detail.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>18. Admin Products</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 18. Admin Products.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>19. Admin Product Form</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 19. Admin Product Form.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>20. Admin Customers</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 20. Admin Customers.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>21. Admin Settings And Offers</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing 21. Admin Settings And Offers.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>mainPLAN.md</code></td><td>10 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x9. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 12. Community 16 ====== -->
+<h2 id="community-16">12. Community 16</h2>
+<p>Community 16 groups implementation around admin, frontend, tasksmd, task, mostly in Frontend-V1/Tasks.md. This section covers 10 nodes and 9 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Community 16 (10 nodes, 9 edges)
+    frontend_v1_tasks_phase_5_admin_flow_38ba8005("Phase 5: Admin Flow<br/><small>Frontend-V1/Tasks.md</small>")
+    frontend_v1_tasks_task_f_20_admin_entry_screen_c534d1cb("Task F-20: Admin Entry Screen<br/><small>Frontend-V1/Tasks.md</small>")
+    frontend_v1_tasks_task_f_21_admin_login_screen_d16a135b("Task F-21: Admin Login Screen<br/><small>Frontend-V1/Tasks.md</small>")
+    frontend_v1_tasks_task_f_22_admin_dashboard_scre_40ce9aa2("Task F-22: Admin Dashboard Screen<br/><small>Frontend-V1/Tasks.md</small>")
+    frontend_v1_tasks_task_f_23_admin_orders_screen_c3a63a8a("Task F-23: Admin Orders Screen<br/><small>Frontend-V1/Tasks.md</small>")
+    frontend_v1_tasks_task_f_24_admin_order_detail_s_3ed9f38c("Task F-24: Admin Order Detail Screen<br/><small>Frontend-V1/Tasks.md</small>")
+    frontend_v1_tasks_task_f_25_admin_products_scree_325840bc("Task F-25: Admin Products Screen<br/><small>Frontend-V1/Tasks.md</small>")
+    frontend_v1_tasks_task_f_26_admin_product_form_s_36cfe278("Task F-26: Admin Product Form Screen<br/><small>Frontend-V1/Tasks.md</small>")
+    frontend_v1_tasks_task_f_27_admin_customers_scre_065a2cf8("Task F-27: Admin Customers Screen<br/><small>Frontend-V1/Tasks.md</small>")
+    frontend_v1_tasks_task_f_28_admin_settings_and_o_af396b0a("Task F-28: Admin Settings And Offers Sc...<br/><small>Frontend-V1/Tasks.md</small>")
+    frontend_v1_tasks_phase_5_admin_flow_38ba8005 -->|contains| frontend_v1_tasks_task_f_20_admin_entry_screen_c534d1cb
+    frontend_v1_tasks_phase_5_admin_flow_38ba8005 -->|contains| frontend_v1_tasks_task_f_21_admin_login_screen_d16a135b
+    frontend_v1_tasks_phase_5_admin_flow_38ba8005 -->|contains| frontend_v1_tasks_task_f_22_admin_dashboard_scre_40ce9aa2
+    frontend_v1_tasks_phase_5_admin_flow_38ba8005 -->|contains| frontend_v1_tasks_task_f_23_admin_orders_screen_c3a63a8a
+    frontend_v1_tasks_phase_5_admin_flow_38ba8005 -->|contains| frontend_v1_tasks_task_f_24_admin_order_detail_s_3ed9f38c
+    frontend_v1_tasks_phase_5_admin_flow_38ba8005 -->|contains| frontend_v1_tasks_task_f_25_admin_products_scree_325840bc
+    frontend_v1_tasks_phase_5_admin_flow_38ba8005 -->|contains| frontend_v1_tasks_task_f_26_admin_product_form_s_36cfe278
+    frontend_v1_tasks_phase_5_admin_flow_38ba8005 -->|contains| frontend_v1_tasks_task_f_27_admin_customers_scre_065a2cf8
+    frontend_v1_tasks_phase_5_admin_flow_38ba8005 -->|contains| frontend_v1_tasks_task_f_28_admin_settings_and_o_af396b0a
+    class frontend_v1_tasks_phase_5_admin_flow_38ba8005 concept;
+    class frontend_v1_tasks_task_f_20_admin_entry_screen_c534d1cb concept;
+    class frontend_v1_tasks_task_f_21_admin_login_screen_d16a135b concept;
+    class frontend_v1_tasks_task_f_22_admin_dashboard_scre_40ce9aa2 concept;
+    class frontend_v1_tasks_task_f_23_admin_orders_screen_c3a63a8a concept;
+    class frontend_v1_tasks_task_f_24_admin_order_detail_s_3ed9f38c concept;
+    class frontend_v1_tasks_task_f_25_admin_products_scree_325840bc concept;
+    class frontend_v1_tasks_task_f_26_admin_product_form_s_36cfe278 concept;
+    class frontend_v1_tasks_task_f_27_admin_customers_scre_065a2cf8 concept;
+    class frontend_v1_tasks_task_f_28_admin_settings_and_o_af396b0a concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Phase 5: Admin Flow</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 5: Admin Flow.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Task F-20: Admin Entry Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-20: Admin Entry Screen.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Task F-21: Admin Login Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-21: Admin Login Screen.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Task F-22: Admin Dashboard Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-22: Admin Dashboard Screen.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Task F-23: Admin Orders Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-23: Admin Orders Screen.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Task F-24: Admin Order Detail Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-24: Admin Order Detail Screen.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Task F-25: Admin Products Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-25: Admin Products Screen.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Task F-26: Admin Product Form Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-26: Admin Product Form Screen.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Task F-27: Admin Customers Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-27: Admin Customers Screen.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Task F-28: Admin Settings And Offers Screen</code><br><small style="color:var(--muted)">Frontend-V1/Tasks.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Task F-28: Admin Settings And Offers Screen.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>Frontend-V1/Tasks.md</code></td><td>10 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x9. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 13. Community 18 ====== -->
+<h2 id="community-18">13. Community 18</h2>
+<p>Community 18 groups implementation around appdelegateswift, frontend, ios, serveloco, mostly in ios/ServeLoco/AppDelegate.swift. This section covers 9 nodes and 10 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Community 18 (9 nodes, 10 edges)
+    subgraph community_18_ios_ServeLoco_AppDelegate_swift_ab7d5461["ios/ServeLoco/AppDelegate.swift"]
+        serveloco_appdelegate_reactnativedelegate_b2a602fb("ReactNativeDelegate<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        serveloco_appdelegate_appdelegate_bb724627("AppDelegate<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        serveloco_appdelegate_appdelegate_application_03b1d46e("application()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        serveloco_appdelegate_reactnativedelegate_source_e5a761ef("sourceURL()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        serveloco_appdelegate_reactnativedelegate_bundle_d744837a("bundleURL()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        frontend_v1_ios_serveloco_appdelegate_swift_e0f99ff7("AppDelegate.swift")
+    end
+    subgraph community_18_External_generated_3bb0a156["External / generated"]
+        rctdefaultreactnativefactorydelegate_857e27af("RCTDefaultReactNativeFactoryDelegate")
+        uiapplicationdelegate_161d94bd("UIApplicationDelegate")
+        uiresponder_f547e2b5("UIResponder")
+    end
+    serveloco_appdelegate_appdelegate_bb724627 -->|method| serveloco_appdelegate_appdelegate_application_03b1d46e
+    serveloco_appdelegate_appdelegate_application_03b1d46e -->|calls| serveloco_appdelegate_reactnativedelegate_b2a602fb
+    serveloco_appdelegate_reactnativedelegate_b2a602fb -->|method| serveloco_appdelegate_reactnativedelegate_source_e5a761ef
+    serveloco_appdelegate_reactnativedelegate_b2a602fb -->|method| serveloco_appdelegate_reactnativedelegate_bundle_d744837a
+    serveloco_appdelegate_reactnativedelegate_source_e5a761ef -->|calls| serveloco_appdelegate_reactnativedelegate_bundle_d744837a
+    class serveloco_appdelegate_reactnativedelegate_b2a602fb klass;
+    class serveloco_appdelegate_appdelegate_bb724627 klass;
+    class serveloco_appdelegate_appdelegate_application_03b1d46e function;
+    class serveloco_appdelegate_reactnativedelegate_source_e5a761ef function;
+    class serveloco_appdelegate_reactnativedelegate_bundle_d744837a function;
+    class frontend_v1_ios_serveloco_appdelegate_swift_e0f99ff7 klass;
+    class rctdefaultreactnativefactorydelegate_857e27af klass;
+    class uiapplicationdelegate_161d94bd klass;
+    class uiresponder_f547e2b5 klass;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>AppDelegate.swift</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>AppDelegate.swift node in ios/ServeLoco/AppDelegate.swift.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>AppDelegate</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>application()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td>AppDelegate node in ios/ServeLoco/AppDelegate.swift.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>UIResponder</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>UIResponder node in project.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>UIApplicationDelegate</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>UIApplicationDelegate node in project.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>.application()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AppDelegate</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><code>ReactNativeDelegate</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td>.application() node in ios/ServeLoco/AppDelegate.swift.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>ReactNativeDelegate</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>application()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><code>bundleURL()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small><br><code>sourceURL()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td>ReactNativeDelegate node in ios/ServeLoco/AppDelegate.swift.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>RCTDefaultReactNativeFactoryDelegate</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>RCTDefaultReactNativeFactoryDelegate node in project.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>.sourceURL()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ReactNativeDelegate</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><code>bundleURL()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td>.sourceURL() node in ios/ServeLoco/AppDelegate.swift.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>.bundleURL()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ReactNativeDelegate</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small><br><code>sourceURL()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td>No direct outbound edge</td>
+  <td>.bundleURL() node in ios/ServeLoco/AppDelegate.swift.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>ios/ServeLoco/AppDelegate.swift</code></td><td>6 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: inherits x3, method x3, contains x2, calls x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 14. Community 17 ====== -->
+<h2 id="community-17">14. Community 17</h2>
+<p>Community 17 groups implementation around backend, planmd, mysql, data, mostly in Backend-V1/PLAN.md. This section covers 8 nodes and 7 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Community 17 (8 nodes, 7 edges)
+    backend_v1_plan_mysql_data_models_aa7c18c3("MySQL Data Models<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_users_63df3da8("users<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_categories_aae027aa("categories<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_products_704a560d("products<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_orders_dcf63435("orders<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_order_items_92794131("order_items<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_offers_d272ad31("offers<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_settings_ee41befa("settings<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_plan_mysql_data_models_aa7c18c3 -->|contains| backend_v1_plan_users_63df3da8
+    backend_v1_plan_mysql_data_models_aa7c18c3 -->|contains| backend_v1_plan_categories_aae027aa
+    backend_v1_plan_mysql_data_models_aa7c18c3 -->|contains| backend_v1_plan_products_704a560d
+    backend_v1_plan_mysql_data_models_aa7c18c3 -->|contains| backend_v1_plan_orders_dcf63435
+    backend_v1_plan_mysql_data_models_aa7c18c3 -->|contains| backend_v1_plan_order_items_92794131
+    backend_v1_plan_mysql_data_models_aa7c18c3 -->|contains| backend_v1_plan_settings_ee41befa
+    backend_v1_plan_mysql_data_models_aa7c18c3 -->|contains| backend_v1_plan_offers_d272ad31
+    class backend_v1_plan_mysql_data_models_aa7c18c3 concept;
+    class backend_v1_plan_users_63df3da8 concept;
+    class backend_v1_plan_categories_aae027aa concept;
+    class backend_v1_plan_products_704a560d concept;
+    class backend_v1_plan_orders_dcf63435 concept;
+    class backend_v1_plan_order_items_92794131 concept;
+    class backend_v1_plan_offers_d272ad31 concept;
+    class backend_v1_plan_settings_ee41befa concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>MySQL Data Models</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing MySQL Data Models.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>users</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing users.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>categories</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing categories.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>products</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing products.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>orders</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing orders.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>order_items</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing order_items.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>settings</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing settings.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>offers</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing offers.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>Backend-V1/PLAN.md</code></td><td>8 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x7. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 15. Community 21 ====== -->
+<h2 id="community-21">15. Community 21</h2>
+<p>Community 21 groups implementation around mainplanmd, mysql, data, models, mostly in mainPLAN.md. This section covers 8 nodes and 7 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Community 21 (8 nodes, 7 edges)
+    projectserveloco_mainplan_mysql_data_models_cdc47215("MySQL Data Models<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_users_75cba0fa("users<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_categories_d0a63aa0("categories<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_products_66cd1464("products<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_orders_079be378("orders<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_order_items_7310c750("order_items<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_offers_ffd34e7f("offers<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_settings_60e0664d("settings<br/><small>mainPLAN.md</small>")
+    projectserveloco_mainplan_mysql_data_models_cdc47215 -->|contains| projectserveloco_mainplan_users_75cba0fa
+    projectserveloco_mainplan_mysql_data_models_cdc47215 -->|contains| projectserveloco_mainplan_categories_d0a63aa0
+    projectserveloco_mainplan_mysql_data_models_cdc47215 -->|contains| projectserveloco_mainplan_products_66cd1464
+    projectserveloco_mainplan_mysql_data_models_cdc47215 -->|contains| projectserveloco_mainplan_orders_079be378
+    projectserveloco_mainplan_mysql_data_models_cdc47215 -->|contains| projectserveloco_mainplan_order_items_7310c750
+    projectserveloco_mainplan_mysql_data_models_cdc47215 -->|contains| projectserveloco_mainplan_settings_60e0664d
+    projectserveloco_mainplan_mysql_data_models_cdc47215 -->|contains| projectserveloco_mainplan_offers_ffd34e7f
+    class projectserveloco_mainplan_mysql_data_models_cdc47215 concept;
+    class projectserveloco_mainplan_users_75cba0fa concept;
+    class projectserveloco_mainplan_categories_d0a63aa0 concept;
+    class projectserveloco_mainplan_products_66cd1464 concept;
+    class projectserveloco_mainplan_orders_079be378 concept;
+    class projectserveloco_mainplan_order_items_7310c750 concept;
+    class projectserveloco_mainplan_offers_ffd34e7f concept;
+    class projectserveloco_mainplan_settings_60e0664d concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>MySQL Data Models</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing MySQL Data Models.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>users</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing users.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>categories</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing categories.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>products</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing products.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>orders</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing orders.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>order_items</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing order_items.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>settings</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing settings.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>offers</code><br><small style="color:var(--muted)">mainPLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing offers.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>mainPLAN.md</code></td><td>8 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x7. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 16. Other ====== -->
+<h2 id="other">16. Other</h2>
+<p>Other groups implementation around frontend, indexjs, backend, planmd, mostly in Backend-V1/PLAN.md, Frontend-V1/metro.config.js, Backend-V1/README.md. This section covers 38 nodes and 19 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Other (38 nodes, 19 edges)
+    subgraph other_Frontend_V1_metro_config_js_7beb9844["Frontend-V1/metro.config.js"]
+        frontend_v1_metro_config_js_dd54f1b2("metro.config.js")
+        frontend_v1_metro_config_getdefaultconfig_mergec_e506be1b("getDefaultConfig, mergeConfig<br/><small>Frontend-V1/metro.config.js</small>")
+        frontend_v1_metro_config_config_bd055f05("config<br/><small>Frontend-V1/metro.config.js</small>")
+    end
+    subgraph other_screens_admin_index_js_238f5885["screens/admin/index.js"]
+        frontend_v1_src_screens_admin_index_js_d5a076e5("index.js")
+        admin_index_adminscreensplaceholder_b07f066e("adminScreensPlaceholder<br/><small>screens/admin/index.js</small>")
+    end
+    subgraph other_screens_customer_index_js_d18d0491["screens/customer/index.js"]
+        frontend_v1_src_screens_customer_index_js_3bd66a5e("index.js")
+        customer_index_customerscreensplaceholder_0712db2e("customerScreensPlaceholder<br/><small>screens/customer/index.js</small>")
+    end
+    subgraph other_src_assets_index_js_7c812077["src/assets/index.js"]
+        frontend_v1_src_assets_index_js_171a3950("index.js")
+        assets_index_assetsplaceholder_03ed2016("assetsPlaceholder<br/><small>src/assets/index.js</small>")
+    end
+    subgraph other_src_features_index_js_f851ef44["src/features/index.js"]
+        frontend_v1_src_features_index_js_b7963b04("index.js")
+        features_index_featuresplaceholder_f7e1e092("featuresPlaceholder<br/><small>src/features/index.js</small>")
+    end
+    subgraph other_src_navigation_routes_js_cc14df12["src/navigation/routes.js"]
+        frontend_v1_src_navigation_routes_js_cf6aca68("routes.js")
+        navigation_routes_routes_513958b4("ROUTES<br/><small>src/navigation/routes.js</small>")
+    end
+    agents_md_1f169a2a("AGENTS.md")
+    backend_v1_plan_backend_build_phases_217d3d6a("Backend Build Phases<br/><small>Backend-V1/PLAN.md</small>")
+    backend_v1_readme_md_59064f11("README.md")
+    frontend_v1_readme_md_6357e6e2("README.md")
+    frontend_v1_src_store_index_js_b4b90f14("index.js")
+    frontend_v1_metro_config_js_dd54f1b2 -->|contains| frontend_v1_metro_config_getdefaultconfig_mergec_e506be1b
+    frontend_v1_metro_config_js_dd54f1b2 -->|contains| frontend_v1_metro_config_config_bd055f05
+    frontend_v1_src_navigation_routes_js_cf6aca68 -->|contains| navigation_routes_routes_513958b4
+    frontend_v1_src_features_index_js_b7963b04 -->|contains| features_index_featuresplaceholder_f7e1e092
+    frontend_v1_src_assets_index_js_171a3950 -->|contains| assets_index_assetsplaceholder_03ed2016
+    frontend_v1_src_screens_admin_index_js_d5a076e5 -->|contains| admin_index_adminscreensplaceholder_b07f066e
+    frontend_v1_src_screens_customer_index_js_3bd66a5e -->|contains| customer_index_customerscreensplaceholder_0712db2e
+    %% Omitted for readability: 20 nodes, 0 edges
+    class frontend_v1_metro_config_js_dd54f1b2 module;
+    class frontend_v1_metro_config_getdefaultconfig_mergec_e506be1b function;
+    class frontend_v1_metro_config_config_bd055f05 function;
+    class frontend_v1_src_screens_admin_index_js_d5a076e5 module;
+    class admin_index_adminscreensplaceholder_b07f066e function;
+    class frontend_v1_src_screens_customer_index_js_3bd66a5e module;
+    class customer_index_customerscreensplaceholder_0712db2e function;
+    class frontend_v1_src_assets_index_js_171a3950 module;
+    class assets_index_assetsplaceholder_03ed2016 async;
+    class frontend_v1_src_features_index_js_b7963b04 module;
+    class features_index_featuresplaceholder_f7e1e092 function;
+    class frontend_v1_src_navigation_routes_js_cf6aca68 api;
+    class navigation_routes_routes_513958b4 api;
+    class agents_md_1f169a2a concept;
+    class backend_v1_plan_backend_build_phases_217d3d6a concept;
+    class backend_v1_readme_md_59064f11 concept;
+    class frontend_v1_readme_md_6357e6e2 concept;
+    class frontend_v1_src_store_index_js_b4b90f14 module;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Backend Build Phases</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Backend Build Phases.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Phase 1: API Foundation</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 1: API Foundation.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Phase 2: Auth</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 2: Auth.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Phase 3: Products, Categories, and Images</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 3: Products, Categories, and Images.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Phase 4: Settings, Cart, and Orders</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 4: Settings, Cart, and Orders.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Phase 5: Admin Operations</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 5: Admin Operations.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Phase 6: Frontend Integration Contract</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Phase 6: Frontend Integration Contract.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>metro.config.js</code><br><small style="color:var(--muted)">Frontend-V1/metro.config.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Reads, resolves, or persists project configuration.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>{ getDefaultConfig, mergeConfig }</code><br><small style="color:var(--muted)">Frontend-V1/metro.config.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Reads, resolves, or persists project configuration.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>config</code><br><small style="color:var(--muted)">Frontend-V1/metro.config.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Reads, resolves, or persists project configuration.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>README.md</code><br><small style="color:var(--muted)">Backend-V1/README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing README.md.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Backend-V1</code><br><small style="color:var(--muted)">Backend-V1/README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Backend-V1.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>README.md</code><br><small style="color:var(--muted)">Frontend-V1/README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing README.md.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>Frontend-V1</code><br><small style="color:var(--muted)">Frontend-V1/README.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Frontend-V1.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">screens/admin/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in screens/admin/index.js.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>adminScreensPlaceholder</code><br><small style="color:var(--muted)">screens/admin/index.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>adminScreensPlaceholder node in screens/admin/index.js.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">src/assets/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in src/assets/index.js.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>assetsPlaceholder</code><br><small style="color:var(--muted)">src/assets/index.js</small></td>
+  <td><span class="tag tag-async">Async</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>assetsPlaceholder node in src/assets/index.js.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">src/components/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in src/components/index.js.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>componentsPlaceholder</code><br><small style="color:var(--muted)">src/components/index.js</small></td>
+  <td><span class="tag tag-hook">UI</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>componentsPlaceholder node in src/components/index.js.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">screens/customer/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in screens/customer/index.js.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>customerScreensPlaceholder</code><br><small style="color:var(--muted)">screens/customer/index.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>customerScreensPlaceholder node in screens/customer/index.js.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">src/features/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in src/features/index.js.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>featuresPlaceholder</code><br><small style="color:var(--muted)">src/features/index.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>featuresPlaceholder node in src/features/index.js.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>routes.js</code><br><small style="color:var(--muted)">src/navigation/routes.js</small></td>
+  <td><span class="tag tag-endpoint">API</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>routes.js node in src/navigation/routes.js.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>ROUTES</code><br><small style="color:var(--muted)">src/navigation/routes.js</small></td>
+  <td><span class="tag tag-endpoint">API</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>ROUTES node in src/navigation/routes.js.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">src/store/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in src/store/index.js.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>storesPlaceholder</code><br><small style="color:var(--muted)">src/store/index.js</small></td>
+  <td><span class="tag tag-hook">UI</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>storesPlaceholder node in src/store/index.js.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in src/theme/index.js.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>themePlaceholder</code><br><small style="color:var(--muted)">src/theme/index.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>themePlaceholder node in src/theme/index.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>Backend-V1/PLAN.md</code></td><td>7 nodes</td></tr>
+<tr><td><code>Frontend-V1/metro.config.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>AGENTS.md</code></td><td>2 nodes</td></tr>
+<tr><td><code>Backend-V1/README.md</code></td><td>2 nodes</td></tr>
+<tr><td><code>Frontend-V1/README.md</code></td><td>2 nodes</td></tr>
+<tr><td><code>src/assets/index.js</code></td><td>2 nodes</td></tr>
+<tr><td><code>src/components/index.js</code></td><td>2 nodes</td></tr>
+<tr><td><code>src/features/index.js</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x19. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<h2 id="stats">Project Statistics</h2>
+
+<div class="grid">
+  <div class="card">
+    <h4>Graph</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>Nodes</td><td>364</td></tr>
+      <tr><td>Edges</td><td>336</td></tr>
+      <tr><td>Hyperedges</td><td>0</td></tr>
+      <tr><td>Communities</td><td>43</td></tr>
+      <tr><td>Documented Sections</td><td>15</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Edge Confidence</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>EXTRACTED</td><td>336</td></tr>
+      <tr><td>INFERRED</td><td>0</td></tr>
+      <tr><td>AMBIGUOUS</td><td>0</td></tr>
+    </table>
+  </div>
+</div>
+
+<div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
+  <p>ProjectServeLoco — Architecture Documentation</p>
+  <p>Generated: 2026-05-22 22:55 UTC · graphify callflow-html</p>
+</div>
+
+</div><!-- .container -->
+
+<script>
+(function () {
+  const mermaidConfig = {
+    startOnLoad: false,
+    theme: 'dark',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, useMaxWidth: true },
+    themeVariables: {
+      primaryColor: '#1e293b',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#38bdf8',
+      secondaryColor: '#0f172a',
+      tertiaryColor: '#334155',
+      lineColor: '#64748b',
+      textColor: '#e2e8f0',
+    }
+  };
+
+  mermaid.initialize(mermaidConfig);
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function enhanceMermaidDiagrams() {
+    document.querySelectorAll('.mermaid').forEach((container) => {
+      if (container.dataset.zoomReady === 'true') return;
+      const svg = container.querySelector('svg');
+      if (!svg) return;
+
+      container.dataset.zoomReady = 'true';
+      container.classList.add('is-enhanced');
+
+      const viewport = document.createElement('div');
+      viewport.className = 'mermaid-viewport';
+      svg.parentNode.insertBefore(viewport, svg);
+      viewport.appendChild(svg);
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'mermaid-toolbar';
+      toolbar.innerHTML = [
+        '<button type="button" data-action="zoom-out" title="Zoom out">-</button>',
+        '<span class="zoom-level" data-role="level">100%</span>',
+        '<button type="button" data-action="zoom-in" title="Zoom in">+</button>',
+        '<button type="button" data-action="fit" title="Fit width">Fit</button>',
+        '<button type="button" data-action="reset" title="Reset view">Reset</button>'
+      ].join('');
+      container.insertBefore(toolbar, viewport);
+
+      const state = { scale: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 };
+      const level = toolbar.querySelector('[data-role="level"]');
+
+      function applyTransform() {
+        svg.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+        level.textContent = `${Math.round(state.scale * 100)}%`;
+      }
+
+      function zoomBy(delta) {
+        state.scale = clamp(state.scale + delta, 0.25, 3);
+        applyTransform();
+      }
+
+      function reset() {
+        state.scale = 1;
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      function fitWidth() {
+        const rawWidth = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width
+          ? svg.viewBox.baseVal.width
+          : svg.getBoundingClientRect().width / state.scale;
+        if (!rawWidth) {
+          reset();
+          return;
+        }
+        state.scale = clamp((viewport.clientWidth - 48) / rawWidth, 0.25, 1.4);
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      toolbar.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+        const action = button.dataset.action;
+        if (action === 'zoom-in') zoomBy(0.15);
+        if (action === 'zoom-out') zoomBy(-0.15);
+        if (action === 'fit') fitWidth();
+        if (action === 'reset') reset();
+      });
+
+      viewport.addEventListener('wheel', (event) => {
+        if (!event.ctrlKey && !event.metaKey) return;
+        event.preventDefault();
+        zoomBy(event.deltaY < 0 ? 0.1 : -0.1);
+      }, { passive: false });
+
+      viewport.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        state.dragging = true;
+        state.startX = event.clientX;
+        state.startY = event.clientY;
+        state.originX = state.x;
+        state.originY = state.y;
+        viewport.classList.add('is-dragging');
+        viewport.setPointerCapture(event.pointerId);
+      });
+
+      viewport.addEventListener('pointermove', (event) => {
+        if (!state.dragging) return;
+        state.x = state.originX + event.clientX - state.startX;
+        state.y = state.originY + event.clientY - state.startY;
+        applyTransform();
+      });
+
+      function endDrag(event) {
+        if (!state.dragging) return;
+        state.dragging = false;
+        viewport.classList.remove('is-dragging');
+        if (viewport.hasPointerCapture(event.pointerId)) {
+          viewport.releasePointerCapture(event.pointerId);
+        }
+      }
+
+      viewport.addEventListener('pointerup', endDrag);
+      viewport.addEventListener('pointercancel', endDrag);
+      applyTransform();
+    });
+  }
+
+  function renderMermaid() {
+    const result = mermaid.run
+      ? mermaid.run({ querySelector: '.mermaid' })
+      : Promise.resolve();
+    Promise.resolve(result)
+      .then(enhanceMermaidDiagrams)
+      .catch((error) => {
+        console.error('Mermaid render failed:', error);
+        enhanceMermaidDiagrams();
+      });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderMermaid);
+  } else {
+    renderMermaid();
+  }
+})();
+</script>
+
+</body>
+</html>
