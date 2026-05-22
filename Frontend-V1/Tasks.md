@@ -99,19 +99,20 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-03: Reusable UI Components
 
-- [ ] Build each reusable component in its own folder under `src/components`.
-- [ ] Build `src/components/AppScreen/AppScreen.js` with safe-area support.
-- [ ] Build `src/components/AppHeader/AppHeader.js` with title, back button, optional actions, and cart badge support.
-- [ ] Build `src/components/Button/Button.js`, `src/components/IconButton/IconButton.js`, and `src/components/TextButton/TextButton.js`.
-- [ ] Build `src/components/TextInputField/TextInputField.js` with label, error text, disabled state, and password eye icon support.
-- [ ] Build `src/components/SegmentedControl/SegmentedControl.js`.
-- [ ] Build `src/components/Chip/Chip.js` and horizontal chip row component.
-- [ ] Build `src/components/QuantityStepper/QuantityStepper.js`.
-- [ ] Build `src/components/ProductImage/ProductImage.js` with backend image and local fallback support.
-- [ ] Build `ProductCard`, `CategoryCard`, `OrderCard`, and `AdminMetricCard` in separate component folders.
-- [ ] Build `BillSummary`, `StickyMiniCart`, `EmptyState`, `ErrorState`, `LoadingSkeleton`, and `ConfirmModal` in separate component folders.
-- [ ] Add `index.js` export file inside every reusable component folder.
-- [ ] Add colocated `.styles.js` files for components with meaningful styling.
+- [x] Build each reusable component in its own folder under `src/components`.
+- [x] Build `src/components/AppScreen/AppScreen.js` with safe-area support.
+- [x] Build `src/components/AppHeader/AppHeader.js` with title, back button, optional actions, and cart badge support.
+- [x] Build `src/components/Button/Button.js`, `src/components/IconButton/IconButton.js`, and `src/components/TextButton/TextButton.js`.
+- [x] Build `src/components/TextInputField/TextInputField.js` with label, error text, disabled state, and password eye icon support.
+- [x] Build `src/components/SegmentedControl/SegmentedControl.js`.
+- [x] Build `src/components/Chip/Chip.js` and horizontal chip row component.
+- [x] Build `src/components/QuantityStepper/QuantityStepper.js`.
+- [x] Build `src/components/ProductImage/ProductImage.js` with backend image and local fallback support.
+- [x] Build `ProductCard`, `CategoryCard`, `OrderCard`, and `AdminMetricCard` in separate component folders.
+- [x] Build `BillSummary`, `StickyMiniCart`, `EmptyState`, `ErrorState`, `LoadingSkeleton`, and `ConfirmModal` in separate component folders.
+- [x] Add `index.js` export file inside every reusable component folder.
+- [x] Add colocated `.styles.js` files for components with meaningful styling.
+
 
 ### Task F-03A: Animation System Components
 
