@@ -89,13 +89,13 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-02: Theme And Design Tokens
 
-- [ ] Create theme tokens for colors, spacing, typography, shadows, borders, and radius.
-- [ ] Use off-white or white app backgrounds, deep charcoal text, one warm primary accent, and one cool success accent.
-- [ ] Keep cards at 8px radius unless a platform control needs a pill shape.
-- [ ] Create shared screen padding and safe-area behavior.
-- [ ] Ensure text never overflows buttons, chips, cards, or headers on small screens.
-- [ ] Add motion tokens: `tapMs`, `smallMs`, `screenMs`, `staggerMs`, `loopMs`, `entryDistance`, and `modalScaleStart`.
-- [ ] Add one easing curve for app motion and reuse it across components.
+- [x] Create theme tokens for colors, spacing, typography, shadows, borders, and radius.
+- [x] Use off-white or white app backgrounds, deep charcoal text, one warm primary accent, and one cool success accent.
+- [x] Keep cards at 8px radius unless a platform control needs a pill shape.
+- [x] Create shared screen padding and safe-area behavior.
+- [x] Ensure text never overflows buttons, chips, cards, or headers on small screens.
+- [x] Add motion tokens: `tapMs`, `smallMs`, `screenMs`, `staggerMs`, `loopMs`, `entryDistance`, and `modalScaleStart`.
+- [x] Add one easing curve for app motion and reuse it across components.
 
 ### Task F-03: Reusable UI Components
 
