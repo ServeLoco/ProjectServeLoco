@@ -552,27 +552,27 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-28: Admin Settings And Offers Screen
 
-- [ ] Read settings through `GET /settings`.
-- [ ] Build sections for shop status, minimum order, delivery charge, night charge, night charge time window, and active offer banner.
-- [ ] Add shop open/closed toggle.
-- [ ] Add numeric inputs for minimum order, delivery charge, and night charge.
-- [ ] Add text input for offer title.
-- [ ] Add text input for offer subtitle/description.
-- [ ] Add offer active toggle.
-- [ ] Add primary button: `Save Settings`.
-- [ ] Add secondary button: `Preview Offer`.
-- [ ] Add `Create Offer` when no offer exists.
-- [ ] Add `Update Offer` when editing an existing offer.
-- [ ] Validate numeric fields.
-- [ ] Add save loading state.
-- [ ] Show success message after save.
-- [ ] Update settings through `PATCH /admin/settings`.
-- [ ] Create offer through `POST /admin/offers`.
-- [ ] Update offer through `PATCH /admin/offers/:id`.
-- [ ] Animate settings sections with slight staggered entry.
-- [ ] Animate toggle thumb/color changes.
-- [ ] Animate offer preview crossfade when title or subtitle changes.
-- [ ] Animate save success message with compact fade-in.
+- [x] Read settings through `GET /settings`.
+- [x] Build sections for shop status, minimum order, delivery charge, night charge, night charge time window, and active offer banner.
+- [x] Add shop open/closed toggle.
+- [x] Add numeric inputs for minimum order, delivery charge, and night charge.
+- [x] Add text input for offer title.
+- [x] Add text input for offer subtitle/description.
+- [x] Add offer active toggle.
+- [x] Add primary button: `Save Settings`.
+- [x] Add secondary button: `Preview Offer`.
+- [x] Add `Create Offer` when no offer exists.
+- [x] Add `Update Offer` when editing an existing offer.
+- [x] Validate numeric fields.
+- [x] Add save loading state.
+- [x] Show success message after save.
+- [x] Update settings through `PATCH /admin/settings`.
+- [x] Create offer through `POST /admin/offers`.
+- [x] Update offer through `PATCH /admin/offers/:id`.
+- [x] Animate settings sections with slight staggered entry.
+- [x] Animate toggle thumb/color changes.
+- [x] Animate offer preview crossfade when title or subtitle changes.
+- [x] Animate save success message with compact fade-in.
 
 ## Phase 6: Integration And QA
 

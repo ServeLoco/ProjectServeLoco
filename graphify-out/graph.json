@@ -882,7 +882,7 @@
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L1",
       "id": "frontend_v1_src_stores_usecartstore_js",
-      "community": 57,
+      "community": 35,
       "norm_label": "usecartstore.js"
     },
     {
@@ -891,7 +891,7 @@
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L9",
       "id": "stores_usecartstore_usecartstore",
-      "community": 57,
+      "community": 60,
       "norm_label": "usecartstore"
     },
     {
@@ -1143,7 +1143,7 @@
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_orderconfirmationscreen_index_js",
-      "community": 47,
+      "community": 17,
       "norm_label": "index.js"
     },
     {
@@ -1152,7 +1152,7 @@
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js",
-      "community": 47,
+      "community": 17,
       "norm_label": "orderconfirmationscreen.js"
     },
     {
@@ -1161,7 +1161,7 @@
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L14",
       "id": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen",
-      "community": 47,
+      "community": 17,
       "norm_label": "orderconfirmationscreen()"
     },
     {
@@ -1170,7 +1170,7 @@
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L125",
       "id": "orderconfirmationscreen_orderconfirmationscreen_styles",
-      "community": 47,
+      "community": 17,
       "norm_label": "styles"
     },
     {
@@ -1287,7 +1287,7 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_profilescreen_index_js",
-      "community": 35,
+      "community": 62,
       "norm_label": "index.js"
     },
     {
@@ -1296,7 +1296,7 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_profilescreen_profilescreen_js",
-      "community": 35,
+      "community": 62,
       "norm_label": "profilescreen.js"
     },
     {
@@ -1305,7 +1305,7 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L22",
       "id": "profilescreen_profilescreen_profilescreen",
-      "community": 35,
+      "community": 62,
       "norm_label": "profilescreen()"
     },
     {
@@ -1314,7 +1314,7 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L214",
       "id": "profilescreen_profilescreen_menuoption",
-      "community": 35,
+      "community": 62,
       "norm_label": "menuoption()"
     },
     {
@@ -1323,7 +1323,7 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L230",
       "id": "profilescreen_profilescreen_styles",
-      "community": 35,
+      "community": 62,
       "norm_label": "styles"
     },
     {
@@ -1332,7 +1332,7 @@
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_orderdetailscreen_index_js",
-      "community": 54,
+      "community": 35,
       "norm_label": "index.js"
     },
     {
@@ -1341,7 +1341,7 @@
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_orderdetailscreen_orderdetailscreen_js",
-      "community": 54,
+      "community": 35,
       "norm_label": "orderdetailscreen.js"
     },
     {
@@ -1350,7 +1350,7 @@
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L23",
       "id": "orderdetailscreen_orderdetailscreen_fetchordermock",
-      "community": 54,
+      "community": 35,
       "norm_label": "fetchordermock()"
     },
     {
@@ -1359,7 +1359,7 @@
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L49",
       "id": "orderdetailscreen_orderdetailscreen_status_steps",
-      "community": 54,
+      "community": 35,
       "norm_label": "status_steps"
     },
     {
@@ -1368,7 +1368,7 @@
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L56",
       "id": "orderdetailscreen_orderdetailscreen_orderdetailscreen",
-      "community": 54,
+      "community": 35,
       "norm_label": "orderdetailscreen()"
     },
     {
@@ -1377,7 +1377,7 @@
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L279",
       "id": "orderdetailscreen_orderdetailscreen_timelinestep",
-      "community": 54,
+      "community": 35,
       "norm_label": "timelinestep()"
     },
     {
@@ -1386,7 +1386,7 @@
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L309",
       "id": "orderdetailscreen_orderdetailscreen_styles",
-      "community": 54,
+      "community": 35,
       "norm_label": "styles"
     },
     {
@@ -1395,7 +1395,7 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_ordersscreen_ordersscreen_js",
-      "community": 62,
+      "community": 50,
       "norm_label": "ordersscreen.js"
     },
     {
@@ -1404,7 +1404,7 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L32",
       "id": "ordersscreen_ordersscreen_mock_orders",
-      "community": 62,
+      "community": 50,
       "norm_label": "mock_orders"
     },
     {
@@ -1413,7 +1413,7 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L65",
       "id": "ordersscreen_ordersscreen_filter_chips",
-      "community": 62,
+      "community": 50,
       "norm_label": "filter_chips"
     },
     {
@@ -1422,7 +1422,7 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L67",
       "id": "ordersscreen_ordersscreen_ordersscreen",
-      "community": 62,
+      "community": 50,
       "norm_label": "ordersscreen()"
     },
     {
@@ -1431,7 +1431,7 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L319",
       "id": "ordersscreen_ordersscreen_styles",
-      "community": 62,
+      "community": 50,
       "norm_label": "styles"
     },
     {
@@ -1440,7 +1440,7 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_ordersscreen_index_js",
-      "community": 62,
+      "community": 50,
       "norm_label": "index.js"
     },
     {
@@ -1584,7 +1584,7 @@
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L21",
       "id": "editprofilescreen_editprofilescreen_editprofilescreen",
-      "community": 17,
+      "community": 50,
       "norm_label": "editprofilescreen()"
     },
     {
@@ -1836,25 +1836,133 @@
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
-      "community": 30,
+      "community": 54,
       "norm_label": "adminsettingsscreen.js"
+    },
+    {
+      "label": "DEFAULT_FORM",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L33",
+      "id": "adminsettingsscreen_adminsettingsscreen_default_form",
+      "community": 54,
+      "norm_label": "default_form"
+    },
+    {
+      "label": "NUMERIC_FIELDS",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L46",
+      "id": "adminsettingsscreen_adminsettingsscreen_numeric_fields",
+      "community": 54,
+      "norm_label": "numeric_fields"
+    },
+    {
+      "label": "pickFirst()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L52",
+      "id": "adminsettingsscreen_adminsettingsscreen_pickfirst",
+      "community": 54,
+      "norm_label": "pickfirst()"
+    },
+    {
+      "label": "asBoolean()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L56",
+      "id": "adminsettingsscreen_adminsettingsscreen_asboolean",
+      "community": 54,
+      "norm_label": "asboolean()"
+    },
+    {
+      "label": "asText()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L67",
+      "id": "adminsettingsscreen_adminsettingsscreen_astext",
+      "community": 54,
+      "norm_label": "astext()"
+    },
+    {
+      "label": "getPayloadData()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L72",
+      "id": "adminsettingsscreen_adminsettingsscreen_getpayloaddata",
+      "community": 54,
+      "norm_label": "getpayloaddata()"
+    },
+    {
+      "label": "getOfferData()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L76",
+      "id": "adminsettingsscreen_adminsettingsscreen_getofferdata",
+      "community": 54,
+      "norm_label": "getofferdata()"
+    },
+    {
+      "label": "normalizeSettings()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L92",
+      "id": "adminsettingsscreen_adminsettingsscreen_normalizesettings",
+      "community": 54,
+      "norm_label": "normalizesettings()"
+    },
+    {
+      "label": "buildSettingsPayload()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L125",
+      "id": "adminsettingsscreen_adminsettingsscreen_buildsettingspayload",
+      "community": 54,
+      "norm_label": "buildsettingspayload()"
+    },
+    {
+      "label": "buildOfferPayload()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L136",
+      "id": "adminsettingsscreen_adminsettingsscreen_buildofferpayload",
+      "community": 54,
+      "norm_label": "buildofferpayload()"
+    },
+    {
+      "label": "getErrorMessage()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L144",
+      "id": "adminsettingsscreen_adminsettingsscreen_geterrormessage",
+      "community": 54,
+      "norm_label": "geterrormessage()"
     },
     {
       "label": "AdminSettingsScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
-      "source_location": "L6",
+      "source_location": "L148",
       "id": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen",
-      "community": 30,
+      "community": 54,
       "norm_label": "adminsettingsscreen()"
+    },
+    {
+      "label": "StatusBanner()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L559",
+      "id": "adminsettingsscreen_adminsettingsscreen_statusbanner",
+      "community": 54,
+      "norm_label": "statusbanner()"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
-      "source_location": "L14",
+      "source_location": "L580",
       "id": "adminsettingsscreen_adminsettingsscreen_styles",
-      "community": 30,
+      "community": 54,
       "norm_label": "styles"
     },
     {
@@ -1863,7 +1971,7 @@
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_adminsettingsscreen_index_js",
-      "community": 30,
+      "community": 17,
       "norm_label": "index.js"
     },
     {
@@ -1872,7 +1980,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_adminproductformscreen_index_js",
-      "community": 17,
+      "community": 30,
       "norm_label": "index.js"
     },
     {
@@ -1881,7 +1989,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/AdminProductFormScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_adminproductformscreen_adminproductformscreen_js",
-      "community": 17,
+      "community": 30,
       "norm_label": "adminproductformscreen.js"
     },
     {
@@ -1890,7 +1998,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/AdminProductFormScreen.js",
       "source_location": "L21",
       "id": "adminproductformscreen_adminproductformscreen_fetchproductdetails",
-      "community": 17,
+      "community": 30,
       "norm_label": "fetchproductdetails()"
     },
     {
@@ -1899,7 +2007,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/AdminProductFormScreen.js",
       "source_location": "L36",
       "id": "adminproductformscreen_adminproductformscreen_adminproductformscreen",
-      "community": 17,
+      "community": 30,
       "norm_label": "adminproductformscreen()"
     },
     {
@@ -1908,7 +2016,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/AdminProductFormScreen.js",
       "source_location": "L323",
       "id": "adminproductformscreen_adminproductformscreen_styles",
-      "community": 17,
+      "community": 30,
       "norm_label": "styles"
     },
     {
@@ -2016,7 +2124,7 @@
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
       "source_location": "L16",
       "id": "adminentryscreen_adminentryscreen_adminentryscreen",
-      "community": 50,
+      "community": 17,
       "norm_label": "adminentryscreen()"
     },
     {
@@ -2043,7 +2151,7 @@
       "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_authscreen_authscreen_js",
-      "community": 50,
+      "community": 64,
       "norm_label": "authscreen.js"
     },
     {
@@ -2052,7 +2160,7 @@
       "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
       "source_location": "L30",
       "id": "authscreen_authscreen_authscreen",
-      "community": 50,
+      "community": 64,
       "norm_label": "authscreen()"
     },
     {
@@ -2061,7 +2169,7 @@
       "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
       "source_location": "L325",
       "id": "authscreen_authscreen_styles",
-      "community": 50,
+      "community": 64,
       "norm_label": "styles"
     },
     {
@@ -2070,7 +2178,7 @@
       "source_file": "Frontend-V1/src/screens/AuthScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_authscreen_index_js",
-      "community": 50,
+      "community": 64,
       "norm_label": "index.js"
     },
     {
@@ -2079,7 +2187,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_productlistscreen_index_js",
-      "community": 57,
+      "community": 17,
       "norm_label": "index.js"
     },
     {
@@ -2088,7 +2196,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "community": 57,
+      "community": 60,
       "norm_label": "productlistscreen.js"
     },
     {
@@ -2097,7 +2205,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L36",
       "id": "productlistscreen_productlistscreen_mock_products",
-      "community": 57,
+      "community": 60,
       "norm_label": "mock_products"
     },
     {
@@ -2106,7 +2214,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L45",
       "id": "productlistscreen_productlistscreen_category_chips",
-      "community": 57,
+      "community": 60,
       "norm_label": "category_chips"
     },
     {
@@ -2115,7 +2223,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L46",
       "id": "productlistscreen_productlistscreen_sort_options",
-      "community": 57,
+      "community": 60,
       "norm_label": "sort_options"
     },
     {
@@ -2124,7 +2232,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L48",
       "id": "productlistscreen_productlistscreen_productlistscreen",
-      "community": 57,
+      "community": 60,
       "norm_label": "productlistscreen()"
     },
     {
@@ -2133,7 +2241,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L353",
       "id": "productlistscreen_productlistscreen_styles",
-      "community": 57,
+      "community": 60,
       "norm_label": "styles"
     },
     {
@@ -2664,7 +2772,7 @@
       "source_file": "Frontend-V1/src/components/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_index_js",
-      "community": 43,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -2709,7 +2817,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_textbutton_index_js",
-      "community": 30,
+      "community": 33,
       "norm_label": "index.js"
     },
     {
@@ -2718,7 +2826,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_textbutton_textbutton_js",
-      "community": 30,
+      "community": 33,
       "norm_label": "textbutton.js"
     },
     {
@@ -2727,7 +2835,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
       "id": "textbutton_textbutton_textbutton",
-      "community": 30,
+      "community": 33,
       "norm_label": "textbutton()"
     },
     {
@@ -2736,7 +2844,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
       "id": "textbutton_textbutton_styles",
-      "community": 30,
+      "community": 33,
       "norm_label": "styles"
     },
     {
@@ -2763,7 +2871,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedQuantitySwitcher/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedquantityswitcher_index_js",
-      "community": 43,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -2790,7 +2898,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedFadeSlide/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedfadeslide_index_js",
-      "community": 43,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -2988,7 +3096,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_loadingskeleton_index_js",
-      "community": 48,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -2997,7 +3105,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_loadingskeleton_loadingskeleton_js",
-      "community": 48,
+      "community": 45,
       "norm_label": "loadingskeleton.js"
     },
     {
@@ -3006,7 +3114,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L16",
       "id": "loadingskeleton_loadingskeleton_loadingskeleton",
-      "community": 48,
+      "community": 45,
       "norm_label": "loadingskeleton()"
     },
     {
@@ -3015,7 +3123,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L57",
       "id": "loadingskeleton_loadingskeleton_skeletoncard",
-      "community": 48,
+      "community": 45,
       "norm_label": "skeletoncard()"
     },
     {
@@ -3024,7 +3132,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L74",
       "id": "loadingskeleton_loadingskeleton_skeletonrow",
-      "community": 48,
+      "community": 45,
       "norm_label": "skeletonrow()"
     },
     {
@@ -3033,7 +3141,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L86",
       "id": "loadingskeleton_loadingskeleton_styles",
-      "community": 48,
+      "community": 45,
       "norm_label": "styles"
     },
     {
@@ -3087,7 +3195,7 @@
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_appscreen_appscreen_js",
-      "community": 21,
+      "community": 45,
       "norm_label": "appscreen.js"
     },
     {
@@ -3096,7 +3204,7 @@
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L19",
       "id": "appscreen_appscreen_appscreen",
-      "community": 21,
+      "community": 45,
       "norm_label": "appscreen()"
     },
     {
@@ -3105,7 +3213,7 @@
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L44",
       "id": "appscreen_appscreen_styles",
-      "community": 21,
+      "community": 45,
       "norm_label": "styles"
     },
     {
@@ -3114,7 +3222,7 @@
       "source_file": "Frontend-V1/src/components/AppScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_appscreen_index_js",
-      "community": 21,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -3249,7 +3357,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedStickyMiniCart/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedstickyminicart_index_js",
-      "community": 43,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -3276,7 +3384,7 @@
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_stickyminicart_stickyminicart_js",
-      "community": 15,
+      "community": 30,
       "norm_label": "stickyminicart.js"
     },
     {
@@ -3285,7 +3393,7 @@
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L20",
       "id": "stickyminicart_stickyminicart_stickyminicart",
-      "community": 15,
+      "community": 30,
       "norm_label": "stickyminicart()"
     },
     {
@@ -3294,7 +3402,7 @@
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L55",
       "id": "stickyminicart_stickyminicart_styles",
-      "community": 15,
+      "community": 30,
       "norm_label": "styles"
     },
     {
@@ -3303,7 +3411,7 @@
       "source_file": "Frontend-V1/src/components/StickyMiniCart/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_stickyminicart_index_js",
-      "community": 15,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -3312,7 +3420,7 @@
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_iconbutton_iconbutton_js",
-      "community": 15,
+      "community": 58,
       "norm_label": "iconbutton.js"
     },
     {
@@ -3321,7 +3429,7 @@
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L20",
       "id": "iconbutton_iconbutton_iconbutton",
-      "community": 15,
+      "community": 58,
       "norm_label": "iconbutton()"
     },
     {
@@ -3330,7 +3438,7 @@
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L60",
       "id": "iconbutton_iconbutton_styles",
-      "community": 15,
+      "community": 58,
       "norm_label": "styles"
     },
     {
@@ -3339,7 +3447,7 @@
       "source_file": "Frontend-V1/src/components/IconButton/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_iconbutton_index_js",
-      "community": 15,
+      "community": 58,
       "norm_label": "index.js"
     },
     {
@@ -3420,7 +3528,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_segmentedcontrol_index_js",
-      "community": 33,
+      "community": 30,
       "norm_label": "index.js"
     },
     {
@@ -3429,7 +3537,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_segmentedcontrol_segmentedcontrol_js",
-      "community": 33,
+      "community": 30,
       "norm_label": "segmentedcontrol.js"
     },
     {
@@ -3438,7 +3546,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L15",
       "id": "segmentedcontrol_segmentedcontrol_segmentedcontrol",
-      "community": 33,
+      "community": 30,
       "norm_label": "segmentedcontrol()"
     },
     {
@@ -3447,7 +3555,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L54",
       "id": "segmentedcontrol_segmentedcontrol_styles",
-      "community": 33,
+      "community": 30,
       "norm_label": "styles"
     },
     {
@@ -3456,7 +3564,7 @@
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_staggeredlist_staggeredlist_js",
-      "community": 43,
+      "community": 45,
       "norm_label": "staggeredlist.js"
     },
     {
@@ -3465,7 +3573,7 @@
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L6",
       "id": "staggeredlist_staggeredlist_staggeredlist",
-      "community": 43,
+      "community": 45,
       "norm_label": "staggeredlist()"
     },
     {
@@ -3474,7 +3582,7 @@
       "source_file": "Frontend-V1/src/components/StaggeredList/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_staggeredlist_index_js",
-      "community": 43,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -3555,7 +3663,7 @@
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_appheader_appheader_js",
-      "community": 30,
+      "community": 63,
       "norm_label": "appheader.js"
     },
     {
@@ -3564,7 +3672,7 @@
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L25",
       "id": "appheader_appheader_appheader",
-      "community": 30,
+      "community": 63,
       "norm_label": "appheader()"
     },
     {
@@ -3573,7 +3681,7 @@
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L126",
       "id": "appheader_appheader_styles",
-      "community": 30,
+      "community": 63,
       "norm_label": "styles"
     },
     {
@@ -3582,7 +3690,7 @@
       "source_file": "Frontend-V1/src/components/AppHeader/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_appheader_index_js",
-      "community": 30,
+      "community": 63,
       "norm_label": "index.js"
     },
     {
@@ -3771,7 +3879,7 @@
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_layout_js",
-      "community": 15,
+      "community": 58,
       "norm_label": "layout.js"
     },
     {
@@ -3780,7 +3888,7 @@
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L7",
       "id": "theme_layout_layout",
-      "community": 15,
+      "community": 58,
       "norm_label": "layout"
     },
     {
@@ -3816,7 +3924,7 @@
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_spacing_js",
-      "community": 33,
+      "community": 43,
       "norm_label": "spacing.js"
     },
     {
@@ -3825,7 +3933,7 @@
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L6",
       "id": "theme_spacing_spacing",
-      "community": 33,
+      "community": 43,
       "norm_label": "spacing"
     },
     {
@@ -3879,7 +3987,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
       "id": "theme_typography_typography",
-      "community": 30,
+      "community": 33,
       "norm_label": "typography"
     },
     {
@@ -3897,7 +4005,7 @@
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_shadows_js",
-      "community": 21,
+      "community": 30,
       "norm_label": "shadows.js"
     },
     {
@@ -3906,7 +4014,7 @@
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L11",
       "id": "theme_shadows_makeshadow",
-      "community": 21,
+      "community": 30,
       "norm_label": "makeshadow()"
     },
     {
@@ -3915,7 +4023,7 @@
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L23",
       "id": "theme_shadows_shadows",
-      "community": 50,
+      "community": 30,
       "norm_label": "shadows"
     },
     {
@@ -3924,7 +4032,7 @@
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_colors_js",
-      "community": 21,
+      "community": 30,
       "norm_label": "colors.js"
     },
     {
@@ -3933,7 +4041,7 @@
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L10",
       "id": "theme_colors_palette",
-      "community": 21,
+      "community": 30,
       "norm_label": "palette"
     },
     {
@@ -3942,7 +4050,7 @@
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L64",
       "id": "theme_colors_colors",
-      "community": 21,
+      "community": 30,
       "norm_label": "colors"
     },
     {
@@ -3951,7 +4059,7 @@
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_motion_js",
-      "community": 48,
+      "community": 45,
       "norm_label": "motion.js"
     },
     {
@@ -3969,7 +4077,7 @@
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L27",
       "id": "theme_motion_easingmodal",
-      "community": 48,
+      "community": 45,
       "norm_label": "easingmodal"
     },
     {
@@ -3978,7 +4086,7 @@
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L33",
       "id": "theme_motion_motionconfig",
-      "community": 48,
+      "community": 45,
       "norm_label": "motionconfig"
     },
     {
@@ -8657,9 +8765,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "frontend_v1_src_api_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_api_index_js"
     },
     {
       "relation": "imports_from",
@@ -8678,9 +8786,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_pickfirst",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_pickfirst"
     },
     {
       "relation": "contains",
@@ -8688,9 +8796,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L39",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_asboolean",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_asboolean"
     },
     {
       "relation": "contains",
@@ -8698,9 +8806,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L49",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_getcustomersfromresponse",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_getcustomersfromresponse"
     },
     {
       "relation": "contains",
@@ -8708,9 +8816,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L59",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_normalizecustomer",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_normalizecustomer"
     },
     {
       "relation": "contains",
@@ -8718,9 +8826,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L93",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_formatshortaddress",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_formatshortaddress"
     },
     {
       "relation": "contains",
@@ -8728,9 +8836,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L106",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_getactionerror",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_getactionerror"
     },
     {
       "relation": "contains",
@@ -8748,9 +8856,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L363",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_customerskeletonlist",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_customerskeletonlist"
     },
     {
       "relation": "contains",
@@ -8758,9 +8866,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L374",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_customercard",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_customercard"
     },
     {
       "relation": "contains",
@@ -8768,9 +8876,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L465",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_statuspill",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_statuspill"
     },
     {
       "relation": "contains",
@@ -8778,9 +8886,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L484",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_togglerow",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_togglerow"
     },
     {
       "relation": "contains",
@@ -8788,9 +8896,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L505",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_blockcustomermodal",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_blockcustomermodal"
     },
     {
       "relation": "contains",
@@ -8820,9 +8928,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "loadingskeleton_loadingskeleton_skeletonrow",
-      "confidence_score": 1.0
+      "target": "loadingskeleton_loadingskeleton_skeletonrow"
     },
     {
       "relation": "imports",
@@ -8831,9 +8939,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "api_admincustomersapi_admincustomersapi",
-      "confidence_score": 1.0
+      "target": "api_admincustomersapi_admincustomersapi"
     },
     {
       "relation": "imports",
@@ -8853,9 +8961,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "theme_motion_motionconfig",
-      "confidence_score": 1.0
+      "target": "theme_motion_motionconfig"
     },
     {
       "relation": "imports",
@@ -8864,9 +8972,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "theme_borders_radius",
-      "confidence_score": 1.0
+      "target": "theme_borders_radius"
     },
     {
       "relation": "imports",
@@ -8875,9 +8983,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "theme_shadows_shadows",
-      "confidence_score": 1.0
+      "target": "theme_shadows_shadows"
     },
     {
       "relation": "imports",
@@ -8886,9 +8994,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "theme_spacing_spacing",
-      "confidence_score": 1.0
+      "target": "theme_spacing_spacing"
     },
     {
       "relation": "imports",
@@ -8908,9 +9016,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L60",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "admincustomersscreen_admincustomersscreen_normalizecustomer",
-      "target": "admincustomersscreen_admincustomersscreen_pickfirst",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_pickfirst"
     },
     {
       "relation": "calls",
@@ -8919,9 +9027,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L88",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "admincustomersscreen_admincustomersscreen_normalizecustomer",
-      "target": "admincustomersscreen_admincustomersscreen_asboolean",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_asboolean"
     },
     {
       "relation": "calls",
@@ -8930,9 +9038,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L399",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "admincustomersscreen_admincustomersscreen_customercard",
-      "target": "admincustomersscreen_admincustomersscreen_formatshortaddress",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_formatshortaddress"
     },
     {
       "relation": "contains",
@@ -10792,6 +10900,17 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "frontend_v1_src_api_index_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L4",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -10802,11 +10921,131 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "adminsettingsscreen_adminsettingsscreen_default_form",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "adminsettingsscreen_adminsettingsscreen_numeric_fields",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "adminsettingsscreen_adminsettingsscreen_pickfirst",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "adminsettingsscreen_adminsettingsscreen_asboolean",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L67",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "adminsettingsscreen_adminsettingsscreen_astext",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "adminsettingsscreen_adminsettingsscreen_getpayloaddata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "adminsettingsscreen_adminsettingsscreen_getofferdata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L92",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "adminsettingsscreen_adminsettingsscreen_normalizesettings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L125",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "adminsettingsscreen_adminsettingsscreen_buildsettingspayload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L136",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "adminsettingsscreen_adminsettingsscreen_buildofferpayload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L144",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "adminsettingsscreen_adminsettingsscreen_geterrormessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L6",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
       "target": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L559",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "adminsettingsscreen_adminsettingsscreen_statusbanner",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -10834,11 +11073,33 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
-      "source_location": "L4",
+      "source_location": "L22",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
-      "target": "theme_typography_typography"
+      "target": "api_adminsettingsapi_adminsettingsapi",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "api_offersapi_offersapi",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "api_settingsapi_settingsapi",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -10850,6 +11111,116 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
       "target": "theme_colors_colors"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "theme_motion_motionconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "theme_borders_radius",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "theme_shadows_shadows",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "theme_spacing_spacing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
+      "target": "theme_typography_typography"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L97",
+      "weight": 1.0,
+      "source": "adminsettingsscreen_adminsettingsscreen_normalizesettings",
+      "target": "adminsettingsscreen_adminsettingsscreen_pickfirst",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L97",
+      "weight": 1.0,
+      "source": "adminsettingsscreen_adminsettingsscreen_normalizesettings",
+      "target": "adminsettingsscreen_adminsettingsscreen_asboolean",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L98",
+      "weight": 1.0,
+      "source": "adminsettingsscreen_adminsettingsscreen_normalizesettings",
+      "target": "adminsettingsscreen_adminsettingsscreen_astext",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L93",
+      "weight": 1.0,
+      "source": "adminsettingsscreen_adminsettingsscreen_normalizesettings",
+      "target": "adminsettingsscreen_adminsettingsscreen_getpayloaddata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
+      "source_location": "L94",
+      "weight": 1.0,
+      "source": "adminsettingsscreen_adminsettingsscreen_normalizesettings",
+      "target": "adminsettingsscreen_adminsettingsscreen_getofferdata",
+      "confidence_score": 1.0
     },
     {
       "relation": "re_exports",
@@ -19306,5 +19677,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "75564af2ac56378b166a10817b180064788f408e"
+  "built_at_commit": "b34621010c88f7e4651cabba192a93c5a47d34ee"
 }
