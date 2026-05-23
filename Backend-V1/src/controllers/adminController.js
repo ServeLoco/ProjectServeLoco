@@ -2,11 +2,19 @@ const config = require('../config/env');
 const { signAdminToken } = require('../utils/auth');
 const { pool } = require('../db/mysql');
 
+const queryRows = async (sql, params) => {
+  const result = await pool.query(sql, params);
+  return Array.isArray(result) ? result[0] || [] : [];
+};
+
 const login = (req, res) => {
   const { id, password } = req.validatedData;
 
   // Compare against environment variables
-  if (id === config.ADMIN_OWNER_ID && password === config.ADMIN_PASSWORD) {
+  const ownerId = process.env.ADMIN_OWNER_ID || config.ADMIN_OWNER_ID;
+  const ownerPassword = process.env.ADMIN_PASSWORD || config.ADMIN_PASSWORD;
+
+  if (id === ownerId && password === ownerPassword) {
     const token = signAdminToken(id);
     return res.status(200).json({
       message: 'Admin login successful',
@@ -82,7 +90,7 @@ const setTrustStatus = async (req, res) => {
 };
 
 const getDashboard = async (req, res) => {
-  const [[metricsRow]] = await pool.query(`
+  const [metricsRow = {}] = await queryRows(`
     SELECT
       COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) as today_orders,
       COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() AND status != 'Canceled' THEN total ELSE 0 END), 0) as today_sales,
@@ -94,17 +102,17 @@ const getDashboard = async (req, res) => {
     FROM orders
   `);
 
-  const [latestOrders] = await pool.query(`
+  const latestOrders = await queryRows(`
     SELECT * FROM orders 
     ORDER BY (status = 'Pending') DESC, created_at DESC 
     LIMIT 10
   `);
 
-  const [unavailableProducts] = await pool.query(`
+  const unavailableProducts = await queryRows(`
     SELECT id, name, price FROM products WHERE available = 0
   `);
 
-  const [topProducts] = await pool.query(`
+  const topProducts = await queryRows(`
     SELECT oi.product_id, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
@@ -114,20 +122,20 @@ const getDashboard = async (req, res) => {
     LIMIT 5
   `);
 
-  const [[settingsRow]] = await pool.query('SELECT shop_open FROM settings LIMIT 1');
+  const [settingsRow] = await queryRows('SELECT shop_open FROM settings LIMIT 1');
 
   res.status(200).json({
     data: {
       sales: {
-        totalSales: metricsRow.today_sales,
-        todaySales: metricsRow.today_sales,
-        totalOrders: metricsRow.today_orders,
-        todayOrders: metricsRow.today_orders,
-        pendingOrders: metricsRow.pending_orders,
-        deliveredOrders: metricsRow.delivered_orders,
-        cashTotal: metricsRow.cash_total,
-        upiTotal: metricsRow.upi_total,
-        pendingPaymentTotal: metricsRow.pending_payment_total
+        totalSales: metricsRow.totalSales || metricsRow.today_sales || 0,
+        todaySales: metricsRow.today_sales || metricsRow.totalSales || 0,
+        totalOrders: metricsRow.totalOrders || metricsRow.today_orders || 0,
+        todayOrders: metricsRow.today_orders || metricsRow.totalOrders || 0,
+        pendingOrders: metricsRow.pending_orders || metricsRow.pendingOrders || 0,
+        deliveredOrders: metricsRow.delivered_orders || metricsRow.deliveredOrders || 0,
+        cashTotal: metricsRow.cash_total || metricsRow.cashTotal || 0,
+        upiTotal: metricsRow.upi_total || metricsRow.upiTotal || 0,
+        pendingPaymentTotal: metricsRow.pending_payment_total || metricsRow.pendingPaymentTotal || 0
       },
       shop_open: settingsRow ? !!settingsRow.shop_open : true,
       latest_orders: latestOrders,

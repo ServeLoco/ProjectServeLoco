@@ -32,8 +32,11 @@ const calculateCart = async (req, res) => {
     }
   }
 
-  let deliveryCharge = parseFloat(settings.delivery_charge);
-  if (settings.free_delivery_above !== null && subtotal >= parseFloat(settings.free_delivery_above)) {
+  let deliveryCharge = Number(settings.delivery_charge) || 0;
+  const freeDeliveryAbove = settings.free_delivery_above === null || settings.free_delivery_above === undefined
+    ? null
+    : Number(settings.free_delivery_above);
+  if (freeDeliveryAbove !== null && subtotal >= freeDeliveryAbove) {
     deliveryCharge = 0;
   }
 
@@ -61,21 +64,25 @@ const calculateCart = async (req, res) => {
   let discount = 0; // if offers apply, could be calculated here
 
   const grandTotal = subtotal + deliveryCharge + nightCharge - discount;
-  const minimumOrder = parseFloat(settings.minimum_order_amount);
+  const minimumOrder = Number(settings.minimum_order_amount) || 0;
+
+  const calculation = {
+    subtotal,
+    deliveryCharge,
+    nightCharge,
+    discount,
+    grandTotal,
+    total: grandTotal,
+    minimumOrder,
+    items: processedItems,
+    isValid: subtotal >= minimumOrder,
+    valid: subtotal >= minimumOrder,
+    message: subtotal < minimumOrder ? `Minimum order is ₹${minimumOrder}` : ''
+  };
 
   res.status(200).json({
-    data: {
-      subtotal,
-      deliveryCharge,
-      nightCharge,
-      discount,
-      grandTotal,
-      total: grandTotal, // aliased for frontend mapping
-      minimumOrder,
-      items: processedItems,
-      isValid: subtotal >= minimumOrder,
-      message: subtotal < minimumOrder ? `Minimum order is ₹${minimumOrder}` : ''
-    }
+    ...calculation,
+    data: calculation
   });
 };
 

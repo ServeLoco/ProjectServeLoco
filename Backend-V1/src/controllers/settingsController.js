@@ -56,11 +56,11 @@ const updateSettings = async (req, res) => {
   }
 
   const [rows] = await pool.query('SELECT id FROM settings LIMIT 1');
+  let settingsId = rows[0]?.id;
   if (rows.length === 0) {
-    await pool.query('INSERT INTO settings (shop_open) VALUES (1)');
+    const [insertResult] = await pool.query('INSERT INTO settings (shop_open) VALUES (1)');
+    settingsId = insertResult?.insertId;
   }
-  const [settingsIdRow] = await pool.query('SELECT id FROM settings LIMIT 1');
-  const settingsId = settingsIdRow[0].id;
 
   await pool.query(`UPDATE settings SET ${updates.join(', ')} WHERE id = ?`, [...params, settingsId]);
   const [updatedRows] = await pool.query('SELECT * FROM settings LIMIT 1');

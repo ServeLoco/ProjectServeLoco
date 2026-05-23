@@ -19,7 +19,7 @@ const requireCustomer = (req, res, next) => {
     if (payload.role !== 'customer') {
       return res.status(403).json({ code: 'FORBIDDEN', message: 'Forbidden role' });
     }
-    req.user = { id: payload.sub, role: payload.role };
+    req.user = { id: payload.sub || payload.id, role: payload.role };
     next();
   } catch (error) {
     return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid or expired token' });
@@ -37,7 +37,7 @@ const requireAdmin = (req, res, next) => {
     if (payload.role !== 'admin') {
       return res.status(403).json({ code: 'FORBIDDEN', message: 'Forbidden role' });
     }
-    req.admin = { id: payload.sub, role: payload.role };
+    req.admin = { id: payload.sub || payload.id, role: payload.role };
     next();
   } catch (error) {
     return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid or expired token' });

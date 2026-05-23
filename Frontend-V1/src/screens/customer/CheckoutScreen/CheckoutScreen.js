@@ -233,14 +233,26 @@ export default function CheckoutScreen() {
         items: checkoutItems,
         deliveryAddress: address.trim(),
         address: address.trim(),
-        coordinates,
+        latitude: coordinates?.lat,
+        longitude: coordinates?.lng,
+        mapUrl: coordinates
+          ? `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`
+          : undefined,
         paymentMethod,
       });
+      const responseOrder = orderResponse?.order || orderResponse?.data || orderResponse;
+      const orderId = responseOrder?.id || responseOrder?.orderId || orderResponse?.orderId;
 
       clearCart();
       navigation.navigate('OrderConfirmation', {
-        orderId: orderResponse?.id || orderResponse?.order?.id || orderResponse?.data?.id,
-        order: orderResponse?.order || orderResponse?.data || orderResponse,
+        orderId,
+        order: {
+          ...responseOrder,
+          id: orderId,
+          address: address.trim(),
+          total: responseOrder?.total || bill.grandTotal,
+          paymentMethod,
+        },
       });
     } catch (error) {
       setSubmitError(error.message || 'Unable to place order. Please try again.');

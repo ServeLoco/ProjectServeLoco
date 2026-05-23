@@ -1,10 +1,14 @@
+const express = require('express');
 const { login, me, getAdminCustomers, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer } = require('../controllers/settingsController');
 const { createCategory, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
 const { requireAdmin } = require('../middleware/authMiddleware');
 const { validate, isString, isId, isBoolean, isNumericAmount, validatePagination, normalizeField } = require('../validators');
+const asyncHandler = require('../utils/asyncHandler');
 const rateLimit = require('express-rate-limit');
+
+const router = express.Router();
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

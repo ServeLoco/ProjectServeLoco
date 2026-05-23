@@ -32,9 +32,9 @@ const getProducts = async (req, res) => {
   const [rows] = await pool.query(query, params);
 
   // Resolve image URLs from MongoDB
-  const db = getDb();
   const imageIds = rows.map(r => r.image_id).filter(id => id && ObjectId.isValid(id)).map(id => new ObjectId(id));
   if (imageIds.length > 0) {
+    const db = getDb();
     const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
     const imageMap = {};
     images.forEach(img => { imageMap[img._id.toString()] = img.url; });
@@ -43,7 +43,7 @@ const getProducts = async (req, res) => {
     });
   }
 
-  res.status(200).json({ data: rows });
+  res.status(200).json({ data: { products: rows }, products: rows });
 };
 
 const getProductById = async (req, res) => {
@@ -136,9 +136,9 @@ const getAdminProducts = async (req, res) => {
   const [rows] = await pool.query(query, params);
 
   // Resolve image URLs
-  const db = getDb();
   const imageIds = rows.map(r => r.image_id).filter(id => id && ObjectId.isValid(id)).map(id => new ObjectId(id));
   if (imageIds.length > 0) {
+    const db = getDb();
     const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
     const imageMap = {};
     images.forEach(img => {
@@ -151,7 +151,7 @@ const getAdminProducts = async (req, res) => {
     });
   }
 
-  res.status(200).json({ data: rows });
+  res.status(200).json({ data: { products: rows }, products: rows });
 };
 
 const getAdminProductById = async (req, res) => {

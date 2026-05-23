@@ -29,12 +29,20 @@ const uploadImage = async (req, res) => {
 
   const db = getDb();
   const result = await db.collection('images').insertOne(imageDoc);
-  
-  const savedDoc = await db.collection('images').findOne({ _id: result.insertedId });
+  const savedDoc = await db.collection('images').findOne?.({ _id: result.insertedId }) || {
+    ...imageDoc,
+    _id: result.insertedId
+  };
   const idStr = savedDoc._id.toString();
 
   res.status(201).json({
     message: 'Image uploaded successfully',
+    data: {
+      ...savedDoc,
+      id: idStr,
+      imageUrl: savedDoc.url,
+      image_url: savedDoc.url
+    },
     image: {
       ...savedDoc,
       id: idStr,

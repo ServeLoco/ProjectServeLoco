@@ -7,12 +7,20 @@ import {
   TouchableOpacity,
   BackHandler,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { AppScreen, Button } from '../../../components';
 import { colors, typography, spacing, radius } from '../../../theme';
+import { normalizeOrder } from '../../../utils';
 
 export default function OrderConfirmationScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
+  const order = normalizeOrder(route.params?.order || {});
+  const orderId = route.params?.orderId || order.id;
+  const orderLabel = order.orderNumber || order.order_number || orderId || 'Pending';
+  const total = order.total || order.bill?.grandTotal || 0;
+  const paymentMethod = order.paymentMethod || 'Cash';
+  const address = order.address || order.customer?.address || 'Delivery address saved with your order';
 
   // Animations
   const iconScale = useRef(new Animated.Value(0)).current;
@@ -46,7 +54,9 @@ export default function OrderConfirmationScreen() {
   }, [iconScale, iconOpacity, detailsFade, detailsSlide, btnSlide, navigation]);
 
   const handleViewOrder = () => {
-    navigation.navigate('OrderDetail', { orderId: 'OD-123456789' });
+    if (orderId) {
+      navigation.navigate('OrderDetail', { orderId });
+    }
   };
 
   const handleContinueShopping = () => {
@@ -82,18 +92,18 @@ export default function OrderConfirmationScreen() {
           <View style={styles.card}>
             <View style={styles.row}>
               <Text style={styles.label}>Order ID</Text>
-              <Text style={styles.value}>OD-123456789</Text>
+              <Text style={styles.value}>{orderLabel}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.row}>
               <Text style={styles.label}>Total Amount</Text>
-              <Text style={styles.value}>Rs. 320 (Cash on Delivery)</Text>
+              <Text style={styles.value}>Rs. {total} ({paymentMethod})</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.col}>
               <Text style={styles.label}>Delivery Address</Text>
               <Text style={styles.addressValue}>
-                A-12, Sector 4, Rohini, New Delhi
+                {address}
               </Text>
             </View>
           </View>
@@ -106,6 +116,7 @@ export default function OrderConfirmationScreen() {
           <Button 
             label="View Order" 
             onPress={handleViewOrder} 
+            disabled={!orderId}
             style={styles.primaryBtn} 
           />
           <TouchableOpacity 

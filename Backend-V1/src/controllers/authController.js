@@ -36,7 +36,8 @@ const login = async (req, res) => {
   }
 
   const user = rows[0];
-  const isMatch = await comparePassword(password, user.password_hash);
+  const passwordHash = user.password_hash || user.password;
+  const isMatch = await comparePassword(password, passwordHash);
   if (!isMatch) {
     return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid phone or password' });
   }
@@ -47,6 +48,7 @@ const login = async (req, res) => {
 
   const token = signCustomerToken(user.id);
   delete user.password_hash; // Do not return hash
+  delete user.password;
 
   res.status(200).json({
     message: 'Login successful',
