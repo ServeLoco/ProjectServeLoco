@@ -14,7 +14,7 @@ export { default as AuthScreen } from './AuthScreen';
 // Admin Screens
 export { default as AdminEntryScreen } from './AdminEntryScreen/AdminEntryScreen';
 export { default as AdminLoginScreen } from './AdminLoginScreen/AdminLoginScreen';
-export { default as AdminDashboardScreen } from './AdminDashboardScreen';
+export { default as AdminDashboardScreen } from './AdminDashboardScreen/AdminDashboardScreen';
 export { default as AdminOrdersScreen } from './AdminOrdersScreen';
 export { default as AdminOrderDetailScreen } from './AdminOrderDetailScreen';
 export { default as AdminProductsScreen } from './AdminProductsScreen';

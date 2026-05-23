@@ -24,7 +24,7 @@ export default function AdminEntryScreen() {
   useEffect(() => {
     // If already authenticated as admin, jump to Admin Dashboard
     if (isAdminAuthenticated) {
-      // navigation.replace('AdminDashboard'); // Uncomment when AdminDashboard exists
+      navigation.replace('AdminDashboard');
     }
 
     Animated.parallel([

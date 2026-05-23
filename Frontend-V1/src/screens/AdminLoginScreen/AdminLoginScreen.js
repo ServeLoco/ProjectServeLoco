@@ -78,8 +78,7 @@ export default function AdminLoginScreen() {
 
       if (ownerId === 'admin' && password === 'admin') {
         setAdminSession('mock-admin-jwt-token');
-        // navigation.replace('AdminDashboard'); // Uncomment when AdminDashboard exists
-        console.log('Login Success. Navigating to AdminDashboard');
+        navigation.replace('AdminDashboard');
       } else {
         setApiError('Invalid Owner ID or Password. Try admin / admin');
         shakeError();

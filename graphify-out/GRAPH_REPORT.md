@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 180 files · ~41,291 words
+- 180 files · ~41,828 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 694 nodes · 954 edges · 80 communities (45 shown, 35 thin omitted)
+- 694 nodes · 956 edges · 79 communities (44 shown, 35 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `87794f79`
+- Built from commit: `40d4fb1b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -64,7 +64,6 @@
 - [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
 - [[_COMMUNITY_Community 56|Community 56]]
-- [[_COMMUNITY_Community 57|Community 57]]
 - [[_COMMUNITY_Community 58|Community 58]]
 - [[_COMMUNITY_Community 59|Community 59]]
 - [[_COMMUNITY_Community 60|Community 60]]
@@ -111,7 +110,7 @@
 - `AnimatedQuantitySwitcher()` --calls--> `useReducedMotion()`  [EXTRACTED]
   Frontend-V1/src/components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js → Frontend-V1/src/utils/motionPreferences.js
 
-## Communities (80 total, 35 thin omitted)
+## Communities (79 total, 35 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -206,8 +205,8 @@ Cohesion: 0.33
 Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
-Cohesion: 0.08
-Nodes (20): AnimatedCartBadge(), AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), AnimatedStickyMiniCart(), AnimatedTabItem() (+12 more)
+Cohesion: 0.07
+Nodes (23): AnimatedCartBadge(), AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), AnimatedStickyMiniCart(), AnimatedTabItem() (+15 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.33
@@ -232,10 +231,6 @@ Nodes (4): Frontend Build Phases, Phase 1: App Shell, Phase 2: Customer Flow, Ph
 ### Community 53 - "Community 53"
 Cohesion: 0.67
 Nodes (3): Included, Not Included, V1 Scope
-
-### Community 56 - "Community 56"
-Cohesion: 0.50
-Nodes (3): App(), assertNoEmoji(), hasEmoji()
 
 ### Community 66 - "Community 66"
 Cohesion: 0.33

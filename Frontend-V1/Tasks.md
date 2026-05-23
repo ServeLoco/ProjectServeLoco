@@ -430,22 +430,22 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-22: Admin Dashboard Screen
 
-- [ ] Fetch dashboard through `GET /admin/dashboard`.
-- [ ] Fetch sales report through `GET /admin/reports/sales`.
-- [ ] Build header with `Admin Dashboard` and logout icon button.
-- [ ] Add metric cards for today orders, today sales, pending orders, delivered orders, cash total, UPI total, pending payment total, today/week/month sales.
-- [ ] Add shop open/closed toggle.
-- [ ] Add buttons: `Manage Orders`, `Manage Products`, `Settings`.
-- [ ] Add latest order cards with pending orders first.
-- [ ] Each latest order card shows order id, customer, total, payment status, order status, and `Open` button.
-- [ ] Add product alerts section if backend exposes unavailable or alert fields.
-- [ ] Add `View Products` button in product alerts.
-- [ ] Add top 5 products list with rank, product name, and sales count/amount when available.
-- [ ] Add loading skeletons and API retry state.
-- [ ] Animate metric cards with staggered entry.
-- [ ] Animate shop toggle thumb and color change.
-- [ ] Animate latest order cards after metrics load.
-- [ ] Animate refreshed metric values with crossfade.
+- [x] Fetch dashboard through `GET /admin/dashboard`.
+- [x] Fetch sales report through `GET /admin/reports/sales`.
+- [x] Build header with `Admin Dashboard` and logout icon button.
+- [x] Add metric cards for today orders, today sales, pending orders, delivered orders, cash total, UPI total, pending payment total, today/week/month sales.
+- [x] Add shop open/closed toggle.
+- [x] Add buttons: `Manage Orders`, `Manage Products`, `Settings`.
+- [x] Add latest order cards with pending orders first.
+- [x] Each latest order card shows order id, customer, total, payment status, order status, and `Open` button.
+- [x] Add product alerts section if backend exposes unavailable or alert fields.
+- [x] Add `View Products` button in product alerts.
+- [x] Add top 5 products list with rank, product name, and sales count/amount when available.
+- [x] Add loading skeletons and API retry state.
+- [x] Animate metric cards with staggered entry.
+- [x] Animate shop toggle thumb and color change.
+- [x] Animate latest order cards after metrics load.
+- [x] Animate refreshed metric values with crossfade.
 
 ### Task F-23: Admin Orders Screen
 
