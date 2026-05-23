@@ -24,7 +24,13 @@ export default function AdminNavigator() {
   const isAdminAuthenticated = useAdminAuthStore(state => state.isAdminAuthenticated);
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        animation: 'fade',
+        animationDuration: 200,
+      }}
+    >
       {!isAdminAuthenticated ? (
         <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
       ) : (

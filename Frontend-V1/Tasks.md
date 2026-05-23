@@ -158,9 +158,9 @@ Source of truth: `../mainPLAN.md` frontend section.
 - [x] Show Cart through header cart icon and sticky mini-cart.
 - [x] Add hidden admin entry route that is not visible in customer bottom navigation.
 - [x] Restore the correct route after customer or admin session restore.
-- [ ] Animate bottom tab active icon scale and active indicator movement.
-- [ ] Use subtle screen fade/slide transition when moving between stack screens.
-- [ ] Keep navigation animations short so back/forward actions feel instant.
+- [x] Animate bottom tab active icon scale and active indicator movement.
+- [x] Use subtle screen fade/slide transition when moving between stack screens.
+- [x] Keep navigation animations short so back/forward actions feel instant.
 
 ## Phase 2: Auth And Preview Gate
 

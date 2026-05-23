@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { Animated, View, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, typography } from '../theme';
@@ -21,6 +22,29 @@ import {
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+
+function AnimatedTabIcon({ name, focused, color }) {
+  const scale = useRef(new Animated.Value(focused ? 1.15 : 1)).current;
+  
+  useEffect(() => {
+    Animated.spring(scale, {
+      toValue: focused ? 1.15 : 1,
+      useNativeDriver: true,
+      speed: 24,
+      bounciness: 8,
+    }).start();
+  }, [focused, scale]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale }], alignItems: 'center', justifyContent: 'center' }}>
+      {/* Icon placeholder (e.g. vector icon) */}
+      <View style={{ width: 24, height: 24, backgroundColor: color, borderRadius: 12, marginBottom: 2 }} />
+      {focused && (
+        <View style={{ position: 'absolute', bottom: -10, width: 4, height: 4, borderRadius: 2, backgroundColor: color }} />
+      )}
+    </Animated.View>
+  );
+}
 
 /**
  * CustomerBottomTabs
@@ -45,6 +69,9 @@ function CustomerBottomTabs() {
           ...typography.caption,
           fontWeight: '600',
         },
+        tabBarIcon: ({ focused, color }) => (
+          <AnimatedTabIcon name={''} focused={focused} color={color} />
+        ),
       }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
@@ -61,7 +88,13 @@ function CustomerBottomTabs() {
  */
 export default function CustomerNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        animation: 'fade_from_bottom',
+        animationDuration: 200,
+      }}
+    >
       <Stack.Screen name="MainTabs" component={CustomerBottomTabs} />
       
       {/* Product Flow */}
