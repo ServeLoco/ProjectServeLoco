@@ -400,48 +400,57 @@
       "norm_label": "task f-31: final acceptance checklist"
     },
     {
-      "label": "ProductDetailScreen.js",
+      "label": "QuantityStepper.js",
       "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
-      "community": 73,
-      "norm_label": "productdetailscreen.js"
+      "id": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
+      "community": 43,
+      "norm_label": "quantitystepper.js"
     },
     {
-      "label": "MOCK_DB",
+      "label": "QuantityStepper()",
       "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L23",
-      "id": "productdetailscreen_productdetailscreen_mock_db",
-      "community": 73,
-      "norm_label": "mock_db"
-    },
-    {
-      "label": "RELATED_PRODUCTS",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L31",
-      "id": "productdetailscreen_productdetailscreen_related_products",
-      "community": 73,
-      "norm_label": "related_products"
-    },
-    {
-      "label": "ProductDetailScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L36",
-      "id": "productdetailscreen_productdetailscreen_productdetailscreen",
-      "community": 73,
-      "norm_label": "productdetailscreen()"
+      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
+      "source_location": "L30",
+      "id": "quantitystepper_quantitystepper_quantitystepper",
+      "community": 43,
+      "norm_label": "quantitystepper()"
     },
     {
       "label": "styles",
       "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L233",
-      "id": "productdetailscreen_productdetailscreen_styles",
-      "community": 73,
+      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
+      "source_location": "L110",
+      "id": "quantitystepper_quantitystepper_styles",
+      "community": 43,
+      "norm_label": "styles"
+    },
+    {
+      "label": "CartScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
+      "source_location": "L1",
+      "id": "frontend_v1_src_screens_cartscreen_cartscreen_js",
+      "community": 65,
+      "norm_label": "cartscreen.js"
+    },
+    {
+      "label": "CartScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
+      "source_location": "L31",
+      "id": "cartscreen_cartscreen_cartscreen",
+      "community": 65,
+      "norm_label": "cartscreen()"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
+      "source_location": "L270",
+      "id": "cartscreen_cartscreen_styles",
+      "community": 65,
       "norm_label": "styles"
     },
     {
@@ -449,54 +458,99 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L1",
+      "id": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
       "community": 74,
-      "norm_label": "productlistscreen.js",
-      "id": "frontend_v1_src_screens_productlistscreen_productlistscreen_js"
+      "norm_label": "productlistscreen.js"
     },
     {
       "label": "MOCK_PRODUCTS",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L34",
+      "source_location": "L35",
+      "id": "productlistscreen_productlistscreen_mock_products",
       "community": 74,
-      "norm_label": "mock_products",
-      "id": "productlistscreen_productlistscreen_mock_products"
+      "norm_label": "mock_products"
     },
     {
       "label": "CATEGORY_CHIPS",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L43",
+      "source_location": "L44",
+      "id": "productlistscreen_productlistscreen_category_chips",
       "community": 74,
-      "norm_label": "category_chips",
-      "id": "productlistscreen_productlistscreen_category_chips"
+      "norm_label": "category_chips"
     },
     {
       "label": "SORT_OPTIONS",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L44",
+      "source_location": "L45",
+      "id": "productlistscreen_productlistscreen_sort_options",
       "community": 74,
-      "norm_label": "sort_options",
-      "id": "productlistscreen_productlistscreen_sort_options"
+      "norm_label": "sort_options"
     },
     {
       "label": "ProductListScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L46",
+      "source_location": "L47",
+      "id": "productlistscreen_productlistscreen_productlistscreen",
       "community": 74,
-      "norm_label": "productlistscreen()",
-      "id": "productlistscreen_productlistscreen_productlistscreen"
+      "norm_label": "productlistscreen()"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L351",
+      "source_location": "L352",
+      "id": "productlistscreen_productlistscreen_styles",
       "community": 74,
+      "norm_label": "styles"
+    },
+    {
+      "label": "ProductDetailScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L1",
+      "community": 73,
+      "norm_label": "productdetailscreen.js",
+      "id": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js"
+    },
+    {
+      "label": "MOCK_DB",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L23",
+      "community": 73,
+      "norm_label": "mock_db",
+      "id": "productdetailscreen_productdetailscreen_mock_db"
+    },
+    {
+      "label": "RELATED_PRODUCTS",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L31",
+      "community": 73,
+      "norm_label": "related_products",
+      "id": "productdetailscreen_productdetailscreen_related_products"
+    },
+    {
+      "label": "ProductDetailScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L36",
+      "community": 73,
+      "norm_label": "productdetailscreen()",
+      "id": "productdetailscreen_productdetailscreen_productdetailscreen"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L233",
+      "community": 73,
       "norm_label": "styles",
-      "id": "productlistscreen_productlistscreen_styles"
+      "id": "productdetailscreen_productdetailscreen_styles"
     },
     {
       "label": "CategoriesScreen.js",
@@ -578,33 +632,6 @@
       "community": 30,
       "norm_label": "styles",
       "id": "appheader_appheader_styles"
-    },
-    {
-      "label": "QuantityStepper.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
-      "source_location": "L1",
-      "community": 43,
-      "norm_label": "quantitystepper.js",
-      "id": "frontend_v1_src_components_quantitystepper_quantitystepper_js"
-    },
-    {
-      "label": "QuantityStepper()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
-      "source_location": "L29",
-      "community": 43,
-      "norm_label": "quantitystepper()",
-      "id": "quantitystepper_quantitystepper_quantitystepper"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
-      "source_location": "L100",
-      "community": 43,
-      "norm_label": "styles",
-      "id": "quantitystepper_quantitystepper_styles"
     },
     {
       "label": "StickyMiniCart.js",
@@ -1613,33 +1640,6 @@
       "community": 64,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_authscreen_index_js"
-    },
-    {
-      "label": "CartScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
-      "source_location": "L1",
-      "community": 65,
-      "norm_label": "cartscreen.js",
-      "id": "frontend_v1_src_screens_cartscreen_cartscreen_js"
-    },
-    {
-      "label": "CartScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
-      "source_location": "L6",
-      "community": 65,
-      "norm_label": "cartscreen()",
-      "id": "cartscreen_cartscreen_cartscreen"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
-      "source_location": "L14",
-      "community": 65,
-      "norm_label": "styles",
-      "id": "cartscreen_cartscreen_styles"
     },
     {
       "label": "index.js",
@@ -6630,53 +6630,119 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L23",
-      "weight": 1.0,
-      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
-      "target": "productdetailscreen_productdetailscreen_mock_db",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L31",
-      "weight": 1.0,
-      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
-      "target": "productdetailscreen_productdetailscreen_related_products",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L6",
+      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
+      "source_location": "L22",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
-      "target": "productdetailscreen_productdetailscreen_productdetailscreen"
+      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
+      "target": "quantitystepper_quantitystepper_quantitystepper"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L14",
+      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
+      "source_location": "L84",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
-      "target": "productdetailscreen_productdetailscreen_styles"
+      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
+      "target": "quantitystepper_quantitystepper_styles"
     },
     {
       "relation": "re_exports",
       "context": "export",
       "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/index.js",
+      "source_file": "Frontend-V1/src/components/QuantityStepper/index.js",
       "source_location": "L1",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productdetailscreen_index_js",
-      "target": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js"
+      "source": "frontend_v1_src_components_quantitystepper_index_js",
+      "target": "frontend_v1_src_components_quantitystepper_quantitystepper_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
+      "target": "frontend_v1_src_theme_index_js"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
+      "target": "theme_colors_colors"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
+      "target": "theme_typography_typography"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
+      "target": "theme_spacing_spacing"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
+      "target": "theme_borders_radius"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_cartscreen_cartscreen_js",
+      "target": "cartscreen_cartscreen_cartscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_cartscreen_cartscreen_js",
+      "target": "cartscreen_cartscreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/CartScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_cartscreen_index_js",
+      "target": "frontend_v1_src_screens_cartscreen_cartscreen_js"
     },
     {
       "relation": "contains",
@@ -6738,6 +6804,57 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_productlistscreen_index_js",
       "target": "frontend_v1_src_screens_productlistscreen_productlistscreen_js"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
+      "target": "productdetailscreen_productdetailscreen_mock_db"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
+      "target": "productdetailscreen_productdetailscreen_related_products"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
+      "target": "productdetailscreen_productdetailscreen_productdetailscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
+      "target": "productdetailscreen_productdetailscreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productdetailscreen_index_js",
+      "target": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js"
     },
     {
       "relation": "contains",
@@ -6897,92 +7014,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_components_appheader_appheader_js",
       "target": "theme_layout_layout"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
-      "source_location": "L22",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
-      "target": "quantitystepper_quantitystepper_quantitystepper"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
-      "source_location": "L84",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
-      "target": "quantitystepper_quantitystepper_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/components/QuantityStepper/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_components_quantitystepper_index_js",
-      "target": "frontend_v1_src_components_quantitystepper_quantitystepper_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
-      "target": "frontend_v1_src_theme_index_js"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
-      "target": "theme_colors_colors"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
-      "target": "theme_typography_typography"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
-      "target": "theme_spacing_spacing"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
-      "target": "theme_borders_radius"
     },
     {
       "relation": "contains",
@@ -8345,37 +8376,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
       "target": "frontend_v1_src_screens_authscreen_index_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_cartscreen_cartscreen_js",
-      "target": "cartscreen_cartscreen_cartscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_cartscreen_cartscreen_js",
-      "target": "cartscreen_cartscreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/CartScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_cartscreen_index_js",
-      "target": "frontend_v1_src_screens_cartscreen_cartscreen_js"
     },
     {
       "relation": "re_exports",
@@ -16110,5 +16110,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "35ffd04878eaa225f1ed90b16425bfb87f503e4e"
+  "built_at_commit": "3d669acb450a7994df254cc41f80b6110b831775"
 }

@@ -301,26 +301,26 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-14: Checkout Screen
 
-- [ ] Build header with title and back button.
-- [ ] Add delivery address text area prefilled from profile when available.
-- [ ] Add `Use Current Location` button.
-- [ ] Request GPS permission and show selected coordinates after success.
-- [ ] Add `Open Map` button when Google Maps URL is available.
-- [ ] Add payment method selector with `Cash` and `UPI` if backend supports both.
-- [ ] Show payment status as pending unless backend says otherwise.
-- [ ] Show order summary from backend totals.
-- [ ] Add bottom `Place Order` button.
-- [ ] Add `Back to Cart` text button.
-- [ ] Validate address before submit.
-- [ ] Add GPS retry state.
-- [ ] Show shop closed, minimum order, and blocked customer errors before order creation.
-- [ ] Disable submit while creating order.
-- [ ] Create order through `POST /orders`.
-- [ ] Navigate to Order Confirmation on success.
-- [ ] Animate delivery, payment, and summary sections with slight stagger.
-- [ ] Animate GPS success by fading in coordinates and map action.
-- [ ] Animate GPS failure by fading in retry message.
-- [ ] Animate `Place Order` button loading transition.
+- [x] Build header with title and back button.
+- [x] Add delivery address text area prefilled from profile when available.
+- [x] Add `Use Current Location` button.
+- [x] Request GPS permission and show selected coordinates after success.
+- [x] Add `Open Map` button when Google Maps URL is available.
+- [x] Add payment method selector with `Cash` and `UPI` if backend supports both.
+- [x] Show payment status as pending unless backend says otherwise.
+- [x] Show order summary from backend totals.
+- [x] Add bottom `Place Order` button.
+- [x] Add `Back to Cart` text button.
+- [x] Validate address before submit.
+- [x] Add GPS retry state.
+- [x] Show shop closed, minimum order, and blocked customer errors before order creation.
+- [x] Disable submit while creating order.
+- [x] Create order through `POST /orders`.
+- [x] Navigate to Order Confirmation on success.
+- [x] Animate delivery, payment, and summary sections with slight stagger.
+- [x] Animate GPS success by fading in coordinates and map action.
+- [x] Animate GPS failure by fading in retry message.
+- [x] Animate `Place Order` button loading transition.
 
 ### Task F-15: Order Confirmation Screen
 
