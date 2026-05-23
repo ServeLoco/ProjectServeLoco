@@ -248,22 +248,22 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-11: Product List And Search Results Screen
 
-- [ ] Build header with back button when opened from category/search.
-- [ ] Add search field with current query.
-- [ ] Add cart icon with count badge.
-- [ ] Add category chips.
-- [ ] Add availability chip: `Available`.
-- [ ] Add sort control for `Popular`, `Price Low to High`, and `Price High to Low`.
-- [ ] Product card shows image/fallback, name, unit/size, price, discount/offer label, and availability.
-- [ ] Product card includes `Add` button or `- quantity +` stepper.
-- [ ] Tapping product opens Product Detail.
-- [ ] Add sticky mini-cart with count, estimated total, and `View Cart`.
-- [ ] Add empty search state with `No products found` and `Clear Search`.
-- [ ] Add API error state with `Retry`.
-- [ ] Animate product cards with staggered entry after data loads.
-- [ ] Animate filter and sort changes with list crossfade.
-- [ ] Animate `Add` button into quantity stepper.
-- [ ] Animate sticky mini-cart sliding in and out.
+- [x] Build header with back button when opened from category/search.
+- [x] Add search field with current query.
+- [x] Add cart icon with count badge.
+- [x] Add category chips.
+- [x] Add availability chip: `Available`.
+- [x] Add sort control for `Popular`, `Price Low to High`, and `Price High to Low`.
+- [x] Product card shows image/fallback, name, unit/size, price, discount/offer label, and availability.
+- [x] Product card includes `Add` button or `- quantity +` stepper.
+- [x] Tapping product opens Product Detail.
+- [x] Add sticky mini-cart with count, estimated total, and `View Cart`.
+- [x] Add empty search state with `No products found` and `Clear Search`.
+- [x] Add API error state with `Retry`.
+- [x] Animate product cards with staggered entry after data loads.
+- [x] Animate filter and sort changes with list crossfade.
+- [x] Animate `Add` button into quantity stepper.
+- [x] Animate sticky mini-cart sliding in and out.
 
 ### Task F-12: Product Detail Screen
 
