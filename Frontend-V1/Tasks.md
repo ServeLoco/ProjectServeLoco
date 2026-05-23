@@ -449,16 +449,16 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-23: Admin Orders Screen
 
-- [ ] Fetch admin orders through `GET /admin/orders`.
-- [ ] Build header with title and search/filter icon.
-- [ ] Add status chips: `Pending`, `Preparing`, `Out for Delivery`, `Delivered`, `Cancelled`, `All`.
-- [ ] Add payment chips: `Pending`, `Paid`, `Cash`, `UPI` when available.
-- [ ] Show pending orders first by default.
-- [ ] Order card shows customer name, phone, order id/date, short address, total, payment status, and order status.
-- [ ] Add `Open` button.
-- [ ] Add call icon button.
-- [ ] Add WhatsApp icon button.
-- [ ] Add map icon button.
+- [x] Fetch admin orders through `GET /admin/orders`.
+- [x] Build header with title and search/filter icon.
+- [x] Add status chips: `Pending`, `Preparing`, `Out for Delivery`, `Delivered`, `Cancelled`, `All`.
+- [x] Add payment chips: `Pending`, `Paid`, `Cash`, `UPI` when available.
+- [x] Show pending orders first by default.
+- [x] Order card shows customer name, phone, order id/date, short address, total, payment status, and order status.
+- [x] Add `Open` button.
+- [x] Add call icon button.
+- [x] Add WhatsApp icon button.
+- [x] Add map icon button.
 - [ ] Add empty filter state.
 - [ ] Add loading skeletons.
 - [ ] Add API failure state with `Retry`.

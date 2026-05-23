@@ -20,6 +20,7 @@ import {
   AdminEntryScreen,
   AdminLoginScreen,
   AdminDashboardScreen,
+  AdminOrdersScreen,
 } from '../screens';
 
 const Tab = createBottomTabNavigator();
@@ -126,6 +127,7 @@ export default function CustomerNavigator() {
         options={{ animation: 'slide_from_bottom' }}
       />
       <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+      <Stack.Screen name="AdminOrders" component={AdminOrdersScreen} />
     </Stack.Navigator>
   );
 }
