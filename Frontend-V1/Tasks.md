@@ -283,21 +283,21 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-13: Cart Screen
 
-- [ ] Build header with title, optional back button, and `Clear` action when cart has items.
-- [ ] Show cart item rows with image, name, unit/size, price, and `- quantity +` stepper.
-- [ ] Add remove item icon button to each row.
-- [ ] Show unavailable item warning when backend marks a product unavailable.
-- [ ] Call `POST /cart/calculate` to verify totals.
-- [ ] Show bill summary: subtotal, delivery charge, night charge, discount, grand total, and minimum order warning.
-- [ ] Add bottom `Checkout` button.
-- [ ] Disable checkout if cart is empty, below minimum order, shop closed, blocked customer, or backend calculation fails.
-- [ ] Add empty cart state with `Start Shopping`.
-- [ ] Add recalculation loading state.
-- [ ] Add backend validation error with retry.
-- [ ] Animate cart rows in on load and out on remove.
-- [ ] Animate quantity number with small scale bump on change.
-- [ ] Animate bill summary totals with crossfade when recalculated.
-- [ ] Animate empty cart state after last item removal.
+- [x] Build header with title, optional back button, and `Clear` action when cart has items.
+- [x] Show cart item rows with image, name, unit/size, price, and `- quantity +` stepper.
+- [x] Add remove item icon button to each row.
+- [x] Show unavailable item warning when backend marks a product unavailable.
+- [x] Call `POST /cart/calculate` to verify totals.
+- [x] Show bill summary: subtotal, delivery charge, night charge, discount, grand total, and minimum order warning.
+- [x] Add bottom `Checkout` button.
+- [x] Disable checkout if cart is empty, below minimum order, shop closed, blocked customer, or backend calculation fails.
+- [x] Add empty cart state with `Start Shopping`.
+- [x] Add recalculation loading state.
+- [x] Add backend validation error with retry.
+- [x] Animate cart rows in on load and out on remove.
+- [x] Animate quantity number with small scale bump on change.
+- [x] Animate bill summary totals with crossfade when recalculated.
+- [x] Animate empty cart state after last item removal.
 
 ### Task F-14: Checkout Screen
 

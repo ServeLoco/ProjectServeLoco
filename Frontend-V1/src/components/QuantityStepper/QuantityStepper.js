@@ -7,6 +7,7 @@ import {
   LayoutAnimation,
   UIManager,
   Platform,
+  Animated,
 } from 'react-native';
 import { colors, typography, spacing, radius } from '../../theme';
 
@@ -35,13 +36,22 @@ function QuantityStepper({
   compact = false,
 }) {
   const prevQuantity = useRef(quantity);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if ((prevQuantity.current === 0 && quantity > 0) || (prevQuantity.current > 0 && quantity === 0)) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    } else if (prevQuantity.current > 0 && quantity > 0 && prevQuantity.current !== quantity) {
+      // Scale bump on qty change
+      scaleAnim.setValue(1.3);
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }).start();
     }
     prevQuantity.current = quantity;
-  }, [quantity]);
+  }, [quantity, scaleAnim]);
 
   if (quantity === 0) {
     return (
@@ -79,9 +89,9 @@ function QuantityStepper({
         <Text style={styles.stepIcon}>-</Text>
       </TouchableOpacity>
 
-      <Text style={[styles.qty, compact && styles.qtyCompact]}>
+      <Animated.Text style={[styles.qty, compact && styles.qtyCompact, { transform: [{ scale: scaleAnim }] }]}>
         {quantity}
-      </Text>
+      </Animated.Text>
 
       <TouchableOpacity
         onPress={onIncrement}

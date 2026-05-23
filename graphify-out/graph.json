@@ -400,58 +400,103 @@
       "norm_label": "task f-31: final acceptance checklist"
     },
     {
+      "label": "ProductDetailScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L1",
+      "id": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
+      "community": 73,
+      "norm_label": "productdetailscreen.js"
+    },
+    {
+      "label": "MOCK_DB",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L23",
+      "id": "productdetailscreen_productdetailscreen_mock_db",
+      "community": 73,
+      "norm_label": "mock_db"
+    },
+    {
+      "label": "RELATED_PRODUCTS",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L31",
+      "id": "productdetailscreen_productdetailscreen_related_products",
+      "community": 73,
+      "norm_label": "related_products"
+    },
+    {
+      "label": "ProductDetailScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L36",
+      "id": "productdetailscreen_productdetailscreen_productdetailscreen",
+      "community": 73,
+      "norm_label": "productdetailscreen()"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L233",
+      "id": "productdetailscreen_productdetailscreen_styles",
+      "community": 73,
+      "norm_label": "styles"
+    },
+    {
       "label": "ProductListScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
       "community": 74,
-      "norm_label": "productlistscreen.js"
+      "norm_label": "productlistscreen.js",
+      "id": "frontend_v1_src_screens_productlistscreen_productlistscreen_js"
     },
     {
       "label": "MOCK_PRODUCTS",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L34",
-      "id": "productlistscreen_productlistscreen_mock_products",
       "community": 74,
-      "norm_label": "mock_products"
+      "norm_label": "mock_products",
+      "id": "productlistscreen_productlistscreen_mock_products"
     },
     {
       "label": "CATEGORY_CHIPS",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L43",
-      "id": "productlistscreen_productlistscreen_category_chips",
       "community": 74,
-      "norm_label": "category_chips"
+      "norm_label": "category_chips",
+      "id": "productlistscreen_productlistscreen_category_chips"
     },
     {
       "label": "SORT_OPTIONS",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L44",
-      "id": "productlistscreen_productlistscreen_sort_options",
       "community": 74,
-      "norm_label": "sort_options"
+      "norm_label": "sort_options",
+      "id": "productlistscreen_productlistscreen_sort_options"
     },
     {
       "label": "ProductListScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L46",
-      "id": "productlistscreen_productlistscreen_productlistscreen",
       "community": 74,
-      "norm_label": "productlistscreen()"
+      "norm_label": "productlistscreen()",
+      "id": "productlistscreen_productlistscreen_productlistscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L351",
-      "id": "productlistscreen_productlistscreen_styles",
       "community": 74,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "productlistscreen_productlistscreen_styles"
     },
     {
       "label": "CategoriesScreen.js",
@@ -503,7 +548,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/__tests__/App.test.js",
       "source_location": "L1",
-      "community": 35,
+      "community": 13,
       "norm_label": "app.test.js",
       "id": "frontend_v1_tests_app_test_js"
     },
@@ -539,7 +584,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 43,
       "norm_label": "quantitystepper.js",
       "id": "frontend_v1_src_components_quantitystepper_quantitystepper_js"
     },
@@ -548,7 +593,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L29",
-      "community": 17,
+      "community": 43,
       "norm_label": "quantitystepper()",
       "id": "quantitystepper_quantitystepper_quantitystepper"
     },
@@ -557,7 +602,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L100",
-      "community": 17,
+      "community": 43,
       "norm_label": "styles",
       "id": "quantitystepper_quantitystepper_styles"
     },
@@ -566,7 +611,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 43,
       "norm_label": "stickyminicart.js",
       "id": "frontend_v1_src_components_stickyminicart_stickyminicart_js"
     },
@@ -575,7 +620,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L20",
-      "community": 30,
+      "community": 43,
       "norm_label": "stickyminicart()",
       "id": "stickyminicart_stickyminicart_stickyminicart"
     },
@@ -584,7 +629,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L55",
-      "community": 30,
+      "community": 43,
       "norm_label": "styles",
       "id": "stickyminicart_stickyminicart_styles"
     },
@@ -791,7 +836,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/App.js",
       "source_location": "L1",
-      "community": 35,
+      "community": 13,
       "norm_label": "app.js",
       "id": "frontend_v1_app_js"
     },
@@ -800,7 +845,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/App.js",
       "source_location": "L7",
-      "community": 35,
+      "community": 13,
       "norm_label": "app()",
       "id": "frontend_v1_app_app"
     },
@@ -1804,33 +1849,6 @@
       "id": "frontend_v1_src_screens_ordersscreen_index_js"
     },
     {
-      "label": "ProductDetailScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L1",
-      "community": 73,
-      "norm_label": "productdetailscreen.js",
-      "id": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js"
-    },
-    {
-      "label": "ProductDetailScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L6",
-      "community": 73,
-      "norm_label": "productdetailscreen()",
-      "id": "productdetailscreen_productdetailscreen_productdetailscreen"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L14",
-      "community": 73,
-      "norm_label": "styles",
-      "id": "productdetailscreen_productdetailscreen_styles"
-    },
-    {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/index.js",
@@ -2033,7 +2051,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/index.js",
       "source_location": "L1",
-      "community": 63,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_index_js"
     },
@@ -2060,7 +2078,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/app.json",
       "source_location": "L1",
-      "community": 63,
+      "community": 13,
       "norm_label": "app.json",
       "id": "frontend_v1_app_json"
     },
@@ -2069,7 +2087,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/app.json",
       "source_location": "L2",
-      "community": 63,
+      "community": 13,
       "norm_label": "name",
       "id": "frontend_v1_app_name"
     },
@@ -2078,7 +2096,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/app.json",
       "source_location": "L3",
-      "community": 63,
+      "community": 13,
       "norm_label": "displayname",
       "id": "frontend_v1_app_displayname"
     },
@@ -2843,7 +2861,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/index.js",
       "source_location": "L1",
-      "community": 21,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_index_js"
     },
@@ -2888,7 +2906,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 15,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textbutton_index_js"
     },
@@ -2897,7 +2915,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 15,
       "norm_label": "textbutton.js",
       "id": "frontend_v1_src_components_textbutton_textbutton_js"
     },
@@ -2906,7 +2924,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
-      "community": 17,
+      "community": 15,
       "norm_label": "textbutton()",
       "id": "textbutton_textbutton_textbutton"
     },
@@ -2915,7 +2933,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
-      "community": 17,
+      "community": 15,
       "norm_label": "styles",
       "id": "textbutton_textbutton_styles"
     },
@@ -2969,7 +2987,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedFadeSlide/index.js",
       "source_location": "L1",
-      "community": 21,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedfadeslide_index_js"
     },
@@ -3041,7 +3059,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextInputField/index.js",
       "source_location": "L1",
-      "community": 21,
+      "community": 47,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textinputfield_index_js"
     },
@@ -3266,7 +3284,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 35,
       "norm_label": "appscreen.js",
       "id": "frontend_v1_src_components_appscreen_appscreen_js"
     },
@@ -3275,7 +3293,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L19",
-      "community": 46,
+      "community": 35,
       "norm_label": "appscreen()",
       "id": "appscreen_appscreen_appscreen"
     },
@@ -3284,7 +3302,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L44",
-      "community": 46,
+      "community": 35,
       "norm_label": "styles",
       "id": "appscreen_appscreen_styles"
     },
@@ -3293,7 +3311,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/index.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 35,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appscreen_index_js"
     },
@@ -3302,7 +3320,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/index.js",
       "source_location": "L1",
-      "community": 49,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_ordercard_index_js"
     },
@@ -3311,7 +3329,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L1",
-      "community": 49,
+      "community": 30,
       "norm_label": "ordercard.js",
       "id": "frontend_v1_src_components_ordercard_ordercard_js"
     },
@@ -3320,7 +3338,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
-      "community": 49,
+      "community": 30,
       "norm_label": "status_colors",
       "id": "ordercard_ordercard_status_colors"
     },
@@ -3329,7 +3347,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L13",
-      "community": 49,
+      "community": 30,
       "norm_label": "payment_colors",
       "id": "ordercard_ordercard_payment_colors"
     },
@@ -3338,7 +3356,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L30",
-      "community": 49,
+      "community": 30,
       "norm_label": "ordercard()",
       "id": "ordercard_ordercard_ordercard"
     },
@@ -3347,7 +3365,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L103",
-      "community": 49,
+      "community": 30,
       "norm_label": "styles",
       "id": "ordercard_ordercard_styles"
     },
@@ -3392,7 +3410,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedcartbadge_index_js"
     },
@@ -3401,7 +3419,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 17,
       "norm_label": "animatedcartbadge.js",
       "id": "frontend_v1_src_components_animatedcartbadge_animatedcartbadge_js"
     },
@@ -3410,7 +3428,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L6",
-      "community": 45,
+      "community": 17,
       "norm_label": "animatedcartbadge()",
       "id": "animatedcartbadge_animatedcartbadge_animatedcartbadge"
     },
@@ -3419,7 +3437,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L30",
-      "community": 45,
+      "community": 17,
       "norm_label": "styles",
       "id": "animatedcartbadge_animatedcartbadge_styles"
     },
@@ -3500,7 +3518,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductCard/index.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 21,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_productcard_index_js"
     },
@@ -3509,7 +3527,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductCard/ProductCard.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 21,
       "norm_label": "productcard.js",
       "id": "frontend_v1_src_components_productcard_productcard_js"
     },
@@ -3518,7 +3536,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductCard/ProductCard.js",
       "source_location": "L20",
-      "community": 17,
+      "community": 21,
       "norm_label": "productcard()",
       "id": "productcard_productcard_productcard"
     },
@@ -3527,7 +3545,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductCard/ProductCard.js",
       "source_location": "L86",
-      "community": 17,
+      "community": 21,
       "norm_label": "styles",
       "id": "productcard_productcard_styles"
     },
@@ -3608,7 +3626,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L1",
-      "community": 21,
+      "community": 45,
       "norm_label": "staggeredlist.js",
       "id": "frontend_v1_src_components_staggeredlist_staggeredlist_js"
     },
@@ -3617,7 +3635,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L6",
-      "community": 21,
+      "community": 45,
       "norm_label": "staggeredlist()",
       "id": "staggeredlist_staggeredlist_staggeredlist"
     },
@@ -3626,7 +3644,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/index.js",
       "source_location": "L1",
-      "community": 21,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_staggeredlist_index_js"
     },
@@ -3671,7 +3689,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/index.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_quantitystepper_index_js"
     },
@@ -3932,7 +3950,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 17,
       "norm_label": "typography.js",
       "id": "frontend_v1_src_theme_typography_js"
     },
@@ -3941,7 +3959,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L11",
-      "community": 15,
+      "community": 17,
       "norm_label": "fontfamily",
       "id": "theme_typography_fontfamily"
     },
@@ -3950,7 +3968,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L32",
-      "community": 15,
+      "community": 17,
       "norm_label": "fontweights",
       "id": "theme_typography_fontweights"
     },
@@ -3959,7 +3977,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L40",
-      "community": 15,
+      "community": 17,
       "norm_label": "fontsizes",
       "id": "theme_typography_fontsizes"
     },
@@ -3968,7 +3986,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L53",
-      "community": 15,
+      "community": 17,
       "norm_label": "lineheights",
       "id": "theme_typography_lineheights"
     },
@@ -3977,7 +3995,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
-      "community": 17,
+      "community": 43,
       "norm_label": "typography",
       "id": "theme_typography_typography"
     },
@@ -3986,7 +4004,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_theme_index_js"
     },
@@ -4049,7 +4067,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 17,
       "norm_label": "motion.js",
       "id": "frontend_v1_src_theme_motion_js"
     },
@@ -4067,7 +4085,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L27",
-      "community": 45,
+      "community": 17,
       "norm_label": "easingmodal",
       "id": "theme_motion_easingmodal"
     },
@@ -4076,7 +4094,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L33",
-      "community": 45,
+      "community": 17,
       "norm_label": "motionconfig",
       "id": "theme_motion_motionconfig"
     },
@@ -4085,7 +4103,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L1",
-      "community": 35,
+      "community": 13,
       "norm_label": "noemojicheck.js",
       "id": "frontend_v1_src_utils_noemojicheck_js"
     },
@@ -4094,7 +4112,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L6",
-      "community": 35,
+      "community": 13,
       "norm_label": "hasemoji()",
       "id": "utils_noemojicheck_hasemoji"
     },
@@ -4103,7 +4121,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L18",
-      "community": 35,
+      "community": 13,
       "norm_label": "stripemojis()",
       "id": "utils_noemojicheck_stripemojis"
     },
@@ -4112,7 +4130,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L29",
-      "community": 35,
+      "community": 13,
       "norm_label": "assertnoemoji()",
       "id": "utils_noemojicheck_assertnoemoji"
     },
@@ -5120,7 +5138,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/index.js",
       "source_location": "L2",
-      "community": 15,
+      "community": 17,
       "norm_label": "themeplaceholder",
       "id": "theme_index_themeplaceholder"
     },
@@ -6612,12 +6630,63 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
+      "target": "productdetailscreen_productdetailscreen_mock_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
+      "target": "productdetailscreen_productdetailscreen_related_products",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
+      "target": "productdetailscreen_productdetailscreen_productdetailscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
+      "target": "productdetailscreen_productdetailscreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productdetailscreen_index_js",
+      "target": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L34",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_mock_products",
-      "confidence_score": 1.0
+      "target": "productlistscreen_productlistscreen_mock_products"
     },
     {
       "relation": "contains",
@@ -6625,9 +6694,9 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_category_chips",
-      "confidence_score": 1.0
+      "target": "productlistscreen_productlistscreen_category_chips"
     },
     {
       "relation": "contains",
@@ -6635,9 +6704,9 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L44",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_sort_options",
-      "confidence_score": 1.0
+      "target": "productlistscreen_productlistscreen_sort_options"
     },
     {
       "relation": "contains",
@@ -8550,37 +8619,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
       "target": "frontend_v1_src_screens_ordersscreen_index_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
-      "target": "productdetailscreen_productdetailscreen_productdetailscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
-      "target": "productdetailscreen_productdetailscreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductDetailScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productdetailscreen_index_js",
-      "target": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js"
     },
     {
       "relation": "re_exports",
@@ -16072,5 +16110,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "e0c1009dad51701ca86a5acca97427f4107e7880"
+  "built_at_commit": "35ffd04878eaa225f1ed90b16425bfb87f503e4e"
 }
