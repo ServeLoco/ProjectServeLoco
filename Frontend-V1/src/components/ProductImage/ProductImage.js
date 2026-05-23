@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { colors, radius } from '../../theme';
+import { fallbackProductImage } from '../../assets';
 
-// Local fallback placeholder image — a simple colored rectangle
-// Replace with actual asset: require('../../assets/images/placeholder_product.png')
-const FALLBACK_SOURCE = null;
+const FALLBACK_SOURCE = { uri: fallbackProductImage };
 
 /**
  * ProductImage
@@ -40,18 +39,17 @@ function ProductImage({
         style,
       ]}
     >
-      {showFallback || !fallback ? (
-        // Built-in placeholder: colored rectangle with "no image" feel
-        <View style={[styles.placeholder, { borderRadius }]}>
-          <View style={styles.placeholderInner} />
-        </View>
-      ) : (
+      {showFallback && fallback ? (
         <Image
           source={fallback}
           style={[styles.image, { width, height, borderRadius }]}
           resizeMode={resizeMode}
         />
-      )}
+      ) : showFallback ? (
+        <View style={[styles.placeholder, { borderRadius }]}>
+          <View style={styles.placeholderInner} />
+        </View>
+      ) : null}
 
       {!showFallback && uri ? (
         <Image

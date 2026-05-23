@@ -1,2 +1,1 @@
-// Local assets definitions
-export const assetsPlaceholder = {};
+export * from './fallbackImages';

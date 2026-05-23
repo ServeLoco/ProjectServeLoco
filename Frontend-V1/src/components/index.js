@@ -2,6 +2,7 @@
 
 export { default as AppScreen } from './AppScreen';
 export { default as AppHeader } from './AppHeader';
+export { default as AppIcon } from './AppIcon';
 export { default as Button } from './Button';
 export { default as IconButton } from './IconButton';
 export { default as TextButton } from './TextButton';

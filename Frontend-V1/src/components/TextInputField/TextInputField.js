@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { colors, typography, spacing, radius, borderWidth, layout } from '../../theme';
+import AppIcon from '../AppIcon';
 
 /**
  * TextInputField
@@ -109,7 +110,11 @@ function TextInputField({
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityLabel={isSecure ? 'Show password' : 'Hide password'}
           >
-            <Text style={styles.eyeText}>{isSecure ? 'Show' : 'Hide'}</Text>
+            <AppIcon
+              name={isSecure ? 'eye' : 'eyeOff'}
+              color={colors.textSecondary}
+              size={18}
+            />
           </TouchableOpacity>
         ) : rightElement ? (
           <View style={styles.rightEl}>{rightElement}</View>
@@ -172,10 +177,6 @@ const styles = StyleSheet.create({
     minWidth: 40,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  eyeText: {
-    ...typography.labelSmall,
-    color: colors.textSecondary,
   },
   rightEl: {
     marginLeft: spacing.sm,

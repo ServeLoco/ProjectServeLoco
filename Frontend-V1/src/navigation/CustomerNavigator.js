@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, View, Text } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, typography } from '../theme';
+import { AppIcon } from '../components';
 
 import {
   HomeScreen,
@@ -39,11 +40,10 @@ function AnimatedTabIcon({ name, focused, color }) {
   }, [focused, scale]);
 
   return (
-    <Animated.View style={{ transform: [{ scale }], alignItems: 'center', justifyContent: 'center' }}>
-      {/* Icon placeholder (e.g. vector icon) */}
-      <View style={{ width: 24, height: 24, backgroundColor: color, borderRadius: 12, marginBottom: 2 }} />
+    <Animated.View style={[styles.tabIconWrap, { transform: [{ scale }] }]}>
+      <AppIcon name={name} color={color} size={22} />
       {focused && (
-        <View style={{ position: 'absolute', bottom: -10, width: 4, height: 4, borderRadius: 2, backgroundColor: color }} />
+        <View style={[styles.tabActiveDot, { backgroundColor: color }]} />
       )}
     </Animated.View>
   );
@@ -73,17 +73,47 @@ function CustomerBottomTabs() {
           fontWeight: '600',
         },
         tabBarIcon: ({ focused, color }) => (
-          <AnimatedTabIcon name={''} focused={focused} color={color} />
+          <AnimatedTabIcon name="home" focused={focused} color={color} />
         ),
       }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Categories" component={CategoriesScreen} />
-      <Tab.Screen name="Orders" component={OrdersScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ tabBarIcon: ({ focused, color }) => <AnimatedTabIcon name="home" focused={focused} color={color} /> }}
+      />
+      <Tab.Screen
+        name="Categories"
+        component={CategoriesScreen}
+        options={{ tabBarIcon: ({ focused, color }) => <AnimatedTabIcon name="box" focused={focused} color={color} /> }}
+      />
+      <Tab.Screen
+        name="Orders"
+        component={OrdersScreen}
+        options={{ tabBarIcon: ({ focused, color }) => <AnimatedTabIcon name="orders" focused={focused} color={color} /> }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ tabBarIcon: ({ focused, color }) => <AnimatedTabIcon name="profile" focused={focused} color={color} /> }}
+      />
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  tabIconWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabActiveDot: {
+    position: 'absolute',
+    bottom: -10,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+});
 
 /**
  * CustomerNavigator

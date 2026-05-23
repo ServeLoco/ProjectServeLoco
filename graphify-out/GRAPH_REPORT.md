@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 181 files · ~52,057 words
+- 184 files · ~52,496 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 757 nodes · 1416 edges · 59 communities (46 shown, 13 thin omitted)
+- 814 nodes · 1847 edges · 55 communities (46 shown, 9 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c031c741`
+- Built from commit: `d0300334`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -45,7 +45,6 @@
 - [[_COMMUNITY_Community 28|Community 28]]
 - [[_COMMUNITY_Community 29|Community 29]]
 - [[_COMMUNITY_Community 30|Community 30]]
-- [[_COMMUNITY_Community 31|Community 31]]
 - [[_COMMUNITY_Community 32|Community 32]]
 - [[_COMMUNITY_Community 33|Community 33]]
 - [[_COMMUNITY_Community 35|Community 35]]
@@ -54,43 +53,41 @@
 - [[_COMMUNITY_Community 45|Community 45]]
 - [[_COMMUNITY_Community 46|Community 46]]
 - [[_COMMUNITY_Community 47|Community 47]]
-- [[_COMMUNITY_Community 50|Community 50]]
 - [[_COMMUNITY_Community 51|Community 51]]
 - [[_COMMUNITY_Community 52|Community 52]]
 - [[_COMMUNITY_Community 53|Community 53]]
 - [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
 - [[_COMMUNITY_Community 56|Community 56]]
-- [[_COMMUNITY_Community 58|Community 58]]
 - [[_COMMUNITY_Community 60|Community 60]]
-- [[_COMMUNITY_Community 64|Community 64]]
 - [[_COMMUNITY_Community 65|Community 65]]
+- [[_COMMUNITY_Community 76|Community 76]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `colors` - 51 edges
-2. `typography` - 45 edges
-3. `spacing` - 42 edges
-4. `radius` - 41 edges
-5. `shadows` - 29 edges
-6. `useAuthStore` - 22 edges
-7. `useReducedMotion()` - 21 edges
-8. `layout` - 18 edges
-9. `ServeLoco V1 Implementation Plan` - 18 edges
-10. `apiClient` - 16 edges
+1. `colors` - 73 edges
+2. `typography` - 66 edges
+3. `spacing` - 63 edges
+4. `radius` - 61 edges
+5. `shadows` - 46 edges
+6. `useAuthStore` - 28 edges
+7. `layout` - 23 edges
+8. `useReducedMotion()` - 21 edges
+9. `useCartStore` - 19 edges
+10. `asArray()` - 19 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `RootNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
   Frontend-V1/src/navigation/RootNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
 - `AdminNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
   Frontend-V1/src/navigation/AdminNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
-- `CategoriesScreen()` --calls--> `useCartStore`  [EXTRACTED]
-  Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js → Frontend-V1/src/stores/useCartStore.js
-- `useAuthGate()` --calls--> `useAuthStore`  [INFERRED]
-  Frontend-V1/src/hooks/useAuthGate.js → Frontend-V1/src/stores/useAuthStore.js
-- `OrdersScreen()` --calls--> `useAuthStore`  [EXTRACTED]
-  Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js → Frontend-V1/src/stores/useAuthStore.js
+- `AdminEntryScreen()` --calls--> `useAuthStore`  [INFERRED]
+  Frontend-V1/src/screens/admin/AdminEntryScreen/AdminEntryScreen.js → Frontend-V1/src/stores/useAuthStore.js
+- `AnimatedCartBadge()` --calls--> `useReducedMotion()`  [EXTRACTED]
+  Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js → Frontend-V1/src/utils/motionPreferences.js
+- `EditProfileScreen()` --calls--> `useAuthStore`  [EXTRACTED]
+  Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js → Frontend-V1/src/stores/useAuthStore.js
 
-## Communities (59 total, 13 thin omitted)
+## Communities (55 total, 9 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -102,7 +99,7 @@ Nodes (13): Admin Auth, Admin Customers, Admin Dashboard, Admin Orders, Admin Pr
 
 ### Community 2 - "Community 2"
 Cohesion: 0.04
-Nodes (44): dependencies, react, react-native, @react-native-async-storage/async-storage, @react-native-community/geolocation, react-native-image-picker, @react-native/new-app-screen, react-native-safe-area-context (+36 more)
+Nodes (46): dependencies, lucide-react-native, react, react-native, @react-native-async-storage/async-storage, @react-native-community/geolocation, react-native-image-picker, @react-native/new-app-screen (+38 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.29
@@ -132,21 +129,25 @@ Nodes (16): Bottom Navigation, Build Phases, Category Cards, Combo Deals, First 
 Cohesion: 0.20
 Nodes (9): Bottom Navigation, Category Cards, Combo Deals, Frontend Home Dashboard Design, Offer Banner, ServeLoco Plan, Toggle Button, Top Section (+1 more)
 
+### Community 13 - "Community 13"
+Cohesion: 0.33
+Nodes (5): AdminOrderCard(), AdminOrdersScreen(), PAYMENT_FILTERS, STATUS_FILTERS, styles
+
 ### Community 14 - "Community 14"
 Cohesion: 0.04
 Nodes (48): 10. Order Detail, 11. Profile, 12. Edit Profile, 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail (+40 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.60
-Nodes (3): Chip(), ChipRow(), styles
+Cohesion: 0.22
+Nodes (5): Chip(), ChipRow(), styles, styles, layout
 
 ### Community 16 - "Community 16"
 Cohesion: 0.25
 Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
 
 ### Community 17 - "Community 17"
-Cohesion: 0.33
-Nodes (3): PAYMENT_COLORS, STATUS_COLORS, styles
+Cohesion: 0.06
+Nodes (22): AdminDashboardScreen(), MetricCard(), styles, AdminEntryScreen(), styles, AdminLoginScreen(), styles, styles (+14 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.28
@@ -158,7 +159,7 @@ Nodes (43): App Animation Standard, Folder Structure And Naming Standard, Global
 
 ### Community 21 - "Community 21"
 Cohesion: 0.17
-Nodes (3): styles, styles, styles
+Nodes (4): assetsPlaceholder, styles, FALLBACK_SOURCE, styles
 
 ### Community 22 - "Community 22"
 Cohesion: 0.40
@@ -168,41 +169,45 @@ Nodes (4): images, info, author, version
 Cohesion: 0.50
 Nodes (3): info, author, version
 
+### Community 27 - "Community 27"
+Cohesion: 0.31
+Nodes (4): OrderDetailScreen(), STATUS_STEPS, styles, TimelineStep()
+
 ### Community 28 - "Community 28"
 Cohesion: 0.08
-Nodes (36): adminAuthApi, adminCustomersApi, adminDashboardApi, adminImagesApi, adminOrdersApi, adminProductsApi, adminSettingsApi, ApiError (+28 more)
+Nodes (33): adminCustomersApi, adminDashboardApi, adminImagesApi, adminOrdersApi, adminProductsApi, ApiError, getErrorMessage(), cartApi (+25 more)
+
+### Community 29 - "Community 29"
+Cohesion: 0.60
+Nodes (3): LoadingSkeleton(), SkeletonCard(), styles
 
 ### Community 30 - "Community 30"
-Cohesion: 0.15
-Nodes (6): styles, styles, styles, colors, palette, shadows
-
-### Community 33 - "Community 33"
-Cohesion: 0.17
-Nodes (4): styles, styles, styles, typography
+Cohesion: 0.11
+Nodes (6): styles, ICONS, styles, styles, colors, palette
 
 ### Community 35 - "Community 35"
-Cohesion: 0.09
-Nodes (22): CartScreen(), styles, CheckoutScreen(), styles, getShortAddress(), HomeScreen(), MOCK_CATEGORIES, MOCK_COMBOS (+14 more)
+Cohesion: 0.07
+Nodes (50): authApi, ordersApi, productsApi, AuthScreen(), styles, CartScreen(), styles, CategoriesScreen() (+42 more)
 
 ### Community 43 - "Community 43"
-Cohesion: 0.16
-Nodes (4): styles, styles, styles, spacing
+Cohesion: 0.17
+Nodes (3): styles, styles, styles
 
 ### Community 44 - "Community 44"
 Cohesion: 0.33
 Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
-Cohesion: 0.07
-Nodes (23): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles (+15 more)
+Cohesion: 0.10
+Nodes (15): AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles, AnimatedStickyMiniCart(), AnimatedTabItem() (+7 more)
+
+### Community 46 - "Community 46"
+Cohesion: 0.14
+Nodes (3): AnimatedCartBadge(), styles, styles
 
 ### Community 47 - "Community 47"
-Cohesion: 0.43
-Nodes (5): themePlaceholder, fontFamily, fontSizes, fontWeights, lineHeights
-
-### Community 50 - "Community 50"
-Cohesion: 0.29
-Nodes (4): AVAILABILITY, CATEGORIES, initialMockProducts, styles
+Cohesion: 0.17
+Nodes (8): styles, borderWidth, themePlaceholder, easingModal, fontFamily, fontSizes, fontWeights, lineHeights
 
 ### Community 51 - "Community 51"
 Cohesion: 0.50
@@ -217,48 +222,44 @@ Cohesion: 0.67
 Nodes (3): Included, Not Included, V1 Scope
 
 ### Community 54 - "Community 54"
-Cohesion: 0.18
-Nodes (9): asBoolean(), asText(), DEFAULT_FORM, getOfferData(), getPayloadData(), normalizeSettings(), NUMERIC_FIELDS, pickFirst() (+1 more)
+Cohesion: 0.24
+Nodes (16): AdminSettingsScreen(), asBoolean(), asText(), buildOfferPayload(), buildSettingsPayload(), DEFAULT_FORM, getErrorMessage(), getOfferData() (+8 more)
 
 ### Community 56 - "Community 56"
-Cohesion: 0.18
-Nodes (6): asBoolean(), CustomerCard(), formatShortAddress(), normalizeCustomer(), pickFirst(), styles
-
-### Community 58 - "Community 58"
-Cohesion: 0.17
-Nodes (5): ORDER_STATUSES, PAYMENT_STATUSES, styles, styles, layout
+Cohesion: 0.25
+Nodes (13): AdminCustomersScreen(), asBoolean(), BlockCustomerModal(), CustomerCard(), CustomerSkeletonList(), formatShortAddress(), getActionError(), getCustomersFromResponse() (+5 more)
 
 ### Community 60 - "Community 60"
-Cohesion: 0.10
-Nodes (25): PAYMENT_FILTERS, STATUS_FILTERS, styles, getImageId(), getImageUrl(), styles, CategoriesScreen(), DEFAULT_CHIPS (+17 more)
-
-### Community 64 - "Community 64"
-Cohesion: 0.22
-Nodes (4): styles, styles, borderWidth, radius
+Cohesion: 0.13
+Nodes (22): AdminOrderDetailScreen(), ORDER_STATUSES, PAYMENT_STATUSES, styles, AdminProductFormScreen(), buildImageFormData(), getImageData(), getImageId() (+14 more)
 
 ### Community 65 - "Community 65"
 Cohesion: 0.05
-Nodes (27): adminScreensPlaceholder, AdminDashboardScreen(), styles, AdminEntryScreen(), styles, AdminLoginScreen(), styles, AuthScreen() (+19 more)
+Nodes (15): adminScreensPlaceholder, AdminProductCard(), AdminProductsScreen(), AVAILABILITY, CATEGORIES, initialMockProducts, styles, customerScreensPlaceholder (+7 more)
+
+### Community 76 - "Community 76"
+Cohesion: 0.50
+Nodes (3): MockSvg, React, { View }
 
 ## Knowledge Gaps
-- **341 isolated node(s):** `id`, `name`, `resources`, `name`, `version` (+336 more)
+- **318 isolated node(s):** `id`, `name`, `resources`, `React`, `{ View }` (+313 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **13 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `colors` connect `Community 30` to `Community 15`, `Community 17`, `Community 21`, `Community 27`, `Community 28`, `Community 31`, `Community 33`, `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 50`, `Community 54`, `Community 56`, `Community 58`, `Community 60`, `Community 64`, `Community 65`?**
-  _High betweenness centrality (0.030) - this node is a cross-community bridge._
-- **Why does `typography` connect `Community 33` to `Community 15`, `Community 17`, `Community 21`, `Community 27`, `Community 28`, `Community 30`, `Community 31`, `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 50`, `Community 54`, `Community 56`, `Community 58`, `Community 60`, `Community 64`, `Community 65`?**
-  _High betweenness centrality (0.022) - this node is a cross-community bridge._
-- **Why does `spacing` connect `Community 43` to `Community 15`, `Community 17`, `Community 21`, `Community 27`, `Community 28`, `Community 30`, `Community 31`, `Community 33`, `Community 35`, `Community 45`, `Community 46`, `Community 47`, `Community 50`, `Community 54`, `Community 56`, `Community 58`, `Community 60`, `Community 64`, `Community 65`?**
-  _High betweenness centrality (0.017) - this node is a cross-community bridge._
+- **Why does `colors` connect `Community 30` to `Community 65`, `Community 33`, `Community 35`, `Community 43`, `Community 13`, `Community 60`, `Community 47`, `Community 15`, `Community 17`, `Community 45`, `Community 46`, `Community 21`, `Community 54`, `Community 56`, `Community 27`, `Community 28`, `Community 29`?**
+  _High betweenness centrality (0.035) - this node is a cross-community bridge._
+- **Why does `typography` connect `Community 35` to `Community 65`, `Community 33`, `Community 43`, `Community 13`, `Community 46`, `Community 47`, `Community 15`, `Community 17`, `Community 45`, `Community 28`, `Community 21`, `Community 54`, `Community 56`, `Community 27`, `Community 60`, `Community 30`?**
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+- **Why does `radius` connect `Community 17` to `Community 65`, `Community 33`, `Community 35`, `Community 43`, `Community 13`, `Community 46`, `Community 47`, `Community 15`, `Community 45`, `Community 28`, `Community 21`, `Community 54`, `Community 56`, `Community 27`, `Community 60`, `Community 29`, `Community 30`?**
+  _High betweenness centrality (0.020) - this node is a cross-community bridge._
 - **What connects `id`, `name`, `resources` to the rest of the system?**
-  _341 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _318 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.044444444444444446 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0425531914893617 - nodes in this community are weakly interconnected._
 - **Should `Community 6` be split into smaller, more focused modules?**
   _Cohesion score 0.07142857142857142 - nodes in this community are weakly interconnected._

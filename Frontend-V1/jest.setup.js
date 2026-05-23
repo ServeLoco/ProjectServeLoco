@@ -17,5 +17,29 @@ jest.mock('react-native-image-picker', () => ({
   launchImageLibrary: jest.fn(),
 }));
 
+jest.mock('react-native-svg', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const MockSvg = React.forwardRef((props, ref) => <View ref={ref} {...props} />);
+
+  return {
+    __esModule: true,
+    default: MockSvg,
+    Circle: MockSvg,
+    ClipPath: MockSvg,
+    Defs: MockSvg,
+    Ellipse: MockSvg,
+    G: MockSvg,
+    Line: MockSvg,
+    LinearGradient: MockSvg,
+    Path: MockSvg,
+    Polygon: MockSvg,
+    Polyline: MockSvg,
+    Rect: MockSvg,
+    Stop: MockSvg,
+    Svg: MockSvg,
+  };
+});
+
 // Mock SafeAreaContext
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);

@@ -7,6 +7,7 @@ import {
   Animated,
 } from 'react-native';
 import { colors, typography, radius, shadows, layout } from '../../theme';
+import AppIcon from '../AppIcon';
 
 /**
  * AppHeader
@@ -66,7 +67,7 @@ function AppHeader({
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Text style={styles.backArrow}>{'<'}</Text>
+            <AppIcon name="back" size={22} color={colors.textPrimary} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -105,9 +106,8 @@ function AppHeader({
             accessibilityRole="button"
             accessibilityLabel="Cart"
           >
-            {/* Cart icon placeholder — replaced by icon library in later tasks */}
             <View style={styles.cartIconWrap}>
-              <Text style={styles.cartIcon}>Cart</Text>
+              <AppIcon name="cart" size={22} color={colors.textPrimary} />
               {cartCount > 0 && (
                 <Animated.View style={[styles.badge, { transform: [{ scale: badgeScale }] }]}>
                   <Text style={styles.badgeText}>
@@ -155,20 +155,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backArrow: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
   cartIconWrap: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  cartIcon: {
-    ...typography.labelSmall,
-    color: colors.textPrimary,
-    fontWeight: '600',
   },
   badge: {
     position: 'absolute',

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { colors, radius, layout } from '../../theme';
+import AppIcon from '../AppIcon';
 
 /**
  * IconButton
@@ -51,7 +52,13 @@ function IconButton({
           disabled && styles.disabled,
         ]}
       >
-        {icon}
+        {typeof icon === 'string' ? (
+          <AppIcon
+            name={icon}
+            color={variant === 'filled' ? colors.primaryText : colors.textPrimary}
+            size={size === 'sm' ? 16 : 20}
+          />
+        ) : icon}
       </View>
     </TouchableOpacity>
   );

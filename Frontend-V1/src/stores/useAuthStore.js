@@ -14,6 +14,7 @@ export const useAuthStore = create(
       profile: null,
       isAuthenticated: false,
       redirectRoute: null,
+      previewStartedAt: Date.now(),
       
       setRedirectRoute: (route) => set({ redirectRoute: route }),
       
@@ -21,7 +22,13 @@ export const useAuthStore = create(
         set({ token, user, profile: user, isAuthenticated: true }),
         
       logout: () => 
-        set({ token: null, user: null, profile: null, isAuthenticated: false }),
+        set({
+          token: null,
+          user: null,
+          profile: null,
+          isAuthenticated: false,
+          previewStartedAt: Date.now(),
+        }),
         
       updateUser: (userData) => 
         set((state) => ({
