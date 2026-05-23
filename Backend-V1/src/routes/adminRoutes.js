@@ -1,4 +1,5 @@
 const { login, me, getAdminCustomers, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment } = require('../controllers/adminController');
+const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer } = require('../controllers/settingsController');
 const { createCategory, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
 const { requireAdmin } = require('../middleware/authMiddleware');
@@ -129,5 +130,11 @@ router.get('/orders', requireAdmin, asyncHandler(getAdminOrders));
 router.get('/orders/:id', requireAdmin, asyncHandler(getAdminOrderById));
 router.patch('/orders/:id/status', requireAdmin, asyncHandler(updateOrderStatus));
 router.patch('/orders/:id/payment', requireAdmin, asyncHandler(updateOrderPayment));
+
+router.get('/settings', requireAdmin, asyncHandler(getSettings));
+router.patch('/settings', requireAdmin, asyncHandler(updateSettings));
+router.get('/offers/active', requireAdmin, asyncHandler(getActiveOffer));
+router.post('/offers', requireAdmin, asyncHandler(createOffer));
+router.patch('/offers/:id', requireAdmin, asyncHandler(updateOffer));
 
 module.exports = router;

@@ -462,23 +462,23 @@ Behavior comment: Trust/block controls are operational toggles. They should be i
 
 ## Phase B-21: Admin Settings And Offers
 
-- [ ] Implement `GET /admin/settings`.
-- [ ] Implement `PATCH /admin/settings`.
-- [ ] Implement `GET /admin/offers/active`.
-- [ ] Implement `POST /admin/offers`.
-- [ ] Implement `PATCH /admin/offers/:id`.
-- [ ] Require admin auth for admin settings and offer mutations.
-- [ ] Accept settings payload fields: `shop_open`, `delivery_available`, `minimum_order_amount`, `delivery_charge`, `free_delivery_above`, `night_charge`, `night_charge_start`, `night_charge_end`, `whatsapp_number`, `upi_id`, `delivery_time_message`.
-- [ ] Accept the dashboard quick-toggle payload `{ shop_open: true|false }` without requiring all settings fields.
-- [ ] Validate numeric fields as non-negative numbers.
-- [ ] Validate night charge time window.
-- [ ] Preserve existing settings values when partial updates omit them.
-- [ ] Update only provided settings fields.
-- [ ] Return updated settings using both camelCase or snake_case aliases where helpful.
-- [ ] Accept offer payload: `title`, `description`, `active`, optional `imageId`.
-- [ ] Enforce only one active offer, or clearly return the newest active offer.
-- [ ] Let admin create an offer when none exists and update an existing one.
-- [ ] Return offer fields `id`, `title`, `description`, and `active` after create/update.
+- [x] Implement `GET /admin/settings`.
+- [x] Implement `PATCH /admin/settings`.
+- [x] Implement `GET /admin/offers/active`.
+- [x] Implement `POST /admin/offers`.
+- [x] Implement `PATCH /admin/offers/:id`.
+- [x] Require admin auth for admin settings and offer mutations.
+- [x] Accept settings payload fields: `shop_open`, `delivery_available`, `minimum_order_amount`, `delivery_charge`, `free_delivery_above`, `night_charge`, `night_charge_start`, `night_charge_end`, `whatsapp_number`, `upi_id`, `delivery_time_message`.
+- [x] Accept the dashboard quick-toggle payload `{ shop_open: true|false }` without requiring all settings fields.
+- [x] Validate numeric fields as non-negative numbers.
+- [x] Validate night charge time window.
+- [x] Preserve existing settings values when partial updates omit them.
+- [x] Update only provided settings fields.
+- [x] Return updated settings using both camelCase or snake_case aliases where helpful.
+- [x] Accept offer payload: `title`, `description`, `active`, optional `imageId`.
+- [x] Enforce only one active offer, or clearly return the newest active offer.
+- [x] Let admin create an offer when none exists and update an existing one.
+- [x] Return offer fields `id`, `title`, `description`, and `active` after create/update.
 
 Behavior comment: Customer Home reads `/offers/active`; Admin Settings reads `/admin/offers/active`. Both should refer to the same active offer data, with admin allowed to see inactive/edit metadata if needed.
 
