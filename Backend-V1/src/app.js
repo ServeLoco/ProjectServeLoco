@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const morgan = require('morgan');
 const config = require('./config/env');
@@ -7,6 +8,7 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const imageRoutes = require('./routes/imageRoutes');
 
 const app = express();
 
@@ -25,9 +27,13 @@ app.options('*', cors()); // Handling preflight OPTIONS requests for all routes
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Static file serving for images
+app.use(config.STATIC_UPLOAD_PATH, express.static(path.join(__dirname, '../', config.UPLOAD_DIR)));
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/images', imageRoutes);
 
 // Public health endpoint
 app.get('/health', async (req, res) => {

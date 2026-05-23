@@ -153,14 +153,14 @@ Behavior comment: Store snapshots on orders and order items. If a product name o
 
 ## Phase B-05: MongoDB Image Store
 
-- [ ] Create `images` collection with `_id`, `filename`, `originalName`, `mimeType`, `size`, `storageType`, `url`, `gridFsFileId`, `altText`, timestamps.
-- [ ] Decide local V1 storage mode: disk URL, cloud URL, or GridFS.
-- [ ] If using disk storage, serve uploaded files from a backend-controlled static path.
-- [ ] If using GridFS, add streaming support for `GET /images/:id`.
-- [ ] Generate image URLs from `PUBLIC_BASE_URL` or the incoming request host, not from local filesystem locations.
-- [ ] Validate image MIME type and file size.
-- [ ] Return image data with `id`, `_id`, `url`, `imageUrl`, and `image_url` aliases for frontend compatibility.
-- [ ] Delete unused image records when admin deletes or replaces product images.
+- [x] Create `images` collection with `_id`, `filename`, `originalName`, `mimeType`, `size`, `storageType`, `url`, `gridFsFileId`, `altText`, timestamps.
+- [x] Decide local V1 storage mode: disk URL, cloud URL, or GridFS.
+- [x] If using disk storage, serve uploaded files from a backend-controlled static path.
+- [x] If using GridFS, add streaming support for `GET /images/:id`.
+- [x] Generate image URLs from `PUBLIC_BASE_URL` or the incoming request host, not from local filesystem locations.
+- [x] Validate image MIME type and file size.
+- [x] Return image data with `id`, `_id`, `url`, `imageUrl`, and `image_url` aliases for frontend compatibility.
+- [x] Delete unused image records when admin deletes or replaces product images.
 
 Behavior comment: Admin image upload must return an immediately displayable URL. The frontend product form fails intentionally if upload succeeds but no image URL is returned.
 
