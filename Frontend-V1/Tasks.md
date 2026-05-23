@@ -341,19 +341,19 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-16: Orders Screen
 
-- [ ] Build header with title and optional filter icon.
-- [ ] Fetch order history through `GET /orders`.
-- [ ] Add filter chips: `All`, `Pending`, `Preparing`, `Delivered`, `Cancelled`.
-- [ ] Order card shows order id/date, status, payment status, item count, total, and small product preview.
-- [ ] Add `View Details` button on each order card.
-- [ ] Add `Cancel` button only when backend says cancellation is allowed before delivered.
-- [ ] Add empty state with `Start Shopping`.
-- [ ] Add loading skeleton cards.
-- [ ] Add API failure state with `Retry`.
-- [ ] Cancel orders through `POST /orders/:id/cancel`.
-- [ ] Animate order cards with staggered entry after loading.
-- [ ] Animate filter changes with list crossfade.
-- [ ] Animate cancelled order status with soft highlight fade.
+- [x] Build header with title and optional filter icon.
+- [x] Fetch order history through `GET /orders`.
+- [x] Add filter chips: `All`, `Pending`, `Preparing`, `Delivered`, `Cancelled`.
+- [x] Order card shows order id/date, status, payment status, item count, total, and small product preview.
+- [x] Add `View Details` button on each order card.
+- [x] Add `Cancel` button only when backend says cancellation is allowed before delivered.
+- [x] Add empty state with `Start Shopping`.
+- [x] Add loading skeleton cards.
+- [x] Add API failure state with `Retry`.
+- [x] Cancel orders through `POST /orders/:id/cancel`.
+- [x] Animate order cards with staggered entry after loading.
+- [x] Animate filter changes with list crossfade.
+- [x] Animate cancelled order status with soft highlight fade.
 
 ### Task F-17: Order Detail Screen
 

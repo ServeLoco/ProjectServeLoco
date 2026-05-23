@@ -400,31 +400,58 @@
       "norm_label": "task f-31: final acceptance checklist"
     },
     {
+      "label": "OrderConfirmationScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
+      "source_location": "L1",
+      "id": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js",
+      "community": 70,
+      "norm_label": "orderconfirmationscreen.js"
+    },
+    {
+      "label": "OrderConfirmationScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
+      "source_location": "L14",
+      "id": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen",
+      "community": 70,
+      "norm_label": "orderconfirmationscreen()"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
+      "source_location": "L125",
+      "id": "orderconfirmationscreen_orderconfirmationscreen_styles",
+      "community": 70,
+      "norm_label": "styles"
+    },
+    {
       "label": "CheckoutScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js",
       "community": 67,
-      "norm_label": "checkoutscreen.js"
+      "norm_label": "checkoutscreen.js",
+      "id": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js"
     },
     {
       "label": "CheckoutScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
       "source_location": "L30",
-      "id": "checkoutscreen_checkoutscreen_checkoutscreen",
       "community": 67,
-      "norm_label": "checkoutscreen()"
+      "norm_label": "checkoutscreen()",
+      "id": "checkoutscreen_checkoutscreen_checkoutscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
       "source_location": "L254",
-      "id": "checkoutscreen_checkoutscreen_styles",
       "community": 67,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "checkoutscreen_checkoutscreen_styles"
     },
     {
       "label": "QuantityStepper.js",
@@ -1739,33 +1766,6 @@
       "community": 69,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_homescreen_index_js"
-    },
-    {
-      "label": "OrderConfirmationScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
-      "source_location": "L1",
-      "community": 70,
-      "norm_label": "orderconfirmationscreen.js",
-      "id": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js"
-    },
-    {
-      "label": "OrderConfirmationScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
-      "source_location": "L6",
-      "community": 70,
-      "norm_label": "orderconfirmationscreen()",
-      "id": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
-      "source_location": "L14",
-      "community": 70,
-      "norm_label": "styles",
-      "id": "orderconfirmationscreen_orderconfirmationscreen_styles"
     },
     {
       "label": "index.js",
@@ -6630,6 +6630,37 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js",
+      "target": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js",
+      "target": "orderconfirmationscreen_orderconfirmationscreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_orderconfirmationscreen_index_js",
+      "target": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
       "source_location": "L6",
       "weight": 1.0,
@@ -8493,37 +8524,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
       "target": "frontend_v1_src_screens_homescreen_index_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js",
-      "target": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js",
-      "target": "orderconfirmationscreen_orderconfirmationscreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_orderconfirmationscreen_index_js",
-      "target": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js"
     },
     {
       "relation": "re_exports",
@@ -16110,5 +16110,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "d783b15907e204bdb3128b9ea5db185d17a00ac1"
+  "built_at_commit": "c60432def60fd16e5d56bb8b5e061ba90161dce1"
 }
