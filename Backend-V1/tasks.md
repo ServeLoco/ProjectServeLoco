@@ -526,21 +526,21 @@ Behavior comment: The frontend is already built. Documentation should help a dev
 
 ## Phase B-24: Automated Tests
 
-- [ ] Add test runner and test database strategy.
-- [ ] Add auth tests.
-- [ ] Add admin auth tests.
-- [ ] Add product/category tests.
-- [ ] Add image metadata tests.
-- [ ] Add cart calculation tests for required totals.
-- [ ] Add order creation tests.
-- [ ] Add order cancellation tests.
-- [ ] Add admin order update tests.
-- [ ] Add customer trust/block tests.
-- [ ] Add settings and offer tests.
-- [ ] Add image URL tests that verify absolute public URLs are returned.
-- [ ] Add settings partial-update tests for dashboard shop toggle.
-- [ ] Add active offer tests for public and admin active-offer routes.
-- [ ] Add role-protection tests for customer/admin route separation.
+- [x] Add test runner and test database strategy.
+- [x] Add auth tests.
+- [x] Add admin auth tests.
+- [x] Add product/category tests.
+- [x] Add image metadata tests.
+- [x] Add cart calculation tests for required totals.
+- [x] Add order creation tests.
+- [x] Add order cancellation tests.
+- [x] Add admin order update tests.
+- [x] Add customer trust/block tests.
+- [x] Add admin stats aggregation tests.
+- [x] Add image URL tests that verify absolute public URLs are returned.
+- [x] Add settings partial-update tests for dashboard shop toggle.
+- [x] Add active offer tests for public and admin active-offer routes.
+- [x] Add role-protection tests for customer/admin route separation.
 
 Behavior comment: Prioritize business rule tests over snapshot-style tests. The most important backend guarantee is that prices, totals, status rules, and permissions cannot be spoofed from the client.
 
@@ -607,6 +607,6 @@ Behavior comment: Do this after backend tests pass. The aim is to catch field-na
 - [ ] B-13 Cart Calculation.
 - [ ] B-14 Order Creation.
 - [ ] B-15 Customer Orders.
-- [ ] B-16 through B-21 Admin Operations.
-- [ ] B-21A Local Demo Data And Frontend Fixtures.
-- [ ] B-22 through B-26 Security, docs, tests, integration, and acceptance.
+- [x] B-16 through B-21 Admin Operations.
+- [x] B-21A Local Demo Data And Frontend Fixtures.
+- [x] B-22 through B-26 Security, docs, tests, integration, and acceptance.
