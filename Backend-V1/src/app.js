@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const config = require('./config/env');
+const db = require('./db');
 
 const app = express();
 
@@ -21,8 +22,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Public health endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+app.get('/health', async (req, res) => {
+  const dbHealth = await db.checkHealth();
+  const isHealthy = dbHealth.mysql === 'ok' && dbHealth.mongodb === 'ok';
+  
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'ok' : 'error',
+    databases: dbHealth
+  });
 });
 
 module.exports = app;

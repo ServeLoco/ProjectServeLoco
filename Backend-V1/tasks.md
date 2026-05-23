@@ -122,12 +122,12 @@ Behavior comment: Production should fail loudly when secrets or database setting
 
 ## Phase B-03: Database Connections
 
-- [ ] Create a MySQL connection pool.
-- [ ] Create a MongoDB client connection.
-- [ ] Add graceful shutdown for both database clients.
-- [ ] Add connection health checks used by diagnostics.
-- [ ] Avoid opening a new database connection per request.
-- [ ] Normalize database errors before they reach controllers.
+- [x] Create a MySQL connection pool.
+- [x] Create a MongoDB client connection.
+- [x] Add graceful shutdown for both database clients.
+- [x] Add connection health checks used by diagnostics.
+- [x] Avoid opening a new database connection per request.
+- [x] Normalize database errors before they reach controllers.
 
 Behavior comment: Backend routes should not import raw connection setup directly. Controllers should call services, services should call repositories, and repositories should own SQL/Mongo queries.
 
