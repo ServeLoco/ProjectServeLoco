@@ -7,6 +7,13 @@ const config = require('../config/env');
 const asyncHandler = require('../utils/asyncHandler');
 const { requireAdmin } = require('../middleware/authMiddleware');
 const { uploadImage, deleteImage } = require('../controllers/imageController');
+const rateLimit = require('express-rate-limit');
+
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // max 20 images per hour
+  message: { code: 'TOO_MANY_REQUESTS', message: 'Too many uploads, please try again later.' }
+});
 
 // Ensure upload directory exists
 const uploadDir = path.join(__dirname, '../../', config.UPLOAD_DIR);
@@ -52,7 +59,7 @@ const uploadMiddleware = (req, res, next) => {
   });
 };
 
-router.post('/', requireAdmin, uploadMiddleware, asyncHandler(uploadImage));
+router.post('/', requireAdmin, uploadLimiter, uploadMiddleware, asyncHandler(uploadImage));
 router.delete('/:id', requireAdmin, asyncHandler(deleteImage));
 
 module.exports = router;

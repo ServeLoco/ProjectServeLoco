@@ -4,6 +4,13 @@ const asyncHandler = require('../utils/asyncHandler');
 const { register, login, me, updateProfile } = require('../controllers/authController');
 const { requireCustomer } = require('../middleware/authMiddleware');
 const { validate, isString, isPhone, normalizeField } = require('../validators');
+const rateLimit = require('express-rate-limit');
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { code: 'TOO_MANY_REQUESTS', message: 'Too many auth requests, please try again later.' }
+});
 
 // Schemas
 const registerSchema = (req) => {
@@ -51,8 +58,8 @@ const profileSchema = (req) => {
 };
 
 // Routes
-router.post('/register', validate(registerSchema), asyncHandler(register));
-router.post('/login', validate(loginSchema), asyncHandler(login));
+router.post('/register', authLimiter, validate(registerSchema), asyncHandler(register));
+router.post('/login', authLimiter, validate(loginSchema), asyncHandler(login));
 router.get('/me', requireCustomer, asyncHandler(me));
 router.put('/profile', requireCustomer, validate(profileSchema), asyncHandler(updateProfile));
 

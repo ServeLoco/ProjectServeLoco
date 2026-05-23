@@ -484,43 +484,43 @@ Behavior comment: Customer Home reads `/offers/active`; Admin Settings reads `/a
 
 ## Phase B-21A: Local Demo Data And Frontend Fixtures
 
-- [ ] Add a seed command for a complete local demo catalog.
-- [ ] Include products for both frontend modes: packed items and fast food.
-- [ ] Include at least one product in every seeded category.
-- [ ] Include at least one unavailable product so disabled add controls can be tested.
-- [ ] Include at least one product with no image so local fallback images can be tested.
-- [ ] Include at least one product with an uploaded image so backend image URLs can be tested.
-- [ ] Include one active offer matching the frontend fallback theme, for example snacks and combos.
-- [ ] Include one customer fixture and one blocked customer fixture for backend tests.
-- [ ] Include orders in `Pending`, `Preparing`, `Out for Delivery`, `Delivered`, and `Cancelled` states.
+- [x] Add a seed command for a complete local demo catalog.
+- [x] Include products for both frontend modes: packed items and fast food.
+- [x] Include at least one product in every seeded category.
+- [x] Include at least one unavailable product so disabled add controls can be tested.
+- [x] Include at least one product with no image so local fallback images can be tested.
+- [x] Include at least one product with an uploaded image so backend image URLs can be tested.
+- [x] Include one active offer matching the frontend fallback theme, for example snacks and combos.
+- [x] Include one customer fixture and one blocked customer fixture for backend tests.
+- [x] Include orders in `Pending`, `Preparing`, `Out for Delivery`, `Delivered`, and `Cancelled` states.
 
 Behavior comment: The frontend UI is already built. Good seed data makes it possible to prove the UI quickly without manually creating every product, status, customer, and offer.
 
 ## Phase B-22: Security And Abuse Protection
 
-- [ ] Add CORS allowlist from env.
-- [ ] Add basic rate limiting for auth endpoints.
-- [ ] Add optional tighter rate limits for image upload and admin mutation endpoints.
-- [ ] Add safe request size limits.
-- [ ] Sanitize and validate uploaded filenames.
-- [ ] Use parameterized SQL for every query.
-- [ ] Do not log passwords, JWTs, database credentials, or full image payloads.
-- [ ] Add helmet or equivalent secure HTTP headers where compatible.
-- [ ] Add consistent audit logging for admin order/status/customer changes if practical.
-- [ ] Add request ids to logs and error responses for easier mobile debugging.
+- [x] Add CORS allowlist from env.
+- [x] Add basic rate limiting for auth endpoints.
+- [x] Add optional tighter rate limits for image upload and admin mutation endpoints.
+- [x] Add safe request size limits.
+- [x] Sanitize and validate uploaded filenames.
+- [x] Use parameterized SQL for every query.
+- [x] Do not log passwords, JWTs, database credentials, or full image payloads.
+- [x] Add helmet or equivalent secure HTTP headers where compatible.
+- [x] Add consistent audit logging for admin order/status/customer changes if practical.
+- [x] Add request ids to logs and error responses for easier mobile debugging.
 
 Behavior comment: This is a small V1 backend, but order and admin endpoints are still high-risk. Treat admin actions as privileged operations from day one.
 
 ## Phase B-23: Integration Contract Documentation
 
-- [ ] Add backend API docs in `Backend-V1/docs/api.md` or `Backend-V1/API.md`.
-- [ ] Document request/response examples for signup, login, product list, product detail, cart calculate, checkout, order list, admin login, admin product image upload, admin order status update, settings update, and offer update.
-- [ ] Include frontend-compatible field aliases.
-- [ ] Document auth header format: `Authorization: Bearer <token>`.
-- [ ] Document local `.env` setup.
-- [ ] Document MySQL and MongoDB setup.
-- [ ] Document how to set `PUBLIC_BASE_URL` so image URLs work on Android emulator, iOS simulator, and physical devices.
-- [ ] Document the local frontend default base URL `http://10.0.2.2:3000`.
+- [x] Add backend API docs in `Backend-V1/docs/api.md` or `Backend-V1/API.md`.
+- [x] Document request/response examples for signup, login, product list, product detail, cart calculate, checkout, order list, admin login, admin product image upload, admin order status update, settings update, and offer update.
+- [x] Include frontend-compatible field aliases.
+- [x] Document auth header format: `Authorization: Bearer <token>`.
+- [x] Document local `.env` setup.
+- [x] Document MySQL and MongoDB setup.
+- [x] Document how to set `PUBLIC_BASE_URL` so image URLs work on Android emulator, iOS simulator, and physical devices.
+- [x] Document the local frontend default base URL `http://10.0.2.2:3000`.
 
 Behavior comment: The frontend is already built. Documentation should help a developer verify the backend against the existing app rather than invent a new contract.
 

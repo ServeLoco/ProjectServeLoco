@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const helmet = require('helmet');
 const morgan = require('morgan');
 const config = require('./config/env');
 const db = require('./db');
@@ -23,15 +24,26 @@ if (config.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
-// CORS middleware
+// Middleware
+app.use(helmet());
+app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Allow image loading across origins
+app.use(morgan('combined')); // Basic audit logging
+
+const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS ? process.env.CORS_ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://10.0.2.2:3000', '*'];
 app.use(cors({
-  origin: config.CORS_ORIGIN
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
 }));
 app.options('*', cors()); // Handling preflight OPTIONS requests for all routes
 
 // Request body JSON parsing with safe size limits
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // Static file serving for images
 app.use(config.STATIC_UPLOAD_PATH, express.static(path.join(__dirname, '../', config.UPLOAD_DIR)));
