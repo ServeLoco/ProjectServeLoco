@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 181 files · ~51,039 words
+- 181 files · ~51,266 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 747 nodes · 1370 edges · 63 communities (46 shown, 17 thin omitted)
+- 747 nodes · 1373 edges · 62 communities (46 shown, 16 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2ef6bde3`
+- Built from commit: `98aeb8f0`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -49,7 +49,6 @@
 - [[_COMMUNITY_Community 32|Community 32]]
 - [[_COMMUNITY_Community 33|Community 33]]
 - [[_COMMUNITY_Community 34|Community 34]]
-- [[_COMMUNITY_Community 35|Community 35]]
 - [[_COMMUNITY_Community 43|Community 43]]
 - [[_COMMUNITY_Community 44|Community 44]]
 - [[_COMMUNITY_Community 45|Community 45]]
@@ -94,7 +93,7 @@
 - `CategoriesScreen()` --calls--> `useCartStore`  [EXTRACTED]
   Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js → Frontend-V1/src/stores/useCartStore.js
 
-## Communities (63 total, 17 thin omitted)
+## Communities (62 total, 16 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -145,8 +144,8 @@ Cohesion: 0.04
 Nodes (48): 10. Order Detail, 11. Profile, 12. Edit Profile, 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail (+40 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.60
-Nodes (3): Chip(), ChipRow(), styles
+Cohesion: 0.22
+Nodes (5): styles, Chip(), ChipRow(), styles, layout
 
 ### Community 16 - "Community 16"
 Cohesion: 0.25
@@ -173,12 +172,12 @@ Cohesion: 0.10
 Nodes (31): adminAuthApi, adminCustomersApi, adminDashboardApi, adminImagesApi, adminOrdersApi, adminProductsApi, adminSettingsApi, ApiError (+23 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (6): styles, styles, styles, colors, palette, shadows
 
-### Community 35 - "Community 35"
-Cohesion: 0.25
-Nodes (3): styles, styles, typography
+### Community 33 - "Community 33"
+Cohesion: 0.17
+Nodes (4): styles, styles, styles, typography
 
 ### Community 43 - "Community 43"
 Cohesion: 0.16
@@ -189,15 +188,15 @@ Cohesion: 0.33
 Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
-Cohesion: 0.07
-Nodes (23): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles (+15 more)
+Cohesion: 0.05
+Nodes (27): PAYMENT_FILTERS, STATUS_FILTERS, styles, AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles (+19 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.33
 Nodes (3): PAYMENT_COLORS, STATUS_COLORS, styles
 
 ### Community 47 - "Community 47"
-Cohesion: 0.22
+Cohesion: 0.20
 Nodes (4): styles, styles, borderWidth, radius
 
 ### Community 48 - "Community 48"
@@ -233,30 +232,30 @@ Cohesion: 0.29
 Nodes (3): ORDER_STATUSES, PAYMENT_STATUSES, styles
 
 ### Community 59 - "Community 59"
-Cohesion: 0.12
-Nodes (7): PAYMENT_FILTERS, STATUS_FILTERS, styles, AVAILABILITY, CATEGORIES, initialMockProducts, styles
+Cohesion: 0.25
+Nodes (4): AVAILABILITY, CATEGORIES, initialMockProducts, styles
 
 ### Community 60 - "Community 60"
-Cohesion: 0.08
-Nodes (38): CartScreen(), styles, CategoriesScreen(), DEFAULT_CHIPS, MOCK_CATEGORIES, MOCK_CHIPS, styles, CheckoutScreen() (+30 more)
+Cohesion: 0.07
+Nodes (39): CartScreen(), styles, CategoriesScreen(), DEFAULT_CHIPS, MOCK_CATEGORIES, MOCK_CHIPS, styles, CheckoutScreen() (+31 more)
 
 ### Community 66 - "Community 66"
-Cohesion: 0.15
-Nodes (5): styles, OrderDetailScreen(), STATUS_STEPS, styles, layout
+Cohesion: 0.29
+Nodes (3): OrderDetailScreen(), STATUS_STEPS, styles
 
 ## Knowledge Gaps
 - **339 isolated node(s):** `id`, `name`, `resources`, `name`, `version` (+334 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **17 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `colors` connect `Community 30` to `Community 13`, `Community 15`, `Community 17`, `Community 21`, `Community 33`, `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 49`, `Community 50`, `Community 54`, `Community 56`, `Community 57`, `Community 58`, `Community 59`, `Community 60`, `Community 66`?**
+- **Why does `colors` connect `Community 30` to `Community 13`, `Community 15`, `Community 17`, `Community 21`, `Community 33`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 49`, `Community 50`, `Community 54`, `Community 56`, `Community 57`, `Community 58`, `Community 59`, `Community 60`, `Community 66`?**
   _High betweenness centrality (0.029) - this node is a cross-community bridge._
-- **Why does `typography` connect `Community 35` to `Community 13`, `Community 15`, `Community 17`, `Community 21`, `Community 30`, `Community 33`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 50`, `Community 54`, `Community 56`, `Community 57`, `Community 58`, `Community 59`, `Community 60`, `Community 66`?**
+- **Why does `typography` connect `Community 33` to `Community 66`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 15`, `Community 50`, `Community 17`, `Community 13`, `Community 21`, `Community 54`, `Community 56`, `Community 57`, `Community 58`, `Community 59`, `Community 60`, `Community 30`?**
   _High betweenness centrality (0.022) - this node is a cross-community bridge._
-- **Why does `spacing` connect `Community 43` to `Community 33`, `Community 66`, `Community 35`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 17`, `Community 50`, `Community 15`, `Community 13`, `Community 54`, `Community 56`, `Community 57`, `Community 58`, `Community 59`, `Community 60`, `Community 30`?**
+- **Why does `spacing` connect `Community 43` to `Community 33`, `Community 66`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 15`, `Community 50`, `Community 17`, `Community 13`, `Community 21`, `Community 54`, `Community 56`, `Community 57`, `Community 58`, `Community 59`, `Community 60`, `Community 30`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **What connects `id`, `name`, `resources` to the rest of the system?**
   _339 weakly-connected nodes found - possible documentation gaps or missing edges._

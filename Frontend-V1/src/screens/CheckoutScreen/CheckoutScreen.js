@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,8 @@ import {
 } from '../../components';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../stores';
-import { ordersApi } from '../../api';
+import { cartApi, ordersApi } from '../../api';
+import { normalizeCartCalculation } from '../../utils';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -30,7 +31,12 @@ export default function CheckoutScreen() {
   const navigation = useNavigation();
   const { items, clearCart } = useCartStore();
   const shopStatus = useSettingsStore(state => state.shopStatus);
+  const minimumOrder = useSettingsStore(state => state.minimumOrder);
   const userProfile = useAuthStore(state => state.profile);
+  const checkoutItems = useMemo(() => items.map(item => ({
+    productId: item.product.id,
+    quantity: item.quantity,
+  })), [items]);
 
   // Form State
   const [address, setAddress] = useState(userProfile?.address || '');
@@ -41,6 +47,9 @@ export default function CheckoutScreen() {
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [bill, setBill] = useState(null);
+  const [calcError, setCalcError] = useState(null);
 
   // Animations
   const deliverySlide = useRef(new Animated.Value(20)).current;
@@ -56,6 +65,43 @@ export default function CheckoutScreen() {
       Animated.timing(summarySlide, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
   }, [deliverySlide, paymentSlide, summarySlide]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const calculateCheckoutBill = async () => {
+      if (checkoutItems.length === 0) {
+        setBill(null);
+        setCalcError(null);
+        return;
+      }
+
+      setIsCalculating(true);
+      setCalcError(null);
+
+      try {
+        const calculatedBill = normalizeCartCalculation(await cartApi.calculate({ items: checkoutItems }));
+        if (isActive) {
+          setBill(calculatedBill);
+        }
+      } catch (error) {
+        if (isActive) {
+          setBill(null);
+          setCalcError(error.message || 'Unable to calculate checkout total.');
+        }
+      } finally {
+        if (isActive) {
+          setIsCalculating(false);
+        }
+      }
+    };
+
+    calculateCheckoutBill();
+
+    return () => {
+      isActive = false;
+    };
+  }, [checkoutItems]);
 
   const handleRequestGPS = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -82,6 +128,10 @@ export default function CheckoutScreen() {
       setSubmitError('The shop is currently closed. We cannot accept orders right now.');
       return;
     }
+    if (isCalculating || calcError || !bill) {
+      setSubmitError('Please wait while we verify the order total.');
+      return;
+    }
     
     setSubmitError(null);
     setIsSubmitting(true);
@@ -90,38 +140,47 @@ export default function CheckoutScreen() {
     Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true }).start();
 
     try {
+      const verifiedBill = normalizeCartCalculation(await cartApi.calculate({ items: checkoutItems }));
+      const verifiedMinimum = verifiedBill.minimumOrder || minimumOrder || 0;
+
+      setBill(verifiedBill);
+
+      if (verifiedMinimum && verifiedBill.subtotal < verifiedMinimum) {
+        setSubmitError(`Minimum order is Rs. ${verifiedMinimum}. Add items worth Rs. ${verifiedMinimum - verifiedBill.subtotal} more.`);
+        return;
+      }
+
       const orderResponse = await ordersApi.createOrder({
-        items: items.map(item => ({
-          productId: item.product.id,
-          quantity: item.quantity,
-        })),
+        items: checkoutItems,
         deliveryAddress: address.trim(),
         address: address.trim(),
         coordinates,
         paymentMethod,
       });
 
-      setIsSubmitting(false);
-      Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
       clearCart();
       navigation.navigate('OrderConfirmation', {
         orderId: orderResponse?.id || orderResponse?.order?.id || orderResponse?.data?.id,
         order: orderResponse?.order || orderResponse?.data || orderResponse,
       });
     } catch (error) {
+      setSubmitError(error.message || 'Unable to place order. Please try again.');
+    } finally {
       setIsSubmitting(false);
       Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
-      setSubmitError(error.message || 'Unable to place order. Please try again.');
     }
   };
 
-  // Compute Bill Summary Locally for display
-  let subtotal = 0;
-  items.forEach(item => {
-    subtotal += item.product.price * item.quantity;
-  });
-  const deliveryCharge = subtotal > 200 ? 0 : 30;
-  const grandTotal = subtotal + deliveryCharge; // Simplified for checkout screen
+  const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
+  const isBelowMinimum = Boolean(bill && requiredMinimum && bill.subtotal < requiredMinimum);
+  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || isBelowMinimum;
+  const placeOrderLabel = isSubmitting
+    ? 'Processing...'
+    : bill
+    ? `Place Order • Rs. ${bill.grandTotal}`
+    : isCalculating
+    ? 'Calculating total...'
+    : 'Place Order';
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
@@ -216,19 +275,46 @@ export default function CheckoutScreen() {
           <Text style={styles.sectionTitle}>Order Summary</Text>
           
           <View style={styles.summaryBox}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Items ({items.length})</Text>
-              <Text style={styles.summaryValue}>Rs. {subtotal}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Delivery</Text>
-              <Text style={styles.summaryValue}>{deliveryCharge === 0 ? 'FREE' : `Rs. ${deliveryCharge}`}</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryTotalLabel}>Total to Pay</Text>
-              <Text style={styles.summaryTotalValue}>Rs. {grandTotal}</Text>
-            </View>
+            {isCalculating ? (
+              <Text style={styles.calcText}>Calculating verified total...</Text>
+            ) : calcError ? (
+              <Text style={styles.calcErrorText}>{calcError}</Text>
+            ) : bill ? (
+              <>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Items ({items.length})</Text>
+                  <Text style={styles.summaryValue}>Rs. {bill.subtotal}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Delivery</Text>
+                  <Text style={styles.summaryValue}>{bill.deliveryCharge === 0 ? 'FREE' : `Rs. ${bill.deliveryCharge}`}</Text>
+                </View>
+                {bill.nightCharge > 0 && (
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Night Charge</Text>
+                    <Text style={styles.summaryValue}>Rs. {bill.nightCharge}</Text>
+                  </View>
+                )}
+                {bill.discount > 0 && (
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Discount</Text>
+                    <Text style={styles.summaryValue}>- Rs. {bill.discount}</Text>
+                  </View>
+                )}
+                <View style={styles.divider} />
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryTotalLabel}>Total to Pay</Text>
+                  <Text style={styles.summaryTotalValue}>Rs. {bill.grandTotal}</Text>
+                </View>
+                {isBelowMinimum && (
+                  <Text style={styles.minimumOrderText}>
+                    Add items worth Rs. {requiredMinimum - bill.subtotal} more to place this order.
+                  </Text>
+                )}
+              </>
+            ) : (
+              <Text style={styles.calcText}>Add items to view total.</Text>
+            )}
           </View>
         </Animated.View>
 
@@ -245,9 +331,10 @@ export default function CheckoutScreen() {
       <View style={styles.bottomBar}>
         <Animated.View style={{ transform: [{ scale: btnScale }] }}>
           <Button 
-            label={isSubmitting ? "Processing..." : `Place Order • Rs. ${grandTotal}`}
+            label={placeOrderLabel}
             onPress={handlePlaceOrder}
-            disabled={isSubmitting || items.length === 0}
+            disabled={isPlaceOrderDisabled}
+            loading={isSubmitting}
             style={styles.placeOrderBtn}
           />
         </Animated.View>
@@ -395,6 +482,19 @@ const styles = StyleSheet.create({
   summaryValue: {
     ...typography.body,
     color: colors.textPrimary,
+  },
+  calcText: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+  calcErrorText: {
+    ...typography.body,
+    color: colors.error,
+  },
+  minimumOrderText: {
+    ...typography.caption,
+    color: colors.warning,
+    marginTop: spacing.xs,
   },
   divider: {
     height: 1,
