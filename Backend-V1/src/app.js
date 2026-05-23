@@ -9,6 +9,8 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const imageRoutes = require('./routes/imageRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+const productRoutes = require('./routes/productRoutes');
 
 const app = express();
 
@@ -34,6 +36,8 @@ app.use(config.STATIC_UPLOAD_PATH, express.static(path.join(__dirname, '../', co
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/products', productRoutes);
 
 // Public health endpoint
 app.get('/health', async (req, res) => {

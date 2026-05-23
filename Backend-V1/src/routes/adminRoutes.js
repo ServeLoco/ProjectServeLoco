@@ -1,9 +1,8 @@
-const express = require('express');
-const router = express.Router();
-const asyncHandler = require('../utils/asyncHandler');
 const { login, me, getUsers, setBlockStatus, setTrustStatus } = require('../controllers/adminController');
+const { createCategory, updateCategory } = require('../controllers/categoryController');
+const { createProduct, updateProduct } = require('../controllers/productController');
 const { requireAdmin } = require('../middleware/authMiddleware');
-const { validate, isString, isId, isBoolean, validatePagination, normalizeField } = require('../validators');
+const { validate, isString, isId, isBoolean, isNumericAmount, validatePagination, normalizeField } = require('../validators');
 const rateLimit = require('express-rate-limit');
 
 const loginLimiter = rateLimit({
@@ -57,9 +56,50 @@ const trustSchema = (req) => {
   if (!isId(data.id)) errors.id = 'Valid User ID is required in URL';
   if (!isBoolean(data.trusted)) errors.trusted = 'Trusted status must be a boolean';
 
-  // Normalize boolean
   data.trusted = data.trusted === true || data.trusted === 'true' || data.trusted === 1;
 
+  return { errors, data };
+};
+
+const categorySchema = (req) => {
+  const data = {
+    name: normalizeField(req, 'name', 'name'),
+    slug: normalizeField(req, 'slug', 'slug'),
+    type: normalizeField(req, 'type', 'type'),
+    image_id: normalizeField(req, 'imageId', 'image_id'),
+    active: normalizeField(req, 'active', 'active')
+  };
+  const errors = {};
+  if (!isString(data.name)) errors.name = 'Name is required';
+  if (!isString(data.slug)) errors.slug = 'Slug is required';
+  if (!isString(data.type)) errors.type = 'Type is required';
+  if (data.active !== undefined && !isBoolean(data.active)) errors.active = 'Active must be boolean';
+  
+  if (data.active !== undefined) {
+    data.active = data.active === true || data.active === 'true' || data.active === 1;
+  }
+  return { errors, data };
+};
+
+const productSchema = (req) => {
+  const data = {
+    name: normalizeField(req, 'name', 'name'),
+    price: normalizeField(req, 'price', 'price'),
+    category_id: normalizeField(req, 'categoryId', 'category_id'),
+    unit: normalizeField(req, 'unit', 'unit'),
+    description: normalizeField(req, 'description', 'description'),
+    image_id: normalizeField(req, 'imageId', 'image_id'),
+    available: normalizeField(req, 'available', 'available')
+  };
+  const errors = {};
+  if (!isString(data.name)) errors.name = 'Name is required';
+  if (!isNumericAmount(data.price)) errors.price = 'Valid price is required';
+  if (!isId(data.category_id)) errors.category_id = 'Category ID is required';
+  if (data.available !== undefined && !isBoolean(data.available)) errors.available = 'Available must be boolean';
+  
+  if (data.available !== undefined) {
+    data.available = data.available === true || data.available === 'true' || data.available === 1;
+  }
   return { errors, data };
 };
 
@@ -69,5 +109,9 @@ router.get('/me', requireAdmin, me);
 router.get('/users', requireAdmin, validate(paginationSchema), asyncHandler(getUsers));
 router.put('/users/:id/block', requireAdmin, validate(blockSchema), asyncHandler(setBlockStatus));
 router.put('/users/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
+router.post('/categories', requireAdmin, validate(categorySchema), asyncHandler(createCategory));
+router.put('/categories/:id', requireAdmin, validate(categorySchema), asyncHandler(updateCategory));
+router.post('/products', requireAdmin, validate(productSchema), asyncHandler(createProduct));
+router.put('/products/:id', requireAdmin, validate(productSchema), asyncHandler(updateProduct));
 
 module.exports = router;
