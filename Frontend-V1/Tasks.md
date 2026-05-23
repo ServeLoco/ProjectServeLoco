@@ -166,14 +166,14 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-07: Home Preview And Auth Gate
 
-- [ ] Show Home Dashboard preview first.
-- [ ] Allow preview for 10 seconds.
-- [ ] After 10 seconds, require login/signup when the user tries to continue into protected actions.
-- [ ] Protected actions include add to cart, checkout, orders, profile edit, and order cancellation.
-- [ ] If already logged in, skip the auth gate.
-- [ ] On successful auth, return to the intended action or Home.
-- [ ] Fade in the auth prompt when a protected action is blocked.
-- [ ] Keep preview-to-auth transition smooth with no layout jump.
+- [x] Show Home Dashboard preview first.
+- [x] Allow preview for 10 seconds.
+- [x] After 10 seconds, require login/signup when the user tries to continue into protected actions.
+- [x] Protected actions include add to cart, checkout, orders, profile edit, and order cancellation.
+- [x] If already logged in, skip the auth gate.
+- [x] On successful auth, return to the intended action or Home.
+- [x] Fade in the auth prompt when a protected action is blocked.
+- [x] Keep preview-to-auth transition smooth with no layout jump.
 
 ### Task F-08: Login And Sign Up Screen
 

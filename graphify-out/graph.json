@@ -4,24 +4,6 @@
   "graph": {},
   "nodes": [
     {
-      "label": "App.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L1",
-      "id": "frontend_v1_app_js",
-      "community": 13,
-      "norm_label": "app.js"
-    },
-    {
-      "label": "App()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L7",
-      "id": "frontend_v1_app_app",
-      "community": 13,
-      "norm_label": "app()"
-    },
-    {
       "label": "Tasks.md",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
@@ -418,411 +400,6 @@
       "norm_label": "task f-31: final acceptance checklist"
     },
     {
-      "label": "jest.config.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/jest.config.js",
-      "source_location": "L1",
-      "id": "frontend_v1_jest_config_js",
-      "community": 41,
-      "norm_label": "jest.config.js"
-    },
-    {
-      "label": "jest.setup.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/jest.setup.js",
-      "source_location": "L1",
-      "id": "frontend_v1_jest_setup_js",
-      "community": 76,
-      "norm_label": "jest.setup.js"
-    },
-    {
-      "label": "package.json",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L1",
-      "id": "frontend_v1_package_json",
-      "community": 2,
-      "norm_label": "package.json"
-    },
-    {
-      "label": "name",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L2",
-      "id": "frontend_v1_package_name",
-      "community": 2,
-      "norm_label": "name"
-    },
-    {
-      "label": "version",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L3",
-      "id": "frontend_v1_package_version",
-      "community": 2,
-      "norm_label": "version"
-    },
-    {
-      "label": "private",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L4",
-      "id": "frontend_v1_package_private",
-      "community": 2,
-      "norm_label": "private"
-    },
-    {
-      "label": "scripts",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L5",
-      "id": "frontend_v1_package_scripts",
-      "community": 2,
-      "norm_label": "scripts"
-    },
-    {
-      "label": "android",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L6",
-      "id": "frontend_v1_package_scripts_android",
-      "community": 2,
-      "norm_label": "android"
-    },
-    {
-      "label": "ios",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L7",
-      "id": "frontend_v1_package_scripts_ios",
-      "community": 2,
-      "norm_label": "ios"
-    },
-    {
-      "label": "lint",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L8",
-      "id": "frontend_v1_package_scripts_lint",
-      "community": 2,
-      "norm_label": "lint"
-    },
-    {
-      "label": "start",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L9",
-      "id": "frontend_v1_package_scripts_start",
-      "community": 2,
-      "norm_label": "start"
-    },
-    {
-      "label": "test",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L10",
-      "id": "frontend_v1_package_scripts_test",
-      "community": 2,
-      "norm_label": "test"
-    },
-    {
-      "label": "dependencies",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L12",
-      "id": "frontend_v1_package_dependencies",
-      "community": 2,
-      "norm_label": "dependencies"
-    },
-    {
-      "label": "@react-native-async-storage/async-storage",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L13",
-      "id": "frontend_v1_package_dependencies_react_native_async_storage_async_storage",
-      "community": 2,
-      "norm_label": "@react-native-async-storage/async-storage"
-    },
-    {
-      "label": "@react-native/new-app-screen",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L14",
-      "id": "frontend_v1_package_dependencies_react_native_new_app_screen",
-      "community": 2,
-      "norm_label": "@react-native/new-app-screen"
-    },
-    {
-      "label": "@react-navigation/bottom-tabs",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L15",
-      "id": "frontend_v1_package_dependencies_react_navigation_bottom_tabs",
-      "community": 2,
-      "norm_label": "@react-navigation/bottom-tabs"
-    },
-    {
-      "label": "@react-navigation/native",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L16",
-      "id": "frontend_v1_package_dependencies_react_navigation_native",
-      "community": 2,
-      "norm_label": "@react-navigation/native"
-    },
-    {
-      "label": "@react-navigation/native-stack",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L17",
-      "id": "frontend_v1_package_dependencies_react_navigation_native_stack",
-      "community": 2,
-      "norm_label": "@react-navigation/native-stack"
-    },
-    {
-      "label": "react",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L18",
-      "id": "frontend_v1_package_dependencies_react",
-      "community": 2,
-      "norm_label": "react"
-    },
-    {
-      "label": "react-native",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L19",
-      "id": "frontend_v1_package_dependencies_react_native",
-      "community": 2,
-      "norm_label": "react-native"
-    },
-    {
-      "label": "react-native-safe-area-context",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L20",
-      "id": "frontend_v1_package_dependencies_react_native_safe_area_context",
-      "community": 2,
-      "norm_label": "react-native-safe-area-context"
-    },
-    {
-      "label": "react-native-screens",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L21",
-      "id": "frontend_v1_package_dependencies_react_native_screens",
-      "community": 2,
-      "norm_label": "react-native-screens"
-    },
-    {
-      "label": "zustand",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L22",
-      "id": "frontend_v1_package_dependencies_zustand",
-      "community": 2,
-      "norm_label": "zustand"
-    },
-    {
-      "label": "devDependencies",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L24",
-      "id": "frontend_v1_package_devdependencies",
-      "community": 2,
-      "norm_label": "devdependencies"
-    },
-    {
-      "label": "@babel/core",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L25",
-      "id": "frontend_v1_package_devdependencies_babel_core",
-      "community": 2,
-      "norm_label": "@babel/core"
-    },
-    {
-      "label": "@babel/preset-env",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L26",
-      "id": "frontend_v1_package_devdependencies_babel_preset_env",
-      "community": 2,
-      "norm_label": "@babel/preset-env"
-    },
-    {
-      "label": "@babel/runtime",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L27",
-      "id": "frontend_v1_package_devdependencies_babel_runtime",
-      "community": 2,
-      "norm_label": "@babel/runtime"
-    },
-    {
-      "label": "@react-native-community/cli",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L28",
-      "id": "frontend_v1_package_devdependencies_react_native_community_cli",
-      "community": 2,
-      "norm_label": "@react-native-community/cli"
-    },
-    {
-      "label": "@react-native-community/cli-platform-android",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L29",
-      "id": "frontend_v1_package_devdependencies_react_native_community_cli_platform_android",
-      "community": 2,
-      "norm_label": "@react-native-community/cli-platform-android"
-    },
-    {
-      "label": "@react-native-community/cli-platform-ios",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L30",
-      "id": "frontend_v1_package_devdependencies_react_native_community_cli_platform_ios",
-      "community": 2,
-      "norm_label": "@react-native-community/cli-platform-ios"
-    },
-    {
-      "label": "@react-native/babel-preset",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L31",
-      "id": "frontend_v1_package_devdependencies_react_native_babel_preset",
-      "community": 2,
-      "norm_label": "@react-native/babel-preset"
-    },
-    {
-      "label": "@react-native/eslint-config",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L32",
-      "id": "frontend_v1_package_devdependencies_react_native_eslint_config",
-      "community": 2,
-      "norm_label": "@react-native/eslint-config"
-    },
-    {
-      "label": "@react-native/jest-preset",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L33",
-      "id": "frontend_v1_package_devdependencies_react_native_jest_preset",
-      "community": 2,
-      "norm_label": "@react-native/jest-preset"
-    },
-    {
-      "label": "@react-native/metro-config",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L34",
-      "id": "frontend_v1_package_devdependencies_react_native_metro_config",
-      "community": 2,
-      "norm_label": "@react-native/metro-config"
-    },
-    {
-      "label": "@react-native/typescript-config",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L35",
-      "id": "frontend_v1_package_devdependencies_react_native_typescript_config",
-      "community": 2,
-      "norm_label": "@react-native/typescript-config"
-    },
-    {
-      "label": "@types/jest",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L36",
-      "id": "frontend_v1_package_devdependencies_types_jest",
-      "community": 2,
-      "norm_label": "@types/jest"
-    },
-    {
-      "label": "@types/react",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L37",
-      "id": "frontend_v1_package_devdependencies_types_react",
-      "community": 2,
-      "norm_label": "@types/react"
-    },
-    {
-      "label": "@types/react-test-renderer",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L38",
-      "id": "frontend_v1_package_devdependencies_types_react_test_renderer",
-      "community": 2,
-      "norm_label": "@types/react-test-renderer"
-    },
-    {
-      "label": "eslint",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L39",
-      "id": "frontend_v1_package_devdependencies_eslint",
-      "community": 2,
-      "norm_label": "eslint"
-    },
-    {
-      "label": "jest",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L40",
-      "id": "frontend_v1_package_devdependencies_jest",
-      "community": 2,
-      "norm_label": "jest"
-    },
-    {
-      "label": "prettier",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L41",
-      "id": "frontend_v1_package_devdependencies_prettier",
-      "community": 2,
-      "norm_label": "prettier"
-    },
-    {
-      "label": "react-test-renderer",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L42",
-      "id": "frontend_v1_package_devdependencies_react_test_renderer",
-      "community": 2,
-      "norm_label": "react-test-renderer"
-    },
-    {
-      "label": "typescript",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L43",
-      "id": "frontend_v1_package_devdependencies_typescript",
-      "community": 2,
-      "norm_label": "typescript"
-    },
-    {
-      "label": "engines",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L45",
-      "id": "frontend_v1_package_engines",
-      "community": 2,
-      "norm_label": "engines"
-    },
-    {
-      "label": "node",
-      "file_type": "code",
-      "source_file": "Frontend-V1/package.json",
-      "source_location": "L46",
-      "id": "frontend_v1_package_engines_node",
-      "community": 2,
-      "norm_label": "node"
-    },
-    {
       "label": "AdminNavigator.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
@@ -862,7 +439,7 @@
       "label": "Tab",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L22",
+      "source_location": "L23",
       "id": "navigation_customernavigator_tab",
       "community": 13,
       "norm_label": "tab"
@@ -871,16 +448,25 @@
       "label": "Stack",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L23",
+      "source_location": "L24",
       "id": "navigation_customernavigator_stack",
       "community": 13,
       "norm_label": "stack"
     },
     {
+      "label": "AnimatedTabIcon()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
+      "source_location": "L26",
+      "id": "navigation_customernavigator_animatedtabicon",
+      "community": 13,
+      "norm_label": "animatedtabicon()"
+    },
+    {
       "label": "CustomerBottomTabs()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L30",
+      "source_location": "L54",
       "id": "navigation_customernavigator_customerbottomtabs",
       "community": 13,
       "norm_label": "customerbottomtabs()"
@@ -889,820 +475,1243 @@
       "label": "CustomerNavigator()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L62",
+      "source_location": "L89",
       "id": "navigation_customernavigator_customernavigator",
       "community": 13,
       "norm_label": "customernavigator()"
+    },
+    {
+      "label": "App.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L1",
+      "community": 17,
+      "norm_label": "app.js",
+      "id": "frontend_v1_app_js"
+    },
+    {
+      "label": "App()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L7",
+      "community": 45,
+      "norm_label": "app()",
+      "id": "frontend_v1_app_app"
+    },
+    {
+      "label": "jest.config.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/jest.config.js",
+      "source_location": "L1",
+      "community": 41,
+      "norm_label": "jest.config.js",
+      "id": "frontend_v1_jest_config_js"
+    },
+    {
+      "label": "jest.setup.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/jest.setup.js",
+      "source_location": "L1",
+      "community": 76,
+      "norm_label": "jest.setup.js",
+      "id": "frontend_v1_jest_setup_js"
+    },
+    {
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L1",
+      "community": 2,
+      "norm_label": "package.json",
+      "id": "frontend_v1_package_json"
+    },
+    {
+      "label": "name",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L2",
+      "community": 2,
+      "norm_label": "name",
+      "id": "frontend_v1_package_name"
+    },
+    {
+      "label": "version",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L3",
+      "community": 2,
+      "norm_label": "version",
+      "id": "frontend_v1_package_version"
+    },
+    {
+      "label": "private",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L4",
+      "community": 2,
+      "norm_label": "private",
+      "id": "frontend_v1_package_private"
+    },
+    {
+      "label": "scripts",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L5",
+      "community": 2,
+      "norm_label": "scripts",
+      "id": "frontend_v1_package_scripts"
+    },
+    {
+      "label": "android",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L6",
+      "community": 2,
+      "norm_label": "android",
+      "id": "frontend_v1_package_scripts_android"
+    },
+    {
+      "label": "ios",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L7",
+      "community": 2,
+      "norm_label": "ios",
+      "id": "frontend_v1_package_scripts_ios"
+    },
+    {
+      "label": "lint",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L8",
+      "community": 2,
+      "norm_label": "lint",
+      "id": "frontend_v1_package_scripts_lint"
+    },
+    {
+      "label": "start",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L9",
+      "community": 2,
+      "norm_label": "start",
+      "id": "frontend_v1_package_scripts_start"
+    },
+    {
+      "label": "test",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L10",
+      "community": 2,
+      "norm_label": "test",
+      "id": "frontend_v1_package_scripts_test"
+    },
+    {
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L12",
+      "community": 2,
+      "norm_label": "dependencies",
+      "id": "frontend_v1_package_dependencies"
+    },
+    {
+      "label": "@react-native-async-storage/async-storage",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L13",
+      "community": 2,
+      "norm_label": "@react-native-async-storage/async-storage",
+      "id": "frontend_v1_package_dependencies_react_native_async_storage_async_storage"
+    },
+    {
+      "label": "@react-native/new-app-screen",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L14",
+      "community": 2,
+      "norm_label": "@react-native/new-app-screen",
+      "id": "frontend_v1_package_dependencies_react_native_new_app_screen"
+    },
+    {
+      "label": "@react-navigation/bottom-tabs",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L15",
+      "community": 2,
+      "norm_label": "@react-navigation/bottom-tabs",
+      "id": "frontend_v1_package_dependencies_react_navigation_bottom_tabs"
+    },
+    {
+      "label": "@react-navigation/native",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L16",
+      "community": 2,
+      "norm_label": "@react-navigation/native",
+      "id": "frontend_v1_package_dependencies_react_navigation_native"
+    },
+    {
+      "label": "@react-navigation/native-stack",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L17",
+      "community": 2,
+      "norm_label": "@react-navigation/native-stack",
+      "id": "frontend_v1_package_dependencies_react_navigation_native_stack"
+    },
+    {
+      "label": "react",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L18",
+      "community": 2,
+      "norm_label": "react",
+      "id": "frontend_v1_package_dependencies_react"
+    },
+    {
+      "label": "react-native",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L19",
+      "community": 2,
+      "norm_label": "react-native",
+      "id": "frontend_v1_package_dependencies_react_native"
+    },
+    {
+      "label": "react-native-safe-area-context",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L20",
+      "community": 2,
+      "norm_label": "react-native-safe-area-context",
+      "id": "frontend_v1_package_dependencies_react_native_safe_area_context"
+    },
+    {
+      "label": "react-native-screens",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L21",
+      "community": 2,
+      "norm_label": "react-native-screens",
+      "id": "frontend_v1_package_dependencies_react_native_screens"
+    },
+    {
+      "label": "zustand",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L22",
+      "community": 2,
+      "norm_label": "zustand",
+      "id": "frontend_v1_package_dependencies_zustand"
+    },
+    {
+      "label": "devDependencies",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L24",
+      "community": 2,
+      "norm_label": "devdependencies",
+      "id": "frontend_v1_package_devdependencies"
+    },
+    {
+      "label": "@babel/core",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L25",
+      "community": 2,
+      "norm_label": "@babel/core",
+      "id": "frontend_v1_package_devdependencies_babel_core"
+    },
+    {
+      "label": "@babel/preset-env",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L26",
+      "community": 2,
+      "norm_label": "@babel/preset-env",
+      "id": "frontend_v1_package_devdependencies_babel_preset_env"
+    },
+    {
+      "label": "@babel/runtime",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L27",
+      "community": 2,
+      "norm_label": "@babel/runtime",
+      "id": "frontend_v1_package_devdependencies_babel_runtime"
+    },
+    {
+      "label": "@react-native-community/cli",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L28",
+      "community": 2,
+      "norm_label": "@react-native-community/cli",
+      "id": "frontend_v1_package_devdependencies_react_native_community_cli"
+    },
+    {
+      "label": "@react-native-community/cli-platform-android",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L29",
+      "community": 2,
+      "norm_label": "@react-native-community/cli-platform-android",
+      "id": "frontend_v1_package_devdependencies_react_native_community_cli_platform_android"
+    },
+    {
+      "label": "@react-native-community/cli-platform-ios",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L30",
+      "community": 2,
+      "norm_label": "@react-native-community/cli-platform-ios",
+      "id": "frontend_v1_package_devdependencies_react_native_community_cli_platform_ios"
+    },
+    {
+      "label": "@react-native/babel-preset",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L31",
+      "community": 2,
+      "norm_label": "@react-native/babel-preset",
+      "id": "frontend_v1_package_devdependencies_react_native_babel_preset"
+    },
+    {
+      "label": "@react-native/eslint-config",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L32",
+      "community": 2,
+      "norm_label": "@react-native/eslint-config",
+      "id": "frontend_v1_package_devdependencies_react_native_eslint_config"
+    },
+    {
+      "label": "@react-native/jest-preset",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L33",
+      "community": 2,
+      "norm_label": "@react-native/jest-preset",
+      "id": "frontend_v1_package_devdependencies_react_native_jest_preset"
+    },
+    {
+      "label": "@react-native/metro-config",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L34",
+      "community": 2,
+      "norm_label": "@react-native/metro-config",
+      "id": "frontend_v1_package_devdependencies_react_native_metro_config"
+    },
+    {
+      "label": "@react-native/typescript-config",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L35",
+      "community": 2,
+      "norm_label": "@react-native/typescript-config",
+      "id": "frontend_v1_package_devdependencies_react_native_typescript_config"
+    },
+    {
+      "label": "@types/jest",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L36",
+      "community": 2,
+      "norm_label": "@types/jest",
+      "id": "frontend_v1_package_devdependencies_types_jest"
+    },
+    {
+      "label": "@types/react",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L37",
+      "community": 2,
+      "norm_label": "@types/react",
+      "id": "frontend_v1_package_devdependencies_types_react"
+    },
+    {
+      "label": "@types/react-test-renderer",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L38",
+      "community": 2,
+      "norm_label": "@types/react-test-renderer",
+      "id": "frontend_v1_package_devdependencies_types_react_test_renderer"
+    },
+    {
+      "label": "eslint",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L39",
+      "community": 2,
+      "norm_label": "eslint",
+      "id": "frontend_v1_package_devdependencies_eslint"
+    },
+    {
+      "label": "jest",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L40",
+      "community": 2,
+      "norm_label": "jest",
+      "id": "frontend_v1_package_devdependencies_jest"
+    },
+    {
+      "label": "prettier",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L41",
+      "community": 2,
+      "norm_label": "prettier",
+      "id": "frontend_v1_package_devdependencies_prettier"
+    },
+    {
+      "label": "react-test-renderer",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L42",
+      "community": 2,
+      "norm_label": "react-test-renderer",
+      "id": "frontend_v1_package_devdependencies_react_test_renderer"
+    },
+    {
+      "label": "typescript",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L43",
+      "community": 2,
+      "norm_label": "typescript",
+      "id": "frontend_v1_package_devdependencies_typescript"
+    },
+    {
+      "label": "engines",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L45",
+      "community": 2,
+      "norm_label": "engines",
+      "id": "frontend_v1_package_engines"
+    },
+    {
+      "label": "node",
+      "file_type": "code",
+      "source_file": "Frontend-V1/package.json",
+      "source_location": "L46",
+      "community": 2,
+      "norm_label": "node",
+      "id": "frontend_v1_package_engines_node"
     },
     {
       "label": "RootNavigator.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_navigation_rootnavigator_js",
       "community": 13,
-      "norm_label": "rootnavigator.js"
+      "norm_label": "rootnavigator.js",
+      "id": "frontend_v1_src_navigation_rootnavigator_js"
     },
     {
       "label": "RootNavigator()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
       "source_location": "L11",
-      "id": "navigation_rootnavigator_rootnavigator",
       "community": 13,
-      "norm_label": "rootnavigator()"
+      "norm_label": "rootnavigator()",
+      "id": "navigation_rootnavigator_rootnavigator"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_navigation_index_js",
       "community": 13,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_navigation_index_js"
     },
     {
       "label": "AdminCustomersScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
       "community": 50,
-      "norm_label": "admincustomersscreen.js"
+      "norm_label": "admincustomersscreen.js",
+      "id": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js"
     },
     {
       "label": "AdminCustomersScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L6",
-      "id": "admincustomersscreen_admincustomersscreen_admincustomersscreen",
       "community": 50,
-      "norm_label": "admincustomersscreen()"
+      "norm_label": "admincustomersscreen()",
+      "id": "admincustomersscreen_admincustomersscreen_admincustomersscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L14",
-      "id": "admincustomersscreen_admincustomersscreen_styles",
       "community": 50,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "admincustomersscreen_admincustomersscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_admincustomersscreen_index_js",
       "community": 50,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_admincustomersscreen_index_js"
     },
     {
       "label": "AdminDashboardScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
       "community": 54,
-      "norm_label": "admindashboardscreen.js"
+      "norm_label": "admindashboardscreen.js",
+      "id": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js"
     },
     {
       "label": "AdminDashboardScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
       "source_location": "L6",
-      "id": "admindashboardscreen_admindashboardscreen_admindashboardscreen",
       "community": 54,
-      "norm_label": "admindashboardscreen()"
+      "norm_label": "admindashboardscreen()",
+      "id": "admindashboardscreen_admindashboardscreen_admindashboardscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
       "source_location": "L14",
-      "id": "admindashboardscreen_admindashboardscreen_styles",
       "community": 54,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "admindashboardscreen_admindashboardscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_admindashboardscreen_index_js",
       "community": 54,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_admindashboardscreen_index_js"
     },
     {
       "label": "AdminEntryScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
       "community": 56,
-      "norm_label": "adminentryscreen.js"
+      "norm_label": "adminentryscreen.js",
+      "id": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js"
     },
     {
       "label": "AdminEntryScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
       "source_location": "L6",
-      "id": "adminentryscreen_adminentryscreen_adminentryscreen",
       "community": 56,
-      "norm_label": "adminentryscreen()"
+      "norm_label": "adminentryscreen()",
+      "id": "adminentryscreen_adminentryscreen_adminentryscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
       "source_location": "L14",
-      "id": "adminentryscreen_adminentryscreen_styles",
       "community": 56,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "adminentryscreen_adminentryscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminentryscreen_index_js",
       "community": 56,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_adminentryscreen_index_js"
     },
     {
       "label": "AdminLoginScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js",
       "community": 57,
-      "norm_label": "adminloginscreen.js"
+      "norm_label": "adminloginscreen.js",
+      "id": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js"
     },
     {
       "label": "AdminLoginScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
       "source_location": "L6",
-      "id": "adminloginscreen_adminloginscreen_adminloginscreen",
       "community": 57,
-      "norm_label": "adminloginscreen()"
+      "norm_label": "adminloginscreen()",
+      "id": "adminloginscreen_adminloginscreen_adminloginscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
       "source_location": "L14",
-      "id": "adminloginscreen_adminloginscreen_styles",
       "community": 57,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "adminloginscreen_adminloginscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminLoginScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminloginscreen_index_js",
       "community": 57,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_adminloginscreen_index_js"
     },
     {
       "label": "AdminOrderDetailScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminorderdetailscreen_adminorderdetailscreen_js",
       "community": 58,
-      "norm_label": "adminorderdetailscreen.js"
+      "norm_label": "adminorderdetailscreen.js",
+      "id": "frontend_v1_src_screens_adminorderdetailscreen_adminorderdetailscreen_js"
     },
     {
       "label": "AdminOrderDetailScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L6",
-      "id": "adminorderdetailscreen_adminorderdetailscreen_adminorderdetailscreen",
       "community": 58,
-      "norm_label": "adminorderdetailscreen()"
+      "norm_label": "adminorderdetailscreen()",
+      "id": "adminorderdetailscreen_adminorderdetailscreen_adminorderdetailscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L14",
-      "id": "adminorderdetailscreen_adminorderdetailscreen_styles",
       "community": 58,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "adminorderdetailscreen_adminorderdetailscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminorderdetailscreen_index_js",
       "community": 58,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_adminorderdetailscreen_index_js"
     },
     {
       "label": "AdminOrdersScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
       "community": 59,
-      "norm_label": "adminordersscreen.js"
+      "norm_label": "adminordersscreen.js",
+      "id": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js"
     },
     {
       "label": "AdminOrdersScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L6",
-      "id": "adminordersscreen_adminordersscreen_adminordersscreen",
       "community": 59,
-      "norm_label": "adminordersscreen()"
+      "norm_label": "adminordersscreen()",
+      "id": "adminordersscreen_adminordersscreen_adminordersscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L14",
-      "id": "adminordersscreen_adminordersscreen_styles",
       "community": 59,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "adminordersscreen_adminordersscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminordersscreen_index_js",
       "community": 59,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_adminordersscreen_index_js"
     },
     {
       "label": "AdminProductFormScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/AdminProductFormScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminproductformscreen_adminproductformscreen_js",
       "community": 60,
-      "norm_label": "adminproductformscreen.js"
+      "norm_label": "adminproductformscreen.js",
+      "id": "frontend_v1_src_screens_adminproductformscreen_adminproductformscreen_js"
     },
     {
       "label": "AdminProductFormScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/AdminProductFormScreen.js",
       "source_location": "L6",
-      "id": "adminproductformscreen_adminproductformscreen_adminproductformscreen",
       "community": 60,
-      "norm_label": "adminproductformscreen()"
+      "norm_label": "adminproductformscreen()",
+      "id": "adminproductformscreen_adminproductformscreen_adminproductformscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/AdminProductFormScreen.js",
       "source_location": "L14",
-      "id": "adminproductformscreen_adminproductformscreen_styles",
       "community": 60,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "adminproductformscreen_adminproductformscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminproductformscreen_index_js",
       "community": 60,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_adminproductformscreen_index_js"
     },
     {
       "label": "AdminProductsScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminproductsscreen_adminproductsscreen_js",
       "community": 61,
-      "norm_label": "adminproductsscreen.js"
+      "norm_label": "adminproductsscreen.js",
+      "id": "frontend_v1_src_screens_adminproductsscreen_adminproductsscreen_js"
     },
     {
       "label": "AdminProductsScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L6",
-      "id": "adminproductsscreen_adminproductsscreen_adminproductsscreen",
       "community": 61,
-      "norm_label": "adminproductsscreen()"
+      "norm_label": "adminproductsscreen()",
+      "id": "adminproductsscreen_adminproductsscreen_adminproductsscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L14",
-      "id": "adminproductsscreen_adminproductsscreen_styles",
       "community": 61,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "adminproductsscreen_adminproductsscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminproductsscreen_index_js",
       "community": 61,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_adminproductsscreen_index_js"
     },
     {
       "label": "AdminSettingsScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
       "community": 62,
-      "norm_label": "adminsettingsscreen.js"
+      "norm_label": "adminsettingsscreen.js",
+      "id": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js"
     },
     {
       "label": "AdminSettingsScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L6",
-      "id": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen",
       "community": 62,
-      "norm_label": "adminsettingsscreen()"
+      "norm_label": "adminsettingsscreen()",
+      "id": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L14",
-      "id": "adminsettingsscreen_adminsettingsscreen_styles",
       "community": 62,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "adminsettingsscreen_adminsettingsscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminsettingsscreen_index_js",
       "community": 62,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_adminsettingsscreen_index_js"
     },
     {
       "label": "AuthScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_authscreen_authscreen_js",
       "community": 64,
-      "norm_label": "authscreen.js"
+      "norm_label": "authscreen.js",
+      "id": "frontend_v1_src_screens_authscreen_authscreen_js"
     },
     {
       "label": "AuthScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
       "source_location": "L6",
-      "id": "authscreen_authscreen_authscreen",
       "community": 64,
-      "norm_label": "authscreen()"
+      "norm_label": "authscreen()",
+      "id": "authscreen_authscreen_authscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
       "source_location": "L14",
-      "id": "authscreen_authscreen_styles",
       "community": 64,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "authscreen_authscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AuthScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_authscreen_index_js",
       "community": 64,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_authscreen_index_js"
     },
     {
       "label": "CartScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_cartscreen_cartscreen_js",
       "community": 65,
-      "norm_label": "cartscreen.js"
+      "norm_label": "cartscreen.js",
+      "id": "frontend_v1_src_screens_cartscreen_cartscreen_js"
     },
     {
       "label": "CartScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
       "source_location": "L6",
-      "id": "cartscreen_cartscreen_cartscreen",
       "community": 65,
-      "norm_label": "cartscreen()"
+      "norm_label": "cartscreen()",
+      "id": "cartscreen_cartscreen_cartscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
       "source_location": "L14",
-      "id": "cartscreen_cartscreen_styles",
       "community": 65,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "cartscreen_cartscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CartScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_cartscreen_index_js",
       "community": 65,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_cartscreen_index_js"
     },
     {
       "label": "CategoriesScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
       "community": 66,
-      "norm_label": "categoriesscreen.js"
+      "norm_label": "categoriesscreen.js",
+      "id": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js"
     },
     {
       "label": "CategoriesScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L6",
-      "id": "categoriesscreen_categoriesscreen_categoriesscreen",
       "community": 66,
-      "norm_label": "categoriesscreen()"
+      "norm_label": "categoriesscreen()",
+      "id": "categoriesscreen_categoriesscreen_categoriesscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L14",
-      "id": "categoriesscreen_categoriesscreen_styles",
       "community": 66,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "categoriesscreen_categoriesscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_categoriesscreen_index_js",
       "community": 66,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_categoriesscreen_index_js"
     },
     {
       "label": "CheckoutScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js",
       "community": 67,
-      "norm_label": "checkoutscreen.js"
+      "norm_label": "checkoutscreen.js",
+      "id": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js"
     },
     {
       "label": "CheckoutScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
       "source_location": "L6",
-      "id": "checkoutscreen_checkoutscreen_checkoutscreen",
       "community": 67,
-      "norm_label": "checkoutscreen()"
+      "norm_label": "checkoutscreen()",
+      "id": "checkoutscreen_checkoutscreen_checkoutscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
       "source_location": "L14",
-      "id": "checkoutscreen_checkoutscreen_styles",
       "community": 67,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "checkoutscreen_checkoutscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_checkoutscreen_index_js",
       "community": 67,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_checkoutscreen_index_js"
     },
     {
       "label": "EditProfileScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js",
       "community": 68,
-      "norm_label": "editprofilescreen.js"
+      "norm_label": "editprofilescreen.js",
+      "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js"
     },
     {
       "label": "EditProfileScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L6",
-      "id": "editprofilescreen_editprofilescreen_editprofilescreen",
       "community": 68,
-      "norm_label": "editprofilescreen()"
+      "norm_label": "editprofilescreen()",
+      "id": "editprofilescreen_editprofilescreen_editprofilescreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L14",
-      "id": "editprofilescreen_editprofilescreen_styles",
       "community": 68,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "editprofilescreen_editprofilescreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_editprofilescreen_index_js",
       "community": 68,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_editprofilescreen_index_js"
     },
     {
       "label": "HomeScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/HomeScreen/HomeScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_homescreen_homescreen_js",
       "community": 69,
-      "norm_label": "homescreen.js"
+      "norm_label": "homescreen.js",
+      "id": "frontend_v1_src_screens_homescreen_homescreen_js"
     },
     {
       "label": "HomeScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/HomeScreen/HomeScreen.js",
       "source_location": "L6",
-      "id": "homescreen_homescreen_homescreen",
       "community": 69,
-      "norm_label": "homescreen()"
+      "norm_label": "homescreen()",
+      "id": "homescreen_homescreen_homescreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/HomeScreen/HomeScreen.js",
       "source_location": "L14",
-      "id": "homescreen_homescreen_styles",
       "community": 69,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "homescreen_homescreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/HomeScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_homescreen_index_js",
       "community": 69,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_homescreen_index_js"
     },
     {
       "label": "OrderConfirmationScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js",
       "community": 70,
-      "norm_label": "orderconfirmationscreen.js"
+      "norm_label": "orderconfirmationscreen.js",
+      "id": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js"
     },
     {
       "label": "OrderConfirmationScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L6",
-      "id": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen",
       "community": 70,
-      "norm_label": "orderconfirmationscreen()"
+      "norm_label": "orderconfirmationscreen()",
+      "id": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L14",
-      "id": "orderconfirmationscreen_orderconfirmationscreen_styles",
       "community": 70,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "orderconfirmationscreen_orderconfirmationscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_orderconfirmationscreen_index_js",
       "community": 70,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_orderconfirmationscreen_index_js"
     },
     {
       "label": "OrderDetailScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_orderdetailscreen_orderdetailscreen_js",
       "community": 71,
-      "norm_label": "orderdetailscreen.js"
+      "norm_label": "orderdetailscreen.js",
+      "id": "frontend_v1_src_screens_orderdetailscreen_orderdetailscreen_js"
     },
     {
       "label": "OrderDetailScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L6",
-      "id": "orderdetailscreen_orderdetailscreen_orderdetailscreen",
       "community": 71,
-      "norm_label": "orderdetailscreen()"
+      "norm_label": "orderdetailscreen()",
+      "id": "orderdetailscreen_orderdetailscreen_orderdetailscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L14",
-      "id": "orderdetailscreen_orderdetailscreen_styles",
       "community": 71,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "orderdetailscreen_orderdetailscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_orderdetailscreen_index_js",
       "community": 71,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_orderdetailscreen_index_js"
     },
     {
       "label": "OrdersScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_ordersscreen_ordersscreen_js",
       "community": 72,
-      "norm_label": "ordersscreen.js"
+      "norm_label": "ordersscreen.js",
+      "id": "frontend_v1_src_screens_ordersscreen_ordersscreen_js"
     },
     {
       "label": "OrdersScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L6",
-      "id": "ordersscreen_ordersscreen_ordersscreen",
       "community": 72,
-      "norm_label": "ordersscreen()"
+      "norm_label": "ordersscreen()",
+      "id": "ordersscreen_ordersscreen_ordersscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L14",
-      "id": "ordersscreen_ordersscreen_styles",
       "community": 72,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "ordersscreen_ordersscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_ordersscreen_index_js",
       "community": 72,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_ordersscreen_index_js"
     },
     {
       "label": "ProductDetailScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
       "community": 73,
-      "norm_label": "productdetailscreen.js"
+      "norm_label": "productdetailscreen.js",
+      "id": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js"
     },
     {
       "label": "ProductDetailScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
       "source_location": "L6",
-      "id": "productdetailscreen_productdetailscreen_productdetailscreen",
       "community": 73,
-      "norm_label": "productdetailscreen()"
+      "norm_label": "productdetailscreen()",
+      "id": "productdetailscreen_productdetailscreen_productdetailscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
       "source_location": "L14",
-      "id": "productdetailscreen_productdetailscreen_styles",
       "community": 73,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "productdetailscreen_productdetailscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_productdetailscreen_index_js",
       "community": 73,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_productdetailscreen_index_js"
     },
     {
       "label": "ProductListScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
       "community": 74,
-      "norm_label": "productlistscreen.js"
+      "norm_label": "productlistscreen.js",
+      "id": "frontend_v1_src_screens_productlistscreen_productlistscreen_js"
     },
     {
       "label": "ProductListScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L6",
-      "id": "productlistscreen_productlistscreen_productlistscreen",
       "community": 74,
-      "norm_label": "productlistscreen()"
+      "norm_label": "productlistscreen()",
+      "id": "productlistscreen_productlistscreen_productlistscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L14",
-      "id": "productlistscreen_productlistscreen_styles",
       "community": 74,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "productlistscreen_productlistscreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_productlistscreen_index_js",
       "community": 74,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_productlistscreen_index_js"
     },
     {
       "label": "ProfileScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_profilescreen_profilescreen_js",
       "community": 75,
-      "norm_label": "profilescreen.js"
+      "norm_label": "profilescreen.js",
+      "id": "frontend_v1_src_screens_profilescreen_profilescreen_js"
     },
     {
       "label": "ProfileScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L6",
-      "id": "profilescreen_profilescreen_profilescreen",
       "community": 75,
-      "norm_label": "profilescreen()"
+      "norm_label": "profilescreen()",
+      "id": "profilescreen_profilescreen_profilescreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L14",
-      "id": "profilescreen_profilescreen_styles",
       "community": 75,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "profilescreen_profilescreen_styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_profilescreen_index_js",
       "community": 75,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_profilescreen_index_js"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_index_js",
       "community": 50,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_screens_index_js"
     },
     {
       "label": "useAdminAuthStore.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useAdminAuthStore.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_stores_useadminauthstore_js",
       "community": 13,
-      "norm_label": "useadminauthstore.js"
+      "norm_label": "useadminauthstore.js",
+      "id": "frontend_v1_src_stores_useadminauthstore_js"
     },
     {
       "label": "useAdminAuthStore",
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useAdminAuthStore.js",
       "source_location": "L9",
-      "id": "stores_useadminauthstore_useadminauthstore",
       "community": 13,
-      "norm_label": "useadminauthstore"
+      "norm_label": "useadminauthstore",
+      "id": "stores_useadminauthstore_useadminauthstore"
     },
     {
       "label": "index.js",
@@ -1844,7 +1853,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 63,
       "norm_label": "index.js",
       "id": "frontend_v1_index_js"
     },
@@ -1871,7 +1880,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/app.json",
       "source_location": "L1",
-      "community": 13,
+      "community": 63,
       "norm_label": "app.json",
       "id": "frontend_v1_app_json"
     },
@@ -1880,7 +1889,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/app.json",
       "source_location": "L2",
-      "community": 13,
+      "community": 63,
       "norm_label": "name",
       "id": "frontend_v1_app_name"
     },
@@ -1889,7 +1898,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/app.json",
       "source_location": "L3",
-      "community": 13,
+      "community": 63,
       "norm_label": "displayname",
       "id": "frontend_v1_app_displayname"
     },
@@ -1907,7 +1916,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/__tests__/App.test.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 17,
       "norm_label": "app.test.js",
       "id": "frontend_v1_tests_app_test_js"
     },
@@ -2663,7 +2672,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/index.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 43,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_index_js"
     },
@@ -2708,7 +2717,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 35,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textbutton_index_js"
     },
@@ -2717,7 +2726,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 35,
       "norm_label": "textbutton.js",
       "id": "frontend_v1_src_components_textbutton_textbutton_js"
     },
@@ -2726,7 +2735,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
-      "community": 17,
+      "community": 35,
       "norm_label": "textbutton()",
       "id": "textbutton_textbutton_textbutton"
     },
@@ -2735,7 +2744,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
-      "community": 17,
+      "community": 35,
       "norm_label": "styles",
       "id": "textbutton_textbutton_styles"
     },
@@ -2762,7 +2771,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedQuantitySwitcher/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 43,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedquantityswitcher_index_js"
     },
@@ -2789,7 +2798,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedFadeSlide/index.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 43,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedfadeslide_index_js"
     },
@@ -2870,7 +2879,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/index.js",
       "source_location": "L1",
-      "community": 35,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_adminmetriccard_index_js"
     },
@@ -2879,7 +2888,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L1",
-      "community": 35,
+      "community": 17,
       "norm_label": "adminmetriccard.js",
       "id": "frontend_v1_src_components_adminmetriccard_adminmetriccard_js"
     },
@@ -2888,7 +2897,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L16",
-      "community": 35,
+      "community": 17,
       "norm_label": "adminmetriccard()",
       "id": "adminmetriccard_adminmetriccard_adminmetriccard"
     },
@@ -2897,7 +2906,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L37",
-      "community": 35,
+      "community": 17,
       "norm_label": "styles",
       "id": "adminmetriccard_adminmetriccard_styles"
     },
@@ -3086,7 +3095,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 15,
       "norm_label": "appscreen.js",
       "id": "frontend_v1_src_components_appscreen_appscreen_js"
     },
@@ -3095,7 +3104,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L19",
-      "community": 17,
+      "community": 15,
       "norm_label": "appscreen()",
       "id": "appscreen_appscreen_appscreen"
     },
@@ -3104,7 +3113,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L44",
-      "community": 17,
+      "community": 15,
       "norm_label": "styles",
       "id": "appscreen_appscreen_styles"
     },
@@ -3113,7 +3122,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/index.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 15,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appscreen_index_js"
     },
@@ -3176,7 +3185,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_confirmmodal_index_js"
     },
@@ -3185,7 +3194,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 17,
       "norm_label": "confirmmodal.js",
       "id": "frontend_v1_src_components_confirmmodal_confirmmodal_js"
     },
@@ -3194,7 +3203,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L27",
-      "community": 30,
+      "community": 17,
       "norm_label": "confirmmodal()",
       "id": "confirmmodal_confirmmodal_confirmmodal"
     },
@@ -3203,7 +3212,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L93",
-      "community": 30,
+      "community": 17,
       "norm_label": "styles",
       "id": "confirmmodal_confirmmodal_styles"
     },
@@ -3275,7 +3284,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L1",
-      "community": 43,
+      "community": 30,
       "norm_label": "stickyminicart.js",
       "id": "frontend_v1_src_components_stickyminicart_stickyminicart_js"
     },
@@ -3284,7 +3293,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L16",
-      "community": 43,
+      "community": 30,
       "norm_label": "stickyminicart()",
       "id": "stickyminicart_stickyminicart_stickyminicart"
     },
@@ -3293,7 +3302,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L42",
-      "community": 43,
+      "community": 30,
       "norm_label": "styles",
       "id": "stickyminicart_stickyminicart_styles"
     },
@@ -3383,7 +3392,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Button/Button.js",
       "source_location": "L1",
-      "community": 43,
+      "community": 17,
       "norm_label": "button.js",
       "id": "frontend_v1_src_components_button_button_js"
     },
@@ -3392,7 +3401,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Button/Button.js",
       "source_location": "L29",
-      "community": 43,
+      "community": 17,
       "norm_label": "button()",
       "id": "button_button_button"
     },
@@ -3401,7 +3410,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Button/Button.js",
       "source_location": "L85",
-      "community": 43,
+      "community": 17,
       "norm_label": "styles",
       "id": "button_button_styles"
     },
@@ -3455,7 +3464,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 43,
       "norm_label": "staggeredlist.js",
       "id": "frontend_v1_src_components_staggeredlist_staggeredlist_js"
     },
@@ -3464,7 +3473,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L6",
-      "community": 17,
+      "community": 43,
       "norm_label": "staggeredlist()",
       "id": "staggeredlist_staggeredlist_staggeredlist"
     },
@@ -3473,7 +3482,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/index.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 43,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_staggeredlist_index_js"
     },
@@ -3554,7 +3563,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L1",
-      "community": 63,
+      "community": 35,
       "norm_label": "appheader.js",
       "id": "frontend_v1_src_components_appheader_appheader_js"
     },
@@ -3563,7 +3572,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L24",
-      "community": 63,
+      "community": 35,
       "norm_label": "appheader()",
       "id": "appheader_appheader_appheader"
     },
@@ -3572,7 +3581,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L112",
-      "community": 63,
+      "community": 35,
       "norm_label": "styles",
       "id": "appheader_appheader_styles"
     },
@@ -3581,7 +3590,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/index.js",
       "source_location": "L1",
-      "community": 63,
+      "community": 35,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appheader_index_js"
     },
@@ -3635,7 +3644,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L6",
-      "community": 30,
+      "community": 45,
       "norm_label": "animatedsegmentedcontrol()",
       "id": "animatedsegmentedcontrol_animatedsegmentedcontrol_animatedsegmentedcontrol"
     },
@@ -3815,7 +3824,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L1",
-      "community": 43,
+      "community": 17,
       "norm_label": "spacing.js",
       "id": "frontend_v1_src_theme_spacing_js"
     },
@@ -3824,7 +3833,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L6",
-      "community": 43,
+      "community": 17,
       "norm_label": "spacing",
       "id": "theme_spacing_spacing"
     },
@@ -3878,7 +3887,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
-      "community": 43,
+      "community": 17,
       "norm_label": "typography",
       "id": "theme_typography_typography"
     },
@@ -3986,7 +3995,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 45,
       "norm_label": "noemojicheck.js",
       "id": "frontend_v1_src_utils_noemojicheck_js"
     },
@@ -3995,7 +4004,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L6",
-      "community": 13,
+      "community": 45,
       "norm_label": "hasemoji()",
       "id": "utils_noemojicheck_hasemoji"
     },
@@ -4004,7 +4013,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L18",
-      "community": 13,
+      "community": 45,
       "norm_label": "stripemojis()",
       "id": "utils_noemojicheck_stripemojis"
     },
@@ -4013,7 +4022,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L29",
-      "community": 13,
+      "community": 45,
       "norm_label": "assertnoemoji()",
       "id": "utils_noemojicheck_assertnoemoji"
     },
@@ -6081,148 +6090,6 @@
   ],
   "links": [
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "source": "frontend_v1_app_js",
-      "target": "frontend_v1_src_navigation_index_js",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_app_js",
-      "target": "frontend_v1_app_app"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_app_js",
-      "target": "frontend_v1_src_utils_noemojicheck_js"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_app_js",
-      "target": "utils_noemojicheck_assertnoemoji"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_app_js",
-      "target": "frontend_v1_src_theme_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/index.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_index_js",
-      "target": "frontend_v1_app_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/__tests__/App.test.js",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_tests_app_test_js",
-      "target": "frontend_v1_app_js"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_app_js",
-      "target": "theme_colors_colors"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_app_js",
-      "target": "theme_typography_typography"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_app_js",
-      "target": "theme_spacing_spacing"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_app_js",
-      "target": "theme_borders_radius"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_app_js",
-      "target": "theme_shadows_shadows"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/App.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_app_app",
-      "target": "utils_noemojicheck_assertnoemoji"
-    },
-    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/Tasks.md",
@@ -6655,6 +6522,295 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_navigation_adminnavigator_js",
+      "target": "navigation_adminnavigator_stack"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_navigation_adminnavigator_js",
+      "target": "navigation_adminnavigator_adminnavigator"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_navigation_adminnavigator_js",
+      "target": "frontend_v1_src_screens_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_navigation_rootnavigator_js",
+      "target": "frontend_v1_src_navigation_adminnavigator_js"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/index.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_navigation_index_js",
+      "target": "frontend_v1_src_navigation_adminnavigator_js"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "navigation_adminnavigator_adminnavigator",
+      "target": "stores_useadminauthstore_useadminauthstore"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_navigation_customernavigator_js",
+      "target": "navigation_customernavigator_tab"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_navigation_customernavigator_js",
+      "target": "navigation_customernavigator_stack"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "frontend_v1_src_navigation_customernavigator_js",
+      "target": "navigation_customernavigator_animatedtabicon",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_navigation_customernavigator_js",
+      "target": "navigation_customernavigator_customerbottomtabs"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
+      "source_location": "L62",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_navigation_customernavigator_js",
+      "target": "navigation_customernavigator_customernavigator"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_navigation_customernavigator_js",
+      "target": "frontend_v1_src_screens_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_navigation_rootnavigator_js",
+      "target": "frontend_v1_src_navigation_customernavigator_js"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/index.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_navigation_index_js",
+      "target": "frontend_v1_src_navigation_customernavigator_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_app_js",
+      "target": "frontend_v1_src_navigation_index_js"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_app_js",
+      "target": "frontend_v1_app_app"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_app_js",
+      "target": "frontend_v1_src_utils_noemojicheck_js"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_app_js",
+      "target": "utils_noemojicheck_assertnoemoji"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_app_js",
+      "target": "frontend_v1_src_theme_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/index.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_index_js",
+      "target": "frontend_v1_app_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/__tests__/App.test.js",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_tests_app_test_js",
+      "target": "frontend_v1_app_js"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_app_js",
+      "target": "theme_colors_colors"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_app_js",
+      "target": "theme_typography_typography"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_app_js",
+      "target": "theme_spacing_spacing"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_app_js",
+      "target": "theme_borders_radius"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_app_js",
+      "target": "theme_shadows_shadows"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/App.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_app_app",
+      "target": "utils_noemojicheck_assertnoemoji"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/package.json",
       "source_location": "L2",
       "weight": 1.0,
@@ -6798,9 +6954,9 @@
       "source_file": "Frontend-V1/package.json",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_package_dependencies",
-      "target": "frontend_v1_package_dependencies_react_navigation_bottom_tabs",
-      "confidence_score": 1.0
+      "target": "frontend_v1_package_dependencies_react_navigation_bottom_tabs"
     },
     {
       "relation": "contains",
@@ -6808,9 +6964,9 @@
       "source_file": "Frontend-V1/package.json",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_package_dependencies",
-      "target": "frontend_v1_package_dependencies_react_navigation_native",
-      "confidence_score": 1.0
+      "target": "frontend_v1_package_dependencies_react_navigation_native"
     },
     {
       "relation": "contains",
@@ -6818,9 +6974,9 @@
       "source_file": "Frontend-V1/package.json",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_package_dependencies",
-      "target": "frontend_v1_package_dependencies_react_navigation_native_stack",
-      "confidence_score": 1.0
+      "target": "frontend_v1_package_dependencies_react_navigation_native_stack"
     },
     {
       "relation": "contains",
@@ -6858,9 +7014,9 @@
       "source_file": "Frontend-V1/package.json",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_package_dependencies",
-      "target": "frontend_v1_package_dependencies_react_native_screens",
-      "confidence_score": 1.0
+      "target": "frontend_v1_package_dependencies_react_native_screens"
     },
     {
       "relation": "contains",
@@ -7073,151 +7229,14 @@
       "target": "frontend_v1_package_engines_node"
     },
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "source": "frontend_v1_src_navigation_adminnavigator_js",
-      "target": "frontend_v1_src_screens_index_js",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
-      "source_location": "L17",
-      "weight": 1.0,
-      "source": "frontend_v1_src_navigation_adminnavigator_js",
-      "target": "navigation_adminnavigator_stack",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
-      "source_location": "L23",
-      "weight": 1.0,
-      "source": "frontend_v1_src_navigation_adminnavigator_js",
-      "target": "navigation_adminnavigator_adminnavigator",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "source": "frontend_v1_src_navigation_rootnavigator_js",
-      "target": "frontend_v1_src_navigation_adminnavigator_js",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/navigation/index.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "source": "frontend_v1_src_navigation_index_js",
-      "target": "frontend_v1_src_navigation_adminnavigator_js",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
-      "source_location": "L24",
-      "weight": 1.0,
-      "source": "navigation_adminnavigator_adminnavigator",
-      "target": "stores_useadminauthstore_useadminauthstore"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "source": "frontend_v1_src_navigation_customernavigator_js",
-      "target": "frontend_v1_src_screens_index_js",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L22",
-      "weight": 1.0,
-      "source": "frontend_v1_src_navigation_customernavigator_js",
-      "target": "navigation_customernavigator_tab",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L23",
-      "weight": 1.0,
-      "source": "frontend_v1_src_navigation_customernavigator_js",
-      "target": "navigation_customernavigator_stack",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L30",
-      "weight": 1.0,
-      "source": "frontend_v1_src_navigation_customernavigator_js",
-      "target": "navigation_customernavigator_customerbottomtabs",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L62",
-      "weight": 1.0,
-      "source": "frontend_v1_src_navigation_customernavigator_js",
-      "target": "navigation_customernavigator_customernavigator",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "source": "frontend_v1_src_navigation_rootnavigator_js",
-      "target": "frontend_v1_src_navigation_customernavigator_js",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/navigation/index.js",
-      "source_location": "L2",
-      "weight": 1.0,
-      "source": "frontend_v1_src_navigation_index_js",
-      "target": "frontend_v1_src_navigation_customernavigator_js",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_navigation_rootnavigator_js",
-      "target": "navigation_rootnavigator_rootnavigator",
-      "confidence_score": 1.0
+      "target": "navigation_rootnavigator_rootnavigator"
     },
     {
       "relation": "re_exports",
@@ -7226,9 +7245,9 @@
       "source_file": "Frontend-V1/src/navigation/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_navigation_index_js",
-      "target": "frontend_v1_src_navigation_rootnavigator_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_navigation_rootnavigator_js"
     },
     {
       "relation": "calls",
@@ -7247,9 +7266,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_admincustomersscreen",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_admincustomersscreen"
     },
     {
       "relation": "contains",
@@ -7257,9 +7276,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "admincustomersscreen_admincustomersscreen_styles",
-      "confidence_score": 1.0
+      "target": "admincustomersscreen_admincustomersscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7268,9 +7287,9 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_index_js",
-      "target": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7279,9 +7298,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_admincustomersscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_admincustomersscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7289,9 +7308,9 @@
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
-      "target": "admindashboardscreen_admindashboardscreen_admindashboardscreen",
-      "confidence_score": 1.0
+      "target": "admindashboardscreen_admindashboardscreen_admindashboardscreen"
     },
     {
       "relation": "contains",
@@ -7299,9 +7318,9 @@
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
-      "target": "admindashboardscreen_admindashboardscreen_styles",
-      "confidence_score": 1.0
+      "target": "admindashboardscreen_admindashboardscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7310,9 +7329,9 @@
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admindashboardscreen_index_js",
-      "target": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7321,9 +7340,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_admindashboardscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_admindashboardscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7331,9 +7350,9 @@
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
-      "target": "adminentryscreen_adminentryscreen_adminentryscreen",
-      "confidence_score": 1.0
+      "target": "adminentryscreen_adminentryscreen_adminentryscreen"
     },
     {
       "relation": "contains",
@@ -7341,9 +7360,9 @@
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
-      "target": "adminentryscreen_adminentryscreen_styles",
-      "confidence_score": 1.0
+      "target": "adminentryscreen_adminentryscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7352,9 +7371,9 @@
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminentryscreen_index_js",
-      "target": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7363,9 +7382,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_adminentryscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminentryscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7373,9 +7392,9 @@
       "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js",
-      "target": "adminloginscreen_adminloginscreen_adminloginscreen",
-      "confidence_score": 1.0
+      "target": "adminloginscreen_adminloginscreen_adminloginscreen"
     },
     {
       "relation": "contains",
@@ -7383,9 +7402,9 @@
       "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js",
-      "target": "adminloginscreen_adminloginscreen_styles",
-      "confidence_score": 1.0
+      "target": "adminloginscreen_adminloginscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7394,9 +7413,9 @@
       "source_file": "Frontend-V1/src/screens/AdminLoginScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminloginscreen_index_js",
-      "target": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7405,9 +7424,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_adminloginscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminloginscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7415,9 +7434,9 @@
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminorderdetailscreen_adminorderdetailscreen_js",
-      "target": "adminorderdetailscreen_adminorderdetailscreen_adminorderdetailscreen",
-      "confidence_score": 1.0
+      "target": "adminorderdetailscreen_adminorderdetailscreen_adminorderdetailscreen"
     },
     {
       "relation": "contains",
@@ -7425,9 +7444,9 @@
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminorderdetailscreen_adminorderdetailscreen_js",
-      "target": "adminorderdetailscreen_adminorderdetailscreen_styles",
-      "confidence_score": 1.0
+      "target": "adminorderdetailscreen_adminorderdetailscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7436,9 +7455,9 @@
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminorderdetailscreen_index_js",
-      "target": "frontend_v1_src_screens_adminorderdetailscreen_adminorderdetailscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminorderdetailscreen_adminorderdetailscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7447,9 +7466,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_adminorderdetailscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminorderdetailscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7457,9 +7476,9 @@
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
-      "target": "adminordersscreen_adminordersscreen_adminordersscreen",
-      "confidence_score": 1.0
+      "target": "adminordersscreen_adminordersscreen_adminordersscreen"
     },
     {
       "relation": "contains",
@@ -7467,9 +7486,9 @@
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
-      "target": "adminordersscreen_adminordersscreen_styles",
-      "confidence_score": 1.0
+      "target": "adminordersscreen_adminordersscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7478,9 +7497,9 @@
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminordersscreen_index_js",
-      "target": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7489,9 +7508,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_adminordersscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminordersscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7499,9 +7518,9 @@
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/AdminProductFormScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminproductformscreen_adminproductformscreen_js",
-      "target": "adminproductformscreen_adminproductformscreen_adminproductformscreen",
-      "confidence_score": 1.0
+      "target": "adminproductformscreen_adminproductformscreen_adminproductformscreen"
     },
     {
       "relation": "contains",
@@ -7509,9 +7528,9 @@
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/AdminProductFormScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminproductformscreen_adminproductformscreen_js",
-      "target": "adminproductformscreen_adminproductformscreen_styles",
-      "confidence_score": 1.0
+      "target": "adminproductformscreen_adminproductformscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7520,9 +7539,9 @@
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminproductformscreen_index_js",
-      "target": "frontend_v1_src_screens_adminproductformscreen_adminproductformscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminproductformscreen_adminproductformscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7531,9 +7550,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L19",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_adminproductformscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminproductformscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7541,9 +7560,9 @@
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminproductsscreen_adminproductsscreen_js",
-      "target": "adminproductsscreen_adminproductsscreen_adminproductsscreen",
-      "confidence_score": 1.0
+      "target": "adminproductsscreen_adminproductsscreen_adminproductsscreen"
     },
     {
       "relation": "contains",
@@ -7551,9 +7570,9 @@
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminproductsscreen_adminproductsscreen_js",
-      "target": "adminproductsscreen_adminproductsscreen_styles",
-      "confidence_score": 1.0
+      "target": "adminproductsscreen_adminproductsscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7562,9 +7581,9 @@
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminproductsscreen_index_js",
-      "target": "frontend_v1_src_screens_adminproductsscreen_adminproductsscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminproductsscreen_adminproductsscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7573,9 +7592,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_adminproductsscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminproductsscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7583,9 +7602,9 @@
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
-      "target": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen",
-      "confidence_score": 1.0
+      "target": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen"
     },
     {
       "relation": "contains",
@@ -7593,9 +7612,9 @@
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
-      "target": "adminsettingsscreen_adminsettingsscreen_styles",
-      "confidence_score": 1.0
+      "target": "adminsettingsscreen_adminsettingsscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7604,9 +7623,9 @@
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminsettingsscreen_index_js",
-      "target": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7615,9 +7634,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_adminsettingsscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_adminsettingsscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7625,9 +7644,9 @@
       "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_authscreen_authscreen_js",
-      "target": "authscreen_authscreen_authscreen",
-      "confidence_score": 1.0
+      "target": "authscreen_authscreen_authscreen"
     },
     {
       "relation": "contains",
@@ -7635,9 +7654,9 @@
       "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_authscreen_authscreen_js",
-      "target": "authscreen_authscreen_styles",
-      "confidence_score": 1.0
+      "target": "authscreen_authscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7646,9 +7665,9 @@
       "source_file": "Frontend-V1/src/screens/AuthScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_authscreen_index_js",
-      "target": "frontend_v1_src_screens_authscreen_authscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_authscreen_authscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7657,9 +7676,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_authscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_authscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7667,9 +7686,9 @@
       "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_cartscreen_cartscreen_js",
-      "target": "cartscreen_cartscreen_cartscreen",
-      "confidence_score": 1.0
+      "target": "cartscreen_cartscreen_cartscreen"
     },
     {
       "relation": "contains",
@@ -7677,9 +7696,9 @@
       "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_cartscreen_cartscreen_js",
-      "target": "cartscreen_cartscreen_styles",
-      "confidence_score": 1.0
+      "target": "cartscreen_cartscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7688,9 +7707,9 @@
       "source_file": "Frontend-V1/src/screens/CartScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_cartscreen_index_js",
-      "target": "frontend_v1_src_screens_cartscreen_cartscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_cartscreen_cartscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7699,9 +7718,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_cartscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_cartscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7709,9 +7728,9 @@
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
-      "target": "categoriesscreen_categoriesscreen_categoriesscreen",
-      "confidence_score": 1.0
+      "target": "categoriesscreen_categoriesscreen_categoriesscreen"
     },
     {
       "relation": "contains",
@@ -7719,9 +7738,9 @@
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
-      "target": "categoriesscreen_categoriesscreen_styles",
-      "confidence_score": 1.0
+      "target": "categoriesscreen_categoriesscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7730,9 +7749,9 @@
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_categoriesscreen_index_js",
-      "target": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7741,9 +7760,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_categoriesscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_categoriesscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7751,9 +7770,9 @@
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js",
-      "target": "checkoutscreen_checkoutscreen_checkoutscreen",
-      "confidence_score": 1.0
+      "target": "checkoutscreen_checkoutscreen_checkoutscreen"
     },
     {
       "relation": "contains",
@@ -7761,9 +7780,9 @@
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js",
-      "target": "checkoutscreen_checkoutscreen_styles",
-      "confidence_score": 1.0
+      "target": "checkoutscreen_checkoutscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7772,9 +7791,9 @@
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_checkoutscreen_index_js",
-      "target": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7783,9 +7802,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_checkoutscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_checkoutscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7793,9 +7812,9 @@
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js",
-      "target": "editprofilescreen_editprofilescreen_editprofilescreen",
-      "confidence_score": 1.0
+      "target": "editprofilescreen_editprofilescreen_editprofilescreen"
     },
     {
       "relation": "contains",
@@ -7803,9 +7822,9 @@
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js",
-      "target": "editprofilescreen_editprofilescreen_styles",
-      "confidence_score": 1.0
+      "target": "editprofilescreen_editprofilescreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7814,9 +7833,9 @@
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_editprofilescreen_index_js",
-      "target": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js"
     },
     {
       "relation": "re_exports",
@@ -7825,9 +7844,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_editprofilescreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_editprofilescreen_index_js"
     },
     {
       "relation": "contains",
@@ -7835,9 +7854,9 @@
       "source_file": "Frontend-V1/src/screens/HomeScreen/HomeScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_homescreen_homescreen_js",
-      "target": "homescreen_homescreen_homescreen",
-      "confidence_score": 1.0
+      "target": "homescreen_homescreen_homescreen"
     },
     {
       "relation": "contains",
@@ -7845,9 +7864,9 @@
       "source_file": "Frontend-V1/src/screens/HomeScreen/HomeScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_homescreen_homescreen_js",
-      "target": "homescreen_homescreen_styles",
-      "confidence_score": 1.0
+      "target": "homescreen_homescreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7856,9 +7875,9 @@
       "source_file": "Frontend-V1/src/screens/HomeScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_homescreen_index_js",
-      "target": "frontend_v1_src_screens_homescreen_homescreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_homescreen_homescreen_js"
     },
     {
       "relation": "re_exports",
@@ -7867,9 +7886,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_homescreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_homescreen_index_js"
     },
     {
       "relation": "contains",
@@ -7877,9 +7896,9 @@
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js",
-      "target": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen",
-      "confidence_score": 1.0
+      "target": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen"
     },
     {
       "relation": "contains",
@@ -7887,9 +7906,9 @@
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js",
-      "target": "orderconfirmationscreen_orderconfirmationscreen_styles",
-      "confidence_score": 1.0
+      "target": "orderconfirmationscreen_orderconfirmationscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7898,9 +7917,9 @@
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_orderconfirmationscreen_index_js",
-      "target": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7909,9 +7928,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_orderconfirmationscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_orderconfirmationscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7919,9 +7938,9 @@
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_orderdetailscreen_orderdetailscreen_js",
-      "target": "orderdetailscreen_orderdetailscreen_orderdetailscreen",
-      "confidence_score": 1.0
+      "target": "orderdetailscreen_orderdetailscreen_orderdetailscreen"
     },
     {
       "relation": "contains",
@@ -7929,9 +7948,9 @@
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_orderdetailscreen_orderdetailscreen_js",
-      "target": "orderdetailscreen_orderdetailscreen_styles",
-      "confidence_score": 1.0
+      "target": "orderdetailscreen_orderdetailscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7940,9 +7959,9 @@
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_orderdetailscreen_index_js",
-      "target": "frontend_v1_src_screens_orderdetailscreen_orderdetailscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_orderdetailscreen_orderdetailscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7951,9 +7970,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_orderdetailscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_orderdetailscreen_index_js"
     },
     {
       "relation": "contains",
@@ -7961,9 +7980,9 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_ordersscreen_ordersscreen_js",
-      "target": "ordersscreen_ordersscreen_ordersscreen",
-      "confidence_score": 1.0
+      "target": "ordersscreen_ordersscreen_ordersscreen"
     },
     {
       "relation": "contains",
@@ -7971,9 +7990,9 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_ordersscreen_ordersscreen_js",
-      "target": "ordersscreen_ordersscreen_styles",
-      "confidence_score": 1.0
+      "target": "ordersscreen_ordersscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -7982,9 +8001,9 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_ordersscreen_index_js",
-      "target": "frontend_v1_src_screens_ordersscreen_ordersscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_ordersscreen_ordersscreen_js"
     },
     {
       "relation": "re_exports",
@@ -7993,9 +8012,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_ordersscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_ordersscreen_index_js"
     },
     {
       "relation": "contains",
@@ -8003,9 +8022,9 @@
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
-      "target": "productdetailscreen_productdetailscreen_productdetailscreen",
-      "confidence_score": 1.0
+      "target": "productdetailscreen_productdetailscreen_productdetailscreen"
     },
     {
       "relation": "contains",
@@ -8013,9 +8032,9 @@
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
-      "target": "productdetailscreen_productdetailscreen_styles",
-      "confidence_score": 1.0
+      "target": "productdetailscreen_productdetailscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -8024,9 +8043,9 @@
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_productdetailscreen_index_js",
-      "target": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js"
     },
     {
       "relation": "re_exports",
@@ -8035,9 +8054,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_productdetailscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_productdetailscreen_index_js"
     },
     {
       "relation": "contains",
@@ -8045,9 +8064,9 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_productlistscreen",
-      "confidence_score": 1.0
+      "target": "productlistscreen_productlistscreen_productlistscreen"
     },
     {
       "relation": "contains",
@@ -8055,9 +8074,9 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_styles",
-      "confidence_score": 1.0
+      "target": "productlistscreen_productlistscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -8066,9 +8085,9 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_productlistscreen_index_js",
-      "target": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_productlistscreen_productlistscreen_js"
     },
     {
       "relation": "re_exports",
@@ -8077,9 +8096,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_productlistscreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_productlistscreen_index_js"
     },
     {
       "relation": "contains",
@@ -8087,9 +8106,9 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_profilescreen_profilescreen_js",
-      "target": "profilescreen_profilescreen_profilescreen",
-      "confidence_score": 1.0
+      "target": "profilescreen_profilescreen_profilescreen"
     },
     {
       "relation": "contains",
@@ -8097,9 +8116,9 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_profilescreen_profilescreen_js",
-      "target": "profilescreen_profilescreen_styles",
-      "confidence_score": 1.0
+      "target": "profilescreen_profilescreen_styles"
     },
     {
       "relation": "re_exports",
@@ -8108,9 +8127,9 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_profilescreen_index_js",
-      "target": "frontend_v1_src_screens_profilescreen_profilescreen_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_profilescreen_profilescreen_js"
     },
     {
       "relation": "re_exports",
@@ -8119,9 +8138,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_profilescreen_index_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_screens_profilescreen_index_js"
     },
     {
       "relation": "contains",
@@ -15861,5 +15880,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "c62b77c67e406bd8b35551366f3ab91ec0ce9b52"
+  "built_at_commit": "768d62c2195f628f708853473f059c152cb14e64"
 }

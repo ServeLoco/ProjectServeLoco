@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 178 files · ~30,072 words
+- 178 files · ~30,198 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 675 nodes · 934 edges · 77 communities (39 shown, 38 thin omitted)
+- 676 nodes · 935 edges · 77 communities (39 shown, 38 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 2 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c62b77c6`
+- Built from commit: `768d62c2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -97,8 +97,6 @@
 10. `API Plan` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `AnimatedSegmentedControl()` --calls--> `useReducedMotion()`  [EXTRACTED]
-  Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js → Frontend-V1/src/utils/motionPreferences.js
 - `AdminNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
   Frontend-V1/src/navigation/AdminNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
 - `RootNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
@@ -107,6 +105,8 @@
   Frontend-V1/src/components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js → Frontend-V1/src/utils/motionPreferences.js
 - `AnimatedFadeSlide()` --calls--> `useReducedMotion()`  [EXTRACTED]
   Frontend-V1/src/components/AnimatedFadeSlide/AnimatedFadeSlide.js → Frontend-V1/src/utils/motionPreferences.js
+- `AnimatedModalView()` --calls--> `useReducedMotion()`  [EXTRACTED]
+  Frontend-V1/src/components/AnimatedModalView/AnimatedModalView.js → Frontend-V1/src/utils/motionPreferences.js
 
 ## Communities (77 total, 38 thin omitted)
 
@@ -151,20 +151,24 @@ Cohesion: 0.20
 Nodes (9): Bottom Navigation, Category Cards, Combo Deals, Frontend Home Dashboard Design, Offer Banner, ServeLoco Plan, Toggle Button, Top Section (+1 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.08
-Nodes (14): App(), displayName, name, AdminNavigator(), Stack, Stack, Tab, RootNavigator() (+6 more)
+Cohesion: 0.11
+Nodes (9): AdminNavigator(), Stack, Stack, Tab, RootNavigator(), useAdminAuthStore, useAuthStore, useCartStore (+1 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.04
 Nodes (48): 10. Order Detail, 11. Profile, 12. Edit Profile, 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail (+40 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.43
-Nodes (5): themePlaceholder, fontFamily, fontSizes, fontWeights, lineHeights
+Cohesion: 0.24
+Nodes (6): styles, themePlaceholder, fontFamily, fontSizes, fontWeights, lineHeights
 
 ### Community 16 - "Community 16"
 Cohesion: 0.25
 Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
+
+### Community 17 - "Community 17"
+Cohesion: 0.15
+Nodes (5): styles, styles, styles, spacing, typography
 
 ### Community 18 - "Community 18"
 Cohesion: 0.28
@@ -187,24 +191,20 @@ Cohesion: 0.09
 Nodes (33): adminAuthApi, adminCustomersApi, adminDashboardApi, adminImagesApi, adminOrdersApi, adminProductsApi, adminSettingsApi, ApiError (+25 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.14
-Nodes (7): AnimatedSegmentedControl(), styles, styles, styles, colors, palette, shadows
+Cohesion: 0.16
+Nodes (6): styles, styles, styles, colors, palette, shadows
 
 ### Community 35 - "Community 35"
-Cohesion: 0.20
-Nodes (3): styles, styles, layout
-
-### Community 43 - "Community 43"
 Cohesion: 0.14
-Nodes (6): styles, styles, styles, styles, spacing, typography
+Nodes (4): styles, styles, styles, layout
 
 ### Community 44 - "Community 44"
 Cohesion: 0.33
 Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
-Cohesion: 0.08
-Nodes (21): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedStickyMiniCart(), AnimatedTabItem() (+13 more)
+Cohesion: 0.07
+Nodes (25): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), AnimatedStickyMiniCart() (+17 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.33
@@ -238,7 +238,7 @@ Nodes (3): Included, Not Included, V1 Scope
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `colors` connect `Community 30` to `Community 35`, `Community 43`, `Community 13`, `Community 45`, `Community 47`, `Community 48`, `Community 17`, `Community 46`, `Community 49`, `Community 15`, `Community 21`, `Community 63`?**
+- **Why does `colors` connect `Community 30` to `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 17`, `Community 15`, `Community 49`, `Community 21`?**
   _High betweenness centrality (0.020) - this node is a cross-community bridge._
 - **Why does `ServeLoco Main Plan` connect `Community 6` to `Community 14`, `Community 7`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._

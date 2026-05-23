@@ -109,7 +109,12 @@ export default function CustomerNavigator() {
       {/* Account / Misc Flow */}
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-      <Stack.Screen name="Auth" component={AuthScreen} />
+      
+      <Stack.Screen 
+        name="Auth" 
+        component={AuthScreen} 
+        options={{ presentation: 'transparentModal', animation: 'fade' }} 
+      />
       
       {/* Hidden Admin Entry Route */}
       <Stack.Screen name="AdminEntry" component={AdminEntryScreen} />

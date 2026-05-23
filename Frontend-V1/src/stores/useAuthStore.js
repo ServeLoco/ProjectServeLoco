@@ -12,6 +12,9 @@ export const useAuthStore = create(
       token: null,
       user: null,
       isAuthenticated: false,
+      redirectRoute: null,
+      
+      setRedirectRoute: (route) => set({ redirectRoute: route }),
       
       setSession: (token, user) => 
         set({ token, user, isAuthenticated: true }),
