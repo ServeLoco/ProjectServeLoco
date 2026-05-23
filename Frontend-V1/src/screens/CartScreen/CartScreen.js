@@ -114,7 +114,7 @@ export default function CartScreen() {
 
   const renderEmptyState = () => (
     <Animated.View style={[styles.emptyState, { opacity: fadeAnim }]}>
-      <Text style={styles.emptyEmoji}>🛒</Text>
+      <Text style={styles.emptyEmoji}>Cart</Text>
       <Text style={styles.emptyTitle}>Your cart is empty</Text>
       <Text style={styles.emptyDesc}>Looks like you haven't added anything to your cart yet.</Text>
       <Button 

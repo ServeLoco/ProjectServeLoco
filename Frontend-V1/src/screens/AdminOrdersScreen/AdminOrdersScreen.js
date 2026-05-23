@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -116,7 +117,7 @@ export default function AdminOrdersScreen() {
         onBack={() => navigation.goBack()}
         rightNode={
           <TouchableOpacity style={styles.headerBtn}>
-            <Text style={styles.headerIcon}>🔍</Text>
+            <Text style={styles.headerIcon}>Search</Text>
           </TouchableOpacity>
         }
       />
@@ -157,7 +158,7 @@ export default function AdminOrdersScreen() {
         </View>
       ) : isError ? (
         <View style={styles.center}>
-          <Text style={styles.emptyEmoji}>⚠️</Text>
+          <Text style={styles.emptyEmoji}>!</Text>
           <Text style={styles.emptyTitle}>Failed to load orders</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={loadOrders}>
             <Text style={styles.retryBtnText}>Retry</Text>
@@ -165,7 +166,7 @@ export default function AdminOrdersScreen() {
         </View>
       ) : filteredOrders.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.emptyEmoji}>📭</Text>
+          <Text style={styles.emptyEmoji}>Empty</Text>
           <Text style={styles.emptyTitle}>No Orders Found</Text>
           <Text style={styles.emptyText}>Try changing your filters.</Text>
         </View>
@@ -223,26 +224,26 @@ function AdminOrderCard({ order, isPending, isPaid, onCall, onWhatsApp, onMap, o
 
       <View style={styles.cardBody}>
         <View style={styles.customerRow}>
-          <Text style={styles.customerIcon}>👤</Text>
+          <Text style={styles.customerIcon}>User</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.customerName}>{order.customer}</Text>
             <Text style={styles.customerPhone}>{order.phone}</Text>
           </View>
           <View style={styles.actionRow}>
             <TouchableOpacity style={styles.iconBtn} onPress={onCall}>
-              <Text style={styles.iconBtnText}>📞</Text>
+              <Text style={styles.iconBtnText}>Call</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconBtn} onPress={onWhatsApp}>
-              <Text style={styles.iconBtnText}>💬</Text>
+              <Text style={styles.iconBtnText}>Msg</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.addressRow}>
-          <Text style={styles.customerIcon}>📍</Text>
+          <Text style={styles.customerIcon}>Loc</Text>
           <Text style={styles.addressText} numberOfLines={2}>{order.address}</Text>
           <TouchableOpacity style={styles.iconBtnSmall} onPress={onMap}>
-            <Text style={styles.iconBtnTextSmall}>🗺️</Text>
+            <Text style={styles.iconBtnTextSmall}>Map</Text>
           </TouchableOpacity>
         </View>
       </View>

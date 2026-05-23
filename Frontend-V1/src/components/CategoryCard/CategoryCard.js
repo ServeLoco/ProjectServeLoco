@@ -12,8 +12,19 @@ import ProductImage from '../ProductImage';
  *   onPress      - tap handler
  *   style        - container style
  */
-function CategoryCard({ category = {}, onPress, style }) {
-  const { name, imageUrl, productCount } = category;
+function CategoryCard({
+  category = {},
+  name,
+  imageUrl,
+  imageUri,
+  productCount,
+  count,
+  onPress,
+  style,
+}) {
+  const resolvedName = category.name ?? name;
+  const resolvedImageUrl = category.imageUrl ?? category.imageUri ?? imageUrl ?? imageUri;
+  const resolvedProductCount = category.productCount ?? category.count ?? productCount ?? count;
 
   return (
     <TouchableOpacity
@@ -21,10 +32,10 @@ function CategoryCard({ category = {}, onPress, style }) {
       activeOpacity={0.82}
       style={[styles.card, style]}
       accessibilityRole="button"
-      accessibilityLabel={name}
+      accessibilityLabel={resolvedName}
     >
       <ProductImage
-        uri={imageUrl}
+        uri={resolvedImageUrl}
         width={layout.categoryCardWidth - 16}
         height={56}
         borderRadius={radius.sm}
@@ -32,10 +43,10 @@ function CategoryCard({ category = {}, onPress, style }) {
         resizeMode="contain"
       />
       <Text style={styles.name} numberOfLines={2}>
-        {name}
+        {resolvedName}
       </Text>
-      {productCount !== undefined && productCount !== null ? (
-        <Text style={styles.count}>{productCount} items</Text>
+      {resolvedProductCount !== undefined && resolvedProductCount !== null ? (
+        <Text style={styles.count}>{resolvedProductCount} items</Text>
       ) : null}
     </TouchableOpacity>
   );

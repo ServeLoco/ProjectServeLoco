@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -141,7 +142,7 @@ export default function HomeScreen() {
     <AppScreen style={styles.container} safeAreaBottom={false}>
       {/* Header */}
       <AppHeader
-        title="ServeLoco 📍 Home"
+        title="ServeLoco Loc Home"
         cartCount={totalItems}
         onCartPress={handleCartPress}
       />

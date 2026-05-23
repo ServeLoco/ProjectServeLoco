@@ -65,7 +65,7 @@ export default function OrderConfirmationScreen() {
           ]}
         >
           <View style={styles.iconCircle}>
-            <Text style={styles.iconText}>🎉</Text>
+            <Text style={styles.iconText}>Done</Text>
           </View>
         </Animated.View>
 

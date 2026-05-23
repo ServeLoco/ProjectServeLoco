@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -138,10 +139,10 @@ export default function AdminProductsScreen() {
         rightNode={
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <TouchableOpacity onPress={handleSortToggle} style={styles.headerBtn}>
-              <Text style={styles.headerIcon}>{sortOrder === 'asc' ? '🔽' : '🔼'}</Text>
+              <Text style={styles.headerIcon}>{sortOrder === 'asc' ? 'Desc' : 'Asc'}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('AdminProductForm')} style={styles.headerBtn}>
-              <Text style={styles.headerIcon}>➕</Text>
+              <Text style={styles.headerIcon}>Add</Text>
             </TouchableOpacity>
           </View>
         }
@@ -149,7 +150,7 @@ export default function AdminProductsScreen() {
 
       <View style={styles.topSection}>
         <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Text style={styles.searchIcon}>Search</Text>
           <TextInput
             style={styles.searchInput}
             placeholder="Search products..."
@@ -190,7 +191,7 @@ export default function AdminProductsScreen() {
         </View>
       ) : filteredProducts.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.emptyEmoji}>📦</Text>
+          <Text style={styles.emptyEmoji}>Box</Text>
           <Text style={styles.emptyTitle}>No Products Found</Text>
           <Text style={styles.emptyText}>Try adjusting your filters or search query.</Text>
           <Button label="Add New Product" onPress={() => navigation.navigate('AdminProductForm')} style={{ marginTop: spacing.lg }} />
@@ -218,7 +219,7 @@ export default function AdminProductsScreen() {
           <Animated.View style={[styles.modalBackdrop, { opacity: modalFade }]} />
           <Animated.View style={[styles.modalContent, { opacity: modalFade, transform: [{ scale: modalScale }] }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalEmoji}>🗑️</Text>
+              <Text style={styles.modalEmoji}>Delete</Text>
               <Text style={styles.modalTitle}>Delete Product?</Text>
             </View>
             <Text style={styles.modalBody}>
@@ -257,7 +258,7 @@ function AdminProductCard({ product, index, onEdit, onDelete, onToggleAvailabili
         <View style={styles.imageContainer}>
           <Image source={{ uri: product.image }} style={styles.productImg} />
           <TouchableOpacity style={styles.imgEditBtn} onPress={onUpdateImage}>
-            <Text style={styles.imgEditIcon}>📷</Text>
+            <Text style={styles.imgEditIcon}>Image</Text>
           </TouchableOpacity>
         </View>
         
@@ -265,7 +266,7 @@ function AdminProductCard({ product, index, onEdit, onDelete, onToggleAvailabili
           <View style={styles.infoHeader}>
             <Text style={styles.productName}>{product.name}</Text>
             <TouchableOpacity onPress={onEdit} style={styles.actionIconBtn}>
-              <Text style={styles.actionIcon}>✏️</Text>
+              <Text style={styles.actionIcon}>Edit</Text>
             </TouchableOpacity>
           </View>
           
@@ -287,7 +288,7 @@ function AdminProductCard({ product, index, onEdit, onDelete, onToggleAvailabili
             </View>
 
             <TouchableOpacity onPress={onDelete} style={styles.actionIconBtn}>
-              <Text style={styles.actionIcon}>🗑️</Text>
+              <Text style={styles.actionIcon}>Delete</Text>
             </TouchableOpacity>
           </View>
 

@@ -131,7 +131,7 @@ export default function OrderDetailScreen() {
           <Text style={styles.sectionTitle}>Track Order</Text>
           {order.status === 'Cancelled' ? (
             <View style={styles.cancelledBox}>
-              <Text style={styles.cancelledEmoji}>🚫</Text>
+              <Text style={styles.cancelledEmoji}>Cancelled</Text>
               <Text style={styles.cancelledText}>This order was cancelled.</Text>
             </View>
           ) : (

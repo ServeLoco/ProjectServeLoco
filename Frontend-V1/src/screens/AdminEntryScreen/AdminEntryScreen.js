@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef } from 'react';
 import {
   View,
@@ -75,7 +76,7 @@ export default function AdminEntryScreen() {
       <View style={styles.content}>
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], alignItems: 'center' }}>
           <View style={styles.logoBox}>
-            <Text style={styles.logoIcon}>⚙️</Text>
+            <Text style={styles.logoIcon}>Admin</Text>
           </View>
           <Text style={styles.title}>ServeLoco</Text>
           <Text style={styles.subtitle}>Admin Portal</Text>

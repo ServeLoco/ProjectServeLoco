@@ -12,17 +12,26 @@ import { colors, typography, spacing, radius, shadows } from '../../theme';
  *   onChange   - called with the newly selected option string
  *   style      - container style override
  */
-function SegmentedControl({ options = [], value, onChange, style }) {
+function SegmentedControl({
+  options = [],
+  value,
+  selectedOption,
+  onChange,
+  onSelect,
+  style,
+}) {
   if (!options || options.length !== 2) return null;
+  const activeValue = value ?? selectedOption;
+  const handleChange = onChange || onSelect;
 
   return (
     <View style={[styles.track, style]}>
       {options.map(opt => {
-        const isActive = opt === value;
+        const isActive = opt === activeValue;
         return (
           <TouchableOpacity
             key={opt}
-            onPress={() => onChange && onChange(opt)}
+            onPress={() => handleChange && handleChange(opt)}
             style={[styles.segment, isActive && styles.activeSegment]}
             activeOpacity={0.8}
             accessibilityRole="button"

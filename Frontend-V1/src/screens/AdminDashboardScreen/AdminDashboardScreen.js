@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -123,7 +124,7 @@ export default function AdminDashboardScreen() {
         title="Admin Dashboard" 
         rightNode={
           <TouchableOpacity onPress={handleLogout} style={styles.headerBtn}>
-            <Text style={styles.headerIcon}>🚪</Text>
+            <Text style={styles.headerIcon}>Out</Text>
           </TouchableOpacity>
         }
       />
@@ -164,8 +165,8 @@ export default function AdminDashboardScreen() {
             <Text style={styles.sectionTitle}>Today's Overview</Text>
             
             <View style={styles.gridRow}>
-              <MetricCard title="Today Orders" value={data.metrics.todayOrders} icon="🛍️" />
-              <MetricCard title="Today Sales" value={`Rs. ${data.metrics.todaySales}`} icon="💰" />
+              <MetricCard title="Today Orders" value={data.metrics.todayOrders} icon="Bag" />
+              <MetricCard title="Today Sales" value={`Rs. ${data.metrics.todaySales}`} icon="Rs" />
             </View>
             
             <View style={styles.gridRow}>
@@ -183,7 +184,7 @@ export default function AdminDashboardScreen() {
           {/* Product Alerts */}
           {data.productAlerts.outOfStock > 0 && (
             <View style={styles.alertBox}>
-              <Text style={styles.alertIcon}>⚠️</Text>
+              <Text style={styles.alertIcon}>!</Text>
               <View style={styles.alertContent}>
                 <Text style={styles.alertTitle}>{data.productAlerts.outOfStock} Products Out of Stock</Text>
                 <Text style={styles.alertSubtitle}>Please update inventory to accept orders.</Text>

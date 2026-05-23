@@ -103,7 +103,7 @@ export default function AdminLoginScreen() {
           ]}
         >
           <View style={styles.header}>
-            <Text style={styles.logoIcon}>⚙️</Text>
+            <Text style={styles.logoIcon}>Admin</Text>
             <Text style={styles.title}>Admin Login</Text>
             <Text style={styles.subtitle}>Enter your credentials to access the shop dashboard.</Text>
           </View>
@@ -134,7 +134,7 @@ export default function AdminLoginScreen() {
               onPress={() => setShowPassword(!showPassword)}
               disabled={isLoading}
             >
-              <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+              <Text style={styles.eyeIcon}>{showPassword ? 'Hide' : 'Show'}</Text>
             </TouchableOpacity>
           </View>
 

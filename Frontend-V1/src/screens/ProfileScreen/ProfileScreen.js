@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,7 +10,7 @@ import {
   Animated,
   Linking,
 } from 'react-native';
-import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
@@ -81,7 +82,7 @@ export default function ProfileScreen() {
       <AppScreen style={styles.container}>
         <AppHeader title="My Profile" />
         <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>👋</Text>
+          <Text style={styles.emptyEmoji}>Hi</Text>
           <Text style={styles.emptyTitle}>Welcome to ServeLoco</Text>
           <Text style={styles.emptyDesc}>Login to view your profile, manage addresses, and track your orders.</Text>
           <Button label="Login / Signup" onPress={() => navigation.navigate('Auth')} />
@@ -95,7 +96,7 @@ export default function ProfileScreen() {
       <AppHeader title="My Profile" />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
+
         {/* Profile Card */}
         <Animated.View style={[styles.profileCard, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>
           <View style={styles.cardHeader}>
@@ -104,30 +105,30 @@ export default function ProfileScreen() {
                 {profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}
               </Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.editIconBtn}
               onPress={() => navigation.navigate('EditProfile')}
             >
-              <Text style={styles.editIcon}>✏️</Text>
+              <Text style={styles.editIcon}>Edit</Text>
             </TouchableOpacity>
           </View>
 
           <Text style={styles.profileName}>{profile?.name || 'User'}</Text>
-          
+
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>📞</Text>
+            <Text style={styles.infoIcon}>Call</Text>
             <Text style={styles.infoText}>{user?.phone || 'No phone added'}</Text>
           </View>
 
           {profile?.whatsapp && (
             <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>💬</Text>
+              <Text style={styles.infoIcon}>Msg</Text>
               <Text style={styles.infoText}>{profile.whatsapp} (WhatsApp)</Text>
             </View>
           )}
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>📍</Text>
+            <Text style={styles.infoIcon}>Loc</Text>
             <Text style={styles.infoText} numberOfLines={2}>
               {profile?.address || 'No address added yet.'}
             </Text>
@@ -143,37 +144,37 @@ export default function ProfileScreen() {
         {/* Menu Options */}
         <Animated.View style={[styles.menuGroup, { opacity: listAnim1, transform: [{ translateY: listAnim1.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }]}>
           <Text style={styles.menuGroupTitle}>Account</Text>
-          
-          <MenuOption 
-            icon="✏️" 
-            label="Edit Profile" 
-            onPress={() => navigation.navigate('EditProfile')} 
+
+          <MenuOption
+            icon="Edit"
+            label="Edit Profile"
+            onPress={() => navigation.navigate('EditProfile')}
           />
-          <MenuOption 
-            icon="📦" 
-            label="My Orders" 
-            onPress={() => navigation.navigate('Orders')} 
+          <MenuOption
+            icon="Box"
+            label="My Orders"
+            onPress={() => navigation.navigate('Orders')}
           />
-          <MenuOption 
-            icon="📌" 
-            label="Saved Address" 
+          <MenuOption
+            icon="Pin"
+            label="Saved Address"
             onPress={() => navigation.navigate('EditProfile')} // Route to EditProfile for now
           />
         </Animated.View>
 
         <Animated.View style={[styles.menuGroup, { opacity: listAnim2, transform: [{ translateY: listAnim2.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }]}>
           <Text style={styles.menuGroupTitle}>More</Text>
-          
-          <MenuOption 
-            icon="🎧" 
-            label="Help and Support" 
-            onPress={handleHelpSupport} 
+
+          <MenuOption
+            icon="Help"
+            label="Help and Support"
+            onPress={handleHelpSupport}
           />
-          <MenuOption 
-            icon="🚪" 
-            label="Logout" 
-            onPress={openLogoutModal} 
-            isDestructive 
+          <MenuOption
+            icon="Out"
+            label="Logout"
+            onPress={openLogoutModal}
+            isDestructive
           />
         </Animated.View>
 
@@ -184,21 +185,21 @@ export default function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <Animated.View style={[styles.modalBackdrop, { opacity: modalOpacity }]} />
           <Animated.View style={[styles.modalContent, { opacity: modalOpacity, transform: [{ scale: modalScale }] }]}>
-            <Text style={styles.modalEmoji}>👋</Text>
+            <Text style={styles.modalEmoji}>Hi</Text>
             <Text style={styles.modalTitle}>Leaving so soon?</Text>
             <Text style={styles.modalDesc}>Are you sure you want to logout from your account?</Text>
-            
+
             <View style={styles.modalActions}>
-              <Button 
-                label="Stay Logged In" 
-                onPress={closeLogoutModal} 
-                style={styles.modalBtn} 
+              <Button
+                label="Stay Logged In"
+                onPress={closeLogoutModal}
+                style={styles.modalBtn}
               />
-              <Button 
-                label="Logout" 
+              <Button
+                label="Logout"
                 variant="outline"
-                onPress={handleLogout} 
-                style={[styles.modalBtn, { borderColor: colors.error }]} 
+                onPress={handleLogout}
+                style={[styles.modalBtn, { borderColor: colors.error }]}
                 textStyle={{ color: colors.error }}
               />
             </View>
@@ -212,9 +213,9 @@ export default function ProfileScreen() {
 
 function MenuOption({ icon, label, onPress, isDestructive }) {
   return (
-    <TouchableOpacity 
-      style={styles.menuOption} 
-      activeOpacity={0.7} 
+    <TouchableOpacity
+      style={styles.menuOption}
+      activeOpacity={0.7}
       onPress={onPress}
     >
       <Text style={styles.menuIcon}>{icon}</Text>

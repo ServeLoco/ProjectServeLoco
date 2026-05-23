@@ -151,7 +151,7 @@ export default function CheckoutScreen() {
               </View>
             ) : (
               <View style={styles.gpsSuccess}>
-                <Text style={styles.gpsSuccessIcon}>📍</Text>
+                <Text style={styles.gpsSuccessIcon}>Loc</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.gpsSuccessText}>Location Pinned</Text>
                   <Text style={styles.gpsCoords}>{coordinates?.lat}, {coordinates?.lng}</Text>
@@ -179,7 +179,7 @@ export default function CheckoutScreen() {
               style={[styles.paymentBox, paymentMethod === 'Cash' && styles.paymentBoxActive]}
               onPress={() => setPaymentMethod('Cash')}
             >
-              <Text style={styles.paymentIcon}>💵</Text>
+              <Text style={styles.paymentIcon}>Cash</Text>
               <Text style={[styles.paymentText, paymentMethod === 'Cash' && styles.paymentTextActive]}>Cash on Delivery</Text>
             </TouchableOpacity>
 
@@ -188,7 +188,7 @@ export default function CheckoutScreen() {
               style={[styles.paymentBox, paymentMethod === 'UPI' && styles.paymentBoxActive]}
               onPress={() => setPaymentMethod('UPI')}
             >
-              <Text style={styles.paymentIcon}>📱</Text>
+              <Text style={styles.paymentIcon}>UPI</Text>
               <Text style={[styles.paymentText, paymentMethod === 'UPI' && styles.paymentTextActive]}>UPI / Online</Text>
             </TouchableOpacity>
           </View>

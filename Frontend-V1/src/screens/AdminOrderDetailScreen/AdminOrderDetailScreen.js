@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -162,18 +163,18 @@ export default function AdminOrderDetailScreen() {
             </View>
             <View style={styles.actionRow}>
               <TouchableOpacity style={styles.iconBtn} onPress={handleCall}>
-                <Text style={styles.iconBtnText}>📞</Text>
+                <Text style={styles.iconBtnText}>Call</Text>
               </TouchableOpacity>
               {order.customer.whatsapp && (
                 <TouchableOpacity style={styles.iconBtn} onPress={handleWhatsApp}>
-                  <Text style={styles.iconBtnText}>💬</Text>
+                  <Text style={styles.iconBtnText}>Msg</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
           <View style={styles.addressBox}>
             <View style={styles.addressRow}>
-              <Text style={styles.addressIcon}>📍</Text>
+              <Text style={styles.addressIcon}>Loc</Text>
               <Text style={styles.addressText}>{order.customer.address}</Text>
             </View>
             <TouchableOpacity onPress={handleMap}>

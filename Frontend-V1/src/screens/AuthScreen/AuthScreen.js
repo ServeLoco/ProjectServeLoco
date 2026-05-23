@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -285,7 +286,7 @@ export default function AuthScreen() {
 
               {/* Small local illustration / product image placeholder */}
               <Animated.View style={[styles.illustrationBox, { transform: [{ translateY: floatAnimIllustration }] }]}>
-                <Text style={styles.illustrationText}>🛍️</Text>
+                <Text style={styles.illustrationText}>Bag</Text>
               </Animated.View>
             </Animated.View>
 

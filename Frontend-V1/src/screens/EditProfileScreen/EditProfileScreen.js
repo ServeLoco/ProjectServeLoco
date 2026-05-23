@@ -152,7 +152,7 @@ export default function EditProfileScreen() {
         <View style={styles.bottomBar}>
           <Animated.View style={{ transform: [{ scale: btnScale }] }}>
             <Button 
-              label={isSaving ? "Saving..." : isSuccess ? "Saved Successfully! ✓" : "Save Changes"}
+              label={isSaving ? "Saving..." : isSuccess ? "Saved Successfully! Done" : "Save Changes"}
               onPress={handleSave}
               disabled={isSaving || isSuccess}
               style={[styles.saveBtn, isSuccess && { backgroundColor: colors.success, borderColor: colors.success }]}

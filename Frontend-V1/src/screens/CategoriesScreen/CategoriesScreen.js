@@ -115,7 +115,7 @@ export default function CategoriesScreen() {
         onCartPress={handleCartPress}
         rightActions={[
           {
-            icon: <Text style={{ fontSize: 20 }}>🔍</Text>,
+            icon: <Text style={{ fontSize: 20 }}>Search</Text>,
             onPress: handleSearchPress,
             label: 'Search',
           }
@@ -199,7 +199,7 @@ export default function CategoriesScreen() {
                 </View>
               ) : (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyEmoji}>😕</Text>
+                  <Text style={styles.emptyEmoji}>Empty</Text>
                   <Text style={styles.emptyTitle}>No items found</Text>
                   <Text style={styles.emptyDesc}>We couldn't find any categories for this store type.</Text>
                   <Button 

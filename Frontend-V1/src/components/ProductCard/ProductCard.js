@@ -19,6 +19,13 @@ import QuantityStepper from '../QuantityStepper';
  */
 function ProductCard({
   product = {},
+  name,
+  price,
+  unit,
+  imageUrl,
+  imageUri,
+  available,
+  discountLabel,
   quantity = 0,
   onAdd,
   onIncrement,
@@ -26,8 +33,13 @@ function ProductCard({
   onPress,
   style,
 }) {
-  const { name, price, unit, imageUrl, available = true, discountLabel } = product;
-  const isUnavailable = !available;
+  const resolvedName = product.name ?? name;
+  const resolvedPrice = product.price ?? price;
+  const resolvedUnit = product.unit ?? unit;
+  const resolvedImageUrl = product.imageUrl ?? product.imageUri ?? imageUrl ?? imageUri;
+  const resolvedAvailable = product.available ?? available ?? product.isAvailable ?? true;
+  const resolvedDiscountLabel = product.discountLabel ?? discountLabel;
+  const isUnavailable = !resolvedAvailable;
 
   return (
     <TouchableOpacity
@@ -35,11 +47,11 @@ function ProductCard({
       activeOpacity={0.85}
       style={[styles.card, isUnavailable && styles.unavailable, style]}
       accessibilityRole="button"
-      accessibilityLabel={name}
+      accessibilityLabel={resolvedName}
     >
       {/* Product image */}
       <ProductImage
-        uri={imageUrl}
+        uri={resolvedImageUrl}
         width={layout.productCardWidth - spacing.cardPadding * 2}
         height={layout.productCardImageHeight}
         borderRadius={radius.sm}
@@ -47,25 +59,25 @@ function ProductCard({
       />
 
       {/* Discount label */}
-      {discountLabel ? (
+      {resolvedDiscountLabel ? (
         <View style={styles.discountBadge}>
           <Text style={styles.discountText} numberOfLines={1}>
-            {discountLabel}
+            {resolvedDiscountLabel}
           </Text>
         </View>
       ) : null}
 
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={2}>
-          {name}
+          {resolvedName}
         </Text>
-        {unit ? (
+        {resolvedUnit ? (
           <Text style={styles.unit} numberOfLines={1}>
-            {unit}
+            {resolvedUnit}
           </Text>
         ) : null}
         <View style={styles.footer}>
-          <Text style={styles.price}>Rs. {price}</Text>
+          <Text style={styles.price}>Rs. {resolvedPrice}</Text>
           {isUnavailable ? (
             <Text style={styles.unavailableLabel}>Unavailable</Text>
           ) : (
