@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 180 files · ~31,141 words
+- 180 files · ~32,143 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 679 nodes · 938 edges · 76 communities (41 shown, 35 thin omitted)
+- 681 nodes · 940 edges · 78 communities (41 shown, 37 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `75dd15a6`
+- Built from commit: `62147265`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -56,6 +56,7 @@
 - [[_COMMUNITY_Community 46|Community 46]]
 - [[_COMMUNITY_Community 47|Community 47]]
 - [[_COMMUNITY_Community 48|Community 48]]
+- [[_COMMUNITY_Community 49|Community 49]]
 - [[_COMMUNITY_Community 50|Community 50]]
 - [[_COMMUNITY_Community 51|Community 51]]
 - [[_COMMUNITY_Community 52|Community 52]]
@@ -82,6 +83,7 @@
 - [[_COMMUNITY_Community 73|Community 73]]
 - [[_COMMUNITY_Community 74|Community 74]]
 - [[_COMMUNITY_Community 75|Community 75]]
+- [[_COMMUNITY_Community 77|Community 77]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `colors` - 29 edges
@@ -96,8 +98,8 @@
 10. `API Plan` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `AnimatedCartBadge()` --calls--> `useReducedMotion()`  [EXTRACTED]
-  Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js → Frontend-V1/src/utils/motionPreferences.js
+- `AnimatedSegmentedControl()` --calls--> `useReducedMotion()`  [EXTRACTED]
+  Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js → Frontend-V1/src/utils/motionPreferences.js
 - `useAuthGate()` --calls--> `useAuthStore`  [INFERRED]
   Frontend-V1/src/hooks/useAuthGate.js → Frontend-V1/src/stores/useAuthStore.js
 - `AdminNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
@@ -107,7 +109,7 @@
 - `AnimatedQuantitySwitcher()` --calls--> `useReducedMotion()`  [EXTRACTED]
   Frontend-V1/src/components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js → Frontend-V1/src/utils/motionPreferences.js
 
-## Communities (76 total, 35 thin omitted)
+## Communities (78 total, 37 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -158,16 +160,12 @@ Cohesion: 0.04
 Nodes (48): 10. Order Detail, 11. Profile, 12. Edit Profile, 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail (+40 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.21
-Nodes (9): AnimatedCartBadge(), styles, themePlaceholder, easingModal, motionConfig, fontFamily, fontSizes, fontWeights (+1 more)
+Cohesion: 0.43
+Nodes (5): themePlaceholder, fontFamily, fontSizes, fontWeights, lineHeights
 
 ### Community 16 - "Community 16"
 Cohesion: 0.25
 Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
-
-### Community 17 - "Community 17"
-Cohesion: 0.53
-Nodes (4): LoadingSkeleton(), SkeletonCard(), SkeletonRow(), styles
 
 ### Community 18 - "Community 18"
 Cohesion: 0.28
@@ -176,10 +174,6 @@ Nodes (5): RCTDefaultReactNativeFactoryDelegate, AppDelegate, ReactNativeDelegat
 ### Community 20 - "Community 20"
 Cohesion: 0.05
 Nodes (43): App Animation Standard, Folder Structure And Naming Standard, Global Frontend Rules, How To Use This Checklist, Phase 1: App Shell And Foundations, Phase 2: Auth And Preview Gate, Phase 3: Customer Shopping Flow, Phase 4: Customer Account And Orders (+35 more)
-
-### Community 21 - "Community 21"
-Cohesion: 0.17
-Nodes (3): styles, styles, styles
 
 ### Community 22 - "Community 22"
 Cohesion: 0.40
@@ -194,24 +188,24 @@ Cohesion: 0.09
 Nodes (33): adminAuthApi, adminCustomersApi, adminDashboardApi, adminImagesApi, adminOrdersApi, adminProductsApi, adminSettingsApi, ApiError (+25 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.10
-Nodes (9): styles, styles, PAYMENT_COLORS, STATUS_COLORS, styles, styles, colors, palette (+1 more)
+Cohesion: 0.14
+Nodes (7): AnimatedSegmentedControl(), styles, styles, styles, colors, palette, shadows
 
 ### Community 35 - "Community 35"
-Cohesion: 0.14
-Nodes (4): styles, styles, styles, layout
+Cohesion: 0.20
+Nodes (3): styles, styles, layout
 
 ### Community 43 - "Community 43"
-Cohesion: 0.12
-Nodes (7): styles, styles, styles, styles, styles, spacing, typography
+Cohesion: 0.14
+Nodes (6): styles, styles, styles, styles, spacing, typography
 
 ### Community 44 - "Community 44"
 Cohesion: 0.33
 Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
-Cohesion: 0.09
-Nodes (15): AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles, AnimatedStickyMiniCart(), AnimatedTabItem() (+7 more)
+Cohesion: 0.08
+Nodes (21): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedStickyMiniCart(), AnimatedTabItem() (+13 more)
 
 ### Community 47 - "Community 47"
 Cohesion: 0.20
@@ -220,6 +214,10 @@ Nodes (4): styles, styles, borderWidth, radius
 ### Community 48 - "Community 48"
 Cohesion: 0.60
 Nodes (3): Chip(), ChipRow(), styles
+
+### Community 49 - "Community 49"
+Cohesion: 0.33
+Nodes (3): PAYMENT_COLORS, STATUS_COLORS, styles
 
 ### Community 51 - "Community 51"
 Cohesion: 0.50
@@ -237,22 +235,26 @@ Nodes (3): Included, Not Included, V1 Scope
 Cohesion: 0.25
 Nodes (5): App(), displayName, name, assertNoEmoji(), hasEmoji()
 
+### Community 69 - "Community 69"
+Cohesion: 0.33
+Nodes (3): MOCK_CATEGORIES, MOCK_COMBOS, styles
+
 ## Knowledge Gaps
-- **319 isolated node(s):** `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard`, `App Animation Standard`, `Task F-01: Create React Native App Shell` (+314 more)
+- **321 isolated node(s):** `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard`, `App Animation Standard`, `Task F-01: Create React Native App Shell` (+316 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **35 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **37 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `colors` connect `Community 30` to `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 17`, `Community 15`, `Community 21`, `Community 63`?**
+- **Why does `colors` connect `Community 30` to `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 49`, `Community 17`, `Community 77`, `Community 15`, `Community 21`, `Community 63`?**
   _High betweenness centrality (0.021) - this node is a cross-community bridge._
 - **Why does `ServeLoco Main Plan` connect `Community 6` to `Community 14`, `Community 7`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
 - **Why does `Frontend Plan` connect `Community 14` to `Community 6`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **What connects `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard` to the rest of the system?**
-  _319 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _321 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
