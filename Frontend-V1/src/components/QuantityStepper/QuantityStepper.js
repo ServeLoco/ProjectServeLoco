@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  LayoutAnimation,
+  UIManager,
+  Platform,
 } from 'react-native';
 import { colors, typography, spacing, radius } from '../../theme';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 /**
  * QuantityStepper
@@ -27,6 +34,15 @@ function QuantityStepper({
   disabled = false,
   compact = false,
 }) {
+  const prevQuantity = useRef(quantity);
+
+  useEffect(() => {
+    if ((prevQuantity.current === 0 && quantity > 0) || (prevQuantity.current > 0 && quantity === 0)) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
+    prevQuantity.current = quantity;
+  }, [quantity]);
+
   if (quantity === 0) {
     return (
       <TouchableOpacity

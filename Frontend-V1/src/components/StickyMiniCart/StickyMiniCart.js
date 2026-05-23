@@ -1,6 +1,10 @@
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View, LayoutAnimation, UIManager, Platform } from 'react-native';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 /**
  * StickyMiniCart
@@ -14,6 +18,15 @@ import { colors, typography, spacing, radius, shadows, layout } from '../../them
  *   style       - container style
  */
 function StickyMiniCart({ itemCount = 0, total = 0, onPress, visible = true, style }) {
+  const prevCount = useRef(itemCount);
+
+  useEffect(() => {
+    if ((prevCount.current === 0 && itemCount > 0) || (prevCount.current > 0 && itemCount === 0)) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
+    prevCount.current = itemCount;
+  }, [itemCount]);
+
   if (!visible || itemCount === 0) return null;
 
   return (

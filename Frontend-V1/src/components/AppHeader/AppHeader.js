@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  Animated,
 } from 'react-native';
 import { colors, typography, radius, shadows, layout } from '../../theme';
 
@@ -32,6 +33,19 @@ function AppHeader({
   bg = colors.bgSurface,
   bordered = true,
 }) {
+  const badgeScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (cartCount > 0) {
+      badgeScale.setValue(1.3);
+      Animated.spring(badgeScale, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [cartCount, badgeScale]);
+
   return (
     <View
       style={[
@@ -95,11 +109,11 @@ function AppHeader({
             <View style={styles.cartIconWrap}>
               <Text style={styles.cartIcon}>Cart</Text>
               {cartCount > 0 && (
-                <View style={styles.badge}>
+                <Animated.View style={[styles.badge, { transform: [{ scale: badgeScale }] }]}>
                   <Text style={styles.badgeText}>
                     {cartCount > 99 ? '99+' : String(cartCount)}
                   </Text>
-                </View>
+                </Animated.View>
               )}
             </View>
           </TouchableOpacity>

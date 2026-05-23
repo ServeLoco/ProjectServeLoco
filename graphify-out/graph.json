@@ -160,7 +160,7 @@
       "label": "Phase 3: Customer Shopping Flow",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L206",
+      "source_location": "L207",
       "id": "frontend_v1_tasks_phase_3_customer_shopping_flow",
       "community": 20,
       "norm_label": "phase 3: customer shopping flow"
@@ -169,7 +169,7 @@
       "label": "Task F-09: Home Dashboard Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L208",
+      "source_location": "L209",
       "id": "frontend_v1_tasks_task_f_09_home_dashboard_screen",
       "community": 20,
       "norm_label": "task f-09: home dashboard screen"
@@ -178,7 +178,7 @@
       "label": "Task F-10: Categories Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L232",
+      "source_location": "L233",
       "id": "frontend_v1_tasks_task_f_10_categories_screen",
       "community": 20,
       "norm_label": "task f-10: categories screen"
@@ -187,7 +187,7 @@
       "label": "Task F-11: Product List And Search Results Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L248",
+      "source_location": "L249",
       "id": "frontend_v1_tasks_task_f_11_product_list_and_search_results_screen",
       "community": 20,
       "norm_label": "task f-11: product list and search results screen"
@@ -196,7 +196,7 @@
       "label": "Task F-12: Product Detail Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L267",
+      "source_location": "L268",
       "id": "frontend_v1_tasks_task_f_12_product_detail_screen",
       "community": 20,
       "norm_label": "task f-12: product detail screen"
@@ -205,7 +205,7 @@
       "label": "Task F-13: Cart Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L283",
+      "source_location": "L284",
       "id": "frontend_v1_tasks_task_f_13_cart_screen",
       "community": 20,
       "norm_label": "task f-13: cart screen"
@@ -214,7 +214,7 @@
       "label": "Task F-14: Checkout Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L301",
+      "source_location": "L302",
       "id": "frontend_v1_tasks_task_f_14_checkout_screen",
       "community": 20,
       "norm_label": "task f-14: checkout screen"
@@ -223,7 +223,7 @@
       "label": "Task F-15: Order Confirmation Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L324",
+      "source_location": "L325",
       "id": "frontend_v1_tasks_task_f_15_order_confirmation_screen",
       "community": 20,
       "norm_label": "task f-15: order confirmation screen"
@@ -232,7 +232,7 @@
       "label": "Phase 4: Customer Account And Orders",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L339",
+      "source_location": "L340",
       "id": "frontend_v1_tasks_phase_4_customer_account_and_orders",
       "community": 20,
       "norm_label": "phase 4: customer account and orders"
@@ -241,7 +241,7 @@
       "label": "Task F-16: Orders Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L341",
+      "source_location": "L342",
       "id": "frontend_v1_tasks_task_f_16_orders_screen",
       "community": 20,
       "norm_label": "task f-16: orders screen"
@@ -250,7 +250,7 @@
       "label": "Task F-17: Order Detail Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L357",
+      "source_location": "L358",
       "id": "frontend_v1_tasks_task_f_17_order_detail_screen",
       "community": 20,
       "norm_label": "task f-17: order detail screen"
@@ -259,7 +259,7 @@
       "label": "Task F-18: Profile Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L375",
+      "source_location": "L376",
       "id": "frontend_v1_tasks_task_f_18_profile_screen",
       "community": 20,
       "norm_label": "task f-18: profile screen"
@@ -268,7 +268,7 @@
       "label": "Task F-19: Edit Profile Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L389",
+      "source_location": "L390",
       "id": "frontend_v1_tasks_task_f_19_edit_profile_screen",
       "community": 20,
       "norm_label": "task f-19: edit profile screen"
@@ -277,7 +277,7 @@
       "label": "Phase 5: Admin Flow",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L402",
+      "source_location": "L403",
       "id": "frontend_v1_tasks_phase_5_admin_flow",
       "community": 20,
       "norm_label": "phase 5: admin flow"
@@ -286,7 +286,7 @@
       "label": "Task F-20: Admin Entry Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L404",
+      "source_location": "L405",
       "id": "frontend_v1_tasks_task_f_20_admin_entry_screen",
       "community": 20,
       "norm_label": "task f-20: admin entry screen"
@@ -295,7 +295,7 @@
       "label": "Task F-21: Admin Login Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L414",
+      "source_location": "L415",
       "id": "frontend_v1_tasks_task_f_21_admin_login_screen",
       "community": 20,
       "norm_label": "task f-21: admin login screen"
@@ -304,7 +304,7 @@
       "label": "Task F-22: Admin Dashboard Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L430",
+      "source_location": "L431",
       "id": "frontend_v1_tasks_task_f_22_admin_dashboard_screen",
       "community": 20,
       "norm_label": "task f-22: admin dashboard screen"
@@ -313,7 +313,7 @@
       "label": "Task F-23: Admin Orders Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L449",
+      "source_location": "L450",
       "id": "frontend_v1_tasks_task_f_23_admin_orders_screen",
       "community": 20,
       "norm_label": "task f-23: admin orders screen"
@@ -322,7 +322,7 @@
       "label": "Task F-24: Admin Order Detail Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L468",
+      "source_location": "L469",
       "id": "frontend_v1_tasks_task_f_24_admin_order_detail_screen",
       "community": 20,
       "norm_label": "task f-24: admin order detail screen"
@@ -331,7 +331,7 @@
       "label": "Task F-25: Admin Products Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L489",
+      "source_location": "L490",
       "id": "frontend_v1_tasks_task_f_25_admin_products_screen",
       "community": 20,
       "norm_label": "task f-25: admin products screen"
@@ -340,7 +340,7 @@
       "label": "Task F-26: Admin Product Form Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L513",
+      "source_location": "L514",
       "id": "frontend_v1_tasks_task_f_26_admin_product_form_screen",
       "community": 20,
       "norm_label": "task f-26: admin product form screen"
@@ -349,7 +349,7 @@
       "label": "Task F-27: Admin Customers Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L534",
+      "source_location": "L535",
       "id": "frontend_v1_tasks_task_f_27_admin_customers_screen",
       "community": 20,
       "norm_label": "task f-27: admin customers screen"
@@ -358,7 +358,7 @@
       "label": "Task F-28: Admin Settings And Offers Screen",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L552",
+      "source_location": "L553",
       "id": "frontend_v1_tasks_task_f_28_admin_settings_and_offers_screen",
       "community": 20,
       "norm_label": "task f-28: admin settings and offers screen"
@@ -367,7 +367,7 @@
       "label": "Phase 6: Integration And QA",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L576",
+      "source_location": "L577",
       "id": "frontend_v1_tasks_phase_6_integration_and_qa",
       "community": 20,
       "norm_label": "phase 6: integration and qa"
@@ -376,7 +376,7 @@
       "label": "Task F-29: Frontend API Integration Pass",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L578",
+      "source_location": "L579",
       "id": "frontend_v1_tasks_task_f_29_frontend_api_integration_pass",
       "community": 20,
       "norm_label": "task f-29: frontend api integration pass"
@@ -385,7 +385,7 @@
       "label": "Task F-30: UI State QA",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L593",
+      "source_location": "L594",
       "id": "frontend_v1_tasks_task_f_30_ui_state_qa",
       "community": 20,
       "norm_label": "task f-30: ui state qa"
@@ -394,109 +394,136 @@
       "label": "Task F-31: Final Acceptance Checklist",
       "file_type": "document",
       "source_file": "Frontend-V1/Tasks.md",
-      "source_location": "L614",
+      "source_location": "L615",
       "id": "frontend_v1_tasks_task_f_31_final_acceptance_checklist",
       "community": 20,
       "norm_label": "task f-31: final acceptance checklist"
+    },
+    {
+      "label": "AuthScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
+      "source_location": "L1",
+      "id": "frontend_v1_src_screens_authscreen_authscreen_js",
+      "community": 64,
+      "norm_label": "authscreen.js"
+    },
+    {
+      "label": "AuthScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
+      "source_location": "L29",
+      "id": "authscreen_authscreen_authscreen",
+      "community": 64,
+      "norm_label": "authscreen()"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
+      "source_location": "L324",
+      "id": "authscreen_authscreen_styles",
+      "community": 64,
+      "norm_label": "styles"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/hooks/index.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_hooks_index_js",
       "community": 13,
-      "norm_label": "index.js"
+      "norm_label": "index.js",
+      "id": "frontend_v1_src_hooks_index_js"
     },
     {
       "label": "useAuthGate.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/hooks/useAuthGate.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_hooks_useauthgate_js",
       "community": 13,
-      "norm_label": "useauthgate.js"
+      "norm_label": "useauthgate.js",
+      "id": "frontend_v1_src_hooks_useauthgate_js"
     },
     {
       "label": "useAuthGate()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/hooks/useAuthGate.js",
       "source_location": "L8",
-      "id": "hooks_useauthgate_useauthgate",
       "community": 13,
-      "norm_label": "useauthgate()"
+      "norm_label": "useauthgate()",
+      "id": "hooks_useauthgate_useauthgate"
     },
     {
       "label": "CustomerNavigator.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_navigation_customernavigator_js",
       "community": 13,
-      "norm_label": "customernavigator.js"
+      "norm_label": "customernavigator.js",
+      "id": "frontend_v1_src_navigation_customernavigator_js"
     },
     {
       "label": "Tab",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L23",
-      "id": "navigation_customernavigator_tab",
       "community": 13,
-      "norm_label": "tab"
+      "norm_label": "tab",
+      "id": "navigation_customernavigator_tab"
     },
     {
       "label": "Stack",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L24",
-      "id": "navigation_customernavigator_stack",
       "community": 13,
-      "norm_label": "stack"
+      "norm_label": "stack",
+      "id": "navigation_customernavigator_stack"
     },
     {
       "label": "AnimatedTabIcon()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L26",
-      "id": "navigation_customernavigator_animatedtabicon",
       "community": 13,
-      "norm_label": "animatedtabicon()"
+      "norm_label": "animatedtabicon()",
+      "id": "navigation_customernavigator_animatedtabicon"
     },
     {
       "label": "CustomerBottomTabs()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L54",
-      "id": "navigation_customernavigator_customerbottomtabs",
       "community": 13,
-      "norm_label": "customerbottomtabs()"
+      "norm_label": "customerbottomtabs()",
+      "id": "navigation_customernavigator_customerbottomtabs"
     },
     {
       "label": "CustomerNavigator()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L89",
-      "id": "navigation_customernavigator_customernavigator",
       "community": 13,
-      "norm_label": "customernavigator()"
+      "norm_label": "customernavigator()",
+      "id": "navigation_customernavigator_customernavigator"
     },
     {
       "label": "useAuthStore.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useAuthStore.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_stores_useauthstore_js",
       "community": 13,
-      "norm_label": "useauthstore.js"
+      "norm_label": "useauthstore.js",
+      "id": "frontend_v1_src_stores_useauthstore_js"
     },
     {
       "label": "useAuthStore",
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useAuthStore.js",
       "source_location": "L9",
-      "id": "stores_useauthstore_useauthstore",
       "community": 13,
-      "norm_label": "useauthstore"
+      "norm_label": "useauthstore",
+      "id": "stores_useauthstore_useauthstore"
     },
     {
       "label": "AdminNavigator.js",
@@ -1298,33 +1325,6 @@
       "community": 62,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_index_js"
-    },
-    {
-      "label": "AuthScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
-      "source_location": "L1",
-      "community": 64,
-      "norm_label": "authscreen.js",
-      "id": "frontend_v1_src_screens_authscreen_authscreen_js"
-    },
-    {
-      "label": "AuthScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
-      "source_location": "L6",
-      "community": 64,
-      "norm_label": "authscreen()",
-      "id": "authscreen_authscreen_authscreen"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
-      "source_location": "L14",
-      "community": 64,
-      "norm_label": "styles",
-      "id": "authscreen_authscreen_styles"
     },
     {
       "label": "index.js",
@@ -6547,15 +6547,46 @@
       "target": "frontend_v1_tasks_task_f_31_final_acceptance_checklist"
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_authscreen_authscreen_js",
+      "target": "authscreen_authscreen_authscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_authscreen_authscreen_js",
+      "target": "authscreen_authscreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AuthScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_authscreen_index_js",
+      "target": "frontend_v1_src_screens_authscreen_authscreen_js"
+    },
+    {
       "relation": "re_exports",
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/hooks/index.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_hooks_index_js",
-      "target": "frontend_v1_src_hooks_useauthgate_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_hooks_useauthgate_js"
     },
     {
       "relation": "contains",
@@ -6563,9 +6594,9 @@
       "source_file": "Frontend-V1/src/hooks/useAuthGate.js",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_hooks_useauthgate_js",
-      "target": "hooks_useauthgate_useauthgate",
-      "confidence_score": 1.0
+      "target": "hooks_useauthgate_useauthgate"
     },
     {
       "relation": "calls",
@@ -7717,37 +7748,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
       "target": "frontend_v1_src_screens_adminsettingsscreen_index_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_authscreen_authscreen_js",
-      "target": "authscreen_authscreen_authscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_authscreen_authscreen_js",
-      "target": "authscreen_authscreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AuthScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_authscreen_index_js",
-      "target": "frontend_v1_src_screens_authscreen_authscreen_js"
     },
     {
       "relation": "re_exports",
@@ -15939,5 +15939,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "63b7faca0c47bd1167794ddf0fcc0ffb7fd9bbde"
+  "built_at_commit": "75dd15a6ced13860a3e9581ab313e49278bef57e"
 }

@@ -208,27 +208,27 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-09: Home Dashboard Screen
 
-- [ ] Build header with ServeLoco title, location selector, and cart icon with badge.
-- [ ] Add search input for items, food, snacks, drinks, and essentials.
-- [ ] Tapping search opens Product List in search mode.
-- [ ] Add `Packed Items` / `Fast Food` segmented toggle.
-- [ ] Add offer banner using backend active offer when available.
-- [ ] Add fallback offer text: `Flat 30% off on snacks & combos`.
-- [ ] Add `Shop Offer` button that opens Product List filtered by offer products if available.
-- [ ] Add horizontal category cards: `Cold Drinks`, `Snacks`, `Fast Food`, `Groceries`, `Desserts`, `Daily Essentials`.
-- [ ] Category tap opens Product List filtered by category.
-- [ ] Add combo deal cards with image, title, price, discount label, and `Add` button.
-- [ ] Replace `Add` with `- quantity +` stepper after an item is in cart.
-- [ ] Add optional popular product preview list.
-- [ ] Show sticky mini-cart when cart has items.
-- [ ] Show shop closed banner when backend settings say closed.
-- [ ] Disable add controls for unavailable products.
-- [ ] Add loading skeletons for banner, categories, and products.
-- [ ] Animate header, search, toggle, offer banner, categories, and products with fade plus upward slide.
-- [ ] Animate category and combo cards with light staggered entry.
-- [ ] Animate `Add` button into quantity stepper.
-- [ ] Animate cart badge scale bump when item count changes.
-- [ ] Animate sticky mini-cart sliding up when first item is added.
+- [x] Build header with ServeLoco title, location selector, and cart icon with badge.
+- [x] Add search input for items, food, snacks, drinks, and essentials.
+- [x] Tapping search opens Product List in search mode.
+- [x] Add `Packed Items` / `Fast Food` segmented toggle.
+- [x] Add offer banner using backend active offer when available.
+- [x] Add fallback offer text: `Flat 30% off on snacks & combos`.
+- [x] Add `Shop Offer` button that opens Product List filtered by offer products if available.
+- [x] Add horizontal category cards: `Cold Drinks`, `Snacks`, `Fast Food`, `Groceries`, `Desserts`, `Daily Essentials`.
+- [x] Category tap opens Product List filtered by category.
+- [x] Add combo deal cards with image, title, price, discount label, and `Add` button.
+- [x] Replace `Add` with `- quantity +` stepper after an item is in cart.
+- [x] Add optional popular product preview list.
+- [x] Show sticky mini-cart when cart has items.
+- [x] Show shop closed banner when backend settings say closed.
+- [x] Disable add controls for unavailable products.
+- [x] Add loading skeletons for banner, categories, and products.
+- [x] Animate header, search, toggle, offer banner, categories, and products with fade plus upward slide.
+- [x] Animate category and combo cards with light staggered entry.
+- [x] Animate `Add` button into quantity stepper.
+- [x] Animate cart badge scale bump when item count changes.
+- [x] Animate sticky mini-cart sliding up when first item is added.
 
 ### Task F-10: Categories Screen
 
