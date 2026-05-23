@@ -10,7 +10,7 @@ import {
   AdminProductFormScreen,
   AdminCustomersScreen,
   AdminSettingsScreen,
-} from '../screens';
+} from '../screens/admin';
 
 import { useAdminAuthStore } from '../stores';
 

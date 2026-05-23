@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 181 files · ~51,792 words
+- 181 files · ~51,777 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 756 nodes · 1385 edges · 69 communities (50 shown, 19 thin omitted)
+- 756 nodes · 1412 edges · 56 communities (44 shown, 12 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2c37d452`
+- Built from commit: `32d1ea0f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -32,7 +32,6 @@
 - [[_COMMUNITY_Community 14|Community 14]]
 - [[_COMMUNITY_Community 15|Community 15]]
 - [[_COMMUNITY_Community 16|Community 16]]
-- [[_COMMUNITY_Community 17|Community 17]]
 - [[_COMMUNITY_Community 18|Community 18]]
 - [[_COMMUNITY_Community 20|Community 20]]
 - [[_COMMUNITY_Community 21|Community 21]]
@@ -41,22 +40,17 @@
 - [[_COMMUNITY_Community 24|Community 24]]
 - [[_COMMUNITY_Community 25|Community 25]]
 - [[_COMMUNITY_Community 26|Community 26]]
-- [[_COMMUNITY_Community 27|Community 27]]
 - [[_COMMUNITY_Community 28|Community 28]]
 - [[_COMMUNITY_Community 29|Community 29]]
 - [[_COMMUNITY_Community 30|Community 30]]
-- [[_COMMUNITY_Community 31|Community 31]]
 - [[_COMMUNITY_Community 32|Community 32]]
 - [[_COMMUNITY_Community 33|Community 33]]
-- [[_COMMUNITY_Community 34|Community 34]]
 - [[_COMMUNITY_Community 35|Community 35]]
 - [[_COMMUNITY_Community 43|Community 43]]
 - [[_COMMUNITY_Community 44|Community 44]]
 - [[_COMMUNITY_Community 45|Community 45]]
 - [[_COMMUNITY_Community 46|Community 46]]
 - [[_COMMUNITY_Community 47|Community 47]]
-- [[_COMMUNITY_Community 48|Community 48]]
-- [[_COMMUNITY_Community 49|Community 49]]
 - [[_COMMUNITY_Community 50|Community 50]]
 - [[_COMMUNITY_Community 51|Community 51]]
 - [[_COMMUNITY_Community 52|Community 52]]
@@ -64,17 +58,10 @@
 - [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
 - [[_COMMUNITY_Community 56|Community 56]]
-- [[_COMMUNITY_Community 57|Community 57]]
 - [[_COMMUNITY_Community 58|Community 58]]
-- [[_COMMUNITY_Community 59|Community 59]]
 - [[_COMMUNITY_Community 60|Community 60]]
-- [[_COMMUNITY_Community 61|Community 61]]
-- [[_COMMUNITY_Community 62|Community 62]]
-- [[_COMMUNITY_Community 63|Community 63]]
 - [[_COMMUNITY_Community 64|Community 64]]
 - [[_COMMUNITY_Community 65|Community 65]]
-- [[_COMMUNITY_Community 66|Community 66]]
-- [[_COMMUNITY_Community 67|Community 67]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `colors` - 51 edges
@@ -93,14 +80,14 @@
   Frontend-V1/src/navigation/RootNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
 - `AdminNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
   Frontend-V1/src/navigation/AdminNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
-- `OrdersScreen()` --calls--> `useAuthStore`  [EXTRACTED]
-  Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js → Frontend-V1/src/stores/useAuthStore.js
-- `AuthScreen()` --calls--> `useAuthStore`  [EXTRACTED]
-  Frontend-V1/src/screens/AuthScreen/AuthScreen.js → Frontend-V1/src/stores/useAuthStore.js
 - `useAuthGate()` --calls--> `useAuthStore`  [INFERRED]
   Frontend-V1/src/hooks/useAuthGate.js → Frontend-V1/src/stores/useAuthStore.js
+- `CategoriesScreen()` --calls--> `useCartStore`  [EXTRACTED]
+  Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js → Frontend-V1/src/stores/useCartStore.js
+- `CheckoutScreen()` --calls--> `useCartStore`  [EXTRACTED]
+  Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js → Frontend-V1/src/stores/useCartStore.js
 
-## Communities (69 total, 19 thin omitted)
+## Communities (56 total, 12 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -154,10 +141,6 @@ Nodes (3): Chip(), ChipRow(), styles
 Cohesion: 0.25
 Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
 
-### Community 17 - "Community 17"
-Cohesion: 0.24
-Nodes (5): EditProfileScreen(), styles, ProfileScreen(), styles, useAuthStore
-
 ### Community 18 - "Community 18"
 Cohesion: 0.28
 Nodes (5): RCTDefaultReactNativeFactoryDelegate, AppDelegate, ReactNativeDelegate, UIApplicationDelegate, UIResponder
@@ -165,10 +148,6 @@ Nodes (5): RCTDefaultReactNativeFactoryDelegate, AppDelegate, ReactNativeDelegat
 ### Community 20 - "Community 20"
 Cohesion: 0.05
 Nodes (43): App Animation Standard, Folder Structure And Naming Standard, Global Frontend Rules, How To Use This Checklist, Phase 1: App Shell And Foundations, Phase 2: Auth And Preview Gate, Phase 3: Customer Shopping Flow, Phase 4: Customer Account And Orders (+35 more)
-
-### Community 21 - "Community 21"
-Cohesion: 0.20
-Nodes (3): styles, styles, spacing
 
 ### Community 22 - "Community 22"
 Cohesion: 0.40
@@ -183,44 +162,36 @@ Cohesion: 0.08
 Nodes (36): adminAuthApi, adminCustomersApi, adminDashboardApi, adminImagesApi, adminOrdersApi, adminProductsApi, adminSettingsApi, ApiError (+28 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.15
-Nodes (6): styles, styles, styles, colors, palette, shadows
-
-### Community 33 - "Community 33"
-Cohesion: 0.17
-Nodes (3): styles, styles, styles
+Cohesion: 0.11
+Nodes (7): styles, styles, styles, styles, colors, palette, shadows
 
 ### Community 35 - "Community 35"
-Cohesion: 0.18
-Nodes (6): CartScreen(), styles, CheckoutScreen(), styles, OrderDetailScreen(), useSettingsStore
+Cohesion: 0.12
+Nodes (9): CartScreen(), styles, CheckoutScreen(), styles, OrderDetailScreen(), STATUS_STEPS, styles, ProfileScreen() (+1 more)
+
+### Community 43 - "Community 43"
+Cohesion: 0.14
+Nodes (6): styles, styles, styles, styles, spacing, typography
 
 ### Community 44 - "Community 44"
 Cohesion: 0.33
 Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
-Cohesion: 0.06
-Nodes (26): PAYMENT_FILTERS, STATUS_FILTERS, styles, AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles (+18 more)
+Cohesion: 0.07
+Nodes (23): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles (+15 more)
 
 ### Community 46 - "Community 46"
-Cohesion: 0.33
-Nodes (3): PAYMENT_COLORS, STATUS_COLORS, styles
+Cohesion: 0.13
+Nodes (4): styles, PAYMENT_COLORS, STATUS_COLORS, styles
 
 ### Community 47 - "Community 47"
-Cohesion: 0.20
-Nodes (7): styles, borderWidth, themePlaceholder, fontFamily, fontSizes, fontWeights, lineHeights
-
-### Community 48 - "Community 48"
-Cohesion: 0.20
-Nodes (3): styles, styles, layout
-
-### Community 49 - "Community 49"
-Cohesion: 0.40
-Nodes (3): AuthScreen(), styles, radius
+Cohesion: 0.13
+Nodes (9): styles, styles, styles, themePlaceholder, layout, fontFamily, fontSizes, fontWeights (+1 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.18
-Nodes (7): AdminLoginScreen(), styles, AdminNavigator(), Stack, RootNavigator(), ROUTES, useAdminAuthStore
+Cohesion: 0.06
+Nodes (16): adminScreensPlaceholder, PAYMENT_FILTERS, STATUS_FILTERS, styles, AVAILABILITY, CATEGORIES, initialMockProducts, styles (+8 more)
 
 ### Community 51 - "Community 51"
 Cohesion: 0.50
@@ -235,50 +206,42 @@ Cohesion: 0.67
 Nodes (3): Included, Not Included, V1 Scope
 
 ### Community 54 - "Community 54"
-Cohesion: 0.17
+Cohesion: 0.18
 Nodes (9): asBoolean(), asText(), DEFAULT_FORM, getOfferData(), getPayloadData(), normalizeSettings(), NUMERIC_FIELDS, pickFirst() (+1 more)
 
 ### Community 56 - "Community 56"
-Cohesion: 0.16
+Cohesion: 0.18
 Nodes (6): asBoolean(), CustomerCard(), formatShortAddress(), normalizeCustomer(), pickFirst(), styles
 
-### Community 57 - "Community 57"
-Cohesion: 0.25
-Nodes (3): styles, styles, typography
-
 ### Community 58 - "Community 58"
-Cohesion: 0.29
+Cohesion: 0.33
 Nodes (3): ORDER_STATUSES, PAYMENT_STATUSES, styles
 
-### Community 59 - "Community 59"
-Cohesion: 0.25
-Nodes (4): AVAILABILITY, CATEGORIES, initialMockProducts, styles
-
 ### Community 60 - "Community 60"
-Cohesion: 0.07
+Cohesion: 0.08
 Nodes (37): getImageId(), getImageUrl(), styles, CategoriesScreen(), DEFAULT_CHIPS, MOCK_CATEGORIES, MOCK_CHIPS, styles (+29 more)
 
-### Community 62 - "Community 62"
-Cohesion: 0.24
-Nodes (3): AdminEntryScreen(), styles, styles
+### Community 64 - "Community 64"
+Cohesion: 0.22
+Nodes (4): styles, styles, borderWidth, radius
 
 ### Community 65 - "Community 65"
-Cohesion: 0.33
-Nodes (4): FILTER_CHIPS, MOCK_ORDERS, OrdersScreen(), styles
+Cohesion: 0.09
+Nodes (17): AdminDashboardScreen(), styles, AdminEntryScreen(), styles, AdminLoginScreen(), styles, AuthScreen(), styles (+9 more)
 
 ## Knowledge Gaps
 - **341 isolated node(s):** `id`, `name`, `resources`, `name`, `version` (+336 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **19 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **12 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `colors` connect `Community 30` to `Community 15`, `Community 17`, `Community 21`, `Community 28`, `Community 33`, `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 49`, `Community 50`, `Community 54`, `Community 56`, `Community 57`, `Community 58`, `Community 59`, `Community 60`, `Community 61`, `Community 62`, `Community 63`, `Community 64`, `Community 65`, `Community 66`, `Community 67`?**
-  _High betweenness centrality (0.029) - this node is a cross-community bridge._
-- **Why does `typography` connect `Community 57` to `Community 15`, `Community 17`, `Community 21`, `Community 28`, `Community 30`, `Community 33`, `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 49`, `Community 50`, `Community 54`, `Community 56`, `Community 58`, `Community 59`, `Community 60`, `Community 62`, `Community 63`, `Community 64`, `Community 65`, `Community 66`, `Community 67`?**
+- **Why does `colors` connect `Community 30` to `Community 64`, `Community 65`, `Community 33`, `Community 35`, `Community 43`, `Community 45`, `Community 60`, `Community 47`, `Community 15`, `Community 46`, `Community 50`, `Community 21`, `Community 54`, `Community 56`, `Community 58`, `Community 28`?**
+  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+- **Why does `typography` connect `Community 43` to `Community 64`, `Community 65`, `Community 33`, `Community 35`, `Community 45`, `Community 46`, `Community 47`, `Community 15`, `Community 28`, `Community 50`, `Community 21`, `Community 54`, `Community 56`, `Community 58`, `Community 60`, `Community 30`?**
   _High betweenness centrality (0.022) - this node is a cross-community bridge._
-- **Why does `spacing` connect `Community 21` to `Community 15`, `Community 17`, `Community 28`, `Community 30`, `Community 33`, `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 49`, `Community 50`, `Community 54`, `Community 56`, `Community 57`, `Community 58`, `Community 59`, `Community 60`, `Community 62`, `Community 64`, `Community 65`, `Community 66`, `Community 67`?**
+- **Why does `spacing` connect `Community 43` to `Community 64`, `Community 65`, `Community 33`, `Community 35`, `Community 45`, `Community 46`, `Community 47`, `Community 15`, `Community 28`, `Community 50`, `Community 21`, `Community 54`, `Community 56`, `Community 58`, `Community 60`, `Community 30`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **What connects `id`, `name`, `resources` to the rest of the system?**
   _341 weakly-connected nodes found - possible documentation gaps or missing edges._

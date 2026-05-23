@@ -17,8 +17,11 @@ import {
   OrderDetailScreen,
   EditProfileScreen,
   AuthScreen,
+} from '../screens/customer';
+
+import {
   AdminEntryScreen,
-} from '../screens';
+} from '../screens/admin';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
