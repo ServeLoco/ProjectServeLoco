@@ -400,112 +400,139 @@
       "norm_label": "task f-31: final acceptance checklist"
     },
     {
+      "label": "CheckoutScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
+      "source_location": "L1",
+      "id": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js",
+      "community": 67,
+      "norm_label": "checkoutscreen.js"
+    },
+    {
+      "label": "CheckoutScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
+      "source_location": "L30",
+      "id": "checkoutscreen_checkoutscreen_checkoutscreen",
+      "community": 67,
+      "norm_label": "checkoutscreen()"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
+      "source_location": "L254",
+      "id": "checkoutscreen_checkoutscreen_styles",
+      "community": 67,
+      "norm_label": "styles"
+    },
+    {
       "label": "QuantityStepper.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
       "community": 43,
-      "norm_label": "quantitystepper.js"
+      "norm_label": "quantitystepper.js",
+      "id": "frontend_v1_src_components_quantitystepper_quantitystepper_js"
     },
     {
       "label": "QuantityStepper()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L30",
-      "id": "quantitystepper_quantitystepper_quantitystepper",
       "community": 43,
-      "norm_label": "quantitystepper()"
+      "norm_label": "quantitystepper()",
+      "id": "quantitystepper_quantitystepper_quantitystepper"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L110",
-      "id": "quantitystepper_quantitystepper_styles",
       "community": 43,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "quantitystepper_quantitystepper_styles"
     },
     {
       "label": "CartScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_cartscreen_cartscreen_js",
       "community": 65,
-      "norm_label": "cartscreen.js"
+      "norm_label": "cartscreen.js",
+      "id": "frontend_v1_src_screens_cartscreen_cartscreen_js"
     },
     {
       "label": "CartScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
       "source_location": "L31",
-      "id": "cartscreen_cartscreen_cartscreen",
       "community": 65,
-      "norm_label": "cartscreen()"
+      "norm_label": "cartscreen()",
+      "id": "cartscreen_cartscreen_cartscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
       "source_location": "L270",
-      "id": "cartscreen_cartscreen_styles",
       "community": 65,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "cartscreen_cartscreen_styles"
     },
     {
       "label": "ProductListScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
       "community": 74,
-      "norm_label": "productlistscreen.js"
+      "norm_label": "productlistscreen.js",
+      "id": "frontend_v1_src_screens_productlistscreen_productlistscreen_js"
     },
     {
       "label": "MOCK_PRODUCTS",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L35",
-      "id": "productlistscreen_productlistscreen_mock_products",
       "community": 74,
-      "norm_label": "mock_products"
+      "norm_label": "mock_products",
+      "id": "productlistscreen_productlistscreen_mock_products"
     },
     {
       "label": "CATEGORY_CHIPS",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L44",
-      "id": "productlistscreen_productlistscreen_category_chips",
       "community": 74,
-      "norm_label": "category_chips"
+      "norm_label": "category_chips",
+      "id": "productlistscreen_productlistscreen_category_chips"
     },
     {
       "label": "SORT_OPTIONS",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L45",
-      "id": "productlistscreen_productlistscreen_sort_options",
       "community": 74,
-      "norm_label": "sort_options"
+      "norm_label": "sort_options",
+      "id": "productlistscreen_productlistscreen_sort_options"
     },
     {
       "label": "ProductListScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L47",
-      "id": "productlistscreen_productlistscreen_productlistscreen",
       "community": 74,
-      "norm_label": "productlistscreen()"
+      "norm_label": "productlistscreen()",
+      "id": "productlistscreen_productlistscreen_productlistscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L352",
-      "id": "productlistscreen_productlistscreen_styles",
       "community": 74,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "productlistscreen_productlistscreen_styles"
     },
     {
       "label": "ProductDetailScreen.js",
@@ -1658,33 +1685,6 @@
       "community": 66,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_categoriesscreen_index_js"
-    },
-    {
-      "label": "CheckoutScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
-      "source_location": "L1",
-      "community": 67,
-      "norm_label": "checkoutscreen.js",
-      "id": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js"
-    },
-    {
-      "label": "CheckoutScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
-      "source_location": "L6",
-      "community": 67,
-      "norm_label": "checkoutscreen()",
-      "id": "checkoutscreen_checkoutscreen_checkoutscreen"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
-      "source_location": "L14",
-      "community": 67,
-      "norm_label": "styles",
-      "id": "checkoutscreen_checkoutscreen_styles"
     },
     {
       "label": "index.js",
@@ -6630,6 +6630,37 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js",
+      "target": "checkoutscreen_checkoutscreen_checkoutscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js",
+      "target": "checkoutscreen_checkoutscreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/CheckoutScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_checkoutscreen_index_js",
+      "target": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L22",
       "weight": 1.0,
@@ -8398,37 +8429,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
       "target": "frontend_v1_src_screens_categoriesscreen_index_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js",
-      "target": "checkoutscreen_checkoutscreen_checkoutscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js",
-      "target": "checkoutscreen_checkoutscreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/CheckoutScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_checkoutscreen_index_js",
-      "target": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js"
     },
     {
       "relation": "re_exports",
@@ -16110,5 +16110,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "3d669acb450a7994df254cc41f80b6110b831775"
+  "built_at_commit": "d783b15907e204bdb3128b9ea5db185d17a00ac1"
 }

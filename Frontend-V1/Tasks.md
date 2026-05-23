@@ -324,18 +324,18 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-15: Order Confirmation Screen
 
-- [ ] Show success title.
-- [ ] Show order id.
-- [ ] Show estimated/current status label.
-- [ ] Show delivery address summary.
-- [ ] Show total paid or payable.
-- [ ] Add primary button: `View Order`.
-- [ ] Add secondary button: `Continue Shopping`.
-- [ ] `View Order` opens Order Detail.
-- [ ] `Continue Shopping` opens Home and clears checkout state.
-- [ ] Animate success mark with one scale-in.
-- [ ] Animate order details fade-in after success mark.
-- [ ] Animate action buttons sliding up together.
+- [x] Show success title.
+- [x] Show order id.
+- [x] Show estimated/current status label.
+- [x] Show delivery address summary.
+- [x] Show total paid or payable.
+- [x] Add primary button: `View Order`.
+- [x] Add secondary button: `Continue Shopping`.
+- [x] `View Order` opens Order Detail.
+- [x] `Continue Shopping` opens Home and clears checkout state.
+- [x] Animate success mark with one scale-in.
+- [x] Animate order details fade-in after success mark.
+- [x] Animate action buttons sliding up together.
 
 ## Phase 4: Customer Account And Orders
 
