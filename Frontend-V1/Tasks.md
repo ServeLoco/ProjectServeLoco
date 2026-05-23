@@ -489,27 +489,27 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-25: Admin Products Screen
 
-- [ ] Build header with title, search input, and add icon/button.
-- [ ] Add category chips.
-- [ ] Add availability chip.
-- [ ] Add sort button.
-- [ ] Product row/card shows image, product name, category, price, and availability state.
-- [ ] Add `Add Product` button.
-- [ ] Add edit icon button.
-- [ ] Add delete icon button.
-- [ ] Add availability toggle.
-- [ ] Add image upload/change icon button.
-- [ ] Add empty catalog state with `Add Product`.
-- [ ] Add confirm delete modal with `Keep Product` and `Delete`.
-- [ ] Create through `POST /admin/products`.
-- [ ] Update through `PATCH /admin/products/:id`.
-- [ ] Delete through `DELETE /admin/products/:id`.
-- [ ] Toggle availability through `PATCH /admin/products/:id/availability`.
-- [ ] Attach image through `PATCH /admin/products/:id/image`.
-- [ ] Animate product rows with staggered entry.
-- [ ] Animate availability toggle thumb and color change.
-- [ ] Animate delete confirmation modal with backdrop fade and dialog scale.
-- [ ] Animate deleted product row collapse/fade-out.
+- [x] Build header with title, search input, and add icon/button.
+- [x] Add category chips.
+- [x] Add availability chip.
+- [x] Add sort button.
+- [x] Product row/card shows image, product name, category, price, and availability state.
+- [x] Add `Add Product` button.
+- [x] Add edit icon button.
+- [x] Add delete icon button.
+- [x] Add availability toggle.
+- [x] Add image upload/change icon button.
+- [x] Add empty catalog state with `Add Product`.
+- [x] Add confirm delete modal with `Keep Product` and `Delete`.
+- [x] Create through `POST /admin/products`.
+- [x] Update through `PATCH /admin/products/:id`.
+- [x] Delete through `DELETE /admin/products/:id`.
+- [x] Toggle availability through `PATCH /admin/products/:id/availability`.
+- [x] Attach image through `PATCH /admin/products/:id/image`.
+- [x] Animate product rows with staggered entry.
+- [x] Animate availability toggle thumb and color change.
+- [x] Animate delete confirmation modal with backdrop fade and dialog scale.
+- [x] Animate deleted product row collapse/fade-out.
 
 ### Task F-26: Admin Product Form Screen
 
