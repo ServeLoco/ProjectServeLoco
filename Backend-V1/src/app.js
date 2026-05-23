@@ -19,15 +19,12 @@ const offerRoutes = require('./routes/offerRoutes');
 
 const app = express();
 
-// Request logging for development
-if (config.NODE_ENV !== 'production') {
-  app.use(morgan('dev'));
-}
+// Request logging — dev uses concise format, production uses combined for audit
+app.use(morgan(config.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // Middleware
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Allow image loading across origins
-app.use(morgan('combined')); // Basic audit logging
 
 const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS ? process.env.CORS_ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://10.0.2.2:3000', '*'];
 app.use(cors({

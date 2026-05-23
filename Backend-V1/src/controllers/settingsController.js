@@ -20,7 +20,7 @@ const getSettings = async (req, res) => {
 };
 
 const getActiveOffer = async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM offers WHERE active = 1 AND (valid_until IS NULL OR valid_until > NOW()) ORDER BY id DESC LIMIT 1');
+  const [rows] = await pool.query('SELECT * FROM offers WHERE active = 1 ORDER BY id DESC LIMIT 1');
   
   if (rows.length === 0) {
     return res.status(200).json({ data: null });
@@ -59,8 +59,10 @@ const updateSettings = async (req, res) => {
   if (rows.length === 0) {
     await pool.query('INSERT INTO settings (shop_open) VALUES (1)');
   }
+  const [settingsIdRow] = await pool.query('SELECT id FROM settings LIMIT 1');
+  const settingsId = settingsIdRow[0].id;
 
-  await pool.query(`UPDATE settings SET ${updates.join(', ')}`, params);
+  await pool.query(`UPDATE settings SET ${updates.join(', ')} WHERE id = ?`, [...params, settingsId]);
   const [updatedRows] = await pool.query('SELECT * FROM settings LIMIT 1');
 
   res.status(200).json({ message: 'Settings updated successfully', data: updatedRows[0] });

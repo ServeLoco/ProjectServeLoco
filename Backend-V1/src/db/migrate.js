@@ -25,6 +25,7 @@ const migrate = async () => {
         password_hash VARCHAR(255) NOT NULL,
         whatsapp_number VARCHAR(20),
         address TEXT,
+        short_address VARCHAR(255),
         trusted BOOLEAN DEFAULT FALSE,
         blocked BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

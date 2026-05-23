@@ -4,6 +4,12 @@ const { hashPassword, comparePassword, signCustomerToken } = require('../utils/a
 const register = async (req, res) => {
   const { name, phone, password, address, whatsapp_number } = req.validatedData;
 
+  // Check duplicate phone before INSERT to return a clean error
+  const [existing] = await pool.query('SELECT id FROM users WHERE phone = ?', [phone]);
+  if (existing.length > 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Phone number already registered' });
+  }
+
   const hashedPassword = await hashPassword(password);
 
   const [result] = await pool.query(

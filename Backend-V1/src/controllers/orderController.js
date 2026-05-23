@@ -23,7 +23,11 @@ const createOrder = async (req, res) => {
   try {
     const [userRows] = await connection.query('SELECT * FROM users WHERE id = ?', [userId]);
     const user = userRows[0];
-    if (user.blocked) throw new Error('User is blocked');
+    if (user.blocked) {
+      await connection.rollback();
+      connection.release();
+      return res.status(403).json({ code: 'FORBIDDEN', message: 'Your account is blocked' });
+    }
 
     const [settingRows] = await connection.query('SELECT * FROM settings LIMIT 1');
     const settings = settingRows[0];
@@ -63,10 +67,22 @@ const createOrder = async (req, res) => {
     }
 
     let nightCharge = 0;
-    const nowStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const isNight = (nowStr >= settings.night_charge_start || nowStr <= settings.night_charge_end);
-    if (isNight) {
-      nightCharge = parseFloat(settings.night_charge);
+    if (settings.night_charge && parseFloat(settings.night_charge) > 0 &&
+        settings.night_charge_start && settings.night_charge_end) {
+      const toMinutes = (t) => {
+        const str = typeof t === 'string' ? t : String(t);
+        const parts = str.split(':').map(Number);
+        return (parts[0] || 0) * 60 + (parts[1] || 0);
+      };
+      const now = new Date();
+      const nowIST = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const nowMinutes = nowIST.getHours() * 60 + nowIST.getMinutes();
+      const startMin = toMinutes(settings.night_charge_start);
+      const endMin = toMinutes(settings.night_charge_end);
+      const isNight = startMin > endMin
+        ? (nowMinutes >= startMin || nowMinutes <= endMin)
+        : (nowMinutes >= startMin && nowMinutes <= endMin);
+      if (isNight) nightCharge = parseFloat(settings.night_charge);
     }
 
     const total = subtotal + deliveryCharge + nightCharge;
@@ -163,16 +179,16 @@ const cancelOrder = async (req, res) => {
   }
 
   const order = orderRows[0];
-  if (order.status === 'Delivered' || order.status === 'Canceled') {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Order cannot be canceled at this stage' });
+  if (order.status !== 'Pending') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Only pending orders can be cancelled' });
   }
 
   await pool.query(
-    'UPDATE orders SET status = "Canceled", cancel_reason = ? WHERE id = ?',
+    'UPDATE orders SET status = "Cancelled", cancel_reason = ? WHERE id = ?',
     [reason || null, id]
   );
 
-  res.status(200).json({ message: 'Order canceled successfully' });
+  res.status(200).json({ message: 'Order cancelled successfully' });
 };
 
 module.exports = {

@@ -52,15 +52,17 @@ const profileSchema = (req) => {
   };
 
   if (!isString(data.name)) errors.name = 'Name is required';
-  if (!isString(data.address)) errors.address = 'Address is required';
+  // address and whatsapp_number are optional updates
 
   return { errors, data };
 };
 
 // Routes
 router.post('/register', authLimiter, validate(registerSchema), asyncHandler(register));
+router.post('/signup', authLimiter, validate(registerSchema), asyncHandler(register)); // alias for frontend
 router.post('/login', authLimiter, validate(loginSchema), asyncHandler(login));
 router.get('/me', requireCustomer, asyncHandler(me));
 router.put('/profile', requireCustomer, validate(profileSchema), asyncHandler(updateProfile));
+router.patch('/profile', requireCustomer, validate(profileSchema), asyncHandler(updateProfile)); // PATCH alias
 
 module.exports = router;

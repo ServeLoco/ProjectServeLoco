@@ -116,15 +116,24 @@ const getDashboard = async (req, res) => {
 
   const [[settingsRow]] = await pool.query('SELECT shop_open FROM settings LIMIT 1');
 
-  const metrics = { ...metricsRow };
-
   res.status(200).json({
-    ...metrics,
-    metrics,
-    shop_open: settingsRow ? !!settingsRow.shop_open : true,
-    latest_orders: latestOrders,
-    product_alerts: unavailableProducts,
-    top_products: topProducts
+    data: {
+      sales: {
+        totalSales: metricsRow.today_sales,
+        todaySales: metricsRow.today_sales,
+        totalOrders: metricsRow.today_orders,
+        todayOrders: metricsRow.today_orders,
+        pendingOrders: metricsRow.pending_orders,
+        deliveredOrders: metricsRow.delivered_orders,
+        cashTotal: metricsRow.cash_total,
+        upiTotal: metricsRow.upi_total,
+        pendingPaymentTotal: metricsRow.pending_payment_total
+      },
+      shop_open: settingsRow ? !!settingsRow.shop_open : true,
+      latest_orders: latestOrders,
+      product_alerts: unavailableProducts,
+      top_products: topProducts
+    }
   });
 };
 
@@ -227,11 +236,14 @@ const getAdminOrderById = async (req, res) => {
 
 const updateOrderStatus = async (req, res) => {
   const { id } = req.params;
-  const { status, cancel_reason } = req.body;
+  let { status, cancel_reason } = req.body;
 
-  const validStatuses = ['Pending', 'Preparing', 'Out for Delivery', 'Delivered', 'Canceled', 'Cancelled'];
+  // Normalize spelling to match DB ENUM
+  if (status === 'Canceled') status = 'Cancelled';
+
+  const validStatuses = ['Pending', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
   if (!status || !validStatuses.includes(status)) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Valid status is required' });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Valid status required. One of: ${validStatuses.join(', ')}` });
   }
 
   const [orderRows] = await pool.query('SELECT status FROM orders WHERE id = ?', [id]);
@@ -240,8 +252,18 @@ const updateOrderStatus = async (req, res) => {
   }
   const currentStatus = orderRows[0].status;
 
-  if (currentStatus === 'Delivered' || currentStatus === 'Canceled' || currentStatus === 'Cancelled') {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot change status of a delivered or canceled order' });
+  // Terminal states cannot be changed
+  if (currentStatus === 'Delivered' || currentStatus === 'Cancelled') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot change status of a delivered or cancelled order' });
+  }
+
+  // Enforce forward-only progression
+  const statusOrder = ['Pending', 'Preparing', 'Out for Delivery', 'Delivered'];
+  const currentIdx = statusOrder.indexOf(currentStatus);
+  const newIdx = statusOrder.indexOf(status);
+  // Allow Cancelled from any non-terminal state, otherwise enforce progression
+  if (status !== 'Cancelled' && newIdx !== -1 && currentIdx !== -1 && newIdx <= currentIdx) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Cannot move order from '${currentStatus}' back to '${status}'` });
   }
 
   await pool.query('UPDATE orders SET status = ?, cancel_reason = ? WHERE id = ?', [status, cancel_reason || null, id]);

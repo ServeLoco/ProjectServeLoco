@@ -38,11 +38,24 @@ const calculateCart = async (req, res) => {
   }
 
   let nightCharge = 0;
-  const nowStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const isNight = settings.night_charge_start && settings.night_charge_end && 
-                  (nowStr >= settings.night_charge_start || nowStr <= settings.night_charge_end);
-  if (isNight) {
-    nightCharge = parseFloat(settings.night_charge);
+  if (settings.night_charge && parseFloat(settings.night_charge) > 0 &&
+      settings.night_charge_start && settings.night_charge_end) {
+    // Parse time to minutes since midnight for reliable comparison
+    const toMinutes = (t) => {
+      const str = typeof t === 'string' ? t : String(t);
+      const parts = str.split(':').map(Number);
+      return (parts[0] || 0) * 60 + (parts[1] || 0);
+    };
+    const now = new Date();
+    const nowIST = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const nowMinutes = nowIST.getHours() * 60 + nowIST.getMinutes();
+    const startMin = toMinutes(settings.night_charge_start);
+    const endMin = toMinutes(settings.night_charge_end);
+    // Overnight window (e.g. 21:00 to 07:00): start > end
+    const isNight = startMin > endMin
+      ? (nowMinutes >= startMin || nowMinutes <= endMin)
+      : (nowMinutes >= startMin && nowMinutes <= endMin);
+    if (isNight) nightCharge = parseFloat(settings.night_charge);
   }
 
   let discount = 0; // if offers apply, could be calculated here
