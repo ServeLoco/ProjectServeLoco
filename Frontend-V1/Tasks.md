@@ -389,16 +389,16 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-19: Edit Profile Screen
 
-- [ ] Add fields for full name, WhatsApp number, and delivery address.
-- [ ] Add primary button: `Save Changes`.
-- [ ] Add secondary button: `Cancel`.
-- [ ] Add inline validation.
-- [ ] Add save loading state.
-- [ ] Save through `PATCH /auth/profile`.
-- [ ] Return to Profile after successful save.
-- [ ] Animate fields with slight staggered entry.
-- [ ] Animate validation errors with fade-in and optional shake.
-- [ ] Animate save button loading and short success state before returning.
+- [x] Add fields for full name, WhatsApp number, and delivery address.
+- [x] Add primary button: `Save Changes`.
+- [x] Add secondary button: `Cancel`.
+- [x] Add inline validation.
+- [x] Add save loading state.
+- [x] Save through `PATCH /auth/profile`.
+- [x] Return to Profile after successful save.
+- [x] Animate fields with slight staggered entry.
+- [x] Animate validation errors with fade-in and optional shake.
+- [x] Animate save button loading and short success state before returning.
 
 ## Phase 5: Admin Flow
 

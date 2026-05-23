@@ -400,58 +400,94 @@
       "norm_label": "task f-31: final acceptance checklist"
     },
     {
+      "label": "ProfileScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
+      "source_location": "L1",
+      "id": "frontend_v1_src_screens_profilescreen_profilescreen_js",
+      "community": 75,
+      "norm_label": "profilescreen.js"
+    },
+    {
+      "label": "ProfileScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
+      "source_location": "L21",
+      "id": "profilescreen_profilescreen_profilescreen",
+      "community": 75,
+      "norm_label": "profilescreen()"
+    },
+    {
+      "label": "MenuOption()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
+      "source_location": "L213",
+      "id": "profilescreen_profilescreen_menuoption",
+      "community": 75,
+      "norm_label": "menuoption()"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
+      "source_location": "L229",
+      "id": "profilescreen_profilescreen_styles",
+      "community": 75,
+      "norm_label": "styles"
+    },
+    {
       "label": "OrderDetailScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_orderdetailscreen_orderdetailscreen_js",
       "community": 71,
-      "norm_label": "orderdetailscreen.js"
+      "norm_label": "orderdetailscreen.js",
+      "id": "frontend_v1_src_screens_orderdetailscreen_orderdetailscreen_js"
     },
     {
       "label": "fetchOrderMock()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L23",
-      "id": "orderdetailscreen_orderdetailscreen_fetchordermock",
       "community": 71,
-      "norm_label": "fetchordermock()"
+      "norm_label": "fetchordermock()",
+      "id": "orderdetailscreen_orderdetailscreen_fetchordermock"
     },
     {
       "label": "STATUS_STEPS",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L49",
-      "id": "orderdetailscreen_orderdetailscreen_status_steps",
       "community": 71,
-      "norm_label": "status_steps"
+      "norm_label": "status_steps",
+      "id": "orderdetailscreen_orderdetailscreen_status_steps"
     },
     {
       "label": "OrderDetailScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L56",
-      "id": "orderdetailscreen_orderdetailscreen_orderdetailscreen",
       "community": 71,
-      "norm_label": "orderdetailscreen()"
+      "norm_label": "orderdetailscreen()",
+      "id": "orderdetailscreen_orderdetailscreen_orderdetailscreen"
     },
     {
       "label": "TimelineStep()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L279",
-      "id": "orderdetailscreen_orderdetailscreen_timelinestep",
       "community": 71,
-      "norm_label": "timelinestep()"
+      "norm_label": "timelinestep()",
+      "id": "orderdetailscreen_orderdetailscreen_timelinestep"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L309",
-      "id": "orderdetailscreen_orderdetailscreen_styles",
       "community": 71,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "orderdetailscreen_orderdetailscreen_styles"
     },
     {
       "label": "OrdersScreen.js",
@@ -764,7 +800,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "appheader.js",
       "id": "frontend_v1_src_components_appheader_appheader_js"
     },
@@ -773,7 +809,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L25",
-      "community": 15,
+      "community": 30,
       "norm_label": "appheader()",
       "id": "appheader_appheader_appheader"
     },
@@ -782,7 +818,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L126",
-      "community": 15,
+      "community": 30,
       "norm_label": "styles",
       "id": "appheader_appheader_styles"
     },
@@ -1912,33 +1948,6 @@
       "id": "frontend_v1_src_screens_productlistscreen_index_js"
     },
     {
-      "label": "ProfileScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
-      "source_location": "L1",
-      "community": 75,
-      "norm_label": "profilescreen.js",
-      "id": "frontend_v1_src_screens_profilescreen_profilescreen_js"
-    },
-    {
-      "label": "ProfileScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
-      "source_location": "L6",
-      "community": 75,
-      "norm_label": "profilescreen()",
-      "id": "profilescreen_profilescreen_profilescreen"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
-      "source_location": "L14",
-      "community": 75,
-      "norm_label": "styles",
-      "id": "profilescreen_profilescreen_styles"
-    },
-    {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/index.js",
@@ -2951,7 +2960,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
-      "community": 63,
+      "community": 15,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textbutton_index_js"
     },
@@ -2960,7 +2969,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
-      "community": 63,
+      "community": 15,
       "norm_label": "textbutton.js",
       "id": "frontend_v1_src_components_textbutton_textbutton_js"
     },
@@ -2969,7 +2978,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
-      "community": 63,
+      "community": 15,
       "norm_label": "textbutton()",
       "id": "textbutton_textbutton_textbutton"
     },
@@ -2978,7 +2987,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
-      "community": 63,
+      "community": 15,
       "norm_label": "styles",
       "id": "textbutton_textbutton_styles"
     },
@@ -3419,7 +3428,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 63,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_confirmmodal_index_js"
     },
@@ -3428,7 +3437,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 63,
       "norm_label": "confirmmodal.js",
       "id": "frontend_v1_src_components_confirmmodal_confirmmodal_js"
     },
@@ -3437,7 +3446,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L27",
-      "community": 30,
+      "community": 63,
       "norm_label": "confirmmodal()",
       "id": "confirmmodal_confirmmodal_confirmmodal"
     },
@@ -3446,7 +3455,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L93",
-      "community": 30,
+      "community": 63,
       "norm_label": "styles",
       "id": "confirmmodal_confirmmodal_styles"
     },
@@ -3635,7 +3644,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/index.js",
       "source_location": "L1",
-      "community": 49,
+      "community": 78,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_segmentedcontrol_index_js"
     },
@@ -3644,7 +3653,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L1",
-      "community": 49,
+      "community": 78,
       "norm_label": "segmentedcontrol.js",
       "id": "frontend_v1_src_components_segmentedcontrol_segmentedcontrol_js"
     },
@@ -3653,7 +3662,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L15",
-      "community": 49,
+      "community": 78,
       "norm_label": "segmentedcontrol()",
       "id": "segmentedcontrol_segmentedcontrol_segmentedcontrol"
     },
@@ -3662,7 +3671,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L45",
-      "community": 49,
+      "community": 78,
       "norm_label": "styles",
       "id": "segmentedcontrol_segmentedcontrol_styles"
     },
@@ -3743,7 +3752,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appheader_index_js"
     },
@@ -4112,7 +4121,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 45,
       "norm_label": "motion.js",
       "id": "frontend_v1_src_theme_motion_js"
     },
@@ -4121,7 +4130,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L24",
-      "community": 17,
+      "community": 45,
       "norm_label": "easing",
       "id": "theme_motion_easing"
     },
@@ -4130,7 +4139,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L27",
-      "community": 17,
+      "community": 45,
       "norm_label": "easingmodal",
       "id": "theme_motion_easingmodal"
     },
@@ -6675,12 +6684,53 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_profilescreen_profilescreen_js",
+      "target": "profilescreen_profilescreen_profilescreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
+      "source_location": "L213",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_profilescreen_profilescreen_js",
+      "target": "profilescreen_profilescreen_menuoption",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_profilescreen_profilescreen_js",
+      "target": "profilescreen_profilescreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProfileScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_profilescreen_index_js",
+      "target": "frontend_v1_src_screens_profilescreen_profilescreen_js"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_orderdetailscreen_orderdetailscreen_js",
-      "target": "orderdetailscreen_orderdetailscreen_fetchordermock",
-      "confidence_score": 1.0
+      "target": "orderdetailscreen_orderdetailscreen_fetchordermock"
     },
     {
       "relation": "contains",
@@ -6688,9 +6738,9 @@
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L49",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_orderdetailscreen_orderdetailscreen_js",
-      "target": "orderdetailscreen_orderdetailscreen_status_steps",
-      "confidence_score": 1.0
+      "target": "orderdetailscreen_orderdetailscreen_status_steps"
     },
     {
       "relation": "contains",
@@ -6708,9 +6758,9 @@
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/OrderDetailScreen.js",
       "source_location": "L279",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_orderdetailscreen_orderdetailscreen_js",
-      "target": "orderdetailscreen_orderdetailscreen_timelinestep",
-      "confidence_score": 1.0
+      "target": "orderdetailscreen_orderdetailscreen_timelinestep"
     },
     {
       "relation": "contains",
@@ -8736,37 +8786,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
       "target": "frontend_v1_src_screens_productlistscreen_index_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_profilescreen_profilescreen_js",
-      "target": "profilescreen_profilescreen_profilescreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_profilescreen_profilescreen_js",
-      "target": "profilescreen_profilescreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProfileScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_profilescreen_index_js",
-      "target": "frontend_v1_src_screens_profilescreen_profilescreen_js"
     },
     {
       "relation": "re_exports",
@@ -16205,5 +16224,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "cc21ba4d5ceaf51636b3b605dcba759da7124863"
+  "built_at_commit": "56852ea3aef8ec2bf919815a87f9a8e103be97d2"
 }
