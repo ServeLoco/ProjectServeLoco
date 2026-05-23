@@ -177,31 +177,32 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-08: Login And Sign Up Screen
 
-- [ ] Build a full-screen auth layout with ServeLoco brand/logo placeholder.
-- [ ] Add trust line: `Food, snacks and essentials delivered fast`.
-- [ ] Add a small local illustration or product image placeholder.
-- [ ] Add elevated auth card with segmented tabs: `Login` and `Sign Up`.
-- [ ] Make `Login` the default tab.
-- [ ] Login fields: phone number, password, password eye icon.
-- [ ] Login buttons: `Login`, `Create an account`.
-- [ ] Sign Up fields: full name, phone number, WhatsApp number, delivery address, password, confirm password.
-- [ ] Sign Up buttons: `Create Account`, `Already have an account`.
-- [ ] Add required field validation.
-- [ ] Add password confirmation validation.
-- [ ] Show inline API errors above the primary button.
-- [ ] Show loading state and disable inputs while submitting.
-- [ ] Call `POST /auth/login` for login.
-- [ ] Call `POST /auth/signup` for signup.
-- [ ] Store returned customer JWT/session.
-- [ ] Navigate to Home after successful auth.
-- [ ] Animate brand and trust line with fade plus upward slide on screen load.
-- [ ] Animate illustration with slow vertical float loop.
-- [ ] Animate auth card fade-in after brand animation.
-- [ ] Animate active tab indicator sliding between `Login` and `Sign Up`.
-- [ ] Animate form content with crossfade and horizontal slide on tab change.
-- [ ] Animate card height when switching between login and signup forms.
-- [ ] Animate invalid fields with short shake and inline error fade-in.
-- [ ] Animate primary button loading state while submitting.
+- [x] Build a full-screen auth layout with ServeLoco brand/logo placeholder.
+- [x] Add trust line: `Food, snacks and essentials delivered fast`.
+- [x] Add a small local illustration or product image placeholder.
+- [x] Add elevated auth card with segmented tabs: `Login` and `Sign Up`.
+- [x] Make `Login` the default tab.
+- [x] Login fields: phone number, password, password eye icon.
+- [x] Login buttons: `Login`, `Create an account`.
+- [x] Sign Up fields: full name, phone number, WhatsApp number, delivery address, password, confirm password.
+- [x] Sign Up buttons: `Create Account`, `Already have an account`.
+- [x] Add required field validation.
+- [x] Add password confirmation validation.
+- [x] Show inline API errors above the primary button.
+- [x] Show loading state and disable inputs while submitting.
+- [x] Call `POST /auth/login` for login.
+- [x] Call `POST /auth/signup` for signup.
+- [x] Store returned customer JWT/session.
+- [x] Navigate to Home after successful auth.
+- [x] Animate brand and trust line with fade plus upward slide on screen load.
+- [x] Animate illustration with slow vertical float loop.
+- [x] Animate auth card with delayed fade plus upward slide.
+- [x] Use animated validation shake for incorrect login attempts.
+- [x] Animate active tab indicator sliding between `Login` and `Sign Up`.
+- [x] Animate form content with crossfade and horizontal slide on tab change.
+- [x] Animate card height when switching between login and signup forms.
+- [x] Animate invalid fields with short shake and inline error fade-in.
+- [x] Animate primary button loading state while submitting.
 
 ## Phase 3: Customer Shopping Flow
 
