@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 180 files · ~38,378 words
+- 180 files · ~39,525 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 690 nodes · 949 edges · 79 communities (45 shown, 34 thin omitted)
+- 693 nodes · 952 edges · 78 communities (44 shown, 34 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `95f9dbf8`
+- Built from commit: `cc21ba4d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -84,7 +84,6 @@
 - [[_COMMUNITY_Community 74|Community 74]]
 - [[_COMMUNITY_Community 75|Community 75]]
 - [[_COMMUNITY_Community 77|Community 77]]
-- [[_COMMUNITY_Community 78|Community 78]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `colors` - 29 edges
@@ -99,8 +98,6 @@
 10. `API Plan` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `AnimatedCartBadge()` --calls--> `useReducedMotion()`  [EXTRACTED]
-  Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js → Frontend-V1/src/utils/motionPreferences.js
 - `useAuthGate()` --calls--> `useAuthStore`  [INFERRED]
   Frontend-V1/src/hooks/useAuthGate.js → Frontend-V1/src/stores/useAuthStore.js
 - `AdminNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
@@ -109,8 +106,10 @@
   Frontend-V1/src/navigation/RootNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
 - `AnimatedQuantitySwitcher()` --calls--> `useReducedMotion()`  [EXTRACTED]
   Frontend-V1/src/components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js → Frontend-V1/src/utils/motionPreferences.js
+- `AnimatedFadeSlide()` --calls--> `useReducedMotion()`  [EXTRACTED]
+  Frontend-V1/src/components/AnimatedFadeSlide/AnimatedFadeSlide.js → Frontend-V1/src/utils/motionPreferences.js
 
-## Communities (79 total, 34 thin omitted)
+## Communities (78 total, 34 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -161,7 +160,7 @@ Cohesion: 0.04
 Nodes (48): 10. Order Detail, 11. Profile, 12. Edit Profile, 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail (+40 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (4): styles, styles, styles, layout
 
 ### Community 16 - "Community 16"
@@ -180,10 +179,6 @@ Nodes (5): RCTDefaultReactNativeFactoryDelegate, AppDelegate, ReactNativeDelegat
 Cohesion: 0.05
 Nodes (43): App Animation Standard, Folder Structure And Naming Standard, Global Frontend Rules, How To Use This Checklist, Phase 1: App Shell And Foundations, Phase 2: Auth And Preview Gate, Phase 3: Customer Shopping Flow, Phase 4: Customer Account And Orders (+35 more)
 
-### Community 21 - "Community 21"
-Cohesion: 0.15
-Nodes (3): styles, styles, styles
-
 ### Community 22 - "Community 22"
 Cohesion: 0.40
 Nodes (4): images, info, author, version
@@ -197,7 +192,7 @@ Cohesion: 0.09
 Nodes (33): adminAuthApi, adminCustomersApi, adminDashboardApi, adminImagesApi, adminOrdersApi, adminProductsApi, adminSettingsApi, ApiError (+25 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.15
+Cohesion: 0.16
 Nodes (6): styles, styles, styles, colors, palette, shadows
 
 ### Community 43 - "Community 43"
@@ -210,7 +205,7 @@ Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
 Cohesion: 0.07
-Nodes (19): AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), AnimatedStickyMiniCart(), AnimatedTabItem(), App() (+11 more)
+Nodes (21): AnimatedCartBadge(), AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), AnimatedStickyMiniCart(), AnimatedTabItem() (+13 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.33
@@ -257,21 +252,21 @@ Cohesion: 0.29
 Nodes (4): CATEGORY_CHIPS, MOCK_PRODUCTS, SORT_OPTIONS, styles
 
 ## Knowledge Gaps
-- **330 isolated node(s):** `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard`, `App Animation Standard`, `Task F-01: Create React Native App Shell` (+325 more)
+- **331 isolated node(s):** `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard`, `App Animation Standard`, `Task F-01: Create React Native App Shell` (+326 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **34 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `colors` connect `Community 30` to `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 15`, `Community 48`, `Community 49`, `Community 78`, `Community 17`, `Community 21`, `Community 63`?**
+- **Why does `colors` connect `Community 30` to `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 15`, `Community 47`, `Community 48`, `Community 49`, `Community 17`, `Community 21`, `Community 63`?**
   _High betweenness centrality (0.021) - this node is a cross-community bridge._
 - **Why does `ServeLoco Main Plan` connect `Community 6` to `Community 14`, `Community 7`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **Why does `Frontend Plan` connect `Community 14` to `Community 6`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **What connects `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard` to the rest of the system?**
-  _330 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _331 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**

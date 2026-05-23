@@ -375,17 +375,17 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-18: Profile Screen
 
-- [ ] Fetch profile through `GET /auth/me`.
-- [ ] Build header with title.
-- [ ] Show customer card with name, phone, WhatsApp number, and delivery address.
-- [ ] Show trust/block warning only if backend exposes a customer-facing status.
-- [ ] Add profile options: `Edit Profile`, `My Orders`, `Saved Address`, `Help and Support`, `Logout`.
-- [ ] Add edit icon button on profile card.
-- [ ] Add logout confirmation modal with `Stay Logged In` and `Logout`.
-- [ ] Logout clears customer session and protected customer state.
-- [ ] Animate profile card fade-in first.
-- [ ] Animate option rows with light staggered entry.
-- [ ] Animate logout confirmation modal with backdrop fade and dialog scale.
+- [x] Fetch profile through `GET /auth/me`.
+- [x] Build header with title.
+- [x] Show customer card with name, phone, WhatsApp number, and delivery address.
+- [x] Show trust/block warning only if backend exposes a customer-facing status.
+- [x] Add profile options: `Edit Profile`, `My Orders`, `Saved Address`, `Help and Support`, `Logout`.
+- [x] Add edit icon button on profile card.
+- [x] Add logout confirmation modal with `Stay Logged In` and `Logout`.
+- [x] Logout clears customer session and protected customer state.
+- [x] Animate profile card fade-in first.
+- [x] Animate option rows with light staggered entry.
+- [x] Animate logout confirmation modal with backdrop fade and dialog scale.
 
 ### Task F-19: Edit Profile Screen
 
