@@ -8,16 +8,46 @@ import {
   Animated,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   Switch,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { AppScreen, AppHeader, TextInputField, Button } from '../../components';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 import { adminImagesApi, adminProductsApi } from '../../api';
-import { normalizeProduct } from '../../utils';
+import { normalizeProduct, pickFirst } from '../../utils';
+
+function getResponseData(response) {
+  return response?.product || response?.data?.product || response?.data || response || {};
+}
+
+function getImageData(response) {
+  return response?.image || response?.data?.image || response?.data || response || {};
+}
+
+function getImageId(image) {
+  return pickFirst(image?.id, image?._id, image?.imageId, image?.image_id, null);
+}
+
+function getImageUrl(image) {
+  return pickFirst(image?.url, image?.imageUrl, image?.image_url, image?.uri, null);
+}
+
+function buildImageFormData(asset) {
+  const uriParts = asset.uri.split('/');
+  const fallbackName = uriParts[uriParts.length - 1] || `product-${Date.now()}.jpg`;
+  const formData = new FormData();
+
+  formData.append('image', {
+    uri: asset.uri,
+    type: asset.type || 'image/jpeg',
+    name: asset.fileName || fallbackName,
+  });
+
+  return formData;
+}
 
 export default function AdminProductFormScreen() {
   const navigation = useNavigation();
@@ -39,9 +69,11 @@ export default function AdminProductFormScreen() {
     description: '',
     isAvailable: true,
     image: null,
+    imageId: null,
   });
 
   const [errors, setErrors] = useState({});
+  const [pendingDeleteImageIds, setPendingDeleteImageIds] = useState([]);
 
   // Animations
   const animHeader = useRef(new Animated.Value(0)).current;
@@ -55,7 +87,8 @@ export default function AdminProductFormScreen() {
   useEffect(() => {
     if (isEditMode) {
       adminProductsApi.getProduct(productId).then(response => {
-        const data = normalizeProduct(response?.product || response?.data || response);
+        const rawProduct = getResponseData(response);
+        const data = normalizeProduct(rawProduct);
         setForm({
           name: data.name,
           category: data.category,
@@ -64,6 +97,7 @@ export default function AdminProductFormScreen() {
           description: data.description,
           isAvailable: data.available,
           image: data.imageUrl,
+          imageId: getImageId(rawProduct?.image || rawProduct),
         });
         setIsLoading(false);
         runStagger();
@@ -105,15 +139,53 @@ export default function AdminProductFormScreen() {
   };
 
   const handleImagePick = async () => {
-    setIsUploading(true);
+    setErrors(prev => ({ ...prev, image: null, form: null }));
+
     try {
-      const formData = new FormData();
+      const pickerResult = await launchImageLibrary({
+        mediaType: 'photo',
+        selectionLimit: 1,
+        quality: 0.9,
+      });
+
+      if (pickerResult.didCancel) {
+        return;
+      }
+
+      if (pickerResult.errorCode) {
+        throw new Error(pickerResult.errorMessage || 'Unable to select image.');
+      }
+
+      const asset = pickerResult.assets?.[0];
+
+      if (!asset?.uri) {
+        throw new Error('Selected image is missing file data.');
+      }
+
+      setIsUploading(true);
+      const previousImageId = form.imageId;
+      const formData = buildImageFormData(asset);
       const response = await adminImagesApi.uploadImage(formData);
-      const image = response?.image || response?.data || response;
-      setIsUploading(false);
-      setForm(prev => ({ ...prev, image: image.url || image.imageUrl || image.image_url }));
+      const image = getImageData(response);
+      const nextImageUrl = getImageUrl(image);
+      const nextImageId = getImageId(image);
+
+      if (!nextImageUrl) {
+        throw new Error('Image uploaded, but the server did not return an image URL.');
+      }
+
+      if (previousImageId && previousImageId !== nextImageId) {
+        setPendingDeleteImageIds(prev => Array.from(new Set([...prev, previousImageId])));
+      }
+
+      setForm(prev => ({ ...prev, image: nextImageUrl, imageId: nextImageId }));
       imgFade.setValue(0);
     } catch (error) {
+      setErrors(prev => ({
+        ...prev,
+        image: error.message || 'Unable to upload image.',
+      }));
+    } finally {
       setIsUploading(false);
     }
   };
@@ -138,6 +210,7 @@ export default function AdminProductFormScreen() {
   const handleSave = async () => {
     if (!validate()) return;
     setIsSaving(true);
+    setErrors(prev => ({ ...prev, form: null }));
 
     const payload = {
       name: form.name.trim(),
@@ -148,14 +221,33 @@ export default function AdminProductFormScreen() {
       isAvailable: form.isAvailable,
       available: form.isAvailable,
       imageUrl: form.image,
+      imageId: form.imageId,
+      image_id: form.imageId,
     };
 
     try {
+      let response;
       if (isEditMode) {
-        await adminProductsApi.updateProduct(productId, payload);
+        response = await adminProductsApi.updateProduct(productId, payload);
       } else {
-        await adminProductsApi.createProduct(payload);
+        response = await adminProductsApi.createProduct(payload);
       }
+
+      const savedProduct = getResponseData(response);
+      const savedProductId = pickFirst(savedProduct?.id, savedProduct?._id, productId);
+
+      if (form.imageId && savedProductId) {
+        await adminProductsApi.attachImage(savedProductId, {
+          imageId: form.imageId,
+          image_id: form.imageId,
+          imageUrl: form.image,
+        });
+      }
+
+      if (pendingDeleteImageIds.length > 0) {
+        await Promise.all(pendingDeleteImageIds.map(id => adminImagesApi.deleteImage(id)));
+      }
+
       setIsSaving(false);
       navigation.goBack();
     } catch (error) {
@@ -217,6 +309,9 @@ export default function AdminProductFormScreen() {
                 <Text style={styles.changeImgText}>Change Image</Text>
               </TouchableOpacity>
             )}
+            {errors.image ? (
+              <Text style={styles.errorText}>{errors.image}</Text>
+            ) : null}
           </Animated.View>
 
           <Animated.View style={[styles.section, slideUp(animFields), { transform: [{ translateX: Object.keys(errors).length > 0 ? errorShakeX : 0 }, ...slideUp(animFields).transform] }]}>
@@ -297,8 +392,12 @@ export default function AdminProductFormScreen() {
           </Animated.View>
 
           <Animated.View style={[styles.section, styles.actionsSection, slideUp(animActions)]}>
+            {errors.form ? (
+              <Text style={styles.formErrorText}>{errors.form}</Text>
+            ) : null}
             <Button 
-              label={isSaving ? "Saving..." : "Save Product"} 
+              label={isSaving ? "Saving..." : "Save Product"}
+              loading={isSaving}
               onPress={handleSave} 
               disabled={isSaving || isUploading}
               style={styles.primaryBtn}
@@ -312,7 +411,7 @@ export default function AdminProductFormScreen() {
                   onPress={handleDelete} 
                   disabled={isSaving}
                   style={[styles.halfBtn, styles.deleteBtn]}
-                  textStyle={styles.deleteBtnText}
+                  labelStyle={styles.deleteBtnText}
                 />
               )}
               <Button 
@@ -403,6 +502,11 @@ const styles = StyleSheet.create({
     ...typography.button,
     color: colors.primary,
   },
+  errorText: {
+    ...typography.caption,
+    color: colors.error,
+    marginTop: spacing.sm,
+  },
   inputGap: {
     marginBottom: spacing.md,
   },
@@ -439,6 +543,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   primaryBtn: {
+    marginBottom: spacing.md,
+  },
+  formErrorText: {
+    ...typography.body,
+    color: colors.error,
     marginBottom: spacing.md,
   },
   secondaryActions: {

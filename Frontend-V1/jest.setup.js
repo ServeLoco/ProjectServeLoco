@@ -13,5 +13,9 @@ jest.mock('@react-native-community/geolocation', () => ({
   stopObserving: jest.fn(),
 }));
 
+jest.mock('react-native-image-picker', () => ({
+  launchImageLibrary: jest.fn(),
+}));
+
 // Mock SafeAreaContext
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
