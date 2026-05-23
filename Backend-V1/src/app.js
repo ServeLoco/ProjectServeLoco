@@ -5,6 +5,8 @@ const config = require('./config/env');
 const db = require('./db');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
+const authRoutes = require('./routes/authRoutes');
+
 const app = express();
 
 // Request logging for development
@@ -21,6 +23,9 @@ app.options('*', cors()); // Handling preflight OPTIONS requests for all routes
 // Request body JSON parsing with safe size limits
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// API Routes
+app.use('/api/auth', authRoutes);
 
 // Public health endpoint
 app.get('/health', async (req, res) => {
