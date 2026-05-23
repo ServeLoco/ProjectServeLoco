@@ -11,56 +11,23 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
-  Image,
 } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
   Button,
-  LoadingSkeleton,
   SkeletonRow,
+  ProductImage,
 } from '../../components';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 import { useAuthStore } from '../../stores';
+import { ordersApi } from '../../api';
+import { asArray, normalizeOrder } from '../../utils';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
-// Mock Data
-const MOCK_ORDERS = [
-  {
-    id: 'OD-123456789',
-    date: '10 May 2026, 08:30 PM',
-    status: 'Pending',
-    paymentMethod: 'UPI',
-    itemCount: 3,
-    total: 320,
-    canCancel: true,
-    previewImg: 'https://via.placeholder.com/80/E6F4EA/34A853?text=Item',
-  },
-  {
-    id: 'OD-987654321',
-    date: '08 May 2026, 01:15 PM',
-    status: 'Delivered',
-    paymentMethod: 'Cash',
-    itemCount: 1,
-    total: 150,
-    canCancel: false,
-    previewImg: 'https://via.placeholder.com/80/FEF7E0/FBBC04?text=Item',
-  },
-  {
-    id: 'OD-112233445',
-    date: '05 May 2026, 11:00 AM',
-    status: 'Cancelled',
-    paymentMethod: 'UPI',
-    itemCount: 4,
-    total: 580,
-    canCancel: false,
-    previewImg: 'https://via.placeholder.com/80/FCE8E6/EA4335?text=Item',
-  },
-];
 
 const FILTER_CHIPS = ['All', 'Pending', 'Preparing', 'Delivered', 'Cancelled'];
 
@@ -78,18 +45,13 @@ export default function OrdersScreen() {
   // Animations
   const listOpacity = useRef(new Animated.Value(1)).current;
 
-  const fetchOrders = (forceError = false) => {
+  const fetchOrders = () => {
     setIsLoading(true);
     setIsError(false);
 
-    setTimeout(() => {
-      if (forceError) {
-        setIsError(true);
-        setIsLoading(false);
-        return;
-      }
-
-      let filtered = [...MOCK_ORDERS];
+    ordersApi.getOrders()
+      .then(response => {
+      let filtered = asArray(response, ['orders']).map(normalizeOrder);
       if (activeFilter !== 'All') {
         filtered = filtered.filter(o => o.status === activeFilter);
       }
@@ -101,8 +63,9 @@ export default function OrdersScreen() {
       ]).start();
 
       setOrders(filtered);
-      setIsLoading(false);
-    }, 600);
+      })
+      .catch(() => setIsError(true))
+      .finally(() => setIsLoading(false));
   };
 
   useEffect(() => {
@@ -113,12 +76,20 @@ export default function OrdersScreen() {
 
   const handleCancelOrder = (orderId) => {
     setCancellingId(orderId);
-    // Simulate POST /orders/:id/cancel
-    setTimeout(() => {
+    ordersApi.cancelOrder(orderId)
+      .then(response => {
+        const cancelled = normalizeOrder(response?.order || response?.data || response || {});
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'Cancelled', canCancel: false } : o));
-      setCancellingId(null);
-    }, 1000);
+        setOrders(prev => prev.map(o => o.id === orderId ? {
+          ...o,
+          ...cancelled,
+          id: o.id,
+          status: cancelled.status || 'Cancelled',
+          canCancel: false,
+        } : o));
+      })
+      .catch(() => setIsError(true))
+      .finally(() => setCancellingId(null));
   };
 
   const FadeInItem = ({ children, index, status }) => {
@@ -191,7 +162,7 @@ export default function OrdersScreen() {
         </View>
         
         <View style={styles.cardBody}>
-          <Image source={{ uri: item.previewImg }} style={styles.previewImg} />
+          <ProductImage uri={item.previewImg} width={56} height={56} borderRadius={radius.md} style={styles.previewImg} />
           <View style={styles.cardDetails}>
             <Text style={styles.itemCount}>{item.itemCount} Item{item.itemCount > 1 ? 's' : ''}</Text>
             <Text style={styles.paymentMethod}>Payment: {item.paymentMethod}</Text>

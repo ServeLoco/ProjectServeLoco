@@ -14,35 +14,8 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { AppScreen, AppHeader, Button } from '../../components';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
-
-// Mock API Call
-const fetchAdminOrderDetails = (id) => new Promise(res => {
-  setTimeout(() => {
-    res({
-      id: id || 'OD-101',
-      date: 'Today, 08:30 PM',
-      customer: {
-        name: 'Rahul Sharma',
-        phone: '+919876543210',
-        whatsapp: '+919876543210',
-        address: 'A-12, Sector 4, Rohini\nNew Delhi',
-      },
-      items: [
-        { id: '1', name: 'Farmhouse Pizza', quantity: 1, price: 250, unit: 'Regular' },
-        { id: '2', name: 'Garlic Bread', quantity: 1, price: 70, unit: '1 Pack' },
-      ],
-      bill: {
-        subtotal: 320,
-        delivery: 30,
-        discount: 0,
-        grandTotal: 350,
-      },
-      status: 'Pending',
-      paymentStatus: 'Pending',
-      paymentMethod: 'UPI'
-    });
-  }, 600);
-});
+import { adminOrdersApi } from '../../api';
+import { normalizeOrder } from '../../utils';
 
 const ORDER_STATUSES = ['Pending', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
 const PAYMENT_STATUSES = ['Pending', 'Paid', 'Failed', 'Refunded'];
@@ -74,7 +47,8 @@ export default function AdminOrderDetailScreen() {
   const paymentHighlight = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    fetchAdminOrderDetails(orderId).then(data => {
+    adminOrdersApi.getOrder(orderId).then(response => {
+      const data = normalizeOrder(response?.order || response?.data || response);
       setOrder(data);
       setSelectedStatus(data.status);
       setSelectedPayment(data.paymentStatus);
@@ -92,23 +66,27 @@ export default function AdminOrderDetailScreen() {
   const handleUpdateStatus = () => {
     if (selectedStatus === order.status) return;
     setIsUpdatingStatus(true);
-    // Mock PATCH /admin/orders/:id/status
-    setTimeout(() => {
+    adminOrdersApi.updateStatus(order.id, { status: selectedStatus })
+      .then(response => {
+        const updated = normalizeOrder(response?.order || response?.data || response || {});
       setIsUpdatingStatus(false);
-      setOrder(prev => ({ ...prev, status: selectedStatus }));
+        setOrder(prev => ({ ...prev, ...updated, id: prev.id, status: updated.status || selectedStatus }));
       triggerHighlight(statusHighlight);
-    }, 1000);
+      })
+      .catch(() => setIsUpdatingStatus(false));
   };
 
   const handleUpdatePayment = () => {
     if (selectedPayment === order.paymentStatus) return;
     setIsUpdatingPayment(true);
-    // Mock PATCH /admin/orders/:id/payment
-    setTimeout(() => {
+    adminOrdersApi.updatePayment(order.id, { paymentStatus: selectedPayment, payment_status: selectedPayment })
+      .then(response => {
+        const updated = normalizeOrder(response?.order || response?.data || response || {});
       setIsUpdatingPayment(false);
-      setOrder(prev => ({ ...prev, paymentStatus: selectedPayment }));
+        setOrder(prev => ({ ...prev, ...updated, id: prev.id, paymentStatus: updated.paymentStatus || selectedPayment }));
       triggerHighlight(paymentHighlight);
-    }, 1000);
+      })
+      .catch(() => setIsUpdatingPayment(false));
   };
 
   const triggerHighlight = (animVal) => {

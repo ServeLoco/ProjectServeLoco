@@ -18,33 +18,8 @@ import {
 } from '../../components';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
 import { useSettingsStore } from '../../stores';
-
-// Mock API Call
-const fetchOrderMock = (orderId) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id: orderId || 'OD-123456789',
-        date: '10 May 2026, 08:30 PM',
-        status: 'Preparing', // Received, Preparing, OutForDelivery, Delivered, Cancelled
-        paymentMethod: 'UPI',
-        paymentStatus: 'Paid',
-        canCancel: true,
-        address: 'A-12, Sector 4, Rohini, New Delhi\nLandmark: Near Mother Dairy',
-        items: [
-          { id: '1', name: 'Farmhouse Pizza', quantity: 1, price: 250, unit: 'Regular' },
-          { id: '2', name: 'Garlic Bread', quantity: 1, price: 70, unit: '1 Pack' },
-        ],
-        bill: {
-          subtotal: 320,
-          delivery: 30,
-          discount: 0,
-          grandTotal: 350,
-        }
-      });
-    }, 800);
-  });
-};
+import { ordersApi } from '../../api';
+import { normalizeOrder } from '../../utils';
 
 const STATUS_STEPS = [
   { id: 'Received', label: 'Order Received' },
@@ -61,6 +36,7 @@ export default function OrderDetailScreen() {
 
   const [order, setOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   // Modal State
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -71,10 +47,14 @@ export default function OrderDetailScreen() {
   const modalScale = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
-    fetchOrderMock(orderId).then(data => {
-      setOrder(data);
-      setIsLoading(false);
-    });
+    setIsLoading(true);
+    setLoadError('');
+    ordersApi.getOrder(orderId)
+      .then(response => {
+        setOrder(normalizeOrder(response?.order || response?.data || response));
+      })
+      .catch(error => setLoadError(error.message || 'Failed to load order'))
+      .finally(() => setIsLoading(false));
   }, [orderId]);
 
   const openModal = () => {
@@ -96,11 +76,19 @@ export default function OrderDetailScreen() {
 
   const confirmCancel = () => {
     setIsCancelling(true);
-    setTimeout(() => {
-      setIsCancelling(false);
-      setOrder(prev => ({ ...prev, status: 'Cancelled', canCancel: false }));
-      closeModal();
-    }, 1500);
+    ordersApi.cancelOrder(order.id)
+      .then(response => {
+        const cancelled = normalizeOrder(response?.order || response?.data || response || {});
+        setOrder(prev => ({
+          ...prev,
+          ...cancelled,
+          id: prev.id,
+          status: cancelled.status || 'Cancelled',
+          canCancel: false,
+        }));
+        closeModal();
+      })
+      .finally(() => setIsCancelling(false));
   };
 
   const handleContact = () => {
@@ -109,12 +97,24 @@ export default function OrderDetailScreen() {
     }
   };
 
-  if (isLoading || !order) {
+  if (isLoading) {
     return (
       <AppScreen style={styles.container}>
         <AppHeader title="Order Details" onBack={() => navigation.goBack()} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </AppScreen>
+    );
+  }
+
+  if (loadError || !order) {
+    return (
+      <AppScreen style={styles.container}>
+        <AppHeader title="Order Details" onBack={() => navigation.goBack()} />
+        <View style={styles.center}>
+          <Text style={styles.infoValue}>{loadError || 'Order not found'}</Text>
+          <Button label="Retry" onPress={() => navigation.replace('OrderDetail', { orderId })} fullWidth={false} />
         </View>
       </AppScreen>
     );
@@ -180,7 +180,7 @@ export default function OrderDetailScreen() {
           <View style={styles.infoGroup}>
             <Text style={styles.infoLabel}>Address</Text>
             <Text style={styles.infoValue}>{order.address}</Text>
-            <TouchableOpacity>
+            <TouchableOpacity disabled={!order.mapUrl} onPress={() => order.mapUrl && Linking.openURL(order.mapUrl)}>
               <Text style={styles.mapLink}>View on Map</Text>
             </TouchableOpacity>
           </View>

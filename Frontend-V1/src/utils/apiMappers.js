@@ -119,10 +119,112 @@ function normalizeSession(payload = {}) {
   };
 }
 
+function getCustomerName(order = {}) {
+  return pickFirst(
+    order.customerName,
+    order.customer_name,
+    order.customer?.name,
+    order.user?.name,
+    'Customer',
+  );
+}
+
+function getOrderItems(order = {}) {
+  return asArray(order.items || order.orderItems || order.order_items, ['items']).map(item => ({
+    ...item,
+    id: String(pickFirst(item.id, item._id, item.productId, item.product_id, item.name)),
+    name: pickFirst(item.name, item.productName, item.product_name, item.product?.name, 'Item'),
+    quantity: numberOrZero(pickFirst(item.quantity, item.qty, 1)),
+    price: numberOrZero(pickFirst(item.price, item.unitPrice, item.unit_price, item.line_total)),
+    unit: pickFirst(item.unit, item.size, item.product?.unit, ''),
+  }));
+}
+
+function normalizeOrder(order = {}) {
+  const items = getOrderItems(order);
+  const bill = order.bill || order.totals || {};
+  const subtotal = numberOrZero(pickFirst(bill.subtotal, order.subtotal, order.itemTotal, order.item_total));
+  const delivery = numberOrZero(pickFirst(bill.delivery, bill.deliveryCharge, bill.delivery_charge, order.deliveryCharge, order.delivery_charge));
+  const discount = numberOrZero(pickFirst(bill.discount, bill.discountAmount, order.discount));
+  const grandTotal = numberOrZero(pickFirst(
+    bill.grandTotal,
+    bill.grand_total,
+    order.grandTotal,
+    order.grand_total,
+    order.total,
+    order.totalAmount,
+  ));
+
+  return {
+    ...order,
+    id: String(pickFirst(order.id, order._id, order.orderId, order.order_id)),
+    date: pickFirst(order.date, order.createdAt, order.created_at, order.updatedAt, ''),
+    status: pickFirst(order.status, order.orderStatus, order.order_status, 'Pending'),
+    paymentStatus: pickFirst(order.paymentStatus, order.payment_status, 'Pending'),
+    paymentMethod: pickFirst(order.paymentMethod, order.payment_method, 'Cash'),
+    itemCount: numberOrZero(pickFirst(order.itemCount, order.item_count, items.length)),
+    total: grandTotal,
+    canCancel: asBoolean(pickFirst(order.canCancel, order.can_cancel, order.cancellable), false),
+    previewImg: pickFirst(order.previewImg, order.previewImage, order.imageUrl, items[0]?.imageUrl, null),
+    address: pickFirst(order.address, order.deliveryAddress, order.delivery_address, ''),
+    mapUrl: pickFirst(order.mapUrl, order.map_url, order.googleMapsUrl, order.google_maps_url, ''),
+    customer: {
+      name: getCustomerName(order),
+      phone: pickFirst(order.phone, order.customerPhone, order.customer_phone, order.customer?.phone, ''),
+      whatsapp: pickFirst(order.whatsapp, order.whatsappNumber, order.customer?.whatsapp, order.customer?.whatsappNumber, ''),
+      address: pickFirst(order.address, order.deliveryAddress, order.delivery_address, order.customer?.address, ''),
+    },
+    items,
+    bill: {
+      subtotal,
+      delivery,
+      discount,
+      grandTotal,
+    },
+  };
+}
+
+function normalizeDashboard(payload = {}) {
+  const data = payload?.data || payload?.dashboard || payload;
+  const metrics = data.metrics || {};
+  const reports = data.reports || data.salesReport || {};
+
+  return {
+    isShopOpen: asBoolean(pickFirst(data.isShopOpen, data.shopOpen, data.shop_open), true),
+    metrics: {
+      todayOrders: numberOrZero(pickFirst(metrics.todayOrders, metrics.today_orders, data.todayOrders)),
+      todaySales: numberOrZero(pickFirst(metrics.todaySales, metrics.today_sales, data.todaySales)),
+      pendingOrders: numberOrZero(pickFirst(metrics.pendingOrders, metrics.pending_orders, data.pendingOrders)),
+      deliveredOrders: numberOrZero(pickFirst(metrics.deliveredOrders, metrics.delivered_orders, data.deliveredOrders)),
+      cashTotal: numberOrZero(pickFirst(metrics.cashTotal, metrics.cash_total, data.cashTotal)),
+      upiTotal: numberOrZero(pickFirst(metrics.upiTotal, metrics.upi_total, data.upiTotal)),
+      pendingPaymentTotal: numberOrZero(pickFirst(metrics.pendingPaymentTotal, metrics.pending_payment_total, data.pendingPaymentTotal)),
+    },
+    reports: {
+      weekSales: numberOrZero(pickFirst(reports.weekSales, reports.week_sales, data.weekSales)),
+      monthSales: numberOrZero(pickFirst(reports.monthSales, reports.month_sales, data.monthSales)),
+    },
+    latestOrders: asArray(data.latestOrders || data.latest_orders, ['latestOrders', 'orders']).map(normalizeOrder),
+    productAlerts: {
+      outOfStock: numberOrZero(pickFirst(data.productAlerts?.outOfStock, data.product_alerts?.out_of_stock, data.outOfStock)),
+      lowStock: numberOrZero(pickFirst(data.productAlerts?.lowStock, data.product_alerts?.low_stock, data.lowStock)),
+    },
+    topProducts: asArray(data.topProducts || data.top_products, ['topProducts']).map(product => ({
+      ...product,
+      id: String(pickFirst(product.id, product._id, product.productId, product.name)),
+      name: pickFirst(product.name, product.productName, product.product_name, 'Product'),
+      sales: numberOrZero(pickFirst(product.sales, product.salesCount, product.sales_count, product.quantity)),
+      amount: numberOrZero(pickFirst(product.amount, product.salesAmount, product.sales_amount, product.total)),
+    })),
+  };
+}
+
 export {
   asArray,
   normalizeCartCalculation,
   normalizeCategory,
+  normalizeDashboard,
+  normalizeOrder,
   normalizeProduct,
   normalizeSession,
   normalizeSettings,

@@ -14,49 +14,13 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { AppScreen, AppHeader, Button } from '../../components';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
-import { useAuthStore } from '../../stores';
-
-// Mock Data Loaders
-const fetchDashboardData = () => new Promise(res => {
-  setTimeout(() => {
-    res({
-      isShopOpen: true,
-      metrics: {
-        todayOrders: 42,
-        todaySales: 12500,
-        pendingOrders: 5,
-        deliveredOrders: 35,
-        cashTotal: 4500,
-        upiTotal: 8000,
-        pendingPaymentTotal: 0,
-      },
-      reports: {
-        weekSales: 85000,
-        monthSales: 350000,
-      },
-      latestOrders: [
-        { id: 'OD-101', customer: 'Rahul Sharma', total: 450, paymentStatus: 'Paid', status: 'Pending' },
-        { id: 'OD-100', customer: 'Priya Singh', total: 1200, paymentStatus: 'Pending', status: 'Preparing' },
-        { id: 'OD-099', customer: 'Amit Patel', total: 320, paymentStatus: 'Paid', status: 'Delivered' },
-      ],
-      productAlerts: {
-        outOfStock: 3,
-        lowStock: 5,
-      },
-      topProducts: [
-        { id: 'P1', name: 'Margherita Pizza', sales: 120, amount: 24000 },
-        { id: 'P2', name: 'Garlic Bread', sales: 95, amount: 9500 },
-        { id: 'P3', name: 'Cold Coffee', sales: 80, amount: 8000 },
-        { id: 'P4', name: 'Farmhouse Pizza', sales: 65, amount: 16250 },
-        { id: 'P5', name: 'French Fries', sales: 50, amount: 5000 },
-      ]
-    });
-  }, 1000);
-});
+import { useAdminAuthStore } from '../../stores';
+import { adminDashboardApi, adminSettingsApi } from '../../api';
+import { normalizeDashboard } from '../../utils';
 
 export default function AdminDashboardScreen() {
   const navigation = useNavigation();
-  const adminLogout = useAuthStore(state => state.adminLogout);
+  const adminLogout = useAdminAuthStore(state => state.adminLogout);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -70,7 +34,8 @@ export default function AdminDashboardScreen() {
 
   const loadData = (refresh = false) => {
     if (refresh) setIsRefreshing(true);
-    fetchDashboardData().then(res => {
+    adminDashboardApi.getDashboard().then(response => {
+      const res = normalizeDashboard(response);
       setData(res);
       setIsShopOpen(res.isShopOpen);
       if (refresh) {
@@ -78,6 +43,12 @@ export default function AdminDashboardScreen() {
       } else {
         setIsLoading(false);
         runEnterAnimations();
+      }
+    }).catch(() => {
+      if (refresh) {
+        setIsRefreshing(false);
+      } else {
+        setIsLoading(false);
       }
     });
   };
@@ -102,8 +73,11 @@ export default function AdminDashboardScreen() {
   };
 
   const toggleShop = () => {
-    // In real app, PATCH /admin/settings
-    setIsShopOpen(!isShopOpen);
+    const nextOpen = !isShopOpen;
+    setIsShopOpen(nextOpen);
+    adminSettingsApi.updateSettings({ shop_open: nextOpen }).catch(() => {
+      setIsShopOpen(!nextOpen);
+    });
   };
 
   if (isLoading) {
@@ -212,7 +186,7 @@ export default function AdminDashboardScreen() {
                     <Text style={[styles.badgeText, { color: order.status === 'Pending' ? colors.warning : colors.success }]}>{order.status}</Text>
                   </View>
                 </View>
-                <Text style={styles.orderCustomer}>{order.customer}</Text>
+                <Text style={styles.orderCustomer}>{order.customer?.name || 'Customer'}</Text>
                 <View style={styles.orderCardFooter}>
                   <Text style={styles.orderTotal}>Rs. {order.total} • {order.paymentStatus}</Text>
                   <TouchableOpacity style={styles.openBtn} onPress={() => navigation.navigate('AdminOrderDetail', { orderId: order.id })}>

@@ -18,6 +18,7 @@ import {
 } from '../../components';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 import { useAuthStore, useSettingsStore } from '../../stores';
+import { authApi } from '../../api';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
@@ -25,6 +26,7 @@ export default function ProfileScreen() {
   const user = useAuthStore(state => state.user);
   const profile = useAuthStore(state => state.profile);
   const logout = useAuthStore(state => state.logout);
+  const setProfile = useAuthStore(state => state.setProfile);
   const supportPhone = useSettingsStore(state => state.supportPhone);
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -38,6 +40,13 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (isAuthenticated) {
+      authApi.getMe()
+        .then(response => {
+          const nextProfile = response?.user || response?.profile || response?.data || response;
+          setProfile(nextProfile);
+        })
+        .catch(() => {});
+
       Animated.stagger(100, [
         Animated.parallel([
           Animated.timing(cardFade, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -47,7 +56,7 @@ export default function ProfileScreen() {
         Animated.timing(listAnim2, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]).start();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, setProfile]);
 
   const openLogoutModal = () => {
     setShowLogoutModal(true);

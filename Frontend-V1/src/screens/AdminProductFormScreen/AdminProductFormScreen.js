@@ -16,22 +16,8 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { AppScreen, AppHeader, TextInputField, Button } from '../../components';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
-
-// Mock Fetch
-const fetchProductDetails = (id) => new Promise(res => {
-  setTimeout(() => {
-    res({
-      id,
-      name: 'Margherita Pizza',
-      category: 'Pizza',
-      price: '250',
-      unit: 'Regular',
-      description: 'Classic cheese pizza with fresh tomato sauce.',
-      isAvailable: true,
-      image: 'https://via.placeholder.com/300'
-    });
-  }, 600);
-});
+import { adminImagesApi, adminProductsApi } from '../../api';
+import { normalizeProduct } from '../../utils';
 
 export default function AdminProductFormScreen() {
   const navigation = useNavigation();
@@ -68,19 +54,20 @@ export default function AdminProductFormScreen() {
 
   useEffect(() => {
     if (isEditMode) {
-      fetchProductDetails(productId).then(data => {
+      adminProductsApi.getProduct(productId).then(response => {
+        const data = normalizeProduct(response?.product || response?.data || response);
         setForm({
           name: data.name,
           category: data.category,
           price: data.price.toString(),
           unit: data.unit,
           description: data.description,
-          isAvailable: data.isAvailable,
-          image: data.image,
+          isAvailable: data.available,
+          image: data.imageUrl,
         });
         setIsLoading(false);
         runStagger();
-      });
+      }).catch(() => setIsLoading(false));
     } else {
       runStagger();
     }
@@ -117,14 +104,18 @@ export default function AdminProductFormScreen() {
     }
   };
 
-  const handleImagePick = () => {
+  const handleImagePick = async () => {
     setIsUploading(true);
-    // Mock POST /admin/images & DELETE /admin/images/:id if replacing
-    setTimeout(() => {
+    try {
+      const formData = new FormData();
+      const response = await adminImagesApi.uploadImage(formData);
+      const image = response?.image || response?.data || response;
       setIsUploading(false);
-      setForm(prev => ({ ...prev, image: 'https://via.placeholder.com/300?text=Uploaded+Image' }));
+      setForm(prev => ({ ...prev, image: image.url || image.imageUrl || image.image_url }));
       imgFade.setValue(0);
-    }, 1500);
+    } catch (error) {
+      setIsUploading(false);
+    }
   };
 
   const validate = () => {
@@ -144,19 +135,39 @@ export default function AdminProductFormScreen() {
     return true;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
     setIsSaving(true);
 
-    // Mock POST or PATCH
-    setTimeout(() => {
+    const payload = {
+      name: form.name.trim(),
+      category: form.category.trim(),
+      price: Number(form.price),
+      unit: form.unit.trim(),
+      description: form.description.trim(),
+      isAvailable: form.isAvailable,
+      available: form.isAvailable,
+      imageUrl: form.image,
+    };
+
+    try {
+      if (isEditMode) {
+        await adminProductsApi.updateProduct(productId, payload);
+      } else {
+        await adminProductsApi.createProduct(payload);
+      }
       setIsSaving(false);
       navigation.goBack();
-    }, 1000);
+    } catch (error) {
+      setIsSaving(false);
+      setErrors(prev => ({ ...prev, form: error.message || 'Unable to save product' }));
+    }
   };
 
-  const handleDelete = () => {
-    // Mock DELETE /admin/products/:id
+  const handleDelete = async () => {
+    if (isEditMode) {
+      await adminProductsApi.deleteProduct(productId);
+    }
     navigation.goBack();
   };
 

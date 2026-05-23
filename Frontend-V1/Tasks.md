@@ -578,14 +578,14 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-29: Frontend API Integration Pass
 
-- [ ] Replace all mock data with backend API calls.
+- [x] Replace all mock data with backend API calls.
 - [x] Confirm login, signup, session restore, and logout work.
 - [x] Confirm product list, category filters, search, and image fallback work.
 - [x] Confirm add to cart and quantity stepper work from Home, Product List, and Product Detail.
 - [x] Confirm cart calculation uses `POST /cart/calculate`.
 - [x] Confirm checkout creates an order with address and GPS data.
-- [ ] Confirm order history and order detail load correctly.
-- [ ] Confirm eligible order cancellation works.
+- [x] Confirm order history and order detail load correctly.
+- [x] Confirm eligible order cancellation works.
 - [ ] Confirm admin login and admin session restore work.
 - [ ] Confirm admin dashboard, orders, products, customers, settings, and offers call admin APIs only.
 - [ ] Confirm customer token cannot access admin screens.

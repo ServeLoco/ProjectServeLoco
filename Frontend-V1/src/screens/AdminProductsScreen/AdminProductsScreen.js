@@ -11,7 +11,6 @@ import {
   TextInput,
   Switch,
   Image,
-  Modal,
   LayoutAnimation,
   UIManager,
   Platform,
@@ -19,21 +18,13 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { AppScreen, AppHeader, Button } from '../../components';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
+import { adminProductsApi } from '../../api';
+import { asArray, normalizeProduct } from '../../utils';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// Mock API
-const initialMockProducts = [
-  { id: 'P1', name: 'Margherita Pizza', category: 'Pizza', price: 250, isAvailable: true, image: 'https://via.placeholder.com/150' },
-  { id: 'P2', name: 'Garlic Bread', category: 'Sides', price: 90, isAvailable: true, image: 'https://via.placeholder.com/150' },
-  { id: 'P3', name: 'Farmhouse Pizza', category: 'Pizza', price: 350, isAvailable: false, image: 'https://via.placeholder.com/150' },
-  { id: 'P4', name: 'Cold Coffee', category: 'Beverages', price: 120, isAvailable: true, image: 'https://via.placeholder.com/150' },
-  { id: 'P5', name: 'Cheese Dip', category: 'Sides', price: 30, isAvailable: true, image: 'https://via.placeholder.com/150' },
-];
-
-const CATEGORIES = ['All', 'Pizza', 'Sides', 'Beverages'];
 const AVAILABILITY = ['All', 'In Stock', 'Out of Stock'];
 
 export default function AdminProductsScreen() {
@@ -62,11 +53,20 @@ export default function AdminProductsScreen() {
 
   const loadProducts = () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setProducts(initialMockProducts);
+    adminProductsApi.getProducts()
+      .then(response => {
+      setProducts(asArray(response, ['products']).map(product => {
+        const normalized = normalizeProduct(product);
+        return {
+          ...normalized,
+          isAvailable: normalized.available,
+          image: normalized.imageUrl,
+        };
+      }));
       setIsLoading(false);
       animateList();
-    }, 800);
+      })
+      .catch(() => setIsLoading(false));
   };
 
   const animateList = () => {
@@ -75,14 +75,15 @@ export default function AdminProductsScreen() {
   };
 
   const handleToggleAvailability = (id, currentStatus) => {
-    // Mock PATCH /admin/products/:id/availability
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, isAvailable: !currentStatus } : p));
+    const nextStatus = !currentStatus;
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, isAvailable: nextStatus, available: nextStatus } : p));
+    adminProductsApi.updateAvailability(id, { available: nextStatus, isAvailable: nextStatus }).catch(() => {
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, isAvailable: currentStatus, available: currentStatus } : p));
+    });
   };
 
   const handleUpdateImage = (id) => {
-    // Mock PATCH /admin/products/:id/image
-    console.log('Update Image trigger for', id);
-    alert('Mock Image Picker opened');
+    navigation.navigate('AdminProductForm', { productId: id, focusImage: true });
   };
 
   const confirmDelete = (product) => {
@@ -109,9 +110,10 @@ export default function AdminProductsScreen() {
     const id = productToDelete.id;
     closeDeleteModal();
     
-    // Animate row out
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setProducts(prev => prev.filter(p => p.id !== id));
+    adminProductsApi.deleteProduct(id).then(() => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setProducts(prev => prev.filter(p => p.id !== id));
+    });
   };
 
   const handleSortToggle = () => {
@@ -119,6 +121,7 @@ export default function AdminProductsScreen() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
   };
 
+  const categories = ['All', ...new Set(products.map(product => product.category).filter(Boolean))];
   const filteredProducts = products.filter(p => {
     const matchCat = activeCategory === 'All' || p.category === activeCategory;
     const matchAvail = activeAvailability === 'All' || 
@@ -161,7 +164,7 @@ export default function AdminProductsScreen() {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-          {CATEGORIES.map(cat => (
+          {categories.map(cat => (
             <TouchableOpacity 
               key={`cat-${cat}`}
               style={[styles.chip, activeCategory === cat && styles.chipActive]}
@@ -246,11 +249,6 @@ function AdminProductCard({ product, index, onEdit, onDelete, onToggleAvailabili
     Animated.timing(fadeAnim, { toValue: 1, duration: 300, delay: index * 50, useNativeDriver: true }).start();
     Animated.timing(slideAnim, { toValue: 0, duration: 300, delay: index * 50, useNativeDriver: true }).start();
   }, [index, fadeAnim, slideAnim]);
-
-  // Exposed collapse method would be ideal, but for now we simulate via props or just direct context
-  // To strictly meet "Animate deleted product row collapse/fade-out", we'll just handle it within the parent or here if we pass a trigger.
-  // We'll skip complex ref forwarding for a mock and just let the parent unmount it for now, since unmount animations in standard RN lists require third party or custom state management.
-  // Actually, let's keep it simple.
 
   return (
     <Animated.View style={[styles.card, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>

@@ -18,22 +18,8 @@ import {
   SkeletonRow,
 } from '../../components';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
-
-// Mock API
-const fetchAdminOrders = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        { id: 'OD-101', customer: 'Rahul Sharma', phone: '+919876543210', date: 'Today, 08:30 PM', total: 450, paymentStatus: 'Paid', paymentMethod: 'UPI', status: 'Pending', address: 'A-12, Sector 4, Rohini' },
-        { id: 'OD-102', customer: 'Sneha Patel', phone: '+919876543211', date: 'Today, 08:45 PM', total: 1200, paymentStatus: 'Pending', paymentMethod: 'Cash', status: 'Pending', address: 'B-4, Vasant Kunj' },
-        { id: 'OD-100', customer: 'Priya Singh', phone: '+919876543212', date: 'Today, 07:15 PM', total: 320, paymentStatus: 'Paid', paymentMethod: 'UPI', status: 'Preparing', address: 'C-2, Dwarka Sector 12' },
-        { id: 'OD-099', customer: 'Amit Gupta', phone: '+919876543213', date: 'Today, 06:00 PM', total: 850, paymentStatus: 'Pending', paymentMethod: 'Cash', status: 'Out for Delivery', address: 'D-9, South Ex' },
-        { id: 'OD-098', customer: 'Karan Mehra', phone: '+919876543214', date: 'Today, 05:30 PM', total: 210, paymentStatus: 'Paid', paymentMethod: 'UPI', status: 'Delivered', address: 'E-5, Lajpat Nagar' },
-        { id: 'OD-097', customer: 'Vikram Das', phone: '+919876543215', date: 'Today, 04:00 PM', total: 1500, paymentStatus: 'Pending', paymentMethod: 'Cash', status: 'Cancelled', address: 'F-1, Pitampura' },
-      ]);
-    }, 800);
-  });
-};
+import { adminOrdersApi } from '../../api';
+import { asArray, normalizeOrder } from '../../utils';
 
 const STATUS_FILTERS = ['Pending', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled', 'All'];
 const PAYMENT_FILTERS = ['All Payments', 'Pending', 'Paid', 'Cash', 'UPI'];
@@ -57,9 +43,9 @@ export default function AdminOrdersScreen() {
   const loadOrders = () => {
     setIsLoading(true);
     setIsError(false);
-    fetchAdminOrders()
-      .then(data => {
-        setOrders(data);
+    adminOrdersApi.getOrders()
+      .then(response => {
+        setOrders(asArray(response, ['orders']).map(normalizeOrder));
         setIsLoading(false);
         animateList();
       })
@@ -195,8 +181,8 @@ export default function AdminOrdersScreen() {
                 order={order}
                 isPending={isPending}
                 isPaid={isPaid}
-                onCall={() => handleCall(order.phone)}
-                onWhatsApp={() => handleWhatsApp(order.phone)}
+                onCall={() => handleCall(order.customer.phone)}
+                onWhatsApp={() => handleWhatsApp(order.customer.whatsapp || order.customer.phone)}
                 onMap={() => handleMap(order.address)}
                 onOpen={() => navigation.navigate('AdminOrderDetail', { orderId: order.id })}
                 index={index}
@@ -235,8 +221,8 @@ function AdminOrderCard({ order, isPending, isPaid, onCall, onWhatsApp, onMap, o
         <View style={styles.customerRow}>
           <Text style={styles.customerIcon}>User</Text>
           <View style={styles.customerInfo}>
-            <Text style={styles.customerName}>{order.customer}</Text>
-            <Text style={styles.customerPhone}>{order.phone}</Text>
+            <Text style={styles.customerName}>{order.customer.name}</Text>
+            <Text style={styles.customerPhone}>{order.customer.phone}</Text>
           </View>
           <View style={styles.actionRow}>
             <PressableScale style={styles.iconBtn} onPress={onCall}>

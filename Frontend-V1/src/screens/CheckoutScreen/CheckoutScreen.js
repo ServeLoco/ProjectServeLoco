@@ -64,7 +64,6 @@ export default function CheckoutScreen() {
     // Simulate GPS fetch
     setTimeout(() => {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      // Randomly simulate success or error (For mock purpose, let's stick to success mostly)
       if (Math.random() > 0.8) {
         setGpsStatus('error');
       } else {

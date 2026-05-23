@@ -17,6 +17,7 @@ import {
 } from '../../components';
 import { colors, typography, spacing, layout } from '../../theme';
 import { useAuthStore } from '../../stores';
+import { authApi } from '../../api';
 
 export default function EditProfileScreen() {
   const navigation = useNavigation();
@@ -77,27 +78,33 @@ export default function EditProfileScreen() {
     return true;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
 
     setIsSaving(true);
     Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true }).start();
 
-    // Simulate PATCH /auth/profile
-    setTimeout(() => {
-      // 1. Mark success state
+    try {
+      const response = await authApi.updateProfile({
+        name,
+        fullName: name,
+        whatsappNumber: whatsapp,
+        whatsapp,
+        deliveryAddress: address,
+        address,
+      });
+      const updatedProfile = response?.user || response?.profile || response?.data || { ...profile, name, whatsapp, address };
       setIsSaving(false);
       setIsSuccess(true);
-      
-      // 3. Update global state
-      setProfile({ ...profile, name, whatsapp, address });
-
-      // 4. Return to profile after short delay
+      setProfile(updatedProfile);
       setTimeout(() => {
         navigation.goBack();
       }, 800);
-
-    }, 1500);
+    } catch (error) {
+      setIsSaving(false);
+      setErrors(prev => ({ ...prev, form: error.message || 'Unable to save profile' }));
+      shakeError();
+    }
   };
 
   return (

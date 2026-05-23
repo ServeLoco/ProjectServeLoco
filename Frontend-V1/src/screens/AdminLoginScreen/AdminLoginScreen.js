@@ -12,11 +12,13 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { AppScreen, TextInputField, Button } from '../../components';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
-import { useAuthStore } from '../../stores';
+import { useAdminAuthStore } from '../../stores';
+import { adminAuthApi } from '../../api';
+import { normalizeSession } from '../../utils';
 
 export default function AdminLoginScreen() {
   const navigation = useNavigation();
-  const setAdminSession = useAuthStore(state => state.setAdminSession);
+  const setAdminSession = useAdminAuthStore(state => state.setAdminSession);
 
   // Form State
   const [ownerId, setOwnerId] = useState('');
@@ -64,26 +66,32 @@ export default function AdminLoginScreen() {
     return true;
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setApiError(null);
     if (!validate()) return;
 
     setIsLoading(true);
     Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true }).start();
 
-    // Mock POST /admin/login
-    setTimeout(() => {
+    try {
+      const session = normalizeSession(await adminAuthApi.login({
+        ownerId,
+        owner_id: ownerId,
+        password,
+      }));
+      if (!session.token) {
+        throw new Error('Admin login response did not include a token');
+      }
       setIsLoading(false);
       Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
-
-      if (ownerId === 'admin' && password === 'admin') {
-        setAdminSession('mock-admin-jwt-token');
-        navigation.replace('AdminDashboard');
-      } else {
-        setApiError('Invalid Owner ID or Password. Try admin / admin');
-        shakeError();
-      }
-    }, 1500);
+      setAdminSession(session.token, session.user);
+      navigation.replace('AdminDashboard');
+    } catch (error) {
+      setIsLoading(false);
+      Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
+      setApiError(error.message || 'Invalid Owner ID or Password');
+      shakeError();
+    }
   };
 
   return (
