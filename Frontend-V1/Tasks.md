@@ -459,12 +459,12 @@ Source of truth: `../mainPLAN.md` frontend section.
 - [x] Add call icon button.
 - [x] Add WhatsApp icon button.
 - [x] Add map icon button.
-- [ ] Add empty filter state.
-- [ ] Add loading skeletons.
-- [ ] Add API failure state with `Retry`.
-- [ ] Animate order cards with staggered entry, pending first.
-- [ ] Animate filter changes with list crossfade.
-- [ ] Add press scale feedback to call, WhatsApp, and map buttons.
+- [x] Add empty filter state.
+- [x] Add loading skeletons.
+- [x] Add API failure state with `Retry`.
+- [x] Animate order cards with staggered entry, pending first.
+- [x] Animate filter changes with list crossfade.
+- [x] Add press scale feedback to call, WhatsApp, and map buttons.
 
 ### Task F-24: Admin Order Detail Screen
 

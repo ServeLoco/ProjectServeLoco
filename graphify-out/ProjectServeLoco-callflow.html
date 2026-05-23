@@ -60,7 +60,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 <div class="container">
 
 <h1>ProjectServeLoco — Complete Call Flow &amp; Architecture Documentation</h1>
-<p class="subtitle">Generated from graphify knowledge graph: 708 nodes, 1193 edges, 57 communities. Commit: 639b0aa</p>
+<p class="subtitle">Generated from graphify knowledge graph: 708 nodes, 1194 edges, 59 communities. Commit: f2c86f2</p>
 
 <div class="nav">
     <a href="#overview">Architecture Overview</a>
@@ -71,13 +71,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
     <a href="#tests-fixtures">Tests &amp; Fixtures</a>
     <a href="#community-45">Community 45</a>
     <a href="#community-50">Community 50</a>
-    <a href="#community-54">Community 54</a>
     <a href="#community-30">Community 30</a>
-    <a href="#community-15">Community 15</a>
     <a href="#community-8">Community 8</a>
     <a href="#community-0">Community 0</a>
+    <a href="#community-43">Community 43</a>
     <a href="#community-1">Community 1</a>
     <a href="#community-21">Community 21</a>
+    <a href="#community-47">Community 47</a>
     <a href="#other">Other</a>
 </div>
 
@@ -100,36 +100,36 @@ flowchart LR
     class TESTS_FIXTURES_B84B1DCC module;
     COMMUNITY_45_E4978FE7("Community 45<br/><small>70 nodes</small>")
     class COMMUNITY_45_E4978FE7 module;
-    COMMUNITY_50_C81354CC("Community 50<br/><small>34 nodes</small>")
+    COMMUNITY_50_C81354CC("Community 50<br/><small>48 nodes</small>")
     class COMMUNITY_50_C81354CC module;
-    COMMUNITY_54_DA615CE8("Community 54<br/><small>22 nodes</small>")
-    class COMMUNITY_54_DA615CE8 module;
-    COMMUNITY_30_9CA2CA2E("Community 30<br/><small>20 nodes</small>")
+    COMMUNITY_30_9CA2CA2E("Community 30<br/><small>18 nodes</small>")
     class COMMUNITY_30_9CA2CA2E module;
-    COMMUNITY_15_4BECAAD7("Community 15<br/><small>18 nodes</small>")
-    class COMMUNITY_15_4BECAAD7 module;
     COMMUNITY_8_9FC4FAC0("Community 8<br/><small>17 nodes</small>")
     class COMMUNITY_8_9FC4FAC0 module;
     COMMUNITY_0_B056AD3D("Community 0<br/><small>15 nodes</small>")
     class COMMUNITY_0_B056AD3D module;
+    COMMUNITY_43_5DF3A0B0("Community 43<br/><small>14 nodes</small>")
+    class COMMUNITY_43_5DF3A0B0 module;
     COMMUNITY_1_3073A0DB("Community 1<br/><small>13 nodes</small>")
     class COMMUNITY_1_3073A0DB module;
     COMMUNITY_21_47BA4108("Community 21<br/><small>12 nodes</small>")
     class COMMUNITY_21_47BA4108 module;
-    OTHER_D0941E68("Other<br/><small>145 nodes</small>")
+    COMMUNITY_47_59D66A55("Community 47<br/><small>12 nodes</small>")
+    class COMMUNITY_47_59D66A55 module;
+    OTHER_D0941E68("Other<br/><small>147 nodes</small>")
     class OTHER_D0941E68 module;
-    OTHER_D0941E68 -->|imports x20| COMMUNITY_15_4BECAAD7
+    COMMUNITY_50_C81354CC -->|imports x21| COMMUNITY_45_E4978FE7
     OTHER_D0941E68 -->|imports x19| COMMUNITY_45_E4978FE7
-    COMMUNITY_50_C81354CC -->|re exports x17| OTHER_D0941E68
+    COMMUNITY_50_C81354CC -->|imports x18| OTHER_D0941E68
+    OTHER_D0941E68 -->|imports x18| COMMUNITY_30_9CA2CA2E
     COMMUNITY_45_E4978FE7 -->|imports x17| COMMUNITY_30_9CA2CA2E
     TESTS_FIXTURES_B84B1DCC -->|imports x16| COMMUNITY_45_E4978FE7
-    COMMUNITY_50_C81354CC -->|imports x16| COMMUNITY_45_E4978FE7
-    COMMUNITY_45_E4978FE7 -->|imports x16| COMMUNITY_15_4BECAAD7
-    OTHER_D0941E68 -->|imports x15| COMMUNITY_30_9CA2CA2E
-    COMMUNITY_50_C81354CC -->|imports x14| COMMUNITY_15_4BECAAD7
-    TESTS_FIXTURES_B84B1DCC -->|imports x13| COMMUNITY_15_4BECAAD7
+    COMMUNITY_45_E4978FE7 -->|imports x16| OTHER_D0941E68
+    COMMUNITY_50_C81354CC -->|imports x15| COMMUNITY_30_9CA2CA2E
+    TESTS_FIXTURES_B84B1DCC -->|imports x12| COMMUNITY_50_C81354CC
     TESTS_FIXTURES_B84B1DCC -->|imports x12| COMMUNITY_30_9CA2CA2E
-    TESTS_FIXTURES_B84B1DCC -->|imports x11| COMMUNITY_50_C81354CC
+    TESTS_FIXTURES_B84B1DCC -->|imports x12| OTHER_D0941E68
+    OTHER_D0941E68 -->|imports x10| COMMUNITY_47_59D66A55
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -146,19 +146,19 @@ flowchart LR
     <h4>Architecture Layers</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
-      <tr><td>Extraction Pipeline</td><td>7</td><td><code>23, 25</code></td></tr><tr><td>Graph Build</td><td>70</td><td><code>2, 35, 22, 4, 24, 36, 37</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>28</td><td><code>6</code></td></tr><tr><td>Serving API</td><td>180</td><td><code>28, 14, 20, 7</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>57</td><td><code>13</code></td></tr><tr><td>Community 45</td><td>70</td><td><code>45</code></td></tr><tr><td>Community 50</td><td>34</td><td><code>50</code></td></tr><tr><td>Community 54</td><td>22</td><td><code>54</code></td></tr><tr><td>Community 30</td><td>20</td><td><code>30</code></td></tr><tr><td>Community 15</td><td>18</td><td><code>15</code></td></tr><tr><td>Community 8</td><td>17</td><td><code>8</code></td></tr><tr><td>Community 0</td><td>15</td><td><code>0</code></td></tr><tr><td>Community 1</td><td>13</td><td><code>1</code></td></tr><tr><td>Community 21</td><td>12</td><td><code>21</code></td></tr><tr><td>Other</td><td>145</td><td><code>43, 47, 12, 18, 16, 5, 59, 61, 3, 58, 44, 72, 17, 51, 52, 26, 53, 10, 11, 27, 29, 31, 32, 34, 55, 9, 19, 38, 39, 40, 41, 42, 76</code></td></tr>
+      <tr><td>Extraction Pipeline</td><td>7</td><td><code>23, 25</code></td></tr><tr><td>Graph Build</td><td>70</td><td><code>2, 35, 22, 4, 24, 36, 37</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>28</td><td><code>6</code></td></tr><tr><td>Serving API</td><td>180</td><td><code>28, 14, 20, 7</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>57</td><td><code>13</code></td></tr><tr><td>Community 45</td><td>70</td><td><code>45</code></td></tr><tr><td>Community 50</td><td>48</td><td><code>50</code></td></tr><tr><td>Community 30</td><td>18</td><td><code>30</code></td></tr><tr><td>Community 8</td><td>17</td><td><code>8</code></td></tr><tr><td>Community 0</td><td>15</td><td><code>0</code></td></tr><tr><td>Community 43</td><td>14</td><td><code>43</code></td></tr><tr><td>Community 1</td><td>13</td><td><code>1</code></td></tr><tr><td>Community 21</td><td>12</td><td><code>21</code></td></tr><tr><td>Community 47</td><td>12</td><td><code>47</code></td></tr><tr><td>Other</td><td>147</td><td><code>12, 15, 18, 16, 33, 5, 59, 3, 54, 58, 44, 46, 17, 48, 49, 51, 52, 26, 53, 10, 11, 27, 29, 31, 32, 34, 55, 9, 19, 38, 39, 40, 41, 42, 76</code></td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Core Flow</h4>
-    <div class="arrow-chain">Extraction Pipeline -&gt; Graph Build -&gt; Community 45 -&gt; Community 30 -&gt; Community 15 -&gt; Other -&gt; Community 54</div>
+    <div class="arrow-chain">Extraction Pipeline -&gt; Graph Build -&gt; Community 45 -&gt; Community 30 -&gt; Other -&gt; Community 47 -&gt; Community 43</div>
   </div>
 </div>
 <div class="grid">
   <div class="card">
     <h4>Graph Report Highlights</h4>
     <ul>
-      <li>708 nodes · 1193 edges · 57 communities (44 shown, 13 thin omitted)</li>
+      <li>708 nodes · 1194 edges · 59 communities (45 shown, 14 thin omitted)</li>
       <li>Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.8)</li>
       <li>Token cost: 0 input · 0 output</li>
       <li>1. `colors` - 51 edges</li>
@@ -1785,7 +1785,7 @@ flowchart LR
   <td><code>AdminCustomersScreen.js</code><br><small style="color:var(--muted)">screens/AdminCustomersScreen/AdminCustomersScreen.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">src/components/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small></td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/components/index.js</small></td>
   <td>AdminCustomersScreen.js node in screens/AdminCustomersScreen/AdminCustomersScreen.js.</td>
 </tr>
 <tr>
@@ -1817,7 +1817,7 @@ flowchart LR
   <td><code>AdminSettingsScreen.js</code><br><small style="color:var(--muted)">screens/AdminSettingsScreen/AdminSettingsScreen.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">src/components/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small></td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/components/index.js</small></td>
   <td>AdminSettingsScreen.js node in screens/AdminSettingsScreen/AdminSettingsScreen.js.</td>
 </tr>
 <tr>
@@ -1881,7 +1881,7 @@ flowchart LR
   <td><code>AnimatedFadeSlide.js</code><br><small style="color:var(--muted)">components/AnimatedFadeSlide/AnimatedFadeSlide.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>easing</code><br><small style="color:var(--muted)">src/theme/motion.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/utils/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small><br>+1 more</td>
+  <td><code>easing</code><br><small style="color:var(--muted)">src/theme/motion.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/utils/index.js</small><br>+1 more</td>
   <td>AnimatedFadeSlide.js node in components/AnimatedFadeSlide/AnimatedFadeSlide.js.</td>
 </tr>
 <tr>
@@ -1905,7 +1905,7 @@ flowchart LR
   <td><code>AnimatedModalView.js</code><br><small style="color:var(--muted)">components/AnimatedModalView/AnimatedModalView.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">src/utils/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small><br><code>motionConfig</code><br><small style="color:var(--muted)">src/theme/motion.js</small><br>+1 more</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/utils/index.js</small><br><code>motionConfig</code><br><small style="color:var(--muted)">src/theme/motion.js</small><br>+1 more</td>
   <td>AnimatedModalView.js node in components/AnimatedModalView/AnimatedModalView.js.</td>
 </tr>
 <tr>
@@ -1945,7 +1945,7 @@ flowchart LR
   <td><code>LoadingSkeleton.js</code><br><small style="color:var(--muted)">components/LoadingSkeleton/LoadingSkeleton.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">src/utils/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small><br><code>motionConfig</code><br><small style="color:var(--muted)">src/theme/motion.js</small><br>+1 more</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/utils/index.js</small><br><code>motionConfig</code><br><small style="color:var(--muted)">src/theme/motion.js</small><br>+1 more</td>
   <td>LoadingSkeleton.js node in components/LoadingSkeleton/LoadingSkeleton.js.</td>
 </tr>
 <tr>
@@ -2046,23 +2046,18 @@ flowchart LR
 
 <!-- ====== 8. Community 50 ====== -->
 <h2 id="community-50">8. Community 50</h2>
-<p>Community 50 groups implementation around frontend, screens, indexjs, styles, mostly in screens/AdminDashboardScreen/AdminDashboardScreen.js, screens/ProfileScreen/ProfileScreen.js, screens/OrderConfirmationScreen/OrderConfirmationScreen.js. This section covers 34 nodes and 49 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Community 50 groups implementation around frontend, screens, indexjs, styles, mostly in screens/AdminProductsScreen/AdminProductsScreen.js, screens/OrdersScreen/OrdersScreen.js, screens/AdminDashboardScreen/AdminDashboardScreen.js. This section covers 48 nodes and 66 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Community 50 (34 nodes, 49 edges)
+    %% Section: Community 50 (48 nodes, 66 edges)
     subgraph community_50_screens_AdminDashboardScreen_AdminD_edcae667["screens/AdminDashboardScreen/AdminDashboardScreen.js"]
         admindashboardscreen_admindashboardscreen_admind_7e31a819("AdminDashboardScreen()<br/><small>screens/AdminDashboardScreen/AdminDashboardScreen.js</small>")
         frontend_v1_src_screens_admindashboardscreen_adm_7444e6ef("AdminDashboardScreen.js")
         admindashboardscreen_admindashboardscreen_metric_aee16e85("MetricCard()<br/><small>screens/AdminDashboardScreen/AdminDashboardScreen.js</small>")
         admindashboardscreen_admindashboardscreen_fetchd_99dea6d8("fetchDashboardData()<br/><small>screens/AdminDashboardScreen/AdminDashboardScreen.js</small>")
         admindashboardscreen_admindashboardscreen_styles_2cdabe7d("styles<br/><small>screens/AdminDashboardScreen/AdminDashboardScreen.js</small>")
-    end
-    subgraph community_50_screens_AdminEntryScreen_AdminEntry_7f3f61cd["screens/AdminEntryScreen/AdminEntryScreen.js"]
-        frontend_v1_src_screens_adminentryscreen_adminen_b97d48e5("AdminEntryScreen.js")
-        adminentryscreen_adminentryscreen_adminentryscre_3d585997("AdminEntryScreen()<br/><small>screens/AdminEntryScreen/AdminEntryScreen.js</small>")
-        adminentryscreen_adminentryscreen_styles_c5ed11f8("styles<br/><small>screens/AdminEntryScreen/AdminEntryScreen.js</small>")
     end
     subgraph community_50_screens_AdminLoginScreen_AdminLogin_9e681abe["screens/AdminLoginScreen/AdminLoginScreen.js"]
         adminloginscreen_adminloginscreen_adminloginscre_53dc7dca("AdminLoginScreen()<br/><small>screens/AdminLoginScreen/AdminLoginScreen.js</small>")
@@ -2076,41 +2071,48 @@ flowchart LR
         editprofilescreen_editprofilescreen_editprofiles_0b297326("EditProfileScreen()<br/><small>screens/EditProfileScreen/EditProfileScreen.js</small>")
         frontend_v1_src_screens_editprofilescreen_editpr_11a03cd1("EditProfileScreen.js")
     end
+    subgraph community_50_screens_OrdersScreen_OrdersScreen_j_045e4f89["screens/OrdersScreen/OrdersScreen.js"]
+        ordersscreen_ordersscreen_ordersscreen_ff92afce("OrdersScreen()<br/><small>screens/OrdersScreen/OrdersScreen.js</small>")
+        frontend_v1_src_screens_ordersscreen_ordersscree_db64fdb2("OrdersScreen.js")
+    end
     subgraph community_50_screens_ProfileScreen_ProfileScreen_c557921f["screens/ProfileScreen/ProfileScreen.js"]
         profilescreen_profilescreen_profilescreen_c57e5fd2("ProfileScreen()<br/><small>screens/ProfileScreen/ProfileScreen.js</small>")
         frontend_v1_src_screens_profilescreen_profilescr_7a9e3cf8("ProfileScreen.js")
     end
     frontend_v1_src_screens_admindashboardscreen_ind_86760b80("index.js")
+    frontend_v1_src_screens_adminentryscreen_adminen_b97d48e5("AdminEntryScreen.js")
     stores_useauthstore_useauthstore_d6c96056("useAuthStore<br/><small>src/stores/useAuthStore.js</small>")
     stores_useauthstore_useauthstore_d6c96056 -->|calls| profilescreen_profilescreen_profilescreen_c57e5fd2
+    stores_useauthstore_useauthstore_d6c96056 -->|calls| ordersscreen_ordersscreen_ordersscreen_ff92afce
     stores_useauthstore_useauthstore_d6c96056 -->|calls| editprofilescreen_editprofilescreen_editprofiles_0b297326
     stores_useauthstore_useauthstore_d6c96056 -->|calls| admindashboardscreen_admindashboardscreen_admind_7e31a819
     stores_useauthstore_useauthstore_d6c96056 -->|calls| adminloginscreen_adminloginscreen_adminloginscre_53dc7dca
     stores_useauthstore_useauthstore_d6c96056 -->|calls| authscreen_authscreen_authscreen_7a8a9bcc
     stores_useauthstore_useauthstore_d6c96056 -->|imports| frontend_v1_src_screens_profilescreen_profilescr_7a9e3cf8
+    stores_useauthstore_useauthstore_d6c96056 -->|imports| frontend_v1_src_screens_ordersscreen_ordersscree_db64fdb2
     stores_useauthstore_useauthstore_d6c96056 -->|imports| frontend_v1_src_screens_editprofilescreen_editpr_11a03cd1
     stores_useauthstore_useauthstore_d6c96056 -->|imports| frontend_v1_src_screens_admindashboardscreen_adm_7444e6ef
     stores_useauthstore_useauthstore_d6c96056 -->|imports| frontend_v1_src_screens_adminloginscreen_adminlo_d5d86348
     stores_useauthstore_useauthstore_d6c96056 -->|imports| frontend_v1_src_screens_adminentryscreen_adminen_b97d48e5
     stores_useauthstore_useauthstore_d6c96056 -->|imports| frontend_v1_src_screens_authscreen_authscreen_js_74e51232
-    %% Omitted for readability: 16 nodes, 0 edges
+    %% Omitted for readability: 30 nodes, 0 edges
     class admindashboardscreen_admindashboardscreen_admind_7e31a819 function;
     class frontend_v1_src_screens_admindashboardscreen_adm_7444e6ef klass;
     class admindashboardscreen_admindashboardscreen_metric_aee16e85 function;
     class admindashboardscreen_admindashboardscreen_fetchd_99dea6d8 function;
     class admindashboardscreen_admindashboardscreen_styles_2cdabe7d function;
-    class frontend_v1_src_screens_adminentryscreen_adminen_b97d48e5 klass;
-    class adminentryscreen_adminentryscreen_adminentryscre_3d585997 function;
-    class adminentryscreen_adminentryscreen_styles_c5ed11f8 function;
     class adminloginscreen_adminloginscreen_adminloginscre_53dc7dca function;
     class frontend_v1_src_screens_adminloginscreen_adminlo_d5d86348 klass;
     class authscreen_authscreen_authscreen_7a8a9bcc function;
     class frontend_v1_src_screens_authscreen_authscreen_js_74e51232 klass;
     class editprofilescreen_editprofilescreen_editprofiles_0b297326 function;
     class frontend_v1_src_screens_editprofilescreen_editpr_11a03cd1 klass;
+    class ordersscreen_ordersscreen_ordersscreen_ff92afce function;
+    class frontend_v1_src_screens_ordersscreen_ordersscree_db64fdb2 klass;
     class profilescreen_profilescreen_profilescreen_c57e5fd2 function;
     class frontend_v1_src_screens_profilescreen_profilescr_7a9e3cf8 klass;
     class frontend_v1_src_screens_admindashboardscreen_ind_86760b80 module;
+    class frontend_v1_src_screens_adminentryscreen_adminen_b97d48e5 klass;
     class stores_useauthstore_useauthstore_d6c96056 ui;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
@@ -2146,7 +2148,7 @@ flowchart LR
   <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>AdminDashboardScreen()</code><br><small style="color:var(--muted)">screens/AdminDashboardScreen/AdminDashboardScreen.js</small><br><code>AdminDashboardScreen.js</code><br><small style="color:var(--muted)">screens/AdminDashboardScreen/AdminDashboardScreen.js</small><br><code>AdminEntryScreen()</code><br><small style="color:var(--muted)">screens/AdminEntryScreen/AdminEntryScreen.js</small><br>+9 more</td>
+  <td><code>AdminDashboardScreen()</code><br><small style="color:var(--muted)">screens/AdminDashboardScreen/AdminDashboardScreen.js</small><br><code>AdminDashboardScreen.js</code><br><small style="color:var(--muted)">screens/AdminDashboardScreen/AdminDashboardScreen.js</small><br><code>AdminEntryScreen()</code><br><small style="color:var(--muted)">screens/AdminEntryScreen/AdminEntryScreen.js</small><br>+11 more</td>
   <td>useAuthStore node in src/stores/useAuthStore.js.</td>
 </tr>
 <tr>
@@ -2231,6 +2233,54 @@ flowchart LR
 </tr>
 <tr>
   <td>13</td>
+  <td><code>OrdersScreen.js</code><br><small style="color:var(--muted)">screens/OrdersScreen/OrdersScreen.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>OrdersScreen.js node in screens/OrdersScreen/OrdersScreen.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>MOCK_ORDERS</code><br><small style="color:var(--muted)">screens/OrdersScreen/OrdersScreen.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>MOCK_ORDERS node in screens/OrdersScreen/OrdersScreen.js.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>FILTER_CHIPS</code><br><small style="color:var(--muted)">screens/OrdersScreen/OrdersScreen.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>FILTER_CHIPS node in screens/OrdersScreen/OrdersScreen.js.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>OrdersScreen()</code><br><small style="color:var(--muted)">screens/OrdersScreen/OrdersScreen.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>OrdersScreen() node in screens/OrdersScreen/OrdersScreen.js.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>styles</code><br><small style="color:var(--muted)">screens/OrdersScreen/OrdersScreen.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>styles node in screens/OrdersScreen/OrdersScreen.js.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">screens/OrdersScreen/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in screens/OrdersScreen/index.js.</td>
+</tr>
+<tr>
+  <td>19</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">screens/EditProfileScreen/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -2238,7 +2288,7 @@ flowchart LR
   <td>index.js node in screens/EditProfileScreen/index.js.</td>
 </tr>
 <tr>
-  <td>14</td>
+  <td>20</td>
   <td><code>EditProfileScreen.js</code><br><small style="color:var(--muted)">screens/EditProfileScreen/EditProfileScreen.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
@@ -2246,7 +2296,7 @@ flowchart LR
   <td>EditProfileScreen.js node in screens/EditProfileScreen/EditProfileScreen.js.</td>
 </tr>
 <tr>
-  <td>15</td>
+  <td>21</td>
   <td><code>EditProfileScreen()</code><br><small style="color:var(--muted)">screens/EditProfileScreen/EditProfileScreen.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
@@ -2254,7 +2304,7 @@ flowchart LR
   <td>EditProfileScreen() node in screens/EditProfileScreen/EditProfileScreen.js.</td>
 </tr>
 <tr>
-  <td>16</td>
+  <td>22</td>
   <td><code>styles</code><br><small style="color:var(--muted)">screens/EditProfileScreen/EditProfileScreen.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -2262,7 +2312,7 @@ flowchart LR
   <td>styles node in screens/EditProfileScreen/EditProfileScreen.js.</td>
 </tr>
 <tr>
-  <td>17</td>
+  <td>23</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">screens/AdminDashboardScreen/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -2270,7 +2320,7 @@ flowchart LR
   <td>index.js node in screens/AdminDashboardScreen/index.js.</td>
 </tr>
 <tr>
-  <td>18</td>
+  <td>24</td>
   <td><code>AdminDashboardScreen.js</code><br><small style="color:var(--muted)">screens/AdminDashboardScreen/AdminDashboardScreen.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
@@ -2278,7 +2328,7 @@ flowchart LR
   <td>AdminDashboardScreen.js node in screens/AdminDashboardScreen/AdminDashboardScreen.js.</td>
 </tr>
 <tr>
-  <td>19</td>
+  <td>25</td>
   <td><code>fetchDashboardData()</code><br><small style="color:var(--muted)">screens/AdminDashboardScreen/AdminDashboardScreen.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -2286,7 +2336,7 @@ flowchart LR
   <td>fetchDashboardData() node in screens/AdminDashboardScreen/AdminDashboardScreen.js.</td>
 </tr>
 <tr>
-  <td>20</td>
+  <td>26</td>
   <td><code>AdminDashboardScreen()</code><br><small style="color:var(--muted)">screens/AdminDashboardScreen/AdminDashboardScreen.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
@@ -2294,7 +2344,7 @@ flowchart LR
   <td>AdminDashboardScreen() node in screens/AdminDashboardScreen/AdminDashboardScreen.js.</td>
 </tr>
 <tr>
-  <td>21</td>
+  <td>27</td>
   <td><code>MetricCard()</code><br><small style="color:var(--muted)">screens/AdminDashboardScreen/AdminDashboardScreen.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -2302,7 +2352,7 @@ flowchart LR
   <td>MetricCard() node in screens/AdminDashboardScreen/AdminDashboardScreen.js.</td>
 </tr>
 <tr>
-  <td>22</td>
+  <td>28</td>
   <td><code>styles</code><br><small style="color:var(--muted)">screens/AdminDashboardScreen/AdminDashboardScreen.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -2310,68 +2360,20 @@ flowchart LR
   <td>styles node in screens/AdminDashboardScreen/AdminDashboardScreen.js.</td>
 </tr>
 <tr>
-  <td>23</td>
-  <td><code>AdminLoginScreen.js</code><br><small style="color:var(--muted)">screens/AdminLoginScreen/AdminLoginScreen.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>AdminLoginScreen.js node in screens/AdminLoginScreen/AdminLoginScreen.js.</td>
-</tr>
-<tr>
-  <td>24</td>
-  <td><code>AdminLoginScreen()</code><br><small style="color:var(--muted)">screens/AdminLoginScreen/AdminLoginScreen.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>AdminLoginScreen() node in screens/AdminLoginScreen/AdminLoginScreen.js.</td>
-</tr>
-<tr>
-  <td>25</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">screens/AdminLoginScreen/AdminLoginScreen.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in screens/AdminLoginScreen/AdminLoginScreen.js.</td>
-</tr>
-<tr>
-  <td>26</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">screens/AdminLoginScreen/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in screens/AdminLoginScreen/index.js.</td>
-</tr>
-<tr>
-  <td>27</td>
-  <td><code>AdminEntryScreen.js</code><br><small style="color:var(--muted)">screens/AdminEntryScreen/AdminEntryScreen.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>AdminEntryScreen.js node in screens/AdminEntryScreen/AdminEntryScreen.js.</td>
-</tr>
-<tr>
-  <td>28</td>
-  <td><code>AdminEntryScreen()</code><br><small style="color:var(--muted)">screens/AdminEntryScreen/AdminEntryScreen.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>AdminEntryScreen() node in screens/AdminEntryScreen/AdminEntryScreen.js.</td>
-</tr>
-<tr>
   <td>29</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">screens/AdminEntryScreen/AdminEntryScreen.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AdminProductsScreen.js</code><br><small style="color:var(--muted)">screens/AdminProductsScreen/AdminProductsScreen.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>styles node in screens/AdminEntryScreen/AdminEntryScreen.js.</td>
+  <td>AdminProductsScreen.js node in screens/AdminProductsScreen/AdminProductsScreen.js.</td>
 </tr>
 <tr>
   <td>30</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">screens/AdminEntryScreen/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
+  <td><code>initialMockProducts</code><br><small style="color:var(--muted)">screens/AdminProductsScreen/AdminProductsScreen.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>index.js node in screens/AdminEntryScreen/index.js.</td>
+  <td>initialMockProducts node in screens/AdminProductsScreen/AdminProductsScreen.js.</td>
 </tr>
 </table>
 
@@ -2380,631 +2382,85 @@ flowchart LR
     <h4>Key Files</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>screens/AdminDashboardScreen/AdminDashboardScreen.js</code></td><td>5 nodes</td></tr>
+      <tr><td><code>screens/AdminProductsScreen/AdminProductsScreen.js</code></td><td>7 nodes</td></tr>
+<tr><td><code>screens/AdminDashboardScreen/AdminDashboardScreen.js</code></td><td>5 nodes</td></tr>
+<tr><td><code>screens/OrdersScreen/OrdersScreen.js</code></td><td>5 nodes</td></tr>
 <tr><td><code>screens/ProfileScreen/ProfileScreen.js</code></td><td>4 nodes</td></tr>
 <tr><td><code>screens/AdminEntryScreen/AdminEntryScreen.js</code></td><td>3 nodes</td></tr>
 <tr><td><code>screens/AdminLoginScreen/AdminLoginScreen.js</code></td><td>3 nodes</td></tr>
 <tr><td><code>screens/AuthScreen/AuthScreen.js</code></td><td>3 nodes</td></tr>
 <tr><td><code>screens/EditProfileScreen/EditProfileScreen.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>screens/OrderConfirmationScreen/OrderConfirmationScreen.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>src/stores/useAuthStore.js</code></td><td>2 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: re exports x19, contains x18, imports x6, calls x5. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x28, re exports x24, imports x7, calls x6. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
 
-<!-- ====== 9. Community 54 ====== -->
-<h2 id="community-54">9. Community 54</h2>
-<p>Community 54 groups implementation around frontend, components, indexjs, orderdetailscreen, mostly in screens/OrderDetailScreen/OrderDetailScreen.js, components/Chip/Chip.js, components/TextButton/TextButton.js. This section covers 22 nodes and 23 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<!-- ====== 9. Community 30 ====== -->
+<h2 id="community-30">9. Community 30</h2>
+<p>Community 30 groups implementation around frontend, components, indexjs, theme, mostly in components/ConfirmModal/ConfirmModal.js, components/SegmentedControl/SegmentedControl.js, components/AppHeader/AppHeader.js. This section covers 18 nodes and 21 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Community 54 (22 nodes, 23 edges)
-    subgraph community_54_components_Chip_Chip_js_d59c450c["components/Chip/Chip.js"]
-        frontend_v1_src_components_chip_chip_js_937db2d1("Chip.js")
-        chip_chip_chip_a3c4700e("Chip()<br/><small>components/Chip/Chip.js</small>")
-        chip_chip_chiprow_959692f6("ChipRow()<br/><small>components/Chip/Chip.js</small>")
-        chip_chip_styles_ccb2b374("styles<br/><small>components/Chip/Chip.js</small>")
-    end
-    subgraph community_54_screens_OrderDetailScreen_OrderDeta_92c49fab["screens/OrderDetailScreen/OrderDetailScreen.js"]
-        frontend_v1_src_screens_orderdetailscreen_orderd_282c2dd1("OrderDetailScreen.js")
-        orderdetailscreen_orderdetailscreen_orderdetails_49759f7e("OrderDetailScreen()<br/><small>screens/OrderDetailScreen/OrderDetailScreen.js</small>")
-        orderdetailscreen_orderdetailscreen_status_steps_49b1e599("STATUS_STEPS<br/><small>screens/OrderDetailScreen/OrderDetailScreen.js</small>")
-        orderdetailscreen_orderdetailscreen_timelinestep_4c567d90("TimelineStep()<br/><small>screens/OrderDetailScreen/OrderDetailScreen.js</small>")
-    end
-    subgraph community_54_components_IconButton_IconButton_js_033cfc3a["components/IconButton/IconButton.js"]
-        frontend_v1_src_components_iconbutton_iconbutton_95d791f2("IconButton.js")
-        iconbutton_iconbutton_iconbutton_ab648238("IconButton()<br/><small>components/IconButton/IconButton.js</small>")
-        iconbutton_iconbutton_styles_6f760bf5("styles<br/><small>components/IconButton/IconButton.js</small>")
-    end
-    subgraph community_54_components_TextButton_TextButton_js_dacbd900["components/TextButton/TextButton.js"]
-        frontend_v1_src_components_textbutton_textbutton_c37fcfab("TextButton.js")
-        textbutton_textbutton_textbutton_20b29754("TextButton()<br/><small>components/TextButton/TextButton.js</small>")
-        textbutton_textbutton_styles_de3e12d5("styles<br/><small>components/TextButton/TextButton.js</small>")
-    end
-    frontend_v1_src_components_chip_index_js_103a8793("index.js")
-    frontend_v1_src_components_iconbutton_index_js_15a2c22f("index.js")
-    frontend_v1_src_components_textbutton_index_js_452cddf4("index.js")
-    theme_layout_layout_b746cb58("layout<br/><small>src/theme/layout.js</small>")
-    frontend_v1_src_screens_orderdetailscreen_orderd_282c2dd1 -->|imports| theme_layout_layout_b746cb58
-    frontend_v1_src_components_textbutton_textbutton_c37fcfab -->|imports| theme_layout_layout_b746cb58
-    frontend_v1_src_components_chip_chip_js_937db2d1 -->|imports| theme_layout_layout_b746cb58
-    frontend_v1_src_components_iconbutton_iconbutton_95d791f2 -->|imports| theme_layout_layout_b746cb58
-    %% Omitted for readability: 4 nodes, 0 edges
-    class frontend_v1_src_components_chip_chip_js_937db2d1 klass;
-    class chip_chip_chip_a3c4700e function;
-    class chip_chip_chiprow_959692f6 function;
-    class chip_chip_styles_ccb2b374 function;
-    class frontend_v1_src_screens_orderdetailscreen_orderd_282c2dd1 klass;
-    class orderdetailscreen_orderdetailscreen_orderdetails_49759f7e function;
-    class orderdetailscreen_orderdetailscreen_status_steps_49b1e599 klass;
-    class orderdetailscreen_orderdetailscreen_timelinestep_4c567d90 function;
-    class frontend_v1_src_components_iconbutton_iconbutton_95d791f2 klass;
-    class iconbutton_iconbutton_iconbutton_ab648238 function;
-    class iconbutton_iconbutton_styles_6f760bf5 function;
-    class frontend_v1_src_components_textbutton_textbutton_c37fcfab klass;
-    class textbutton_textbutton_textbutton_20b29754 function;
-    class textbutton_textbutton_styles_de3e12d5 function;
-    class frontend_v1_src_components_chip_index_js_103a8793 module;
-    class frontend_v1_src_components_iconbutton_index_js_15a2c22f module;
-    class frontend_v1_src_components_textbutton_index_js_452cddf4 module;
-    class theme_layout_layout_b746cb58 function;
-    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
-    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
-    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
-    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
-    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
-    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
-    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
-    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
-    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
-</div>
-
-<h3>Call Details</h3>
-<table class="call-table">
-<tr>
-  <th style="width:5%">#</th>
-  <th style="width:28%">Node</th>
-  <th style="width:10%">Type</th>
-  <th style="width:17%">Caller</th>
-  <th style="width:20%">Callees</th>
-  <th style="width:20%">Description</th>
-</tr>
-<tr>
-  <td>1</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">screens/OrderDetailScreen/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in screens/OrderDetailScreen/index.js.</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td><code>OrderDetailScreen.js</code><br><small style="color:var(--muted)">screens/OrderDetailScreen/OrderDetailScreen.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
-  <td>OrderDetailScreen.js node in screens/OrderDetailScreen/OrderDetailScreen.js.</td>
-</tr>
-<tr>
-  <td>3</td>
-  <td><code>fetchOrderMock()</code><br><small style="color:var(--muted)">screens/OrderDetailScreen/OrderDetailScreen.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>fetchOrderMock() node in screens/OrderDetailScreen/OrderDetailScreen.js.</td>
-</tr>
-<tr>
-  <td>4</td>
-  <td><code>STATUS_STEPS</code><br><small style="color:var(--muted)">screens/OrderDetailScreen/OrderDetailScreen.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>STATUS_STEPS node in screens/OrderDetailScreen/OrderDetailScreen.js.</td>
-</tr>
-<tr>
-  <td>5</td>
-  <td><code>OrderDetailScreen()</code><br><small style="color:var(--muted)">screens/OrderDetailScreen/OrderDetailScreen.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>OrderDetailScreen() node in screens/OrderDetailScreen/OrderDetailScreen.js.</td>
-</tr>
-<tr>
-  <td>6</td>
-  <td><code>TimelineStep()</code><br><small style="color:var(--muted)">screens/OrderDetailScreen/OrderDetailScreen.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>TimelineStep() node in screens/OrderDetailScreen/OrderDetailScreen.js.</td>
-</tr>
-<tr>
-  <td>7</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">screens/OrderDetailScreen/OrderDetailScreen.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in screens/OrderDetailScreen/OrderDetailScreen.js.</td>
-</tr>
-<tr>
-  <td>8</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/TextButton/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in components/TextButton/index.js.</td>
-</tr>
-<tr>
-  <td>9</td>
-  <td><code>TextButton.js</code><br><small style="color:var(--muted)">components/TextButton/TextButton.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
-  <td>TextButton.js node in components/TextButton/TextButton.js.</td>
-</tr>
-<tr>
-  <td>10</td>
-  <td><code>TextButton()</code><br><small style="color:var(--muted)">components/TextButton/TextButton.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>TextButton() node in components/TextButton/TextButton.js.</td>
-</tr>
-<tr>
-  <td>11</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/TextButton/TextButton.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/TextButton/TextButton.js.</td>
-</tr>
-<tr>
-  <td>12</td>
-  <td><code>Chip.js</code><br><small style="color:var(--muted)">components/Chip/Chip.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
-  <td>Chip.js node in components/Chip/Chip.js.</td>
-</tr>
-<tr>
-  <td>13</td>
-  <td><code>Chip()</code><br><small style="color:var(--muted)">components/Chip/Chip.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Chip() node in components/Chip/Chip.js.</td>
-</tr>
-<tr>
-  <td>14</td>
-  <td><code>ChipRow()</code><br><small style="color:var(--muted)">components/Chip/Chip.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>ChipRow() node in components/Chip/Chip.js.</td>
-</tr>
-<tr>
-  <td>15</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/Chip/Chip.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/Chip/Chip.js.</td>
-</tr>
-<tr>
-  <td>16</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/Chip/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in components/Chip/index.js.</td>
-</tr>
-<tr>
-  <td>17</td>
-  <td><code>IconButton.js</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
-  <td>IconButton.js node in components/IconButton/IconButton.js.</td>
-</tr>
-<tr>
-  <td>18</td>
-  <td><code>IconButton()</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>IconButton() node in components/IconButton/IconButton.js.</td>
-</tr>
-<tr>
-  <td>19</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/IconButton/IconButton.js.</td>
-</tr>
-<tr>
-  <td>20</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/IconButton/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in components/IconButton/index.js.</td>
-</tr>
-<tr>
-  <td>21</td>
-  <td><code>layout.js</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>layout.js node in src/theme/layout.js.</td>
-</tr>
-<tr>
-  <td>22</td>
-  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>Chip.js</code><br><small style="color:var(--muted)">components/Chip/Chip.js</small><br><code>IconButton.js</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small><br><code>OrderDetailScreen.js</code><br><small style="color:var(--muted)">screens/OrderDetailScreen/OrderDetailScreen.js</small><br>+1 more</td>
-  <td>No direct outbound edge</td>
-  <td>layout node in src/theme/layout.js.</td>
-</tr>
-</table>
-
-<div class="grid">
-  <div class="card">
-    <h4>Key Files</h4>
-    <table style="width:100%;font-size:0.85rem;">
-      <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>screens/OrderDetailScreen/OrderDetailScreen.js</code></td><td>6 nodes</td></tr>
-<tr><td><code>components/Chip/Chip.js</code></td><td>4 nodes</td></tr>
-<tr><td><code>components/IconButton/IconButton.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>components/TextButton/TextButton.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>src/theme/layout.js</code></td><td>2 nodes</td></tr>
-<tr><td><code>components/Chip/index.js</code></td><td>1 nodes</td></tr>
-<tr><td><code>components/IconButton/index.js</code></td><td>1 nodes</td></tr>
-<tr><td><code>components/TextButton/index.js</code></td><td>1 nodes</td></tr>
-    </table>
-  </div>
-  <div class="card">
-    <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x13, re exports x6, imports x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
-  </div>
-</div>
-<hr>
-
-<!-- ====== 10. Community 30 ====== -->
-<h2 id="community-30">10. Community 30</h2>
-<p>Community 30 groups implementation around frontend, components, ordercard, indexjs, mostly in components/OrderCard/OrderCard.js, components/AdminMetricCard/AdminMetricCard.js, components/AppHeader/AppHeader.js. This section covers 20 nodes and 23 internal edges; the diagram shows only representative relationships to stay readable.</p>
-
-<div class="mermaid">
-%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
-flowchart LR
-    %% Section: Community 30 (20 nodes, 23 edges)
-    subgraph community_30_components_OrderCard_OrderCard_js_0f1938cf["components/OrderCard/OrderCard.js"]
-        frontend_v1_src_components_ordercard_ordercard_j_c5c8254e("OrderCard.js")
-        ordercard_ordercard_ordercard_9f466b02("OrderCard()<br/><small>components/OrderCard/OrderCard.js</small>")
-        ordercard_ordercard_payment_colors_bfd18b7c("PAYMENT_COLORS<br/><small>components/OrderCard/OrderCard.js</small>")
-        ordercard_ordercard_status_colors_cdd0c0a9("STATUS_COLORS<br/><small>components/OrderCard/OrderCard.js</small>")
-        ordercard_ordercard_styles_90a27c78("styles<br/><small>components/OrderCard/OrderCard.js</small>")
-    end
-    subgraph community_30_components_AdminMetricCard_AdminMet_f1eb7062["components/AdminMetricCard/AdminMetricCard.js"]
-        frontend_v1_src_components_adminmetriccard_admin_6806cb05("AdminMetricCard.js")
-        adminmetriccard_adminmetriccard_adminmetriccard_6c0a4f0d("AdminMetricCard()<br/><small>components/AdminMetricCard/AdminMetricCard.js</small>")
-        adminmetriccard_adminmetriccard_styles_020333a3("styles<br/><small>components/AdminMetricCard/AdminMetricCard.js</small>")
-    end
+    %% Section: Community 30 (18 nodes, 21 edges)
     subgraph community_30_components_AppHeader_AppHeader_js_9aa63db6["components/AppHeader/AppHeader.js"]
         frontend_v1_src_components_appheader_appheader_j_b82538b5("AppHeader.js")
         appheader_appheader_appheader_625a16d8("AppHeader()<br/><small>components/AppHeader/AppHeader.js</small>")
         appheader_appheader_styles_0e38f010("styles<br/><small>components/AppHeader/AppHeader.js</small>")
     end
-    subgraph community_30_src_theme_colors_js_33fbc96e["src/theme/colors.js"]
-        theme_colors_colors_7b3c3e22("colors<br/><small>src/theme/colors.js</small>")
-        frontend_v1_src_theme_colors_js_32d62278("colors.js")
-    end
-    subgraph community_30_src_theme_shadows_js_e2bc86d0["src/theme/shadows.js"]
-        frontend_v1_src_theme_shadows_js_467d0f72("shadows.js")
-        theme_shadows_shadows_93557019("shadows<br/><small>src/theme/shadows.js</small>")
-    end
-    frontend_v1_src_components_adminmetriccard_index_2cc0f642("index.js")
-    frontend_v1_src_components_appheader_index_js_6d338e85("index.js")
-    frontend_v1_src_components_ordercard_index_js_264a37ad("index.js")
-    frontend_v1_src_components_adminmetriccard_admin_6806cb05 -->|imports| theme_colors_colors_7b3c3e22
-    frontend_v1_src_components_adminmetriccard_admin_6806cb05 -->|imports| theme_shadows_shadows_93557019
-    frontend_v1_src_components_ordercard_ordercard_j_c5c8254e -->|imports| theme_colors_colors_7b3c3e22
-    frontend_v1_src_components_ordercard_ordercard_j_c5c8254e -->|imports| theme_shadows_shadows_93557019
-    frontend_v1_src_components_appheader_appheader_j_b82538b5 -->|imports| theme_colors_colors_7b3c3e22
-    frontend_v1_src_components_appheader_appheader_j_b82538b5 -->|imports| theme_shadows_shadows_93557019
-    frontend_v1_src_theme_shadows_js_467d0f72 -->|imports| frontend_v1_src_theme_colors_js_32d62278
-    frontend_v1_src_theme_shadows_js_467d0f72 -->|imports| theme_colors_colors_7b3c3e22
-    %% Omitted for readability: 2 nodes, 0 edges
-    class frontend_v1_src_components_ordercard_ordercard_j_c5c8254e klass;
-    class ordercard_ordercard_ordercard_9f466b02 function;
-    class ordercard_ordercard_payment_colors_bfd18b7c klass;
-    class ordercard_ordercard_status_colors_cdd0c0a9 klass;
-    class ordercard_ordercard_styles_90a27c78 function;
-    class frontend_v1_src_components_adminmetriccard_admin_6806cb05 klass;
-    class adminmetriccard_adminmetriccard_adminmetriccard_6c0a4f0d function;
-    class adminmetriccard_adminmetriccard_styles_020333a3 function;
-    class frontend_v1_src_components_appheader_appheader_j_b82538b5 klass;
-    class appheader_appheader_appheader_625a16d8 function;
-    class appheader_appheader_styles_0e38f010 function;
-    class theme_colors_colors_7b3c3e22 function;
-    class frontend_v1_src_theme_colors_js_32d62278 module;
-    class frontend_v1_src_theme_shadows_js_467d0f72 module;
-    class theme_shadows_shadows_93557019 function;
-    class frontend_v1_src_components_adminmetriccard_index_2cc0f642 module;
-    class frontend_v1_src_components_appheader_index_js_6d338e85 module;
-    class frontend_v1_src_components_ordercard_index_js_264a37ad module;
-    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
-    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
-    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
-    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
-    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
-    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
-    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
-    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
-    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
-</div>
-
-<h3>Call Details</h3>
-<table class="call-table">
-<tr>
-  <th style="width:5%">#</th>
-  <th style="width:28%">Node</th>
-  <th style="width:10%">Type</th>
-  <th style="width:17%">Caller</th>
-  <th style="width:20%">Callees</th>
-  <th style="width:20%">Description</th>
-</tr>
-<tr>
-  <td>1</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/AdminMetricCard/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in components/AdminMetricCard/index.js.</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td><code>AdminMetricCard.js</code><br><small style="color:var(--muted)">components/AdminMetricCard/AdminMetricCard.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small><br><code>shadows</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
-  <td>AdminMetricCard.js node in components/AdminMetricCard/AdminMetricCard.js.</td>
-</tr>
-<tr>
-  <td>3</td>
-  <td><code>AdminMetricCard()</code><br><small style="color:var(--muted)">components/AdminMetricCard/AdminMetricCard.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>AdminMetricCard() node in components/AdminMetricCard/AdminMetricCard.js.</td>
-</tr>
-<tr>
-  <td>4</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/AdminMetricCard/AdminMetricCard.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/AdminMetricCard/AdminMetricCard.js.</td>
-</tr>
-<tr>
-  <td>5</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/OrderCard/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in components/OrderCard/index.js.</td>
-</tr>
-<tr>
-  <td>6</td>
-  <td><code>OrderCard.js</code><br><small style="color:var(--muted)">components/OrderCard/OrderCard.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small><br><code>shadows</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
-  <td>OrderCard.js node in components/OrderCard/OrderCard.js.</td>
-</tr>
-<tr>
-  <td>7</td>
-  <td><code>STATUS_COLORS</code><br><small style="color:var(--muted)">components/OrderCard/OrderCard.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>STATUS_COLORS node in components/OrderCard/OrderCard.js.</td>
-</tr>
-<tr>
-  <td>8</td>
-  <td><code>PAYMENT_COLORS</code><br><small style="color:var(--muted)">components/OrderCard/OrderCard.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>PAYMENT_COLORS node in components/OrderCard/OrderCard.js.</td>
-</tr>
-<tr>
-  <td>9</td>
-  <td><code>OrderCard()</code><br><small style="color:var(--muted)">components/OrderCard/OrderCard.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>OrderCard() node in components/OrderCard/OrderCard.js.</td>
-</tr>
-<tr>
-  <td>10</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/OrderCard/OrderCard.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/OrderCard/OrderCard.js.</td>
-</tr>
-<tr>
-  <td>11</td>
-  <td><code>AppHeader.js</code><br><small style="color:var(--muted)">components/AppHeader/AppHeader.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small><br><code>shadows</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
-  <td>AppHeader.js node in components/AppHeader/AppHeader.js.</td>
-</tr>
-<tr>
-  <td>12</td>
-  <td><code>AppHeader()</code><br><small style="color:var(--muted)">components/AppHeader/AppHeader.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>AppHeader() node in components/AppHeader/AppHeader.js.</td>
-</tr>
-<tr>
-  <td>13</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/AppHeader/AppHeader.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/AppHeader/AppHeader.js.</td>
-</tr>
-<tr>
-  <td>14</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/AppHeader/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in components/AppHeader/index.js.</td>
-</tr>
-<tr>
-  <td>15</td>
-  <td><code>shadows.js</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small><br><code>colors.js</code><br><small style="color:var(--muted)">src/theme/colors.js</small></td>
-  <td>shadows.js node in src/theme/shadows.js.</td>
-</tr>
-<tr>
-  <td>16</td>
-  <td><code>makeShadow()</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>makeShadow() node in src/theme/shadows.js.</td>
-</tr>
-<tr>
-  <td>17</td>
-  <td><code>shadows</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>AdminMetricCard.js</code><br><small style="color:var(--muted)">components/AdminMetricCard/AdminMetricCard.js</small><br><code>AppHeader.js</code><br><small style="color:var(--muted)">components/AppHeader/AppHeader.js</small><br><code>OrderCard.js</code><br><small style="color:var(--muted)">components/OrderCard/OrderCard.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>shadows node in src/theme/shadows.js.</td>
-</tr>
-<tr>
-  <td>18</td>
-  <td><code>colors.js</code><br><small style="color:var(--muted)">src/theme/colors.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td><code>shadows.js</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>colors.js node in src/theme/colors.js.</td>
-</tr>
-<tr>
-  <td>19</td>
-  <td><code>palette</code><br><small style="color:var(--muted)">src/theme/colors.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>palette node in src/theme/colors.js.</td>
-</tr>
-<tr>
-  <td>20</td>
-  <td><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>AdminMetricCard.js</code><br><small style="color:var(--muted)">components/AdminMetricCard/AdminMetricCard.js</small><br><code>AppHeader.js</code><br><small style="color:var(--muted)">components/AppHeader/AppHeader.js</small><br><code>OrderCard.js</code><br><small style="color:var(--muted)">components/OrderCard/OrderCard.js</small><br>+1 more</td>
-  <td>No direct outbound edge</td>
-  <td>colors node in src/theme/colors.js.</td>
-</tr>
-</table>
-
-<div class="grid">
-  <div class="card">
-    <h4>Key Files</h4>
-    <table style="width:100%;font-size:0.85rem;">
-      <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>components/OrderCard/OrderCard.js</code></td><td>5 nodes</td></tr>
-<tr><td><code>components/AdminMetricCard/AdminMetricCard.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>components/AppHeader/AppHeader.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>src/theme/colors.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>src/theme/shadows.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>components/AdminMetricCard/index.js</code></td><td>1 nodes</td></tr>
-<tr><td><code>components/AppHeader/index.js</code></td><td>1 nodes</td></tr>
-<tr><td><code>components/OrderCard/index.js</code></td><td>1 nodes</td></tr>
-    </table>
-  </div>
-  <div class="card">
-    <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x12, imports x7, re exports x3, imports x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
-  </div>
-</div>
-<hr>
-
-<!-- ====== 11. Community 15 ====== -->
-<h2 id="community-15">11. Community 15</h2>
-<p>Community 15 groups implementation around frontend, components, indexjs, confirmmodal, mostly in components/ConfirmModal/ConfirmModal.js, components/StickyMiniCart/StickyMiniCart.js, components/SegmentedControl/SegmentedControl.js. This section covers 18 nodes and 20 internal edges; the diagram shows only representative relationships to stay readable.</p>
-
-<div class="mermaid">
-%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
-flowchart LR
-    %% Section: Community 15 (18 nodes, 20 edges)
-    subgraph community_15_components_ConfirmModal_ConfirmModa_c1433df5["components/ConfirmModal/ConfirmModal.js"]
+    subgraph community_30_components_ConfirmModal_ConfirmModa_b2f3f39e["components/ConfirmModal/ConfirmModal.js"]
         frontend_v1_src_components_confirmmodal_confirmm_d905c937("ConfirmModal.js")
         confirmmodal_confirmmodal_confirmmodal_c668dfa3("ConfirmModal()<br/><small>components/ConfirmModal/ConfirmModal.js</small>")
         confirmmodal_confirmmodal_styles_afc1ffd4("styles<br/><small>components/ConfirmModal/ConfirmModal.js</small>")
     end
-    subgraph community_15_components_QuantityStepper_Quantity_15c75b9b["components/QuantityStepper/QuantityStepper.js"]
-        frontend_v1_src_components_quantitystepper_quant_fbf8b0a4("QuantityStepper.js")
-        quantitystepper_quantitystepper_quantitystepper_c0d36d5f("QuantityStepper()<br/><small>components/QuantityStepper/QuantityStepper.js</small>")
-        quantitystepper_quantitystepper_styles_66fa362e("styles<br/><small>components/QuantityStepper/QuantityStepper.js</small>")
-    end
-    subgraph community_15_components_SegmentedControl_Segment_b9722c03["components/SegmentedControl/SegmentedControl.js"]
+    subgraph community_30_components_SegmentedControl_Segment_e20857ad["components/SegmentedControl/SegmentedControl.js"]
         frontend_v1_src_components_segmentedcontrol_segm_bbab87a4("SegmentedControl.js")
         segmentedcontrol_segmentedcontrol_segmentedcontr_216e3c1a("SegmentedControl()<br/><small>components/SegmentedControl/SegmentedControl.js</small>")
         segmentedcontrol_segmentedcontrol_styles_c3ab1a94("styles<br/><small>components/SegmentedControl/SegmentedControl.js</small>")
     end
-    subgraph community_15_components_StickyMiniCart_StickyMin_aa1d40ef["components/StickyMiniCart/StickyMiniCart.js"]
-        frontend_v1_src_components_stickyminicart_sticky_32cccd8b("StickyMiniCart.js")
-        stickyminicart_stickyminicart_stickyminicart_03f59579("StickyMiniCart()<br/><small>components/StickyMiniCart/StickyMiniCart.js</small>")
-        stickyminicart_stickyminicart_styles_444fd7b6("styles<br/><small>components/StickyMiniCart/StickyMiniCart.js</small>")
+    subgraph community_30_src_theme_colors_js_33fbc96e["src/theme/colors.js"]
+        theme_colors_colors_7b3c3e22("colors<br/><small>src/theme/colors.js</small>")
+        frontend_v1_src_theme_colors_js_32d62278("colors.js")
+        theme_colors_palette_6e4e316f("palette<br/><small>src/theme/colors.js</small>")
     end
-    subgraph community_15_src_theme_spacing_js_da1da2f6["src/theme/spacing.js"]
-        theme_spacing_spacing_3bb71910("spacing<br/><small>src/theme/spacing.js</small>")
-        frontend_v1_src_theme_spacing_js_17c063bc("spacing.js")
+    subgraph community_30_src_theme_shadows_js_e2bc86d0["src/theme/shadows.js"]
+        frontend_v1_src_theme_shadows_js_467d0f72("shadows.js")
+        theme_shadows_shadows_93557019("shadows<br/><small>src/theme/shadows.js</small>")
+        theme_shadows_makeshadow_2ac86801("makeShadow()<br/><small>src/theme/shadows.js</small>")
     end
+    frontend_v1_src_components_appheader_index_js_6d338e85("index.js")
     frontend_v1_src_components_confirmmodal_index_js_7b00d552("index.js")
     frontend_v1_src_components_segmentedcontrol_inde_504e1c7e("index.js")
-    frontend_v1_src_components_stickyminicart_index_faa05d03("index.js")
-    theme_typography_typography_68178fbd("typography<br/><small>src/theme/typography.js</small>")
-    frontend_v1_src_components_confirmmodal_confirmm_d905c937 -->|imports| theme_typography_typography_68178fbd
-    frontend_v1_src_components_confirmmodal_confirmm_d905c937 -->|imports| theme_spacing_spacing_3bb71910
-    frontend_v1_src_components_stickyminicart_sticky_32cccd8b -->|imports| theme_typography_typography_68178fbd
-    frontend_v1_src_components_stickyminicart_sticky_32cccd8b -->|imports| theme_spacing_spacing_3bb71910
-    frontend_v1_src_components_segmentedcontrol_segm_bbab87a4 -->|imports| theme_typography_typography_68178fbd
-    frontend_v1_src_components_segmentedcontrol_segm_bbab87a4 -->|imports| theme_spacing_spacing_3bb71910
-    frontend_v1_src_components_quantitystepper_quant_fbf8b0a4 -->|imports| theme_typography_typography_68178fbd
-    frontend_v1_src_components_quantitystepper_quant_fbf8b0a4 -->|imports| theme_spacing_spacing_3bb71910
+    frontend_v1_src_components_confirmmodal_confirmm_d905c937 -->|imports| theme_colors_colors_7b3c3e22
+    frontend_v1_src_components_confirmmodal_confirmm_d905c937 -->|imports| theme_shadows_shadows_93557019
+    frontend_v1_src_components_segmentedcontrol_segm_bbab87a4 -->|imports| theme_colors_colors_7b3c3e22
+    frontend_v1_src_components_segmentedcontrol_segm_bbab87a4 -->|imports| theme_shadows_shadows_93557019
+    frontend_v1_src_components_appheader_appheader_j_b82538b5 -->|imports| theme_colors_colors_7b3c3e22
+    frontend_v1_src_components_appheader_appheader_j_b82538b5 -->|imports| theme_shadows_shadows_93557019
+    frontend_v1_src_theme_shadows_js_467d0f72 -->|imports| frontend_v1_src_theme_colors_js_32d62278
+    frontend_v1_src_theme_shadows_js_467d0f72 -->|imports| theme_colors_colors_7b3c3e22
+    class frontend_v1_src_components_appheader_appheader_j_b82538b5 klass;
+    class appheader_appheader_appheader_625a16d8 function;
+    class appheader_appheader_styles_0e38f010 function;
     class frontend_v1_src_components_confirmmodal_confirmm_d905c937 klass;
     class confirmmodal_confirmmodal_confirmmodal_c668dfa3 function;
     class confirmmodal_confirmmodal_styles_afc1ffd4 function;
-    class frontend_v1_src_components_quantitystepper_quant_fbf8b0a4 klass;
-    class quantitystepper_quantitystepper_quantitystepper_c0d36d5f function;
-    class quantitystepper_quantitystepper_styles_66fa362e function;
     class frontend_v1_src_components_segmentedcontrol_segm_bbab87a4 klass;
     class segmentedcontrol_segmentedcontrol_segmentedcontr_216e3c1a function;
     class segmentedcontrol_segmentedcontrol_styles_c3ab1a94 function;
-    class frontend_v1_src_components_stickyminicart_sticky_32cccd8b klass;
-    class stickyminicart_stickyminicart_stickyminicart_03f59579 function;
-    class stickyminicart_stickyminicart_styles_444fd7b6 function;
-    class theme_spacing_spacing_3bb71910 function;
-    class frontend_v1_src_theme_spacing_js_17c063bc module;
+    class theme_colors_colors_7b3c3e22 function;
+    class frontend_v1_src_theme_colors_js_32d62278 module;
+    class theme_colors_palette_6e4e316f function;
+    class frontend_v1_src_theme_shadows_js_467d0f72 module;
+    class theme_shadows_shadows_93557019 function;
+    class theme_shadows_makeshadow_2ac86801 function;
+    class frontend_v1_src_components_appheader_index_js_6d338e85 module;
     class frontend_v1_src_components_confirmmodal_index_js_7b00d552 module;
     class frontend_v1_src_components_segmentedcontrol_inde_504e1c7e module;
-    class frontend_v1_src_components_stickyminicart_index_faa05d03 module;
-    class theme_typography_typography_68178fbd function;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -3039,7 +2495,7 @@ flowchart LR
   <td><code>ConfirmModal.js</code><br><small style="color:var(--muted)">components/ConfirmModal/ConfirmModal.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>spacing</code><br><small style="color:var(--muted)">src/theme/spacing.js</small><br><code>typography</code><br><small style="color:var(--muted)">src/theme/typography.js</small></td>
+  <td><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small><br><code>shadows</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
   <td>ConfirmModal.js node in components/ConfirmModal/ConfirmModal.js.</td>
 </tr>
 <tr>
@@ -3060,38 +2516,6 @@ flowchart LR
 </tr>
 <tr>
   <td>5</td>
-  <td><code>StickyMiniCart.js</code><br><small style="color:var(--muted)">components/StickyMiniCart/StickyMiniCart.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>spacing</code><br><small style="color:var(--muted)">src/theme/spacing.js</small><br><code>typography</code><br><small style="color:var(--muted)">src/theme/typography.js</small></td>
-  <td>StickyMiniCart.js node in components/StickyMiniCart/StickyMiniCart.js.</td>
-</tr>
-<tr>
-  <td>6</td>
-  <td><code>StickyMiniCart()</code><br><small style="color:var(--muted)">components/StickyMiniCart/StickyMiniCart.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>StickyMiniCart() node in components/StickyMiniCart/StickyMiniCart.js.</td>
-</tr>
-<tr>
-  <td>7</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/StickyMiniCart/StickyMiniCart.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/StickyMiniCart/StickyMiniCart.js.</td>
-</tr>
-<tr>
-  <td>8</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/StickyMiniCart/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in components/StickyMiniCart/index.js.</td>
-</tr>
-<tr>
-  <td>9</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">components/SegmentedControl/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -3099,15 +2523,15 @@ flowchart LR
   <td>index.js node in components/SegmentedControl/index.js.</td>
 </tr>
 <tr>
-  <td>10</td>
+  <td>6</td>
   <td><code>SegmentedControl.js</code><br><small style="color:var(--muted)">components/SegmentedControl/SegmentedControl.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>spacing</code><br><small style="color:var(--muted)">src/theme/spacing.js</small><br><code>typography</code><br><small style="color:var(--muted)">src/theme/typography.js</small></td>
+  <td><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small><br><code>shadows</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
   <td>SegmentedControl.js node in components/SegmentedControl/SegmentedControl.js.</td>
 </tr>
 <tr>
-  <td>11</td>
+  <td>7</td>
   <td><code>SegmentedControl()</code><br><small style="color:var(--muted)">components/SegmentedControl/SegmentedControl.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -3115,7 +2539,7 @@ flowchart LR
   <td>SegmentedControl() node in components/SegmentedControl/SegmentedControl.js.</td>
 </tr>
 <tr>
-  <td>12</td>
+  <td>8</td>
   <td><code>styles</code><br><small style="color:var(--muted)">components/SegmentedControl/SegmentedControl.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -3123,52 +2547,84 @@ flowchart LR
   <td>styles node in components/SegmentedControl/SegmentedControl.js.</td>
 </tr>
 <tr>
-  <td>13</td>
-  <td><code>QuantityStepper.js</code><br><small style="color:var(--muted)">components/QuantityStepper/QuantityStepper.js</small></td>
+  <td>9</td>
+  <td><code>AppHeader.js</code><br><small style="color:var(--muted)">components/AppHeader/AppHeader.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>spacing</code><br><small style="color:var(--muted)">src/theme/spacing.js</small><br><code>typography</code><br><small style="color:var(--muted)">src/theme/typography.js</small></td>
-  <td>QuantityStepper.js node in components/QuantityStepper/QuantityStepper.js.</td>
+  <td><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small><br><code>shadows</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
+  <td>AppHeader.js node in components/AppHeader/AppHeader.js.</td>
 </tr>
 <tr>
-  <td>14</td>
-  <td><code>QuantityStepper()</code><br><small style="color:var(--muted)">components/QuantityStepper/QuantityStepper.js</small></td>
+  <td>10</td>
+  <td><code>AppHeader()</code><br><small style="color:var(--muted)">components/AppHeader/AppHeader.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>QuantityStepper() node in components/QuantityStepper/QuantityStepper.js.</td>
+  <td>AppHeader() node in components/AppHeader/AppHeader.js.</td>
 </tr>
 <tr>
-  <td>15</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/QuantityStepper/QuantityStepper.js</small></td>
+  <td>11</td>
+  <td><code>styles</code><br><small style="color:var(--muted)">components/AppHeader/AppHeader.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>styles node in components/QuantityStepper/QuantityStepper.js.</td>
+  <td>styles node in components/AppHeader/AppHeader.js.</td>
 </tr>
 <tr>
-  <td>16</td>
-  <td><code>spacing.js</code><br><small style="color:var(--muted)">src/theme/spacing.js</small></td>
+  <td>12</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">components/AppHeader/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>spacing.js node in src/theme/spacing.js.</td>
+  <td>index.js node in components/AppHeader/index.js.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>shadows.js</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small><br><code>colors.js</code><br><small style="color:var(--muted)">src/theme/colors.js</small></td>
+  <td>shadows.js node in src/theme/shadows.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>makeShadow()</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>makeShadow() node in src/theme/shadows.js.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>shadows</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AppHeader.js</code><br><small style="color:var(--muted)">components/AppHeader/AppHeader.js</small><br><code>ConfirmModal.js</code><br><small style="color:var(--muted)">components/ConfirmModal/ConfirmModal.js</small><br><code>SegmentedControl.js</code><br><small style="color:var(--muted)">components/SegmentedControl/SegmentedControl.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>shadows node in src/theme/shadows.js.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>colors.js</code><br><small style="color:var(--muted)">src/theme/colors.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>shadows.js</code><br><small style="color:var(--muted)">src/theme/shadows.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>colors.js node in src/theme/colors.js.</td>
 </tr>
 <tr>
   <td>17</td>
-  <td><code>spacing</code><br><small style="color:var(--muted)">src/theme/spacing.js</small></td>
+  <td><code>palette</code><br><small style="color:var(--muted)">src/theme/colors.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
-  <td><code>ConfirmModal.js</code><br><small style="color:var(--muted)">components/ConfirmModal/ConfirmModal.js</small><br><code>QuantityStepper.js</code><br><small style="color:var(--muted)">components/QuantityStepper/QuantityStepper.js</small><br><code>SegmentedControl.js</code><br><small style="color:var(--muted)">components/SegmentedControl/SegmentedControl.js</small><br>+1 more</td>
+  <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>spacing node in src/theme/spacing.js.</td>
+  <td>palette node in src/theme/colors.js.</td>
 </tr>
 <tr>
   <td>18</td>
-  <td><code>typography</code><br><small style="color:var(--muted)">src/theme/typography.js</small></td>
+  <td><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
-  <td><code>ConfirmModal.js</code><br><small style="color:var(--muted)">components/ConfirmModal/ConfirmModal.js</small><br><code>QuantityStepper.js</code><br><small style="color:var(--muted)">components/QuantityStepper/QuantityStepper.js</small><br><code>SegmentedControl.js</code><br><small style="color:var(--muted)">components/SegmentedControl/SegmentedControl.js</small><br>+1 more</td>
+  <td><code>AppHeader.js</code><br><small style="color:var(--muted)">components/AppHeader/AppHeader.js</small><br><code>ConfirmModal.js</code><br><small style="color:var(--muted)">components/ConfirmModal/ConfirmModal.js</small><br><code>SegmentedControl.js</code><br><small style="color:var(--muted)">components/SegmentedControl/SegmentedControl.js</small><br>+1 more</td>
   <td>No direct outbound edge</td>
-  <td>Builds dependency relationships and graph data.</td>
+  <td>colors node in src/theme/colors.js.</td>
 </tr>
 </table>
 
@@ -3177,25 +2633,25 @@ flowchart LR
     <h4>Key Files</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>components/ConfirmModal/ConfirmModal.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>components/QuantityStepper/QuantityStepper.js</code></td><td>3 nodes</td></tr>
+      <tr><td><code>components/AppHeader/AppHeader.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>components/ConfirmModal/ConfirmModal.js</code></td><td>3 nodes</td></tr>
 <tr><td><code>components/SegmentedControl/SegmentedControl.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>components/StickyMiniCart/StickyMiniCart.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>src/theme/spacing.js</code></td><td>2 nodes</td></tr>
+<tr><td><code>src/theme/colors.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>src/theme/shadows.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>components/AppHeader/index.js</code></td><td>1 nodes</td></tr>
 <tr><td><code>components/ConfirmModal/index.js</code></td><td>1 nodes</td></tr>
 <tr><td><code>components/SegmentedControl/index.js</code></td><td>1 nodes</td></tr>
-<tr><td><code>components/StickyMiniCart/index.js</code></td><td>1 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x9, imports x8, re exports x3. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x10, imports x7, re exports x3, imports x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
 
-<!-- ====== 12. Community 8 ====== -->
-<h2 id="community-8">12. Community 8</h2>
+<!-- ====== 10. Community 8 ====== -->
+<h2 id="community-8">10. Community 8</h2>
 <p>Community 8 groups implementation around planmd, frontend, phase, flow, mostly in Frontend-V1/PLAN.md. This section covers 17 nodes and 16 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -3426,8 +2882,8 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 13. Community 0 ====== -->
-<h2 id="community-0">13. Community 0</h2>
+<!-- ====== 11. Community 0 ====== -->
+<h2 id="community-0">11. Community 0</h2>
 <p>Community 0 groups implementation around backend, planmd, codetext, admin, mostly in Backend-V1/PLAN.md. This section covers 15 nodes and 14 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -3636,8 +3092,213 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 14. Community 1 ====== -->
-<h2 id="community-1">14. Community 1</h2>
+<!-- ====== 12. Community 43 ====== -->
+<h2 id="community-43">12. Community 43</h2>
+<p>Community 43 groups implementation around frontend, components, indexjs, button, mostly in components/Button/Button.js, components/ErrorState/ErrorState.js, components/EmptyState/EmptyState.js. This section covers 14 nodes and 15 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Community 43 (14 nodes, 15 edges)
+    subgraph community_43_components_Button_Button_js_257324f3["components/Button/Button.js"]
+        frontend_v1_src_components_button_button_js_a3e4e1da("Button.js")
+        button_button_button_3d3cc08c("Button()<br/><small>components/Button/Button.js</small>")
+        button_button_styles_ec69577c("styles<br/><small>components/Button/Button.js</small>")
+    end
+    subgraph community_43_components_EmptyState_EmptyState_js_82766a48["components/EmptyState/EmptyState.js"]
+        frontend_v1_src_components_emptystate_emptystate_670048ca("EmptyState.js")
+        emptystate_emptystate_emptystate_226f3f75("EmptyState()<br/><small>components/EmptyState/EmptyState.js</small>")
+        emptystate_emptystate_styles_cf9548a3("styles<br/><small>components/EmptyState/EmptyState.js</small>")
+    end
+    subgraph community_43_components_ErrorState_ErrorState_js_147ecf91["components/ErrorState/ErrorState.js"]
+        frontend_v1_src_components_errorstate_errorstate_0f72915d("ErrorState.js")
+        errorstate_errorstate_errorstate_6291ca6e("ErrorState()<br/><small>components/ErrorState/ErrorState.js</small>")
+        errorstate_errorstate_styles_654f7197("styles<br/><small>components/ErrorState/ErrorState.js</small>")
+    end
+    subgraph community_43_src_theme_spacing_js_95f19343["src/theme/spacing.js"]
+        theme_spacing_spacing_3bb71910("spacing<br/><small>src/theme/spacing.js</small>")
+        frontend_v1_src_theme_spacing_js_17c063bc("spacing.js")
+    end
+    frontend_v1_src_components_button_index_js_16e94d07("index.js")
+    frontend_v1_src_components_emptystate_index_js_0cd9685d("index.js")
+    frontend_v1_src_components_errorstate_index_js_2437401b("index.js")
+    frontend_v1_src_components_button_button_js_a3e4e1da -->|imports| theme_spacing_spacing_3bb71910
+    frontend_v1_src_components_button_index_js_16e94d07 -->|imports| frontend_v1_src_components_errorstate_errorstate_0f72915d
+    frontend_v1_src_components_button_index_js_16e94d07 -->|imports| frontend_v1_src_components_emptystate_emptystate_670048ca
+    frontend_v1_src_components_errorstate_errorstate_0f72915d -->|imports| theme_spacing_spacing_3bb71910
+    frontend_v1_src_components_emptystate_emptystate_670048ca -->|imports| theme_spacing_spacing_3bb71910
+    class frontend_v1_src_components_button_button_js_a3e4e1da klass;
+    class button_button_button_3d3cc08c function;
+    class button_button_styles_ec69577c function;
+    class frontend_v1_src_components_emptystate_emptystate_670048ca klass;
+    class emptystate_emptystate_emptystate_226f3f75 function;
+    class emptystate_emptystate_styles_cf9548a3 function;
+    class frontend_v1_src_components_errorstate_errorstate_0f72915d klass;
+    class errorstate_errorstate_errorstate_6291ca6e function;
+    class errorstate_errorstate_styles_654f7197 function;
+    class theme_spacing_spacing_3bb71910 function;
+    class frontend_v1_src_theme_spacing_js_17c063bc module;
+    class frontend_v1_src_components_button_index_js_16e94d07 module;
+    class frontend_v1_src_components_emptystate_index_js_0cd9685d module;
+    class frontend_v1_src_components_errorstate_index_js_2437401b module;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Button.js</code><br><small style="color:var(--muted)">components/Button/Button.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>spacing</code><br><small style="color:var(--muted)">src/theme/spacing.js</small></td>
+  <td>Button.js node in components/Button/Button.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Button()</code><br><small style="color:var(--muted)">components/Button/Button.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Button() node in components/Button/Button.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>styles</code><br><small style="color:var(--muted)">components/Button/Button.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>styles node in components/Button/Button.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">components/Button/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>EmptyState.js</code><br><small style="color:var(--muted)">components/EmptyState/EmptyState.js</small><br><code>ErrorState.js</code><br><small style="color:var(--muted)">components/ErrorState/ErrorState.js</small></td>
+  <td>index.js node in components/Button/index.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>ErrorState.js</code><br><small style="color:var(--muted)">components/ErrorState/ErrorState.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">components/Button/index.js</small></td>
+  <td><code>spacing</code><br><small style="color:var(--muted)">src/theme/spacing.js</small></td>
+  <td>ErrorState.js node in components/ErrorState/ErrorState.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>ErrorState()</code><br><small style="color:var(--muted)">components/ErrorState/ErrorState.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>ErrorState() node in components/ErrorState/ErrorState.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>styles</code><br><small style="color:var(--muted)">components/ErrorState/ErrorState.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>styles node in components/ErrorState/ErrorState.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">components/ErrorState/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in components/ErrorState/index.js.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">components/EmptyState/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in components/EmptyState/index.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>EmptyState.js</code><br><small style="color:var(--muted)">components/EmptyState/EmptyState.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">components/Button/index.js</small></td>
+  <td><code>spacing</code><br><small style="color:var(--muted)">src/theme/spacing.js</small></td>
+  <td>EmptyState.js node in components/EmptyState/EmptyState.js.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>EmptyState()</code><br><small style="color:var(--muted)">components/EmptyState/EmptyState.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>EmptyState() node in components/EmptyState/EmptyState.js.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>styles</code><br><small style="color:var(--muted)">components/EmptyState/EmptyState.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>styles node in components/EmptyState/EmptyState.js.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>spacing.js</code><br><small style="color:var(--muted)">src/theme/spacing.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>spacing.js node in src/theme/spacing.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>spacing</code><br><small style="color:var(--muted)">src/theme/spacing.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Button.js</code><br><small style="color:var(--muted)">components/Button/Button.js</small><br><code>EmptyState.js</code><br><small style="color:var(--muted)">components/EmptyState/EmptyState.js</small><br><code>ErrorState.js</code><br><small style="color:var(--muted)">components/ErrorState/ErrorState.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>spacing node in src/theme/spacing.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>components/Button/Button.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>components/EmptyState/EmptyState.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>components/ErrorState/ErrorState.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>src/theme/spacing.js</code></td><td>2 nodes</td></tr>
+<tr><td><code>components/Button/index.js</code></td><td>1 nodes</td></tr>
+<tr><td><code>components/EmptyState/index.js</code></td><td>1 nodes</td></tr>
+<tr><td><code>components/ErrorState/index.js</code></td><td>1 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x7, re exports x3, imports x3, imports x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 13. Community 1 ====== -->
+<h2 id="community-1">13. Community 1</h2>
 <p>Community 1 groups implementation around backend, planmd, admin, customer, mostly in Backend-V1/PLAN.md. This section covers 13 nodes and 12 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -3824,8 +3485,8 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 15. Community 21 ====== -->
-<h2 id="community-21">15. Community 21</h2>
+<!-- ====== 14. Community 21 ====== -->
+<h2 id="community-21">14. Community 21</h2>
 <p>Community 21 groups implementation around frontend, components, indexjs, categorycard, mostly in components/CategoryCard/CategoryCard.js, components/ProductImage/ProductImage.js, components/ProductCard/ProductCard.js. This section covers 12 nodes and 11 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -4003,72 +3664,48 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 16. Other ====== -->
-<h2 id="other">16. Other</h2>
-<p>Other groups implementation around frontend, planmd, backend, screens, mostly in Backend-V1/PLAN.md, PLAN.md, screens/AdminOrdersScreen/AdminOrdersScreen.js. This section covers 145 nodes and 122 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<!-- ====== 15. Community 47 ====== -->
+<h2 id="community-47">15. Community 47</h2>
+<p>Community 47 groups implementation around frontend, components, billsummary, textinputfield, mostly in components/BillSummary/BillSummary.js, components/TextInputField/TextInputField.js, src/theme/borders.js. This section covers 12 nodes and 13 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Other (145 nodes, 122 edges)
-    subgraph other_ios_ServeLoco_AppDelegate_swift_aa6bf384["ios/ServeLoco/AppDelegate.swift"]
-        serveloco_appdelegate_reactnativedelegate_b2a602fb("ReactNativeDelegate<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
-        serveloco_appdelegate_appdelegate_bb724627("AppDelegate<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
-        serveloco_appdelegate_appdelegate_application_03b1d46e("application()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
-        serveloco_appdelegate_reactnativedelegate_source_e5a761ef("sourceURL()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
-        serveloco_appdelegate_reactnativedelegate_bundle_d744837a("bundleURL()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+    %% Section: Community 47 (12 nodes, 13 edges)
+    subgraph community_47_components_BillSummary_BillSummary_c8556319["components/BillSummary/BillSummary.js"]
+        frontend_v1_src_components_billsummary_billsumma_005fefbf("BillSummary.js")
+        billsummary_billsummary_billrow_c68f9de6("BillRow()<br/><small>components/BillSummary/BillSummary.js</small>")
+        billsummary_billsummary_billsummary_9dafe5d7("BillSummary()<br/><small>components/BillSummary/BillSummary.js</small>")
+        billsummary_billsummary_styles_ef792474("styles<br/><small>components/BillSummary/BillSummary.js</small>")
     end
-    subgraph other_src_theme_borders_js_05b17097["src/theme/borders.js"]
+    subgraph community_47_components_TextInputField_TextInput_aa962d75["components/TextInputField/TextInputField.js"]
+        frontend_v1_src_components_textinputfield_textin_8733b640("TextInputField.js")
+        textinputfield_textinputfield_textinputfield_3de8e84e("TextInputField()<br/><small>components/TextInputField/TextInputField.js</small>")
+        textinputfield_textinputfield_styles_506a6808("styles<br/><small>components/TextInputField/TextInputField.js</small>")
+    end
+    subgraph community_47_src_theme_borders_js_82c0517a["src/theme/borders.js"]
         theme_borders_radius_98d06cbf("radius<br/><small>src/theme/borders.js</small>")
         theme_borders_borderwidth_0fcc5f54("borderWidth<br/><small>src/theme/borders.js</small>")
+        frontend_v1_src_theme_borders_js_ff43811b("borders.js")
     end
-    frontend_v1_src_components_billsummary_billsumma_005fefbf("BillSummary.js")
-    frontend_v1_src_components_button_button_js_a3e4e1da("Button.js")
-    frontend_v1_src_components_button_index_js_16e94d07("index.js")
-    frontend_v1_src_components_emptystate_emptystate_670048ca("EmptyState.js")
-    frontend_v1_src_components_errorstate_errorstate_0f72915d("ErrorState.js")
-    frontend_v1_src_components_textinputfield_textin_8733b640("TextInputField.js")
-    frontend_v1_src_screens_adminorderdetailscreen_a_9fa90b2d("AdminOrderDetailScreen.js")
-    frontend_v1_src_screens_adminordersscreen_admino_9aed448c("AdminOrdersScreen.js")
-    frontend_v1_src_screens_adminproductformscreen_a_c7c2d3fb("AdminProductFormScreen.js")
-    frontend_v1_src_screens_adminproductsscreen_admi_617dfef3("AdminProductsScreen.js")
-    frontend_v1_src_screens_ordersscreen_ordersscree_db64fdb2("OrdersScreen.js")
-    serveloco_appdelegate_appdelegate_bb724627 -->|method| serveloco_appdelegate_appdelegate_application_03b1d46e
-    serveloco_appdelegate_appdelegate_application_03b1d46e -->|calls| serveloco_appdelegate_reactnativedelegate_b2a602fb
-    serveloco_appdelegate_reactnativedelegate_b2a602fb -->|method| serveloco_appdelegate_reactnativedelegate_source_e5a761ef
-    serveloco_appdelegate_reactnativedelegate_b2a602fb -->|method| serveloco_appdelegate_reactnativedelegate_bundle_d744837a
-    serveloco_appdelegate_reactnativedelegate_source_e5a761ef -->|calls| serveloco_appdelegate_reactnativedelegate_bundle_d744837a
-    frontend_v1_src_screens_ordersscreen_ordersscree_db64fdb2 -->|imports| theme_borders_radius_98d06cbf
-    frontend_v1_src_screens_adminorderdetailscreen_a_9fa90b2d -->|imports| theme_borders_radius_98d06cbf
-    frontend_v1_src_screens_adminproductsscreen_admi_617dfef3 -->|imports| theme_borders_radius_98d06cbf
-    frontend_v1_src_screens_adminproductformscreen_a_c7c2d3fb -->|imports| theme_borders_radius_98d06cbf
-    frontend_v1_src_screens_adminordersscreen_admino_9aed448c -->|imports| theme_borders_radius_98d06cbf
+    frontend_v1_src_components_billsummary_index_js_18a52917("index.js")
+    frontend_v1_src_components_textinputfield_index_44405374("index.js")
     frontend_v1_src_components_textinputfield_textin_8733b640 -->|imports| theme_borders_radius_98d06cbf
     frontend_v1_src_components_textinputfield_textin_8733b640 -->|imports| theme_borders_borderwidth_0fcc5f54
     frontend_v1_src_components_billsummary_billsumma_005fefbf -->|imports| theme_borders_radius_98d06cbf
     frontend_v1_src_components_billsummary_billsumma_005fefbf -->|imports| theme_borders_borderwidth_0fcc5f54
-    frontend_v1_src_components_button_button_js_a3e4e1da -->|imports| theme_borders_radius_98d06cbf
-    frontend_v1_src_components_button_index_js_16e94d07 -->|imports| frontend_v1_src_components_errorstate_errorstate_0f72915d
-    frontend_v1_src_components_button_index_js_16e94d07 -->|imports| frontend_v1_src_components_emptystate_emptystate_670048ca
-    %% Omitted for readability: 127 nodes, 0 edges
-    class serveloco_appdelegate_reactnativedelegate_b2a602fb klass;
-    class serveloco_appdelegate_appdelegate_bb724627 klass;
-    class serveloco_appdelegate_appdelegate_application_03b1d46e function;
-    class serveloco_appdelegate_reactnativedelegate_source_e5a761ef function;
-    class serveloco_appdelegate_reactnativedelegate_bundle_d744837a function;
+    class frontend_v1_src_components_billsummary_billsumma_005fefbf klass;
+    class billsummary_billsummary_billrow_c68f9de6 function;
+    class billsummary_billsummary_billsummary_9dafe5d7 function;
+    class billsummary_billsummary_styles_ef792474 function;
+    class frontend_v1_src_components_textinputfield_textin_8733b640 klass;
+    class textinputfield_textinputfield_textinputfield_3de8e84e function;
+    class textinputfield_textinputfield_styles_506a6808 function;
     class theme_borders_radius_98d06cbf function;
     class theme_borders_borderwidth_0fcc5f54 function;
-    class frontend_v1_src_components_billsummary_billsumma_005fefbf klass;
-    class frontend_v1_src_components_button_button_js_a3e4e1da klass;
-    class frontend_v1_src_components_button_index_js_16e94d07 module;
-    class frontend_v1_src_components_emptystate_emptystate_670048ca klass;
-    class frontend_v1_src_components_errorstate_errorstate_0f72915d klass;
-    class frontend_v1_src_components_textinputfield_textin_8733b640 klass;
-    class frontend_v1_src_screens_adminorderdetailscreen_a_9fa90b2d klass;
-    class frontend_v1_src_screens_adminordersscreen_admino_9aed448c klass;
-    class frontend_v1_src_screens_adminproductformscreen_a_c7c2d3fb klass;
-    class frontend_v1_src_screens_adminproductsscreen_admi_617dfef3 klass;
-    class frontend_v1_src_screens_ordersscreen_ordersscree_db64fdb2 klass;
+    class frontend_v1_src_theme_borders_js_ff43811b module;
+    class frontend_v1_src_components_billsummary_index_js_18a52917 module;
+    class frontend_v1_src_components_textinputfield_index_44405374 module;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -4092,102 +3729,6 @@ flowchart LR
 </tr>
 <tr>
   <td>1</td>
-  <td><code>Button.js</code><br><small style="color:var(--muted)">components/Button/Button.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>radius</code><br><small style="color:var(--muted)">src/theme/borders.js</small></td>
-  <td>Button.js node in components/Button/Button.js.</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td><code>Button()</code><br><small style="color:var(--muted)">components/Button/Button.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Button() node in components/Button/Button.js.</td>
-</tr>
-<tr>
-  <td>3</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/Button/Button.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/Button/Button.js.</td>
-</tr>
-<tr>
-  <td>4</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/Button/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>EmptyState.js</code><br><small style="color:var(--muted)">components/EmptyState/EmptyState.js</small><br><code>ErrorState.js</code><br><small style="color:var(--muted)">components/ErrorState/ErrorState.js</small></td>
-  <td>index.js node in components/Button/index.js.</td>
-</tr>
-<tr>
-  <td>5</td>
-  <td><code>ErrorState.js</code><br><small style="color:var(--muted)">components/ErrorState/ErrorState.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/Button/index.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>ErrorState.js node in components/ErrorState/ErrorState.js.</td>
-</tr>
-<tr>
-  <td>6</td>
-  <td><code>ErrorState()</code><br><small style="color:var(--muted)">components/ErrorState/ErrorState.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>ErrorState() node in components/ErrorState/ErrorState.js.</td>
-</tr>
-<tr>
-  <td>7</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/ErrorState/ErrorState.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/ErrorState/ErrorState.js.</td>
-</tr>
-<tr>
-  <td>8</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/ErrorState/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in components/ErrorState/index.js.</td>
-</tr>
-<tr>
-  <td>9</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/EmptyState/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in components/EmptyState/index.js.</td>
-</tr>
-<tr>
-  <td>10</td>
-  <td><code>EmptyState.js</code><br><small style="color:var(--muted)">components/EmptyState/EmptyState.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/Button/index.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>EmptyState.js node in components/EmptyState/EmptyState.js.</td>
-</tr>
-<tr>
-  <td>11</td>
-  <td><code>EmptyState()</code><br><small style="color:var(--muted)">components/EmptyState/EmptyState.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>EmptyState() node in components/EmptyState/EmptyState.js.</td>
-</tr>
-<tr>
-  <td>12</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/EmptyState/EmptyState.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/EmptyState/EmptyState.js.</td>
-</tr>
-<tr>
-  <td>13</td>
   <td><code>TextInputField.js</code><br><small style="color:var(--muted)">components/TextInputField/TextInputField.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -4195,7 +3736,7 @@ flowchart LR
   <td>TextInputField.js node in components/TextInputField/TextInputField.js.</td>
 </tr>
 <tr>
-  <td>14</td>
+  <td>2</td>
   <td><code>TextInputField()</code><br><small style="color:var(--muted)">components/TextInputField/TextInputField.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -4203,7 +3744,7 @@ flowchart LR
   <td>TextInputField() node in components/TextInputField/TextInputField.js.</td>
 </tr>
 <tr>
-  <td>15</td>
+  <td>3</td>
   <td><code>styles</code><br><small style="color:var(--muted)">components/TextInputField/TextInputField.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -4211,7 +3752,7 @@ flowchart LR
   <td>styles node in components/TextInputField/TextInputField.js.</td>
 </tr>
 <tr>
-  <td>16</td>
+  <td>4</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">components/TextInputField/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -4219,7 +3760,7 @@ flowchart LR
   <td>index.js node in components/TextInputField/index.js.</td>
 </tr>
 <tr>
-  <td>17</td>
+  <td>5</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">components/BillSummary/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -4227,7 +3768,7 @@ flowchart LR
   <td>index.js node in components/BillSummary/index.js.</td>
 </tr>
 <tr>
-  <td>18</td>
+  <td>6</td>
   <td><code>BillSummary.js</code><br><small style="color:var(--muted)">components/BillSummary/BillSummary.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -4235,7 +3776,7 @@ flowchart LR
   <td>BillSummary.js node in components/BillSummary/BillSummary.js.</td>
 </tr>
 <tr>
-  <td>19</td>
+  <td>7</td>
   <td><code>BillSummary()</code><br><small style="color:var(--muted)">components/BillSummary/BillSummary.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -4243,7 +3784,7 @@ flowchart LR
   <td>BillSummary() node in components/BillSummary/BillSummary.js.</td>
 </tr>
 <tr>
-  <td>20</td>
+  <td>8</td>
   <td><code>BillRow()</code><br><small style="color:var(--muted)">components/BillSummary/BillSummary.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -4251,7 +3792,7 @@ flowchart LR
   <td>BillRow() node in components/BillSummary/BillSummary.js.</td>
 </tr>
 <tr>
-  <td>21</td>
+  <td>9</td>
   <td><code>styles</code><br><small style="color:var(--muted)">components/BillSummary/BillSummary.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -4259,7 +3800,7 @@ flowchart LR
   <td>styles node in components/BillSummary/BillSummary.js.</td>
 </tr>
 <tr>
-  <td>22</td>
+  <td>10</td>
   <td><code>borders.js</code><br><small style="color:var(--muted)">src/theme/borders.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -4267,23 +3808,134 @@ flowchart LR
   <td>borders.js node in src/theme/borders.js.</td>
 </tr>
 <tr>
-  <td>23</td>
+  <td>11</td>
   <td><code>radius</code><br><small style="color:var(--muted)">src/theme/borders.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
-  <td><code>AdminOrderDetailScreen.js</code><br><small style="color:var(--muted)">screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js</small><br><code>AdminOrdersScreen.js</code><br><small style="color:var(--muted)">screens/AdminOrdersScreen/AdminOrdersScreen.js</small><br><code>AdminProductFormScreen.js</code><br><small style="color:var(--muted)">screens/AdminProductFormScreen/AdminProductFormScreen.js</small><br>+5 more</td>
+  <td><code>BillSummary.js</code><br><small style="color:var(--muted)">components/BillSummary/BillSummary.js</small><br><code>TextInputField.js</code><br><small style="color:var(--muted)">components/TextInputField/TextInputField.js</small></td>
   <td>No direct outbound edge</td>
   <td>radius node in src/theme/borders.js.</td>
 </tr>
 <tr>
-  <td>24</td>
+  <td>12</td>
   <td><code>borderWidth</code><br><small style="color:var(--muted)">src/theme/borders.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>BillSummary.js</code><br><small style="color:var(--muted)">components/BillSummary/BillSummary.js</small><br><code>TextInputField.js</code><br><small style="color:var(--muted)">components/TextInputField/TextInputField.js</small></td>
   <td>No direct outbound edge</td>
   <td>borderWidth node in src/theme/borders.js.</td>
 </tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>components/BillSummary/BillSummary.js</code></td><td>4 nodes</td></tr>
+<tr><td><code>components/TextInputField/TextInputField.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>src/theme/borders.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>components/BillSummary/index.js</code></td><td>1 nodes</td></tr>
+<tr><td><code>components/TextInputField/index.js</code></td><td>1 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x7, imports x4, re exports x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 16. Other ====== -->
+<h2 id="other">16. Other</h2>
+<p>Other groups implementation around frontend, planmd, backend, indexjs, mostly in Backend-V1/PLAN.md, PLAN.md, screens/AdminOrdersScreen/AdminOrdersScreen.js. This section covers 147 nodes and 129 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Other (147 nodes, 129 edges)
+    subgraph other_ios_ServeLoco_AppDelegate_swift_aa6bf384["ios/ServeLoco/AppDelegate.swift"]
+        serveloco_appdelegate_appdelegate_bb724627("AppDelegate<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        serveloco_appdelegate_appdelegate_application_03b1d46e("application()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        serveloco_appdelegate_reactnativedelegate_b2a602fb("ReactNativeDelegate<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        serveloco_appdelegate_reactnativedelegate_source_e5a761ef("sourceURL()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        serveloco_appdelegate_reactnativedelegate_bundle_d744837a("bundleURL()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+    end
+    frontend_v1_src_components_adminmetriccard_admin_6806cb05("AdminMetricCard.js")
+    frontend_v1_src_components_chip_chip_js_937db2d1("Chip.js")
+    frontend_v1_src_components_iconbutton_iconbutton_95d791f2("IconButton.js")
+    frontend_v1_src_components_ordercard_ordercard_j_c5c8254e("OrderCard.js")
+    frontend_v1_src_components_quantitystepper_quant_fbf8b0a4("QuantityStepper.js")
+    frontend_v1_src_components_stickyminicart_sticky_32cccd8b("StickyMiniCart.js")
+    frontend_v1_src_components_textbutton_textbutton_c37fcfab("TextButton.js")
+    frontend_v1_src_screens_adminorderdetailscreen_a_9fa90b2d("AdminOrderDetailScreen.js")
+    frontend_v1_src_screens_adminordersscreen_admino_9aed448c("AdminOrdersScreen.js")
+    frontend_v1_src_screens_adminproductformscreen_a_c7c2d3fb("AdminProductFormScreen.js")
+    frontend_v1_src_screens_orderdetailscreen_orderd_282c2dd1("OrderDetailScreen.js")
+    theme_layout_layout_b746cb58("layout<br/><small>src/theme/layout.js</small>")
+    theme_typography_typography_68178fbd("typography<br/><small>src/theme/typography.js</small>")
+    serveloco_appdelegate_appdelegate_bb724627 -->|method| serveloco_appdelegate_appdelegate_application_03b1d46e
+    serveloco_appdelegate_appdelegate_application_03b1d46e -->|calls| serveloco_appdelegate_reactnativedelegate_b2a602fb
+    serveloco_appdelegate_reactnativedelegate_b2a602fb -->|method| serveloco_appdelegate_reactnativedelegate_source_e5a761ef
+    serveloco_appdelegate_reactnativedelegate_b2a602fb -->|method| serveloco_appdelegate_reactnativedelegate_bundle_d744837a
+    serveloco_appdelegate_reactnativedelegate_source_e5a761ef -->|calls| serveloco_appdelegate_reactnativedelegate_bundle_d744837a
+    frontend_v1_src_screens_orderdetailscreen_orderd_282c2dd1 -->|imports| theme_typography_typography_68178fbd
+    frontend_v1_src_screens_orderdetailscreen_orderd_282c2dd1 -->|imports| theme_layout_layout_b746cb58
+    frontend_v1_src_screens_adminorderdetailscreen_a_9fa90b2d -->|imports| theme_typography_typography_68178fbd
+    frontend_v1_src_screens_adminorderdetailscreen_a_9fa90b2d -->|imports| theme_layout_layout_b746cb58
+    frontend_v1_src_screens_adminproductformscreen_a_c7c2d3fb -->|imports| theme_typography_typography_68178fbd
+    frontend_v1_src_screens_adminordersscreen_admino_9aed448c -->|imports| theme_typography_typography_68178fbd
+    frontend_v1_src_components_textbutton_textbutton_c37fcfab -->|imports| theme_typography_typography_68178fbd
+    frontend_v1_src_components_textbutton_textbutton_c37fcfab -->|imports| theme_layout_layout_b746cb58
+    frontend_v1_src_components_adminmetriccard_admin_6806cb05 -->|imports| theme_typography_typography_68178fbd
+    frontend_v1_src_components_adminmetriccard_admin_6806cb05 -->|imports| theme_layout_layout_b746cb58
+    frontend_v1_src_components_chip_chip_js_937db2d1 -->|imports| theme_typography_typography_68178fbd
+    frontend_v1_src_components_chip_chip_js_937db2d1 -->|imports| theme_layout_layout_b746cb58
+    frontend_v1_src_components_ordercard_ordercard_j_c5c8254e -->|imports| theme_typography_typography_68178fbd
+    frontend_v1_src_components_stickyminicart_sticky_32cccd8b -->|imports| theme_typography_typography_68178fbd
+    frontend_v1_src_components_stickyminicart_sticky_32cccd8b -->|imports| theme_layout_layout_b746cb58
+    frontend_v1_src_components_iconbutton_iconbutton_95d791f2 -->|imports| theme_layout_layout_b746cb58
+    frontend_v1_src_components_quantitystepper_quant_fbf8b0a4 -->|imports| theme_typography_typography_68178fbd
+    %% Omitted for readability: 129 nodes, 0 edges
+    class serveloco_appdelegate_appdelegate_bb724627 klass;
+    class serveloco_appdelegate_appdelegate_application_03b1d46e function;
+    class serveloco_appdelegate_reactnativedelegate_b2a602fb klass;
+    class serveloco_appdelegate_reactnativedelegate_source_e5a761ef function;
+    class serveloco_appdelegate_reactnativedelegate_bundle_d744837a function;
+    class frontend_v1_src_components_adminmetriccard_admin_6806cb05 klass;
+    class frontend_v1_src_components_chip_chip_js_937db2d1 klass;
+    class frontend_v1_src_components_iconbutton_iconbutton_95d791f2 klass;
+    class frontend_v1_src_components_ordercard_ordercard_j_c5c8254e klass;
+    class frontend_v1_src_components_quantitystepper_quant_fbf8b0a4 klass;
+    class frontend_v1_src_components_stickyminicart_sticky_32cccd8b klass;
+    class frontend_v1_src_components_textbutton_textbutton_c37fcfab klass;
+    class frontend_v1_src_screens_adminorderdetailscreen_a_9fa90b2d klass;
+    class frontend_v1_src_screens_adminordersscreen_admino_9aed448c klass;
+    class frontend_v1_src_screens_adminproductformscreen_a_c7c2d3fb klass;
+    class frontend_v1_src_screens_orderdetailscreen_orderd_282c2dd1 klass;
+    class theme_layout_layout_b746cb58 function;
+    class theme_typography_typography_68178fbd function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
 <tr>
-  <td>25</td>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
   <td><code>PLAN.md</code><br><small style="color:var(--muted)">PLAN.md</small></td>
   <td><span class="tag tag-func">Concept</span></td>
   <td>External entry / no inbound edge</td>
@@ -4291,7 +3943,7 @@ flowchart LR
   <td>Documentation node describing PLAN.md.</td>
 </tr>
 <tr>
-  <td>26</td>
+  <td>2</td>
   <td><code>ServeLoco Plan</code><br><small style="color:var(--muted)">PLAN.md</small></td>
   <td><span class="tag tag-func">Concept</span></td>
   <td>External entry / no inbound edge</td>
@@ -4299,7 +3951,7 @@ flowchart LR
   <td>Documentation node describing ServeLoco Plan.</td>
 </tr>
 <tr>
-  <td>27</td>
+  <td>3</td>
   <td><code>Frontend Home Dashboard Design</code><br><small style="color:var(--muted)">PLAN.md</small></td>
   <td><span class="tag tag-func">Concept</span></td>
   <td>External entry / no inbound edge</td>
@@ -4307,7 +3959,7 @@ flowchart LR
   <td>Documentation node describing Frontend Home Dashboard Design.</td>
 </tr>
 <tr>
-  <td>28</td>
+  <td>4</td>
   <td><code>Visual Direction</code><br><small style="color:var(--muted)">PLAN.md</small></td>
   <td><span class="tag tag-func">Concept</span></td>
   <td>External entry / no inbound edge</td>
@@ -4315,7 +3967,7 @@ flowchart LR
   <td>Documentation node describing Visual Direction.</td>
 </tr>
 <tr>
-  <td>29</td>
+  <td>5</td>
   <td><code>Top Section</code><br><small style="color:var(--muted)">PLAN.md</small></td>
   <td><span class="tag tag-func">Concept</span></td>
   <td>External entry / no inbound edge</td>
@@ -4323,12 +3975,204 @@ flowchart LR
   <td>Documentation node describing Top Section.</td>
 </tr>
 <tr>
-  <td>30</td>
+  <td>6</td>
   <td><code>Toggle Button</code><br><small style="color:var(--muted)">PLAN.md</small></td>
   <td><span class="tag tag-func">Concept</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
   <td>Documentation node describing Toggle Button.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>Offer Banner</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Offer Banner.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Category Cards</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Category Cards.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Combo Deals</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Combo Deals.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Bottom Navigation</code><br><small style="color:var(--muted)">PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing Bottom Navigation.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>StickyMiniCart.js</code><br><small style="color:var(--muted)">components/StickyMiniCart/StickyMiniCart.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small><br><code>typography</code><br><small style="color:var(--muted)">src/theme/typography.js</small></td>
+  <td>StickyMiniCart.js node in components/StickyMiniCart/StickyMiniCart.js.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>StickyMiniCart()</code><br><small style="color:var(--muted)">components/StickyMiniCart/StickyMiniCart.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>StickyMiniCart() node in components/StickyMiniCart/StickyMiniCart.js.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>styles</code><br><small style="color:var(--muted)">components/StickyMiniCart/StickyMiniCart.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>styles node in components/StickyMiniCart/StickyMiniCart.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">components/StickyMiniCart/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in components/StickyMiniCart/index.js.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>IconButton.js</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
+  <td>IconButton.js node in components/IconButton/IconButton.js.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>IconButton()</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>IconButton() node in components/IconButton/IconButton.js.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>styles</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>styles node in components/IconButton/IconButton.js.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">components/IconButton/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in components/IconButton/index.js.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>layout.js</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>layout.js node in src/theme/layout.js.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AdminMetricCard.js</code><br><small style="color:var(--muted)">components/AdminMetricCard/AdminMetricCard.js</small><br><code>AdminOrderDetailScreen.js</code><br><small style="color:var(--muted)">screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js</small><br><code>Chip.js</code><br><small style="color:var(--muted)">components/Chip/Chip.js</small><br>+4 more</td>
+  <td>No direct outbound edge</td>
+  <td>layout node in src/theme/layout.js.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>AppDelegate.swift</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>AppDelegate.swift node in ios/ServeLoco/AppDelegate.swift.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>AppDelegate</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>application()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td>AppDelegate node in ios/ServeLoco/AppDelegate.swift.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>UIResponder</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>UIResponder node in project.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>UIApplicationDelegate</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>UIApplicationDelegate node in project.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>.application()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AppDelegate</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><code>ReactNativeDelegate</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td>.application() node in ios/ServeLoco/AppDelegate.swift.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>ReactNativeDelegate</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>application()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><code>bundleURL()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small><br><code>sourceURL()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td>ReactNativeDelegate node in ios/ServeLoco/AppDelegate.swift.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>RCTDefaultReactNativeFactoryDelegate</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>RCTDefaultReactNativeFactoryDelegate node in project.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>.sourceURL()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ReactNativeDelegate</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><code>bundleURL()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td>.sourceURL() node in ios/ServeLoco/AppDelegate.swift.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>.bundleURL()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ReactNativeDelegate</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small><br><code>sourceURL()</code><br><small style="color:var(--muted)">ios/ServeLoco/AppDelegate.swift</small></td>
+  <td>No direct outbound edge</td>
+  <td>.bundleURL() node in ios/ServeLoco/AppDelegate.swift.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>MySQL Data Models</code><br><small style="color:var(--muted)">Backend-V1/PLAN.md</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Documentation node describing MySQL Data Models.</td>
 </tr>
 </table>
 
@@ -4340,16 +4184,16 @@ flowchart LR
       <tr><td><code>Backend-V1/PLAN.md</code></td><td>40 nodes</td></tr>
 <tr><td><code>PLAN.md</code></td><td>10 nodes</td></tr>
 <tr><td><code>screens/AdminOrdersScreen/AdminOrdersScreen.js</code></td><td>7 nodes</td></tr>
-<tr><td><code>screens/AdminProductsScreen/AdminProductsScreen.js</code></td><td>7 nodes</td></tr>
 <tr><td><code>ios/ServeLoco/AppDelegate.swift</code></td><td>6 nodes</td></tr>
 <tr><td><code>screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js</code></td><td>6 nodes</td></tr>
-<tr><td><code>screens/OrdersScreen/OrdersScreen.js</code></td><td>5 nodes</td></tr>
-<tr><td><code>components/BillSummary/BillSummary.js</code></td><td>4 nodes</td></tr>
+<tr><td><code>screens/OrderDetailScreen/OrderDetailScreen.js</code></td><td>6 nodes</td></tr>
+<tr><td><code>components/OrderCard/OrderCard.js</code></td><td>5 nodes</td></tr>
+<tr><td><code>components/Chip/Chip.js</code></td><td>4 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x92, re exports x10, imports x10, inherits x3. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x92, imports x17, re exports x12, inherits x3. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -4361,16 +4205,16 @@ flowchart LR
     <h4>Graph</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><td>Nodes</td><td>708</td></tr>
-      <tr><td>Edges</td><td>1193</td></tr>
+      <tr><td>Edges</td><td>1194</td></tr>
       <tr><td>Hyperedges</td><td>0</td></tr>
-      <tr><td>Communities</td><td>57</td></tr>
+      <tr><td>Communities</td><td>59</td></tr>
       <tr><td>Documented Sections</td><td>15</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Edge Confidence</h4>
     <table style="width:100%;font-size:0.85rem;">
-      <tr><td>EXTRACTED</td><td>1189</td></tr>
+      <tr><td>EXTRACTED</td><td>1190</td></tr>
       <tr><td>INFERRED</td><td>4</td></tr>
       <tr><td>AMBIGUOUS</td><td>0</td></tr>
     </table>
@@ -4379,7 +4223,7 @@ flowchart LR
 
 <div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
   <p>ProjectServeLoco — Architecture Documentation</p>
-  <p>Generated: 2026-05-23 01:48 UTC · graphify callflow-html</p>
+  <p>Generated: 2026-05-23 01:52 UTC · graphify callflow-html</p>
 </div>
 
 </div><!-- .container -->

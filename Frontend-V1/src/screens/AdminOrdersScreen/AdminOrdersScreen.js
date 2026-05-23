@@ -7,12 +7,16 @@ import {
   ScrollView,
   Animated,
   TouchableOpacity,
-  ActivityIndicator,
   Linking,
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { AppScreen, AppHeader } from '../../components';
+import {
+  AppScreen,
+  AppHeader,
+  PressableScale,
+  SkeletonRow,
+} from '../../components';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 
 // Mock API
@@ -152,23 +156,28 @@ export default function AdminOrdersScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.emptyText}>Loading orders...</Text>
+        <View style={styles.skeletonList}>
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
+          <Text style={styles.loadingText}>Loading orders...</Text>
         </View>
       ) : isError ? (
         <View style={styles.center}>
-          <Text style={styles.emptyEmoji}>!</Text>
+          <Text style={styles.emptyMarker}>!</Text>
           <Text style={styles.emptyTitle}>Failed to load orders</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={loadOrders}>
+          <Text style={styles.emptyText}>Please check your connection and try again.</Text>
+          <PressableScale style={styles.retryBtn} onPress={loadOrders}>
             <Text style={styles.retryBtnText}>Retry</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       ) : filteredOrders.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.emptyEmoji}>Empty</Text>
+          <Text style={styles.emptyMarker}>Empty</Text>
           <Text style={styles.emptyTitle}>No Orders Found</Text>
-          <Text style={styles.emptyText}>Try changing your filters.</Text>
+          <Text style={styles.emptyText}>
+            No orders match the selected status and payment filters.
+          </Text>
         </View>
       ) : (
         <Animated.ScrollView 
@@ -225,26 +234,26 @@ function AdminOrderCard({ order, isPending, isPaid, onCall, onWhatsApp, onMap, o
       <View style={styles.cardBody}>
         <View style={styles.customerRow}>
           <Text style={styles.customerIcon}>User</Text>
-          <View style={{ flex: 1 }}>
+          <View style={styles.customerInfo}>
             <Text style={styles.customerName}>{order.customer}</Text>
             <Text style={styles.customerPhone}>{order.phone}</Text>
           </View>
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.iconBtn} onPress={onCall}>
+            <PressableScale style={styles.iconBtn} onPress={onCall}>
               <Text style={styles.iconBtnText}>Call</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={onWhatsApp}>
+            </PressableScale>
+            <PressableScale style={styles.iconBtn} onPress={onWhatsApp}>
               <Text style={styles.iconBtnText}>Msg</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         </View>
 
         <View style={styles.addressRow}>
           <Text style={styles.customerIcon}>Loc</Text>
           <Text style={styles.addressText} numberOfLines={2}>{order.address}</Text>
-          <TouchableOpacity style={styles.iconBtnSmall} onPress={onMap}>
+          <PressableScale style={styles.iconBtnSmall} onPress={onMap}>
             <Text style={styles.iconBtnTextSmall}>Map</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </View>
 
@@ -330,8 +339,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing.xl,
   },
-  emptyEmoji: {
-    fontSize: 48,
+  skeletonList: {
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  loadingText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  emptyMarker: {
+    ...typography.h2,
+    color: colors.textSecondary,
     marginBottom: spacing.md,
   },
   emptyTitle: {
@@ -410,6 +430,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.sm,
+  },
+  customerInfo: {
+    flex: 1,
   },
   customerIcon: {
     fontSize: 16,
