@@ -218,13 +218,13 @@ Tests:
 
 ## Phase B-09: Admin Auth
 
-- [ ] Implement `POST /admin/login`.
-- [ ] Implement `GET /admin/me`.
-- [ ] Accept `ownerId` or `owner_id` plus password.
-- [ ] Compare credentials against env-configured admin owner id and password.
-- [ ] Return admin token and minimal admin profile.
-- [ ] Never return the admin password.
-- [ ] Add rate-limit protection or a simple login throttle.
+- [x] Implement `POST /admin/login`.
+- [x] Implement `GET /admin/me`.
+- [x] Accept `ownerId` or `owner_id` plus password.
+- [x] Compare credentials against env-configured admin owner id and password.
+- [x] Return admin token and minimal admin profile.
+- [x] Never return the admin password.
+- [x] Add rate-limit protection or a simple login throttle.
 
 Behavior comment: Admin JWT must be stored separately by the frontend, and admin routes must reject customer JWTs even if the token is otherwise valid.
 

@@ -6,6 +6,7 @@ const db = require('./db');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Public health endpoint
 app.get('/health', async (req, res) => {
