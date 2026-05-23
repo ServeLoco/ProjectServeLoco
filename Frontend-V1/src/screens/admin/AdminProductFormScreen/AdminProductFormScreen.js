@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { AppScreen, AppHeader, TextInputField, Button } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
@@ -42,8 +42,8 @@ function buildImageFormData(asset) {
 
   formData.append('image', {
     uri: asset.uri,
-    type: asset.type || 'image/jpeg',
-    name: asset.fileName || fallbackName,
+    type: asset.mimeType || 'image/jpeg',
+    name: asset.fileName || asset.name || fallbackName,
   });
 
   return formData;
@@ -142,18 +142,20 @@ export default function AdminProductFormScreen() {
     setErrors(prev => ({ ...prev, image: null, form: null }));
 
     try {
-      const pickerResult = await launchImageLibrary({
-        mediaType: 'photo',
-        selectionLimit: 1,
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permission.status !== ImagePicker.PermissionStatus.GRANTED) {
+        throw new Error('Photo library permission was denied.');
+      }
+
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
         quality: 0.9,
       });
 
-      if (pickerResult.didCancel) {
+      if (pickerResult.canceled) {
         return;
-      }
-
-      if (pickerResult.errorCode) {
-        throw new Error(pickerResult.errorMessage || 'Unable to select image.');
       }
 
       const asset = pickerResult.assets?.[0];

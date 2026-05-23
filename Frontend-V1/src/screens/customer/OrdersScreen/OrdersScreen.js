@@ -4,7 +4,6 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   ScrollView,
   Animated,
   TouchableOpacity,
@@ -20,7 +19,7 @@ import {
   SkeletonRow,
   ProductImage,
 } from '../../../components';
-import { colors, typography, spacing, radius, shadows } from '../../../theme';
+import { colors, typography, spacing, radius } from '../../../theme';
 import { useAuthStore } from '../../../stores';
 import { ordersApi } from '../../../api';
 import { asArray, normalizeOrder } from '../../../utils';

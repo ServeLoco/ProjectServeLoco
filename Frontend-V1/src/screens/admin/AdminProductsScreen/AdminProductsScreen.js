@@ -255,7 +255,6 @@ export default function AdminProductsScreen() {
 function AdminProductCard({ product, index, onEdit, onDelete, onToggleAvailability, onUpdateImage }) {
   const slideAnim = useRef(new Animated.Value(20)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const heightAnim = useRef(new Animated.Value(140)).current; // Approximate height
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 300, delay: index * 50, useNativeDriver: true }).start();

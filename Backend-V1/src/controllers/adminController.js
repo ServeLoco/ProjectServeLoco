@@ -53,7 +53,10 @@ const getAdminCustomers = async (req, res) => {
     params.push(searchWildcard, searchWildcard, searchWildcard);
   }
 
-  const countQuery = query.replace(/SELECT .* FROM users u/, 'SELECT COUNT(*) as total FROM users u');
+  let countQuery = 'SELECT COUNT(*) as total FROM users u WHERE 1=1';
+  if (search) {
+    countQuery += ' AND (u.name LIKE ? OR u.phone LIKE ? OR u.whatsapp_number LIKE ?)';
+  }
   const [countRows] = await pool.query(countQuery, params);
   const total = countRows[0].total;
 
@@ -93,12 +96,12 @@ const getDashboard = async (req, res) => {
   const [metricsRow = {}] = await queryRows(`
     SELECT
       COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) as today_orders,
-      COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() AND status != 'Canceled' THEN total ELSE 0 END), 0) as today_sales,
+      COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() AND status != 'Cancelled' THEN total ELSE 0 END), 0) as today_sales,
       COUNT(CASE WHEN status = 'Pending' THEN 1 END) as pending_orders,
       COUNT(CASE WHEN status = 'Delivered' THEN 1 END) as delivered_orders,
-      COALESCE(SUM(CASE WHEN payment_method = 'Cash' AND status != 'Canceled' THEN total ELSE 0 END), 0) as cash_total,
-      COALESCE(SUM(CASE WHEN payment_method = 'UPI' AND status != 'Canceled' THEN total ELSE 0 END), 0) as upi_total,
-      COALESCE(SUM(CASE WHEN payment_status = 'Pending' AND status != 'Canceled' THEN total ELSE 0 END), 0) as pending_payment_total
+      COALESCE(SUM(CASE WHEN payment_method = 'Cash' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as cash_total,
+      COALESCE(SUM(CASE WHEN payment_method = 'UPI' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as upi_total,
+      COALESCE(SUM(CASE WHEN payment_status = 'Pending' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as pending_payment_total
     FROM orders
   `);
 
@@ -116,7 +119,7 @@ const getDashboard = async (req, res) => {
     SELECT oi.product_id, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
-    WHERE o.status != 'Canceled'
+    WHERE o.status != 'Cancelled'
     GROUP BY oi.product_id, oi.product_name
     ORDER BY total_sales DESC
     LIMIT 5
@@ -152,7 +155,7 @@ const getSalesReport = async (req, res) => {
       COALESCE(SUM(CASE WHEN YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1) THEN total ELSE 0 END), 0) as week_sales,
       COALESCE(SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN total ELSE 0 END), 0) as month_sales
     FROM orders
-    WHERE status != 'Canceled'
+    WHERE status != 'Cancelled'
   `);
 
   res.status(200).json({

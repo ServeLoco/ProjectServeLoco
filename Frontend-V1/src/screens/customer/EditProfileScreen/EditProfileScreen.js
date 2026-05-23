@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   Animated,
@@ -15,7 +14,7 @@ import {
   TextInputField,
   Button,
 } from '../../../components';
-import { colors, typography, spacing, layout } from '../../../theme';
+import { colors, spacing, layout } from '../../../theme';
 import { useAuthStore } from '../../../stores';
 import { authApi } from '../../../api';
 

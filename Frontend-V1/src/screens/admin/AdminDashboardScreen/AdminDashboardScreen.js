@@ -177,7 +177,7 @@ export default function AdminDashboardScreen() {
               </TouchableOpacity>
             </View>
 
-            {data.latestOrders.map((order, idx) => (
+            {data.latestOrders.map(order => (
               <View key={order.id} style={styles.orderCard}>
                 <View style={styles.orderCardHeader}>
                   <Text style={styles.orderId}>{order.id}</Text>

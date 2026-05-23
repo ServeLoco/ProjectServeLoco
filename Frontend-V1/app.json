@@ -1,4 +1,25 @@
 {
-  "name": "ServeLoco",
-  "displayName": "ServeLoco"
+  "expo": {
+    "name": "ServeLoco",
+    "slug": "serveloco",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "ServeLoco uses your location to pin your delivery address.",
+        "NSPhotoLibraryUsageDescription": "ServeLoco lets admins choose product photos from the library."
+      }
+    },
+    "android": {
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "READ_MEDIA_IMAGES"
+      ]
+    }
+  }
 }

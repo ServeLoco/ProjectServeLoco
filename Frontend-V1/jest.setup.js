@@ -1,4 +1,3 @@
-/* global jest */
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
   getItem: jest.fn(),
@@ -6,15 +5,26 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   clear: jest.fn(),
 }));
 
-jest.mock('@react-native-community/geolocation', () => ({
-  getCurrentPosition: jest.fn(),
-  watchPosition: jest.fn(),
-  clearWatch: jest.fn(),
-  stopObserving: jest.fn(),
+jest.mock('expo-location', () => ({
+  Accuracy: {
+    High: 4,
+  },
+  PermissionStatus: {
+    GRANTED: 'granted',
+  },
+  getCurrentPositionAsync: jest.fn(),
+  requestForegroundPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
 }));
 
-jest.mock('react-native-image-picker', () => ({
-  launchImageLibrary: jest.fn(),
+jest.mock('expo-image-picker', () => ({
+  MediaTypeOptions: {
+    Images: 'Images',
+  },
+  PermissionStatus: {
+    GRANTED: 'granted',
+  },
+  launchImageLibraryAsync: jest.fn(),
+  requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
 }));
 
 jest.mock('react-native-svg', () => {

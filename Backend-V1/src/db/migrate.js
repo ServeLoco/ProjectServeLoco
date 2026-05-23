@@ -33,6 +33,14 @@ const migrate = async () => {
         INDEX idx_phone (phone)
       );
     `);
+    const [shortAddressColumns] = await connection.query(`
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'short_address'
+    `, [config.MYSQL_DATABASE]);
+    if (shortAddressColumns.length === 0) {
+      await connection.query('ALTER TABLE users ADD COLUMN short_address VARCHAR(255) AFTER address');
+    }
     console.log('Users table ready.');
 
     // Categories Table

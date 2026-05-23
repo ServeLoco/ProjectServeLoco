@@ -10,7 +10,6 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -21,10 +20,9 @@ import {
   ProductCard,
   StickyMiniCart,
   Button,
-  LoadingSkeleton,
   SkeletonRow,
 } from '../../../components';
-import { colors, typography, spacing, radius, shadows } from '../../../theme';
+import { colors, typography, spacing, radius } from '../../../theme';
 import { useCartStore } from '../../../stores';
 import { useAuthGate } from '../../../hooks';
 import { productsApi } from '../../../api';

@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { pool } = require('./mysql');
-const { getDb } = require('./mongodb');
+const { getDb, connect } = require('./mongodb');
 const { ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt'); // use bcrypt (not bcryptjs) — matches package.json
 
@@ -8,6 +8,7 @@ async function seedDemoData() {
   console.log('Seeding demo data...');
 
   try {
+    await connect();
     // 1. Settings and Offers
     await pool.query('INSERT IGNORE INTO settings (id, shop_open, minimum_order_amount, delivery_charge, free_delivery_above) VALUES (1, 1, 50, 10, 500)');
     await pool.query('DELETE FROM offers WHERE title = "Weekend Snack Combo"');
@@ -15,16 +16,40 @@ async function seedDemoData() {
 
     // 2. Customers — note column is password_hash (not password)
     const passwordHash = await bcrypt.hash('password123', 10);
-    const [c1] = await pool.query(
-      'INSERT INTO users (name, phone, whatsapp_number, password_hash, address, trusted, blocked) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    await pool.query(
+      `INSERT INTO users (name, phone, whatsapp_number, password_hash, address, trusted, blocked)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+        name = VALUES(name),
+        whatsapp_number = VALUES(whatsapp_number),
+        password_hash = VALUES(password_hash),
+        address = VALUES(address),
+        trusted = VALUES(trusted),
+        blocked = VALUES(blocked)`,
       ['Demo User', '9999999999', '9999999999', passwordHash, '123 Demo Street', 1, 0]
     );
     await pool.query(
-      'INSERT INTO users (name, phone, whatsapp_number, password_hash, address, trusted, blocked) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      `INSERT INTO users (name, phone, whatsapp_number, password_hash, address, trusted, blocked)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+        name = VALUES(name),
+        whatsapp_number = VALUES(whatsapp_number),
+        password_hash = VALUES(password_hash),
+        address = VALUES(address),
+        trusted = VALUES(trusted),
+        blocked = VALUES(blocked)`,
       ['Blocked User', '8888888888', '8888888888', passwordHash, '456 Bad Street', 0, 1]
-    ).catch(() => {/* ignore if already exists */});
+    );
 
-    const customerId = c1.insertId;
+    const [customerRows] = await pool.query('SELECT id FROM users WHERE phone = ?', ['9999999999']);
+    const customerId = customerRows[0].id;
+
+    await pool.query(`
+      DELETE oi FROM order_items oi
+      INNER JOIN orders o ON oi.order_id = o.id
+      WHERE o.order_number LIKE 'SL-DEMO-%'
+    `);
+    await pool.query('DELETE FROM orders WHERE order_number LIKE "SL-DEMO-%"');
 
     // 3. Categories — insert if they don't exist
     await pool.query('INSERT IGNORE INTO categories (name, slug, type, active) VALUES ("Fast Food", "fast-food", "fast_food", 1)');
@@ -52,22 +77,33 @@ async function seedDemoData() {
 
     // 4. Products
     // Fast Food — with image
-    const [p1] = await pool.query(
-      'INSERT INTO products (name, category_id, price, unit, available, image_id) VALUES (?, ?, ?, ?, ?, ?)',
-      ['Demo Burger', fastFoodCat[0].id, 150, 'piece', 1, imageId]
+    await pool.query(
+      `INSERT INTO products (name, category_id, price, unit, available, image_id)
+       SELECT ?, ?, ?, ?, ?, ? FROM DUAL
+       WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = ?)`,
+      ['Demo Burger', fastFoodCat[0].id, 150, 'piece', 1, imageId, 'Demo Burger']
     );
+    const [demoBurgerRows] = await pool.query('SELECT id FROM products WHERE name = ?', ['Demo Burger']);
 
     // Packed Item — no image
-    const [p2] = await pool.query(
-      'INSERT INTO products (name, category_id, price, unit, available) VALUES (?, ?, ?, ?, ?)',
-      ['Demo Chips', packedCat[0].id, 20, 'packet', 1]
+    await pool.query(
+      `INSERT INTO products (name, category_id, price, unit, available)
+       SELECT ?, ?, ?, ?, ? FROM DUAL
+       WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = ?)`,
+      ['Demo Chips', packedCat[0].id, 20, 'packet', 1, 'Demo Chips']
     );
+    const [demoChipsRows] = await pool.query('SELECT id FROM products WHERE name = ?', ['Demo Chips']);
 
     // Unavailable product
     await pool.query(
-      'INSERT INTO products (name, category_id, price, unit, available) VALUES (?, ?, ?, ?, ?)',
-      ['Out of Stock Item', packedCat[0].id, 50, 'packet', 0]
+      `INSERT INTO products (name, category_id, price, unit, available)
+       SELECT ?, ?, ?, ?, ? FROM DUAL
+       WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = ?)`,
+      ['Out of Stock Item', packedCat[0].id, 50, 'packet', 0, 'Out of Stock Item']
     );
+
+    const demoBurgerId = demoBurgerRows[0].id;
+    const demoChipsId = demoChipsRows[0].id;
 
     // 5. Orders in various states — include all required NOT NULL columns
     const states = ['Pending', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
@@ -84,11 +120,11 @@ async function seedDemoData() {
 
       await pool.query(
         'INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, line_total) VALUES (?, ?, ?, ?, ?, ?)',
-        [orderRes.insertId, p1.insertId, 'Demo Burger', 1, 150, 150]
+        [orderRes.insertId, demoBurgerId, 'Demo Burger', 1, 150, 150]
       );
       await pool.query(
         'INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, line_total) VALUES (?, ?, ?, ?, ?, ?)',
-        [orderRes.insertId, p2.insertId, 'Demo Chips', 1, 20, 20]
+        [orderRes.insertId, demoChipsId, 'Demo Chips', 1, 20, 20]
       );
     }
 

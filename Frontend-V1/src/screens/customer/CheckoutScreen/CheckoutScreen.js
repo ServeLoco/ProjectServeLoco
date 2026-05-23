@@ -9,11 +9,10 @@ import {
   ActivityIndicator,
   Linking,
   LayoutAnimation,
-  PermissionsAndroid,
   Platform,
   UIManager,
 } from 'react-native';
-import Geolocation from '@react-native-community/geolocation';
+import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import {
   AppScreen,
@@ -31,37 +30,8 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 const requestLocationPermission = async () => {
-  if (Platform.OS !== 'android') {
-    return true;
-  }
-
-  const result = await PermissionsAndroid.request(
-    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-    {
-      title: 'Use current location',
-      message: 'ServeLoco needs your location to pin your delivery address.',
-      buttonPositive: 'Allow',
-      buttonNegative: 'Deny',
-    },
-  );
-
-  return result === PermissionsAndroid.RESULTS.GRANTED;
-};
-
-const getLocationErrorMessage = error => {
-  if (error?.code === 1) {
-    return 'Location permission was denied. You can enter the address manually.';
-  }
-
-  if (error?.code === 2) {
-    return 'Unable to detect location. Please check GPS and try again.';
-  }
-
-  if (error?.code === 3) {
-    return 'Location request timed out. Please try again.';
-  }
-
-  return 'Failed to get location. Please try again.';
+  const { status } = await Location.requestForegroundPermissionsAsync();
+  return status === Location.PermissionStatus.GRANTED;
 };
 
 export default function CheckoutScreen() {
@@ -156,26 +126,16 @@ export default function CheckoutScreen() {
         return;
       }
 
-      Geolocation.getCurrentPosition(
-        position => {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setCoordinates({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-          setGpsStatus('success');
-        },
-        error => {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setGpsStatus('error');
-          setGpsError(getLocationErrorMessage(error));
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 30000,
-        },
-      );
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setCoordinates({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      });
+      setGpsStatus('success');
     } catch (error) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setGpsStatus('error');

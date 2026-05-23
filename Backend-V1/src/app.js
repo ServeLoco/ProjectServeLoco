@@ -57,6 +57,19 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/admin/images', imageRoutes); // alias for admin panel
 
+// Local/mobile clients may be configured with either the server root or /api.
+// Keep root aliases so an old Expo bundle does not fail with "route not found".
+app.use('/auth', authRoutes);
+app.use('/admin', adminRoutes);
+app.use('/images', imageRoutes);
+app.use('/categories', categoryRoutes);
+app.use('/products', productRoutes);
+app.use('/orders', orderRoutes);
+app.use('/cart', cartRoutes);
+app.use('/settings', settingsRoutes);
+app.use('/offers', offerRoutes);
+app.use('/admin/images', imageRoutes);
+
 // Public health endpoint
 app.get('/health', async (req, res) => {
   const dbHealth = await db.checkHealth();

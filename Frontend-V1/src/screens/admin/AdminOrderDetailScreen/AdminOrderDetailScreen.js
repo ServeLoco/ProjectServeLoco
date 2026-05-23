@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { AppScreen, AppHeader, Button } from '../../../components';
-import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
+import { colors, typography, spacing, radius } from '../../../theme';
 import { adminOrdersApi } from '../../../api';
 import { normalizeOrder } from '../../../utils';
 
