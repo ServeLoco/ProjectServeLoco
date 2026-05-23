@@ -60,7 +60,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 <div class="container">
 
 <h1>ProjectServeLoco — Complete Call Flow &amp; Architecture Documentation</h1>
-<p class="subtitle">Generated from graphify knowledge graph: 694 nodes, 953 edges, 80 communities. Commit: 5388e6c</p>
+<p class="subtitle">Generated from graphify knowledge graph: 694 nodes, 954 edges, 80 communities. Commit: 87794f7</p>
 
 <div class="nav">
     <a href="#overview">Architecture Overview</a>
@@ -98,9 +98,9 @@ flowchart LR
     class SERVE_API_35EC8E86 module;
     TESTS_FIXTURES_B84B1DCC("Tests &amp; Fixtures<br/><small>29 nodes</small>")
     class TESTS_FIXTURES_B84B1DCC module;
-    COMMUNITY_45_E4978FE7("Community 45<br/><small>44 nodes</small>")
+    COMMUNITY_45_E4978FE7("Community 45<br/><small>39 nodes</small>")
     class COMMUNITY_45_E4978FE7 module;
-    COMMUNITY_13_E329587C("Community 13<br/><small>24 nodes</small>")
+    COMMUNITY_13_E329587C("Community 13<br/><small>25 nodes</small>")
     class COMMUNITY_13_E329587C module;
     COMMUNITY_8_9FC4FAC0("Community 8<br/><small>17 nodes</small>")
     class COMMUNITY_8_9FC4FAC0 module;
@@ -116,20 +116,20 @@ flowchart LR
     class COMMUNITY_47_59D66A55 module;
     COMMUNITY_12_82F13F05("Community 12<br/><small>10 nodes</small>")
     class COMMUNITY_12_82F13F05 module;
-    OTHER_D0941E68("Other<br/><small>226 nodes</small>")
+    OTHER_D0941E68("Other<br/><small>230 nodes</small>")
     class OTHER_D0941E68 module;
     OTHER_D0941E68 -->|imports x20| COMMUNITY_30_9CA2CA2E
     OTHER_D0941E68 -->|imports x20| TESTS_FIXTURES_B84B1DCC
     OTHER_D0941E68 -->|imports x16| COMMUNITY_17_648F8D7C
     OTHER_D0941E68 -->|imports x11| COMMUNITY_47_59D66A55
     COMMUNITY_45_E4978FE7 -->|imports x11| COMMUNITY_17_648F8D7C
-    OTHER_D0941E68 -->|re exports x8| COMMUNITY_45_E4978FE7
+    OTHER_D0941E68 -->|re exports x9| COMMUNITY_45_E4978FE7
     TESTS_FIXTURES_B84B1DCC -->|imports x7| COMMUNITY_17_648F8D7C
     COMMUNITY_0_B056AD3D -->|contains x7| OTHER_D0941E68
+    TESTS_FIXTURES_B84B1DCC -->|imports x6| OTHER_D0941E68
     COMMUNITY_17_648F8D7C -->|re exports x6| COMMUNITY_45_E4978FE7
     COMMUNITY_30_9CA2CA2E -->|imports x5| TESTS_FIXTURES_B84B1DCC
     COMMUNITY_30_9CA2CA2E -->|imports x5| COMMUNITY_45_E4978FE7
-    TESTS_FIXTURES_B84B1DCC -->|imports x5| COMMUNITY_30_9CA2CA2E
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -146,7 +146,7 @@ flowchart LR
     <h4>Architecture Layers</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
-      <tr><td>Extraction Pipeline</td><td>7</td><td><code>23, 25</code></td></tr><tr><td>Graph Build</td><td>63</td><td><code>2, 22, 4, 24, 77, 36, 37</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>28</td><td><code>6</code></td></tr><tr><td>Serving API</td><td>180</td><td><code>28, 14, 20, 7</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>29</td><td><code>43, 66, 69</code></td></tr><tr><td>Community 45</td><td>44</td><td><code>45</code></td></tr><tr><td>Community 13</td><td>24</td><td><code>13</code></td></tr><tr><td>Community 8</td><td>17</td><td><code>8</code></td></tr><tr><td>Community 30</td><td>16</td><td><code>30</code></td></tr><tr><td>Community 0</td><td>15</td><td><code>0</code></td></tr><tr><td>Community 1</td><td>13</td><td><code>1</code></td></tr><tr><td>Community 17</td><td>11</td><td><code>17</code></td></tr><tr><td>Community 47</td><td>11</td><td><code>47</code></td></tr><tr><td>Community 12</td><td>10</td><td><code>12</code></td></tr><tr><td>Other</td><td>226</td><td><code>15, 49, 18, 16, 21, 35, 5, 3, 71, 74, 44, 46, 72, 73, 48, 50, 75, 51, 52, 54, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 67, 68, 70, 78, 79, 26, 53, 10, 11, 27, 29, 31, 32, 33, 34, 55, 9, 19, 38, 39, 40, 41, 42, 76</code></td></tr>
+      <tr><td>Extraction Pipeline</td><td>7</td><td><code>23, 25</code></td></tr><tr><td>Graph Build</td><td>63</td><td><code>2, 22, 4, 24, 77, 36, 37</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>28</td><td><code>6</code></td></tr><tr><td>Serving API</td><td>180</td><td><code>28, 14, 20, 7</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>29</td><td><code>43, 66, 69</code></td></tr><tr><td>Community 45</td><td>39</td><td><code>45</code></td></tr><tr><td>Community 13</td><td>25</td><td><code>13</code></td></tr><tr><td>Community 8</td><td>17</td><td><code>8</code></td></tr><tr><td>Community 30</td><td>16</td><td><code>30</code></td></tr><tr><td>Community 0</td><td>15</td><td><code>0</code></td></tr><tr><td>Community 1</td><td>13</td><td><code>1</code></td></tr><tr><td>Community 17</td><td>11</td><td><code>17</code></td></tr><tr><td>Community 47</td><td>11</td><td><code>47</code></td></tr><tr><td>Community 12</td><td>10</td><td><code>12</code></td></tr><tr><td>Other</td><td>230</td><td><code>15, 49, 18, 16, 21, 35, 5, 50, 3, 71, 74, 44, 46, 72, 73, 48, 56, 75, 51, 52, 54, 57, 58, 59, 60, 61, 62, 63, 64, 65, 67, 68, 70, 78, 79, 26, 53, 10, 11, 27, 29, 31, 32, 33, 34, 55, 9, 19, 38, 39, 40, 41, 42, 76</code></td></tr>
     </table>
   </div>
   <div class="card">
@@ -158,8 +158,8 @@ flowchart LR
   <div class="card">
     <h4>Graph Report Highlights</h4>
     <ul>
-      <li>694 nodes · 953 edges · 80 communities (44 shown, 36 thin omitted)</li>
-      <li>Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.8)</li>
+      <li>694 nodes · 954 edges · 80 communities (45 shown, 35 thin omitted)</li>
+      <li>Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.8)</li>
       <li>Token cost: 0 input · 0 output</li>
       <li>1. `colors` - 29 edges</li>
       <li>2. `typography` - 23 edges</li>
@@ -1657,12 +1657,12 @@ flowchart LR
 
 <!-- ====== 7. Community 45 ====== -->
 <h2 id="community-45">7. Community 45</h2>
-<p>Community 45 groups implementation around frontend, components, indexjs, loadingskeleton, mostly in components/LoadingSkeleton/LoadingSkeleton.js, src/utils/noEmojiCheck.js, components/AnimatedModalView/AnimatedModalView.js. This section covers 44 nodes and 68 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Community 45 groups implementation around frontend, components, indexjs, loadingskeleton, mostly in components/LoadingSkeleton/LoadingSkeleton.js, components/AnimatedModalView/AnimatedModalView.js, components/AnimatedTabItem/AnimatedTabItem.js. This section covers 39 nodes and 62 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Community 45 (44 nodes, 68 edges)
+    %% Section: Community 45 (39 nodes, 62 edges)
     subgraph community_45_components_AnimatedFadeSlide_Animat_f7da641a["components/AnimatedFadeSlide/AnimatedFadeSlide.js"]
         frontend_v1_src_components_animatedfadeslide_ani_6872ad17("AnimatedFadeSlide.js")
         animatedfadeslide_animatedfadeslide_animatedfade_410d2c93("AnimatedFadeSlide()<br/><small>components/AnimatedFadeSlide/AnimatedFadeSlide.js</small>")
@@ -1683,15 +1683,16 @@ flowchart LR
         frontend_v1_src_components_pressablescale_pressa_9913aadf("PressableScale.js")
         pressablescale_pressablescale_pressablescale_4f8461a3("PressableScale()<br/><small>components/PressableScale/PressableScale.js</small>")
     end
-    frontend_v1_app_app_3fe36d59("App()<br/><small>Frontend-V1/App.js</small>")
+    subgraph community_45_components_ValidationMessage_Valida_87f9b857["components/ValidationMessage/ValidationMessage.js"]
+        frontend_v1_src_components_validationmessage_val_e4b6af30("ValidationMessage.js")
+        validationmessage_validationmessage_validationme_4ef7e184("ValidationMessage()<br/><small>components/ValidationMessage/ValidationMessage.js</small>")
+    end
     animatedcartbadge_animatedcartbadge_animatedcart_27de5a27("AnimatedCartBadge()<br/><small>components/AnimatedCartBadge/AnimatedCartBadge.js</small>")
     animatedmodalview_animatedmodalview_animatedmoda_6e3135ad("AnimatedModalView()<br/><small>components/AnimatedModalView/AnimatedModalView.js</small>")
     animatedsegmentedcontrol_animatedsegmentedcontro_89fdd5d1("AnimatedSegmentedControl()<br/><small>components/AnimatedSegmentedControl/AnimatedSegmentedControl.js</small>")
     loadingskeleton_loadingskeleton_loadingskeleton_58a13ed4("LoadingSkeleton()<br/><small>components/LoadingSkeleton/LoadingSkeleton.js</small>")
-    frontend_v1_src_components_validationmessage_val_e4b6af30("ValidationMessage.js")
+    frontend_v1_src_utils_index_js_b5b6f978("index.js")
     utils_motionpreferences_usereducedmotion_97fe9815("useReducedMotion()<br/><small>src/utils/motionPreferences.js</small>")
-    utils_noemojicheck_assertnoemoji_765ccd3a("assertNoEmoji()<br/><small>src/utils/noEmojiCheck.js</small>")
-    frontend_v1_app_app_3fe36d59 -->|calls| utils_noemojicheck_assertnoemoji_765ccd3a
     animatedquantityswitcher_animatedquantityswitche_a28ec7a2 -->|calls| utils_motionpreferences_usereducedmotion_97fe9815
     animatedfadeslide_animatedfadeslide_animatedfade_410d2c93 -->|calls| utils_motionpreferences_usereducedmotion_97fe9815
     animatedmodalview_animatedmodalview_animatedmoda_6e3135ad -->|calls| utils_motionpreferences_usereducedmotion_97fe9815
@@ -1701,13 +1702,20 @@ flowchart LR
     animatedtabitem_animatedtabitem_animatedtabitem_963078c4 -->|calls| utils_motionpreferences_usereducedmotion_97fe9815
     animatedsegmentedcontrol_animatedsegmentedcontro_89fdd5d1 -->|calls| utils_motionpreferences_usereducedmotion_97fe9815
     pressablescale_pressablescale_pressablescale_4f8461a3 -->|calls| utils_motionpreferences_usereducedmotion_97fe9815
+    validationmessage_validationmessage_validationme_4ef7e184 -->|calls| utils_motionpreferences_usereducedmotion_97fe9815
+    frontend_v1_src_components_animatedquantityswitc_9eb054d9 -->|imports| frontend_v1_src_utils_index_js_b5b6f978
     frontend_v1_src_components_animatedquantityswitc_9eb054d9 -->|imports| utils_motionpreferences_usereducedmotion_97fe9815
+    frontend_v1_src_components_animatedfadeslide_ani_6872ad17 -->|imports| frontend_v1_src_utils_index_js_b5b6f978
     frontend_v1_src_components_animatedfadeslide_ani_6872ad17 -->|imports| utils_motionpreferences_usereducedmotion_97fe9815
+    frontend_v1_src_components_animatedstickyminicar_4891aa8c -->|imports| frontend_v1_src_utils_index_js_b5b6f978
     frontend_v1_src_components_animatedstickyminicar_4891aa8c -->|imports| utils_motionpreferences_usereducedmotion_97fe9815
+    frontend_v1_src_components_animatedtabitem_anima_6c5b4adf -->|imports| frontend_v1_src_utils_index_js_b5b6f978
     frontend_v1_src_components_animatedtabitem_anima_6c5b4adf -->|imports| utils_motionpreferences_usereducedmotion_97fe9815
+    frontend_v1_src_components_pressablescale_pressa_9913aadf -->|imports| frontend_v1_src_utils_index_js_b5b6f978
     frontend_v1_src_components_pressablescale_pressa_9913aadf -->|imports| utils_motionpreferences_usereducedmotion_97fe9815
+    frontend_v1_src_components_validationmessage_val_e4b6af30 -->|imports| frontend_v1_src_utils_index_js_b5b6f978
     frontend_v1_src_components_validationmessage_val_e4b6af30 -->|imports| utils_motionpreferences_usereducedmotion_97fe9815
-    %% Omitted for readability: 26 nodes, 0 edges
+    %% Omitted for readability: 21 nodes, 0 edges
     class frontend_v1_src_components_animatedfadeslide_ani_6872ad17 klass;
     class animatedfadeslide_animatedfadeslide_animatedfade_410d2c93 function;
     class frontend_v1_src_components_animatedquantityswitc_9eb054d9 klass;
@@ -1718,14 +1726,14 @@ flowchart LR
     class animatedtabitem_animatedtabitem_animatedtabitem_963078c4 function;
     class frontend_v1_src_components_pressablescale_pressa_9913aadf klass;
     class pressablescale_pressablescale_pressablescale_4f8461a3 function;
-    class frontend_v1_app_app_3fe36d59 function;
+    class frontend_v1_src_components_validationmessage_val_e4b6af30 klass;
+    class validationmessage_validationmessage_validationme_4ef7e184 function;
     class animatedcartbadge_animatedcartbadge_animatedcart_27de5a27 function;
     class animatedmodalview_animatedmodalview_animatedmoda_6e3135ad function;
     class animatedsegmentedcontrol_animatedsegmentedcontro_89fdd5d1 function;
     class loadingskeleton_loadingskeleton_loadingskeleton_58a13ed4 function;
-    class frontend_v1_src_components_validationmessage_val_e4b6af30 klass;
+    class frontend_v1_src_utils_index_js_b5b6f978 module;
     class utils_motionpreferences_usereducedmotion_97fe9815 ui;
-    class utils_noemojicheck_assertnoemoji_765ccd3a async;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -1749,14 +1757,6 @@ flowchart LR
 </tr>
 <tr>
   <td>1</td>
-  <td><code>App()</code><br><small style="color:var(--muted)">Frontend-V1/App.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>assertNoEmoji()</code><br><small style="color:var(--muted)">src/utils/noEmojiCheck.js</small></td>
-  <td>App() node in Frontend-V1/App.js.</td>
-</tr>
-<tr>
-  <td>2</td>
   <td><code>AnimatedQuantitySwitcher.js</code><br><small style="color:var(--muted)">components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -1764,7 +1764,7 @@ flowchart LR
   <td>AnimatedQuantitySwitcher.js node in components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js.</td>
 </tr>
 <tr>
-  <td>3</td>
+  <td>2</td>
   <td><code>AnimatedQuantitySwitcher()</code><br><small style="color:var(--muted)">components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1772,7 +1772,7 @@ flowchart LR
   <td>AnimatedQuantitySwitcher() node in components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js.</td>
 </tr>
 <tr>
-  <td>4</td>
+  <td>3</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">components/AnimatedQuantitySwitcher/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -1780,7 +1780,7 @@ flowchart LR
   <td>index.js node in components/AnimatedQuantitySwitcher/index.js.</td>
 </tr>
 <tr>
-  <td>5</td>
+  <td>4</td>
   <td><code>AnimatedFadeSlide.js</code><br><small style="color:var(--muted)">components/AnimatedFadeSlide/AnimatedFadeSlide.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -1788,7 +1788,7 @@ flowchart LR
   <td>AnimatedFadeSlide.js node in components/AnimatedFadeSlide/AnimatedFadeSlide.js.</td>
 </tr>
 <tr>
-  <td>6</td>
+  <td>5</td>
   <td><code>AnimatedFadeSlide()</code><br><small style="color:var(--muted)">components/AnimatedFadeSlide/AnimatedFadeSlide.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1796,7 +1796,7 @@ flowchart LR
   <td>AnimatedFadeSlide() node in components/AnimatedFadeSlide/AnimatedFadeSlide.js.</td>
 </tr>
 <tr>
-  <td>7</td>
+  <td>6</td>
   <td><code>AnimatedModalView.js</code><br><small style="color:var(--muted)">components/AnimatedModalView/AnimatedModalView.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -1804,7 +1804,7 @@ flowchart LR
   <td>AnimatedModalView.js node in components/AnimatedModalView/AnimatedModalView.js.</td>
 </tr>
 <tr>
-  <td>8</td>
+  <td>7</td>
   <td><code>AnimatedModalView()</code><br><small style="color:var(--muted)">components/AnimatedModalView/AnimatedModalView.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1812,7 +1812,7 @@ flowchart LR
   <td>AnimatedModalView() node in components/AnimatedModalView/AnimatedModalView.js.</td>
 </tr>
 <tr>
-  <td>9</td>
+  <td>8</td>
   <td><code>styles</code><br><small style="color:var(--muted)">components/AnimatedModalView/AnimatedModalView.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1820,7 +1820,7 @@ flowchart LR
   <td>styles node in components/AnimatedModalView/AnimatedModalView.js.</td>
 </tr>
 <tr>
-  <td>10</td>
+  <td>9</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">components/AnimatedModalView/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -1828,7 +1828,7 @@ flowchart LR
   <td>index.js node in components/AnimatedModalView/index.js.</td>
 </tr>
 <tr>
-  <td>11</td>
+  <td>10</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">components/LoadingSkeleton/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -1836,7 +1836,7 @@ flowchart LR
   <td>index.js node in components/LoadingSkeleton/index.js.</td>
 </tr>
 <tr>
-  <td>12</td>
+  <td>11</td>
   <td><code>LoadingSkeleton.js</code><br><small style="color:var(--muted)">components/LoadingSkeleton/LoadingSkeleton.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -1844,7 +1844,7 @@ flowchart LR
   <td>LoadingSkeleton.js node in components/LoadingSkeleton/LoadingSkeleton.js.</td>
 </tr>
 <tr>
-  <td>13</td>
+  <td>12</td>
   <td><code>LoadingSkeleton()</code><br><small style="color:var(--muted)">components/LoadingSkeleton/LoadingSkeleton.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1852,7 +1852,7 @@ flowchart LR
   <td>LoadingSkeleton() node in components/LoadingSkeleton/LoadingSkeleton.js.</td>
 </tr>
 <tr>
-  <td>14</td>
+  <td>13</td>
   <td><code>SkeletonCard()</code><br><small style="color:var(--muted)">components/LoadingSkeleton/LoadingSkeleton.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1860,7 +1860,7 @@ flowchart LR
   <td>SkeletonCard() node in components/LoadingSkeleton/LoadingSkeleton.js.</td>
 </tr>
 <tr>
-  <td>15</td>
+  <td>14</td>
   <td><code>SkeletonRow()</code><br><small style="color:var(--muted)">components/LoadingSkeleton/LoadingSkeleton.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1868,7 +1868,7 @@ flowchart LR
   <td>SkeletonRow() node in components/LoadingSkeleton/LoadingSkeleton.js.</td>
 </tr>
 <tr>
-  <td>16</td>
+  <td>15</td>
   <td><code>styles</code><br><small style="color:var(--muted)">components/LoadingSkeleton/LoadingSkeleton.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1876,7 +1876,7 @@ flowchart LR
   <td>styles node in components/LoadingSkeleton/LoadingSkeleton.js.</td>
 </tr>
 <tr>
-  <td>17</td>
+  <td>16</td>
   <td><code>AnimatedCartBadge()</code><br><small style="color:var(--muted)">components/AnimatedCartBadge/AnimatedCartBadge.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1884,7 +1884,7 @@ flowchart LR
   <td>AnimatedCartBadge() node in components/AnimatedCartBadge/AnimatedCartBadge.js.</td>
 </tr>
 <tr>
-  <td>18</td>
+  <td>17</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">components/AnimatedStickyMiniCart/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -1892,7 +1892,7 @@ flowchart LR
   <td>index.js node in components/AnimatedStickyMiniCart/index.js.</td>
 </tr>
 <tr>
-  <td>19</td>
+  <td>18</td>
   <td><code>AnimatedStickyMiniCart.js</code><br><small style="color:var(--muted)">components/AnimatedStickyMiniCart/AnimatedStickyMiniCart.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -1900,7 +1900,7 @@ flowchart LR
   <td>AnimatedStickyMiniCart.js node in components/AnimatedStickyMiniCart/AnimatedStickyMiniCart.js.</td>
 </tr>
 <tr>
-  <td>20</td>
+  <td>19</td>
   <td><code>AnimatedStickyMiniCart()</code><br><small style="color:var(--muted)">components/AnimatedStickyMiniCart/AnimatedStickyMiniCart.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1908,7 +1908,7 @@ flowchart LR
   <td>AnimatedStickyMiniCart() node in components/AnimatedStickyMiniCart/AnimatedStickyMiniCart.js.</td>
 </tr>
 <tr>
-  <td>21</td>
+  <td>20</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">components/StickyMiniCart/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td><code>AnimatedStickyMiniCart.js</code><br><small style="color:var(--muted)">components/AnimatedStickyMiniCart/AnimatedStickyMiniCart.js</small></td>
@@ -1916,7 +1916,7 @@ flowchart LR
   <td>index.js node in components/StickyMiniCart/index.js.</td>
 </tr>
 <tr>
-  <td>22</td>
+  <td>21</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">components/AnimatedTabItem/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -1924,7 +1924,7 @@ flowchart LR
   <td>index.js node in components/AnimatedTabItem/index.js.</td>
 </tr>
 <tr>
-  <td>23</td>
+  <td>22</td>
   <td><code>AnimatedTabItem.js</code><br><small style="color:var(--muted)">components/AnimatedTabItem/AnimatedTabItem.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -1932,7 +1932,7 @@ flowchart LR
   <td>AnimatedTabItem.js node in components/AnimatedTabItem/AnimatedTabItem.js.</td>
 </tr>
 <tr>
-  <td>24</td>
+  <td>23</td>
   <td><code>AnimatedTabItem()</code><br><small style="color:var(--muted)">components/AnimatedTabItem/AnimatedTabItem.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1940,7 +1940,7 @@ flowchart LR
   <td>AnimatedTabItem() node in components/AnimatedTabItem/AnimatedTabItem.js.</td>
 </tr>
 <tr>
-  <td>25</td>
+  <td>24</td>
   <td><code>styles</code><br><small style="color:var(--muted)">components/AnimatedTabItem/AnimatedTabItem.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1948,7 +1948,7 @@ flowchart LR
   <td>styles node in components/AnimatedTabItem/AnimatedTabItem.js.</td>
 </tr>
 <tr>
-  <td>26</td>
+  <td>25</td>
   <td><code>AnimatedSegmentedControl()</code><br><small style="color:var(--muted)">components/AnimatedSegmentedControl/AnimatedSegmentedControl.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1956,7 +1956,7 @@ flowchart LR
   <td>AnimatedSegmentedControl() node in components/AnimatedSegmentedControl/AnimatedSegmentedControl.js.</td>
 </tr>
 <tr>
-  <td>27</td>
+  <td>26</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">components/PressableScale/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -1964,7 +1964,7 @@ flowchart LR
   <td>index.js node in components/PressableScale/index.js.</td>
 </tr>
 <tr>
-  <td>28</td>
+  <td>27</td>
   <td><code>PressableScale.js</code><br><small style="color:var(--muted)">components/PressableScale/PressableScale.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -1972,7 +1972,7 @@ flowchart LR
   <td>PressableScale.js node in components/PressableScale/PressableScale.js.</td>
 </tr>
 <tr>
-  <td>29</td>
+  <td>28</td>
   <td><code>PressableScale()</code><br><small style="color:var(--muted)">components/PressableScale/PressableScale.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1980,12 +1980,20 @@ flowchart LR
   <td>PressableScale() node in components/PressableScale/PressableScale.js.</td>
 </tr>
 <tr>
-  <td>30</td>
+  <td>29</td>
   <td><code>styles</code><br><small style="color:var(--muted)">components/PressableScale/PressableScale.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
   <td>styles node in components/PressableScale/PressableScale.js.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">components/ValidationMessage/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in components/ValidationMessage/index.js.</td>
 </tr>
 </table>
 
@@ -1995,30 +2003,30 @@ flowchart LR
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
       <tr><td><code>components/LoadingSkeleton/LoadingSkeleton.js</code></td><td>5 nodes</td></tr>
-<tr><td><code>src/utils/noEmojiCheck.js</code></td><td>4 nodes</td></tr>
 <tr><td><code>components/AnimatedModalView/AnimatedModalView.js</code></td><td>3 nodes</td></tr>
 <tr><td><code>components/AnimatedTabItem/AnimatedTabItem.js</code></td><td>3 nodes</td></tr>
 <tr><td><code>components/PressableScale/PressableScale.js</code></td><td>3 nodes</td></tr>
 <tr><td><code>components/ValidationMessage/ValidationMessage.js</code></td><td>3 nodes</td></tr>
 <tr><td><code>src/theme/motion.js</code></td><td>3 nodes</td></tr>
 <tr><td><code>components/AnimatedFadeSlide/AnimatedFadeSlide.js</code></td><td>2 nodes</td></tr>
+<tr><td><code>components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js</code></td><td>2 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x21, imports x14, calls x12, re exports x12. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x18, imports x14, re exports x11, calls x10. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
 
 <!-- ====== 8. Community 13 ====== -->
 <h2 id="community-13">8. Community 13</h2>
-<p>Community 13 groups implementation around frontend, navigation, stores, customernavigatorjs, mostly in src/navigation/CustomerNavigator.js, src/navigation/AdminNavigator.js, src/hooks/useAuthGate.js. This section covers 24 nodes and 26 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Community 13 groups implementation around frontend, navigation, stores, customernavigatorjs, mostly in src/navigation/CustomerNavigator.js, src/navigation/AdminNavigator.js, src/stores/useAuthStore.js. This section covers 25 nodes and 27 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Community 13 (24 nodes, 26 edges)
+    %% Section: Community 13 (25 nodes, 27 edges)
     subgraph community_13_src_navigation_CustomerNavigator_js_6baad9db["src/navigation/CustomerNavigator.js"]
         frontend_v1_src_navigation_customernavigator_js_4a1e6a0b("CustomerNavigator.js")
         navigation_customernavigator_animatedtabicon_bca48eef("AnimatedTabIcon()<br/><small>src/navigation/CustomerNavigator.js</small>")
@@ -2040,16 +2048,14 @@ flowchart LR
         frontend_v1_src_navigation_rootnavigator_js_54224d55("RootNavigator.js")
         navigation_rootnavigator_rootnavigator_6645c18f("RootNavigator()<br/><small>src/navigation/RootNavigator.js</small>")
     end
-    subgraph community_13_src_stores_useAdminAuthStore_js_4a191a61["src/stores/useAdminAuthStore.js"]
-        stores_useadminauthstore_useadminauthstore_ba46d73e("useAdminAuthStore<br/><small>src/stores/useAdminAuthStore.js</small>")
-        frontend_v1_src_stores_useadminauthstore_js_21d85443("useAdminAuthStore.js")
-    end
+    adminentryscreen_adminentryscreen_adminentryscre_3d585997("AdminEntryScreen()<br/><small>screens/AdminEntryScreen/AdminEntryScreen.js</small>")
     frontend_v1_src_hooks_index_js_619e3659("index.js")
     frontend_v1_src_navigation_index_js_fddbef1e("index.js")
     frontend_v1_src_stores_index_js_473d9cc7("index.js")
+    stores_useadminauthstore_useadminauthstore_ba46d73e("useAdminAuthStore<br/><small>src/stores/useAdminAuthStore.js</small>")
     frontend_v1_src_navigation_customernavigator_js_4a1e6a0b -->|imports| frontend_v1_src_navigation_rootnavigator_js_54224d55
     frontend_v1_src_navigation_adminnavigator_js_7731be76 -->|imports| frontend_v1_src_navigation_rootnavigator_js_54224d55
-    %% Omitted for readability: 6 nodes, 0 edges
+    %% Omitted for readability: 7 nodes, 0 edges
     class frontend_v1_src_navigation_customernavigator_js_4a1e6a0b klass;
     class navigation_customernavigator_animatedtabicon_bca48eef function;
     class navigation_customernavigator_customerbottomtabs_b3ce3bfd function;
@@ -2063,11 +2069,11 @@ flowchart LR
     class frontend_v1_src_hooks_useauthgate_js_e8115550 ui;
     class frontend_v1_src_navigation_rootnavigator_js_54224d55 klass;
     class navigation_rootnavigator_rootnavigator_6645c18f function;
-    class stores_useadminauthstore_useadminauthstore_ba46d73e ui;
-    class frontend_v1_src_stores_useadminauthstore_js_21d85443 ui;
+    class adminentryscreen_adminentryscreen_adminentryscre_3d585997 function;
     class frontend_v1_src_hooks_index_js_619e3659 module;
     class frontend_v1_src_navigation_index_js_fddbef1e module;
     class frontend_v1_src_stores_index_js_473d9cc7 module;
+    class stores_useadminauthstore_useadminauthstore_ba46d73e ui;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -2091,78 +2097,14 @@ flowchart LR
 </tr>
 <tr>
   <td>1</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">src/hooks/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
+  <td><code>AdminEntryScreen()</code><br><small style="color:var(--muted)">screens/AdminEntryScreen/AdminEntryScreen.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in src/hooks/index.js.</td>
+  <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
+  <td>AdminEntryScreen() node in screens/AdminEntryScreen/AdminEntryScreen.js.</td>
 </tr>
 <tr>
   <td>2</td>
-  <td><code>useAuthGate.js</code><br><small style="color:var(--muted)">src/hooks/useAuthGate.js</small></td>
-  <td><span class="tag tag-hook">UI</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>useAuthGate.js node in src/hooks/useAuthGate.js.</td>
-</tr>
-<tr>
-  <td>3</td>
-  <td><code>useAuthGate()</code><br><small style="color:var(--muted)">src/hooks/useAuthGate.js</small></td>
-  <td><span class="tag tag-hook">UI</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
-  <td>useAuthGate() node in src/hooks/useAuthGate.js.</td>
-</tr>
-<tr>
-  <td>4</td>
-  <td><code>CustomerNavigator.js</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>RootNavigator.js</code><br><small style="color:var(--muted)">src/navigation/RootNavigator.js</small></td>
-  <td>CustomerNavigator.js node in src/navigation/CustomerNavigator.js.</td>
-</tr>
-<tr>
-  <td>5</td>
-  <td><code>Tab</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Tab node in src/navigation/CustomerNavigator.js.</td>
-</tr>
-<tr>
-  <td>6</td>
-  <td><code>Stack</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Stack node in src/navigation/CustomerNavigator.js.</td>
-</tr>
-<tr>
-  <td>7</td>
-  <td><code>AnimatedTabIcon()</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>AnimatedTabIcon() node in src/navigation/CustomerNavigator.js.</td>
-</tr>
-<tr>
-  <td>8</td>
-  <td><code>CustomerBottomTabs()</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>CustomerBottomTabs() node in src/navigation/CustomerNavigator.js.</td>
-</tr>
-<tr>
-  <td>9</td>
-  <td><code>CustomerNavigator()</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>CustomerNavigator() node in src/navigation/CustomerNavigator.js.</td>
-</tr>
-<tr>
-  <td>10</td>
   <td><code>useAuthStore.js</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
@@ -2170,15 +2112,87 @@ flowchart LR
   <td>useAuthStore.js node in src/stores/useAuthStore.js.</td>
 </tr>
 <tr>
-  <td>11</td>
+  <td>3</td>
   <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
   <td><span class="tag tag-hook">UI</span></td>
+  <td><code>AdminEntryScreen()</code><br><small style="color:var(--muted)">screens/AdminEntryScreen/AdminEntryScreen.js</small></td>
   <td><code>useAuthGate()</code><br><small style="color:var(--muted)">src/hooks/useAuthGate.js</small></td>
-  <td>No direct outbound edge</td>
   <td>useAuthStore node in src/stores/useAuthStore.js.</td>
 </tr>
 <tr>
+  <td>4</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">src/hooks/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in src/hooks/index.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>useAuthGate.js</code><br><small style="color:var(--muted)">src/hooks/useAuthGate.js</small></td>
+  <td><span class="tag tag-hook">UI</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>useAuthGate.js node in src/hooks/useAuthGate.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>useAuthGate()</code><br><small style="color:var(--muted)">src/hooks/useAuthGate.js</small></td>
+  <td><span class="tag tag-hook">UI</span></td>
+  <td><code>useAuthStore</code><br><small style="color:var(--muted)">src/stores/useAuthStore.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>useAuthGate() node in src/hooks/useAuthGate.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>CustomerNavigator.js</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>RootNavigator.js</code><br><small style="color:var(--muted)">src/navigation/RootNavigator.js</small></td>
+  <td>CustomerNavigator.js node in src/navigation/CustomerNavigator.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Tab</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Tab node in src/navigation/CustomerNavigator.js.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Stack</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Stack node in src/navigation/CustomerNavigator.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>AnimatedTabIcon()</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>AnimatedTabIcon() node in src/navigation/CustomerNavigator.js.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>CustomerBottomTabs()</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>CustomerBottomTabs() node in src/navigation/CustomerNavigator.js.</td>
+</tr>
+<tr>
   <td>12</td>
+  <td><code>CustomerNavigator()</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>CustomerNavigator() node in src/navigation/CustomerNavigator.js.</td>
+</tr>
+<tr>
+  <td>13</td>
   <td><code>AdminNavigator.js</code><br><small style="color:var(--muted)">src/navigation/AdminNavigator.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -2186,7 +2200,7 @@ flowchart LR
   <td>AdminNavigator.js node in src/navigation/AdminNavigator.js.</td>
 </tr>
 <tr>
-  <td>13</td>
+  <td>14</td>
   <td><code>Stack</code><br><small style="color:var(--muted)">src/navigation/AdminNavigator.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -2194,7 +2208,7 @@ flowchart LR
   <td>Stack node in src/navigation/AdminNavigator.js.</td>
 </tr>
 <tr>
-  <td>14</td>
+  <td>15</td>
   <td><code>AdminNavigator()</code><br><small style="color:var(--muted)">src/navigation/AdminNavigator.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -2202,7 +2216,7 @@ flowchart LR
   <td>AdminNavigator() node in src/navigation/AdminNavigator.js.</td>
 </tr>
 <tr>
-  <td>15</td>
+  <td>16</td>
   <td><code>RootNavigator.js</code><br><small style="color:var(--muted)">src/navigation/RootNavigator.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td><code>AdminNavigator.js</code><br><small style="color:var(--muted)">src/navigation/AdminNavigator.js</small><br><code>CustomerNavigator.js</code><br><small style="color:var(--muted)">src/navigation/CustomerNavigator.js</small></td>
@@ -2210,7 +2224,7 @@ flowchart LR
   <td>RootNavigator.js node in src/navigation/RootNavigator.js.</td>
 </tr>
 <tr>
-  <td>16</td>
+  <td>17</td>
   <td><code>RootNavigator()</code><br><small style="color:var(--muted)">src/navigation/RootNavigator.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -2218,7 +2232,7 @@ flowchart LR
   <td>RootNavigator() node in src/navigation/RootNavigator.js.</td>
 </tr>
 <tr>
-  <td>17</td>
+  <td>18</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">src/navigation/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -2226,7 +2240,7 @@ flowchart LR
   <td>index.js node in src/navigation/index.js.</td>
 </tr>
 <tr>
-  <td>18</td>
+  <td>19</td>
   <td><code>useAdminAuthStore.js</code><br><small style="color:var(--muted)">src/stores/useAdminAuthStore.js</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
@@ -2234,7 +2248,7 @@ flowchart LR
   <td>useAdminAuthStore.js node in src/stores/useAdminAuthStore.js.</td>
 </tr>
 <tr>
-  <td>19</td>
+  <td>20</td>
   <td><code>useAdminAuthStore</code><br><small style="color:var(--muted)">src/stores/useAdminAuthStore.js</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td><code>AdminNavigator()</code><br><small style="color:var(--muted)">src/navigation/AdminNavigator.js</small><br><code>RootNavigator()</code><br><small style="color:var(--muted)">src/navigation/RootNavigator.js</small></td>
@@ -2242,7 +2256,7 @@ flowchart LR
   <td>useAdminAuthStore node in src/stores/useAdminAuthStore.js.</td>
 </tr>
 <tr>
-  <td>20</td>
+  <td>21</td>
   <td><code>index.js</code><br><small style="color:var(--muted)">src/stores/index.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -2250,7 +2264,7 @@ flowchart LR
   <td>index.js node in src/stores/index.js.</td>
 </tr>
 <tr>
-  <td>21</td>
+  <td>22</td>
   <td><code>useCartStore.js</code><br><small style="color:var(--muted)">src/stores/useCartStore.js</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
@@ -2258,7 +2272,7 @@ flowchart LR
   <td>useCartStore.js node in src/stores/useCartStore.js.</td>
 </tr>
 <tr>
-  <td>22</td>
+  <td>23</td>
   <td><code>useCartStore</code><br><small style="color:var(--muted)">src/stores/useCartStore.js</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
@@ -2266,7 +2280,7 @@ flowchart LR
   <td>useCartStore node in src/stores/useCartStore.js.</td>
 </tr>
 <tr>
-  <td>23</td>
+  <td>24</td>
   <td><code>useSettingsStore.js</code><br><small style="color:var(--muted)">src/stores/useSettingsStore.js</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
@@ -2274,7 +2288,7 @@ flowchart LR
   <td>useSettingsStore.js node in src/stores/useSettingsStore.js.</td>
 </tr>
 <tr>
-  <td>24</td>
+  <td>25</td>
   <td><code>useSettingsStore</code><br><small style="color:var(--muted)">src/stores/useSettingsStore.js</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
@@ -3659,12 +3673,12 @@ flowchart LR
 
 <!-- ====== 16. Other ====== -->
 <h2 id="other">16. Other</h2>
-<p>Other groups implementation around frontend, screens, indexjs, components, mostly in Backend-V1/PLAN.md, ios/ServeLoco/AppDelegate.swift, screens/OrderDetailScreen/OrderDetailScreen.js. This section covers 226 nodes and 211 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Other groups implementation around frontend, screens, indexjs, components, mostly in Backend-V1/PLAN.md, ios/ServeLoco/AppDelegate.swift, screens/OrderDetailScreen/OrderDetailScreen.js. This section covers 230 nodes and 215 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Other (226 nodes, 211 edges)
+    %% Section: Other (230 nodes, 215 edges)
     subgraph other_ios_ServeLoco_AppDelegate_swift_aa6bf384["ios/ServeLoco/AppDelegate.swift"]
         serveloco_appdelegate_reactnativedelegate_b2a602fb("ReactNativeDelegate<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
         serveloco_appdelegate_appdelegate_bb724627("AppDelegate<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
@@ -3672,10 +3686,11 @@ flowchart LR
         serveloco_appdelegate_reactnativedelegate_source_e5a761ef("sourceURL()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
         serveloco_appdelegate_reactnativedelegate_bundle_d744837a("bundleURL()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
     end
-    subgraph other_External_generated_9e8859fa["External / generated"]
-        rctdefaultreactnativefactorydelegate_857e27af("RCTDefaultReactNativeFactoryDelegate")
-        uiapplicationdelegate_161d94bd("UIApplicationDelegate")
+    subgraph other_src_utils_noEmojiCheck_js_7fad36c6["src/utils/noEmojiCheck.js"]
+        utils_noemojicheck_assertnoemoji_765ccd3a("assertNoEmoji()<br/><small>src/utils/noEmojiCheck.js</small>")
+        utils_noemojicheck_hasemoji_dd730c57("hasEmoji()<br/><small>src/utils/noEmojiCheck.js</small>")
     end
+    frontend_v1_app_app_3fe36d59("App()<br/><small>Frontend-V1/App.js</small>")
     frontend_v1_src_components_adminmetriccard_admin_6806cb05("AdminMetricCard.js")
     frontend_v1_src_components_animatedfadeslide_ind_9322af2d("index.js")
     frontend_v1_src_components_categorycard_category_c75a2954("CategoryCard.js")
@@ -3683,15 +3698,16 @@ flowchart LR
     frontend_v1_src_components_iconbutton_iconbutton_95d791f2("IconButton.js")
     frontend_v1_src_components_productcard_productca_d6b9385e("ProductCard.js")
     frontend_v1_src_components_productimage_index_js_813935ab("index.js")
-    frontend_v1_src_components_quantitystepper_index_2f9ba1f1("index.js")
     frontend_v1_src_components_staggeredlist_stagger_5a9a651a("StaggeredList.js")
     frontend_v1_src_components_textbutton_textbutton_c37fcfab("TextButton.js")
     theme_layout_layout_b746cb58("layout<br/><small>src/theme/layout.js</small>")
+    frontend_v1_app_app_3fe36d59 -->|calls| utils_noemojicheck_assertnoemoji_765ccd3a
     serveloco_appdelegate_appdelegate_bb724627 -->|method| serveloco_appdelegate_appdelegate_application_03b1d46e
     serveloco_appdelegate_appdelegate_application_03b1d46e -->|calls| serveloco_appdelegate_reactnativedelegate_b2a602fb
     serveloco_appdelegate_reactnativedelegate_b2a602fb -->|method| serveloco_appdelegate_reactnativedelegate_source_e5a761ef
     serveloco_appdelegate_reactnativedelegate_b2a602fb -->|method| serveloco_appdelegate_reactnativedelegate_bundle_d744837a
     serveloco_appdelegate_reactnativedelegate_source_e5a761ef -->|calls| serveloco_appdelegate_reactnativedelegate_bundle_d744837a
+    utils_noemojicheck_hasemoji_dd730c57 -->|calls| utils_noemojicheck_assertnoemoji_765ccd3a
     frontend_v1_src_components_categorycard_category_c75a2954 -->|imports| frontend_v1_src_components_productimage_index_js_813935ab
     frontend_v1_src_components_categorycard_category_c75a2954 -->|imports| theme_layout_layout_b746cb58
     frontend_v1_src_components_textbutton_textbutton_c37fcfab -->|imports| theme_layout_layout_b746cb58
@@ -3700,16 +3716,16 @@ flowchart LR
     frontend_v1_src_components_adminmetriccard_admin_6806cb05 -->|imports| theme_layout_layout_b746cb58
     frontend_v1_src_components_chip_chip_js_937db2d1 -->|imports| theme_layout_layout_b746cb58
     frontend_v1_src_components_iconbutton_iconbutton_95d791f2 -->|imports| theme_layout_layout_b746cb58
-    frontend_v1_src_components_productcard_productca_d6b9385e -->|imports| frontend_v1_src_components_quantitystepper_index_2f9ba1f1
     frontend_v1_src_components_productcard_productca_d6b9385e -->|imports| theme_layout_layout_b746cb58
-    %% Omitted for readability: 208 nodes, 0 edges
+    %% Omitted for readability: 212 nodes, 0 edges
     class serveloco_appdelegate_reactnativedelegate_b2a602fb klass;
     class serveloco_appdelegate_appdelegate_bb724627 klass;
     class serveloco_appdelegate_appdelegate_application_03b1d46e function;
     class serveloco_appdelegate_reactnativedelegate_source_e5a761ef function;
     class serveloco_appdelegate_reactnativedelegate_bundle_d744837a function;
-    class rctdefaultreactnativefactorydelegate_857e27af klass;
-    class uiapplicationdelegate_161d94bd klass;
+    class utils_noemojicheck_assertnoemoji_765ccd3a async;
+    class utils_noemojicheck_hasemoji_dd730c57 function;
+    class frontend_v1_app_app_3fe36d59 function;
     class frontend_v1_src_components_adminmetriccard_admin_6806cb05 klass;
     class frontend_v1_src_components_animatedfadeslide_ind_9322af2d module;
     class frontend_v1_src_components_categorycard_category_c75a2954 klass;
@@ -3717,7 +3733,6 @@ flowchart LR
     class frontend_v1_src_components_iconbutton_iconbutton_95d791f2 klass;
     class frontend_v1_src_components_productcard_productca_d6b9385e klass;
     class frontend_v1_src_components_productimage_index_js_813935ab module;
-    class frontend_v1_src_components_quantitystepper_index_2f9ba1f1 module;
     class frontend_v1_src_components_staggeredlist_stagger_5a9a651a klass;
     class frontend_v1_src_components_textbutton_textbutton_c37fcfab klass;
     class theme_layout_layout_b746cb58 function;
@@ -4001,7 +4016,7 @@ flowchart LR
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x125, re exports x68, imports x6, imports x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x127, re exports x68, imports x6, calls x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -4013,7 +4028,7 @@ flowchart LR
     <h4>Graph</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><td>Nodes</td><td>694</td></tr>
-      <tr><td>Edges</td><td>953</td></tr>
+      <tr><td>Edges</td><td>954</td></tr>
       <tr><td>Hyperedges</td><td>0</td></tr>
       <tr><td>Communities</td><td>80</td></tr>
       <tr><td>Documented Sections</td><td>15</td></tr>
@@ -4023,7 +4038,7 @@ flowchart LR
     <h4>Edge Confidence</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><td>EXTRACTED</td><td>950</td></tr>
-      <tr><td>INFERRED</td><td>3</td></tr>
+      <tr><td>INFERRED</td><td>4</td></tr>
       <tr><td>AMBIGUOUS</td><td>0</td></tr>
     </table>
   </div>
@@ -4031,7 +4046,7 @@ flowchart LR
 
 <div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
   <p>ProjectServeLoco — Architecture Documentation</p>
-  <p>Generated: 2026-05-23 00:37 UTC · graphify callflow-html</p>
+  <p>Generated: 2026-05-23 00:39 UTC · graphify callflow-html</p>
 </div>
 
 </div><!-- .container -->

@@ -56,9 +56,7 @@ export default function AdminEntryScreen() {
   };
 
   const handleLoginPress = () => {
-    // Navigate to actual Admin Login Screen (Task F-21)
-    // navigation.navigate('AdminLogin');
-    console.log("Navigating to AdminLogin");
+    navigation.navigate('AdminLogin');
   };
 
   return (

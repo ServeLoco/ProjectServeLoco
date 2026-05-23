@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 180 files · ~40,941 words
+- 180 files · ~41,291 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 694 nodes · 953 edges · 80 communities (44 shown, 36 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.8)
+- 694 nodes · 954 edges · 80 communities (45 shown, 35 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5388e6ca`
+- Built from commit: `87794f79`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -100,6 +100,8 @@
 10. `API Plan` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `AdminEntryScreen()` --calls--> `useAuthStore`  [INFERRED]
+  Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js → Frontend-V1/src/stores/useAuthStore.js
 - `useAuthGate()` --calls--> `useAuthStore`  [INFERRED]
   Frontend-V1/src/hooks/useAuthGate.js → Frontend-V1/src/stores/useAuthStore.js
 - `AdminNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
@@ -108,10 +110,8 @@
   Frontend-V1/src/navigation/RootNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
 - `AnimatedQuantitySwitcher()` --calls--> `useReducedMotion()`  [EXTRACTED]
   Frontend-V1/src/components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js → Frontend-V1/src/utils/motionPreferences.js
-- `AnimatedFadeSlide()` --calls--> `useReducedMotion()`  [EXTRACTED]
-  Frontend-V1/src/components/AnimatedFadeSlide/AnimatedFadeSlide.js → Frontend-V1/src/utils/motionPreferences.js
 
-## Communities (80 total, 36 thin omitted)
+## Communities (80 total, 35 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -155,7 +155,7 @@ Nodes (9): Bottom Navigation, Category Cards, Combo Deals, Frontend Home Dashboa
 
 ### Community 13 - "Community 13"
 Cohesion: 0.09
-Nodes (10): useAuthGate(), AdminNavigator(), Stack, Stack, Tab, RootNavigator(), useAdminAuthStore, useAuthStore (+2 more)
+Nodes (11): AdminEntryScreen(), useAuthGate(), AdminNavigator(), Stack, Stack, Tab, RootNavigator(), useAdminAuthStore (+3 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.04
@@ -206,8 +206,8 @@ Cohesion: 0.33
 Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
-Cohesion: 0.07
-Nodes (23): AnimatedCartBadge(), AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), AnimatedStickyMiniCart(), AnimatedTabItem() (+15 more)
+Cohesion: 0.08
+Nodes (20): AnimatedCartBadge(), AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), AnimatedStickyMiniCart(), AnimatedTabItem() (+12 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.33
@@ -233,6 +233,10 @@ Nodes (4): Frontend Build Phases, Phase 1: App Shell, Phase 2: Customer Flow, Ph
 Cohesion: 0.67
 Nodes (3): Included, Not Included, V1 Scope
 
+### Community 56 - "Community 56"
+Cohesion: 0.50
+Nodes (3): App(), assertNoEmoji(), hasEmoji()
+
 ### Community 66 - "Community 66"
 Cohesion: 0.33
 Nodes (3): MOCK_CATEGORIES, MOCK_CHIPS, styles
@@ -256,7 +260,7 @@ Nodes (4): CATEGORY_CHIPS, MOCK_PRODUCTS, SORT_OPTIONS, styles
 ## Knowledge Gaps
 - **331 isolated node(s):** `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard`, `App Animation Standard`, `Task F-01: Create React Native App Shell` (+326 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **36 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **35 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_

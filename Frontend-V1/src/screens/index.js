@@ -4,14 +4,16 @@ export { default as ProductListScreen } from './ProductListScreen';
 export { default as ProductDetailScreen } from './ProductDetailScreen';
 export { default as CartScreen } from './CartScreen';
 export { default as CheckoutScreen } from './CheckoutScreen';
-export { default as OrderConfirmationScreen } from './OrderConfirmationScreen';
+export { default as OrderConfirmationScreen } from './OrderConfirmationScreen/OrderConfirmationScreen';
 export { default as OrdersScreen } from './OrdersScreen';
-export { default as OrderDetailScreen } from './OrderDetailScreen';
+export { default as OrderDetailScreen } from './OrderDetailScreen/OrderDetailScreen';
 export { default as ProfileScreen } from './ProfileScreen';
-export { default as EditProfileScreen } from './EditProfileScreen';
+export { default as EditProfileScreen } from './EditProfileScreen/EditProfileScreen';
 export { default as AuthScreen } from './AuthScreen';
-export { default as AdminEntryScreen } from './AdminEntryScreen';
-export { default as AdminLoginScreen } from './AdminLoginScreen';
+
+// Admin Screens
+export { default as AdminEntryScreen } from './AdminEntryScreen/AdminEntryScreen';
+export { default as AdminLoginScreen } from './AdminLoginScreen/AdminLoginScreen';
 export { default as AdminDashboardScreen } from './AdminDashboardScreen';
 export { default as AdminOrdersScreen } from './AdminOrdersScreen';
 export { default as AdminOrderDetailScreen } from './AdminOrderDetailScreen';

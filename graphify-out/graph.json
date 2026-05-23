@@ -400,31 +400,76 @@
       "norm_label": "task f-31: final acceptance checklist"
     },
     {
+      "label": "AdminEntryScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
+      "source_location": "L1",
+      "id": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
+      "community": 50,
+      "norm_label": "adminentryscreen.js"
+    },
+    {
+      "label": "AdminEntryScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
+      "source_location": "L15",
+      "id": "adminentryscreen_adminentryscreen_adminentryscreen",
+      "community": 13,
+      "norm_label": "adminentryscreen()"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
+      "source_location": "L102",
+      "id": "adminentryscreen_adminentryscreen_styles",
+      "community": 50,
+      "norm_label": "styles"
+    },
+    {
+      "label": "useAuthStore.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/stores/useAuthStore.js",
+      "source_location": "L1",
+      "id": "frontend_v1_src_stores_useauthstore_js",
+      "community": 13,
+      "norm_label": "useauthstore.js"
+    },
+    {
+      "label": "useAuthStore",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/stores/useAuthStore.js",
+      "source_location": "L9",
+      "id": "stores_useauthstore_useauthstore",
+      "community": 13,
+      "norm_label": "useauthstore"
+    },
+    {
       "label": "EditProfileScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js",
       "community": 68,
-      "norm_label": "editprofilescreen.js"
+      "norm_label": "editprofilescreen.js",
+      "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js"
     },
     {
       "label": "EditProfileScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L21",
-      "id": "editprofilescreen_editprofilescreen_editprofilescreen",
       "community": 68,
-      "norm_label": "editprofilescreen()"
+      "norm_label": "editprofilescreen()",
+      "id": "editprofilescreen_editprofilescreen_editprofilescreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L174",
-      "id": "editprofilescreen_editprofilescreen_styles",
       "community": 68,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "editprofilescreen_editprofilescreen_styles"
     },
     {
       "label": "ProfileScreen.js",
@@ -1030,24 +1075,6 @@
       "id": "navigation_customernavigator_customernavigator"
     },
     {
-      "label": "useAuthStore.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/stores/useAuthStore.js",
-      "source_location": "L1",
-      "community": 13,
-      "norm_label": "useauthstore.js",
-      "id": "frontend_v1_src_stores_useauthstore_js"
-    },
-    {
-      "label": "useAuthStore",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/stores/useAuthStore.js",
-      "source_location": "L9",
-      "community": 13,
-      "norm_label": "useauthstore",
-      "id": "stores_useauthstore_useauthstore"
-    },
-    {
       "label": "AdminNavigator.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
@@ -1088,7 +1115,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/App.js",
       "source_location": "L7",
-      "community": 45,
+      "community": 56,
       "norm_label": "app()",
       "id": "frontend_v1_app_app"
     },
@@ -1597,38 +1624,11 @@
       "id": "frontend_v1_src_screens_admindashboardscreen_index_js"
     },
     {
-      "label": "AdminEntryScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
-      "source_location": "L1",
-      "community": 56,
-      "norm_label": "adminentryscreen.js",
-      "id": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js"
-    },
-    {
-      "label": "AdminEntryScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
-      "source_location": "L6",
-      "community": 56,
-      "norm_label": "adminentryscreen()",
-      "id": "adminentryscreen_adminentryscreen_adminentryscreen"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
-      "source_location": "L14",
-      "community": 56,
-      "norm_label": "styles",
-      "id": "adminentryscreen_adminentryscreen_styles"
-    },
-    {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/index.js",
       "source_location": "L1",
-      "community": 56,
+      "community": 50,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminentryscreen_index_js"
     },
@@ -4157,7 +4157,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 56,
       "norm_label": "noemojicheck.js",
       "id": "frontend_v1_src_utils_noemojicheck_js"
     },
@@ -4166,7 +4166,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L6",
-      "community": 45,
+      "community": 56,
       "norm_label": "hasemoji()",
       "id": "utils_noemojicheck_hasemoji"
     },
@@ -4175,7 +4175,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L18",
-      "community": 45,
+      "community": 56,
       "norm_label": "stripemojis()",
       "id": "utils_noemojicheck_stripemojis"
     },
@@ -4184,7 +4184,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L29",
-      "community": 45,
+      "community": 56,
       "norm_label": "assertnoemoji()",
       "id": "utils_noemojicheck_assertnoemoji"
     },
@@ -6684,6 +6684,80 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
+      "target": "adminentryscreen_adminentryscreen_adminentryscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
+      "target": "adminentryscreen_adminentryscreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_adminentryscreen_index_js",
+      "target": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "adminentryscreen_adminentryscreen_adminentryscreen",
+      "target": "stores_useauthstore_useauthstore"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/stores/useAuthStore.js",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_stores_useauthstore_js",
+      "target": "stores_useauthstore_useauthstore"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/stores/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_stores_index_js",
+      "target": "frontend_v1_src_stores_useauthstore_js"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Frontend-V1/src/hooks/useAuthGate.js",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "hooks_useauthgate_useauthgate",
+      "target": "stores_useauthstore_useauthstore"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L6",
       "weight": 1.0,
@@ -7527,17 +7601,6 @@
       "target": "hooks_useauthgate_useauthgate"
     },
     {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Frontend-V1/src/hooks/useAuthGate.js",
-      "source_location": "L9",
-      "weight": 1.0,
-      "source": "hooks_useauthgate_useauthgate",
-      "target": "stores_useauthstore_useauthstore"
-    },
-    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
@@ -7619,27 +7682,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_navigation_index_js",
       "target": "frontend_v1_src_navigation_customernavigator_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/stores/useAuthStore.js",
-      "source_location": "L9",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_stores_useauthstore_js",
-      "target": "stores_useauthstore_useauthstore"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/stores/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_stores_index_js",
-      "target": "frontend_v1_src_stores_useauthstore_js"
     },
     {
       "relation": "contains",
@@ -8371,37 +8413,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
       "target": "frontend_v1_src_screens_admindashboardscreen_index_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
-      "target": "adminentryscreen_adminentryscreen_adminentryscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
-      "target": "adminentryscreen_adminentryscreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_adminentryscreen_index_js",
-      "target": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js"
     },
     {
       "relation": "re_exports",
@@ -16224,5 +16235,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "5388e6ca59f6040a252c6e104b1b05b7521c2494"
+  "built_at_commit": "87794f7928593548816fcd65d35cb58133685549"
 }

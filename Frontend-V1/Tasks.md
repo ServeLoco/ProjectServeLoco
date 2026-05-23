@@ -414,19 +414,19 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-21: Admin Login Screen
 
-- [ ] Add owner id field.
-- [ ] Add password field with eye icon button.
-- [ ] Add primary button: `Login`.
-- [ ] Add secondary button: `Back to App`.
-- [ ] Add inline validation.
-- [ ] Add API error near button.
-- [ ] Add loading state that disables inputs.
-- [ ] Login through `POST /admin/login`.
-- [ ] Store admin JWT separately from customer JWT.
-- [ ] Navigate to Admin Dashboard on success.
-- [ ] Animate form card fade-in.
-- [ ] Animate invalid fields with short shake and inline error fade-in.
-- [ ] Animate login button loading transition.
+- [x] Add owner id field.
+- [x] Add password field with eye icon button.
+- [x] Add primary button: `Login`.
+- [x] Add secondary button: `Back to App`.
+- [x] Add inline validation.
+- [x] Add API error near button.
+- [x] Add loading state that disables inputs.
+- [x] Login through `POST /admin/login`.
+- [x] Store admin JWT separately from customer JWT.
+- [x] Navigate to Admin Dashboard on success.
+- [x] Animate form card fade-in.
+- [x] Animate invalid fields with short shake and inline error fade-in.
+- [x] Animate login button loading transition.
 
 ### Task F-22: Admin Dashboard Screen
 
