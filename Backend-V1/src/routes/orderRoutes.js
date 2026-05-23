@@ -41,5 +41,6 @@ router.post('/', requireCustomer, validate(createOrderSchema), asyncHandler(crea
 router.get('/', requireCustomer, asyncHandler(getOrders));
 router.get('/:id', requireCustomer, asyncHandler(getOrderById));
 router.patch('/:id/cancel', requireCustomer, asyncHandler(cancelOrder));
+router.post('/:id/cancel', requireCustomer, asyncHandler(cancelOrder)); // alias for frontend
 
 module.exports = router;

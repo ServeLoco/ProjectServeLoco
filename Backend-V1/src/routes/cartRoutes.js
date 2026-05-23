@@ -3,6 +3,8 @@ const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
 const { calculateCart } = require('../controllers/cartController');
 
-router.post('/calculate', asyncHandler(calculateCart));
+const { requireCustomer } = require('../middleware/authMiddleware');
+
+router.post('/calculate', requireCustomer, asyncHandler(calculateCart));
 
 module.exports = router;
