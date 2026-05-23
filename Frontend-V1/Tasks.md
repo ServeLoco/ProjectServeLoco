@@ -513,24 +513,24 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-26: Admin Product Form Screen
 
-- [ ] Support add mode and edit mode.
-- [ ] Add fields for product name, category, price, unit/size, and description.
-- [ ] Add availability toggle.
-- [ ] Add image upload/change control.
-- [ ] Add image preview with fallback.
-- [ ] Add primary button: `Save Product`.
-- [ ] Add secondary button: `Cancel`.
-- [ ] Add delete button only in edit mode.
-- [ ] Add field validation.
-- [ ] Add upload loading state.
-- [ ] Add save loading state.
-- [ ] Upload image through `POST /admin/images`.
-- [ ] Delete old image through `DELETE /admin/images/:id` when replacing or removing an image.
-- [ ] Return to Admin Products after successful save.
-- [ ] Animate form sections with slight staggered entry.
-- [ ] Animate image preview fade-in after upload/select.
-- [ ] Animate validation errors with fade-in and optional shake.
-- [ ] Animate save button loading transition.
+- [x] Support add mode and edit mode.
+- [x] Add fields for product name, category, price, unit/size, and description.
+- [x] Add availability toggle.
+- [x] Add image upload/change control.
+- [x] Add image preview with fallback.
+- [x] Add primary button: `Save Product`.
+- [x] Add secondary button: `Cancel`.
+- [x] Add delete button only in edit mode.
+- [x] Add field validation.
+- [x] Add upload loading state.
+- [x] Add save loading state.
+- [x] Upload image through `POST /admin/images`.
+- [x] Delete old image through `DELETE /admin/images/:id` when replacing or removing an image.
+- [x] Return to Admin Products after successful save.
+- [x] Animate form sections with slight staggered entry.
+- [x] Animate image preview fade-in after upload/select.
+- [x] Animate validation errors with fade-in and optional shake.
+- [x] Animate save button loading transition.
 
 ### Task F-27: Admin Customers Screen
 

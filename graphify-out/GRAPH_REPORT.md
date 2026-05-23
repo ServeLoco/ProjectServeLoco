@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 180 files · ~45,146 words
+- 180 files · ~46,540 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 703 nodes · 968 edges · 76 communities (47 shown, 29 thin omitted)
+- 707 nodes · 972 edges · 75 communities (49 shown, 26 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `0808185b`
+- Built from commit: `8eac9843`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -64,7 +64,6 @@
 - [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
 - [[_COMMUNITY_Community 56|Community 56]]
-- [[_COMMUNITY_Community 57|Community 57]]
 - [[_COMMUNITY_Community 58|Community 58]]
 - [[_COMMUNITY_Community 59|Community 59]]
 - [[_COMMUNITY_Community 60|Community 60]]
@@ -107,7 +106,7 @@
 - `RootNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
   Frontend-V1/src/navigation/RootNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
 
-## Communities (76 total, 29 thin omitted)
+## Communities (75 total, 26 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -150,8 +149,8 @@ Cohesion: 0.20
 Nodes (9): Bottom Navigation, Category Cards, Combo Deals, Frontend Home Dashboard Design, Offer Banner, ServeLoco Plan, Toggle Button, Top Section (+1 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.07
-Nodes (16): AdminEntryScreen(), App(), displayName, name, useAuthGate(), AdminNavigator(), Stack, Stack (+8 more)
+Cohesion: 0.09
+Nodes (11): AdminEntryScreen(), useAuthGate(), AdminNavigator(), Stack, Stack, Tab, RootNavigator(), useAdminAuthStore (+3 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.04
@@ -173,6 +172,10 @@ Nodes (5): RCTDefaultReactNativeFactoryDelegate, AppDelegate, ReactNativeDelegat
 Cohesion: 0.05
 Nodes (43): App Animation Standard, Folder Structure And Naming Standard, Global Frontend Rules, How To Use This Checklist, Phase 1: App Shell And Foundations, Phase 2: Auth And Preview Gate, Phase 3: Customer Shopping Flow, Phase 4: Customer Account And Orders (+35 more)
 
+### Community 21 - "Community 21"
+Cohesion: 0.17
+Nodes (3): styles, styles, styles
+
 ### Community 22 - "Community 22"
 Cohesion: 0.40
 Nodes (4): images, info, author, version
@@ -186,16 +189,16 @@ Cohesion: 0.09
 Nodes (33): adminAuthApi, adminCustomersApi, adminDashboardApi, adminImagesApi, adminOrdersApi, adminProductsApi, adminSettingsApi, ApiError (+25 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.15
-Nodes (6): styles, styles, styles, colors, palette, shadows
+Cohesion: 0.10
+Nodes (9): styles, styles, PAYMENT_COLORS, STATUS_COLORS, styles, styles, colors, palette (+1 more)
 
 ### Community 35 - "Community 35"
-Cohesion: 0.18
-Nodes (4): styles, styles, styles, typography
+Cohesion: 0.25
+Nodes (5): App(), displayName, name, assertNoEmoji(), hasEmoji()
 
 ### Community 43 - "Community 43"
-Cohesion: 0.16
-Nodes (4): styles, styles, styles, spacing
+Cohesion: 0.12
+Nodes (7): styles, styles, styles, styles, styles, spacing, typography
 
 ### Community 44 - "Community 44"
 Cohesion: 0.33
@@ -203,11 +206,11 @@ Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
 Cohesion: 0.09
-Nodes (19): AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles, AnimatedStickyMiniCart(), AnimatedTabItem() (+11 more)
+Nodes (15): AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles, AnimatedStickyMiniCart(), AnimatedTabItem() (+7 more)
 
 ### Community 46 - "Community 46"
-Cohesion: 0.33
-Nodes (3): PAYMENT_COLORS, STATUS_COLORS, styles
+Cohesion: 0.53
+Nodes (4): LoadingSkeleton(), SkeletonCard(), SkeletonRow(), styles
 
 ### Community 47 - "Community 47"
 Cohesion: 0.20
@@ -230,8 +233,8 @@ Cohesion: 0.67
 Nodes (3): Included, Not Included, V1 Scope
 
 ### Community 54 - "Community 54"
-Cohesion: 0.20
-Nodes (3): styles, styles, layout
+Cohesion: 0.14
+Nodes (4): styles, styles, styles, layout
 
 ### Community 58 - "Community 58"
 Cohesion: 0.29
@@ -240,6 +243,10 @@ Nodes (3): ORDER_STATUSES, PAYMENT_STATUSES, styles
 ### Community 59 - "Community 59"
 Cohesion: 0.25
 Nodes (3): PAYMENT_FILTERS, STATUS_FILTERS, styles
+
+### Community 61 - "Community 61"
+Cohesion: 0.25
+Nodes (4): AVAILABILITY, CATEGORIES, initialMockProducts, styles
 
 ### Community 66 - "Community 66"
 Cohesion: 0.33
@@ -262,21 +269,21 @@ Cohesion: 0.29
 Nodes (4): CATEGORY_CHIPS, MOCK_PRODUCTS, SORT_OPTIONS, styles
 
 ## Knowledge Gaps
-- **335 isolated node(s):** `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard`, `App Animation Standard`, `Task F-01: Create React Native App Shell` (+330 more)
+- **338 isolated node(s):** `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard`, `App Animation Standard`, `Task F-01: Create React Native App Shell` (+333 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **29 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **26 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `colors` connect `Community 30` to `Community 35`, `Community 43`, `Community 13`, `Community 45`, `Community 47`, `Community 48`, `Community 49`, `Community 46`, `Community 17`, `Community 21`, `Community 54`, `Community 57`?**
+- **Why does `colors` connect `Community 30` to `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 49`, `Community 17`, `Community 21`, `Community 54`?**
   _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **Why does `ServeLoco Main Plan` connect `Community 6` to `Community 14`, `Community 7`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **Why does `Frontend Plan` connect `Community 14` to `Community 6`?**
-  _High betweenness centrality (0.016) - this node is a cross-community bridge._
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
 - **What connects `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard` to the rest of the system?**
-  _335 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _338 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**

@@ -23,6 +23,7 @@ import {
   AdminOrdersScreen,
   AdminOrderDetailScreen,
   AdminProductsScreen,
+  AdminProductFormScreen,
 } from '../screens';
 
 const Tab = createBottomTabNavigator();
@@ -132,6 +133,7 @@ export default function CustomerNavigator() {
       <Stack.Screen name="AdminOrders" component={AdminOrdersScreen} />
       <Stack.Screen name="AdminOrderDetail" component={AdminOrderDetailScreen} />
       <Stack.Screen name="AdminProducts" component={AdminProductsScreen} />
+      <Stack.Screen name="AdminProductForm" component={AdminProductFormScreen} />
     </Stack.Navigator>
   );
 }

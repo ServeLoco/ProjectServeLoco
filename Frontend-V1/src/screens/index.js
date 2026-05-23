@@ -17,7 +17,7 @@ export { default as AdminLoginScreen } from './AdminLoginScreen/AdminLoginScreen
 export { default as AdminDashboardScreen } from './AdminDashboardScreen/AdminDashboardScreen';
 export { default as AdminOrdersScreen } from './AdminOrdersScreen/AdminOrdersScreen';
 export { default as AdminOrderDetailScreen } from './AdminOrderDetailScreen/AdminOrderDetailScreen';
-export { default as AdminProductsScreen } from './AdminProductsScreen';
-export { default as AdminProductFormScreen } from './AdminProductFormScreen';
+export { default as AdminProductsScreen } from './AdminProductsScreen/AdminProductsScreen';
+export { default as AdminProductFormScreen } from './AdminProductFormScreen/AdminProductFormScreen';
 export { default as AdminCustomersScreen } from './AdminCustomersScreen';
 export { default as AdminSettingsScreen } from './AdminSettingsScreen';
