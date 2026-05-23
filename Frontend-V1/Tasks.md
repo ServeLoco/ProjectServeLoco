@@ -357,21 +357,21 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-17: Order Detail Screen
 
-- [ ] Build header with back button and order id.
-- [ ] Fetch order detail through `GET /orders/:id`.
-- [ ] Show status timeline.
-- [ ] Show payment status.
-- [ ] Show item list with quantity and price.
-- [ ] Show bill summary.
-- [ ] Show delivery address and map link when available.
-- [ ] Show `Cancel Order` only when cancellation is allowed.
-- [ ] Show `Contact Store` if support phone is configured.
-- [ ] Show `Continue Shopping`.
-- [ ] Add cancel confirmation modal with `Keep Order` and `Cancel Order`.
-- [ ] Add cancel loading and success state.
-- [ ] Animate status timeline steps from top to bottom.
-- [ ] Animate cancel confirmation modal with backdrop fade and dialog scale.
-- [ ] Animate cancel success with short status highlight fade.
+- [x] Build header with back button and order id.
+- [x] Fetch order detail through `GET /orders/:id`.
+- [x] Show status timeline.
+- [x] Show payment status.
+- [x] Show item list with quantity and price.
+- [x] Show bill summary.
+- [x] Show delivery address and map link when available.
+- [x] Show `Cancel Order` only when cancellation is allowed.
+- [x] Show `Contact Store` if support phone is configured.
+- [x] Show `Continue Shopping`.
+- [x] Add cancel confirmation modal with `Keep Order` and `Cancel Order`.
+- [x] Add cancel loading and success state.
+- [x] Animate status timeline steps from top to bottom.
+- [x] Animate cancel confirmation modal with backdrop fade and dialog scale.
+- [x] Animate cancel success with short status highlight fade.
 
 ### Task F-18: Profile Screen
 
