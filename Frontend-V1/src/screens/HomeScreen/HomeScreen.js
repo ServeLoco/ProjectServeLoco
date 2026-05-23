@@ -10,7 +10,6 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import {
   AppScreen,
-  AppHeader,
   SegmentedControl,
   CategoryCard,
   ProductCard,
@@ -21,14 +20,34 @@ import {
   SkeletonRow,
 } from '../../components';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
-import { useCartStore, useSettingsStore } from '../../stores';
+import { useAuthStore, useCartStore, useSettingsStore } from '../../stores';
 import { useAuthGate } from '../../hooks';
 import { offersApi, productsApi, settingsApi } from '../../api';
 import { asArray, normalizeCategory, normalizeProduct, normalizeSettings } from '../../utils';
 
+function getShortAddress(profile) {
+  const address = profile?.address || profile?.deliveryAddress || profile?.defaultAddress;
+
+  if (!address) {
+    return 'Set delivery location';
+  }
+
+  if (typeof address === 'string') {
+    const [firstLine] = address.split(',');
+    return firstLine?.trim() || 'Set delivery location';
+  }
+
+  return [
+    address.area,
+    address.city,
+    address.pincode,
+  ].filter(Boolean).join(', ') || 'Set delivery location';
+}
+
 export default function HomeScreen() {
   const navigation = useNavigation();
   const { requireAuth } = useAuthGate();
+  const profile = useAuthStore(state => state.profile);
   
   // Stores
   const { items, totalItems, displayTotal, addItem, updateQuantity, removeItem } = useCartStore();
@@ -44,6 +63,7 @@ export default function HomeScreen() {
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+  const cartBadgeScale = useRef(new Animated.Value(1)).current;
   
   // Staggered entry for cards
   const staggerCatAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
@@ -101,6 +121,17 @@ export default function HomeScreen() {
     };
   }, [fadeAnim, setSettings, slideAnim, staggerCatAnims, staggerComboAnims]);
 
+  useEffect(() => {
+    if (totalItems > 0) {
+      cartBadgeScale.setValue(1.25);
+      Animated.spring(cartBadgeScale, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [cartBadgeScale, totalItems]);
+
   const handleSearchPress = () => {
     navigation.navigate('ProductList', { mode: 'search' });
   };
@@ -139,14 +170,47 @@ export default function HomeScreen() {
     navigation.navigate('Cart');
   };
 
+  const handleLocationPress = () => {
+    requireAuth('EditProfile');
+  };
+
+  const shortAddress = getShortAddress(profile);
+
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
-      {/* Header */}
-      <AppHeader
-        title="ServeLoco Loc Home"
-        cartCount={totalItems}
-        onCartPress={handleCartPress}
-      />
+      <View style={styles.homeHeader}>
+        <View style={styles.homeHeaderMain}>
+          <Text style={styles.brandTitle}>ServeLoco</Text>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Select delivery location"
+            onPress={handleLocationPress}
+            style={styles.locationButton}
+          >
+            <Text style={styles.locationLabel} numberOfLines={1}>
+              {shortAddress}
+            </Text>
+            <Text style={styles.locationChevron}>v</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel="Cart"
+          onPress={handleCartPress}
+          style={styles.headerCartButton}
+        >
+          <Text style={styles.headerCartText}>Cart</Text>
+          {totalItems > 0 && (
+            <Animated.View style={[styles.headerCartBadge, { transform: [{ scale: cartBadgeScale }] }]}>
+              <Text style={styles.headerCartBadgeText}>
+                {totalItems > 99 ? '99+' : String(totalItems)}
+              </Text>
+            </Animated.View>
+          )}
+        </TouchableOpacity>
+      </View>
       
       {shopStatus === 'closed' && (
         <View style={styles.closedBanner}>
@@ -310,6 +374,82 @@ const styles = StyleSheet.create({
   skeletonContainer: {
     flex: 1,
     padding: spacing.lg,
+  },
+  homeHeader: {
+    minHeight: 72,
+    backgroundColor: colors.bgSurface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    ...shadows.navBar,
+  },
+  homeHeaderMain: {
+    flex: 1,
+    minWidth: 0,
+  },
+  brandTitle: {
+    ...typography.h2,
+    color: colors.textPrimary,
+  },
+  locationButton: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    minHeight: 28,
+    marginTop: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: spacing.sm,
+  },
+  locationLabel: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    flexShrink: 1,
+  },
+  locationChevron: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    marginLeft: spacing.xs,
+  },
+  headerCartButton: {
+    minWidth: 52,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    backgroundColor: colors.bgApp,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  headerCartText: {
+    ...typography.labelSmall,
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  headerCartBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: radius.pill,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.badgeBg,
+    borderWidth: 1.5,
+    borderColor: colors.bgSurface,
+  },
+  headerCartBadgeText: {
+    ...typography.caption,
+    color: colors.badgeText,
+    fontSize: 10,
+    fontWeight: '700',
   },
   closedBanner: {
     backgroundColor: colors.error,
