@@ -400,23 +400,23 @@ Tests:
 
 ## Phase B-18: Admin Products
 
-- [ ] Implement `GET /admin/products`.
-- [ ] Implement `GET /admin/products/:id`.
-- [ ] Implement `POST /admin/products`.
-- [ ] Implement `PATCH /admin/products/:id`.
-- [ ] Implement `DELETE /admin/products/:id`.
-- [ ] Implement `PATCH /admin/products/:id/availability`.
-- [ ] Implement `PATCH /admin/products/:id/image`.
-- [ ] Require admin auth for every admin product route.
-- [ ] Accept product payload fields: `name`, `category`, `categoryId`, `price`, `unit`, `description`, `available`, `isAvailable`, `imageId`, `image_id`, `imageUrl`.
-- [ ] Accept `focusImage` only as a frontend route hint; do not require it in backend APIs.
-- [ ] Create category by name only if that behavior is explicitly desired; otherwise validate that the category exists.
-- [ ] Validate price as a non-negative number.
-- [ ] Resolve category display fields in responses.
-- [ ] Resolve image URLs in responses.
-- [ ] Soft delete products if old orders reference them, or hard delete only when safe.
-- [ ] Availability endpoint should only change availability.
-- [ ] Image attach endpoint should connect Mongo image records to product `image_id`.
+- [x] Implement `GET /admin/products`.
+- [x] Implement `GET /admin/products/:id`.
+- [x] Implement `POST /admin/products`.
+- [x] Implement `PATCH /admin/products/:id`.
+- [x] Implement `DELETE /admin/products/:id`.
+- [x] Implement `PATCH /admin/products/:id/availability`.
+- [x] Implement `PATCH /admin/products/:id/image`.
+- [x] Require admin auth for every admin product route.
+- [x] Accept product payload fields: `name`, `category`, `categoryId`, `price`, `unit`, `description`, `available`, `isAvailable`, `imageId`, `image_id`, `imageUrl`.
+- [x] Accept `focusImage` only as a frontend route hint; do not require it in backend APIs.
+- [x] Create category by name only if that behavior is explicitly desired; otherwise validate that the category exists.
+- [x] Validate price as a non-negative number.
+- [x] Resolve category display fields in responses.
+- [x] Resolve image URLs in responses.
+- [x] Soft delete products if old orders reference them, or hard delete only when safe.
+- [x] Availability endpoint should only change availability.
+- [x] Image attach endpoint should connect Mongo image records to product `image_id`.
 
 Behavior comment: Product deletion must not break old orders. If in doubt, mark products inactive/unavailable instead of deleting rows that order history depends on.
 

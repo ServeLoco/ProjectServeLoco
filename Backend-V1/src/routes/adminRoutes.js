@@ -1,6 +1,6 @@
 const { login, me, getUsers, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment } = require('../controllers/adminController');
 const { createCategory, updateCategory } = require('../controllers/categoryController');
-const { createProduct, updateProduct } = require('../controllers/productController');
+const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
 const { requireAdmin } = require('../middleware/authMiddleware');
 const { validate, isString, isId, isBoolean, isNumericAmount, validatePagination, normalizeField } = require('../validators');
 const rateLimit = require('express-rate-limit');
@@ -111,8 +111,16 @@ router.put('/users/:id/block', requireAdmin, validate(blockSchema), asyncHandler
 router.put('/users/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
 router.post('/categories', requireAdmin, validate(categorySchema), asyncHandler(createCategory));
 router.put('/categories/:id', requireAdmin, validate(categorySchema), asyncHandler(updateCategory));
+
+router.get('/products', requireAdmin, asyncHandler(getAdminProducts));
+router.get('/products/:id', requireAdmin, asyncHandler(getAdminProductById));
 router.post('/products', requireAdmin, validate(productSchema), asyncHandler(createProduct));
 router.put('/products/:id', requireAdmin, validate(productSchema), asyncHandler(updateProduct));
+router.patch('/products/:id', requireAdmin, validate(productSchema), asyncHandler(updateProduct));
+router.delete('/products/:id', requireAdmin, asyncHandler(deleteProduct));
+router.patch('/products/:id/availability', requireAdmin, asyncHandler(updateProductAvailability));
+router.patch('/products/:id/image', requireAdmin, asyncHandler(updateProductImage));
+
 router.get('/dashboard', requireAdmin, asyncHandler(getDashboard));
 router.get('/reports/sales', requireAdmin, asyncHandler(getSalesReport));
 router.get('/orders', requireAdmin, asyncHandler(getAdminOrders));
