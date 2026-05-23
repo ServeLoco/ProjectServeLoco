@@ -179,15 +179,15 @@ Behavior comment: Frontend screens show `error.message` directly in many places,
 
 ## Phase B-07: Passwords, JWT, And Auth Middleware
 
-- [ ] Add bcrypt hashing helper.
-- [ ] Add password compare helper.
-- [ ] Add JWT sign helper for customers.
-- [ ] Add JWT sign helper for admins.
-- [ ] Add customer auth middleware for `auth: "customer"` frontend calls.
-- [ ] Add admin auth middleware for `auth: "admin"` frontend calls.
-- [ ] Add role separation so a customer token cannot access admin routes and an admin token cannot masquerade as a customer.
-- [ ] Add token payloads with stable `sub`, `role`, and issued/expiry fields.
-- [ ] Add a helper for reading `Authorization: Bearer <token>` and returning consistent missing-token errors.
+- [x] Add bcrypt hashing helper.
+- [x] Add password compare helper.
+- [x] Add JWT sign helper for customers.
+- [x] Add JWT sign helper for admins.
+- [x] Add customer auth middleware for `auth: "customer"` frontend calls.
+- [x] Add admin auth middleware for `auth: "admin"` frontend calls.
+- [x] Add role separation so a customer token cannot access admin routes and an admin token cannot masquerade as a customer.
+- [x] Add token payloads with stable `sub`, `role`, and issued/expiry fields.
+- [x] Add a helper for reading `Authorization: Bearer <token>` and returning consistent missing-token errors.
 
 Behavior comment: Session restore uses `/auth/me` and `/admin/me`. Expired or invalid tokens should return `401` so the frontend can clear or block the session cleanly.
 
