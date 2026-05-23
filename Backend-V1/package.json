@@ -8,7 +8,7 @@
     "dev": "nodemon src/server.js",
     "test": "jest",
     "lint": "eslint .",
-    "db:migrate": "echo 'Add migration script here'"
+    "db:migrate": "node src/db/migrate.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -133,21 +133,21 @@ Behavior comment: Backend routes should not import raw connection setup directly
 
 ## Phase B-04: MySQL Schema And Seed Data
 
-- [ ] Create `users` table with `id`, `name`, `phone`, `password_hash`, `whatsapp_number`, `address`, `trusted`, `blocked`, timestamps.
-- [ ] Create `categories` table with `id`, `name`, `slug`, `type`, `image_id`, `active`, timestamps.
-- [ ] Create `products` table with `id`, `name`, `price`, `category_id`, `unit`, `description`, `image_id`, `available`, timestamps.
-- [ ] Create `orders` table with customer snapshot fields, GPS fields, totals, payment fields, status, note, cancel reason, timestamps.
-- [ ] Create `order_items` table with order/product snapshot fields and line totals.
-- [ ] Create `settings` table with shop status, minimum order, delivery charge, free delivery threshold, night charge config, WhatsApp/support info, UPI info, delivery time message.
-- [ ] Create `offers` table with title, description, image id, active flag, timestamps.
-- [ ] Add a uniqueness strategy for daily `order_number` generation so two simultaneous orders cannot receive the same short number.
-- [ ] Store order status and payment status with constrained values, or validate them strictly in services before writing.
-- [ ] Store payment method values compatible with the frontend: `Cash` and `UPI`.
-- [ ] Add indexes for phone, slug, product category, order customer id, order status, created date, active offer.
-- [ ] Seed default settings with minimum order `149`, night charge window `21:00` to `07:00`, and sensible local delivery values.
-- [ ] Seed the six frontend categories: `Cold Drinks`, `Snacks`, `Fast Food`, `Groceries`, `Desserts`, and `Daily Essentials`.
-- [ ] Seed optional sample products for local frontend testing.
-- [ ] Make migrations and seed scripts idempotent so they can be safely re-run in development.
+- [x] Create `users` table with `id`, `name`, `phone`, `password_hash`, `whatsapp_number`, `address`, `trusted`, `blocked`, timestamps.
+- [x] Create `categories` table with `id`, `name`, `slug`, `type`, `image_id`, `active`, timestamps.
+- [x] Create `products` table with `id`, `name`, `price`, `category_id`, `unit`, `description`, `image_id`, `available`, timestamps.
+- [x] Create `orders` table with customer snapshot fields, GPS fields, totals, payment fields, status, note, cancel reason, timestamps.
+- [x] Create `order_items` table with order/product snapshot fields and line totals.
+- [x] Create `settings` table with shop status, minimum order, delivery charge, free delivery threshold, night charge config, WhatsApp/support info, UPI info, delivery time message.
+- [x] Create `offers` table with title, description, image id, active flag, timestamps.
+- [x] Add a uniqueness strategy for daily `order_number` generation so two simultaneous orders cannot receive the same short number.
+- [x] Store order status and payment status with constrained values, or validate them strictly in services before writing.
+- [x] Store payment method values compatible with the frontend: `Cash` and `UPI`.
+- [x] Add indexes for phone, slug, product category, order customer id, order status, created date, active offer.
+- [x] Seed default settings with minimum order `149`, night charge window `21:00` to `07:00`, and sensible local delivery values.
+- [x] Seed the six frontend categories: `Cold Drinks`, `Snacks`, `Fast Food`, `Groceries`, `Desserts`, and `Daily Essentials`.
+- [x] Seed optional sample products for local frontend testing.
+- [x] Make migrations and seed scripts idempotent so they can be safely re-run in development.
 
 Behavior comment: Store snapshots on orders and order items. If a product name or price changes later, old orders must still show the original purchased data.
 
