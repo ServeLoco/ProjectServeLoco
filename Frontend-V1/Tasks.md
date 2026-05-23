@@ -468,24 +468,24 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-24: Admin Order Detail Screen
 
-- [ ] Fetch order through `GET /admin/orders/:id`.
-- [ ] Build header with back button and order id.
-- [ ] Show customer name, phone, WhatsApp, address, and GPS/map link.
-- [ ] Show item list with quantities and prices.
-- [ ] Show bill summary.
-- [ ] Show current order status.
-- [ ] Show current payment status.
-- [ ] Add status selector: `Pending`, `Preparing`, `Out for Delivery`, `Delivered`, `Cancelled`.
-- [ ] Add payment selector: `Pending`, `Paid`, `Failed`, `Refunded` when backend supports values.
-- [ ] Add primary button: `Update Status`.
-- [ ] Add secondary button: `Update Payment`.
-- [ ] Add call, WhatsApp, and map icon buttons.
-- [ ] Update status through `PATCH /admin/orders/:id/status`.
-- [ ] Update payment through `PATCH /admin/orders/:id/payment`.
-- [ ] Add loading and success states for both update actions.
-- [ ] Animate customer, item, bill, and controls sections with slight stagger.
-- [ ] Animate status and payment selector active indicator movement.
-- [ ] Animate successful updates with brief highlight on changed row.
+- [x] Fetch order through `GET /admin/orders/:id`.
+- [x] Build header with back button and order id.
+- [x] Show customer name, phone, WhatsApp, address, and GPS/map link.
+- [x] Show item list with quantities and prices.
+- [x] Show bill summary.
+- [x] Show current order status.
+- [x] Show current payment status.
+- [x] Add status selector: `Pending`, `Preparing`, `Out for Delivery`, `Delivered`, `Cancelled`.
+- [x] Add payment selector: `Pending`, `Paid`, `Failed`, `Refunded` when backend supports values.
+- [x] Add primary button: `Update Status`.
+- [x] Add secondary button: `Update Payment`.
+- [x] Add call, WhatsApp, and map icon buttons.
+- [x] Update status through `PATCH /admin/orders/:id/status`.
+- [x] Update payment through `PATCH /admin/orders/:id/payment`.
+- [x] Add loading and success states for both update actions.
+- [x] Animate customer, item, bill, and controls sections with slight stagger.
+- [x] Animate status and payment selector active indicator movement.
+- [x] Animate successful updates with brief highlight on changed row.
 
 ### Task F-25: Admin Products Screen
 

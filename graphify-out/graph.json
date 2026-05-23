@@ -412,7 +412,7 @@
       "label": "Tab",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L25",
+      "source_location": "L26",
       "id": "navigation_customernavigator_tab",
       "community": 13,
       "norm_label": "tab"
@@ -421,7 +421,7 @@
       "label": "Stack",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L26",
+      "source_location": "L27",
       "id": "navigation_customernavigator_stack",
       "community": 13,
       "norm_label": "stack"
@@ -430,7 +430,7 @@
       "label": "AnimatedTabIcon()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L28",
+      "source_location": "L29",
       "id": "navigation_customernavigator_animatedtabicon",
       "community": 13,
       "norm_label": "animatedtabicon()"
@@ -439,7 +439,7 @@
       "label": "CustomerBottomTabs()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L56",
+      "source_location": "L57",
       "id": "navigation_customernavigator_customerbottomtabs",
       "community": 13,
       "norm_label": "customerbottomtabs()"
@@ -448,108 +448,72 @@
       "label": "CustomerNavigator()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L91",
+      "source_location": "L92",
       "id": "navigation_customernavigator_customernavigator",
       "community": 13,
       "norm_label": "customernavigator()"
     },
     {
-      "label": "AdminDashboardScreen.js",
+      "label": "AdminOrdersScreen.js",
       "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
-      "community": 50,
-      "norm_label": "admindashboardscreen.js"
+      "id": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
+      "community": 59,
+      "norm_label": "adminordersscreen.js"
     },
     {
-      "label": "fetchDashboardData()",
+      "label": "fetchAdminOrders()",
       "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
-      "source_location": "L19",
-      "id": "admindashboardscreen_admindashboardscreen_fetchdashboarddata",
-      "community": 50,
-      "norm_label": "fetchdashboarddata()"
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
+      "source_location": "L18",
+      "id": "adminordersscreen_adminordersscreen_fetchadminorders",
+      "community": 59,
+      "norm_label": "fetchadminorders()"
     },
     {
-      "label": "AdminDashboardScreen()",
+      "label": "STATUS_FILTERS",
       "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
-      "source_location": "L56",
-      "id": "admindashboardscreen_admindashboardscreen_admindashboardscreen",
-      "community": 50,
-      "norm_label": "admindashboardscreen()"
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
+      "source_location": "L33",
+      "id": "adminordersscreen_adminordersscreen_status_filters",
+      "community": 59,
+      "norm_label": "status_filters"
     },
     {
-      "label": "MetricCard()",
+      "label": "PAYMENT_FILTERS",
       "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
-      "source_location": "L245",
-      "id": "admindashboardscreen_admindashboardscreen_metriccard",
-      "community": 50,
-      "norm_label": "metriccard()"
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
+      "source_location": "L34",
+      "id": "adminordersscreen_adminordersscreen_payment_filters",
+      "community": 59,
+      "norm_label": "payment_filters"
+    },
+    {
+      "label": "AdminOrdersScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
+      "source_location": "L36",
+      "id": "adminordersscreen_adminordersscreen_adminordersscreen",
+      "community": 59,
+      "norm_label": "adminordersscreen()"
+    },
+    {
+      "label": "AdminOrderCard()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
+      "source_location": "L203",
+      "id": "adminordersscreen_adminordersscreen_adminordercard",
+      "community": 59,
+      "norm_label": "adminordercard()"
     },
     {
       "label": "styles",
       "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
-      "source_location": "L257",
-      "id": "admindashboardscreen_admindashboardscreen_styles",
-      "community": 50,
-      "norm_label": "styles"
-    },
-    {
-      "label": "AdminEntryScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
-      "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
-      "community": 50,
-      "norm_label": "adminentryscreen.js"
-    },
-    {
-      "label": "AdminEntryScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
-      "source_location": "L15",
-      "id": "adminentryscreen_adminentryscreen_adminentryscreen",
-      "community": 13,
-      "norm_label": "adminentryscreen()"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
-      "source_location": "L100",
-      "id": "adminentryscreen_adminentryscreen_styles",
-      "community": 50,
-      "norm_label": "styles"
-    },
-    {
-      "label": "AdminLoginScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
-      "source_location": "L1",
-      "id": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js",
-      "community": 50,
-      "norm_label": "adminloginscreen.js"
-    },
-    {
-      "label": "AdminLoginScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
-      "source_location": "L17",
-      "id": "adminloginscreen_adminloginscreen_adminloginscreen",
-      "community": 50,
-      "norm_label": "adminloginscreen()"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
-      "source_location": "L172",
-      "id": "adminloginscreen_adminloginscreen_styles",
-      "community": 50,
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
+      "source_location": "L265",
+      "id": "adminordersscreen_adminordersscreen_styles",
+      "community": 59,
       "norm_label": "styles"
     },
     {
@@ -560,6 +524,105 @@
       "id": "frontend_v1_src_screens_index_js",
       "community": 50,
       "norm_label": "index.js"
+    },
+    {
+      "label": "AdminDashboardScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
+      "source_location": "L1",
+      "community": 15,
+      "norm_label": "admindashboardscreen.js",
+      "id": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js"
+    },
+    {
+      "label": "fetchDashboardData()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
+      "source_location": "L19",
+      "community": 15,
+      "norm_label": "fetchdashboarddata()",
+      "id": "admindashboardscreen_admindashboardscreen_fetchdashboarddata"
+    },
+    {
+      "label": "AdminDashboardScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
+      "source_location": "L56",
+      "community": 15,
+      "norm_label": "admindashboardscreen()",
+      "id": "admindashboardscreen_admindashboardscreen_admindashboardscreen"
+    },
+    {
+      "label": "MetricCard()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
+      "source_location": "L245",
+      "community": 15,
+      "norm_label": "metriccard()",
+      "id": "admindashboardscreen_admindashboardscreen_metriccard"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
+      "source_location": "L257",
+      "community": 15,
+      "norm_label": "styles",
+      "id": "admindashboardscreen_admindashboardscreen_styles"
+    },
+    {
+      "label": "AdminEntryScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
+      "source_location": "L1",
+      "community": 50,
+      "norm_label": "adminentryscreen.js",
+      "id": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js"
+    },
+    {
+      "label": "AdminEntryScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
+      "source_location": "L15",
+      "community": 13,
+      "norm_label": "adminentryscreen()",
+      "id": "adminentryscreen_adminentryscreen_adminentryscreen"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
+      "source_location": "L100",
+      "community": 50,
+      "norm_label": "styles",
+      "id": "adminentryscreen_adminentryscreen_styles"
+    },
+    {
+      "label": "AdminLoginScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
+      "source_location": "L1",
+      "community": 50,
+      "norm_label": "adminloginscreen.js",
+      "id": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js"
+    },
+    {
+      "label": "AdminLoginScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
+      "source_location": "L17",
+      "community": 50,
+      "norm_label": "adminloginscreen()",
+      "id": "adminloginscreen_adminloginscreen_adminloginscreen"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
+      "source_location": "L172",
+      "community": 50,
+      "norm_label": "styles",
+      "id": "adminloginscreen_adminloginscreen_styles"
     },
     {
       "label": "useAuthStore.js",
@@ -998,7 +1061,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/__tests__/App.test.js",
       "source_location": "L1",
-      "community": 77,
+      "community": 43,
       "norm_label": "app.test.js",
       "id": "frontend_v1_tests_app_test_js"
     },
@@ -1007,7 +1070,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "appheader.js",
       "id": "frontend_v1_src_components_appheader_appheader_js"
     },
@@ -1016,7 +1079,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L25",
-      "community": 15,
+      "community": 30,
       "norm_label": "appheader()",
       "id": "appheader_appheader_appheader"
     },
@@ -1025,7 +1088,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L126",
-      "community": 15,
+      "community": 30,
       "norm_label": "styles",
       "id": "appheader_appheader_styles"
     },
@@ -1187,7 +1250,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/App.js",
       "source_location": "L1",
-      "community": 77,
+      "community": 43,
       "norm_label": "app.js",
       "id": "frontend_v1_app_js"
     },
@@ -1673,7 +1736,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/index.js",
       "source_location": "L1",
-      "community": 50,
+      "community": 15,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admindashboardscreen_index_js"
     },
@@ -1730,33 +1793,6 @@
       "community": 58,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminorderdetailscreen_index_js"
-    },
-    {
-      "label": "AdminOrdersScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
-      "source_location": "L1",
-      "community": 59,
-      "norm_label": "adminordersscreen.js",
-      "id": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js"
-    },
-    {
-      "label": "AdminOrdersScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
-      "source_location": "L6",
-      "community": 59,
-      "norm_label": "adminordersscreen()",
-      "id": "adminordersscreen_adminordersscreen_adminordersscreen"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
-      "source_location": "L14",
-      "community": 59,
-      "norm_label": "styles",
-      "id": "adminordersscreen_adminordersscreen_styles"
     },
     {
       "label": "index.js",
@@ -2123,7 +2159,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/index.js",
       "source_location": "L1",
-      "community": 77,
+      "community": 63,
       "norm_label": "index.js",
       "id": "frontend_v1_index_js"
     },
@@ -2150,7 +2186,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/app.json",
       "source_location": "L1",
-      "community": 77,
+      "community": 63,
       "norm_label": "app.json",
       "id": "frontend_v1_app_json"
     },
@@ -2159,7 +2195,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/app.json",
       "source_location": "L2",
-      "community": 77,
+      "community": 63,
       "norm_label": "name",
       "id": "frontend_v1_app_name"
     },
@@ -2168,7 +2204,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/app.json",
       "source_location": "L3",
-      "community": 77,
+      "community": 63,
       "norm_label": "displayname",
       "id": "frontend_v1_app_displayname"
     },
@@ -2978,7 +3014,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
-      "community": 49,
+      "community": 48,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textbutton_index_js"
     },
@@ -2987,7 +3023,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
-      "community": 43,
+      "community": 48,
       "norm_label": "textbutton.js",
       "id": "frontend_v1_src_components_textbutton_textbutton_js"
     },
@@ -2996,7 +3032,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
-      "community": 43,
+      "community": 48,
       "norm_label": "textbutton()",
       "id": "textbutton_textbutton_textbutton"
     },
@@ -3005,7 +3041,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
-      "community": 43,
+      "community": 48,
       "norm_label": "styles",
       "id": "textbutton_textbutton_styles"
     },
@@ -3032,7 +3068,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedQuantitySwitcher/index.js",
       "source_location": "L1",
-      "community": 49,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedquantityswitcher_index_js"
     },
@@ -3131,7 +3167,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextInputField/index.js",
       "source_location": "L1",
-      "community": 47,
+      "community": 49,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textinputfield_index_js"
     },
@@ -3140,7 +3176,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 54,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_adminmetriccard_index_js"
     },
@@ -3149,7 +3185,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 54,
       "norm_label": "adminmetriccard.js",
       "id": "frontend_v1_src_components_adminmetriccard_adminmetriccard_js"
     },
@@ -3158,7 +3194,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L16",
-      "community": 30,
+      "community": 54,
       "norm_label": "adminmetriccard()",
       "id": "adminmetriccard_adminmetriccard_adminmetriccard"
     },
@@ -3167,7 +3203,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L37",
-      "community": 30,
+      "community": 54,
       "norm_label": "styles",
       "id": "adminmetriccard_adminmetriccard_styles"
     },
@@ -3446,7 +3482,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/index.js",
       "source_location": "L1",
-      "community": 49,
+      "community": 57,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_confirmmodal_index_js"
     },
@@ -3455,7 +3491,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L1",
-      "community": 49,
+      "community": 57,
       "norm_label": "confirmmodal.js",
       "id": "frontend_v1_src_components_confirmmodal_confirmmodal_js"
     },
@@ -3464,7 +3500,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L27",
-      "community": 49,
+      "community": 57,
       "norm_label": "confirmmodal()",
       "id": "confirmmodal_confirmmodal_confirmmodal"
     },
@@ -3473,7 +3509,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L93",
-      "community": 49,
+      "community": 57,
       "norm_label": "styles",
       "id": "confirmmodal_confirmmodal_styles"
     },
@@ -3482,7 +3518,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/index.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedcartbadge_index_js"
     },
@@ -3491,7 +3527,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 45,
       "norm_label": "animatedcartbadge.js",
       "id": "frontend_v1_src_components_animatedcartbadge_animatedcartbadge_js"
     },
@@ -3500,7 +3536,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L6",
-      "community": 17,
+      "community": 45,
       "norm_label": "animatedcartbadge()",
       "id": "animatedcartbadge_animatedcartbadge_animatedcartbadge"
     },
@@ -3509,7 +3545,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L30",
-      "community": 17,
+      "community": 45,
       "norm_label": "styles",
       "id": "animatedcartbadge_animatedcartbadge_styles"
     },
@@ -3554,7 +3590,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 49,
       "norm_label": "iconbutton.js",
       "id": "frontend_v1_src_components_iconbutton_iconbutton_js"
     },
@@ -3563,7 +3599,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L20",
-      "community": 15,
+      "community": 49,
       "norm_label": "iconbutton()",
       "id": "iconbutton_iconbutton_iconbutton"
     },
@@ -3572,7 +3608,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L60",
-      "community": 15,
+      "community": 49,
       "norm_label": "styles",
       "id": "iconbutton_iconbutton_styles"
     },
@@ -3581,7 +3617,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 49,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_iconbutton_index_js"
     },
@@ -3662,7 +3698,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 78,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_segmentedcontrol_index_js"
     },
@@ -3671,7 +3707,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 78,
       "norm_label": "segmentedcontrol.js",
       "id": "frontend_v1_src_components_segmentedcontrol_segmentedcontrol_js"
     },
@@ -3680,7 +3716,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L15",
-      "community": 30,
+      "community": 78,
       "norm_label": "segmentedcontrol()",
       "id": "segmentedcontrol_segmentedcontrol_segmentedcontrol"
     },
@@ -3689,7 +3725,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L45",
-      "community": 30,
+      "community": 78,
       "norm_label": "styles",
       "id": "segmentedcontrol_segmentedcontrol_styles"
     },
@@ -3770,7 +3806,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appheader_index_js"
     },
@@ -3815,7 +3851,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 30,
       "norm_label": "animatedsegmentedcontrol.js",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_animatedsegmentedcontrol_js"
     },
@@ -3833,7 +3869,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L66",
-      "community": 45,
+      "community": 30,
       "norm_label": "styles",
       "id": "animatedsegmentedcontrol_animatedsegmentedcontrol_styles"
     },
@@ -3842,7 +3878,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_index_js"
     },
@@ -3959,7 +3995,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 48,
       "norm_label": "layout.js",
       "id": "frontend_v1_src_theme_layout_js"
     },
@@ -3968,7 +4004,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L7",
-      "community": 15,
+      "community": 48,
       "norm_label": "layout",
       "id": "theme_layout_layout"
     },
@@ -4004,7 +4040,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L1",
-      "community": 35,
+      "community": 43,
       "norm_label": "spacing.js",
       "id": "frontend_v1_src_theme_spacing_js"
     },
@@ -4013,7 +4049,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L6",
-      "community": 35,
+      "community": 43,
       "norm_label": "spacing",
       "id": "theme_spacing_spacing"
     },
@@ -4139,7 +4175,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 45,
       "norm_label": "motion.js",
       "id": "frontend_v1_src_theme_motion_js"
     },
@@ -4157,7 +4193,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L27",
-      "community": 17,
+      "community": 45,
       "norm_label": "easingmodal",
       "id": "theme_motion_easingmodal"
     },
@@ -4166,7 +4202,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L33",
-      "community": 17,
+      "community": 45,
       "norm_label": "motionconfig",
       "id": "theme_motion_motionconfig"
     },
@@ -6785,42 +6821,84 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
-      "source_location": "L19",
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
+      "source_location": "L18",
       "weight": 1.0,
-      "source": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
-      "target": "admindashboardscreen_admindashboardscreen_fetchdashboarddata",
+      "source": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
+      "target": "adminordersscreen_adminordersscreen_fetchadminorders",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
+      "target": "adminordersscreen_adminordersscreen_status_filters",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
+      "source_location": "L34",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
+      "target": "adminordersscreen_adminordersscreen_payment_filters",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L6",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
-      "target": "admindashboardscreen_admindashboardscreen_admindashboardscreen"
+      "source": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
+      "target": "adminordersscreen_adminordersscreen_adminordersscreen"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
-      "source_location": "L245",
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
+      "source_location": "L203",
       "weight": 1.0,
-      "source": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
-      "target": "admindashboardscreen_admindashboardscreen_metriccard",
+      "source": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
+      "target": "adminordersscreen_adminordersscreen_adminordercard",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L14",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
-      "target": "admindashboardscreen_admindashboardscreen_styles"
+      "source": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
+      "target": "adminordersscreen_adminordersscreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/index.js",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_index_js",
+      "target": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_adminordersscreen_index_js",
+      "target": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js"
     },
     {
       "relation": "re_exports",
@@ -6829,40 +6907,9 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_admindashboardscreen_index_js",
       "target": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
-      "target": "adminentryscreen_adminentryscreen_adminentryscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
-      "target": "adminentryscreen_adminentryscreen_styles"
     },
     {
       "relation": "re_exports",
@@ -6879,64 +6926,11 @@
       "relation": "re_exports",
       "context": "export",
       "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_adminentryscreen_index_js",
-      "target": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
-      "source_location": "L17",
-      "weight": 1.0,
-      "source": "adminentryscreen_adminentryscreen_adminentryscreen",
-      "target": "stores_useauthstore_useauthstore"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js",
-      "target": "adminloginscreen_adminloginscreen_adminloginscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js",
-      "target": "adminloginscreen_adminloginscreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L16",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
-      "target": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminLoginScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_adminloginscreen_index_js",
       "target": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js"
     },
     {
@@ -7180,6 +7174,130 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
       "target": "frontend_v1_src_screens_profilescreen_index_js"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
+      "target": "admindashboardscreen_admindashboardscreen_fetchdashboarddata"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
+      "target": "admindashboardscreen_admindashboardscreen_admindashboardscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
+      "source_location": "L245",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
+      "target": "admindashboardscreen_admindashboardscreen_metriccard"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js",
+      "target": "admindashboardscreen_admindashboardscreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_admindashboardscreen_index_js",
+      "target": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
+      "target": "adminentryscreen_adminentryscreen_adminentryscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
+      "target": "adminentryscreen_adminentryscreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_adminentryscreen_index_js",
+      "target": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "adminentryscreen_adminentryscreen_adminentryscreen",
+      "target": "stores_useauthstore_useauthstore"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js",
+      "target": "adminloginscreen_adminloginscreen_adminloginscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js",
+      "target": "adminloginscreen_adminloginscreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminLoginScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_adminloginscreen_index_js",
+      "target": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js"
     },
     {
       "relation": "contains",
@@ -8755,37 +8873,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminorderdetailscreen_index_js",
       "target": "frontend_v1_src_screens_adminorderdetailscreen_adminorderdetailscreen_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
-      "target": "adminordersscreen_adminordersscreen_adminordersscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
-      "target": "adminordersscreen_adminordersscreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_adminordersscreen_index_js",
-      "target": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js"
     },
     {
       "relation": "contains",
@@ -16306,5 +16393,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "61c95b656a8358e0a4aa715dc7af849e336432de"
+  "built_at_commit": "398a0f5ebac1f4d31687658becc469747429949c"
 }

@@ -21,6 +21,7 @@ import {
   AdminLoginScreen,
   AdminDashboardScreen,
   AdminOrdersScreen,
+  AdminOrderDetailScreen,
 } from '../screens';
 
 const Tab = createBottomTabNavigator();
@@ -128,6 +129,7 @@ export default function CustomerNavigator() {
       />
       <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
       <Stack.Screen name="AdminOrders" component={AdminOrdersScreen} />
+      <Stack.Screen name="AdminOrderDetail" component={AdminOrderDetailScreen} />
     </Stack.Navigator>
   );
 }

@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 180 files · ~42,918 words
+- 180 files · ~44,078 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 696 nodes · 959 edges · 75 communities (47 shown, 28 thin omitted)
+- 700 nodes · 964 edges · 79 communities (45 shown, 34 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `61c95b65`
+- Built from commit: `398a0f5e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -61,13 +61,16 @@
 - [[_COMMUNITY_Community 51|Community 51]]
 - [[_COMMUNITY_Community 52|Community 52]]
 - [[_COMMUNITY_Community 53|Community 53]]
+- [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
 - [[_COMMUNITY_Community 56|Community 56]]
+- [[_COMMUNITY_Community 57|Community 57]]
 - [[_COMMUNITY_Community 58|Community 58]]
 - [[_COMMUNITY_Community 59|Community 59]]
 - [[_COMMUNITY_Community 60|Community 60]]
 - [[_COMMUNITY_Community 61|Community 61]]
 - [[_COMMUNITY_Community 62|Community 62]]
+- [[_COMMUNITY_Community 63|Community 63]]
 - [[_COMMUNITY_Community 64|Community 64]]
 - [[_COMMUNITY_Community 65|Community 65]]
 - [[_COMMUNITY_Community 66|Community 66]]
@@ -81,6 +84,7 @@
 - [[_COMMUNITY_Community 74|Community 74]]
 - [[_COMMUNITY_Community 75|Community 75]]
 - [[_COMMUNITY_Community 77|Community 77]]
+- [[_COMMUNITY_Community 78|Community 78]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `colors` - 29 edges
@@ -95,8 +99,6 @@
 10. `API Plan` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `AnimatedCartBadge()` --calls--> `useReducedMotion()`  [EXTRACTED]
-  Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js → Frontend-V1/src/utils/motionPreferences.js
 - `AdminEntryScreen()` --calls--> `useAuthStore`  [INFERRED]
   Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js → Frontend-V1/src/stores/useAuthStore.js
 - `useAuthGate()` --calls--> `useAuthStore`  [INFERRED]
@@ -105,8 +107,10 @@
   Frontend-V1/src/navigation/AdminNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
 - `RootNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
   Frontend-V1/src/navigation/RootNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
+- `AnimatedQuantitySwitcher()` --calls--> `useReducedMotion()`  [EXTRACTED]
+  Frontend-V1/src/components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js → Frontend-V1/src/utils/motionPreferences.js
 
-## Communities (75 total, 28 thin omitted)
+## Communities (79 total, 34 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -156,17 +160,13 @@ Nodes (11): AdminEntryScreen(), useAuthGate(), AdminNavigator(), Stack, Stack, T
 Cohesion: 0.04
 Nodes (48): 10. Order Detail, 11. Profile, 12. Edit Profile, 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail (+40 more)
 
-### Community 15 - "Community 15"
-Cohesion: 0.20
-Nodes (3): styles, styles, layout
-
 ### Community 16 - "Community 16"
 Cohesion: 0.25
 Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
 
 ### Community 17 - "Community 17"
-Cohesion: 0.21
-Nodes (9): AnimatedCartBadge(), styles, themePlaceholder, easingModal, motionConfig, fontFamily, fontSizes, fontWeights (+1 more)
+Cohesion: 0.43
+Nodes (5): themePlaceholder, fontFamily, fontSizes, fontWeights, lineHeights
 
 ### Community 18 - "Community 18"
 Cohesion: 0.28
@@ -189,40 +189,32 @@ Cohesion: 0.09
 Nodes (33): adminAuthApi, adminCustomersApi, adminDashboardApi, adminImagesApi, adminOrdersApi, adminProductsApi, adminSettingsApi, ApiError (+25 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.15
+Cohesion: 0.16
 Nodes (6): styles, styles, styles, colors, palette, shadows
 
-### Community 35 - "Community 35"
-Cohesion: 0.22
-Nodes (3): styles, styles, spacing
-
 ### Community 43 - "Community 43"
-Cohesion: 0.14
-Nodes (5): styles, styles, styles, styles, typography
+Cohesion: 0.15
+Nodes (5): styles, styles, styles, spacing, typography
 
 ### Community 44 - "Community 44"
 Cohesion: 0.33
 Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
-Cohesion: 0.09
-Nodes (19): AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles, AnimatedStickyMiniCart(), AnimatedTabItem() (+11 more)
+Cohesion: 0.08
+Nodes (22): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), AnimatedStickyMiniCart() (+14 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.33
 Nodes (3): PAYMENT_COLORS, STATUS_COLORS, styles
 
 ### Community 47 - "Community 47"
-Cohesion: 0.20
+Cohesion: 0.22
 Nodes (4): styles, styles, borderWidth, radius
 
 ### Community 48 - "Community 48"
-Cohesion: 0.60
-Nodes (3): Chip(), ChipRow(), styles
-
-### Community 50 - "Community 50"
-Cohesion: 0.18
-Nodes (3): styles, styles, styles
+Cohesion: 0.22
+Nodes (5): Chip(), ChipRow(), styles, styles, layout
 
 ### Community 51 - "Community 51"
 Cohesion: 0.50
@@ -235,6 +227,10 @@ Nodes (4): Frontend Build Phases, Phase 1: App Shell, Phase 2: Customer Flow, Ph
 ### Community 53 - "Community 53"
 Cohesion: 0.67
 Nodes (3): Included, Not Included, V1 Scope
+
+### Community 59 - "Community 59"
+Cohesion: 0.25
+Nodes (3): PAYMENT_FILTERS, STATUS_FILTERS, styles
 
 ### Community 66 - "Community 66"
 Cohesion: 0.33
@@ -257,25 +253,25 @@ Cohesion: 0.29
 Nodes (4): CATEGORY_CHIPS, MOCK_PRODUCTS, SORT_OPTIONS, styles
 
 ### Community 77 - "Community 77"
-Cohesion: 0.25
-Nodes (5): App(), displayName, name, assertNoEmoji(), hasEmoji()
+Cohesion: 0.50
+Nodes (3): App(), assertNoEmoji(), hasEmoji()
 
 ## Knowledge Gaps
-- **331 isolated node(s):** `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard`, `App Animation Standard`, `Task F-01: Create React Native App Shell` (+326 more)
+- **333 isolated node(s):** `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard`, `App Animation Standard`, `Task F-01: Create React Native App Shell` (+328 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **28 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **34 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `colors` connect `Community 30` to `Community 35`, `Community 43`, `Community 77`, `Community 45`, `Community 15`, `Community 47`, `Community 48`, `Community 49`, `Community 46`, `Community 17`, `Community 21`?**
+- **Why does `colors` connect `Community 30` to `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 49`, `Community 78`, `Community 17`, `Community 21`, `Community 54`, `Community 57`?**
   _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **Why does `ServeLoco Main Plan` connect `Community 6` to `Community 14`, `Community 7`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **Why does `Frontend Plan` connect `Community 14` to `Community 6`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **What connects `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard` to the rest of the system?**
-  _331 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _333 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
