@@ -166,14 +166,14 @@ Behavior comment: Admin image upload must return an immediately displayable URL.
 
 ## Phase B-06: Validation And Error Middleware
 
-- [ ] Add reusable validators for phone, required string, numeric amount, boolean, enum, id, coordinates, and pagination.
-- [ ] Add route-level validation before services run.
-- [ ] Accept both camelCase and snake_case request fields where the frontend sends both.
-- [ ] Add centralized async handler wrapper.
-- [ ] Add global error handler.
-- [ ] Add not-found route handler.
-- [ ] Convert database duplicate-key errors into readable validation errors.
-- [ ] Never leak stack traces in production responses.
+- [x] Add reusable validators for phone, required string, numeric amount, boolean, enum, id, coordinates, and pagination.
+- [x] Add route-level validation before services run.
+- [x] Accept both camelCase and snake_case request fields where the frontend sends both.
+- [x] Add centralized async handler wrapper.
+- [x] Add global error handler.
+- [x] Add not-found route handler.
+- [x] Convert database duplicate-key errors into readable validation errors.
+- [x] Never leak stack traces in production responses.
 
 Behavior comment: Frontend screens show `error.message` directly in many places, so backend messages must be short, user-safe, and actionable.
 

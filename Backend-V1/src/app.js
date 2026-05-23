@@ -3,6 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const config = require('./config/env');
 const db = require('./db');
+const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -31,5 +32,11 @@ app.get('/health', async (req, res) => {
     databases: dbHealth
   });
 });
+
+// Not Found Handler
+app.use(notFoundHandler);
+
+// Global Error Handler
+app.use(errorHandler);
 
 module.exports = app;
