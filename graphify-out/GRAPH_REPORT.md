@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 125 files · ~27,738 words
+- 130 files · ~28,215 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 564 nodes · 820 edges · 54 communities (37 shown, 17 thin omitted)
+- 575 nodes · 830 edges · 55 communities (41 shown, 14 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8444b676`
+- Built from commit: `653cbcff`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -30,6 +30,7 @@
 - [[_COMMUNITY_Community 12|Community 12]]
 - [[_COMMUNITY_Community 13|Community 13]]
 - [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 15|Community 15]]
 - [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 17|Community 17]]
 - [[_COMMUNITY_Community 18|Community 18]]
@@ -75,6 +76,8 @@
 10. `API Plan` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `AnimatedSegmentedControl()` --calls--> `useReducedMotion()`  [EXTRACTED]
+  Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js → Frontend-V1/src/utils/motionPreferences.js
 - `AnimatedQuantitySwitcher()` --calls--> `useReducedMotion()`  [EXTRACTED]
   Frontend-V1/src/components/AnimatedQuantitySwitcher/AnimatedQuantitySwitcher.js → Frontend-V1/src/utils/motionPreferences.js
 - `AnimatedFadeSlide()` --calls--> `useReducedMotion()`  [EXTRACTED]
@@ -83,10 +86,8 @@
   Frontend-V1/src/components/AnimatedModalView/AnimatedModalView.js → Frontend-V1/src/utils/motionPreferences.js
 - `AnimatedCartBadge()` --calls--> `useReducedMotion()`  [EXTRACTED]
   Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js → Frontend-V1/src/utils/motionPreferences.js
-- `AnimatedStickyMiniCart()` --calls--> `useReducedMotion()`  [EXTRACTED]
-  Frontend-V1/src/components/AnimatedStickyMiniCart/AnimatedStickyMiniCart.js → Frontend-V1/src/utils/motionPreferences.js
 
-## Communities (54 total, 17 thin omitted)
+## Communities (55 total, 14 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -98,7 +99,7 @@ Nodes (13): Admin Auth, Admin Customers, Admin Dashboard, Admin Orders, Admin Pr
 
 ### Community 2 - "Community 2"
 Cohesion: 0.05
-Nodes (36): dependencies, react, react-native, @react-native/new-app-screen, react-native-safe-area-context, devDependencies, @babel/core, @babel/preset-env (+28 more)
+Nodes (38): dependencies, react, react-native, @react-native-async-storage/async-storage, @react-native/new-app-screen, react-native-safe-area-context, zustand, devDependencies (+30 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.29
@@ -133,12 +134,20 @@ Cohesion: 0.23
 Nodes (6): App(), displayName, name, styles, assertNoEmoji(), hasEmoji()
 
 ### Community 14 - "Community 14"
-Cohesion: 0.04
-Nodes (48): 10. Order Detail, 11. Profile, 12. Edit Profile, 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail (+40 more)
+Cohesion: 0.06
+Nodes (35): 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail, 18. Admin Products, 19. Admin Product Form, 20. Admin Customers (+27 more)
+
+### Community 15 - "Community 15"
+Cohesion: 0.20
+Nodes (10): AnimatedSegmentedControl(), styles, themePlaceholder, easing, easingModal, motionConfig, fontFamily, fontSizes (+2 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.25
 Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
+
+### Community 17 - "Community 17"
+Cohesion: 0.15
+Nodes (13): 10. Order Detail, 11. Profile, 12. Edit Profile, 1. Home Dashboard, 2. Login And Sign Up, 3. Categories, 4. Product List And Search Results, 5. Product Detail (+5 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.28
@@ -147,6 +156,10 @@ Nodes (5): RCTDefaultReactNativeFactoryDelegate, AppDelegate, ReactNativeDelegat
 ### Community 20 - "Community 20"
 Cohesion: 0.05
 Nodes (43): App Animation Standard, Folder Structure And Naming Standard, Global Frontend Rules, How To Use This Checklist, Phase 1: App Shell And Foundations, Phase 2: Auth And Preview Gate, Phase 3: Customer Shopping Flow, Phase 4: Customer Account And Orders (+35 more)
+
+### Community 21 - "Community 21"
+Cohesion: 0.17
+Nodes (3): styles, styles, styles
 
 ### Community 22 - "Community 22"
 Cohesion: 0.40
@@ -165,8 +178,8 @@ Cohesion: 0.14
 Nodes (6): styles, styles, styles, colors, palette, shadows
 
 ### Community 35 - "Community 35"
-Cohesion: 0.16
-Nodes (8): styles, styles, themePlaceholder, layout, fontFamily, fontSizes, fontWeights, lineHeights
+Cohesion: 0.15
+Nodes (4): styles, styles, styles, layout
 
 ### Community 43 - "Community 43"
 Cohesion: 0.14
@@ -178,7 +191,7 @@ Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
 Cohesion: 0.07
-Nodes (23): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles (+15 more)
+Nodes (19): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedStickyMiniCart(), AnimatedTabItem() (+11 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.33
@@ -191,6 +204,10 @@ Nodes (4): styles, styles, borderWidth, radius
 ### Community 48 - "Community 48"
 Cohesion: 0.60
 Nodes (3): Chip(), ChipRow(), styles
+
+### Community 49 - "Community 49"
+Cohesion: 0.22
+Nodes (4): useAdminAuthStore, useAuthStore, useCartStore, useSettingsStore
 
 ### Community 51 - "Community 51"
 Cohesion: 0.50
@@ -205,24 +222,24 @@ Cohesion: 0.67
 Nodes (3): Included, Not Included, V1 Scope
 
 ## Knowledge Gaps
-- **288 isolated node(s):** `id`, `name`, `resources`, `name`, `version` (+283 more)
+- **294 isolated node(s):** `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard`, `App Animation Standard`, `Task F-01: Create React Native App Shell` (+289 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **17 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **14 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `ServeLoco Main Plan` connect `Community 6` to `Community 14`, `Community 7`?**
-  _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **Why does `Frontend Plan` connect `Community 14` to `Community 6`?**
-  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+  _High betweenness centrality (0.025) - this node is a cross-community bridge._
+- **Why does `Frontend Plan` connect `Community 14` to `Community 17`, `Community 6`?**
+  _High betweenness centrality (0.023) - this node is a cross-community bridge._
 - **Why does `Backend Plan` connect `Community 7` to `Community 6`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
-- **What connects `id`, `name`, `resources` to the rest of the system?**
-  _288 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard` to the rest of the system?**
+  _294 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.05405405405405406 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05128205128205128 - nodes in this community are weakly interconnected._
 - **Should `Community 6` be split into smaller, more focused modules?**
   _Cohesion score 0.07142857142857142 - nodes in this community are weakly interconnected._

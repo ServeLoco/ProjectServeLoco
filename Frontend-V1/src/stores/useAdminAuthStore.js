@@ -12,6 +12,9 @@ export const useAdminAuthStore = create(
       adminToken: null,
       adminUser: null,
       isAdminAuthenticated: false,
+      isAdminMode: false,
+      
+      setAdminMode: (mode) => set({ isAdminMode: mode }),
       
       setAdminSession: (adminToken, adminUser) => 
         set({ adminToken, adminUser, isAdminAuthenticated: true }),

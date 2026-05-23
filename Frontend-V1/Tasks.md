@@ -151,13 +151,13 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-06: Navigation
 
-- [ ] Add customer bottom tabs: `Home`, `Categories`, `Orders`, `Profile`.
-- [ ] Add customer stack screens: `Home`, `Categories`, `Product List`, `Product Detail`, `Cart`, `Checkout`, `Order Confirmation`, `Orders`, `Order Detail`, `Profile`, `Edit Profile`, `Auth`.
-- [ ] Add admin stack screens: `Admin Entry`, `Admin Login`, `Admin Dashboard`, `Admin Orders`, `Admin Order Detail`, `Admin Products`, `Admin Product Form`, `Admin Customers`, `Admin Settings`.
-- [ ] Keep Cart out of the bottom tabs.
-- [ ] Show Cart through header cart icon and sticky mini-cart.
-- [ ] Add hidden admin entry route that is not visible in customer bottom navigation.
-- [ ] Restore the correct route after customer or admin session restore.
+- [x] Add customer bottom tabs: `Home`, `Categories`, `Orders`, `Profile`.
+- [x] Add customer stack screens: `Home`, `Categories`, `Product List`, `Product Detail`, `Cart`, `Checkout`, `Order Confirmation`, `Orders`, `Order Detail`, `Profile`, `Edit Profile`, `Auth`.
+- [x] Add admin stack screens: `Admin Entry`, `Admin Login`, `Admin Dashboard`, `Admin Orders`, `Admin Order Detail`, `Admin Products`, `Admin Product Form`, `Admin Customers`, `Admin Settings`.
+- [x] Keep Cart out of the bottom tabs.
+- [x] Show Cart through header cart icon and sticky mini-cart.
+- [x] Add hidden admin entry route that is not visible in customer bottom navigation.
+- [x] Restore the correct route after customer or admin session restore.
 - [ ] Animate bottom tab active icon scale and active indicator movement.
 - [ ] Use subtle screen fade/slide transition when moving between stack screens.
 - [ ] Keep navigation animations short so back/forward actions feel instant.
