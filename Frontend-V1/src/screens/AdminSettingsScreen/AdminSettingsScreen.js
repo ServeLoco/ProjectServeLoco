@@ -19,7 +19,7 @@ import {
   Button,
   TextInputField,
 } from '../../components';
-import { adminSettingsApi, offersApi, settingsApi } from '../../api';
+import { adminSettingsApi } from '../../api';
 import {
   colors,
   entryDistance,
@@ -200,8 +200,8 @@ function AdminSettingsScreen() {
     setActionError('');
 
     Promise.allSettled([
-      settingsApi.getSettings(),
-      offersApi.getActiveOffer(),
+      adminSettingsApi.getSettings(),
+      adminSettingsApi.getActiveOffer(),
     ])
       .then(([settingsResult, offerResult]) => {
         if (settingsResult.status === 'rejected') {
