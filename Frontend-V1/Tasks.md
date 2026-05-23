@@ -589,7 +589,7 @@ Source of truth: `../mainPLAN.md` frontend section.
 - [x] Confirm admin login and admin session restore work.
 - [x] Confirm admin dashboard, orders, products, customers, settings, and offers call admin APIs only.
 - [x] Confirm customer token cannot access admin screens.
-- [ ] Confirm admin token is stored separately from customer token.
+- [x] Confirm admin token is stored separately from customer token.
 
 ### Task F-30: UI State QA
 
