@@ -27,20 +27,12 @@ import {
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 import { useCartStore } from '../../stores';
 import { useAuthGate } from '../../hooks';
+import { productsApi } from '../../api';
+import { asArray, normalizeProduct } from '../../utils';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
-// Mock Data
-const MOCK_PRODUCTS = [
-  { id: 'p1', name: 'Farm Fresh Tomatoes', price: 40, originalPrice: 50, discountLabel: '20% OFF', unit: '1 kg', category: 'Groceries', available: true, imageUri: 'https://via.placeholder.com/120/E6F4EA/34A853?text=Tomato' },
-  { id: 'p2', name: 'Whole Wheat Bread', price: 55, originalPrice: null, discountLabel: null, unit: '1 loaf', category: 'Daily Essentials', available: true, imageUri: 'https://via.placeholder.com/120/FFF8E1/FFC107?text=Bread' },
-  { id: 'p3', name: 'Coca Cola', price: 40, originalPrice: null, discountLabel: null, unit: '750 ml', category: 'Cold Drinks', available: true, imageUri: 'https://via.placeholder.com/120/E8F0FE/1A73E8?text=Coke' },
-  { id: 'p4', name: 'Lays Magic Masala', price: 20, originalPrice: null, discountLabel: null, unit: '50 g', category: 'Snacks', available: false, imageUri: 'https://via.placeholder.com/120/FCE8E6/EA4335?text=Lays' },
-  { id: 'p5', name: 'Spicy Chicken Burger', price: 149, originalPrice: 199, discountLabel: '₹50 OFF', unit: '1 pc', category: 'Fast Food', available: true, imageUri: 'https://via.placeholder.com/120/FEF7E0/FBBC04?text=Burger' },
-  { id: 'p6', name: 'Chocolate Truffle Pastry', price: 89, originalPrice: 120, discountLabel: '25% OFF', unit: '1 pc', category: 'Desserts', available: true, imageUri: 'https://via.placeholder.com/120/F3E8FD/9334E6?text=Pastry' },
-];
 
 const CATEGORY_CHIPS = ['All', 'Groceries', 'Daily Essentials', 'Cold Drinks', 'Snacks', 'Fast Food', 'Desserts'];
 const SORT_OPTIONS = ['Popular', 'Price Low to High', 'Price High to Low'];
@@ -71,19 +63,22 @@ export default function ProductListScreen() {
   // Filter crossfade animation
   const listOpacity = useRef(new Animated.Value(1)).current;
 
-  const fetchProducts = (forceError = false) => {
+  const fetchProducts = async () => {
     setIsLoading(true);
     setIsError(false);
-    
-    // Simulate network
-    setTimeout(() => {
-      if (forceError) {
-        setIsError(true);
-        setIsLoading(false);
-        return;
-      }
-      
-      let filtered = [...MOCK_PRODUCTS];
+
+    try {
+      const response = await productsApi.getProducts({
+        category: activeCategory !== 'All' ? activeCategory : undefined,
+        categoryId: route.params?.categoryId,
+        q: searchQuery || undefined,
+        search: searchQuery || undefined,
+        available: showAvailableOnly ? true : undefined,
+        offerId: offerId || undefined,
+        sort: sortBy,
+      });
+
+      let filtered = asArray(response, ['products']).map(normalizeProduct);
 
       // Offer Filter
       if (offerId) {
@@ -119,8 +114,11 @@ export default function ProductListScreen() {
       ]).start();
 
       setProducts(filtered);
+    } catch (err) {
+      setIsError(true);
+    } finally {
       setIsLoading(false);
-    }, 600); // Simulated delay
+    }
   };
 
   // Initial fetch and dependency fetch

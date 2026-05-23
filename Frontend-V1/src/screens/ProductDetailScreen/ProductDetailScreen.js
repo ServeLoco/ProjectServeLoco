@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   Animated,
-  Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
@@ -14,32 +13,24 @@ import {
   ProductCard,
   QuantityStepper,
   Button,
+  ProductImage,
 } from '../../components';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
 import { useCartStore } from '../../stores';
 import { useAuthGate } from '../../hooks';
-
-// Mock Data
-const MOCK_DB = {
-  'p1': { id: 'p1', name: 'Farm Fresh Tomatoes', price: 40, originalPrice: 50, discountLabel: '20% OFF', unit: '1 kg', category: 'Groceries', available: true, description: 'Fresh, juicy, and red tomatoes sourced directly from local farms. Perfect for curries, salads, and everyday cooking.', imageUri: 'https://via.placeholder.com/400/E6F4EA/34A853?text=Tomato' },
-  'p2': { id: 'p2', name: 'Whole Wheat Bread', price: 55, originalPrice: null, discountLabel: null, unit: '1 loaf', category: 'Daily Essentials', available: true, description: 'Soft and healthy whole wheat bread, baked fresh daily without any artificial preservatives.', imageUri: 'https://via.placeholder.com/400/FFF8E1/FFC107?text=Bread' },
-  'p3': { id: 'p3', name: 'Coca Cola', price: 40, originalPrice: null, discountLabel: null, unit: '750 ml', category: 'Cold Drinks', available: true, description: '', imageUri: 'https://via.placeholder.com/400/E8F0FE/1A73E8?text=Coke' }, // Empty description
-  'p4': { id: 'p4', name: 'Lays Magic Masala', price: 20, originalPrice: null, discountLabel: null, unit: '50 g', category: 'Snacks', available: false, description: 'India\'s favorite potato chips with a spicy, magical masala twist.', imageUri: 'https://via.placeholder.com/400/FCE8E6/EA4335?text=Lays' },
-  'p5': { id: 'p5', name: 'Spicy Chicken Burger', price: 149, originalPrice: 199, discountLabel: '₹50 OFF', unit: '1 pc', category: 'Fast Food', available: true, description: 'A juicy, tender chicken patty coated in spicy seasoning, topped with crisp lettuce and mayo.', imageUri: 'https://via.placeholder.com/400/FEF7E0/FBBC04?text=Burger' },
-};
-
-const RELATED_PRODUCTS = [
-  { id: 'p2', name: 'Whole Wheat Bread', price: 55, originalPrice: null, discountLabel: null, unit: '1 loaf', category: 'Daily Essentials', available: true, imageUri: 'https://via.placeholder.com/120/FFF8E1/FFC107?text=Bread' },
-  { id: 'p3', name: 'Coca Cola', price: 40, originalPrice: null, discountLabel: null, unit: '750 ml', category: 'Cold Drinks', available: true, imageUri: 'https://via.placeholder.com/120/E8F0FE/1A73E8?text=Coke' },
-];
+import { productsApi } from '../../api';
+import { asArray, normalizeProduct } from '../../utils';
 
 export default function ProductDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { requireAuth } = useAuthGate();
   
-  const productId = route.params?.id || 'p1';
-  const product = MOCK_DB[productId] || MOCK_DB['p1'];
+  const productId = route.params?.id || route.params?.productId;
+  const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   // Stores
   const { items, totalItems, addItem, updateQuantity, removeItem } = useCartStore();
@@ -49,20 +40,47 @@ export default function ProductDetailScreen() {
   const detailsSlide = useRef(new Animated.Value(30)).current;
   const detailsFade = useRef(new Animated.Value(0)).current;
   const bottomBarSlide = useRef(new Animated.Value(80)).current;
-  const staggerRelatedAnims = useRef(RELATED_PRODUCTS.map(() => new Animated.Value(0))).current;
+  const staggerRelatedAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
-    // Start entrance animations
-    Animated.parallel([
-      Animated.timing(imgFade, { toValue: 1, duration: 400, useNativeDriver: true }),
-      Animated.timing(detailsFade, { toValue: 1, duration: 400, delay: 100, useNativeDriver: true }),
-      Animated.timing(detailsSlide, { toValue: 0, duration: 400, delay: 100, useNativeDriver: true }),
-      Animated.timing(bottomBarSlide, { toValue: 0, duration: 500, delay: 200, useNativeDriver: true }),
-      Animated.stagger(150, staggerRelatedAnims.map(anim => 
-        Animated.timing(anim, { toValue: 1, duration: 400, delay: 200, useNativeDriver: true })
-      )),
-    ]).start();
-  }, [imgFade, detailsFade, detailsSlide, bottomBarSlide, staggerRelatedAnims]);
+    let isMounted = true;
+
+    setIsLoading(true);
+    setLoadError('');
+
+    productsApi.getProduct(productId)
+      .then(response => {
+        if (!isMounted) return;
+        const data = response?.product || response?.data || response;
+        const normalized = normalizeProduct(data);
+        setProduct(normalized);
+        setRelatedProducts(
+          normalized.relatedProducts.length > 0
+            ? normalized.relatedProducts
+            : asArray(data?.related || data?.similarProducts || data?.similar_products, ['products']).map(normalizeProduct),
+        );
+        setIsLoading(false);
+
+        Animated.parallel([
+          Animated.timing(imgFade, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(detailsFade, { toValue: 1, duration: 400, delay: 100, useNativeDriver: true }),
+          Animated.timing(detailsSlide, { toValue: 0, duration: 400, delay: 100, useNativeDriver: true }),
+          Animated.timing(bottomBarSlide, { toValue: 0, duration: 500, delay: 200, useNativeDriver: true }),
+          Animated.stagger(150, staggerRelatedAnims.map(anim =>
+            Animated.timing(anim, { toValue: 1, duration: 400, delay: 200, useNativeDriver: true })
+          )),
+        ]).start();
+      })
+      .catch(error => {
+        if (!isMounted) return;
+        setLoadError(error.message || 'Failed to load product');
+        setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [bottomBarSlide, detailsFade, detailsSlide, imgFade, productId, staggerRelatedAnims]);
 
   const getQty = (id) => {
     const item = items.find(i => i.product.id === id);
@@ -76,6 +94,29 @@ export default function ProductDetailScreen() {
     if (currentQty <= 1) removeItem(item.id);
     else updateQuantity(item.id, currentQty - 1);
   };
+
+  if (isLoading) {
+    return (
+      <AppScreen style={styles.container}>
+        <AppHeader title="Product" onBack={() => navigation.goBack()} />
+        <View style={styles.centerState}>
+          <Text style={styles.centerText}>Loading product...</Text>
+        </View>
+      </AppScreen>
+    );
+  }
+
+  if (loadError || !product) {
+    return (
+      <AppScreen style={styles.container}>
+        <AppHeader title="Product" onBack={() => navigation.goBack()} />
+        <View style={styles.centerState}>
+          <Text style={styles.centerText}>{loadError || 'Product not found'}</Text>
+          <Button label="Back to Products" onPress={() => navigation.goBack()} fullWidth={false} />
+        </View>
+      </AppScreen>
+    );
+  }
 
   const currentQty = getQty(product.id);
 
@@ -95,7 +136,7 @@ export default function ProductDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Large Product Image */}
         <Animated.View style={[styles.imageContainer, { opacity: imgFade }]}>
-          <Image source={{ uri: product.imageUri }} style={styles.image} resizeMode="cover" />
+          <ProductImage uri={product.imageUri} width="100%" height={300} borderRadius={0} style={styles.image} />
           
           {/* Discount Badge on Image */}
           {product.discountLabel && (
@@ -150,7 +191,7 @@ export default function ProductDetailScreen() {
           {/* Related Products */}
           <Text style={styles.sectionTitle}>Similar Products</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.relatedScroll}>
-            {RELATED_PRODUCTS.map((rel, idx) => (
+            {relatedProducts.map((rel, idx) => (
               <Animated.View
                 key={rel.id}
                 style={[
@@ -256,6 +297,18 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  centerState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  centerText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
   },
   imgDiscountBadge: {
     position: 'absolute',

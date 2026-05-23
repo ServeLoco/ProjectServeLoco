@@ -11,19 +11,29 @@ export const useAuthStore = create(
     (set) => ({
       token: null,
       user: null,
+      profile: null,
       isAuthenticated: false,
       redirectRoute: null,
       
       setRedirectRoute: (route) => set({ redirectRoute: route }),
       
       setSession: (token, user) => 
-        set({ token, user, isAuthenticated: true }),
+        set({ token, user, profile: user, isAuthenticated: true }),
         
       logout: () => 
-        set({ token: null, user: null, isAuthenticated: false }),
+        set({ token: null, user: null, profile: null, isAuthenticated: false }),
         
       updateUser: (userData) => 
-        set((state) => ({ user: { ...state.user, ...userData } })),
+        set((state) => ({
+          user: { ...state.user, ...userData },
+          profile: { ...state.profile, ...userData },
+        })),
+
+      setProfile: (profile) =>
+        set((state) => ({
+          profile,
+          user: { ...state.user, ...profile },
+        })),
 
       // Admin Auth State
       isAdminAuthenticated: false,

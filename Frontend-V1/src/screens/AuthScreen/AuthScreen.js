@@ -25,7 +25,8 @@ import {
 } from '../../components';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 import { useAuthStore } from '../../stores';
-// import { authApi } from '../../api'; // Mocked below
+import { authApi } from '../../api';
+import { normalizeSession } from '../../utils';
 
 export default function AuthScreen() {
   const navigation = useNavigation();
@@ -109,15 +110,12 @@ export default function AuthScreen() {
     setIsLoading(true);
 
     try {
-      // Mock Error Check
-      if (password === 'wrong') {
-        throw new Error('Invalid credentials');
+      const session = normalizeSession(await authApi.login({ phone, password }));
+      if (!session.token) {
+        throw new Error('Login response did not include a session token');
       }
-      
-      setTimeout(() => {
-        setIsLoading(false);
-        handleSuccess('mock_jwt_token_123', { id: 1, name: 'Demo User', phone });
-      }, 1000);
+      setIsLoading(false);
+      handleSuccess(session.token, session.user);
     } catch (err) {
       setIsLoading(false);
       setErrorMsg(err.message || 'Failed to login');
@@ -140,10 +138,20 @@ export default function AuthScreen() {
     setIsLoading(true);
 
     try {
-      setTimeout(() => {
-        setIsLoading(false);
-        handleSuccess('mock_jwt_token_456', { id: 2, name, phone, address });
-      }, 1000);
+      const session = normalizeSession(await authApi.signup({
+        name,
+        fullName: name,
+        phone,
+        whatsappNumber: whatsapp,
+        deliveryAddress: address,
+        address,
+        password,
+      }));
+      if (!session.token) {
+        throw new Error('Signup response did not include a session token');
+      }
+      setIsLoading(false);
+      handleSuccess(session.token, session.user);
     } catch (err) {
       setIsLoading(false);
       setErrorMsg(err.message || 'Failed to sign up');

@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -24,38 +23,8 @@ import {
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 import { useCartStore, useSettingsStore } from '../../stores';
 import { useAuthGate } from '../../hooks';
-
-// Mock Data
-const MOCK_CATEGORIES = [
-  { id: '1', name: 'Cold Drinks', count: 42, imageUri: 'https://via.placeholder.com/80/E8F0FE/1A73E8?text=Drink' },
-  { id: '2', name: 'Snacks', count: 128, imageUri: 'https://via.placeholder.com/80/FCE8E6/EA4335?text=Snack' },
-  { id: '3', name: 'Fast Food', count: 24, imageUri: 'https://via.placeholder.com/80/FEF7E0/FBBC04?text=Burger' },
-  { id: '4', name: 'Groceries', count: 350, imageUri: 'https://via.placeholder.com/80/E6F4EA/34A853?text=Veg' },
-  { id: '5', name: 'Desserts', count: 15, imageUri: 'https://via.placeholder.com/80/F3E8FD/9334E6?text=Sweet' },
-];
-
-const MOCK_COMBOS = [
-  {
-    id: 'c1',
-    name: 'Burger + Fries + Coke',
-    price: 199,
-    originalPrice: 249,
-    discountLabel: '20% OFF',
-    unit: '1 Combo',
-    imageUri: 'https://via.placeholder.com/120/FFD54F/000000?text=Combo1',
-    available: true,
-  },
-  {
-    id: 'c2',
-    name: '2 Large Pizzas + Garlic Bread',
-    price: 499,
-    originalPrice: 650,
-    discountLabel: 'Flat ₹150 OFF',
-    unit: '1 Combo',
-    imageUri: 'https://via.placeholder.com/120/FF8A65/000000?text=Combo2',
-    available: false, // Testing disabled state
-  },
-];
+import { offersApi, productsApi, settingsApi } from '../../api';
+import { asArray, normalizeCategory, normalizeProduct, normalizeSettings } from '../../utils';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -65,40 +34,72 @@ export default function HomeScreen() {
   const { items, totalItems, displayTotal, addItem, updateQuantity, removeItem } = useCartStore();
   const activeOffer = useSettingsStore(state => state.activeOffer);
   const shopStatus = useSettingsStore(state => state.shopStatus);
+  const setSettings = useSettingsStore(state => state.setSettings);
   
   const [storeType, setStoreType] = useState('Packed Items');
   const [isLoading, setIsLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
   
   // Staggered entry for cards
-  const staggerCatAnims = useRef(MOCK_CATEGORIES.map(() => new Animated.Value(0))).current;
-  const staggerComboAnims = useRef(MOCK_COMBOS.map(() => new Animated.Value(0))).current;
+  const staggerCatAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
+  const staggerComboAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
 
   useEffect(() => {
-    // Simulate data loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      
-      Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
-        
-        Animated.stagger(100, staggerCatAnims.map(anim => 
-          Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 6 })
-        )),
-        
-        Animated.stagger(150, staggerComboAnims.map(anim => 
-          Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 6 })
-        )),
-      ]).start();
-      
-    }, 1500); // 1.5s mock loading
+    let isMounted = true;
+    const loadTimer = setTimeout(() => {
+      Promise.allSettled([
+        productsApi.getCategories(),
+        productsApi.getProducts({ featured: true, limit: 8 }),
+        settingsApi.getSettings(),
+        offersApi.getActiveOffer(),
+      ]).then(([categoriesResult, productsResult, settingsResult, offerResult]) => {
+        if (!isMounted) return;
 
-    return () => clearTimeout(timer);
-  }, []);
+        if (categoriesResult.status === 'fulfilled') {
+          setCategories(asArray(categoriesResult.value, ['categories']).map(normalizeCategory));
+        }
+
+        if (productsResult.status === 'fulfilled') {
+          setFeaturedProducts(asArray(productsResult.value, ['products']).map(normalizeProduct));
+        }
+
+        if (settingsResult.status === 'fulfilled') {
+          const nextSettings = normalizeSettings(settingsResult.value);
+          const offer = offerResult.status === 'fulfilled'
+            ? offerResult.value?.offer || offerResult.value?.data || offerResult.value
+            : nextSettings.activeOffer;
+          setSettings({ ...nextSettings, activeOffer: offer });
+        }
+
+        setIsLoading(false);
+
+        Animated.parallel([
+          Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+
+          Animated.stagger(100, staggerCatAnims.map(anim =>
+            Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 6 })
+          )),
+
+          Animated.stagger(150, staggerComboAnims.map(anim =>
+            Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 6 })
+          )),
+        ]).start();
+      }).catch(() => {
+        if (isMounted) setIsLoading(false);
+      });
+    }, 0);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(loadTimer);
+    };
+  }, [fadeAnim, setSettings, slideAnim, staggerCatAnims, staggerComboAnims]);
 
   const handleSearchPress = () => {
     navigation.navigate('ProductList', { mode: 'search' });
@@ -223,7 +224,7 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.hScroll}
             >
-              {MOCK_CATEGORIES.map((cat, idx) => (
+              {categories.map((cat, idx) => (
                 <Animated.View 
                   key={cat.id} 
                   style={{ 
@@ -252,7 +253,7 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Popular Combos</Text>
             <View style={styles.comboList}>
-              {MOCK_COMBOS.map((combo, idx) => (
+              {featuredProducts.map((combo, idx) => (
                 <Animated.View 
                   key={combo.id} 
                   style={[
@@ -279,7 +280,7 @@ export default function HomeScreen() {
                     onAdd={() => handleAddToCart(combo)}
                     onIncrement={() => handleIncrement(combo)}
                     onDecrement={() => handleDecrement(combo)}
-                    disabled={!combo.available} // Handled dynamically based on mock property
+                    disabled={!combo.available}
                   />
                 </Animated.View>
               ))}

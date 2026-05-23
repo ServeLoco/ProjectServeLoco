@@ -21,18 +21,18 @@ import {
 } from '../../components';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 import { useCartStore, useSettingsStore } from '../../stores';
+import { cartApi } from '../../api';
+import { normalizeCartCalculation } from '../../utils';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const MINIMUM_ORDER_VALUE = 99;
-
 export default function CartScreen() {
   const navigation = useNavigation();
-  const { items, totalItems, displayTotal, updateQuantity, removeItem, clearCart } = useCartStore();
+  const { items, updateQuantity, removeItem, clearCart } = useCartStore();
   const shopStatus = useSettingsStore(state => state.shopStatus);
-  const activeOffer = useSettingsStore(state => state.activeOffer);
+  const minimumOrder = useSettingsStore(state => state.minimumOrder);
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [bill, setBill] = useState(null);
@@ -46,7 +46,7 @@ export default function CartScreen() {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, [fadeAnim]);
 
-  const calculateBill = () => {
+  const calculateBill = async () => {
     if (items.length === 0) {
       setBill(null);
       return;
@@ -60,43 +60,29 @@ export default function CartScreen() {
       Animated.timing(listOpacity, { toValue: 0.5, duration: 100, useNativeDriver: true }),
     ]).start();
 
-    // Mock API call to POST /cart/calculate
-    setTimeout(() => {
-      try {
-        let subtotal = 0;
-        items.forEach(item => {
-          subtotal += item.product.price * item.quantity;
-        });
-
-        const deliveryCharge = subtotal > 200 ? 0 : 30;
-        const nightCharge = new Date().getHours() >= 23 ? 20 : 0;
-        const discount = activeOffer ? Math.floor(subtotal * 0.1) : 0; // 10% mock discount
-        
-        const grandTotal = subtotal + deliveryCharge + nightCharge - discount;
-
-        setBill({
-          subtotal,
-          deliveryCharge,
-          nightCharge,
-          discount,
-          grandTotal,
-        });
-
-        Animated.timing(listOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-        setIsCalculating(false);
-      } catch (err) {
-        setIsCalculating(false);
-        setCalcError('Failed to calculate bill');
-        Animated.timing(listOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-      }
-    }, 800);
+    try {
+      const payload = {
+        items: items.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+        })),
+      };
+      const calculatedBill = normalizeCartCalculation(await cartApi.calculate(payload));
+      setBill(calculatedBill);
+      Animated.timing(listOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    } catch (err) {
+      setCalcError(err.message || 'Failed to calculate bill');
+      Animated.timing(listOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    } finally {
+      setIsCalculating(false);
+    }
   };
 
   useEffect(() => {
     // Recalculate bill whenever items change
     calculateBill();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, activeOffer]);
+  }, [items]);
 
   const handleRemove = (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -130,7 +116,8 @@ export default function CartScreen() {
     isCalculating || 
     calcError || 
     shopStatus === 'closed' || 
-    (bill && bill.subtotal < MINIMUM_ORDER_VALUE);
+    (bill && bill.subtotal < (bill.minimumOrder || minimumOrder || 0));
+  const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
@@ -238,10 +225,10 @@ export default function CartScreen() {
               ) : null}
 
               {/* Minimum Order Warning */}
-              {bill && bill.subtotal < MINIMUM_ORDER_VALUE && (
+              {bill && bill.subtotal < requiredMinimum && (
                 <View style={styles.warningBox}>
                   <Text style={styles.warningText}>
-                    Add items worth Rs. {MINIMUM_ORDER_VALUE - bill.subtotal} more to checkout.
+                    Add items worth Rs. {requiredMinimum - bill.subtotal} more to checkout.
                   </Text>
                 </View>
               )}

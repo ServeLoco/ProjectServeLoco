@@ -22,22 +22,14 @@ import {
 } from '../../components';
 import { colors, typography, spacing, radius } from '../../theme';
 import { useCartStore } from '../../stores';
+import { productsApi } from '../../api';
+import { asArray, normalizeCategory } from '../../utils';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// Mock Data
-const MOCK_CATEGORIES = [
-  { id: '1', name: 'Cold Drinks', count: 42, imageUri: 'https://via.placeholder.com/80/E8F0FE/1A73E8?text=Drink' },
-  { id: '2', name: 'Snacks', count: 128, imageUri: 'https://via.placeholder.com/80/FCE8E6/EA4335?text=Snack' },
-  { id: '3', name: 'Fast Food', count: 24, imageUri: 'https://via.placeholder.com/80/FEF7E0/FBBC04?text=Burger' },
-  { id: '4', name: 'Groceries', count: 350, imageUri: 'https://via.placeholder.com/80/E6F4EA/34A853?text=Veg' },
-  { id: '5', name: 'Desserts', count: 15, imageUri: 'https://via.placeholder.com/80/F3E8FD/9334E6?text=Sweet' },
-  { id: '6', name: 'Daily Essentials', count: 85, imageUri: 'https://via.placeholder.com/80/FFF8E1/FFC107?text=Daily' },
-];
-
-const MOCK_CHIPS = ['All', 'Bestsellers', 'New Arrivals', 'Offers'];
+const DEFAULT_CHIPS = ['All', 'Bestsellers', 'New Arrivals', 'Offers'];
 
 export default function CategoriesScreen() {
   const navigation = useNavigation();
@@ -46,23 +38,45 @@ export default function CategoriesScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [storeType, setStoreType] = useState('Packed Items');
   const [activeChip, setActiveChip] = useState('All');
+  const [categories, setCategories] = useState([]);
+  const [chips, setChips] = useState(DEFAULT_CHIPS);
+  const [isError, setIsError] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   
-  // To test empty state, we can simulate an empty list when "Fast Food" is selected
-  const displayCategories = storeType === 'Packed Items' ? MOCK_CATEGORIES : [];
+  const displayCategories = categories.filter(category => {
+    const type = String(category.type || '').toLowerCase();
+    const typeMatches = !type || type === storeType.toLowerCase();
+    const chipMatches = activeChip === 'All'
+      || category.subcategories?.some(item => String(item.name || item).toLowerCase() === activeChip.toLowerCase());
+    return typeMatches && chipMatches;
+  });
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
-  const staggerAnims = useRef(MOCK_CATEGORIES.map(() => new Animated.Value(0))).current;
+  const staggerAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
 
   useEffect(() => {
-    // Reset animations when tab changes to simulate network fetch
     setIsLoading(true);
+    setIsError(false);
     fadeAnim.setValue(0);
     slideAnim.setValue(20);
     staggerAnims.forEach(anim => anim.setValue(0));
 
-    const timer = setTimeout(() => {
+    productsApi.getCategories({ type: storeType })
+      .then(response => {
+        const nextCategories = asArray(response, ['categories']).map(normalizeCategory);
+        setCategories(nextCategories);
+        const nextChips = [
+          'All',
+          ...new Set(nextCategories.flatMap(category => (
+            category.subcategories || []
+          )).map(item => item.name || item).filter(Boolean)),
+        ];
+        setChips(nextChips.length > 1 ? nextChips : DEFAULT_CHIPS);
+      })
+      .catch(() => setIsError(true))
+      .finally(() => {
       setIsLoading(false);
       
       Animated.parallel([
@@ -73,11 +87,9 @@ export default function CategoriesScreen() {
           staggerAnims.map(anim => Animated.spring(anim, { toValue: 1, friction: 7, useNativeDriver: true }))
         ),
       ]).start();
-      
-    }, 800); // 0.8s mock load
+      });
 
-    return () => clearTimeout(timer);
-  }, [storeType, fadeAnim, slideAnim, staggerAnims]);
+  }, [storeType, reloadToken, fadeAnim, slideAnim, staggerAnims]);
 
   const handleSearchPress = () => {
     navigation.navigate('ProductList', { mode: 'search' });
@@ -142,7 +154,7 @@ export default function CategoriesScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chipsScroll}
           >
-            {MOCK_CHIPS.map((chip) => {
+            {chips.map((chip) => {
               const isActive = activeChip === chip;
               return (
                 <TouchableOpacity
@@ -164,6 +176,17 @@ export default function CategoriesScreen() {
         <View style={styles.listContainer}>
           {isLoading ? (
             renderSkeletonGrid()
+          ) : isError ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyEmoji}>Error</Text>
+              <Text style={styles.emptyTitle}>Failed to load categories</Text>
+              <Text style={styles.emptyDesc}>Please check your connection and try again.</Text>
+              <Button
+                label="Retry"
+                onPress={() => setReloadToken(value => value + 1)}
+                style={styles.emptyBtn}
+              />
+            </View>
           ) : (
             <Animated.ScrollView
               contentContainerStyle={styles.scrollContent}

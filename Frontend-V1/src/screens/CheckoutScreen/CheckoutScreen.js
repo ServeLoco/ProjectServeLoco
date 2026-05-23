@@ -20,12 +20,11 @@ import {
 } from '../../components';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../stores';
+import { ordersApi } from '../../api';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
-const MOCK_MAP_URL = "https://maps.google.com/?q=28.6139,77.2090";
 
 export default function CheckoutScreen() {
   const navigation = useNavigation();
@@ -75,7 +74,7 @@ export default function CheckoutScreen() {
     }, 1500);
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!address.trim()) {
       setSubmitError('Please enter a delivery address');
       return;
@@ -91,15 +90,30 @@ export default function CheckoutScreen() {
     // Animate button loading state
     Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true }).start();
 
-    // Simulate POST /orders
-    setTimeout(() => {
+    try {
+      const orderResponse = await ordersApi.createOrder({
+        items: items.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+        })),
+        deliveryAddress: address.trim(),
+        address: address.trim(),
+        coordinates,
+        paymentMethod,
+      });
+
       setIsSubmitting(false);
       Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
-      
-      // On success: clear cart and navigate
       clearCart();
-      navigation.navigate('OrderConfirmation');
-    }, 2000);
+      navigation.navigate('OrderConfirmation', {
+        orderId: orderResponse?.id || orderResponse?.order?.id || orderResponse?.data?.id,
+        order: orderResponse?.order || orderResponse?.data || orderResponse,
+      });
+    } catch (error) {
+      setIsSubmitting(false);
+      Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
+      setSubmitError(error.message || 'Unable to place order. Please try again.');
+    }
   };
 
   // Compute Bill Summary Locally for display
