@@ -114,6 +114,70 @@ const createOrder = async (req, res) => {
   }
 };
 
+const getOrders = async (req, res) => {
+  const userId = req.user.id;
+  const [rows] = await pool.query(
+    'SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC',
+    [userId]
+  );
+  const orders = rows.map(o => ({ ...o, canCancel: o.status === 'Pending' }));
+  res.status(200).json({ data: orders });
+};
+
+const getOrderById = async (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  const [orderRows] = await pool.query(
+    'SELECT * FROM orders WHERE id = ? AND customer_id = ?',
+    [id, userId]
+  );
+
+  if (orderRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+  }
+
+  const order = orderRows[0];
+  const [itemsRows] = await pool.query(
+    'SELECT * FROM order_items WHERE order_id = ?',
+    [id]
+  );
+
+  order.items = itemsRows;
+  order.canCancel = order.status === 'Pending';
+  res.status(200).json({ data: order });
+};
+
+const cancelOrder = async (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+  const { reason } = req.body;
+
+  const [orderRows] = await pool.query(
+    'SELECT * FROM orders WHERE id = ? AND customer_id = ?',
+    [id, userId]
+  );
+
+  if (orderRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+  }
+
+  const order = orderRows[0];
+  if (order.status === 'Delivered' || order.status === 'Canceled') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Order cannot be canceled at this stage' });
+  }
+
+  await pool.query(
+    'UPDATE orders SET status = "Canceled", cancel_reason = ? WHERE id = ?',
+    [reason || null, id]
+  );
+
+  res.status(200).json({ message: 'Order canceled successfully' });
+};
+
 module.exports = {
-  createOrder
+  createOrder,
+  getOrders,
+  getOrderById,
+  cancelOrder
 };

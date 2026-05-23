@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
-const { createOrder } = require('../controllers/orderController');
+const { createOrder, getOrders, getOrderById, cancelOrder } = require('../controllers/orderController');
 const { requireCustomer } = require('../middleware/authMiddleware');
 const { validate, isString, isEnum, isNumericAmount } = require('../validators');
 
@@ -32,5 +32,8 @@ const createOrderSchema = (req) => {
 };
 
 router.post('/', requireCustomer, validate(createOrderSchema), asyncHandler(createOrder));
+router.get('/', requireCustomer, asyncHandler(getOrders));
+router.get('/:id', requireCustomer, asyncHandler(getOrderById));
+router.post('/:id/cancel', requireCustomer, asyncHandler(cancelOrder));
 
 module.exports = router;

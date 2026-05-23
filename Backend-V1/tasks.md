@@ -339,17 +339,17 @@ Tests:
 
 ## Phase B-15: Customer Orders
 
-- [ ] Implement `GET /orders`.
-- [ ] Implement `GET /orders/:id`.
-- [ ] Implement `POST /orders/:id/cancel`.
-- [ ] Return only the authenticated customer's orders.
-- [ ] Sort latest orders first.
-- [ ] Return `orderNumber` as well as `id` so cards can display friendly order ids.
-- [ ] Include item count, preview image, payment status, order status, total, and `canCancel`.
-- [ ] Return full item list and bill summary on order detail.
-- [ ] Include delivery address and map URL when present.
-- [ ] Allow cancellation only before `Delivered` and when order is not already cancelled.
-- [ ] Store cancel reason if provided.
+- [x] Implement `GET /orders`.
+- [x] Implement `GET /orders/:id`.
+- [x] Implement `POST /orders/:id/cancel`.
+- [x] Return only the authenticated customer's orders.
+- [x] Sort latest orders first.
+- [x] Return `orderNumber` as well as `id` so cards can display friendly order ids.
+- [x] Include item count, preview image, payment status, order status, total, and `canCancel`.
+- [x] Return full item list and bill summary on order detail.
+- [x] Include delivery address and map URL when present.
+- [x] Allow cancellation only before `Delivered` and when order is not already cancelled.
+- [x] Store cancel reason if provided.
 
 Behavior comment: The frontend shows Cancel buttons based on `canCancel`, but the backend must still enforce cancellation rules.
 
