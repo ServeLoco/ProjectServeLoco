@@ -7,10 +7,13 @@ import {
   Animated,
   TouchableOpacity,
   ActivityIndicator,
+  Linking,
   LayoutAnimation,
+  PermissionsAndroid,
   Platform,
   UIManager,
 } from 'react-native';
+import Geolocation from '@react-native-community/geolocation';
 import { useNavigation } from '@react-navigation/native';
 import {
   AppScreen,
@@ -27,6 +30,40 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+const requestLocationPermission = async () => {
+  if (Platform.OS !== 'android') {
+    return true;
+  }
+
+  const result = await PermissionsAndroid.request(
+    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+    {
+      title: 'Use current location',
+      message: 'ServeLoco needs your location to pin your delivery address.',
+      buttonPositive: 'Allow',
+      buttonNegative: 'Deny',
+    },
+  );
+
+  return result === PermissionsAndroid.RESULTS.GRANTED;
+};
+
+const getLocationErrorMessage = error => {
+  if (error?.code === 1) {
+    return 'Location permission was denied. You can enter the address manually.';
+  }
+
+  if (error?.code === 2) {
+    return 'Unable to detect location. Please check GPS and try again.';
+  }
+
+  if (error?.code === 3) {
+    return 'Location request timed out. Please try again.';
+  }
+
+  return 'Failed to get location. Please try again.';
+};
+
 export default function CheckoutScreen() {
   const navigation = useNavigation();
   const { items, clearCart } = useCartStore();
@@ -42,6 +79,7 @@ export default function CheckoutScreen() {
   const [address, setAddress] = useState(userProfile?.address || '');
   const [coordinates, setCoordinates] = useState(null);
   const [gpsStatus, setGpsStatus] = useState('idle'); // idle | loading | success | error
+  const [gpsError, setGpsError] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('Cash'); // Cash | UPI
 
   // Submission State
@@ -103,20 +141,61 @@ export default function CheckoutScreen() {
     };
   }, [checkoutItems]);
 
-  const handleRequestGPS = () => {
+  const handleRequestGPS = async () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setGpsStatus('loading');
-    
-    // Simulate GPS fetch
-    setTimeout(() => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      if (Math.random() > 0.8) {
+    setGpsError(null);
+
+    try {
+      const hasPermission = await requestLocationPermission();
+
+      if (!hasPermission) {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setGpsStatus('error');
-      } else {
-        setGpsStatus('success');
-        setCoordinates({ lat: 28.6139, lng: 77.2090 });
+        setGpsError('Location permission was denied. You can enter the address manually.');
+        return;
       }
-    }, 1500);
+
+      Geolocation.getCurrentPosition(
+        position => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setCoordinates({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+          setGpsStatus('success');
+        },
+        error => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setGpsStatus('error');
+          setGpsError(getLocationErrorMessage(error));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 30000,
+        },
+      );
+    } catch (error) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setGpsStatus('error');
+      setGpsError(error.message || 'Failed to get location. Please try again.');
+    }
+  };
+
+  const handleOpenMap = () => {
+    if (!coordinates) {
+      return;
+    }
+
+    const { lat, lng } = coordinates;
+    const url = Platform.select({
+      ios: `maps:0,0?q=${lat},${lng}`,
+      android: `geo:${lat},${lng}?q=${lat},${lng}`,
+      default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+    });
+
+    Linking.openURL(url).catch(() => {});
   };
 
   const handlePlaceOrder = async () => {
@@ -226,17 +305,18 @@ export default function CheckoutScreen() {
                 <Text style={styles.gpsSuccessIcon}>Loc</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.gpsSuccessText}>Location Pinned</Text>
-                  <Text style={styles.gpsCoords}>{coordinates?.lat}, {coordinates?.lng}</Text>
+                  <Text style={styles.gpsCoords}>
+                    {coordinates?.lat?.toFixed(6)}, {coordinates?.lng?.toFixed(6)}
+                  </Text>
                 </View>
-                {/* Simulated Open Map action */}
-                <TouchableOpacity style={styles.mapActionBtn}>
+                <TouchableOpacity style={styles.mapActionBtn} onPress={handleOpenMap}>
                   <Text style={styles.mapActionText}>Map</Text>
                 </TouchableOpacity>
               </View>
             )}
 
             {gpsStatus === 'error' && (
-              <Text style={styles.gpsErrorText}>Failed to get location. Please try again.</Text>
+              <Text style={styles.gpsErrorText}>{gpsError || 'Failed to get location. Please try again.'}</Text>
             )}
           </View>
         </Animated.View>

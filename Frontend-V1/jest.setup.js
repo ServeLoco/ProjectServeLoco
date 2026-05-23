@@ -6,5 +6,12 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   clear: jest.fn(),
 }));
 
+jest.mock('@react-native-community/geolocation', () => ({
+  getCurrentPosition: jest.fn(),
+  watchPosition: jest.fn(),
+  clearWatch: jest.fn(),
+  stopObserving: jest.fn(),
+}));
+
 // Mock SafeAreaContext
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
