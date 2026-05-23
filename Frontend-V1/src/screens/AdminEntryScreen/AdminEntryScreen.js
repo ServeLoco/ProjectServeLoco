@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef } from 'react';
 import {
   View,
@@ -11,11 +10,12 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { AppScreen } from '../../components';
 import { colors, typography, spacing, radius } from '../../theme';
-import { useAuthStore } from '../../stores';
+import { useAdminAuthStore } from '../../stores';
 
 export default function AdminEntryScreen() {
   const navigation = useNavigation();
-  const isAdminAuthenticated = useAuthStore(state => state.isAdminAuthenticated);
+  const isAdminAuthenticated = useAdminAuthStore(state => state.isAdminAuthenticated);
+  const setAdminMode = useAdminAuthStore(state => state.setAdminMode);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -25,7 +25,7 @@ export default function AdminEntryScreen() {
   useEffect(() => {
     // If already authenticated as admin, jump to Admin Dashboard
     if (isAdminAuthenticated) {
-      navigation.replace('AdminDashboard');
+      setAdminMode(true);
     }
 
     Animated.parallel([
@@ -40,7 +40,7 @@ export default function AdminEntryScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [fadeAnim, slideAnim, isAdminAuthenticated]);
+  }, [fadeAnim, slideAnim, isAdminAuthenticated, setAdminMode]);
 
   const handlePressIn = () => {
     Animated.spring(btnScale, {
@@ -57,7 +57,7 @@ export default function AdminEntryScreen() {
   };
 
   const handleLoginPress = () => {
-    navigation.navigate('AdminLogin');
+    setAdminMode(true);
   };
 
   return (

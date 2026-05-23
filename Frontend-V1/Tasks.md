@@ -586,9 +586,9 @@ Source of truth: `../mainPLAN.md` frontend section.
 - [x] Confirm checkout creates an order with address and GPS data.
 - [x] Confirm order history and order detail load correctly.
 - [x] Confirm eligible order cancellation works.
-- [ ] Confirm admin login and admin session restore work.
-- [ ] Confirm admin dashboard, orders, products, customers, settings, and offers call admin APIs only.
-- [ ] Confirm customer token cannot access admin screens.
+- [x] Confirm admin login and admin session restore work.
+- [x] Confirm admin dashboard, orders, products, customers, settings, and offers call admin APIs only.
+- [x] Confirm customer token cannot access admin screens.
 - [ ] Confirm admin token is stored separately from customer token.
 
 ### Task F-30: UI State QA

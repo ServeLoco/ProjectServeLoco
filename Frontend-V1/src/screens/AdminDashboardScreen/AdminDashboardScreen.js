@@ -21,6 +21,7 @@ import { normalizeDashboard } from '../../utils';
 export default function AdminDashboardScreen() {
   const navigation = useNavigation();
   const adminLogout = useAdminAuthStore(state => state.adminLogout);
+  const setAdminMode = useAdminAuthStore(state => state.setAdminMode);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -67,9 +68,7 @@ export default function AdminDashboardScreen() {
 
   const handleLogout = () => {
     adminLogout();
-    // Assuming navigation logic will automatically clear this stack since admin state changes,
-    // or we can manually route. For now CustomerNavigator is mixed, let's go back to AdminEntry.
-    navigation.navigate('AdminEntry');
+    setAdminMode(false);
   };
 
   const toggleShop = () => {

@@ -19,8 +19,13 @@ export const useAdminAuthStore = create(
       setAdminSession: (adminToken, adminUser) => 
         set({ adminToken, adminUser, isAdminAuthenticated: true }),
         
-      adminLogout: () => 
-        set({ adminToken: null, adminUser: null, isAdminAuthenticated: false }),
+      adminLogout: () =>
+        set({
+          adminToken: null,
+          adminUser: null,
+          isAdminAuthenticated: false,
+          isAdminMode: false,
+        }),
     }),
     {
       name: 'serveloco-admin-auth',

@@ -19,6 +19,7 @@ import { normalizeSession } from '../../utils';
 export default function AdminLoginScreen() {
   const navigation = useNavigation();
   const setAdminSession = useAdminAuthStore(state => state.setAdminSession);
+  const setAdminMode = useAdminAuthStore(state => state.setAdminMode);
 
   // Form State
   const [ownerId, setOwnerId] = useState('');
@@ -164,7 +165,7 @@ export default function AdminLoginScreen() {
           <Button 
             label="Back to App"
             variant="ghost"
-            onPress={() => navigation.goBack()}
+            onPress={() => setAdminMode(false)}
             disabled={isLoading}
             style={styles.backBtn}
             textStyle={styles.backBtnText}

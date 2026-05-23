@@ -18,12 +18,6 @@ import {
   EditProfileScreen,
   AuthScreen,
   AdminEntryScreen,
-  AdminLoginScreen,
-  AdminDashboardScreen,
-  AdminOrdersScreen,
-  AdminOrderDetailScreen,
-  AdminProductsScreen,
-  AdminProductFormScreen,
 } from '../screens';
 
 const Tab = createBottomTabNavigator();
@@ -124,16 +118,6 @@ export default function CustomerNavigator() {
       
       {/* Hidden Admin Entry Route */}
       <Stack.Screen name="AdminEntry" component={AdminEntryScreen} />
-      <Stack.Screen 
-        name="AdminLogin" 
-        component={AdminLoginScreen} 
-        options={{ animation: 'slide_from_bottom' }}
-      />
-      <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-      <Stack.Screen name="AdminOrders" component={AdminOrdersScreen} />
-      <Stack.Screen name="AdminOrderDetail" component={AdminOrderDetailScreen} />
-      <Stack.Screen name="AdminProducts" component={AdminProductsScreen} />
-      <Stack.Screen name="AdminProductForm" component={AdminProductFormScreen} />
     </Stack.Navigator>
   );
 }
