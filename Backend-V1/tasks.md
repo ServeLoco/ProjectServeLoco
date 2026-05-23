@@ -361,16 +361,16 @@ Tests:
 
 ## Phase B-16: Admin Dashboard And Reports
 
-- [ ] Implement `GET /admin/dashboard`.
-- [ ] Implement `GET /admin/reports/sales`.
-- [ ] Require admin auth.
-- [ ] Return dashboard metrics: today orders, today sales, pending orders, delivered orders, cash total, UPI total, pending payment total.
-- [ ] Return metrics under both `metrics` and top-level aliases during early integration if simple.
-- [ ] Return sales report values for today, week, and month.
-- [ ] Return latest orders with pending orders first.
-- [ ] Return product alerts for unavailable products and optional low stock values.
-- [ ] Return top 5 products by quantity sold or sales amount.
-- [ ] Include current shop open status.
+- [x] Implement `GET /admin/dashboard`.
+- [x] Implement `GET /admin/reports/sales`.
+- [x] Require admin auth.
+- [x] Return dashboard metrics: today orders, today sales, pending orders, delivered orders, cash total, UPI total, pending payment total.
+- [x] Return metrics under both `metrics` and top-level aliases during early integration if simple.
+- [x] Return sales report values for today, week, and month.
+- [x] Return latest orders with pending orders first.
+- [x] Return product alerts for unavailable products and optional low stock values.
+- [x] Return top 5 products by quantity sold or sales amount.
+- [x] Include current shop open status.
 
 Behavior comment: Admin dashboard should load useful operations data with one request even when there are no orders. Empty metrics should be zero, not missing fields.
 

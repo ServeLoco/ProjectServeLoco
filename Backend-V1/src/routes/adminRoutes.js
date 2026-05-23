@@ -1,4 +1,4 @@
-const { login, me, getUsers, setBlockStatus, setTrustStatus } = require('../controllers/adminController');
+const { login, me, getUsers, setBlockStatus, setTrustStatus, getDashboard, getSalesReport } = require('../controllers/adminController');
 const { createCategory, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct } = require('../controllers/productController');
 const { requireAdmin } = require('../middleware/authMiddleware');
@@ -113,5 +113,7 @@ router.post('/categories', requireAdmin, validate(categorySchema), asyncHandler(
 router.put('/categories/:id', requireAdmin, validate(categorySchema), asyncHandler(updateCategory));
 router.post('/products', requireAdmin, validate(productSchema), asyncHandler(createProduct));
 router.put('/products/:id', requireAdmin, validate(productSchema), asyncHandler(updateProduct));
+router.get('/dashboard', requireAdmin, asyncHandler(getDashboard));
+router.get('/reports/sales', requireAdmin, asyncHandler(getSalesReport));
 
 module.exports = router;
