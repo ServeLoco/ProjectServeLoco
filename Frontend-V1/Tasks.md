@@ -593,46 +593,46 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-30: UI State QA
 
-- [ ] Test loading states for all API screens.
-- [ ] Test empty states for products, cart, orders, admin orders, products, and customers.
-- [ ] Test API error states and retry buttons.
-- [ ] Test disabled buttons for unavailable products, invalid cart, blocked customer, shop closed, and submitting forms.
-- [ ] Test inline validation on auth, checkout, profile, product form, and settings forms.
-- [ ] Test confirmation modals for logout, cancel order, delete product, block customer, and unblock customer.
-- [ ] Test no text overlaps on common Android and iOS screen sizes.
-- [ ] Test keyboard does not cover auth, checkout, profile, product form, and settings inputs.
-- [ ] Test all visible UI text has no emoji characters.
-- [ ] Test tap feedback on buttons, icon buttons, touchable cards, and tabs.
-- [ ] Test screen entry animations do not cause layout jumps.
-- [ ] Test list stagger animations remain fast on long product and order lists.
-- [ ] Test sticky mini-cart slide in/out.
-- [ ] Test `Add` to quantity stepper transition.
-- [ ] Test modal fade/scale animation on all confirmation modals.
-- [ ] Test validation error fade/shake on auth, checkout, profile, product form, and settings.
-- [ ] Test skeleton shimmer or pulse on loading states.
-- [ ] Test reduced-motion behavior when supported.
+- [x] Test loading states for all API screens.
+- [x] Test empty states for products, cart, orders, admin orders, products, and customers.
+- [x] Test API error states and retry buttons.
+- [x] Test disabled buttons for unavailable products, invalid cart, blocked customer, shop closed, and submitting forms.
+- [x] Test inline validation on auth, checkout, profile, product form, and settings forms.
+- [x] Test confirmation modals for logout, cancel order, delete product, block customer, and unblock customer.
+- [x] Test no text overlaps on common Android and iOS screen sizes.
+- [x] Test keyboard does not cover auth, checkout, profile, product form, and settings inputs.
+- [x] Test all visible UI text has no emoji characters.
+- [x] Test tap feedback on buttons, icon buttons, touchable cards, and tabs.
+- [x] Test screen entry animations do not cause layout jumps.
+- [x] Test list stagger animations remain fast on long product and order lists.
+- [x] Test sticky mini-cart slide in/out.
+- [x] Test `Add` to quantity stepper transition.
+- [x] Test modal fade/scale animation on all confirmation modals.
+- [x] Test validation error fade/shake on auth, checkout, profile, product form, and settings.
+- [x] Test skeleton shimmer or pulse on loading states.
+- [x] Test reduced-motion behavior when supported.
 
 ### Task F-31: Final Acceptance Checklist
 
-- [ ] React Native app uses JavaScript only.
-- [ ] Customer can preview Home for 10 seconds, then login or signup.
-- [ ] Customer can browse categories and products.
-- [ ] Customer can search and filter products.
-- [ ] Customer can add items, update quantity, and view Cart.
-- [ ] Customer can checkout with address and GPS success/failure handling.
-- [ ] Customer can view order confirmation.
-- [ ] Customer can view order history and details.
-- [ ] Customer can cancel eligible orders before delivered.
-- [ ] Customer can view and edit profile.
-- [ ] Admin can access hidden admin entry and login.
-- [ ] Admin can view dashboard metrics and latest orders.
-- [ ] Admin can update order status and payment status.
-- [ ] Admin can manage products and images.
-- [ ] Admin can trust/block customers.
-- [ ] Admin can update shop settings and active offer.
-- [ ] Frontend does not expose database credentials.
-- [ ] Frontend imports no direct database SDKs.
-- [ ] Product prices and order totals cannot be spoofed from the client UI.
-- [ ] Every screen follows the App Animation Standard.
-- [ ] Animations are subtle, fast, and do not block input.
-- [ ] No continuous decorative animation exists except auth illustration float and loading skeleton shimmer.
+- [x] React Native app uses JavaScript only.
+- [x] Customer can preview Home for 10 seconds, then login or signup.
+- [x] Customer can browse categories and products.
+- [x] Customer can search and filter products.
+- [x] Customer can add items, update quantity, and view Cart.
+- [x] Customer can checkout with address and GPS success/failure handling.
+- [x] Customer can view order confirmation.
+- [x] Customer can view order history and details.
+- [x] Customer can cancel eligible orders before delivered.
+- [x] Customer can view and edit profile.
+- [x] Admin can access hidden admin entry and login.
+- [x] Admin can view dashboard metrics and latest orders.
+- [x] Admin can update order status and payment status.
+- [x] Admin can manage products and images.
+- [x] Admin can trust/block customers.
+- [x] Admin can update shop settings and active offer.
+- [x] Frontend does not expose database credentials.
+- [x] Frontend imports no direct database SDKs.
+- [x] Product prices and order totals cannot be spoofed from the client UI.
+- [x] Every screen follows the App Animation Standard.
+- [x] Animations are subtle, fast, and do not block input.
+- [x] No continuous decorative animation exists except auth illustration float and loading skeleton shimmer.
