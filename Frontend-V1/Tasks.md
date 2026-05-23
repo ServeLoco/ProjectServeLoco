@@ -232,19 +232,19 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-10: Categories Screen
 
-- [ ] Build header with title, search shortcut, and cart badge.
-- [ ] Add two-column category grid.
-- [ ] Include `Cold Drinks`, `Snacks`, `Fast Food`, `Groceries`, `Desserts`, and `Daily Essentials`.
-- [ ] Each card shows image/icon, category name, and product count when available.
-- [ ] Add `Packed Items` / `Fast Food` segmented control.
-- [ ] Add optional horizontal subcategory chips from backend data.
-- [ ] Add `View All Products` button.
-- [ ] Add sticky mini-cart when cart has items.
-- [ ] Add empty category state with `No items found` and `View All Products`.
-- [ ] Add loading skeleton grid.
-- [ ] Animate category cards with row-by-row staggered entry.
-- [ ] Animate segmented control and chip active states.
-- [ ] Animate empty category state with fade plus upward slide.
+- [x] Build header with title, search shortcut, and cart badge.
+- [x] Add two-column category grid.
+- [x] Include `Cold Drinks`, `Snacks`, `Fast Food`, `Groceries`, `Desserts`, and `Daily Essentials`.
+- [x] Each card shows image/icon, category name, and product count when available.
+- [x] Add `Packed Items` / `Fast Food` segmented control.
+- [x] Add optional horizontal subcategory chips from backend data.
+- [x] Add `View All Products` button.
+- [x] Add sticky mini-cart when cart has items.
+- [x] Add empty category state with `No items found` and `View All Products`.
+- [x] Add loading skeleton grid.
+- [x] Animate category cards with row-by-row staggered entry.
+- [x] Animate segmented control and chip active states.
+- [x] Animate empty category state with fade plus upward slide.
 
 ### Task F-11: Product List And Search Results Screen
 
