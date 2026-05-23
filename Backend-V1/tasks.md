@@ -376,19 +376,19 @@ Behavior comment: Admin dashboard should load useful operations data with one re
 
 ## Phase B-17: Admin Orders
 
-- [ ] Implement `GET /admin/orders`.
-- [ ] Implement `GET /admin/orders/:id`.
-- [ ] Implement `PATCH /admin/orders/:id/status`.
-- [ ] Implement `PATCH /admin/orders/:id/payment`.
-- [ ] Require admin auth.
-- [ ] Support filters for `status`, `paymentStatus`, `paymentMethod`, search, and date range if practical.
-- [ ] Accept query aliases such as `payment_status`, `payment_method`, `dateFrom`, `dateTo`, `from`, and `to` if filters are implemented.
-- [ ] Sort pending orders first by default, then newest.
-- [ ] Return customer phone, WhatsApp, address, GPS/map URL, total, payment status, and order status.
-- [ ] Accept status values `Pending`, `Preparing`, `Out for Delivery`, `Delivered`, and `Cancelled`.
-- [ ] Accept payment values `Pending`, `Paid`, `Failed`, and `Refunded`.
-- [ ] Validate illegal status transitions if business rules require it.
-- [ ] Return the updated order after status/payment changes.
+- [x] Implement `GET /admin/orders`.
+- [x] Implement `GET /admin/orders/:id`.
+- [x] Implement `PATCH /admin/orders/:id/status`.
+- [x] Implement `PATCH /admin/orders/:id/payment`.
+- [x] Require admin auth.
+- [x] Support filters for `status`, `paymentStatus`, `paymentMethod`, search, and date range if practical.
+- [x] Accept query aliases such as `payment_status`, `payment_method`, `dateFrom`, `dateTo`, `from`, and `to` if filters are implemented.
+- [x] Sort pending orders first by default, then newest.
+- [x] Return customer phone, WhatsApp, address, GPS/map URL, total, payment status, and order status.
+- [x] Accept status values `Pending`, `Preparing`, `Out for Delivery`, `Delivered`, and `Cancelled`.
+- [x] Accept payment values `Pending`, `Paid`, `Failed`, and `Refunded`.
+- [x] Validate illegal status transitions if business rules require it.
+- [x] Return the updated order after status/payment changes.
 
 Behavior comment: Admin order detail has separate buttons for status and payment updates. Each endpoint should update only its own field and leave the other fields unchanged.
 

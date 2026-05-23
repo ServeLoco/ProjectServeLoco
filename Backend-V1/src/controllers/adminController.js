@@ -128,6 +128,138 @@ const getSalesReport = async (req, res) => {
   });
 };
 
+const getAdminOrders = async (req, res) => {
+  const { status, paymentStatus, payment_status, paymentMethod, payment_method, search, dateFrom, from, dateTo, to, page = 1, limit = 20 } = req.query;
+
+  let query = 'SELECT * FROM orders WHERE 1=1';
+  const params = [];
+
+  const finalStatus = status;
+  const finalPaymentStatus = paymentStatus || payment_status;
+  const finalPaymentMethod = paymentMethod || payment_method;
+  const finalDateFrom = dateFrom || from;
+  const finalDateTo = dateTo || to;
+
+  if (finalStatus) {
+    query += ' AND status = ?';
+    params.push(finalStatus);
+  }
+
+  if (finalPaymentStatus) {
+    query += ' AND payment_status = ?';
+    params.push(finalPaymentStatus);
+  }
+
+  if (finalPaymentMethod) {
+    query += ' AND payment_method = ?';
+    params.push(finalPaymentMethod);
+  }
+
+  if (search) {
+    query += ' AND (order_number LIKE ? OR customer_name LIKE ? OR phone LIKE ?)';
+    const searchWildcard = `%${search}%`;
+    params.push(searchWildcard, searchWildcard, searchWildcard);
+  }
+
+  if (finalDateFrom) {
+    query += ' AND DATE(created_at) >= ?';
+    params.push(finalDateFrom);
+  }
+
+  if (finalDateTo) {
+    query += ' AND DATE(created_at) <= ?';
+    params.push(finalDateTo);
+  }
+
+  // Count total for pagination
+  const [countRows] = await pool.query(query.replace('SELECT *', 'SELECT COUNT(*) as total'), params);
+  const total = countRows[0].total;
+
+  // Sorting and Pagination
+  query += ` ORDER BY (status = 'Pending') DESC, created_at DESC LIMIT ? OFFSET ?`;
+  const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+  params.push(parseInt(limit, 10), offset);
+
+  const [rows] = await pool.query(query, params);
+
+  res.status(200).json({
+    data: rows,
+    pagination: {
+      total,
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      totalPages: Math.ceil(total / parseInt(limit, 10))
+    }
+  });
+};
+
+const getAdminOrderById = async (req, res) => {
+  const { id } = req.params;
+
+  const [orderRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+  if (orderRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+  }
+
+  const order = orderRows[0];
+  const [itemsRows] = await pool.query('SELECT * FROM order_items WHERE order_id = ?', [id]);
+
+  order.items = itemsRows;
+  res.status(200).json({ data: order });
+};
+
+const updateOrderStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status, cancel_reason } = req.body;
+
+  const validStatuses = ['Pending', 'Preparing', 'Out for Delivery', 'Delivered', 'Canceled', 'Cancelled'];
+  if (!status || !validStatuses.includes(status)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Valid status is required' });
+  }
+
+  const [orderRows] = await pool.query('SELECT status FROM orders WHERE id = ?', [id]);
+  if (orderRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+  }
+  const currentStatus = orderRows[0].status;
+
+  if (currentStatus === 'Delivered' || currentStatus === 'Canceled' || currentStatus === 'Cancelled') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot change status of a delivered or canceled order' });
+  }
+
+  await pool.query('UPDATE orders SET status = ?, cancel_reason = ? WHERE id = ?', [status, cancel_reason || null, id]);
+  const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+
+  res.status(200).json({ message: 'Order status updated successfully', order: updatedRows[0] });
+};
+
+const updateOrderPayment = async (req, res) => {
+  const { id } = req.params;
+  const { payment_status, paymentStatus } = req.body;
+
+  const finalStatus = payment_status || paymentStatus;
+  const validPaymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'];
+  
+  if (!finalStatus || !validPaymentStatuses.includes(finalStatus)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Valid payment status is required' });
+  }
+
+  const [orderRows] = await pool.query('SELECT status FROM orders WHERE id = ?', [id]);
+  if (orderRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+  }
+  const currentStatus = orderRows[0].status;
+
+  if (currentStatus === 'Canceled' || currentStatus === 'Cancelled') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot update payment for a canceled order' });
+  }
+
+  await pool.query('UPDATE orders SET payment_status = ? WHERE id = ?', [finalStatus, id]);
+  const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+
+  res.status(200).json({ message: 'Order payment status updated successfully', order: updatedRows[0] });
+};
+
 module.exports = {
   login,
   me,
@@ -135,5 +267,9 @@ module.exports = {
   setBlockStatus,
   setTrustStatus,
   getDashboard,
-  getSalesReport
+  getSalesReport,
+  getAdminOrders,
+  getAdminOrderById,
+  updateOrderStatus,
+  updateOrderPayment
 };
