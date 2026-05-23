@@ -60,7 +60,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 <div class="container">
 
 <h1>ProjectServeLoco — Complete Call Flow &amp; Architecture Documentation</h1>
-<p class="subtitle">Generated from graphify knowledge graph: 694 nodes, 953 edges, 79 communities. Commit: 56852ea</p>
+<p class="subtitle">Generated from graphify knowledge graph: 694 nodes, 953 edges, 80 communities. Commit: 5388e6c</p>
 
 <div class="nav">
     <a href="#overview">Architecture Overview</a>
@@ -74,10 +74,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
     <a href="#community-8">Community 8</a>
     <a href="#community-30">Community 30</a>
     <a href="#community-0">Community 0</a>
-    <a href="#community-15">Community 15</a>
     <a href="#community-1">Community 1</a>
     <a href="#community-17">Community 17</a>
     <a href="#community-47">Community 47</a>
+    <a href="#community-12">Community 12</a>
     <a href="#other">Other</a>
 </div>
 
@@ -108,28 +108,28 @@ flowchart LR
     class COMMUNITY_30_9CA2CA2E module;
     COMMUNITY_0_B056AD3D("Community 0<br/><small>15 nodes</small>")
     class COMMUNITY_0_B056AD3D module;
-    COMMUNITY_15_4BECAAD7("Community 15<br/><small>14 nodes</small>")
-    class COMMUNITY_15_4BECAAD7 module;
     COMMUNITY_1_3073A0DB("Community 1<br/><small>13 nodes</small>")
     class COMMUNITY_1_3073A0DB module;
     COMMUNITY_17_648F8D7C("Community 17<br/><small>11 nodes</small>")
     class COMMUNITY_17_648F8D7C module;
     COMMUNITY_47_59D66A55("Community 47<br/><small>11 nodes</small>")
     class COMMUNITY_47_59D66A55 module;
-    OTHER_D0941E68("Other<br/><small>222 nodes</small>")
+    COMMUNITY_12_82F13F05("Community 12<br/><small>10 nodes</small>")
+    class COMMUNITY_12_82F13F05 module;
+    OTHER_D0941E68("Other<br/><small>226 nodes</small>")
     class OTHER_D0941E68 module;
-    OTHER_D0941E68 -->|imports x17| TESTS_FIXTURES_B84B1DCC
-    OTHER_D0941E68 -->|imports x16| COMMUNITY_30_9CA2CA2E
-    OTHER_D0941E68 -->|imports x11| COMMUNITY_17_648F8D7C
+    OTHER_D0941E68 -->|imports x20| COMMUNITY_30_9CA2CA2E
+    OTHER_D0941E68 -->|imports x20| TESTS_FIXTURES_B84B1DCC
+    OTHER_D0941E68 -->|imports x16| COMMUNITY_17_648F8D7C
+    OTHER_D0941E68 -->|imports x11| COMMUNITY_47_59D66A55
     COMMUNITY_45_E4978FE7 -->|imports x11| COMMUNITY_17_648F8D7C
-    OTHER_D0941E68 -->|imports x9| COMMUNITY_47_59D66A55
     OTHER_D0941E68 -->|re exports x8| COMMUNITY_45_E4978FE7
     TESTS_FIXTURES_B84B1DCC -->|imports x7| COMMUNITY_17_648F8D7C
     COMMUNITY_0_B056AD3D -->|contains x7| OTHER_D0941E68
-    OTHER_D0941E68 -->|re exports x6| COMMUNITY_15_4BECAAD7
     COMMUNITY_17_648F8D7C -->|re exports x6| COMMUNITY_45_E4978FE7
     COMMUNITY_30_9CA2CA2E -->|imports x5| TESTS_FIXTURES_B84B1DCC
     COMMUNITY_30_9CA2CA2E -->|imports x5| COMMUNITY_45_E4978FE7
+    TESTS_FIXTURES_B84B1DCC -->|imports x5| COMMUNITY_30_9CA2CA2E
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -146,7 +146,7 @@ flowchart LR
     <h4>Architecture Layers</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
-      <tr><td>Extraction Pipeline</td><td>7</td><td><code>23, 25</code></td></tr><tr><td>Graph Build</td><td>63</td><td><code>2, 22, 4, 24, 77, 36, 37</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>28</td><td><code>6</code></td></tr><tr><td>Serving API</td><td>180</td><td><code>28, 14, 20, 7</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>29</td><td><code>43, 66, 69</code></td></tr><tr><td>Community 45</td><td>44</td><td><code>45</code></td></tr><tr><td>Community 13</td><td>24</td><td><code>13</code></td></tr><tr><td>Community 8</td><td>17</td><td><code>8</code></td></tr><tr><td>Community 30</td><td>16</td><td><code>30</code></td></tr><tr><td>Community 0</td><td>15</td><td><code>0</code></td></tr><tr><td>Community 15</td><td>14</td><td><code>15</code></td></tr><tr><td>Community 1</td><td>13</td><td><code>1</code></td></tr><tr><td>Community 17</td><td>11</td><td><code>17</code></td></tr><tr><td>Community 47</td><td>11</td><td><code>47</code></td></tr><tr><td>Other</td><td>222</td><td><code>12, 49, 18, 16, 21, 35, 5, 3, 71, 74, 44, 46, 72, 73, 48, 50, 75, 51, 52, 54, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 67, 68, 70, 78, 26, 53, 10, 11, 27, 29, 31, 32, 33, 34, 55, 9, 19, 38, 39, 40, 41, 42, 76</code></td></tr>
+      <tr><td>Extraction Pipeline</td><td>7</td><td><code>23, 25</code></td></tr><tr><td>Graph Build</td><td>63</td><td><code>2, 22, 4, 24, 77, 36, 37</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>28</td><td><code>6</code></td></tr><tr><td>Serving API</td><td>180</td><td><code>28, 14, 20, 7</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>29</td><td><code>43, 66, 69</code></td></tr><tr><td>Community 45</td><td>44</td><td><code>45</code></td></tr><tr><td>Community 13</td><td>24</td><td><code>13</code></td></tr><tr><td>Community 8</td><td>17</td><td><code>8</code></td></tr><tr><td>Community 30</td><td>16</td><td><code>30</code></td></tr><tr><td>Community 0</td><td>15</td><td><code>0</code></td></tr><tr><td>Community 1</td><td>13</td><td><code>1</code></td></tr><tr><td>Community 17</td><td>11</td><td><code>17</code></td></tr><tr><td>Community 47</td><td>11</td><td><code>47</code></td></tr><tr><td>Community 12</td><td>10</td><td><code>12</code></td></tr><tr><td>Other</td><td>226</td><td><code>15, 49, 18, 16, 21, 35, 5, 3, 71, 74, 44, 46, 72, 73, 48, 50, 75, 51, 52, 54, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 67, 68, 70, 78, 79, 26, 53, 10, 11, 27, 29, 31, 32, 33, 34, 55, 9, 19, 38, 39, 40, 41, 42, 76</code></td></tr>
     </table>
   </div>
   <div class="card">
@@ -158,7 +158,7 @@ flowchart LR
   <div class="card">
     <h4>Graph Report Highlights</h4>
     <ul>
-      <li>694 nodes · 953 edges · 79 communities (44 shown, 35 thin omitted)</li>
+      <li>694 nodes · 953 edges · 80 communities (44 shown, 36 thin omitted)</li>
       <li>Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.8)</li>
       <li>Token cost: 0 input · 0 output</li>
       <li>1. `colors` - 29 edges</li>
@@ -2977,211 +2977,8 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 12. Community 15 ====== -->
-<h2 id="community-15">12. Community 15</h2>
-<p>Community 15 groups implementation around frontend, components, indexjs, textbutton, mostly in components/TextButton/TextButton.js, components/AdminMetricCard/AdminMetricCard.js, components/IconButton/IconButton.js. This section covers 14 nodes and 13 internal edges; the diagram shows only representative relationships to stay readable.</p>
-
-<div class="mermaid">
-%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
-flowchart LR
-    %% Section: Community 15 (14 nodes, 13 edges)
-    subgraph community_15_components_AdminMetricCard_AdminMet_00df1150["components/AdminMetricCard/AdminMetricCard.js"]
-        frontend_v1_src_components_adminmetriccard_admin_6806cb05("AdminMetricCard.js")
-        adminmetriccard_adminmetriccard_adminmetriccard_6c0a4f0d("AdminMetricCard()<br/><small>components/AdminMetricCard/AdminMetricCard.js</small>")
-        adminmetriccard_adminmetriccard_styles_020333a3("styles<br/><small>components/AdminMetricCard/AdminMetricCard.js</small>")
-    end
-    subgraph community_15_components_IconButton_IconButton_js_132217cb["components/IconButton/IconButton.js"]
-        frontend_v1_src_components_iconbutton_iconbutton_95d791f2("IconButton.js")
-        iconbutton_iconbutton_iconbutton_ab648238("IconButton()<br/><small>components/IconButton/IconButton.js</small>")
-        iconbutton_iconbutton_styles_6f760bf5("styles<br/><small>components/IconButton/IconButton.js</small>")
-    end
-    subgraph community_15_components_TextButton_TextButton_js_60faa2db["components/TextButton/TextButton.js"]
-        frontend_v1_src_components_textbutton_textbutton_c37fcfab("TextButton.js")
-        textbutton_textbutton_textbutton_20b29754("TextButton()<br/><small>components/TextButton/TextButton.js</small>")
-        textbutton_textbutton_styles_de3e12d5("styles<br/><small>components/TextButton/TextButton.js</small>")
-    end
-    subgraph community_15_src_theme_layout_js_5b23644a["src/theme/layout.js"]
-        theme_layout_layout_b746cb58("layout<br/><small>src/theme/layout.js</small>")
-        frontend_v1_src_theme_layout_js_34ca3fda("layout.js")
-    end
-    frontend_v1_src_components_adminmetriccard_index_2cc0f642("index.js")
-    frontend_v1_src_components_iconbutton_index_js_15a2c22f("index.js")
-    frontend_v1_src_components_textbutton_index_js_452cddf4("index.js")
-    frontend_v1_src_components_textbutton_textbutton_c37fcfab -->|imports| theme_layout_layout_b746cb58
-    frontend_v1_src_components_adminmetriccard_admin_6806cb05 -->|imports| theme_layout_layout_b746cb58
-    frontend_v1_src_components_iconbutton_iconbutton_95d791f2 -->|imports| theme_layout_layout_b746cb58
-    class frontend_v1_src_components_adminmetriccard_admin_6806cb05 klass;
-    class adminmetriccard_adminmetriccard_adminmetriccard_6c0a4f0d function;
-    class adminmetriccard_adminmetriccard_styles_020333a3 function;
-    class frontend_v1_src_components_iconbutton_iconbutton_95d791f2 klass;
-    class iconbutton_iconbutton_iconbutton_ab648238 function;
-    class iconbutton_iconbutton_styles_6f760bf5 function;
-    class frontend_v1_src_components_textbutton_textbutton_c37fcfab klass;
-    class textbutton_textbutton_textbutton_20b29754 function;
-    class textbutton_textbutton_styles_de3e12d5 function;
-    class theme_layout_layout_b746cb58 function;
-    class frontend_v1_src_theme_layout_js_34ca3fda module;
-    class frontend_v1_src_components_adminmetriccard_index_2cc0f642 module;
-    class frontend_v1_src_components_iconbutton_index_js_15a2c22f module;
-    class frontend_v1_src_components_textbutton_index_js_452cddf4 module;
-    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
-    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
-    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
-    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
-    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
-    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
-    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
-    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
-    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
-</div>
-
-<h3>Call Details</h3>
-<table class="call-table">
-<tr>
-  <th style="width:5%">#</th>
-  <th style="width:28%">Node</th>
-  <th style="width:10%">Type</th>
-  <th style="width:17%">Caller</th>
-  <th style="width:20%">Callees</th>
-  <th style="width:20%">Description</th>
-</tr>
-<tr>
-  <td>1</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/TextButton/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in components/TextButton/index.js.</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td><code>TextButton.js</code><br><small style="color:var(--muted)">components/TextButton/TextButton.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
-  <td>TextButton.js node in components/TextButton/TextButton.js.</td>
-</tr>
-<tr>
-  <td>3</td>
-  <td><code>TextButton()</code><br><small style="color:var(--muted)">components/TextButton/TextButton.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>TextButton() node in components/TextButton/TextButton.js.</td>
-</tr>
-<tr>
-  <td>4</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/TextButton/TextButton.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/TextButton/TextButton.js.</td>
-</tr>
-<tr>
-  <td>5</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/AdminMetricCard/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in components/AdminMetricCard/index.js.</td>
-</tr>
-<tr>
-  <td>6</td>
-  <td><code>AdminMetricCard.js</code><br><small style="color:var(--muted)">components/AdminMetricCard/AdminMetricCard.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
-  <td>AdminMetricCard.js node in components/AdminMetricCard/AdminMetricCard.js.</td>
-</tr>
-<tr>
-  <td>7</td>
-  <td><code>AdminMetricCard()</code><br><small style="color:var(--muted)">components/AdminMetricCard/AdminMetricCard.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>AdminMetricCard() node in components/AdminMetricCard/AdminMetricCard.js.</td>
-</tr>
-<tr>
-  <td>8</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/AdminMetricCard/AdminMetricCard.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/AdminMetricCard/AdminMetricCard.js.</td>
-</tr>
-<tr>
-  <td>9</td>
-  <td><code>IconButton.js</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
-  <td>IconButton.js node in components/IconButton/IconButton.js.</td>
-</tr>
-<tr>
-  <td>10</td>
-  <td><code>IconButton()</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>IconButton() node in components/IconButton/IconButton.js.</td>
-</tr>
-<tr>
-  <td>11</td>
-  <td><code>styles</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>styles node in components/IconButton/IconButton.js.</td>
-</tr>
-<tr>
-  <td>12</td>
-  <td><code>index.js</code><br><small style="color:var(--muted)">components/IconButton/index.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>index.js node in components/IconButton/index.js.</td>
-</tr>
-<tr>
-  <td>13</td>
-  <td><code>layout.js</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>layout.js node in src/theme/layout.js.</td>
-</tr>
-<tr>
-  <td>14</td>
-  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>AdminMetricCard.js</code><br><small style="color:var(--muted)">components/AdminMetricCard/AdminMetricCard.js</small><br><code>IconButton.js</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small><br><code>TextButton.js</code><br><small style="color:var(--muted)">components/TextButton/TextButton.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>layout node in src/theme/layout.js.</td>
-</tr>
-</table>
-
-<div class="grid">
-  <div class="card">
-    <h4>Key Files</h4>
-    <table style="width:100%;font-size:0.85rem;">
-      <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>components/AdminMetricCard/AdminMetricCard.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>components/IconButton/IconButton.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>components/TextButton/TextButton.js</code></td><td>3 nodes</td></tr>
-<tr><td><code>src/theme/layout.js</code></td><td>2 nodes</td></tr>
-<tr><td><code>components/AdminMetricCard/index.js</code></td><td>1 nodes</td></tr>
-<tr><td><code>components/IconButton/index.js</code></td><td>1 nodes</td></tr>
-<tr><td><code>components/TextButton/index.js</code></td><td>1 nodes</td></tr>
-    </table>
-  </div>
-  <div class="card">
-    <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x7, re exports x3, imports x3. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
-  </div>
-</div>
-<hr>
-
-<!-- ====== 13. Community 1 ====== -->
-<h2 id="community-1">13. Community 1</h2>
+<!-- ====== 12. Community 1 ====== -->
+<h2 id="community-1">12. Community 1</h2>
 <p>Community 1 groups implementation around backend, planmd, admin, customer, mostly in Backend-V1/PLAN.md. This section covers 13 nodes and 12 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -3368,8 +3165,8 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 14. Community 17 ====== -->
-<h2 id="community-17">14. Community 17</h2>
+<!-- ====== 13. Community 17 ====== -->
+<h2 id="community-17">13. Community 17</h2>
 <p>Community 17 groups implementation around frontend, theme, typographyjs, indexjs, mostly in src/theme/typography.js, components/AnimatedCartBadge/AnimatedCartBadge.js, src/theme/index.js. This section covers 11 nodes and 14 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -3536,8 +3333,8 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 15. Community 47 ====== -->
-<h2 id="community-47">15. Community 47</h2>
+<!-- ====== 14. Community 47 ====== -->
+<h2 id="community-47">14. Community 47</h2>
 <p>Community 47 groups implementation around frontend, components, billsummary, billsummaryjs, mostly in components/BillSummary/BillSummary.js, components/TextInputField/TextInputField.js, src/theme/borders.js. This section covers 11 nodes and 12 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -3705,64 +3502,43 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 16. Other ====== -->
-<h2 id="other">16. Other</h2>
-<p>Other groups implementation around frontend, screens, indexjs, planmd, mostly in Backend-V1/PLAN.md, PLAN.md, ios/ServeLoco/AppDelegate.swift. This section covers 222 nodes and 201 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<!-- ====== 15. Community 12 ====== -->
+<h2 id="community-12">15. Community 12</h2>
+<p>Community 12 groups implementation around planmd, serveloco, plan, frontend, mostly in PLAN.md. This section covers 10 nodes and 9 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Other (222 nodes, 201 edges)
-    subgraph other_ios_ServeLoco_AppDelegate_swift_aa6bf384["ios/ServeLoco/AppDelegate.swift"]
-        serveloco_appdelegate_reactnativedelegate_b2a602fb("ReactNativeDelegate<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
-        serveloco_appdelegate_appdelegate_bb724627("AppDelegate<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
-        serveloco_appdelegate_appdelegate_application_03b1d46e("application()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
-        serveloco_appdelegate_reactnativedelegate_source_e5a761ef("sourceURL()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
-        serveloco_appdelegate_reactnativedelegate_bundle_d744837a("bundleURL()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
-    end
-    subgraph other_External_generated_9e8859fa["External / generated"]
-        rctdefaultreactnativefactorydelegate_857e27af("RCTDefaultReactNativeFactoryDelegate")
-        uiapplicationdelegate_161d94bd("UIApplicationDelegate")
-        uiresponder_f547e2b5("UIResponder")
-    end
-    frontend_v1_eslintrc_js_6176581b(".eslintrc.js")
-    frontend_v1_prettierrc_js_9b5a2a17(".prettierrc.js")
-    frontend_v1_android_settings_gradle_0f4480c0("settings.gradle")
-    frontend_v1_babel_config_js_0df40d33("babel.config.js")
-    frontend_v1_src_components_animatedfadeslide_ind_9322af2d("index.js")
-    frontend_v1_src_components_categorycard_category_c75a2954("CategoryCard.js")
-    frontend_v1_src_components_productcard_productca_d6b9385e("ProductCard.js")
-    frontend_v1_src_components_productimage_index_js_813935ab("index.js")
-    frontend_v1_src_components_quantitystepper_index_2f9ba1f1("index.js")
-    frontend_v1_src_components_staggeredlist_stagger_5a9a651a("StaggeredList.js")
-    serveloco_appdelegate_appdelegate_bb724627 -->|method| serveloco_appdelegate_appdelegate_application_03b1d46e
-    serveloco_appdelegate_appdelegate_application_03b1d46e -->|calls| serveloco_appdelegate_reactnativedelegate_b2a602fb
-    serveloco_appdelegate_reactnativedelegate_b2a602fb -->|method| serveloco_appdelegate_reactnativedelegate_source_e5a761ef
-    serveloco_appdelegate_reactnativedelegate_b2a602fb -->|method| serveloco_appdelegate_reactnativedelegate_bundle_d744837a
-    serveloco_appdelegate_reactnativedelegate_source_e5a761ef -->|calls| serveloco_appdelegate_reactnativedelegate_bundle_d744837a
-    frontend_v1_src_components_categorycard_category_c75a2954 -->|imports| frontend_v1_src_components_productimage_index_js_813935ab
-    frontend_v1_src_components_animatedfadeslide_ind_9322af2d -->|imports| frontend_v1_src_components_staggeredlist_stagger_5a9a651a
-    frontend_v1_src_components_productimage_index_js_813935ab -->|imports| frontend_v1_src_components_productcard_productca_d6b9385e
-    frontend_v1_src_components_productcard_productca_d6b9385e -->|imports| frontend_v1_src_components_quantitystepper_index_2f9ba1f1
-    %% Omitted for readability: 204 nodes, 0 edges
-    class serveloco_appdelegate_reactnativedelegate_b2a602fb klass;
-    class serveloco_appdelegate_appdelegate_bb724627 klass;
-    class serveloco_appdelegate_appdelegate_application_03b1d46e function;
-    class serveloco_appdelegate_reactnativedelegate_source_e5a761ef function;
-    class serveloco_appdelegate_reactnativedelegate_bundle_d744837a function;
-    class rctdefaultreactnativefactorydelegate_857e27af klass;
-    class uiapplicationdelegate_161d94bd klass;
-    class uiresponder_f547e2b5 klass;
-    class frontend_v1_eslintrc_js_6176581b module;
-    class frontend_v1_prettierrc_js_9b5a2a17 module;
-    class frontend_v1_android_settings_gradle_0f4480c0 function;
-    class frontend_v1_babel_config_js_0df40d33 module;
-    class frontend_v1_src_components_animatedfadeslide_ind_9322af2d module;
-    class frontend_v1_src_components_categorycard_category_c75a2954 klass;
-    class frontend_v1_src_components_productcard_productca_d6b9385e klass;
-    class frontend_v1_src_components_productimage_index_js_813935ab module;
-    class frontend_v1_src_components_quantitystepper_index_2f9ba1f1 module;
-    class frontend_v1_src_components_staggeredlist_stagger_5a9a651a klass;
+    %% Section: Community 12 (10 nodes, 9 edges)
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69("Frontend Home Dashboard Design<br/><small>PLAN.md</small>")
+    plan_md_b6b16249("PLAN.md")
+    projectserveloco_plan_serveloco_plan_5ed0bc65("ServeLoco Plan<br/><small>PLAN.md</small>")
+    projectserveloco_plan_visual_direction_c500756b("Visual Direction<br/><small>PLAN.md</small>")
+    projectserveloco_plan_top_section_9c6a1fa6("Top Section<br/><small>PLAN.md</small>")
+    projectserveloco_plan_toggle_button_67c63822("Toggle Button<br/><small>PLAN.md</small>")
+    projectserveloco_plan_bottom_navigation_9b361e7c("Bottom Navigation<br/><small>PLAN.md</small>")
+    projectserveloco_plan_category_cards_1319d701("Category Cards<br/><small>PLAN.md</small>")
+    projectserveloco_plan_combo_deals_412ec57a("Combo Deals<br/><small>PLAN.md</small>")
+    projectserveloco_plan_offer_banner_b5ba6ff3("Offer Banner<br/><small>PLAN.md</small>")
+    plan_md_b6b16249 -->|contains| projectserveloco_plan_serveloco_plan_5ed0bc65
+    projectserveloco_plan_serveloco_plan_5ed0bc65 -->|contains| projectserveloco_plan_frontend_home_dashboard_de_44ecaa69
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_visual_direction_c500756b
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_top_section_9c6a1fa6
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_toggle_button_67c63822
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_offer_banner_b5ba6ff3
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_category_cards_1319d701
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_combo_deals_412ec57a
+    projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 -->|contains| projectserveloco_plan_bottom_navigation_9b361e7c
+    class projectserveloco_plan_frontend_home_dashboard_de_44ecaa69 concept;
+    class plan_md_b6b16249 concept;
+    class projectserveloco_plan_serveloco_plan_5ed0bc65 concept;
+    class projectserveloco_plan_visual_direction_c500756b concept;
+    class projectserveloco_plan_top_section_9c6a1fa6 concept;
+    class projectserveloco_plan_toggle_button_67c63822 concept;
+    class projectserveloco_plan_bottom_navigation_9b361e7c concept;
+    class projectserveloco_plan_category_cards_1319d701 concept;
+    class projectserveloco_plan_combo_deals_412ec57a concept;
+    class projectserveloco_plan_offer_banner_b5ba6ff3 concept;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -3863,6 +3639,188 @@ flowchart LR
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
   <td>Documentation node describing Bottom Navigation.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>PLAN.md</code></td><td>10 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x9. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 16. Other ====== -->
+<h2 id="other">16. Other</h2>
+<p>Other groups implementation around frontend, screens, indexjs, components, mostly in Backend-V1/PLAN.md, ios/ServeLoco/AppDelegate.swift, screens/OrderDetailScreen/OrderDetailScreen.js. This section covers 226 nodes and 211 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Other (226 nodes, 211 edges)
+    subgraph other_ios_ServeLoco_AppDelegate_swift_aa6bf384["ios/ServeLoco/AppDelegate.swift"]
+        serveloco_appdelegate_reactnativedelegate_b2a602fb("ReactNativeDelegate<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        serveloco_appdelegate_appdelegate_bb724627("AppDelegate<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        serveloco_appdelegate_appdelegate_application_03b1d46e("application()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        serveloco_appdelegate_reactnativedelegate_source_e5a761ef("sourceURL()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+        serveloco_appdelegate_reactnativedelegate_bundle_d744837a("bundleURL()<br/><small>ios/ServeLoco/AppDelegate.swift</small>")
+    end
+    subgraph other_External_generated_9e8859fa["External / generated"]
+        rctdefaultreactnativefactorydelegate_857e27af("RCTDefaultReactNativeFactoryDelegate")
+        uiapplicationdelegate_161d94bd("UIApplicationDelegate")
+    end
+    frontend_v1_src_components_adminmetriccard_admin_6806cb05("AdminMetricCard.js")
+    frontend_v1_src_components_animatedfadeslide_ind_9322af2d("index.js")
+    frontend_v1_src_components_categorycard_category_c75a2954("CategoryCard.js")
+    frontend_v1_src_components_chip_chip_js_937db2d1("Chip.js")
+    frontend_v1_src_components_iconbutton_iconbutton_95d791f2("IconButton.js")
+    frontend_v1_src_components_productcard_productca_d6b9385e("ProductCard.js")
+    frontend_v1_src_components_productimage_index_js_813935ab("index.js")
+    frontend_v1_src_components_quantitystepper_index_2f9ba1f1("index.js")
+    frontend_v1_src_components_staggeredlist_stagger_5a9a651a("StaggeredList.js")
+    frontend_v1_src_components_textbutton_textbutton_c37fcfab("TextButton.js")
+    theme_layout_layout_b746cb58("layout<br/><small>src/theme/layout.js</small>")
+    serveloco_appdelegate_appdelegate_bb724627 -->|method| serveloco_appdelegate_appdelegate_application_03b1d46e
+    serveloco_appdelegate_appdelegate_application_03b1d46e -->|calls| serveloco_appdelegate_reactnativedelegate_b2a602fb
+    serveloco_appdelegate_reactnativedelegate_b2a602fb -->|method| serveloco_appdelegate_reactnativedelegate_source_e5a761ef
+    serveloco_appdelegate_reactnativedelegate_b2a602fb -->|method| serveloco_appdelegate_reactnativedelegate_bundle_d744837a
+    serveloco_appdelegate_reactnativedelegate_source_e5a761ef -->|calls| serveloco_appdelegate_reactnativedelegate_bundle_d744837a
+    frontend_v1_src_components_categorycard_category_c75a2954 -->|imports| frontend_v1_src_components_productimage_index_js_813935ab
+    frontend_v1_src_components_categorycard_category_c75a2954 -->|imports| theme_layout_layout_b746cb58
+    frontend_v1_src_components_textbutton_textbutton_c37fcfab -->|imports| theme_layout_layout_b746cb58
+    frontend_v1_src_components_animatedfadeslide_ind_9322af2d -->|imports| frontend_v1_src_components_staggeredlist_stagger_5a9a651a
+    frontend_v1_src_components_productimage_index_js_813935ab -->|imports| frontend_v1_src_components_productcard_productca_d6b9385e
+    frontend_v1_src_components_adminmetriccard_admin_6806cb05 -->|imports| theme_layout_layout_b746cb58
+    frontend_v1_src_components_chip_chip_js_937db2d1 -->|imports| theme_layout_layout_b746cb58
+    frontend_v1_src_components_iconbutton_iconbutton_95d791f2 -->|imports| theme_layout_layout_b746cb58
+    frontend_v1_src_components_productcard_productca_d6b9385e -->|imports| frontend_v1_src_components_quantitystepper_index_2f9ba1f1
+    frontend_v1_src_components_productcard_productca_d6b9385e -->|imports| theme_layout_layout_b746cb58
+    %% Omitted for readability: 208 nodes, 0 edges
+    class serveloco_appdelegate_reactnativedelegate_b2a602fb klass;
+    class serveloco_appdelegate_appdelegate_bb724627 klass;
+    class serveloco_appdelegate_appdelegate_application_03b1d46e function;
+    class serveloco_appdelegate_reactnativedelegate_source_e5a761ef function;
+    class serveloco_appdelegate_reactnativedelegate_bundle_d744837a function;
+    class rctdefaultreactnativefactorydelegate_857e27af klass;
+    class uiapplicationdelegate_161d94bd klass;
+    class frontend_v1_src_components_adminmetriccard_admin_6806cb05 klass;
+    class frontend_v1_src_components_animatedfadeslide_ind_9322af2d module;
+    class frontend_v1_src_components_categorycard_category_c75a2954 klass;
+    class frontend_v1_src_components_chip_chip_js_937db2d1 klass;
+    class frontend_v1_src_components_iconbutton_iconbutton_95d791f2 klass;
+    class frontend_v1_src_components_productcard_productca_d6b9385e klass;
+    class frontend_v1_src_components_productimage_index_js_813935ab module;
+    class frontend_v1_src_components_quantitystepper_index_2f9ba1f1 module;
+    class frontend_v1_src_components_staggeredlist_stagger_5a9a651a klass;
+    class frontend_v1_src_components_textbutton_textbutton_c37fcfab klass;
+    class theme_layout_layout_b746cb58 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">components/TextButton/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in components/TextButton/index.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>TextButton.js</code><br><small style="color:var(--muted)">components/TextButton/TextButton.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
+  <td>TextButton.js node in components/TextButton/TextButton.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>TextButton()</code><br><small style="color:var(--muted)">components/TextButton/TextButton.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>TextButton() node in components/TextButton/TextButton.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>styles</code><br><small style="color:var(--muted)">components/TextButton/TextButton.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>styles node in components/TextButton/TextButton.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>IconButton.js</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
+  <td>IconButton.js node in components/IconButton/IconButton.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>IconButton()</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>IconButton() node in components/IconButton/IconButton.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>styles</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>styles node in components/IconButton/IconButton.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>index.js</code><br><small style="color:var(--muted)">components/IconButton/index.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>index.js node in components/IconButton/index.js.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>layout.js</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>layout.js node in src/theme/layout.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>layout</code><br><small style="color:var(--muted)">src/theme/layout.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>AdminMetricCard.js</code><br><small style="color:var(--muted)">components/AdminMetricCard/AdminMetricCard.js</small><br><code>CategoryCard.js</code><br><small style="color:var(--muted)">components/CategoryCard/CategoryCard.js</small><br><code>Chip.js</code><br><small style="color:var(--muted)">components/Chip/Chip.js</small><br>+3 more</td>
+  <td>No direct outbound edge</td>
+  <td>layout node in src/theme/layout.js.</td>
 </tr>
 <tr>
   <td>11</td>
@@ -4032,18 +3990,18 @@ flowchart LR
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
       <tr><td><code>Backend-V1/PLAN.md</code></td><td>40 nodes</td></tr>
-<tr><td><code>PLAN.md</code></td><td>10 nodes</td></tr>
 <tr><td><code>ios/ServeLoco/AppDelegate.swift</code></td><td>6 nodes</td></tr>
 <tr><td><code>screens/OrderDetailScreen/OrderDetailScreen.js</code></td><td>6 nodes</td></tr>
 <tr><td><code>screens/ProductListScreen/ProductListScreen.js</code></td><td>6 nodes</td></tr>
 <tr><td><code>components/OrderCard/OrderCard.js</code></td><td>5 nodes</td></tr>
 <tr><td><code>screens/OrdersScreen/OrdersScreen.js</code></td><td>5 nodes</td></tr>
 <tr><td><code>screens/ProductDetailScreen/ProductDetailScreen.js</code></td><td>5 nodes</td></tr>
+<tr><td><code>components/Chip/Chip.js</code></td><td>4 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x127, re exports x62, imports x4, inherits x3. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x125, re exports x68, imports x6, imports x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -4057,7 +4015,7 @@ flowchart LR
       <tr><td>Nodes</td><td>694</td></tr>
       <tr><td>Edges</td><td>953</td></tr>
       <tr><td>Hyperedges</td><td>0</td></tr>
-      <tr><td>Communities</td><td>79</td></tr>
+      <tr><td>Communities</td><td>80</td></tr>
       <tr><td>Documented Sections</td><td>15</td></tr>
     </table>
   </div>
@@ -4073,7 +4031,7 @@ flowchart LR
 
 <div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
   <p>ProjectServeLoco — Architecture Documentation</p>
-  <p>Generated: 2026-05-23 00:36 UTC · graphify callflow-html</p>
+  <p>Generated: 2026-05-23 00:37 UTC · graphify callflow-html</p>
 </div>
 
 </div><!-- .container -->

@@ -404,13 +404,13 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-20: Admin Entry Screen
 
-- [ ] Create hidden admin route not visible in bottom navigation.
-- [ ] Show minimal ServeLoco admin title.
-- [ ] Add `Admin Login` button.
-- [ ] Add back button to customer app.
-- [ ] If admin session exists, open Admin Dashboard.
-- [ ] Animate admin title and login button fade-in.
-- [ ] Add press scale feedback to `Admin Login`.
+- [x] Create hidden admin route not visible in bottom navigation.
+- [x] Show minimal ServeLoco admin title.
+- [x] Add `Admin Login` button.
+- [x] Add back button to customer app.
+- [x] If admin session exists, open Admin Dashboard.
+- [x] Animate admin title and login button fade-in.
+- [x] Add press scale feedback to `Admin Login`.
 
 ### Task F-21: Admin Login Screen
 

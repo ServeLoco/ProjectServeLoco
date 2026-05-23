@@ -400,40 +400,67 @@
       "norm_label": "task f-31: final acceptance checklist"
     },
     {
+      "label": "EditProfileScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
+      "source_location": "L1",
+      "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js",
+      "community": 68,
+      "norm_label": "editprofilescreen.js"
+    },
+    {
+      "label": "EditProfileScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
+      "source_location": "L21",
+      "id": "editprofilescreen_editprofilescreen_editprofilescreen",
+      "community": 68,
+      "norm_label": "editprofilescreen()"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
+      "source_location": "L174",
+      "id": "editprofilescreen_editprofilescreen_styles",
+      "community": 68,
+      "norm_label": "styles"
+    },
+    {
       "label": "ProfileScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_profilescreen_profilescreen_js",
       "community": 75,
-      "norm_label": "profilescreen.js"
+      "norm_label": "profilescreen.js",
+      "id": "frontend_v1_src_screens_profilescreen_profilescreen_js"
     },
     {
       "label": "ProfileScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L21",
-      "id": "profilescreen_profilescreen_profilescreen",
       "community": 75,
-      "norm_label": "profilescreen()"
+      "norm_label": "profilescreen()",
+      "id": "profilescreen_profilescreen_profilescreen"
     },
     {
       "label": "MenuOption()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L213",
-      "id": "profilescreen_profilescreen_menuoption",
       "community": 75,
-      "norm_label": "menuoption()"
+      "norm_label": "menuoption()",
+      "id": "profilescreen_profilescreen_menuoption"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L229",
-      "id": "profilescreen_profilescreen_styles",
       "community": 75,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "profilescreen_profilescreen_styles"
     },
     {
       "label": "OrderDetailScreen.js",
@@ -1858,33 +1885,6 @@
       "id": "frontend_v1_src_screens_checkoutscreen_index_js"
     },
     {
-      "label": "EditProfileScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
-      "source_location": "L1",
-      "community": 68,
-      "norm_label": "editprofilescreen.js",
-      "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js"
-    },
-    {
-      "label": "EditProfileScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
-      "source_location": "L6",
-      "community": 68,
-      "norm_label": "editprofilescreen()",
-      "id": "editprofilescreen_editprofilescreen_editprofilescreen"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
-      "source_location": "L14",
-      "community": 68,
-      "norm_label": "styles",
-      "id": "editprofilescreen_editprofilescreen_styles"
-    },
-    {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/index.js",
@@ -3122,7 +3122,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 79,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_adminmetriccard_index_js"
     },
@@ -3131,7 +3131,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 79,
       "norm_label": "adminmetriccard.js",
       "id": "frontend_v1_src_components_adminmetriccard_adminmetriccard_js"
     },
@@ -3140,7 +3140,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L16",
-      "community": 15,
+      "community": 79,
       "norm_label": "adminmetriccard()",
       "id": "adminmetriccard_adminmetriccard_adminmetriccard"
     },
@@ -3149,7 +3149,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L37",
-      "community": 15,
+      "community": 79,
       "norm_label": "styles",
       "id": "adminmetriccard_adminmetriccard_styles"
     },
@@ -6684,6 +6684,37 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js",
+      "target": "editprofilescreen_editprofilescreen_editprofilescreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js",
+      "target": "editprofilescreen_editprofilescreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/EditProfileScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_editprofilescreen_index_js",
+      "target": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L6",
       "weight": 1.0,
@@ -6697,9 +6728,9 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L213",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_profilescreen_profilescreen_js",
-      "target": "profilescreen_profilescreen_menuoption",
-      "confidence_score": 1.0
+      "target": "profilescreen_profilescreen_menuoption"
     },
     {
       "relation": "contains",
@@ -8678,37 +8709,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
       "target": "frontend_v1_src_screens_checkoutscreen_index_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js",
-      "target": "editprofilescreen_editprofilescreen_editprofilescreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js",
-      "target": "editprofilescreen_editprofilescreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/EditProfileScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_editprofilescreen_index_js",
-      "target": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js"
     },
     {
       "relation": "re_exports",
@@ -16224,5 +16224,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "56852ea3aef8ec2bf919815a87f9a8e103be97d2"
+  "built_at_commit": "5388e6ca59f6040a252c6e104b1b05b7521c2494"
 }

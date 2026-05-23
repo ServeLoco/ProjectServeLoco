@@ -24,6 +24,14 @@ export const useAuthStore = create(
         
       updateUser: (userData) => 
         set((state) => ({ user: { ...state.user, ...userData } })),
+
+      // Admin Auth State
+      isAdminAuthenticated: false,
+      adminToken: null,
+      setAdminSession: (token) => 
+        set({ adminToken: token, isAdminAuthenticated: true }),
+      adminLogout: () => 
+        set({ adminToken: null, isAdminAuthenticated: false }),
     }),
     {
       name: 'serveloco-customer-auth',
