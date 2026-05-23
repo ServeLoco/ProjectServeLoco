@@ -25,25 +25,42 @@ const me = (req, res) => {
   });
 };
 
-const getUsers = async (req, res) => {
-  const { page, limit } = req.validatedData;
-  const offset = (page - 1) * limit;
+const getAdminCustomers = async (req, res) => {
+  const { search } = req.query;
+  const pageNum = req.validatedData?.page || parseInt(req.query.page, 10) || 1;
+  const limitNum = req.validatedData?.limit || parseInt(req.query.limit, 10) || 20;
+  const offset = (pageNum - 1) * limitNum;
 
-  const [rows] = await pool.query(
-    'SELECT id, name, phone, whatsapp_number, address, trusted, blocked, created_at, updated_at FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?',
-    [limit, offset]
-  );
+  let query = `
+    SELECT u.id, u.name, u.phone, u.whatsapp_number, u.address, u.short_address, u.trusted, u.blocked, u.created_at, u.updated_at,
+    (SELECT COUNT(*) FROM orders o WHERE o.customer_id = u.id) as order_count
+    FROM users u
+    WHERE 1=1
+  `;
+  const params = [];
 
-  const [countRows] = await pool.query('SELECT COUNT(*) as total FROM users');
+  if (search) {
+    query += ' AND (u.name LIKE ? OR u.phone LIKE ? OR u.whatsapp_number LIKE ?)';
+    const searchWildcard = `%${search}%`;
+    params.push(searchWildcard, searchWildcard, searchWildcard);
+  }
+
+  const countQuery = query.replace(/SELECT .* FROM users u/, 'SELECT COUNT(*) as total FROM users u');
+  const [countRows] = await pool.query(countQuery, params);
   const total = countRows[0].total;
+
+  query += ' ORDER BY u.created_at DESC LIMIT ? OFFSET ?';
+  params.push(limitNum, offset);
+
+  const [rows] = await pool.query(query, params);
 
   res.status(200).json({
     data: rows,
     pagination: {
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum)
     }
   });
 };
@@ -263,7 +280,7 @@ const updateOrderPayment = async (req, res) => {
 module.exports = {
   login,
   me,
-  getUsers,
+  getAdminCustomers,
   setBlockStatus,
   setTrustStatus,
   getDashboard,

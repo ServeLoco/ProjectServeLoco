@@ -46,6 +46,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/offers', offerRoutes);
+app.use('/api/admin/images', imageRoutes); // alias for admin panel
 
 // Public health endpoint
 app.get('/health', async (req, res) => {

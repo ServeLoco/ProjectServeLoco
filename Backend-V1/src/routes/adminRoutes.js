@@ -1,4 +1,4 @@
-const { login, me, getUsers, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment } = require('../controllers/adminController');
+const { login, me, getAdminCustomers, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment } = require('../controllers/adminController');
 const { createCategory, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
 const { requireAdmin } = require('../middleware/authMiddleware');
@@ -106,9 +106,11 @@ const productSchema = (req) => {
 // Routes
 router.post('/login', loginLimiter, validate(loginSchema), login);
 router.get('/me', requireAdmin, me);
-router.get('/users', requireAdmin, validate(paginationSchema), asyncHandler(getUsers));
-router.put('/users/:id/block', requireAdmin, validate(blockSchema), asyncHandler(setBlockStatus));
-router.put('/users/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
+router.get('/customers', requireAdmin, validate(paginationSchema), asyncHandler(getAdminCustomers));
+router.put('/customers/:id/block', requireAdmin, validate(blockSchema), asyncHandler(setBlockStatus));
+router.patch('/customers/:id/block', requireAdmin, validate(blockSchema), asyncHandler(setBlockStatus)); // alias to match task
+router.put('/customers/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
+router.patch('/customers/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus)); // alias to match task
 router.post('/categories', requireAdmin, validate(categorySchema), asyncHandler(createCategory));
 router.put('/categories/:id', requireAdmin, validate(categorySchema), asyncHandler(updateCategory));
 

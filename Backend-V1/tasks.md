@@ -429,34 +429,34 @@ Tests:
 
 ## Phase B-19: Admin Images
 
-- [ ] Implement `POST /admin/images`.
-- [ ] Implement `DELETE /admin/images/:id`.
-- [ ] Implement public `GET /images/:id` if image streaming/proxying is used.
-- [ ] Require admin auth for upload/delete.
-- [ ] Accept multipart field name `image`.
-- [ ] Validate allowed MIME types.
-- [ ] Validate maximum file size.
-- [ ] Store image metadata in MongoDB.
-- [ ] Return image object with `id`, `_id`, `url`, `imageUrl`, `image_url`, `filename`, and `mimeType`.
-- [ ] Return an image URL that works from the Android emulator and physical devices on the same network.
-- [ ] Delete or mark deleted image metadata on delete.
-- [ ] Avoid deleting a file still referenced by another product unless reference counting is implemented.
+- [x] Implement `POST /admin/images`.
+- [x] Implement `DELETE /admin/images/:id`.
+- [x] Implement public `GET /images/:id` if image streaming/proxying is used.
+- [x] Require admin auth for upload/delete.
+- [x] Accept multipart field name `image`.
+- [x] Validate allowed MIME types.
+- [x] Validate maximum file size.
+- [x] Store image metadata in MongoDB.
+- [x] Return image object with `id`, `_id`, `url`, `imageUrl`, `image_url`, `filename`, and `mimeType`.
+- [x] Return an image URL that works from the Android emulator and physical devices on the same network.
+- [x] Delete or mark deleted image metadata on delete.
+- [x] Avoid deleting a file still referenced by another product unless reference counting is implemented.
 
 Behavior comment: The frontend image picker sends a `FormData` object with field name `image`. Do not require any extra fields for a basic upload.
 
 ## Phase B-20: Admin Customers
 
-- [ ] Implement `GET /admin/customers`.
-- [ ] Implement `PATCH /admin/customers/:id/trust`.
-- [ ] Implement `PATCH /admin/customers/:id/block`.
-- [ ] Require admin auth.
-- [ ] Support customer search by name, phone, or WhatsApp if query is provided.
-- [ ] Also allow the frontend to fetch all customers with no query and filter locally.
-- [ ] Return name, phone, WhatsApp number, short/full address, trusted status, blocked status, order count if practical.
-- [ ] Accept trust payload `{ trusted: true|false }`.
-- [ ] Accept block payload `{ blocked: true|false }`.
-- [ ] Prevent blocked customers from placing new orders.
-- [ ] Do not delete customers from admin controls in V1.
+- [x] Implement `GET /admin/customers`.
+- [x] Implement `PATCH /admin/customers/:id/trust`.
+- [x] Implement `PATCH /admin/customers/:id/block`.
+- [x] Require admin auth.
+- [x] Support customer search by name, phone, or WhatsApp if query is provided.
+- [x] Also allow the frontend to fetch all customers with no query and filter locally.
+- [x] Return name, phone, WhatsApp number, short/full address, trusted status, blocked status, order count if practical.
+- [x] Accept trust payload `{ trusted: true|false }`.
+- [x] Accept block payload `{ blocked: true|false }`.
+- [x] Prevent blocked customers from placing new orders.
+- [x] Do not delete customers from admin controls in V1.
 
 Behavior comment: Trust/block controls are operational toggles. They should be idempotent, so sending the same value twice should still return success.
 
