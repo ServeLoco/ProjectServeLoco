@@ -477,7 +477,7 @@
       "source_file": "Frontend-V1/App.js",
       "source_location": "L1",
       "id": "frontend_v1_app_js",
-      "community": 35,
+      "community": 13,
       "norm_label": "app.js"
     },
     {
@@ -486,7 +486,7 @@
       "source_file": "Frontend-V1/App.js",
       "source_location": "L7",
       "id": "frontend_v1_app_app",
-      "community": 35,
+      "community": 13,
       "norm_label": "app()"
     },
     {
@@ -495,7 +495,7 @@
       "source_file": "Frontend-V1/index.js",
       "source_location": "L1",
       "id": "frontend_v1_index_js",
-      "community": 35,
+      "community": 13,
       "norm_label": "index.js"
     },
     {
@@ -522,7 +522,7 @@
       "source_file": "Frontend-V1/app.json",
       "source_location": "L1",
       "id": "frontend_v1_app_json",
-      "community": 35,
+      "community": 13,
       "norm_label": "app.json"
     },
     {
@@ -531,7 +531,7 @@
       "source_file": "Frontend-V1/app.json",
       "source_location": "L2",
       "id": "frontend_v1_app_name",
-      "community": 35,
+      "community": 13,
       "norm_label": "name"
     },
     {
@@ -540,7 +540,7 @@
       "source_file": "Frontend-V1/app.json",
       "source_location": "L3",
       "id": "frontend_v1_app_displayname",
-      "community": 35,
+      "community": 13,
       "norm_label": "displayname"
     },
     {
@@ -567,7 +567,7 @@
       "source_file": "Frontend-V1/__tests__/App.test.js",
       "source_location": "L1",
       "id": "frontend_v1_tests_app_test_js",
-      "community": 35,
+      "community": 13,
       "norm_label": "app.test.js"
     },
     {
@@ -882,7 +882,7 @@
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L1",
       "id": "frontend_v1_src_stores_usecartstore_js",
-      "community": 13,
+      "community": 57,
       "norm_label": "usecartstore.js"
     },
     {
@@ -891,7 +891,7 @@
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L9",
       "id": "stores_usecartstore_usecartstore",
-      "community": 13,
+      "community": 57,
       "norm_label": "usecartstore"
     },
     {
@@ -918,7 +918,7 @@
       "source_file": "Frontend-V1/src/stores/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_stores_index_js",
-      "community": 13,
+      "community": 35,
       "norm_label": "index.js"
     },
     {
@@ -927,7 +927,7 @@
       "source_file": "Frontend-V1/src/stores/useAuthStore.js",
       "source_location": "L1",
       "id": "frontend_v1_src_stores_useauthstore_js",
-      "community": 50,
+      "community": 35,
       "norm_label": "useauthstore.js"
     },
     {
@@ -945,7 +945,7 @@
       "source_file": "Frontend-V1/src/stores/useSettingsStore.js",
       "source_location": "L1",
       "id": "frontend_v1_src_stores_usesettingsstore_js",
-      "community": 13,
+      "community": 35,
       "norm_label": "usesettingsstore.js"
     },
     {
@@ -954,7 +954,7 @@
       "source_file": "Frontend-V1/src/stores/useSettingsStore.js",
       "source_location": "L9",
       "id": "stores_usesettingsstore_usesettingsstore",
-      "community": 13,
+      "community": 35,
       "norm_label": "usesettingsstore"
     },
     {
@@ -981,7 +981,7 @@
       "source_file": "Frontend-V1/src/screens/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_index_js",
-      "community": 50,
+      "community": 17,
       "norm_label": "index.js"
     },
     {
@@ -990,25 +990,124 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "community": 45,
+      "community": 56,
       "norm_label": "admincustomersscreen.js"
+    },
+    {
+      "label": "pickFirst()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L35",
+      "id": "admincustomersscreen_admincustomersscreen_pickfirst",
+      "community": 56,
+      "norm_label": "pickfirst()"
+    },
+    {
+      "label": "asBoolean()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L39",
+      "id": "admincustomersscreen_admincustomersscreen_asboolean",
+      "community": 56,
+      "norm_label": "asboolean()"
+    },
+    {
+      "label": "getCustomersFromResponse()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L49",
+      "id": "admincustomersscreen_admincustomersscreen_getcustomersfromresponse",
+      "community": 56,
+      "norm_label": "getcustomersfromresponse()"
+    },
+    {
+      "label": "normalizeCustomer()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L59",
+      "id": "admincustomersscreen_admincustomersscreen_normalizecustomer",
+      "community": 56,
+      "norm_label": "normalizecustomer()"
+    },
+    {
+      "label": "formatShortAddress()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L93",
+      "id": "admincustomersscreen_admincustomersscreen_formatshortaddress",
+      "community": 56,
+      "norm_label": "formatshortaddress()"
+    },
+    {
+      "label": "getActionError()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L106",
+      "id": "admincustomersscreen_admincustomersscreen_getactionerror",
+      "community": 56,
+      "norm_label": "getactionerror()"
     },
     {
       "label": "AdminCustomersScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
-      "source_location": "L6",
+      "source_location": "L110",
       "id": "admincustomersscreen_admincustomersscreen_admincustomersscreen",
-      "community": 45,
+      "community": 56,
       "norm_label": "admincustomersscreen()"
+    },
+    {
+      "label": "CustomerSkeletonList()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L363",
+      "id": "admincustomersscreen_admincustomersscreen_customerskeletonlist",
+      "community": 56,
+      "norm_label": "customerskeletonlist()"
+    },
+    {
+      "label": "CustomerCard()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L374",
+      "id": "admincustomersscreen_admincustomersscreen_customercard",
+      "community": 56,
+      "norm_label": "customercard()"
+    },
+    {
+      "label": "StatusPill()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L465",
+      "id": "admincustomersscreen_admincustomersscreen_statuspill",
+      "community": 56,
+      "norm_label": "statuspill()"
+    },
+    {
+      "label": "ToggleRow()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L484",
+      "id": "admincustomersscreen_admincustomersscreen_togglerow",
+      "community": 56,
+      "norm_label": "togglerow()"
+    },
+    {
+      "label": "BlockCustomerModal()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L505",
+      "id": "admincustomersscreen_admincustomersscreen_blockcustomermodal",
+      "community": 56,
+      "norm_label": "blockcustomermodal()"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
-      "source_location": "L14",
+      "source_location": "L545",
       "id": "admincustomersscreen_admincustomersscreen_styles",
-      "community": 45,
+      "community": 56,
       "norm_label": "styles"
     },
     {
@@ -1017,7 +1116,7 @@
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_admincustomersscreen_index_js",
-      "community": 45,
+      "community": 56,
       "norm_label": "index.js"
     },
     {
@@ -1044,7 +1143,7 @@
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_orderconfirmationscreen_index_js",
-      "community": 50,
+      "community": 47,
       "norm_label": "index.js"
     },
     {
@@ -1053,7 +1152,7 @@
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js",
-      "community": 50,
+      "community": 47,
       "norm_label": "orderconfirmationscreen.js"
     },
     {
@@ -1062,7 +1161,7 @@
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L14",
       "id": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen",
-      "community": 50,
+      "community": 47,
       "norm_label": "orderconfirmationscreen()"
     },
     {
@@ -1071,7 +1170,7 @@
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L125",
       "id": "orderconfirmationscreen_orderconfirmationscreen_styles",
-      "community": 50,
+      "community": 47,
       "norm_label": "styles"
     },
     {
@@ -1080,7 +1179,7 @@
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_productdetailscreen_index_js",
-      "community": 13,
+      "community": 60,
       "norm_label": "index.js"
     },
     {
@@ -1089,7 +1188,7 @@
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_productdetailscreen_productdetailscreen_js",
-      "community": 13,
+      "community": 60,
       "norm_label": "productdetailscreen.js"
     },
     {
@@ -1098,7 +1197,7 @@
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
       "source_location": "L23",
       "id": "productdetailscreen_productdetailscreen_mock_db",
-      "community": 13,
+      "community": 60,
       "norm_label": "mock_db"
     },
     {
@@ -1107,7 +1206,7 @@
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
       "source_location": "L31",
       "id": "productdetailscreen_productdetailscreen_related_products",
-      "community": 13,
+      "community": 60,
       "norm_label": "related_products"
     },
     {
@@ -1116,7 +1215,7 @@
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
       "source_location": "L36",
       "id": "productdetailscreen_productdetailscreen_productdetailscreen",
-      "community": 13,
+      "community": 60,
       "norm_label": "productdetailscreen()"
     },
     {
@@ -1125,7 +1224,7 @@
       "source_file": "Frontend-V1/src/screens/ProductDetailScreen/ProductDetailScreen.js",
       "source_location": "L233",
       "id": "productdetailscreen_productdetailscreen_styles",
-      "community": 13,
+      "community": 60,
       "norm_label": "styles"
     },
     {
@@ -1134,7 +1233,7 @@
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
-      "community": 13,
+      "community": 57,
       "norm_label": "categoriesscreen.js"
     },
     {
@@ -1143,7 +1242,7 @@
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L31",
       "id": "categoriesscreen_categoriesscreen_mock_categories",
-      "community": 13,
+      "community": 57,
       "norm_label": "mock_categories"
     },
     {
@@ -1152,7 +1251,7 @@
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L40",
       "id": "categoriesscreen_categoriesscreen_mock_chips",
-      "community": 13,
+      "community": 57,
       "norm_label": "mock_chips"
     },
     {
@@ -1161,7 +1260,7 @@
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L42",
       "id": "categoriesscreen_categoriesscreen_categoriesscreen",
-      "community": 13,
+      "community": 57,
       "norm_label": "categoriesscreen()"
     },
     {
@@ -1170,7 +1269,7 @@
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L227",
       "id": "categoriesscreen_categoriesscreen_styles",
-      "community": 13,
+      "community": 57,
       "norm_label": "styles"
     },
     {
@@ -1179,7 +1278,7 @@
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_categoriesscreen_index_js",
-      "community": 13,
+      "community": 57,
       "norm_label": "index.js"
     },
     {
@@ -1188,7 +1287,7 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_profilescreen_index_js",
-      "community": 50,
+      "community": 35,
       "norm_label": "index.js"
     },
     {
@@ -1197,7 +1296,7 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_profilescreen_profilescreen_js",
-      "community": 50,
+      "community": 35,
       "norm_label": "profilescreen.js"
     },
     {
@@ -1206,7 +1305,7 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L22",
       "id": "profilescreen_profilescreen_profilescreen",
-      "community": 50,
+      "community": 35,
       "norm_label": "profilescreen()"
     },
     {
@@ -1215,7 +1314,7 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L214",
       "id": "profilescreen_profilescreen_menuoption",
-      "community": 50,
+      "community": 35,
       "norm_label": "menuoption()"
     },
     {
@@ -1224,7 +1323,7 @@
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L230",
       "id": "profilescreen_profilescreen_styles",
-      "community": 50,
+      "community": 35,
       "norm_label": "styles"
     },
     {
@@ -1296,7 +1395,7 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_ordersscreen_ordersscreen_js",
-      "community": 50,
+      "community": 62,
       "norm_label": "ordersscreen.js"
     },
     {
@@ -1305,7 +1404,7 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L32",
       "id": "ordersscreen_ordersscreen_mock_orders",
-      "community": 50,
+      "community": 62,
       "norm_label": "mock_orders"
     },
     {
@@ -1314,7 +1413,7 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L65",
       "id": "ordersscreen_ordersscreen_filter_chips",
-      "community": 50,
+      "community": 62,
       "norm_label": "filter_chips"
     },
     {
@@ -1323,7 +1422,7 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L67",
       "id": "ordersscreen_ordersscreen_ordersscreen",
-      "community": 50,
+      "community": 62,
       "norm_label": "ordersscreen()"
     },
     {
@@ -1332,7 +1431,7 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L319",
       "id": "ordersscreen_ordersscreen_styles",
-      "community": 50,
+      "community": 62,
       "norm_label": "styles"
     },
     {
@@ -1341,7 +1440,7 @@
       "source_file": "Frontend-V1/src/screens/OrdersScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_ordersscreen_index_js",
-      "community": 50,
+      "community": 62,
       "norm_label": "index.js"
     },
     {
@@ -1413,7 +1512,7 @@
       "source_file": "Frontend-V1/src/screens/HomeScreen/HomeScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_homescreen_homescreen_js",
-      "community": 13,
+      "community": 60,
       "norm_label": "homescreen.js"
     },
     {
@@ -1422,7 +1521,7 @@
       "source_file": "Frontend-V1/src/screens/HomeScreen/HomeScreen.js",
       "source_location": "L29",
       "id": "homescreen_homescreen_mock_categories",
-      "community": 13,
+      "community": 60,
       "norm_label": "mock_categories"
     },
     {
@@ -1431,7 +1530,7 @@
       "source_file": "Frontend-V1/src/screens/HomeScreen/HomeScreen.js",
       "source_location": "L37",
       "id": "homescreen_homescreen_mock_combos",
-      "community": 13,
+      "community": 60,
       "norm_label": "mock_combos"
     },
     {
@@ -1440,7 +1539,7 @@
       "source_file": "Frontend-V1/src/screens/HomeScreen/HomeScreen.js",
       "source_location": "L60",
       "id": "homescreen_homescreen_homescreen",
-      "community": 13,
+      "community": 60,
       "norm_label": "homescreen()"
     },
     {
@@ -1449,7 +1548,7 @@
       "source_file": "Frontend-V1/src/screens/HomeScreen/HomeScreen.js",
       "source_location": "L301",
       "id": "homescreen_homescreen_styles",
-      "community": 13,
+      "community": 60,
       "norm_label": "styles"
     },
     {
@@ -1458,7 +1557,7 @@
       "source_file": "Frontend-V1/src/screens/HomeScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_homescreen_index_js",
-      "community": 13,
+      "community": 60,
       "norm_label": "index.js"
     },
     {
@@ -1467,7 +1566,7 @@
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_editprofilescreen_index_js",
-      "community": 50,
+      "community": 17,
       "norm_label": "index.js"
     },
     {
@@ -1476,7 +1575,7 @@
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js",
-      "community": 50,
+      "community": 17,
       "norm_label": "editprofilescreen.js"
     },
     {
@@ -1485,7 +1584,7 @@
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L21",
       "id": "editprofilescreen_editprofilescreen_editprofilescreen",
-      "community": 50,
+      "community": 17,
       "norm_label": "editprofilescreen()"
     },
     {
@@ -1494,7 +1593,7 @@
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L174",
       "id": "editprofilescreen_editprofilescreen_styles",
-      "community": 50,
+      "community": 17,
       "norm_label": "styles"
     },
     {
@@ -1557,7 +1656,7 @@
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_checkoutscreen_checkoutscreen_js",
-      "community": 13,
+      "community": 35,
       "norm_label": "checkoutscreen.js"
     },
     {
@@ -1566,7 +1665,7 @@
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
       "source_location": "L30",
       "id": "checkoutscreen_checkoutscreen_checkoutscreen",
-      "community": 13,
+      "community": 35,
       "norm_label": "checkoutscreen()"
     },
     {
@@ -1575,7 +1674,7 @@
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/CheckoutScreen.js",
       "source_location": "L254",
       "id": "checkoutscreen_checkoutscreen_styles",
-      "community": 13,
+      "community": 35,
       "norm_label": "styles"
     },
     {
@@ -1584,7 +1683,7 @@
       "source_file": "Frontend-V1/src/screens/CheckoutScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_checkoutscreen_index_js",
-      "community": 13,
+      "community": 35,
       "norm_label": "index.js"
     },
     {
@@ -1593,7 +1692,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_adminproductsscreen_adminproductsscreen_js",
-      "community": 50,
+      "community": 61,
       "norm_label": "adminproductsscreen.js"
     },
     {
@@ -1602,7 +1701,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L28",
       "id": "adminproductsscreen_adminproductsscreen_initialmockproducts",
-      "community": 50,
+      "community": 61,
       "norm_label": "initialmockproducts"
     },
     {
@@ -1611,7 +1710,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L36",
       "id": "adminproductsscreen_adminproductsscreen_categories",
-      "community": 50,
+      "community": 61,
       "norm_label": "categories"
     },
     {
@@ -1620,7 +1719,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L37",
       "id": "adminproductsscreen_adminproductsscreen_availability",
-      "community": 50,
+      "community": 61,
       "norm_label": "availability"
     },
     {
@@ -1629,7 +1728,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L39",
       "id": "adminproductsscreen_adminproductsscreen_adminproductsscreen",
-      "community": 50,
+      "community": 61,
       "norm_label": "adminproductsscreen()"
     },
     {
@@ -1638,7 +1737,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L240",
       "id": "adminproductsscreen_adminproductsscreen_adminproductcard",
-      "community": 50,
+      "community": 61,
       "norm_label": "adminproductcard()"
     },
     {
@@ -1647,7 +1746,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L301",
       "id": "adminproductsscreen_adminproductsscreen_styles",
-      "community": 50,
+      "community": 61,
       "norm_label": "styles"
     },
     {
@@ -1656,7 +1755,7 @@
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_adminproductsscreen_index_js",
-      "community": 50,
+      "community": 61,
       "norm_label": "index.js"
     },
     {
@@ -1701,7 +1800,7 @@
       "source_file": "Frontend-V1/src/screens/CartScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_cartscreen_index_js",
-      "community": 13,
+      "community": 35,
       "norm_label": "index.js"
     },
     {
@@ -1710,7 +1809,7 @@
       "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_cartscreen_cartscreen_js",
-      "community": 13,
+      "community": 35,
       "norm_label": "cartscreen.js"
     },
     {
@@ -1719,7 +1818,7 @@
       "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
       "source_location": "L31",
       "id": "cartscreen_cartscreen_cartscreen",
-      "community": 13,
+      "community": 35,
       "norm_label": "cartscreen()"
     },
     {
@@ -1728,7 +1827,7 @@
       "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
       "source_location": "L270",
       "id": "cartscreen_cartscreen_styles",
-      "community": 13,
+      "community": 35,
       "norm_label": "styles"
     },
     {
@@ -1737,7 +1836,7 @@
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js",
-      "community": 45,
+      "community": 30,
       "norm_label": "adminsettingsscreen.js"
     },
     {
@@ -1746,7 +1845,7 @@
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L6",
       "id": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen",
-      "community": 45,
+      "community": 30,
       "norm_label": "adminsettingsscreen()"
     },
     {
@@ -1755,7 +1854,7 @@
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L14",
       "id": "adminsettingsscreen_adminsettingsscreen_styles",
-      "community": 45,
+      "community": 30,
       "norm_label": "styles"
     },
     {
@@ -1764,7 +1863,7 @@
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_adminsettingsscreen_index_js",
-      "community": 45,
+      "community": 30,
       "norm_label": "index.js"
     },
     {
@@ -1908,7 +2007,7 @@
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_adminentryscreen_adminentryscreen_js",
-      "community": 50,
+      "community": 17,
       "norm_label": "adminentryscreen.js"
     },
     {
@@ -1926,7 +2025,7 @@
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/AdminEntryScreen.js",
       "source_location": "L101",
       "id": "adminentryscreen_adminentryscreen_styles",
-      "community": 50,
+      "community": 17,
       "norm_label": "styles"
     },
     {
@@ -1935,7 +2034,7 @@
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_adminentryscreen_index_js",
-      "community": 50,
+      "community": 17,
       "norm_label": "index.js"
     },
     {
@@ -1980,7 +2079,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_productlistscreen_index_js",
-      "community": 13,
+      "community": 57,
       "norm_label": "index.js"
     },
     {
@@ -1989,7 +2088,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "community": 13,
+      "community": 57,
       "norm_label": "productlistscreen.js"
     },
     {
@@ -1998,7 +2097,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L36",
       "id": "productlistscreen_productlistscreen_mock_products",
-      "community": 13,
+      "community": 57,
       "norm_label": "mock_products"
     },
     {
@@ -2007,7 +2106,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L45",
       "id": "productlistscreen_productlistscreen_category_chips",
-      "community": 13,
+      "community": 57,
       "norm_label": "category_chips"
     },
     {
@@ -2016,7 +2115,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L46",
       "id": "productlistscreen_productlistscreen_sort_options",
-      "community": 13,
+      "community": 57,
       "norm_label": "sort_options"
     },
     {
@@ -2025,7 +2124,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L48",
       "id": "productlistscreen_productlistscreen_productlistscreen",
-      "community": 13,
+      "community": 57,
       "norm_label": "productlistscreen()"
     },
     {
@@ -2034,7 +2133,7 @@
       "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
       "source_location": "L353",
       "id": "productlistscreen_productlistscreen_styles",
-      "community": 13,
+      "community": 57,
       "norm_label": "styles"
     },
     {
@@ -2520,7 +2619,7 @@
       "source_file": "Frontend-V1/src/hooks/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_hooks_index_js",
-      "community": 13,
+      "community": 60,
       "norm_label": "index.js"
     },
     {
@@ -2529,7 +2628,7 @@
       "source_file": "Frontend-V1/src/hooks/useAuthGate.js",
       "source_location": "L1",
       "id": "frontend_v1_src_hooks_useauthgate_js",
-      "community": 13,
+      "community": 60,
       "norm_label": "useauthgate.js"
     },
     {
@@ -2538,7 +2637,7 @@
       "source_file": "Frontend-V1/src/hooks/useAuthGate.js",
       "source_location": "L8",
       "id": "hooks_useauthgate_useauthgate",
-      "community": 13,
+      "community": 60,
       "norm_label": "useauthgate()"
     },
     {
@@ -2565,7 +2664,7 @@
       "source_file": "Frontend-V1/src/components/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_index_js",
-      "community": 45,
+      "community": 43,
       "norm_label": "index.js"
     },
     {
@@ -2610,7 +2709,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_textbutton_index_js",
-      "community": 33,
+      "community": 30,
       "norm_label": "index.js"
     },
     {
@@ -2619,7 +2718,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_textbutton_textbutton_js",
-      "community": 33,
+      "community": 30,
       "norm_label": "textbutton.js"
     },
     {
@@ -2628,7 +2727,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
       "id": "textbutton_textbutton_textbutton",
-      "community": 33,
+      "community": 30,
       "norm_label": "textbutton()"
     },
     {
@@ -2637,7 +2736,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
       "id": "textbutton_textbutton_styles",
-      "community": 33,
+      "community": 30,
       "norm_label": "styles"
     },
     {
@@ -2664,7 +2763,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedQuantitySwitcher/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedquantityswitcher_index_js",
-      "community": 45,
+      "community": 43,
       "norm_label": "index.js"
     },
     {
@@ -2691,7 +2790,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedFadeSlide/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedfadeslide_index_js",
-      "community": 45,
+      "community": 43,
       "norm_label": "index.js"
     },
     {
@@ -2808,7 +2907,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_chip_chip_js",
-      "community": 48,
+      "community": 15,
       "norm_label": "chip.js"
     },
     {
@@ -2817,7 +2916,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L20",
       "id": "chip_chip_chip",
-      "community": 48,
+      "community": 15,
       "norm_label": "chip()"
     },
     {
@@ -2826,7 +2925,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L55",
       "id": "chip_chip_chiprow",
-      "community": 48,
+      "community": 15,
       "norm_label": "chiprow()"
     },
     {
@@ -2835,7 +2934,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L76",
       "id": "chip_chip_styles",
-      "community": 48,
+      "community": 15,
       "norm_label": "styles"
     },
     {
@@ -2844,7 +2943,7 @@
       "source_file": "Frontend-V1/src/components/Chip/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_chip_index_js",
-      "community": 48,
+      "community": 15,
       "norm_label": "index.js"
     },
     {
@@ -2889,7 +2988,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_loadingskeleton_index_js",
-      "community": 45,
+      "community": 48,
       "norm_label": "index.js"
     },
     {
@@ -2898,7 +2997,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_loadingskeleton_loadingskeleton_js",
-      "community": 45,
+      "community": 48,
       "norm_label": "loadingskeleton.js"
     },
     {
@@ -2907,7 +3006,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L16",
       "id": "loadingskeleton_loadingskeleton_loadingskeleton",
-      "community": 45,
+      "community": 48,
       "norm_label": "loadingskeleton()"
     },
     {
@@ -2916,7 +3015,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L57",
       "id": "loadingskeleton_loadingskeleton_skeletoncard",
-      "community": 45,
+      "community": 48,
       "norm_label": "skeletoncard()"
     },
     {
@@ -2925,7 +3024,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L74",
       "id": "loadingskeleton_loadingskeleton_skeletonrow",
-      "community": 45,
+      "community": 48,
       "norm_label": "skeletonrow()"
     },
     {
@@ -2934,7 +3033,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L86",
       "id": "loadingskeleton_loadingskeleton_styles",
-      "community": 45,
+      "community": 48,
       "norm_label": "styles"
     },
     {
@@ -2988,7 +3087,7 @@
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_appscreen_appscreen_js",
-      "community": 45,
+      "community": 21,
       "norm_label": "appscreen.js"
     },
     {
@@ -2997,7 +3096,7 @@
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L19",
       "id": "appscreen_appscreen_appscreen",
-      "community": 45,
+      "community": 21,
       "norm_label": "appscreen()"
     },
     {
@@ -3006,7 +3105,7 @@
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L44",
       "id": "appscreen_appscreen_styles",
-      "community": 45,
+      "community": 21,
       "norm_label": "styles"
     },
     {
@@ -3015,7 +3114,7 @@
       "source_file": "Frontend-V1/src/components/AppScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_appscreen_index_js",
-      "community": 45,
+      "community": 21,
       "norm_label": "index.js"
     },
     {
@@ -3150,7 +3249,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedStickyMiniCart/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedstickyminicart_index_js",
-      "community": 45,
+      "community": 43,
       "norm_label": "index.js"
     },
     {
@@ -3249,7 +3348,7 @@
       "source_file": "Frontend-V1/src/components/ProductCard/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_productcard_index_js",
-      "community": 21,
+      "community": 33,
       "norm_label": "index.js"
     },
     {
@@ -3258,7 +3357,7 @@
       "source_file": "Frontend-V1/src/components/ProductCard/ProductCard.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_productcard_productcard_js",
-      "community": 21,
+      "community": 33,
       "norm_label": "productcard.js"
     },
     {
@@ -3267,7 +3366,7 @@
       "source_file": "Frontend-V1/src/components/ProductCard/ProductCard.js",
       "source_location": "L20",
       "id": "productcard_productcard_productcard",
-      "community": 21,
+      "community": 33,
       "norm_label": "productcard()"
     },
     {
@@ -3276,7 +3375,7 @@
       "source_file": "Frontend-V1/src/components/ProductCard/ProductCard.js",
       "source_location": "L98",
       "id": "productcard_productcard_styles",
-      "community": 21,
+      "community": 33,
       "norm_label": "styles"
     },
     {
@@ -3321,7 +3420,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_segmentedcontrol_index_js",
-      "community": 30,
+      "community": 33,
       "norm_label": "index.js"
     },
     {
@@ -3330,7 +3429,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_segmentedcontrol_segmentedcontrol_js",
-      "community": 30,
+      "community": 33,
       "norm_label": "segmentedcontrol.js"
     },
     {
@@ -3339,7 +3438,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L15",
       "id": "segmentedcontrol_segmentedcontrol_segmentedcontrol",
-      "community": 30,
+      "community": 33,
       "norm_label": "segmentedcontrol()"
     },
     {
@@ -3348,7 +3447,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L54",
       "id": "segmentedcontrol_segmentedcontrol_styles",
-      "community": 30,
+      "community": 33,
       "norm_label": "styles"
     },
     {
@@ -3357,7 +3456,7 @@
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_staggeredlist_staggeredlist_js",
-      "community": 45,
+      "community": 43,
       "norm_label": "staggeredlist.js"
     },
     {
@@ -3366,7 +3465,7 @@
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L6",
       "id": "staggeredlist_staggeredlist_staggeredlist",
-      "community": 45,
+      "community": 43,
       "norm_label": "staggeredlist()"
     },
     {
@@ -3375,7 +3474,7 @@
       "source_file": "Frontend-V1/src/components/StaggeredList/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_staggeredlist_index_js",
-      "community": 45,
+      "community": 43,
       "norm_label": "index.js"
     },
     {
@@ -3420,7 +3519,7 @@
       "source_file": "Frontend-V1/src/components/QuantityStepper/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_quantitystepper_index_js",
-      "community": 45,
+      "community": 33,
       "norm_label": "index.js"
     },
     {
@@ -3717,7 +3816,7 @@
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_spacing_js",
-      "community": 43,
+      "community": 33,
       "norm_label": "spacing.js"
     },
     {
@@ -3726,7 +3825,7 @@
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L6",
       "id": "theme_spacing_spacing",
-      "community": 43,
+      "community": 33,
       "norm_label": "spacing"
     },
     {
@@ -3735,7 +3834,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_typography_js",
-      "community": 45,
+      "community": 48,
       "norm_label": "typography.js"
     },
     {
@@ -3744,7 +3843,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L11",
       "id": "theme_typography_fontfamily",
-      "community": 45,
+      "community": 48,
       "norm_label": "fontfamily"
     },
     {
@@ -3753,7 +3852,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L32",
       "id": "theme_typography_fontweights",
-      "community": 45,
+      "community": 48,
       "norm_label": "fontweights"
     },
     {
@@ -3762,7 +3861,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L40",
       "id": "theme_typography_fontsizes",
-      "community": 45,
+      "community": 48,
       "norm_label": "fontsizes"
     },
     {
@@ -3771,7 +3870,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L53",
       "id": "theme_typography_lineheights",
-      "community": 45,
+      "community": 48,
       "norm_label": "lineheights"
     },
     {
@@ -3780,7 +3879,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
       "id": "theme_typography_typography",
-      "community": 33,
+      "community": 30,
       "norm_label": "typography"
     },
     {
@@ -3789,7 +3888,7 @@
       "source_file": "Frontend-V1/src/theme/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_index_js",
-      "community": 45,
+      "community": 48,
       "norm_label": "index.js"
     },
     {
@@ -3798,7 +3897,7 @@
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_shadows_js",
-      "community": 30,
+      "community": 21,
       "norm_label": "shadows.js"
     },
     {
@@ -3807,7 +3906,7 @@
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L11",
       "id": "theme_shadows_makeshadow",
-      "community": 30,
+      "community": 21,
       "norm_label": "makeshadow()"
     },
     {
@@ -3816,7 +3915,7 @@
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L23",
       "id": "theme_shadows_shadows",
-      "community": 30,
+      "community": 50,
       "norm_label": "shadows"
     },
     {
@@ -3825,7 +3924,7 @@
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_colors_js",
-      "community": 30,
+      "community": 21,
       "norm_label": "colors.js"
     },
     {
@@ -3834,7 +3933,7 @@
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L10",
       "id": "theme_colors_palette",
-      "community": 30,
+      "community": 21,
       "norm_label": "palette"
     },
     {
@@ -3843,7 +3942,7 @@
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L64",
       "id": "theme_colors_colors",
-      "community": 30,
+      "community": 21,
       "norm_label": "colors"
     },
     {
@@ -3852,7 +3951,7 @@
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_motion_js",
-      "community": 45,
+      "community": 48,
       "norm_label": "motion.js"
     },
     {
@@ -3870,7 +3969,7 @@
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L27",
       "id": "theme_motion_easingmodal",
-      "community": 45,
+      "community": 48,
       "norm_label": "easingmodal"
     },
     {
@@ -3879,7 +3978,7 @@
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L33",
       "id": "theme_motion_motionconfig",
-      "community": 45,
+      "community": 48,
       "norm_label": "motionconfig"
     },
     {
@@ -3888,7 +3987,7 @@
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L1",
       "id": "frontend_v1_src_utils_noemojicheck_js",
-      "community": 35,
+      "community": 13,
       "norm_label": "noemojicheck.js"
     },
     {
@@ -3897,7 +3996,7 @@
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L6",
       "id": "utils_noemojicheck_hasemoji",
-      "community": 35,
+      "community": 13,
       "norm_label": "hasemoji()"
     },
     {
@@ -3906,7 +4005,7 @@
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L18",
       "id": "utils_noemojicheck_stripemojis",
-      "community": 35,
+      "community": 13,
       "norm_label": "stripemojis()"
     },
     {
@@ -3915,7 +4014,7 @@
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L29",
       "id": "utils_noemojicheck_assertnoemoji",
-      "community": 35,
+      "community": 13,
       "norm_label": "assertnoemoji()"
     },
     {
@@ -5318,7 +5417,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/index.js",
       "source_location": "L2",
-      "community": 45,
+      "community": 48,
       "norm_label": "themeplaceholder",
       "id": "theme_index_themeplaceholder"
     },
@@ -8556,6 +8655,17 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "frontend_v1_src_api_index_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L4",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -8566,11 +8676,121 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "admincustomersscreen_admincustomersscreen_pickfirst",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "admincustomersscreen_admincustomersscreen_asboolean",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "admincustomersscreen_admincustomersscreen_getcustomersfromresponse",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "admincustomersscreen_admincustomersscreen_normalizecustomer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L93",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "admincustomersscreen_admincustomersscreen_formatshortaddress",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L106",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "admincustomersscreen_admincustomersscreen_getactionerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L6",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
       "target": "admincustomersscreen_admincustomersscreen_admincustomersscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L363",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "admincustomersscreen_admincustomersscreen_customerskeletonlist",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L374",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "admincustomersscreen_admincustomersscreen_customercard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L465",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "admincustomersscreen_admincustomersscreen_statuspill",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L484",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "admincustomersscreen_admincustomersscreen_togglerow",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L505",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "admincustomersscreen_admincustomersscreen_blockcustomermodal",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -8598,11 +8818,22 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
-      "source_location": "L4",
+      "source_location": "L15",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
-      "target": "theme_typography_typography"
+      "target": "loadingskeleton_loadingskeleton_skeletonrow",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "api_admincustomersapi_admincustomersapi",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -8614,6 +8845,94 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
       "target": "theme_colors_colors"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "theme_motion_motionconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "theme_borders_radius",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "theme_shadows_shadows",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "theme_spacing_spacing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js",
+      "target": "theme_typography_typography"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "admincustomersscreen_admincustomersscreen_normalizecustomer",
+      "target": "admincustomersscreen_admincustomersscreen_pickfirst",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L88",
+      "weight": 1.0,
+      "source": "admincustomersscreen_admincustomersscreen_normalizecustomer",
+      "target": "admincustomersscreen_admincustomersscreen_asboolean",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
+      "source_location": "L399",
+      "weight": 1.0,
+      "source": "admincustomersscreen_admincustomersscreen_customercard",
+      "target": "admincustomersscreen_admincustomersscreen_formatshortaddress",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -10750,9 +11069,9 @@
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js",
-      "target": "loadingskeleton_loadingskeleton_skeletonrow",
-      "confidence_score": 1.0
+      "target": "loadingskeleton_loadingskeleton_skeletonrow"
     },
     {
       "relation": "imports",
@@ -18987,5 +19306,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "f2c86f238532d4498d780be608057613c5714f26"
+  "built_at_commit": "75564af2ac56378b166a10817b180064788f408e"
 }

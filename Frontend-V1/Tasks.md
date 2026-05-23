@@ -534,21 +534,21 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-27: Admin Customers Screen
 
-- [ ] Fetch customers through `GET /admin/customers`.
-- [ ] Build header with title and search input.
-- [ ] Customer card shows name, phone, WhatsApp number, short address, trust status, and block status.
-- [ ] Add trust toggle.
-- [ ] Add block toggle.
-- [ ] Add call icon button.
-- [ ] Add WhatsApp icon button.
-- [ ] Blocking requires confirm modal with `Cancel` and `Block Customer`.
-- [ ] Unblocking requires confirm modal with `Cancel` and `Unblock Customer`.
-- [ ] Update trust through `PATCH /admin/customers/:id/trust`.
-- [ ] Update block through `PATCH /admin/customers/:id/block`.
-- [ ] Add loading, empty, and retry states.
-- [ ] Animate customer cards with staggered entry.
-- [ ] Animate trust and block toggle thumb/color changes.
-- [ ] Animate block and unblock confirmation modals with backdrop fade and dialog scale.
+- [x] Fetch customers through `GET /admin/customers`.
+- [x] Build header with title and search input.
+- [x] Customer card shows name, phone, WhatsApp number, short address, trust status, and block status.
+- [x] Add trust toggle.
+- [x] Add block toggle.
+- [x] Add call icon button.
+- [x] Add WhatsApp icon button.
+- [x] Blocking requires confirm modal with `Cancel` and `Block Customer`.
+- [x] Unblocking requires confirm modal with `Cancel` and `Unblock Customer`.
+- [x] Update trust through `PATCH /admin/customers/:id/trust`.
+- [x] Update block through `PATCH /admin/customers/:id/block`.
+- [x] Add loading, empty, and retry states.
+- [x] Animate customer cards with staggered entry.
+- [x] Animate trust and block toggle thumb/color changes.
+- [x] Animate block and unblock confirmation modals with backdrop fade and dialog scale.
 
 ### Task F-28: Admin Settings And Offers Screen
 
