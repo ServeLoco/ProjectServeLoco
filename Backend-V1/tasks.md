@@ -235,19 +235,19 @@ Tests:
 
 ## Phase B-10: Public Settings And Offers
 
-- [ ] Implement `GET /settings`.
-- [ ] Implement `GET /offers/active`.
-- [ ] Return settings fields accepted by the frontend normalizer: `shopOpen` or `shop_open`, `minimumOrderAmount` or `minimum_order_amount`, `deliveryCharge` or `delivery_charge`, `nightCharge` or `night_charge`, support phone/WhatsApp, active offer.
-- [ ] Return only one active public offer.
-- [ ] Return `204` or `{ data: null }` safely when no offer exists; the frontend has fallback offer text.
-- [ ] Include safe fallback values when settings row is missing by creating or loading defaults.
+- [x] Implement `GET /settings`.
+- [x] Implement `GET /offers/active`.
+- [x] Return settings fields accepted by the frontend normalizer: `shopOpen` or `shop_open`, `minimumOrderAmount` or `minimum_order_amount`, `deliveryCharge` or `delivery_charge`, `nightCharge` or `night_charge`, support phone/WhatsApp, active offer.
+- [x] Return only one active public offer.
+- [x] Return `204` or `{ data: null }` safely when no offer exists; the frontend has fallback offer text.
+- [x] Include safe fallback values when settings row is missing by creating or loading defaults.
 
 Behavior comment: Home, Cart, and Checkout depend on settings. This endpoint should be fast, cacheable if needed, and safe for unauthenticated users.
 
 ## Phase B-11: Categories API
 
-- [ ] Implement `GET /categories`.
-- [ ] Support query filters `type` and `storeType`.
+- [x] Implement `GET /categories`.
+- [x] Support query filters `type` and `storeType`.
 - [ ] Use consistent `type` values for mode filtering, for example `packed` and `fast_food`, and map them to frontend labels `Packed Items` and `Fast Food`.
 - [ ] Return active categories only for public requests.
 - [ ] Include product counts.
@@ -259,8 +259,8 @@ Behavior comment: `Packed Items` and `Fast Food` mode in the frontend filters ca
 
 ## Phase B-12: Products API
 
-- [ ] Implement `GET /products`.
-- [ ] Implement `GET /products/:id`.
+- [x] Implement `GET /products`.
+- [x] Implement `GET /products/:id`.
 - [ ] Support query filters used by the frontend: `search`, `q`, `categoryId`, `category`, `storeType`, `featured`, `limit`, `offerId`, `available`, and sort fields if practical.
 - [ ] Treat `offerId=active_offer` as the current active offer filter, because Home navigates to Product List with that value.
 - [ ] Return active/available product data with `id`, `name`, `price`, `unit`, `description`, `category`, `categoryId`, `available`, `imageUrl`, `discountLabel` when applicable.
@@ -279,7 +279,7 @@ Tests:
 
 ## Phase B-13: Cart Calculation
 
-- [ ] Implement `POST /cart/calculate`.
+- [x] Implement `POST /cart/calculate`.
 - [ ] Require customer auth for current frontend compatibility.
 - [ ] Accept payload `{ items: [{ productId, quantity }] }`.
 - [ ] Validate duplicate item ids by merging quantities or rejecting the payload consistently.
@@ -290,12 +290,12 @@ Tests:
 - [ ] Calculate item line totals from database price.
 - [ ] Calculate subtotal.
 - [ ] Apply delivery charge from settings.
-- [ ] Apply free delivery threshold if configured.
-- [ ] Apply night charge during `21:00` to `07:00`.
-- [ ] Apply active offer or discount only if V1 offer rules are implemented.
-- [ ] Return `subtotal`, `deliveryCharge`, `nightCharge`, `discount`, `grandTotal`, `minimumOrder`, `paymentStatus`, and optionally normalized `items`.
-- [ ] Return both `grandTotal` and `total` during integration so every screen and mapper can read the amount.
-- [ ] Include a minimum order warning or failure detail when subtotal is below minimum.
+- [x] Apply free delivery threshold if configured.
+- [x] Apply night charge during `21:00` to `07:00`.
+- [x] Apply active offer or discount only if V1 offer rules are implemented.
+- [x] Return `subtotal`, `deliveryCharge`, `nightCharge`, `discount`, `grandTotal`, `minimumOrder`, `paymentStatus`, and optionally normalized `items`.
+- [x] Return both `grandTotal` and `total` during integration so every screen and mapper can read the amount.
+- [x] Include a minimum order warning or failure detail when subtotal is below minimum.
 
 Behavior comment: The frontend uses cart calculation in Cart and Checkout and disables checkout if this call fails. It must be reliable and must be the source of truth for totals.
 
@@ -310,7 +310,7 @@ Tests:
 
 ## Phase B-14: Order Creation
 
-- [ ] Implement `POST /orders`.
+- [x] Implement `POST /orders`.
 - [ ] Require customer auth.
 - [ ] Accept payload fields: `items`, `deliveryAddress` or `address`, `coordinates`, `paymentMethod`.
 - [ ] Accept coordinates as `{ lat, lng }` and also tolerate `{ latitude, longitude }`.

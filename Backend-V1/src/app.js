@@ -11,6 +11,10 @@ const adminRoutes = require('./routes/adminRoutes');
 const imageRoutes = require('./routes/imageRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const productRoutes = require('./routes/productRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const cartRoutes = require('./routes/cartRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
+const offerRoutes = require('./routes/offerRoutes');
 
 const app = express();
 
@@ -38,6 +42,10 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/offers', offerRoutes);
 
 // Public health endpoint
 app.get('/health', async (req, res) => {
