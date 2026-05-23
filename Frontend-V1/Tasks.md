@@ -267,19 +267,19 @@ Source of truth: `../mainPLAN.md` frontend section.
 
 ### Task F-12: Product Detail Screen
 
-- [ ] Build header with back button and cart badge.
-- [ ] Show large product image with fallback.
-- [ ] Show product name, unit/size, category, price, discount label, and availability.
-- [ ] Show short product description when backend provides it.
-- [ ] Add related or similar products section when available.
-- [ ] Add bottom `Add to Cart` button.
-- [ ] If product is already in cart, show `- quantity +` stepper and `View Cart`.
-- [ ] Disable add controls when unavailable.
-- [ ] Add compact missing-description state.
-- [ ] Animate product image fade-in after load.
-- [ ] Animate product details with slight upward slide.
-- [ ] Animate bottom action bar sliding up when ready.
-- [ ] Animate related products with light horizontal card entry.
+- [x] Build header with back button and cart badge.
+- [x] Show large product image with fallback.
+- [x] Show product name, unit/size, category, price, discount label, and availability.
+- [x] Show short product description when backend provides it.
+- [x] Add related or similar products section when available.
+- [x] Add bottom `Add to Cart` button.
+- [x] If product is already in cart, show `- quantity +` stepper and `View Cart`.
+- [x] Disable add controls when unavailable.
+- [x] Add compact missing-description state.
+- [x] Animate product image fade-in after load.
+- [x] Animate product details with slight upward slide.
+- [x] Animate bottom action bar sliding up when ready.
+- [x] Animate related products with light horizontal card entry.
 
 ### Task F-13: Cart Screen
 

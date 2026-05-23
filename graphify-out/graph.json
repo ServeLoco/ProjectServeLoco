@@ -400,56 +400,110 @@
       "norm_label": "task f-31: final acceptance checklist"
     },
     {
+      "label": "ProductListScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L1",
+      "id": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
+      "community": 74,
+      "norm_label": "productlistscreen.js"
+    },
+    {
+      "label": "MOCK_PRODUCTS",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L34",
+      "id": "productlistscreen_productlistscreen_mock_products",
+      "community": 74,
+      "norm_label": "mock_products"
+    },
+    {
+      "label": "CATEGORY_CHIPS",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L43",
+      "id": "productlistscreen_productlistscreen_category_chips",
+      "community": 74,
+      "norm_label": "category_chips"
+    },
+    {
+      "label": "SORT_OPTIONS",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L44",
+      "id": "productlistscreen_productlistscreen_sort_options",
+      "community": 74,
+      "norm_label": "sort_options"
+    },
+    {
+      "label": "ProductListScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L46",
+      "id": "productlistscreen_productlistscreen_productlistscreen",
+      "community": 74,
+      "norm_label": "productlistscreen()"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L351",
+      "id": "productlistscreen_productlistscreen_styles",
+      "community": 74,
+      "norm_label": "styles"
+    },
+    {
       "label": "CategoriesScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
       "community": 66,
-      "norm_label": "categoriesscreen.js"
+      "norm_label": "categoriesscreen.js",
+      "id": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js"
     },
     {
       "label": "MOCK_CATEGORIES",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L31",
-      "id": "categoriesscreen_categoriesscreen_mock_categories",
       "community": 66,
-      "norm_label": "mock_categories"
+      "norm_label": "mock_categories",
+      "id": "categoriesscreen_categoriesscreen_mock_categories"
     },
     {
       "label": "MOCK_CHIPS",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L40",
-      "id": "categoriesscreen_categoriesscreen_mock_chips",
       "community": 66,
-      "norm_label": "mock_chips"
+      "norm_label": "mock_chips",
+      "id": "categoriesscreen_categoriesscreen_mock_chips"
     },
     {
       "label": "CategoriesScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L42",
-      "id": "categoriesscreen_categoriesscreen_categoriesscreen",
       "community": 66,
-      "norm_label": "categoriesscreen()"
+      "norm_label": "categoriesscreen()",
+      "id": "categoriesscreen_categoriesscreen_categoriesscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L227",
-      "id": "categoriesscreen_categoriesscreen_styles",
       "community": 66,
-      "norm_label": "styles"
+      "norm_label": "styles",
+      "id": "categoriesscreen_categoriesscreen_styles"
     },
     {
       "label": "App.test.js",
       "file_type": "code",
       "source_file": "Frontend-V1/__tests__/App.test.js",
       "source_location": "L1",
-      "community": 43,
+      "community": 35,
       "norm_label": "app.test.js",
       "id": "frontend_v1_tests_app_test_js"
     },
@@ -512,7 +566,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L1",
-      "community": 35,
+      "community": 30,
       "norm_label": "stickyminicart.js",
       "id": "frontend_v1_src_components_stickyminicart_stickyminicart_js"
     },
@@ -521,7 +575,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L20",
-      "community": 35,
+      "community": 30,
       "norm_label": "stickyminicart()",
       "id": "stickyminicart_stickyminicart_stickyminicart"
     },
@@ -530,7 +584,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L55",
-      "community": 35,
+      "community": 30,
       "norm_label": "styles",
       "id": "stickyminicart_stickyminicart_styles"
     },
@@ -737,7 +791,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/App.js",
       "source_location": "L1",
-      "community": 43,
+      "community": 35,
       "norm_label": "app.js",
       "id": "frontend_v1_app_js"
     },
@@ -746,7 +800,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/App.js",
       "source_location": "L7",
-      "community": 45,
+      "community": 35,
       "norm_label": "app()",
       "id": "frontend_v1_app_app"
     },
@@ -1786,33 +1840,6 @@
       "id": "frontend_v1_src_screens_productdetailscreen_index_js"
     },
     {
-      "label": "ProductListScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L1",
-      "community": 74,
-      "norm_label": "productlistscreen.js",
-      "id": "frontend_v1_src_screens_productlistscreen_productlistscreen_js"
-    },
-    {
-      "label": "ProductListScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L6",
-      "community": 74,
-      "norm_label": "productlistscreen()",
-      "id": "productlistscreen_productlistscreen_productlistscreen"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L14",
-      "community": 74,
-      "norm_label": "styles",
-      "id": "productlistscreen_productlistscreen_styles"
-    },
-    {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProductListScreen/index.js",
@@ -2816,7 +2843,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/index.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 21,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_index_js"
     },
@@ -2861,7 +2888,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
-      "community": 35,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textbutton_index_js"
     },
@@ -2870,7 +2897,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
-      "community": 35,
+      "community": 17,
       "norm_label": "textbutton.js",
       "id": "frontend_v1_src_components_textbutton_textbutton_js"
     },
@@ -2879,7 +2906,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
-      "community": 35,
+      "community": 17,
       "norm_label": "textbutton()",
       "id": "textbutton_textbutton_textbutton"
     },
@@ -2888,7 +2915,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
-      "community": 35,
+      "community": 17,
       "norm_label": "styles",
       "id": "textbutton_textbutton_styles"
     },
@@ -2915,7 +2942,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedQuantitySwitcher/index.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedquantityswitcher_index_js"
     },
@@ -2942,7 +2969,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedFadeSlide/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 21,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedfadeslide_index_js"
     },
@@ -3014,7 +3041,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextInputField/index.js",
       "source_location": "L1",
-      "community": 47,
+      "community": 21,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textinputfield_index_js"
     },
@@ -3023,7 +3050,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/index.js",
       "source_location": "L1",
-      "community": 77,
+      "community": 15,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_adminmetriccard_index_js"
     },
@@ -3032,7 +3059,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L1",
-      "community": 77,
+      "community": 15,
       "norm_label": "adminmetriccard.js",
       "id": "frontend_v1_src_components_adminmetriccard_adminmetriccard_js"
     },
@@ -3041,7 +3068,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L16",
-      "community": 77,
+      "community": 15,
       "norm_label": "adminmetriccard()",
       "id": "adminmetriccard_adminmetriccard_adminmetriccard"
     },
@@ -3050,7 +3077,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L37",
-      "community": 77,
+      "community": 15,
       "norm_label": "styles",
       "id": "adminmetriccard_adminmetriccard_styles"
     },
@@ -3104,7 +3131,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedModalView/AnimatedModalView.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 45,
       "norm_label": "animatedmodalview.js",
       "id": "frontend_v1_src_components_animatedmodalview_animatedmodalview_js"
     },
@@ -3122,7 +3149,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedModalView/AnimatedModalView.js",
       "source_location": "L37",
-      "community": 15,
+      "community": 45,
       "norm_label": "styles",
       "id": "animatedmodalview_animatedmodalview_styles"
     },
@@ -3131,7 +3158,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedModalView/index.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedmodalview_index_js"
     },
@@ -3140,7 +3167,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 46,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_loadingskeleton_index_js"
     },
@@ -3149,7 +3176,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 46,
       "norm_label": "loadingskeleton.js",
       "id": "frontend_v1_src_components_loadingskeleton_loadingskeleton_js"
     },
@@ -3158,7 +3185,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L16",
-      "community": 45,
+      "community": 46,
       "norm_label": "loadingskeleton()",
       "id": "loadingskeleton_loadingskeleton_loadingskeleton"
     },
@@ -3167,7 +3194,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L57",
-      "community": 45,
+      "community": 46,
       "norm_label": "skeletoncard()",
       "id": "loadingskeleton_loadingskeleton_skeletoncard"
     },
@@ -3176,7 +3203,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L74",
-      "community": 45,
+      "community": 46,
       "norm_label": "skeletonrow()",
       "id": "loadingskeleton_loadingskeleton_skeletonrow"
     },
@@ -3185,7 +3212,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L86",
-      "community": 45,
+      "community": 46,
       "norm_label": "styles",
       "id": "loadingskeleton_loadingskeleton_styles"
     },
@@ -3194,7 +3221,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/BillSummary/index.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 47,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_billsummary_index_js"
     },
@@ -3329,7 +3356,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/index.js",
       "source_location": "L1",
-      "community": 78,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_confirmmodal_index_js"
     },
@@ -3338,7 +3365,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L1",
-      "community": 78,
+      "community": 30,
       "norm_label": "confirmmodal.js",
       "id": "frontend_v1_src_components_confirmmodal_confirmmodal_js"
     },
@@ -3347,7 +3374,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L27",
-      "community": 78,
+      "community": 30,
       "norm_label": "confirmmodal()",
       "id": "confirmmodal_confirmmodal_confirmmodal"
     },
@@ -3356,7 +3383,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L93",
-      "community": 78,
+      "community": 30,
       "norm_label": "styles",
       "id": "confirmmodal_confirmmodal_styles"
     },
@@ -3365,7 +3392,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/index.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedcartbadge_index_js"
     },
@@ -3374,7 +3401,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 45,
       "norm_label": "animatedcartbadge.js",
       "id": "frontend_v1_src_components_animatedcartbadge_animatedcartbadge_js"
     },
@@ -3392,7 +3419,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L30",
-      "community": 46,
+      "community": 45,
       "norm_label": "styles",
       "id": "animatedcartbadge_animatedcartbadge_styles"
     },
@@ -3437,7 +3464,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L1",
-      "community": 35,
+      "community": 15,
       "norm_label": "iconbutton.js",
       "id": "frontend_v1_src_components_iconbutton_iconbutton_js"
     },
@@ -3446,7 +3473,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L20",
-      "community": 35,
+      "community": 15,
       "norm_label": "iconbutton()",
       "id": "iconbutton_iconbutton_iconbutton"
     },
@@ -3455,7 +3482,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L60",
-      "community": 35,
+      "community": 15,
       "norm_label": "styles",
       "id": "iconbutton_iconbutton_styles"
     },
@@ -3464,7 +3491,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/index.js",
       "source_location": "L1",
-      "community": 35,
+      "community": 15,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_iconbutton_index_js"
     },
@@ -3581,7 +3608,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 21,
       "norm_label": "staggeredlist.js",
       "id": "frontend_v1_src_components_staggeredlist_staggeredlist_js"
     },
@@ -3590,7 +3617,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L6",
-      "community": 45,
+      "community": 21,
       "norm_label": "staggeredlist()",
       "id": "staggeredlist_staggeredlist_staggeredlist"
     },
@@ -3599,7 +3626,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 21,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_staggeredlist_index_js"
     },
@@ -3608,7 +3635,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedTabItem/index.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedtabitem_index_js"
     },
@@ -3617,7 +3644,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedTabItem/AnimatedTabItem.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 45,
       "norm_label": "animatedtabitem.js",
       "id": "frontend_v1_src_components_animatedtabitem_animatedtabitem_js"
     },
@@ -3635,7 +3662,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedTabItem/AnimatedTabItem.js",
       "source_location": "L37",
-      "community": 15,
+      "community": 45,
       "norm_label": "styles",
       "id": "animatedtabitem_animatedtabitem_styles"
     },
@@ -3698,7 +3725,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "animatedsegmentedcontrol.js",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_animatedsegmentedcontrol_js"
     },
@@ -3716,7 +3743,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L66",
-      "community": 30,
+      "community": 45,
       "norm_label": "styles",
       "id": "animatedsegmentedcontrol_animatedsegmentedcontrol_styles"
     },
@@ -3725,7 +3752,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_index_js"
     },
@@ -3806,7 +3833,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ValidationMessage/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_validationmessage_index_js"
     },
@@ -3815,7 +3842,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ValidationMessage/ValidationMessage.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 45,
       "norm_label": "validationmessage.js",
       "id": "frontend_v1_src_components_validationmessage_validationmessage_js"
     },
@@ -3833,7 +3860,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ValidationMessage/ValidationMessage.js",
       "source_location": "L45",
-      "community": 15,
+      "community": 45,
       "norm_label": "styles",
       "id": "validationmessage_validationmessage_styles"
     },
@@ -3842,7 +3869,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L1",
-      "community": 35,
+      "community": 15,
       "norm_label": "layout.js",
       "id": "frontend_v1_src_theme_layout_js"
     },
@@ -3851,7 +3878,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L7",
-      "community": 35,
+      "community": 15,
       "norm_label": "layout",
       "id": "theme_layout_layout"
     },
@@ -3950,7 +3977,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
-      "community": 43,
+      "community": 17,
       "norm_label": "typography",
       "id": "theme_typography_typography"
     },
@@ -4022,7 +4049,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 45,
       "norm_label": "motion.js",
       "id": "frontend_v1_src_theme_motion_js"
     },
@@ -4031,7 +4058,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L24",
-      "community": 15,
+      "community": 45,
       "norm_label": "easing",
       "id": "theme_motion_easing"
     },
@@ -4040,7 +4067,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L27",
-      "community": 15,
+      "community": 45,
       "norm_label": "easingmodal",
       "id": "theme_motion_easingmodal"
     },
@@ -4049,7 +4076,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L33",
-      "community": 15,
+      "community": 45,
       "norm_label": "motionconfig",
       "id": "theme_motion_motionconfig"
     },
@@ -4058,7 +4085,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 35,
       "norm_label": "noemojicheck.js",
       "id": "frontend_v1_src_utils_noemojicheck_js"
     },
@@ -4067,7 +4094,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L6",
-      "community": 45,
+      "community": 35,
       "norm_label": "hasemoji()",
       "id": "utils_noemojicheck_hasemoji"
     },
@@ -4076,7 +4103,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L18",
-      "community": 45,
+      "community": 35,
       "norm_label": "stripemojis()",
       "id": "utils_noemojicheck_stripemojis"
     },
@@ -4085,7 +4112,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L29",
-      "community": 45,
+      "community": 35,
       "norm_label": "assertnoemoji()",
       "id": "utils_noemojicheck_assertnoemoji"
     },
@@ -6585,12 +6612,73 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L34",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_mock_products",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L43",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_category_chips",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_sort_options",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_productlistscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_styles"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productlistscreen_index_js",
+      "target": "frontend_v1_src_screens_productlistscreen_productlistscreen_js"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
-      "target": "categoriesscreen_categoriesscreen_mock_categories",
-      "confidence_score": 1.0
+      "target": "categoriesscreen_categoriesscreen_mock_categories"
     },
     {
       "relation": "contains",
@@ -6598,9 +6686,9 @@
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L40",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
-      "target": "categoriesscreen_categoriesscreen_mock_chips",
-      "confidence_score": 1.0
+      "target": "categoriesscreen_categoriesscreen_mock_chips"
     },
     {
       "relation": "contains",
@@ -8504,37 +8592,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_index_js",
       "target": "frontend_v1_src_screens_productdetailscreen_index_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_productlistscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductListScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productlistscreen_index_js",
-      "target": "frontend_v1_src_screens_productlistscreen_productlistscreen_js"
     },
     {
       "relation": "re_exports",
@@ -16015,5 +16072,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "7ce10e74debc8db2689474206704198288efe902"
+  "built_at_commit": "e0c1009dad51701ca86a5acca97427f4107e7880"
 }

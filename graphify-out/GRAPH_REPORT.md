@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-23)
 
 ## Corpus Check
-- 180 files · ~32,818 words
+- 180 files · ~33,926 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 683 nodes · 942 edges · 79 communities (41 shown, 38 thin omitted)
+- 686 nodes · 945 edges · 77 communities (44 shown, 33 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7ce10e74`
+- Built from commit: `e0c1009d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -83,8 +83,6 @@
 - [[_COMMUNITY_Community 73|Community 73]]
 - [[_COMMUNITY_Community 74|Community 74]]
 - [[_COMMUNITY_Community 75|Community 75]]
-- [[_COMMUNITY_Community 77|Community 77]]
-- [[_COMMUNITY_Community 78|Community 78]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `colors` - 29 edges
@@ -110,7 +108,7 @@
 - `AnimatedFadeSlide()` --calls--> `useReducedMotion()`  [EXTRACTED]
   Frontend-V1/src/components/AnimatedFadeSlide/AnimatedFadeSlide.js → Frontend-V1/src/utils/motionPreferences.js
 
-## Communities (79 total, 38 thin omitted)
+## Communities (77 total, 33 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -161,12 +159,16 @@ Cohesion: 0.04
 Nodes (48): 10. Order Detail, 11. Profile, 12. Edit Profile, 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail (+40 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.17
-Nodes (11): styles, styles, themePlaceholder, easing, easingModal, motionConfig, fontFamily, fontSizes (+3 more)
+Cohesion: 0.16
+Nodes (8): styles, styles, themePlaceholder, layout, fontFamily, fontSizes, fontWeights, lineHeights
 
 ### Community 16 - "Community 16"
 Cohesion: 0.25
 Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
+
+### Community 17 - "Community 17"
+Cohesion: 0.17
+Nodes (4): styles, styles, styles, typography
 
 ### Community 18 - "Community 18"
 Cohesion: 0.28
@@ -189,16 +191,16 @@ Cohesion: 0.09
 Nodes (33): adminAuthApi, adminCustomersApi, adminDashboardApi, adminImagesApi, adminOrdersApi, adminProductsApi, adminSettingsApi, ApiError (+25 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.15
-Nodes (6): styles, styles, styles, colors, palette, shadows
+Cohesion: 0.12
+Nodes (7): styles, styles, styles, styles, colors, palette, shadows
 
 ### Community 35 - "Community 35"
-Cohesion: 0.15
-Nodes (4): styles, styles, styles, layout
+Cohesion: 0.43
+Nodes (3): App(), assertNoEmoji(), hasEmoji()
 
 ### Community 43 - "Community 43"
-Cohesion: 0.15
-Nodes (5): styles, styles, styles, spacing, typography
+Cohesion: 0.16
+Nodes (4): styles, styles, styles, spacing
 
 ### Community 44 - "Community 44"
 Cohesion: 0.33
@@ -206,7 +208,11 @@ Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
 Cohesion: 0.08
-Nodes (18): AnimatedCartBadge(), AnimatedFadeSlide(), AnimatedModalView(), AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), AnimatedStickyMiniCart(), AnimatedTabItem(), App() (+10 more)
+Nodes (19): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles (+11 more)
+
+### Community 46 - "Community 46"
+Cohesion: 0.24
+Nodes (5): styles, LoadingSkeleton(), SkeletonCard(), SkeletonRow(), styles
 
 ### Community 47 - "Community 47"
 Cohesion: 0.22
@@ -240,22 +246,26 @@ Nodes (3): MOCK_CATEGORIES, MOCK_CHIPS, styles
 Cohesion: 0.33
 Nodes (3): MOCK_CATEGORIES, MOCK_COMBOS, styles
 
+### Community 74 - "Community 74"
+Cohesion: 0.29
+Nodes (4): CATEGORY_CHIPS, MOCK_PRODUCTS, SORT_OPTIONS, styles
+
 ## Knowledge Gaps
-- **323 isolated node(s):** `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard`, `App Animation Standard`, `Task F-01: Create React Native App Shell` (+318 more)
+- **326 isolated node(s):** `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard`, `App Animation Standard`, `Task F-01: Create React Native App Shell` (+321 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **38 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **33 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `colors` connect `Community 30` to `Community 35`, `Community 43`, `Community 77`, `Community 45`, `Community 47`, `Community 48`, `Community 17`, `Community 15`, `Community 46`, `Community 49`, `Community 21`, `Community 78`?**
+- **Why does `colors` connect `Community 30` to `Community 35`, `Community 43`, `Community 45`, `Community 46`, `Community 15`, `Community 47`, `Community 17`, `Community 48`, `Community 49`, `Community 21`?**
   _High betweenness centrality (0.021) - this node is a cross-community bridge._
 - **Why does `ServeLoco Main Plan` connect `Community 6` to `Community 14`, `Community 7`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
 - **Why does `Frontend Plan` connect `Community 14` to `Community 6`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **What connects `How To Use This Checklist`, `Global Frontend Rules`, `Folder Structure And Naming Standard` to the rest of the system?**
-  _323 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _326 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
