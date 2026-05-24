@@ -16,8 +16,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { AppScreen, AppHeader, TextInputField, Button } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
-import { adminImagesApi, adminProductsApi } from '../../../api';
-import { normalizeProduct, pickFirst } from '../../../utils';
+import { adminCategoriesApi, adminImagesApi, adminProductsApi } from '../../../api';
+import { asArray, normalizeCategory, normalizeProduct, pickFirst } from '../../../utils';
 
 function getResponseData(response) {
   return response?.product || response?.data?.product || response?.data || response || {};
@@ -64,6 +64,7 @@ export default function AdminProductFormScreen() {
   const [form, setForm] = useState({
     name: '',
     category: '',
+    categoryId: '',
     price: '',
     unit: '',
     description: '',
@@ -73,6 +74,7 @@ export default function AdminProductFormScreen() {
   });
 
   const [errors, setErrors] = useState({});
+  const [categories, setCategories] = useState([]);
   const [pendingDeleteImageIds, setPendingDeleteImageIds] = useState([]);
 
   // Animations
@@ -85,6 +87,10 @@ export default function AdminProductFormScreen() {
   const errorShakeX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    adminCategoriesApi.getCategories()
+      .then(response => setCategories(asArray(response, ['categories']).map(normalizeCategory)))
+      .catch(() => setCategories([]));
+
     if (isEditMode) {
       adminProductsApi.getProduct(productId).then(response => {
         const rawProduct = getResponseData(response);
@@ -92,6 +98,7 @@ export default function AdminProductFormScreen() {
         setForm({
           name: data.name,
           category: data.category,
+          categoryId: String(data.categoryId || ''),
           price: data.price.toString(),
           unit: data.unit,
           description: data.description,
@@ -195,7 +202,7 @@ export default function AdminProductFormScreen() {
   const validate = () => {
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = 'Name is required';
-    if (!form.category.trim()) newErrors.category = 'Category is required';
+    if (!form.categoryId) newErrors.category = 'Category is required';
     if (!form.price.trim()) newErrors.price = 'Price is required';
     else if (isNaN(form.price)) newErrors.price = 'Price must be a valid number';
     if (!form.unit.trim()) newErrors.unit = 'Unit/Size is required';
@@ -217,6 +224,8 @@ export default function AdminProductFormScreen() {
     const payload = {
       name: form.name.trim(),
       category: form.category.trim(),
+      categoryId: form.categoryId,
+      category_id: form.categoryId,
       price: Number(form.price),
       unit: form.unit.trim(),
       description: form.description.trim(),
@@ -329,29 +338,44 @@ export default function AdminProductFormScreen() {
               containerStyle={styles.inputGap}
             />
 
-            <View style={styles.row}>
-              <View style={{ flex: 1, marginRight: spacing.sm }}>
-                <TextInputField
-                  label="Category"
-                  placeholder="e.g. Pizza"
-                  value={form.category}
-                  onChangeText={t => updateField('category', t)}
-                  error={errors.category}
-                  editable={!isSaving}
-                  containerStyle={styles.inputGap}
-                />
+            <View style={styles.categoryField}>
+              <Text style={styles.fieldLabel}>Category</Text>
+              <View style={styles.categoryOptions}>
+                {categories.map(category => {
+                  const selected = form.categoryId === category.id;
+                  return (
+                    <TouchableOpacity
+                      key={category.id}
+                      activeOpacity={0.75}
+                      disabled={isSaving}
+                      style={[styles.categoryOption, selected && styles.categoryOptionActive]}
+                      onPress={() => {
+                        updateField('categoryId', category.id);
+                        updateField('category', category.name);
+                      }}
+                    >
+                      <Text style={[styles.categoryOptionText, selected && styles.categoryOptionTextActive]}>
+                        {category.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-              <View style={{ flex: 1, marginLeft: spacing.sm }}>
-                <TextInputField
-                  label="Price (Rs.)"
-                  placeholder="e.g. 250"
-                  value={form.price}
-                  onChangeText={t => updateField('price', t)}
-                  keyboardType="numeric"
-                  error={errors.price}
-                  editable={!isSaving}
-                  containerStyle={styles.inputGap}
-                />
+              {errors.category ? <Text style={styles.errorText}>{errors.category}</Text> : null}
+            </View>
+
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+              <TextInputField
+                label="Price (Rs.)"
+                placeholder="e.g. 250"
+                value={form.price}
+                onChangeText={t => updateField('price', t)}
+                keyboardType="numeric"
+                error={errors.price}
+                editable={!isSaving}
+                containerStyle={styles.inputGap}
+              />
               </View>
             </View>
 
@@ -514,6 +538,41 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+  },
+  categoryField: {
+    marginBottom: spacing.md,
+  },
+  fieldLabel: {
+    ...typography.label,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  categoryOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  categoryOption: {
+    minHeight: 36,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bgApp,
+  },
+  categoryOptionActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  categoryOptionText: {
+    ...typography.label,
+    color: colors.textSecondary,
+  },
+  categoryOptionTextActive: {
+    color: colors.textInverse,
+    fontWeight: '700',
   },
   textArea: {
     height: 80,

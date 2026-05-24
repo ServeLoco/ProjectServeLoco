@@ -77,6 +77,7 @@ function normalizeCategory(item = {}) {
     imageUrl: pickFirst(item.imageUrl, item.image_url, item.image, null),
     imageUri: pickFirst(item.imageUrl, item.image_url, item.image, null),
     type: pickFirst(item.type, item.storeType, item.store_type, ''),
+    displayOrder: numberOrZero(pickFirst(item.displayOrder, item.display_order, item.order, 0)),
     subcategories: asArray(item.subcategories || item.children || item.chips, ['subcategories']),
   };
 }

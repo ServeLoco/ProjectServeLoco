@@ -16,8 +16,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { AppIcon, AppScreen, AppHeader, Button, ProductImage, SkeletonRow } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
-import { adminProductsApi } from '../../../api';
-import { asArray, normalizeProduct } from '../../../utils';
+import { adminCategoriesApi, adminProductsApi } from '../../../api';
+import { asArray, normalizeCategory, normalizeProduct } from '../../../utils';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -29,8 +29,11 @@ export default function AdminProductsScreen() {
   const navigation = useNavigation();
 
   const [products, setProducts] = useState([]);
+  const [categoryList, setCategoryList] = useState([]);
+  const [categoryDrafts, setCategoryDrafts] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  const [isSavingCategories, setIsSavingCategories] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -48,6 +51,7 @@ export default function AdminProductsScreen() {
 
   useEffect(() => {
     loadProducts();
+    loadCategories();
   }, []);
 
   const loadProducts = () => {
@@ -70,6 +74,19 @@ export default function AdminProductsScreen() {
         setIsError(true);
         setIsLoading(false);
       });
+  };
+
+  const loadCategories = () => {
+    adminCategoriesApi.getCategories()
+      .then(response => {
+        const nextCategories = asArray(response, ['categories']).map(normalizeCategory);
+        setCategoryList(nextCategories);
+        setCategoryDrafts(Object.fromEntries(nextCategories.map(category => [category.id, {
+          name: category.name,
+          displayOrder: String(category.displayOrder || 0),
+        }])));
+      })
+      .catch(() => setCategoryList([]));
   };
 
   const animateList = () => {
@@ -124,7 +141,99 @@ export default function AdminProductsScreen() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
   };
 
-  const categories = ['All', ...new Set(products.map(product => product.category).filter(Boolean))];
+  const updateCategoryDraft = (id, field, value) => {
+    setCategoryDrafts(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value,
+      },
+    }));
+  };
+
+  const buildCategoryPayload = (category, overrides = {}) => {
+    const draft = categoryDrafts[category.id] || {};
+    const name = String(overrides.name ?? draft.name ?? category.name).trim() || category.name;
+    return {
+      name,
+      type: category.type || 'packed',
+      imageId: category.image_id || category.imageId || null,
+      active: category.active !== false && category.active !== 0,
+      displayOrder: Number(overrides.displayOrder ?? draft.displayOrder ?? category.displayOrder ?? 0),
+    };
+  };
+
+  const saveCategory = async (category) => {
+    setIsSavingCategories(true);
+    try {
+      await adminCategoriesApi.updateCategory(category.id, buildCategoryPayload(category));
+      loadCategories();
+    } catch {
+      loadCategories();
+    } finally {
+      setIsSavingCategories(false);
+    }
+  };
+
+  const addCategory = async () => {
+    const maxOrder = categoryList.reduce((max, category) => Math.max(max, Number(category.displayOrder || 0)), 0);
+    setIsSavingCategories(true);
+    try {
+      await adminCategoriesApi.createCategory({
+        name: `New Category ${maxOrder + 1}`,
+        type: 'packed',
+        active: true,
+        displayOrder: maxOrder + 1,
+      });
+      loadCategories();
+    } catch {
+      loadCategories();
+    } finally {
+      setIsSavingCategories(false);
+    }
+  };
+
+  const moveCategory = async (index, direction) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= categoryList.length) return;
+
+    const nextCategories = [...categoryList];
+    [nextCategories[index], nextCategories[targetIndex]] = [nextCategories[targetIndex], nextCategories[index]];
+    const reordered = nextCategories.map((category, orderIndex) => ({
+      ...category,
+      displayOrder: orderIndex + 1,
+    }));
+
+    setCategoryList(reordered);
+    setIsSavingCategories(true);
+    try {
+      await Promise.all(reordered.map(category => (
+        adminCategoriesApi.updateCategory(category.id, buildCategoryPayload(category, {
+          displayOrder: category.displayOrder,
+        }))
+      )));
+      loadCategories();
+    } catch {
+      loadCategories();
+    } finally {
+      setIsSavingCategories(false);
+    }
+  };
+
+  const removeCategory = async (category) => {
+    setIsSavingCategories(true);
+    try {
+      await adminCategoriesApi.deleteCategory(category.id);
+      loadCategories();
+      loadProducts();
+    } catch {
+      loadCategories();
+    } finally {
+      setIsSavingCategories(false);
+    }
+  };
+
+  const categories = ['All', ...new Set(categoryList.map(category => category.name).filter(Boolean))];
   const filteredProducts = products.filter(p => {
     const matchCat = activeCategory === 'All' || p.category === activeCategory;
     const matchAvail = activeAvailability === 'All' || 
@@ -188,6 +297,45 @@ export default function AdminProductsScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        <View style={styles.categoryManager}>
+          <View style={styles.categoryManagerHeader}>
+            <Text style={styles.categoryManagerTitle}>Dashboard Categories</Text>
+            <TouchableOpacity onPress={addCategory} style={styles.categoryAddBtn} disabled={isSavingCategories}>
+              <AppIcon name="add" size={18} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.categoryRows}>
+            {categoryList.map((category, index) => (
+              <View key={category.id} style={styles.categoryRow}>
+                <TextInput
+                  style={styles.categoryNameInput}
+                  value={categoryDrafts[category.id]?.name ?? category.name}
+                  onChangeText={value => updateCategoryDraft(category.id, 'name', value)}
+                  onBlur={() => saveCategory(category)}
+                  editable={!isSavingCategories}
+                />
+                <TextInput
+                  style={styles.categoryOrderInput}
+                  value={categoryDrafts[category.id]?.displayOrder ?? String(category.displayOrder || 0)}
+                  onChangeText={value => updateCategoryDraft(category.id, 'displayOrder', value.replace(/[^0-9]/g, ''))}
+                  onBlur={() => saveCategory(category)}
+                  keyboardType="numeric"
+                  editable={!isSavingCategories}
+                />
+                <TouchableOpacity onPress={() => moveCategory(index, -1)} style={styles.categoryIconBtn} disabled={isSavingCategories || index === 0}>
+                  <AppIcon name="moveUp" size={16} color={index === 0 ? colors.textTertiary : colors.textSecondary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => moveCategory(index, 1)} style={styles.categoryIconBtn} disabled={isSavingCategories || index === categoryList.length - 1}>
+                  <AppIcon name="moveDown" size={16} color={index === categoryList.length - 1 ? colors.textTertiary : colors.textSecondary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => removeCategory(category)} style={styles.categoryIconBtn} disabled={isSavingCategories}>
+                  <AppIcon name="delete" size={16} color={colors.error} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        </View>
       </View>
 
       {isLoading ? (
@@ -384,6 +532,74 @@ const styles = StyleSheet.create({
   chipTextLineActive: {
     color: colors.primary,
     fontWeight: '600',
+  },
+  categoryManager: {
+    marginTop: spacing.md,
+    marginHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  categoryManagerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  categoryManagerTitle: {
+    ...typography.labelLarge,
+    color: colors.textPrimary,
+  },
+  categoryAddBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary + '14',
+    borderWidth: 1,
+    borderColor: colors.primary + '33',
+  },
+  categoryRows: {
+    gap: spacing.sm,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  categoryNameInput: {
+    flex: 1,
+    minHeight: 40,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bgApp,
+    ...typography.body,
+    color: colors.textPrimary,
+  },
+  categoryOrderInput: {
+    width: 48,
+    minHeight: 40,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bgApp,
+    ...typography.body,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  categoryIconBtn: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.sm,
+    backgroundColor: colors.bgApp,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   center: {
     flex: 1,

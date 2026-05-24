@@ -15,6 +15,7 @@ export { ordersApi } from './ordersApi';
 export { settingsApi } from './settingsApi';
 export { offersApi } from './offersApi';
 export { adminAuthApi } from './adminAuthApi';
+export { adminCategoriesApi } from './adminCategoriesApi';
 export { adminDashboardApi } from './adminDashboardApi';
 export { adminProductsApi } from './adminProductsApi';
 export { adminOrdersApi } from './adminOrdersApi';

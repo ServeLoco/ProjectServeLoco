@@ -9,7 +9,7 @@ const getProducts = async (req, res) => {
   const { categoryId, category_id, search, type } = req.query;
   const finalCategoryId = categoryId || category_id;
 
-  let query = 'SELECT p.*, c.name as category_name, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.available = 1';
+  let query = 'SELECT p.*, c.name as category_name, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.available = 1 AND p.deleted = 0';
   const params = [];
 
   if (finalCategoryId) {
@@ -27,7 +27,7 @@ const getProducts = async (req, res) => {
     params.push(`%${search}%`);
   }
 
-  query += ' ORDER BY p.id ASC';
+  query += ' ORDER BY c.display_order ASC, p.id ASC';
 
   const [rows] = await pool.query(query, params);
 
@@ -68,17 +68,25 @@ const getProductById = async (req, res) => {
 };
 
 const createProduct = async (req, res) => {
-  const { name, price, category_id, unit, description, image_id, available } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label } = req.validatedData;
   const [result] = await pool.query(
-    'INSERT INTO products (name, price, category_id, unit, description, image_id, available) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [name, price, category_id, unit, description, image_id, available !== undefined ? available : true]
+    'INSERT INTO products (name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
+      name, price, category_id, unit, description, image_id, 
+      available !== undefined ? available : true,
+      is_combo !== undefined ? is_combo : false,
+      featured !== undefined ? featured : false,
+      display_order !== undefined ? display_order : 0,
+      original_price || null,
+      discount_label || null
+    ]
   );
   res.status(201).json({ message: 'Product created', id: result.insertId });
 };
 
 const updateProduct = async (req, res) => {
   const { id } = req.params;
-  const { name, price, category_id, unit, description, image_id, available } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label } = req.validatedData;
 
   // Check if image_id changed, delete old image from MongoDB and disk
   const [existing] = await pool.query('SELECT image_id FROM products WHERE id = ?', [id]);
@@ -100,19 +108,27 @@ const updateProduct = async (req, res) => {
   }
 
   await pool.query(
-    'UPDATE products SET name = ?, price = ?, category_id = ?, unit = ?, description = ?, image_id = ?, available = ? WHERE id = ?',
-    [name, price, category_id, unit, description, image_id, available, id]
+    'UPDATE products SET name = ?, price = ?, category_id = ?, unit = ?, description = ?, image_id = ?, available = ?, is_combo = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ? WHERE id = ?',
+    [
+      name, price, category_id, unit, description, image_id, available,
+      is_combo !== undefined ? is_combo : false,
+      featured !== undefined ? featured : false,
+      display_order !== undefined ? display_order : 0,
+      original_price || null,
+      discount_label || null,
+      id
+    ]
   );
   res.status(200).json({ message: 'Product updated' });
 };
 
 const getAdminProducts = async (req, res) => {
-  const { categoryId, search, available } = req.query;
+  const { categoryId, search, available, isCombo, featured } = req.query;
   let query = `
     SELECT p.*, c.name as category_name 
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id 
-    WHERE 1=1
+    WHERE p.deleted = 0
   `;
   const params = [];
 
@@ -129,6 +145,16 @@ const getAdminProducts = async (req, res) => {
   if (available !== undefined) {
     query += ' AND p.available = ?';
     params.push(available === 'true' || available === '1' ? 1 : 0);
+  }
+
+  if (isCombo !== undefined) {
+    query += ' AND p.is_combo = ?';
+    params.push(isCombo === 'true' || isCombo === '1' ? 1 : 0);
+  }
+
+  if (featured !== undefined) {
+    query += ' AND p.featured = ?';
+    params.push(featured === 'true' || featured === '1' ? 1 : 0);
   }
 
   query += ' ORDER BY p.id DESC';
@@ -177,35 +203,8 @@ const deleteProduct = async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
-  // Check if used in order_items
-  const [orderItemRows] = await pool.query('SELECT id FROM order_items WHERE product_id = ? LIMIT 1', [id]);
-  
-  if (orderItemRows.length > 0) {
-    // Soft delete
-    await pool.query('UPDATE products SET available = 0 WHERE id = ?', [id]);
-    return res.status(200).json({ message: 'Product soft deleted because it is referenced in past orders' });
-  }
-
-  await pool.query('DELETE FROM products WHERE id = ?', [id]);
-
-  if (existing[0].image_id) {
-    const oldImageId = existing[0].image_id;
-    if (ObjectId.isValid(oldImageId)) {
-      const db = getDb();
-      const image = await db.collection('images').findOne({ _id: new ObjectId(oldImageId) });
-      if (image) {
-        if (image.storageType === 'disk') {
-          const filePath = path.join(__dirname, '../../', config.UPLOAD_DIR, image.filename);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        }
-        await db.collection('images').deleteOne({ _id: new ObjectId(oldImageId) });
-      }
-    }
-  }
-
-  res.status(200).json({ message: 'Product deleted' });
+  await pool.query('UPDATE products SET deleted = 1 WHERE id = ?', [id]);
+  res.status(200).json({ message: 'Product soft deleted' });
 };
 
 const updateProductAvailability = async (req, res) => {

@@ -21,6 +21,8 @@ function CategoryCard({
   count,
   onPress,
   style,
+  imageHeight = 56,
+  imageWidth,
 }) {
   const resolvedName = category.name ?? name;
   const resolvedImageUrl = category.imageUrl ?? category.imageUri ?? imageUrl ?? imageUri;
@@ -36,8 +38,8 @@ function CategoryCard({
     >
       <ProductImage
         uri={resolvedImageUrl}
-        width={layout.categoryCardWidth - 16}
-        height={56}
+        width={imageWidth || layout.categoryCardWidth - 16}
+        height={imageHeight}
         borderRadius={radius.sm}
         style={styles.image}
         resizeMode="contain"

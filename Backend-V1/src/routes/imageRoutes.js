@@ -6,7 +6,7 @@ const fs = require('fs');
 const config = require('../config/env');
 const asyncHandler = require('../utils/asyncHandler');
 const { requireAdmin } = require('../middleware/authMiddleware');
-const { uploadImage, deleteImage } = require('../controllers/imageController');
+const { uploadImage, deleteImage, getImages } = require('../controllers/imageController');
 const rateLimit = require('express-rate-limit');
 
 const uploadLimiter = rateLimit({
@@ -59,6 +59,7 @@ const uploadMiddleware = (req, res, next) => {
   });
 };
 
+router.get('/', requireAdmin, asyncHandler(getImages));
 router.post('/', requireAdmin, uploadLimiter, uploadMiddleware, asyncHandler(uploadImage));
 router.delete('/:id', requireAdmin, asyncHandler(deleteImage));
 

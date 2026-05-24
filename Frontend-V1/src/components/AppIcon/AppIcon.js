@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   ArrowLeft,
+  ArrowDown,
+  ArrowUp,
   Box,
   Check,
   ChevronDown,
@@ -35,6 +37,8 @@ const ICONS = {
   close: X,
   delete: Trash2,
   down: ChevronDown,
+  moveDown: ArrowDown,
+  moveUp: ArrowUp,
   edit: Settings,
   eye: Eye,
   eyeOff: EyeOff,

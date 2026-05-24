@@ -52,11 +52,21 @@ const migrate = async () => {
         type VARCHAR(50) NOT NULL,
         image_id VARCHAR(255),
         active BOOLEAN DEFAULT TRUE,
+        display_order INT NOT NULL DEFAULT 0,
+        deleted BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_slug (slug)
       );
     `);
+    const [categoryOrderColumns] = await connection.query(`
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'categories' AND COLUMN_NAME = 'display_order'
+    `, [config.MYSQL_DATABASE]);
+    if (categoryOrderColumns.length === 0) {
+      await connection.query('ALTER TABLE categories ADD COLUMN display_order INT NOT NULL DEFAULT 0 AFTER active');
+    }
     console.log('Categories table ready.');
 
     // Products Table
@@ -70,6 +80,12 @@ const migrate = async () => {
         description TEXT,
         image_id VARCHAR(255),
         available BOOLEAN DEFAULT TRUE,
+        is_combo BOOLEAN DEFAULT FALSE,
+        featured BOOLEAN DEFAULT FALSE,
+        display_order INT NOT NULL DEFAULT 0,
+        original_price DECIMAL(10, 2),
+        discount_label VARCHAR(50),
+        deleted BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
@@ -154,6 +170,7 @@ const migrate = async () => {
         description TEXT,
         image_id VARCHAR(255),
         active BOOLEAN DEFAULT FALSE,
+        deleted BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_active (active)
@@ -178,18 +195,21 @@ const migrate = async () => {
 
     // Seed Categories
     const categories = [
-      { name: 'Cold Drinks', slug: 'cold-drinks', type: 'packed' },
-      { name: 'Snacks', slug: 'snacks', type: 'packed' },
-      { name: 'Fast Food', slug: 'fast-food', type: 'fast_food' },
-      { name: 'Groceries', slug: 'groceries', type: 'packed' },
-      { name: 'Desserts', slug: 'desserts', type: 'fast_food' },
-      { name: 'Daily Essentials', slug: 'daily-essentials', type: 'packed' }
+      { name: 'Cold Drinks', slug: 'cold-drinks', type: 'packed', display_order: 1 },
+      { name: 'Snacks', slug: 'snacks', type: 'packed', display_order: 2 },
+      { name: 'Fast Food', slug: 'fast-food', type: 'fast_food', display_order: 3 },
+      { name: 'Groceries', slug: 'groceries', type: 'packed', display_order: 4 },
+      { name: 'Desserts', slug: 'desserts', type: 'fast_food', display_order: 5 },
+      { name: 'Daily Essentials', slug: 'daily-essentials', type: 'packed', display_order: 6 }
     ];
 
     for (const cat of categories) {
       await connection.query(`
-        INSERT IGNORE INTO categories (name, slug, type) VALUES (?, ?, ?)
-      `, [cat.name, cat.slug, cat.type]);
+        INSERT IGNORE INTO categories (name, slug, type, display_order) VALUES (?, ?, ?, ?)
+      `, [cat.name, cat.slug, cat.type, cat.display_order]);
+      await connection.query(`
+        UPDATE categories SET display_order = ? WHERE slug = ? AND display_order = 0
+      `, [cat.display_order, cat.slug]);
     }
     console.log('Seeded frontend categories.');
 

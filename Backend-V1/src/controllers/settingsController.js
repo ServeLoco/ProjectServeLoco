@@ -20,7 +20,7 @@ const getSettings = async (req, res) => {
 };
 
 const getActiveOffer = async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM offers WHERE active = 1 ORDER BY id DESC LIMIT 1');
+  const [rows] = await pool.query('SELECT * FROM offers WHERE active = 1 AND deleted = 0 ORDER BY id DESC LIMIT 1');
   
   if (rows.length === 0) {
     return res.status(200).json({ data: null });
@@ -124,10 +124,23 @@ const updateOffer = async (req, res) => {
   res.status(200).json({ message: 'Offer updated' });
 };
 
+const getAdminOffers = async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM offers WHERE deleted = 0 ORDER BY id DESC');
+  res.status(200).json({ data: rows });
+};
+
+const deleteOffer = async (req, res) => {
+  const { id } = req.params;
+  await pool.query('UPDATE offers SET deleted = 1 WHERE id = ?', [id]);
+  res.status(200).json({ message: 'Offer soft deleted' });
+};
+
 module.exports = {
   getSettings,
   getActiveOffer,
   updateSettings,
   createOffer,
-  updateOffer
+  updateOffer,
+  getAdminOffers,
+  deleteOffer
 };

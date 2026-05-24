@@ -165,6 +165,83 @@ const getSalesReport = async (req, res) => {
   });
 };
 
+const getAdminCustomerById = async (req, res) => {
+  const { id } = req.params;
+  const [userRows] = await pool.query('SELECT id, name, phone, whatsapp_number, address, short_address, trusted, blocked, created_at, updated_at FROM users WHERE id = ?', [id]);
+  
+  if (userRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Customer not found' });
+  }
+
+  const customer = userRows[0];
+  const [orderRows] = await pool.query('SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC', [id]);
+  
+  const lifetimeSpend = orderRows
+    .filter(o => o.status !== 'Cancelled')
+    .reduce((sum, o) => sum + Number(o.total), 0);
+  
+  customer.orders = orderRows;
+  customer.lifetime_spend = lifetimeSpend;
+  customer.order_count = orderRows.length;
+
+  res.status(200).json({ data: customer });
+};
+
+const getTopProductsReport = async (req, res) => {
+  const [rows] = await pool.query(`
+    SELECT oi.product_id, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
+    FROM order_items oi
+    JOIN orders o ON oi.order_id = o.id
+    WHERE o.status != 'Cancelled'
+    GROUP BY oi.product_id, oi.product_name
+    ORDER BY total_quantity DESC
+    LIMIT 50
+  `);
+  res.status(200).json({ data: rows });
+};
+
+const getCustomersReport = async (req, res) => {
+  const [[metrics]] = await pool.query(`
+    SELECT
+      COUNT(*) as total_customers,
+      COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as new_customers_30d,
+      COUNT(CASE WHEN trusted = 1 THEN 1 END) as trusted_customers,
+      COUNT(CASE WHEN blocked = 1 THEN 1 END) as blocked_customers
+    FROM users
+  `);
+  res.status(200).json({ data: metrics });
+};
+
+const getAuditLogs = async (req, res) => {
+  try {
+    const { getDb } = require('../db/mongodb');
+    const db = getDb();
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const skip = (page - 1) * limit;
+
+    const total = await db.collection('audit_logs').countDocuments();
+    const logs = await db.collection('audit_logs')
+      .find()
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    res.status(200).json({
+      data: logs,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ code: 'SERVER_ERROR', message: 'Failed to fetch audit logs' });
+  }
+};
+
 const getAdminOrders = async (req, res) => {
   const { status, paymentStatus, payment_status, paymentMethod, payment_method, search, dateFrom, from, dateTo, to, page = 1, limit = 20 } = req.query;
 
@@ -321,5 +398,9 @@ module.exports = {
   getAdminOrders,
   getAdminOrderById,
   updateOrderStatus,
-  updateOrderPayment
+  updateOrderPayment,
+  getAdminCustomerById,
+  getTopProductsReport,
+  getCustomersReport,
+  getAuditLogs
 };

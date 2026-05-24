@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -17,7 +18,6 @@ import {
   StickyMiniCart,
   Button,
   LoadingSkeleton,
-  SkeletonCard,
   SkeletonRow,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
@@ -49,6 +49,11 @@ const FAST_FOOD_CATEGORIES = new Set(['Fast Food', 'Desserts']);
 const PACKED_ITEM_CATEGORIES = new Set(['Cold Drinks', 'Snacks', 'Groceries', 'Daily Essentials']);
 
 function matchesStoreType(item, storeType) {
+  const type = String(item.type || item.category_type || '').toLowerCase();
+  if (type) {
+    return storeType === 'Fast Food' ? type === 'fast_food' : type === 'packed';
+  }
+
   const category = item.category || item.name;
 
   if (storeType === 'Fast Food') {
@@ -60,6 +65,7 @@ function matchesStoreType(item, storeType) {
 
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const { width: windowWidth } = useWindowDimensions();
   const { requireAuth } = useAuthGate();
   const profile = useAuthStore(state => state.profile);
   
@@ -85,10 +91,11 @@ export default function HomeScreen() {
 
   useEffect(() => {
     let isMounted = true;
+    const apiStoreType = storeType === 'Fast Food' ? 'fast_food' : 'packed';
     const loadTimer = setTimeout(() => {
       Promise.allSettled([
-        productsApi.getCategories({ storeType }),
-        productsApi.getProducts({ featured: true, limit: 8, storeType }),
+        productsApi.getCategories({ type: apiStoreType, storeType }),
+        productsApi.getProducts({ featured: true, limit: 8, type: apiStoreType, storeType }),
         settingsApi.getSettings(),
         offersApi.getActiveOffer(),
       ]).then(([categoriesResult, productsResult, settingsResult, offerResult]) => {
@@ -193,6 +200,10 @@ export default function HomeScreen() {
   };
 
   const shortAddress = getShortAddress(profile);
+  const categoryGap = spacing.sm;
+  const categoryGridWidth = windowWidth - (spacing.lg * 2);
+  const categoryCardWidth = Math.floor((categoryGridWidth - (categoryGap * 3)) / 4);
+  const categoryImageSize = Math.max(42, categoryCardWidth - spacing.sm);
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
@@ -241,11 +252,11 @@ export default function HomeScreen() {
            <LoadingSkeleton style={{ height: 48, borderRadius: radius.md, marginBottom: spacing.lg }} />
            <LoadingSkeleton style={{ height: 120, borderRadius: radius.lg, marginBottom: spacing.xl }} />
            
-           <Text style={styles.sectionTitle}>Shop by Category</Text>
-           <View style={{ flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.lg }}>
-             <SkeletonCard />
-             <SkeletonCard />
-             <SkeletonCard />
+            <View style={styles.skeletonCategoryGrid}>
+             <LoadingSkeleton style={styles.skeletonCategoryCard} />
+             <LoadingSkeleton style={styles.skeletonCategoryCard} />
+             <LoadingSkeleton style={styles.skeletonCategoryCard} />
+             <LoadingSkeleton style={styles.skeletonCategoryCard} />
            </View>
            
            <Text style={[styles.sectionTitle, { marginTop: spacing.xl }]}>Popular Combos</Text>
@@ -300,17 +311,12 @@ export default function HomeScreen() {
 
           {/* Categories (Horizontal) */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Shop by Category</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.hScroll}
-            >
+            <View style={styles.categoryGrid}>
               {categories.map((cat, idx) => (
                 <Animated.View 
                   key={cat.id} 
                   style={{ 
-                    marginLeft: idx === 0 ? 0 : spacing.sm,
+                    width: categoryCardWidth,
                     opacity: staggerCatAnims[idx],
                     transform: [{ 
                       translateY: staggerCatAnims[idx].interpolate({
@@ -324,11 +330,14 @@ export default function HomeScreen() {
                     name={cat.name}
                     count={cat.count}
                     imageUri={cat.imageUri}
+                    imageWidth={categoryImageSize}
+                    imageHeight={Math.max(38, categoryImageSize * 0.66)}
+                    style={[styles.categoryCard, { width: categoryCardWidth }]}
                     onPress={() => handleCategoryPress(cat)}
                   />
                 </Animated.View>
               ))}
-            </ScrollView>
+            </View>
           </View>
 
           {/* Combo Deals (Vertical List of Cards) */}
@@ -529,8 +538,25 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
-  hScroll: {
+  skeletonCategoryGrid: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     paddingHorizontal: spacing.lg,
+  },
+  skeletonCategoryCard: {
+    flex: 1,
+    height: 96,
+    borderRadius: radius.md,
+  },
+  categoryGrid: {
+    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  categoryCard: {
+    minHeight: 96,
+    paddingHorizontal: spacing.xs,
   },
   comboList: {
     paddingHorizontal: spacing.lg,

@@ -79,7 +79,18 @@ const deleteImage = async (req, res) => {
   res.status(200).json({ message: 'Image deleted successfully' });
 };
 
+const getImages = async (req, res) => {
+  const db = getDb();
+  const images = await db.collection('images').find().sort({ createdAt: -1 }).toArray();
+  const normalizedImages = images.map(img => ({
+    ...img,
+    id: img._id.toString()
+  }));
+  res.status(200).json({ data: normalizedImages });
+};
+
 module.exports = {
   uploadImage,
-  deleteImage
+  deleteImage,
+  getImages
 };
