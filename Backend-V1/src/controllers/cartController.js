@@ -32,12 +32,66 @@ const calculateCart = async (req, res) => {
     }
   }
 
-  let deliveryCharge = Number(settings.delivery_charge) || 0;
-  const freeDeliveryAbove = settings.free_delivery_above === null || settings.free_delivery_above === undefined
-    ? null
-    : Number(settings.free_delivery_above);
-  if (freeDeliveryAbove !== null && subtotal >= freeDeliveryAbove) {
-    deliveryCharge = 0;
+  const { validateCoordinates } = require('../validators');
+  const { calculateDeliveryPricing } = require('../utils/deliveryPricing');
+
+  const { latitude, longitude, lat, lng } = req.body;
+  const customerLat = latitude !== undefined ? latitude : lat;
+  const customerLng = longitude !== undefined ? longitude : lng;
+
+  if (customerLat !== undefined && customerLng !== undefined &&
+      customerLat !== null && customerLng !== null &&
+      customerLat !== '' && customerLng !== '') {
+    if (!validateCoordinates(customerLat, customerLng)) {
+      return res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid GPS coordinates provided'
+      });
+    }
+  }
+
+  let deliveryCharge = 0;
+  let deliveryDistanceKm = null;
+  let deliveryWithinRange = true;
+  let requiresLocation = false;
+  let freeDeliveryOfferActive = false;
+  let deliveryMessage = '';
+
+  if (customerLat === undefined || customerLat === null || customerLat === '' ||
+      customerLng === undefined || customerLng === null || customerLng === '') {
+    requiresLocation = true;
+    deliveryMessage = 'Customer GPS location is required.';
+    // Fallback: apply flat rate delivery charge
+    deliveryCharge = Number(settings.delivery_charge) || 0;
+    const freeDeliveryAbove = settings.free_delivery_above === null || settings.free_delivery_above === undefined
+      ? null
+      : Number(settings.free_delivery_above);
+    if (freeDeliveryAbove !== null && subtotal >= freeDeliveryAbove) {
+      deliveryCharge = 0;
+    }
+  } else {
+    // If coordinates are present
+    const pricing = calculateDeliveryPricing({ customerLat, customerLng, settings });
+    deliveryDistanceKm = pricing.distance;
+    deliveryWithinRange = pricing.allowed;
+    freeDeliveryOfferActive = pricing.freeDeliveryOfferActive || false;
+    deliveryMessage = pricing.message;
+    requiresLocation = pricing.requiresLocation || false;
+
+    if (pricing.allowed) {
+      deliveryCharge = pricing.charge;
+      // Also apply free_delivery_above threshold fallback if configured
+      const freeDeliveryAbove = settings.free_delivery_above === null || settings.free_delivery_above === undefined
+        ? null
+        : Number(settings.free_delivery_above);
+      if (freeDeliveryAbove !== null && subtotal >= freeDeliveryAbove) {
+        deliveryCharge = 0;
+        freeDeliveryOfferActive = true;
+        deliveryMessage = 'Free delivery threshold reached!';
+      }
+    } else {
+      deliveryCharge = 0;
+    }
   }
 
   let nightCharge = 0;
@@ -75,9 +129,19 @@ const calculateCart = async (req, res) => {
     total: grandTotal,
     minimumOrder,
     items: processedItems,
-    isValid: subtotal >= minimumOrder,
-    valid: subtotal >= minimumOrder,
-    message: subtotal < minimumOrder ? `Minimum order is ₹${minimumOrder}` : ''
+    isValid: subtotal >= minimumOrder && deliveryWithinRange,
+    valid: subtotal >= minimumOrder && deliveryWithinRange,
+    message: subtotal < minimumOrder 
+      ? `Minimum order is ₹${minimumOrder}` 
+      : (!deliveryWithinRange ? deliveryMessage : ''),
+    
+    // Location delivery details
+    deliveryDistanceKm: deliveryDistanceKm !== null ? Number(deliveryDistanceKm.toFixed(4)) : null,
+    deliveryRadiusKm: Number(settings.delivery_radius_km) || 8.00,
+    deliveryWithinRange,
+    requiresLocation,
+    freeDeliveryOfferActive,
+    deliveryMessage
   };
 
   res.status(200).json({

@@ -163,24 +163,24 @@ POST /api/cart/calculate should accept:
 - deliveryMessage
 
 ### Subtasks
-- [ ] Read latitude and longitude from request body
-- [ ] Validate coordinates when provided
-- [ ] If coordinates are missing, return cart totals with requiresLocation = true
-- [ ] If coordinates are present, calculate distance delivery
-- [ ] If outside radius, return deliveryWithinRange = false
-- [ ] Keep item subtotal/tax/night-charge logic unchanged
-- [ ] Keep response backward compatible where possible
+- [x] Read latitude and longitude from request body
+- [x] Validate coordinates when provided
+- [x] If coordinates are missing, return cart totals with requiresLocation = true
+- [x] If coordinates are present, calculate distance delivery
+- [x] If outside radius, return deliveryWithinRange = false
+- [x] Keep item subtotal/tax/night-charge logic unchanged
+- [x] Keep response backward compatible where possible
 
 ### Things to avoid
-- [ ] Do not block cart calculation completely when location is missing
-- [ ] Do not let frontend submit its own delivery fee
-- [ ] Do not break existing cart UI consumers
+- [x] Do not block cart calculation completely when location is missing
+- [x] Do not let frontend submit its own delivery fee
+- [x] Do not break existing cart UI consumers
 
 ### Testing checklist
-- [ ] Cart calculates without coordinates
-- [ ] Cart calculates with coordinates
-- [ ] Cart returns out-of-range status
-- [ ] Cart returns free delivery when offer is active
+- [x] Cart calculates without coordinates
+- [x] Cart calculates with coordinates
+- [x] Cart returns out-of-range status
+- [x] Cart returns free delivery when offer is active
 
 ---
 
