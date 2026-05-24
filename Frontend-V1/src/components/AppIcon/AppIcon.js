@@ -62,16 +62,25 @@ function AppIcon({
   name,
   color = colors.textPrimary,
   size = 20,
-  strokeWidth = 2,
+  strokeWidth,
   style,
 }) {
   const Icon = ICONS[name] || Box;
+
+  // Dynamic stroke weight for enhanced legibility: thicker for small sizes, elegant for larger ones.
+  const resolvedStrokeWidth = strokeWidth !== undefined
+    ? strokeWidth
+    : size <= 16
+    ? 2.2
+    : size >= 24
+    ? 1.8
+    : 2;
 
   return (
     <Icon
       color={color}
       size={size}
-      strokeWidth={strokeWidth}
+      strokeWidth={resolvedStrokeWidth}
       style={style}
     />
   );
