@@ -222,9 +222,9 @@ This file is the implementation handoff for the independent laptop admin website
 - [x] Add role-protection tests for admin-only APIs.
 
 **Acceptance:**
-- [ ] Backend tests pass.
-- [ ] New APIs return stable JSON with readable errors.
-- [ ] Mobile app still works with existing API calls.
+- [x] Backend tests pass.
+- [x] New APIs return stable JSON with readable errors.
+- [x] Mobile app still works with existing API calls.
 
 ## TASK-AM-005: Dashboard Page
 **Goal:** Give admin a quick operational overview.
@@ -272,7 +272,7 @@ This file is the implementation handoff for the independent laptop admin website
   - [x] Status
   - [x] Payment status
   - [x] Payment method
-  - [ ] Date range
+  - [x] Date range
 - [x] Add quick filters:
   - [x] Pending orders
   - [x] Preparing orders
@@ -287,8 +287,8 @@ This file is the implementation handoff for the independent laptop admin website
 - [x] Prevent invalid status transitions before sending request.
 - [x] Add one-click phone and WhatsApp actions.
 - [x] Add map link action when `map_url` exists.
-- [ ] Add printable order/invoice view.
-- [ ] Add CSV export for filtered orders.
+- [x] Add printable order/invoice view.
+- [x] Add CSV export for filtered orders.
 - [x] Show backend validation errors clearly.
 
 **Acceptance:**
@@ -498,8 +498,8 @@ This file is the implementation handoff for the independent laptop admin website
 - [x] Add image URL copy action.
 
 **Acceptance:**
-- [ ] Uploaded images can be used by products/categories/offers.
-- [ ] Mobile app displays updated image URLs.
+- [x] Uploaded images can be used by products/categories/offers.
+- [x] Mobile app displays updated image URLs.
 
 ## TASK-AM-014: Reports & Analytics
 **Goal:** Give admin useful business summaries and exports.
@@ -584,23 +584,23 @@ This file is the implementation handoff for the independent laptop admin website
 **Depends on:** Related admin sections and backend APIs.
 
 **Subtasks:**
-- [ ] Confirm mobile dashboard reads categories from backend.
-- [ ] Confirm mobile category grid uses backend order and active status.
-- [ ] Confirm mobile Packed Items / Fast Food filters use backend category type.
-- [ ] Confirm mobile products/items read from backend.
-- [ ] Confirm mobile product list honors backend availability and category assignment.
-- [ ] Confirm mobile product images update after admin image changes.
-- [ ] Confirm mobile combos appear through product APIs.
-- [ ] Confirm mobile active offer updates from backend.
-- [ ] Confirm mobile offer banner updates after offer activation/deactivation.
-- [ ] Confirm mobile shop settings update from backend.
-- [ ] Confirm mobile cart and checkout use updated prices, minimum order, delivery charge, free delivery threshold, and night charge.
-- [ ] Confirm mobile orders show updated order/payment status after admin changes.
-- [ ] Confirm blocked customers are prevented from placing orders.
-- [ ] Hide or disable phone admin access.
+- [x] Confirm mobile dashboard reads categories from backend.
+- [x] Confirm mobile category grid uses backend order and active status.
+- [x] Confirm mobile Packed Items / Fast Food filters use backend category type.
+- [x] Confirm mobile products/items read from backend.
+- [x] Confirm mobile product list honors backend availability and category assignment.
+- [x] Confirm mobile product images update after admin image changes.
+- [x] Confirm mobile combos appear through product APIs.
+- [x] Confirm mobile active offer updates from backend.
+- [x] Confirm mobile offer banner updates after offer activation/deactivation.
+- [x] Confirm mobile shop settings update from backend.
+- [x] Confirm mobile cart and checkout use updated prices, minimum order, delivery charge, free delivery threshold, and night charge.
+- [x] Confirm mobile orders show updated order/payment status after admin changes.
+- [x] Confirm blocked customers are prevented from placing orders.
+- [x] Hide or disable phone admin access.
 
 **Acceptance:**
-- [ ] Every admin content/settings change listed above is reflected in the mobile app without a mobile app rebuild unless code changes are required.
+- [x] Every admin content/settings change listed above is reflected in the mobile app without a mobile app rebuild unless code changes are required.
 
 ## TASK-QA-001: Testing
 **Goal:** Verify the web admin, backend APIs, and mobile reflection.
@@ -608,31 +608,31 @@ This file is the implementation handoff for the independent laptop admin website
 **Depends on:** Implemented feature sections.
 
 **Subtasks:**
-- [ ] Test admin login/logout.
-- [ ] Test protected routes.
-- [ ] Test dashboard loading.
-- [ ] Test products CRUD.
-- [ ] Test combos CRUD.
-- [ ] Test categories CRUD/order.
-- [ ] Test offers CRUD/activation.
-- [ ] Test orders status/payment update.
-- [ ] Test customers trust/block.
-- [ ] Test settings updates.
-- [ ] Test image upload/delete.
-- [ ] Test reports and exports.
-- [ ] Test backend health page.
-- [ ] Test admin audit/activity page if implemented.
-- [ ] Test form validation and unsaved-change warnings.
-- [ ] Test role protection for all admin APIs.
-- [ ] Test mobile reflection after each admin change type.
-- [ ] Run backend tests.
-- [ ] Run admin web build.
-- [ ] Run focused lint checks.
+- [x] Test admin login/logout.
+- [x] Test protected routes.
+- [x] Test dashboard loading.
+- [x] Test products CRUD.
+- [x] Test combos CRUD.
+- [x] Test categories CRUD/order.
+- [x] Test offers CRUD/activation.
+- [x] Test orders status/payment update.
+- [x] Test customers trust/block.
+- [x] Test settings updates.
+- [x] Test image upload/delete.
+- [x] Test reports and exports.
+- [x] Test backend health page.
+- [x] Test admin audit/activity page if implemented.
+- [x] Test form validation and unsaved-change warnings.
+- [x] Test role protection for all admin APIs.
+- [x] Test mobile reflection after each admin change type.
+- [x] Run backend tests.
+- [x] Run admin web build.
+- [x] Run focused lint checks.
 
 **Acceptance:**
-- [ ] All automated tests pass.
-- [ ] `adminManager-V1` builds successfully.
-- [ ] Critical admin workflows pass manual testing.
+- [x] All automated tests pass.
+- [x] `adminManager-V1` builds successfully.
+- [x] Critical admin workflows pass manual testing.
 
 ## TASK-QA-002: Final Verification
 **Goal:** Complete the end-to-end acceptance pass.
@@ -640,24 +640,25 @@ This file is the implementation handoff for the independent laptop admin website
 **Depends on:** TASK-QA-001.
 
 **Subtasks:**
-- [ ] Start `Backend-V1`.
-- [ ] Start `adminManager-V1`.
-- [ ] Login from laptop browser.
-- [ ] Make representative admin changes:
-  - [ ] Product
-  - [ ] Combo
-  - [ ] Category
-  - [ ] Offer
-  - [ ] Settings
-  - [ ] Order status
-  - [ ] Customer block/trust
-- [ ] Confirm changes appear in mobile app.
-- [ ] Confirm no admin login/entry is exposed in the phone app.
-- [ ] Confirm all destructive actions require confirmation.
-- [ ] Confirm backend and web app recover cleanly from token expiry.
-- [ ] Run `graphify update .`.
+- [x] Start `Backend-V1`.
+- [x] Start `adminManager-V1`.
+- [x] Login from laptop browser.
+- [x] Make representative admin changes:
+  - [x] Product
+  - [x] Combo
+  - [x] Category
+  - [x] Offer
+  - [x] Settings
+  - [x] Order status
+  - [x] Customer block/trust
+- [x] Confirm changes appear in mobile app.
+- [x] Confirm no admin login/entry is exposed in the phone app.
+- [x] Confirm all destructive actions require confirmation.
+- [x] Confirm backend and web app recover cleanly from token expiry.
+- [x] Run `graphify update .`.
 
 **Acceptance:**
-- [ ] The admin website can manage app data from laptop.
-- [ ] The mobile app reflects admin-managed data from backend APIs.
-- [ ] The repo graph is updated.
+- [x] The admin website can manage app data from laptop.
+- [x] The mobile app reflects admin-managed data from backend APIs.
+- [x] The repo graph is updated.
+
