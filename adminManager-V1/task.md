@@ -302,37 +302,37 @@ This file is the implementation handoff for the independent laptop admin website
 **Depends on:** TASK-AM-002, TASK-AM-004, category APIs, image APIs.
 
 **Subtasks:**
-- [ ] Build products table with pagination/search/filter.
-- [ ] Add filters for category, availability, missing image, product type, featured, and combo status.
-- [ ] Add product create form.
-- [ ] Add product edit drawer/modal.
-- [ ] Add product delete/hide action with confirmation.
-- [ ] Add availability toggle.
-- [ ] Add category assignment.
-- [ ] Add product image upload/change.
-- [ ] Add image cleanup flow when replacing product images.
-- [ ] Add display order editing.
-- [ ] Add fields:
-  - [ ] Name
-  - [ ] Price
-  - [ ] Unit
-  - [ ] Description
-  - [ ] Category
-  - [ ] Image
-  - [ ] Availability
-  - [ ] Featured flag if backend supports it
-  - [ ] Original price/MRP if backend supports it
-  - [ ] Discount label if backend supports it
-  - [ ] Related products if backend supports it
-- [ ] Add bulk actions:
-  - [ ] Mark in stock/out of stock
-  - [ ] Move selected products to category
-  - [ ] Hide selected products
+- [x] Build products table with pagination/search/filter.
+- [x] Add filters for category, availability, missing image, product type, featured, and combo status.
+- [x] Add product create form.
+- [x] Add product edit drawer/modal.
+- [x] Add product delete/hide action with confirmation.
+- [x] Add availability toggle.
+- [x] Add category assignment.
+- [x] Add product image upload/change.
+- [x] Add image cleanup flow when replacing product images.
+- [x] Add display order editing.
+- [x] Add fields:
+  - [x] Name
+  - [x] Price
+  - [x] Unit
+  - [x] Description
+  - [x] Category
+  - [x] Image
+  - [x] Availability
+  - [x] Featured flag if backend supports it
+  - [x] Original price/MRP if backend supports it
+  - [x] Discount label if backend supports it
+  - [x] Related products if backend supports it
+- [x] Add bulk actions:
+  - [x] Mark in stock/out of stock
+  - [x] Move selected products to category
+  - [x] Hide selected products
 
 **Acceptance:**
-- [ ] Product changes reflect in mobile product list, product detail, cart, and checkout.
-- [ ] Product create/edit uses category IDs, not category free text.
-- [ ] Image upload returns a visible image URL.
+- [x] Product changes reflect in mobile product list, product detail, cart, and checkout.
+- [x] Product create/edit uses category IDs, not category free text.
+- [x] Image upload returns a visible image URL.
 
 ## TASK-AM-008: Combos Management
 **Goal:** Manage combos as sellable products.
