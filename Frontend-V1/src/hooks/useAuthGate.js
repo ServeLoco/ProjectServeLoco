@@ -1,32 +1,14 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../stores';
 
-const AUTH_PREVIEW_MS = 10000;
-
 /**
  * useAuthGate
- * Intercepts protected actions after the 10-second home preview.
+ * Verifies if user is authenticated.
  */
 export function useAuthGate() {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
-  const previewStartedAt = useAuthStore(state => state.previewStartedAt);
-  const setRedirectRoute = useAuthStore(state => state.setRedirectRoute);
   const navigation = useNavigation();
-  const authTimerRef = useRef(null);
-
-  useEffect(() => () => {
-    if (authTimerRef.current) {
-      clearTimeout(authTimerRef.current);
-    }
-  }, []);
-
-  const openAuth = useCallback((intendedRoute) => {
-    if (intendedRoute) {
-      setRedirectRoute(intendedRoute);
-    }
-    navigation.navigate('Auth');
-  }, [navigation, setRedirectRoute]);
 
   const requireAuth = useCallback((intendedRoute = null, callback = null) => {
     if (isAuthenticated) {
@@ -35,28 +17,9 @@ export function useAuthGate() {
       return true;
     }
 
-    const elapsed = Date.now() - (previewStartedAt || Date.now());
-    const remainingPreviewMs = Math.max(AUTH_PREVIEW_MS - elapsed, 0);
-
-    if (remainingPreviewMs === 0) {
-      openAuth(intendedRoute);
-      return false;
-    }
-
-    if (authTimerRef.current) {
-      clearTimeout(authTimerRef.current);
-    }
-
-    if (intendedRoute) {
-      setRedirectRoute(intendedRoute);
-    }
-
-    authTimerRef.current = setTimeout(() => {
-      navigation.navigate('Auth');
-    }, remainingPreviewMs);
-
+    navigation.navigate('Auth');
     return false;
-  }, [isAuthenticated, navigation, openAuth, previewStartedAt, setRedirectRoute]);
+  }, [isAuthenticated, navigation]);
 
   return { requireAuth };
 }

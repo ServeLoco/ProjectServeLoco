@@ -15,13 +15,12 @@ import {
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-import { useNavigation } from '@react-navigation/native';
+
 import {
   AppScreen,
   TextInputField,
   Button,
   SegmentedControl,
-  IconButton,
   AppIcon,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
@@ -30,10 +29,7 @@ import { authApi } from '../../../api';
 import { normalizeSession } from '../../../utils';
 
 export default function AuthScreen() {
-  const navigation = useNavigation();
   const setSession = useAuthStore(state => state.setSession);
-  const redirectRoute = useAuthStore(state => state.redirectRoute);
-  const setRedirectRoute = useAuthStore(state => state.setRedirectRoute);
 
   const [mode, setMode] = useState('Login'); // 'Login' | 'Sign Up'
   const [isLoading, setIsLoading] = useState(false);
@@ -87,18 +83,8 @@ export default function AuthScreen() {
     ]).start();
   };
 
-  const handleClose = () => {
-    navigation.goBack();
-  };
-
   const handleSuccess = (token, user) => {
     setSession(token, user);
-    if (redirectRoute) {
-      setRedirectRoute(null);
-      navigation.replace(redirectRoute);
-    } else {
-      navigation.goBack(); // Will navigate back to Home if opened from Home
-    }
   };
 
   const submitLogin = async () => {
@@ -282,12 +268,6 @@ export default function AuthScreen() {
                 <View style={styles.logoPlaceholder}>
                   <Text style={styles.logoText}>ServeLoco</Text>
                 </View>
-                <IconButton
-                  icon="close"
-                  variant="tinted"
-                  onPress={handleClose}
-                  disabled={isLoading}
-                />
               </View>
               <Text style={styles.trustLine}>
                 Food, snacks and essentials delivered fast.

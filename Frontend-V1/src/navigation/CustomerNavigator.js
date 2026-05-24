@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, typography, radius, shadows } from '../theme';
 import { AppIcon } from '../components';
+import { useAuthStore } from '../stores';
 
 import {
   HomeScreen,
@@ -139,11 +140,15 @@ const styles = StyleSheet.create({
   },
 });
 
+
+
 /**
  * CustomerNavigator
  * Main customer stack holding tabs and sub-screens.
  */
 export default function CustomerNavigator() {
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+
   return (
     <Stack.Navigator 
       screenOptions={{ 
@@ -152,26 +157,26 @@ export default function CustomerNavigator() {
         animationDuration: 200,
       }}
     >
-      <Stack.Screen name="MainTabs" component={CustomerBottomTabs} />
-      
-      {/* Product Flow */}
-      <Stack.Screen name="ProductList" component={ProductListScreen} />
-      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
-      
-      {/* Checkout Flow */}
-      <Stack.Screen name="Cart" component={CartScreen} />
-      <Stack.Screen name="Checkout" component={CheckoutScreen} />
-      <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen} />
-      
-      {/* Account / Misc Flow */}
-      <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
-      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-      
-      <Stack.Screen 
-        name="Auth" 
-        component={AuthScreen} 
-        options={{ presentation: 'transparentModal', animation: 'fade' }} 
-      />
+      {isAuthenticated ? (
+        <>
+          <Stack.Screen name="MainTabs" component={CustomerBottomTabs} />
+          
+          {/* Product Flow */}
+          <Stack.Screen name="ProductList" component={ProductListScreen} />
+          <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+          
+          {/* Checkout Flow */}
+          <Stack.Screen name="Cart" component={CartScreen} />
+          <Stack.Screen name="Checkout" component={CheckoutScreen} />
+          <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen} />
+          
+          {/* Account / Misc Flow */}
+          <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+        </>
+      ) : (
+        <Stack.Screen name="Auth" component={AuthScreen} />
+      )}
     </Stack.Navigator>
   );
 }

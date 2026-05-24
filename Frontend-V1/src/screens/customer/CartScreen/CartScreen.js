@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,13 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
-  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
   AppIcon,
+  ProductImage,
   QuantityStepper,
   Button,
 } from '../../../components';
@@ -41,13 +41,17 @@ export default function CartScreen() {
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const listOpacity = useRef(new Animated.Value(1)).current;
+  const validItems = useMemo(
+    () => items.filter(item => item?.product?.id),
+    [items],
+  );
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, [fadeAnim]);
 
   const calculateBill = async () => {
-    if (items.length === 0) {
+    if (validItems.length === 0) {
       setBill(null);
       return;
     }
@@ -62,7 +66,7 @@ export default function CartScreen() {
 
     try {
       const payload = {
-        items: items.map(item => ({
+        items: validItems.map(item => ({
           productId: item.product.id,
           quantity: item.quantity,
         })),
@@ -82,7 +86,7 @@ export default function CartScreen() {
     // Recalculate bill whenever items change
     calculateBill();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+  }, [items, validItems]);
 
   const handleRemove = (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -112,7 +116,7 @@ export default function CartScreen() {
   );
 
   const isCheckoutDisabled = 
-    items.length === 0 || 
+    validItems.length === 0 ||
     isCalculating || 
     calcError || 
     shopStatus === 'closed' || 
@@ -124,7 +128,7 @@ export default function CartScreen() {
       <AppHeader
         title="Your Cart"
         onBack={() => navigation.goBack()}
-        rightActions={items.length > 0 ? [
+        rightActions={validItems.length > 0 ? [
           {
             icon: <Text style={styles.clearText}>Clear</Text>,
             onPress: handleClear,
@@ -133,16 +137,22 @@ export default function CartScreen() {
         ] : []}
       />
 
-      {items.length === 0 ? (
+      {validItems.length === 0 ? (
         renderEmptyState()
       ) : (
         <View style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {/* Cart Items */}
             <Animated.View style={[styles.itemsList, { opacity: fadeAnim }]}>
-              {items.map((item) => (
+              {validItems.map((item) => (
                 <View key={item.product.id} style={styles.cartRow}>
-                  <Image source={{ uri: item.product.imageUri }} style={styles.rowImg} />
+                  <ProductImage
+                    uri={item.product.imageUri || item.product.imageUrl}
+                    width={64}
+                    height={64}
+                    borderRadius={radius.md}
+                    style={styles.rowImg}
+                  />
                   
                   <View style={styles.rowDetails}>
                     <Text style={styles.rowName} numberOfLines={1}>{item.product.name}</Text>
@@ -294,16 +304,21 @@ const styles = StyleSheet.create({
   },
   itemsList: {
     paddingTop: spacing.md,
-    backgroundColor: colors.bgSurface,
-    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: 'transparent',
+    marginBottom: spacing.md,
   },
   cartRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: colors.bgSurface,
+    borderRadius: radius.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.xs,
   },
   rowImg: {
     width: 60,

@@ -377,7 +377,7 @@
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L14",
       "id": "api_index_authapi",
-      "community": 33,
+      "community": 72,
       "norm_label": "authapi"
     },
     {
@@ -2078,61 +2078,61 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L1",
       "id": "frontend_v1_src_navigation_customernavigator_js",
-      "community": 13,
+      "community": 115,
       "norm_label": "customernavigator.js"
     },
     {
       "label": "Tab",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L23",
+      "source_location": "L24",
       "id": "navigation_customernavigator_tab",
-      "community": 13,
+      "community": 115,
       "norm_label": "tab"
     },
     {
       "label": "Stack",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L24",
+      "source_location": "L25",
       "id": "navigation_customernavigator_stack",
-      "community": 13,
+      "community": 115,
       "norm_label": "stack"
     },
     {
       "label": "AnimatedTabIcon()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L26",
+      "source_location": "L27",
       "id": "navigation_customernavigator_animatedtabicon",
-      "community": 13,
+      "community": 115,
       "norm_label": "animatedtabicon()"
     },
     {
       "label": "CustomerBottomTabs()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L70",
+      "source_location": "L71",
       "id": "navigation_customernavigator_customerbottomtabs",
-      "community": 13,
+      "community": 115,
       "norm_label": "customerbottomtabs()"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L124",
+      "source_location": "L125",
       "id": "navigation_customernavigator_styles",
-      "community": 13,
+      "community": 115,
       "norm_label": "styles"
     },
     {
       "label": "CustomerNavigator()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
-      "source_location": "L146",
+      "source_location": "L149",
       "id": "navigation_customernavigator_customernavigator",
-      "community": 13,
+      "community": 115,
       "norm_label": "customernavigator()"
     },
     {
@@ -2141,7 +2141,7 @@
       "source_file": "Frontend-V1/src/navigation/routes.js",
       "source_location": "L1",
       "id": "frontend_v1_src_navigation_routes_js",
-      "community": 13,
+      "community": 103,
       "norm_label": "routes.js"
     },
     {
@@ -2150,7 +2150,7 @@
       "source_file": "Frontend-V1/src/navigation/routes.js",
       "source_location": "L1",
       "id": "navigation_routes_routes",
-      "community": 13,
+      "community": 103,
       "norm_label": "routes"
     },
     {
@@ -2159,7 +2159,7 @@
       "source_file": "Frontend-V1/src/navigation/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_navigation_index_js",
-      "community": 13,
+      "community": 103,
       "norm_label": "index.js"
     },
     {
@@ -2168,7 +2168,7 @@
       "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
       "source_location": "L1",
       "id": "frontend_v1_src_navigation_rootnavigator_js",
-      "community": 13,
+      "community": 103,
       "norm_label": "rootnavigator.js"
     },
     {
@@ -2177,7 +2177,7 @@
       "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
       "source_location": "L9",
       "id": "navigation_rootnavigator_rootnavigator",
-      "community": 13,
+      "community": 103,
       "norm_label": "rootnavigator()"
     },
     {
@@ -2204,7 +2204,7 @@
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L1",
       "id": "frontend_v1_src_stores_usecartstore_js",
-      "community": 17,
+      "community": 43,
       "norm_label": "usecartstore.js"
     },
     {
@@ -2213,7 +2213,7 @@
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L9",
       "id": "stores_usecartstore_usecartstore",
-      "community": 17,
+      "community": 43,
       "norm_label": "usecartstore"
     },
     {
@@ -2312,7 +2312,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_orderconfirmationscreen_orderconfirmationscreen_js",
-      "community": 31,
+      "community": 33,
       "norm_label": "orderconfirmationscreen.js"
     },
     {
@@ -2321,7 +2321,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L15",
       "id": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen",
-      "community": 31,
+      "community": 33,
       "norm_label": "orderconfirmationscreen()"
     },
     {
@@ -2330,7 +2330,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L136",
       "id": "orderconfirmationscreen_orderconfirmationscreen_styles",
-      "community": 31,
+      "community": 33,
       "norm_label": "styles"
     },
     {
@@ -2429,7 +2429,7 @@
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_profilescreen_profilescreen_js",
-      "community": 17,
+      "community": 72,
       "norm_label": "profilescreen.js"
     },
     {
@@ -2438,7 +2438,7 @@
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L24",
       "id": "profilescreen_profilescreen_profilescreen",
-      "community": 17,
+      "community": 72,
       "norm_label": "profilescreen()"
     },
     {
@@ -2447,7 +2447,7 @@
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L224",
       "id": "profilescreen_profilescreen_menuoption",
-      "community": 17,
+      "community": 72,
       "norm_label": "menuoption()"
     },
     {
@@ -2456,7 +2456,7 @@
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L249",
       "id": "profilescreen_profilescreen_styles",
-      "community": 17,
+      "community": 72,
       "norm_label": "styles"
     },
     {
@@ -2519,7 +2519,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_ordersscreen_ordersscreen_js",
-      "community": 100,
+      "community": 17,
       "norm_label": "ordersscreen.js"
     },
     {
@@ -2528,7 +2528,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L32",
       "id": "ordersscreen_ordersscreen_filter_chips",
-      "community": 100,
+      "community": 17,
       "norm_label": "filter_chips"
     },
     {
@@ -2537,7 +2537,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L34",
       "id": "ordersscreen_ordersscreen_ordersscreen",
-      "community": 100,
+      "community": 17,
       "norm_label": "ordersscreen()"
     },
     {
@@ -2546,7 +2546,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L290",
       "id": "ordersscreen_ordersscreen_styles",
-      "community": 100,
+      "community": 17,
       "norm_label": "styles"
     },
     {
@@ -2645,7 +2645,7 @@
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_editprofilescreen_editprofilescreen_js",
-      "community": 33,
+      "community": 72,
       "norm_label": "editprofilescreen.js"
     },
     {
@@ -2654,7 +2654,7 @@
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L21",
       "id": "editprofilescreen_editprofilescreen_editprofilescreen",
-      "community": 33,
+      "community": 72,
       "norm_label": "editprofilescreen()"
     },
     {
@@ -2663,7 +2663,7 @@
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L180",
       "id": "editprofilescreen_editprofilescreen_styles",
-      "community": 33,
+      "community": 72,
       "norm_label": "styles"
     },
     {
@@ -2742,7 +2742,7 @@
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CartScreen/CartScreen.js",
-      "source_location": "L258",
+      "source_location": "L268",
       "id": "cartscreen_cartscreen_styles",
       "community": 17,
       "norm_label": "styles"
@@ -2760,7 +2760,7 @@
       "label": "AuthScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/AuthScreen/AuthScreen.js",
-      "source_location": "L32",
+      "source_location": "L31",
       "id": "authscreen_authscreen_authscreen",
       "community": 72,
       "norm_label": "authscreen()"
@@ -2769,7 +2769,7 @@
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/AuthScreen/AuthScreen.js",
-      "source_location": "L334",
+      "source_location": "L314",
       "id": "authscreen_authscreen_styles",
       "community": 72,
       "norm_label": "styles"
@@ -2906,7 +2906,7 @@
       "source_file": "Frontend-V1/src/api/authApi.js",
       "source_location": "L3",
       "id": "api_authapi_authapi",
-      "community": 33,
+      "community": 72,
       "norm_label": "authapi"
     },
     {
@@ -3185,14 +3185,14 @@
       "source_file": "Frontend-V1/src/hooks/useAuthGate.js",
       "source_location": "L1",
       "id": "frontend_v1_src_hooks_useauthgate_js",
-      "community": 72,
+      "community": 43,
       "norm_label": "useauthgate.js"
     },
     {
       "label": "useAuthGate()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/hooks/useAuthGate.js",
-      "source_location": "L11",
+      "source_location": "L9",
       "id": "hooks_useauthgate_useauthgate",
       "community": 43,
       "norm_label": "useauthgate()"
@@ -3203,7 +3203,7 @@
       "source_file": "Frontend-V1/src/store/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_store_index_js",
-      "community": 117,
+      "community": 72,
       "norm_label": "index.js"
     },
     {
@@ -3257,7 +3257,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_textbutton_index_js",
-      "community": 33,
+      "community": 74,
       "norm_label": "index.js"
     },
     {
@@ -3266,7 +3266,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_textbutton_textbutton_js",
-      "community": 33,
+      "community": 74,
       "norm_label": "textbutton.js"
     },
     {
@@ -3275,7 +3275,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
       "id": "textbutton_textbutton_textbutton",
-      "community": 33,
+      "community": 74,
       "norm_label": "textbutton()"
     },
     {
@@ -3284,7 +3284,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
       "id": "textbutton_textbutton_styles",
-      "community": 33,
+      "community": 74,
       "norm_label": "styles"
     },
     {
@@ -3311,7 +3311,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedQuantitySwitcher/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedquantityswitcher_index_js",
-      "community": 45,
+      "community": 31,
       "norm_label": "index.js"
     },
     {
@@ -3338,7 +3338,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedFadeSlide/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedfadeslide_index_js",
-      "community": 45,
+      "community": 31,
       "norm_label": "index.js"
     },
     {
@@ -3392,7 +3392,7 @@
       "source_file": "Frontend-V1/src/components/TextInputField/TextInputField.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_textinputfield_textinputfield_js",
-      "community": 64,
+      "community": 33,
       "norm_label": "textinputfield.js"
     },
     {
@@ -3401,7 +3401,7 @@
       "source_file": "Frontend-V1/src/components/TextInputField/TextInputField.js",
       "source_location": "L36",
       "id": "textinputfield_textinputfield_textinputfield",
-      "community": 64,
+      "community": 33,
       "norm_label": "textinputfield()"
     },
     {
@@ -3410,7 +3410,7 @@
       "source_file": "Frontend-V1/src/components/TextInputField/TextInputField.js",
       "source_location": "L139",
       "id": "textinputfield_textinputfield_styles",
-      "community": 64,
+      "community": 33,
       "norm_label": "styles"
     },
     {
@@ -3419,7 +3419,7 @@
       "source_file": "Frontend-V1/src/components/TextInputField/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_textinputfield_index_js",
-      "community": 64,
+      "community": 33,
       "norm_label": "index.js"
     },
     {
@@ -3428,7 +3428,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_chip_chip_js",
-      "community": 64,
+      "community": 74,
       "norm_label": "chip.js"
     },
     {
@@ -3437,7 +3437,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L20",
       "id": "chip_chip_chip",
-      "community": 64,
+      "community": 74,
       "norm_label": "chip()"
     },
     {
@@ -3446,7 +3446,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L55",
       "id": "chip_chip_chiprow",
-      "community": 64,
+      "community": 74,
       "norm_label": "chiprow()"
     },
     {
@@ -3455,7 +3455,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L76",
       "id": "chip_chip_styles",
-      "community": 64,
+      "community": 74,
       "norm_label": "styles"
     },
     {
@@ -3464,7 +3464,7 @@
       "source_file": "Frontend-V1/src/components/Chip/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_chip_index_js",
-      "community": 64,
+      "community": 74,
       "norm_label": "index.js"
     },
     {
@@ -3545,7 +3545,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L74",
       "id": "loadingskeleton_loadingskeleton_skeletonrow",
-      "community": 100,
+      "community": 43,
       "norm_label": "skeletonrow()"
     },
     {
@@ -3563,7 +3563,7 @@
       "source_file": "Frontend-V1/src/components/BillSummary/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_billsummary_index_js",
-      "community": 64,
+      "community": 33,
       "norm_label": "index.js"
     },
     {
@@ -3572,7 +3572,7 @@
       "source_file": "Frontend-V1/src/components/BillSummary/BillSummary.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_billsummary_billsummary_js",
-      "community": 64,
+      "community": 33,
       "norm_label": "billsummary.js"
     },
     {
@@ -3581,7 +3581,7 @@
       "source_file": "Frontend-V1/src/components/BillSummary/BillSummary.js",
       "source_location": "L18",
       "id": "billsummary_billsummary_billsummary",
-      "community": 64,
+      "community": 33,
       "norm_label": "billsummary()"
     },
     {
@@ -3590,7 +3590,7 @@
       "source_file": "Frontend-V1/src/components/BillSummary/BillSummary.js",
       "source_location": "L60",
       "id": "billsummary_billsummary_billrow",
-      "community": 64,
+      "community": 33,
       "norm_label": "billrow()"
     },
     {
@@ -3599,7 +3599,7 @@
       "source_file": "Frontend-V1/src/components/BillSummary/BillSummary.js",
       "source_location": "L81",
       "id": "billsummary_billsummary_styles",
-      "community": 64,
+      "community": 33,
       "norm_label": "styles"
     },
     {
@@ -3644,7 +3644,7 @@
       "source_file": "Frontend-V1/src/components/OrderCard/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_ordercard_index_js",
-      "community": 31,
+      "community": 64,
       "norm_label": "index.js"
     },
     {
@@ -3653,7 +3653,7 @@
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_ordercard_ordercard_js",
-      "community": 31,
+      "community": 64,
       "norm_label": "ordercard.js"
     },
     {
@@ -3662,7 +3662,7 @@
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
       "id": "ordercard_ordercard_ordercard",
-      "community": 31,
+      "community": 64,
       "norm_label": "ordercard()"
     },
     {
@@ -3671,7 +3671,7 @@
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L92",
       "id": "ordercard_ordercard_styles",
-      "community": 31,
+      "community": 64,
       "norm_label": "styles"
     },
     {
@@ -3680,7 +3680,7 @@
       "source_file": "Frontend-V1/src/components/ConfirmModal/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_confirmmodal_index_js",
-      "community": 31,
+      "community": 33,
       "norm_label": "index.js"
     },
     {
@@ -3689,7 +3689,7 @@
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_confirmmodal_confirmmodal_js",
-      "community": 31,
+      "community": 33,
       "norm_label": "confirmmodal.js"
     },
     {
@@ -3698,7 +3698,7 @@
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L27",
       "id": "confirmmodal_confirmmodal_confirmmodal",
-      "community": 31,
+      "community": 33,
       "norm_label": "confirmmodal()"
     },
     {
@@ -3707,7 +3707,7 @@
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L93",
       "id": "confirmmodal_confirmmodal_styles",
-      "community": 31,
+      "community": 33,
       "norm_label": "styles"
     },
     {
@@ -3716,7 +3716,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedcartbadge_index_js",
-      "community": 31,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -3725,7 +3725,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedcartbadge_animatedcartbadge_js",
-      "community": 31,
+      "community": 45,
       "norm_label": "animatedcartbadge.js"
     },
     {
@@ -3743,7 +3743,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L30",
       "id": "animatedcartbadge_animatedcartbadge_styles",
-      "community": 31,
+      "community": 45,
       "norm_label": "styles"
     },
     {
@@ -3779,7 +3779,7 @@
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_stickyminicart_stickyminicart_js",
-      "community": 31,
+      "community": 45,
       "norm_label": "stickyminicart.js"
     },
     {
@@ -3788,7 +3788,7 @@
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L21",
       "id": "stickyminicart_stickyminicart_stickyminicart",
-      "community": 31,
+      "community": 45,
       "norm_label": "stickyminicart()"
     },
     {
@@ -3797,7 +3797,7 @@
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L56",
       "id": "stickyminicart_stickyminicart_styles",
-      "community": 31,
+      "community": 45,
       "norm_label": "styles"
     },
     {
@@ -3806,7 +3806,7 @@
       "source_file": "Frontend-V1/src/components/StickyMiniCart/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_stickyminicart_index_js",
-      "community": 31,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -3923,7 +3923,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_segmentedcontrol_index_js",
-      "community": 31,
+      "community": 33,
       "norm_label": "index.js"
     },
     {
@@ -3932,7 +3932,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_segmentedcontrol_segmentedcontrol_js",
-      "community": 31,
+      "community": 33,
       "norm_label": "segmentedcontrol.js"
     },
     {
@@ -3941,7 +3941,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L15",
       "id": "segmentedcontrol_segmentedcontrol_segmentedcontrol",
-      "community": 31,
+      "community": 33,
       "norm_label": "segmentedcontrol()"
     },
     {
@@ -3950,7 +3950,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L54",
       "id": "segmentedcontrol_segmentedcontrol_styles",
-      "community": 31,
+      "community": 33,
       "norm_label": "styles"
     },
     {
@@ -3959,7 +3959,7 @@
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_staggeredlist_staggeredlist_js",
-      "community": 45,
+      "community": 31,
       "norm_label": "staggeredlist.js"
     },
     {
@@ -3968,7 +3968,7 @@
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L6",
       "id": "staggeredlist_staggeredlist_staggeredlist",
-      "community": 45,
+      "community": 31,
       "norm_label": "staggeredlist()"
     },
     {
@@ -3977,7 +3977,7 @@
       "source_file": "Frontend-V1/src/components/StaggeredList/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_staggeredlist_index_js",
-      "community": 45,
+      "community": 31,
       "norm_label": "index.js"
     },
     {
@@ -4166,7 +4166,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_animatedsegmentedcontrol_js",
-      "community": 31,
+      "community": 45,
       "norm_label": "animatedsegmentedcontrol.js"
     },
     {
@@ -4184,7 +4184,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L66",
       "id": "animatedsegmentedcontrol_animatedsegmentedcontrol_styles",
-      "community": 31,
+      "community": 45,
       "norm_label": "styles"
     },
     {
@@ -4193,7 +4193,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_index_js",
-      "community": 31,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -4238,7 +4238,7 @@
       "source_file": "Frontend-V1/src/components/PressableScale/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_pressablescale_index_js",
-      "community": 31,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -4310,7 +4310,7 @@
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_layout_js",
-      "community": 33,
+      "community": 74,
       "norm_label": "layout.js"
     },
     {
@@ -4319,7 +4319,7 @@
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L7",
       "id": "theme_layout_layout",
-      "community": 33,
+      "community": 74,
       "norm_label": "layout"
     },
     {
@@ -4328,7 +4328,7 @@
       "source_file": "Frontend-V1/src/theme/borders.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_borders_js",
-      "community": 64,
+      "community": 33,
       "norm_label": "borders.js"
     },
     {
@@ -4337,7 +4337,7 @@
       "source_file": "Frontend-V1/src/theme/borders.js",
       "source_location": "L10",
       "id": "theme_borders_radius",
-      "community": 64,
+      "community": 33,
       "norm_label": "radius"
     },
     {
@@ -4346,7 +4346,7 @@
       "source_file": "Frontend-V1/src/theme/borders.js",
       "source_location": "L24",
       "id": "theme_borders_borderwidth",
-      "community": 64,
+      "community": 33,
       "norm_label": "borderwidth"
     },
     {
@@ -4355,7 +4355,7 @@
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_spacing_js",
-      "community": 31,
+      "community": 72,
       "norm_label": "spacing.js"
     },
     {
@@ -4364,7 +4364,7 @@
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L6",
       "id": "theme_spacing_spacing",
-      "community": 31,
+      "community": 72,
       "norm_label": "spacing"
     },
     {
@@ -4418,7 +4418,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
       "id": "theme_typography_typography",
-      "community": 31,
+      "community": 72,
       "norm_label": "typography"
     },
     {
@@ -4490,7 +4490,7 @@
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_motion_js",
-      "community": 45,
+      "community": 33,
       "norm_label": "motion.js"
     },
     {
@@ -4508,7 +4508,7 @@
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L27",
       "id": "theme_motion_easingmodal",
-      "community": 45,
+      "community": 33,
       "norm_label": "easingmodal"
     },
     {
@@ -4517,7 +4517,7 @@
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L33",
       "id": "theme_motion_motionconfig",
-      "community": 45,
+      "community": 15,
       "norm_label": "motionconfig"
     },
     {
@@ -4697,7 +4697,7 @@
       "source_file": "Frontend-V1/src/utils/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_utils_index_js",
-      "community": 72,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -5093,7 +5093,7 @@
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L1",
       "id": "backend_v1_tests_settingsoffers_test_js",
-      "community": 89,
+      "community": 70,
       "norm_label": "settingsoffers.test.js"
     },
     {
@@ -5102,7 +5102,7 @@
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L1",
       "id": "tests_settingsoffers_test_request",
-      "community": 89,
+      "community": 70,
       "norm_label": "request"
     },
     {
@@ -5111,7 +5111,7 @@
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L2",
       "id": "tests_settingsoffers_test_express",
-      "community": 89,
+      "community": 70,
       "norm_label": "express"
     },
     {
@@ -5120,7 +5120,7 @@
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L3",
       "id": "tests_settingsoffers_test_adminroutes",
-      "community": 89,
+      "community": 70,
       "norm_label": "adminroutes"
     },
     {
@@ -5129,7 +5129,7 @@
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L4",
       "id": "tests_settingsoffers_test_pool",
-      "community": 89,
+      "community": 70,
       "norm_label": "{ pool }"
     },
     {
@@ -5138,7 +5138,7 @@
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L5",
       "id": "tests_settingsoffers_test_jwt",
-      "community": 89,
+      "community": 70,
       "norm_label": "jwt"
     },
     {
@@ -5147,7 +5147,7 @@
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L13",
       "id": "tests_settingsoffers_test_app",
-      "community": 89,
+      "community": 70,
       "norm_label": "app"
     },
     {
@@ -5156,7 +5156,7 @@
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L17",
       "id": "tests_settingsoffers_test_admintoken",
-      "community": 89,
+      "community": 70,
       "norm_label": "admintoken"
     },
     {
@@ -5624,7 +5624,7 @@
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L1",
       "id": "backend_v1_tests_auth_test_js",
-      "community": 103,
+      "community": 70,
       "norm_label": "auth.test.js"
     },
     {
@@ -5633,7 +5633,7 @@
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L1",
       "id": "tests_auth_test_request",
-      "community": 103,
+      "community": 70,
       "norm_label": "request"
     },
     {
@@ -5642,7 +5642,7 @@
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L2",
       "id": "tests_auth_test_express",
-      "community": 103,
+      "community": 70,
       "norm_label": "express"
     },
     {
@@ -5651,7 +5651,7 @@
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L3",
       "id": "tests_auth_test_authroutes",
-      "community": 103,
+      "community": 70,
       "norm_label": "authroutes"
     },
     {
@@ -5660,7 +5660,7 @@
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L4",
       "id": "tests_auth_test_pool",
-      "community": 103,
+      "community": 70,
       "norm_label": "{ pool }"
     },
     {
@@ -5669,7 +5669,7 @@
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L5",
       "id": "tests_auth_test_bcrypt",
-      "community": 103,
+      "community": 70,
       "norm_label": "bcrypt"
     },
     {
@@ -5678,7 +5678,7 @@
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L6",
       "id": "tests_auth_test_jwt",
-      "community": 103,
+      "community": 70,
       "norm_label": "jwt"
     },
     {
@@ -5687,7 +5687,7 @@
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L14",
       "id": "tests_auth_test_app",
-      "community": 103,
+      "community": 70,
       "norm_label": "app"
     },
     {
@@ -6299,7 +6299,7 @@
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L1",
       "id": "backend_v1_src_validators_index_js",
-      "community": 85,
+      "community": 54,
       "norm_label": "index.js"
     },
     {
@@ -6317,7 +6317,7 @@
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L4",
       "id": "validators_index_isnumericamount",
-      "community": 85,
+      "community": 54,
       "norm_label": "isnumericamount()"
     },
     {
@@ -6335,7 +6335,7 @@
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L9",
       "id": "validators_index_isenum",
-      "community": 85,
+      "community": 54,
       "norm_label": "isenum()"
     },
     {
@@ -6353,7 +6353,7 @@
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L14",
       "id": "validators_index_isphone",
-      "community": 71,
+      "community": 47,
       "norm_label": "isphone()"
     },
     {
@@ -6362,7 +6362,7 @@
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L16",
       "id": "validators_index_validatecoordinates",
-      "community": 85,
+      "community": 54,
       "norm_label": "validatecoordinates()"
     },
     {
@@ -6371,7 +6371,7 @@
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L23",
       "id": "validators_index_validatepagination",
-      "community": 85,
+      "community": 27,
       "norm_label": "validatepagination()"
     },
     {
@@ -6389,7 +6389,7 @@
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L39",
       "id": "validators_index_validate",
-      "community": 85,
+      "community": 54,
       "norm_label": "validate()"
     },
     {
@@ -6686,7 +6686,7 @@
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L1",
       "id": "backend_v1_src_routes_orderroutes_js",
-      "community": 85,
+      "community": 54,
       "norm_label": "orderroutes.js"
     },
     {
@@ -6695,7 +6695,7 @@
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L1",
       "id": "routes_orderroutes_express",
-      "community": 85,
+      "community": 54,
       "norm_label": "express"
     },
     {
@@ -6704,7 +6704,7 @@
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L2",
       "id": "routes_orderroutes_router",
-      "community": 85,
+      "community": 54,
       "norm_label": "router"
     },
     {
@@ -6713,7 +6713,7 @@
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L3",
       "id": "routes_orderroutes_asynchandler",
-      "community": 85,
+      "community": 54,
       "norm_label": "asynchandler"
     },
     {
@@ -6722,7 +6722,7 @@
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L4",
       "id": "routes_orderroutes_createorder_getorders_getorderbyid_cancelorder",
-      "community": 85,
+      "community": 54,
       "norm_label": "{ createorder, getorders, getorderbyid, cancelorder }"
     },
     {
@@ -6731,7 +6731,7 @@
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L5",
       "id": "routes_orderroutes_requirecustomer",
-      "community": 85,
+      "community": 54,
       "norm_label": "{ requirecustomer }"
     },
     {
@@ -6740,7 +6740,7 @@
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L6",
       "id": "routes_orderroutes_validate_isenum_isnumericamount_validatecoordinates",
-      "community": 85,
+      "community": 54,
       "norm_label": "{ validate, isenum, isnumericamount, validatecoordinates }"
     },
     {
@@ -6749,7 +6749,7 @@
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L8",
       "id": "routes_orderroutes_createorderschema",
-      "community": 85,
+      "community": 54,
       "norm_label": "createorderschema()"
     },
     {
@@ -6884,7 +6884,7 @@
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L33",
       "id": "routes_adminroutes_paginationschema",
-      "community": 85,
+      "community": 27,
       "norm_label": "paginationschema()"
     },
     {
@@ -7037,7 +7037,7 @@
       "source_file": "Backend-V1/src/routes/authRoutes.js",
       "source_location": "L1",
       "id": "backend_v1_src_routes_authroutes_js",
-      "community": 71,
+      "community": 86,
       "norm_label": "authroutes.js"
     },
     {
@@ -7046,7 +7046,7 @@
       "source_file": "Backend-V1/src/routes/authRoutes.js",
       "source_location": "L1",
       "id": "routes_authroutes_express",
-      "community": 71,
+      "community": 86,
       "norm_label": "express"
     },
     {
@@ -7055,7 +7055,7 @@
       "source_file": "Backend-V1/src/routes/authRoutes.js",
       "source_location": "L2",
       "id": "routes_authroutes_router",
-      "community": 71,
+      "community": 86,
       "norm_label": "router"
     },
     {
@@ -7064,7 +7064,7 @@
       "source_file": "Backend-V1/src/routes/authRoutes.js",
       "source_location": "L3",
       "id": "routes_authroutes_asynchandler",
-      "community": 71,
+      "community": 86,
       "norm_label": "asynchandler"
     },
     {
@@ -7073,7 +7073,7 @@
       "source_file": "Backend-V1/src/routes/authRoutes.js",
       "source_location": "L4",
       "id": "routes_authroutes_register_login_me_updateprofile",
-      "community": 71,
+      "community": 86,
       "norm_label": "{ register, login, me, updateprofile }"
     },
     {
@@ -7082,7 +7082,7 @@
       "source_file": "Backend-V1/src/routes/authRoutes.js",
       "source_location": "L5",
       "id": "routes_authroutes_requirecustomer",
-      "community": 71,
+      "community": 86,
       "norm_label": "{ requirecustomer }"
     },
     {
@@ -7091,7 +7091,7 @@
       "source_file": "Backend-V1/src/routes/authRoutes.js",
       "source_location": "L6",
       "id": "routes_authroutes_validate_isstring_isphone_normalizefield",
-      "community": 71,
+      "community": 86,
       "norm_label": "{ validate, isstring, isphone, normalizefield }"
     },
     {
@@ -7100,7 +7100,7 @@
       "source_file": "Backend-V1/src/routes/authRoutes.js",
       "source_location": "L7",
       "id": "routes_authroutes_ratelimit",
-      "community": 71,
+      "community": 86,
       "norm_label": "ratelimit"
     },
     {
@@ -7109,7 +7109,7 @@
       "source_file": "Backend-V1/src/routes/authRoutes.js",
       "source_location": "L9",
       "id": "routes_authroutes_authlimiter",
-      "community": 71,
+      "community": 86,
       "norm_label": "authlimiter"
     },
     {
@@ -7118,7 +7118,7 @@
       "source_file": "Backend-V1/src/routes/authRoutes.js",
       "source_location": "L16",
       "id": "routes_authroutes_registerschema",
-      "community": 71,
+      "community": 47,
       "norm_label": "registerschema()"
     },
     {
@@ -7127,7 +7127,7 @@
       "source_file": "Backend-V1/src/routes/authRoutes.js",
       "source_location": "L33",
       "id": "routes_authroutes_loginschema",
-      "community": 71,
+      "community": 47,
       "norm_label": "loginschema()"
     },
     {
@@ -7424,7 +7424,7 @@
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L1",
       "id": "backend_v1_src_controllers_imagecontroller_js",
-      "community": 115,
+      "community": 67,
       "norm_label": "imagecontroller.js"
     },
     {
@@ -7433,7 +7433,7 @@
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L1",
       "id": "controllers_imagecontroller_path",
-      "community": 115,
+      "community": 67,
       "norm_label": "path"
     },
     {
@@ -7442,7 +7442,7 @@
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L2",
       "id": "controllers_imagecontroller_fs",
-      "community": 115,
+      "community": 67,
       "norm_label": "fs"
     },
     {
@@ -7451,7 +7451,7 @@
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L3",
       "id": "controllers_imagecontroller_objectid",
-      "community": 115,
+      "community": 67,
       "norm_label": "{ objectid }"
     },
     {
@@ -7460,7 +7460,7 @@
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L4",
       "id": "controllers_imagecontroller_getdb",
-      "community": 115,
+      "community": 67,
       "norm_label": "{ getdb }"
     },
     {
@@ -7469,7 +7469,7 @@
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L5",
       "id": "controllers_imagecontroller_config",
-      "community": 115,
+      "community": 67,
       "norm_label": "config"
     },
     {
@@ -7478,7 +7478,7 @@
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L7",
       "id": "controllers_imagecontroller_uploadimage",
-      "community": 115,
+      "community": 67,
       "norm_label": "uploadimage()"
     },
     {
@@ -7487,7 +7487,7 @@
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L55",
       "id": "controllers_imagecontroller_deleteimage",
-      "community": 115,
+      "community": 67,
       "norm_label": "deleteimage()"
     },
     {
@@ -7496,7 +7496,7 @@
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L82",
       "id": "controllers_imagecontroller_getimages",
-      "community": 115,
+      "community": 67,
       "norm_label": "getimages()"
     },
     {
@@ -8018,7 +8018,7 @@
       "source_file": "Backend-V1/src/controllers/cartController.js",
       "source_location": "L3",
       "id": "controllers_cartcontroller_calculatecart",
-      "community": 82,
+      "community": 54,
       "norm_label": "calculatecart()"
     },
     {
@@ -10731,6 +10731,870 @@
       "norm_label": "acceptance criteria"
     },
     {
+      "label": "frontnew.md",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L1",
+      "id": "plans_frontnew_md",
+      "community": 85,
+      "norm_label": "frontnew.md"
+    },
+    {
+      "label": "Front New Design And Flow Tasks",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L1",
+      "id": "plans_frontnew_front_new_design_and_flow_tasks",
+      "community": 85,
+      "norm_label": "front new design and flow tasks"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L3",
+      "id": "plans_frontnew_goal",
+      "community": 85,
+      "norm_label": "goal"
+    },
+    {
+      "label": "1. Scope And Non-Negotiables",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L22",
+      "id": "plans_frontnew_1_scope_and_non_negotiables",
+      "community": 124,
+      "norm_label": "1. scope and non-negotiables"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L24",
+      "id": "plans_frontnew_goal_24",
+      "community": 124,
+      "norm_label": "goal"
+    },
+    {
+      "label": "In scope",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L27",
+      "id": "plans_frontnew_in_scope",
+      "community": 124,
+      "norm_label": "in scope"
+    },
+    {
+      "label": "Out of scope",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L36",
+      "id": "plans_frontnew_out_of_scope",
+      "community": 124,
+      "norm_label": "out of scope"
+    },
+    {
+      "label": "Must not change",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L44",
+      "id": "plans_frontnew_must_not_change",
+      "community": 124,
+      "norm_label": "must not change"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L54",
+      "id": "plans_frontnew_testing_checklist",
+      "community": 124,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "2. Current Flow Review",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L63",
+      "id": "plans_frontnew_2_current_flow_review",
+      "community": 117,
+      "norm_label": "2. current flow review"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L65",
+      "id": "plans_frontnew_goal_65",
+      "community": 117,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely checked",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L68",
+      "id": "plans_frontnew_files_likely_checked",
+      "community": 117,
+      "norm_label": "files likely checked"
+    },
+    {
+      "label": "Current notes",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L76",
+      "id": "plans_frontnew_current_notes",
+      "community": 117,
+      "norm_label": "current notes"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L83",
+      "id": "plans_frontnew_subtasks",
+      "community": 117,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L91",
+      "id": "plans_frontnew_things_to_avoid",
+      "community": 117,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L96",
+      "id": "plans_frontnew_testing_checklist_96",
+      "community": 117,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "3. Auth-First Navigation Plan",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L104",
+      "id": "plans_frontnew_3_auth_first_navigation_plan",
+      "community": 125,
+      "norm_label": "3. auth-first navigation plan"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L106",
+      "id": "plans_frontnew_goal_106",
+      "community": 125,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L109",
+      "id": "plans_frontnew_files_likely_changed",
+      "community": 125,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact changes to make",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L115",
+      "id": "plans_frontnew_exact_changes_to_make",
+      "community": 125,
+      "norm_label": "exact changes to make"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L128",
+      "id": "plans_frontnew_things_to_avoid_128",
+      "community": 125,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L134",
+      "id": "plans_frontnew_testing_checklist_134",
+      "community": 125,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "4. Design Token Foundation",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L144",
+      "id": "plans_frontnew_4_design_token_foundation",
+      "community": 126,
+      "norm_label": "4. design token foundation"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L146",
+      "id": "plans_frontnew_goal_146",
+      "community": 126,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L149",
+      "id": "plans_frontnew_files_likely_changed_149",
+      "community": 126,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact changes to make",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L158",
+      "id": "plans_frontnew_exact_changes_to_make_158",
+      "community": 126,
+      "norm_label": "exact changes to make"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L177",
+      "id": "plans_frontnew_things_to_avoid_177",
+      "community": 126,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L183",
+      "id": "plans_frontnew_testing_checklist_183",
+      "community": 126,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "5. Auth Screen Redesign",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L191",
+      "id": "plans_frontnew_5_auth_screen_redesign",
+      "community": 127,
+      "norm_label": "5. auth screen redesign"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L193",
+      "id": "plans_frontnew_goal_193",
+      "community": 127,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L196",
+      "id": "plans_frontnew_files_likely_changed_196",
+      "community": 127,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact changes to make",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L202",
+      "id": "plans_frontnew_exact_changes_to_make_202",
+      "community": 127,
+      "norm_label": "exact changes to make"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L223",
+      "id": "plans_frontnew_things_to_avoid_223",
+      "community": 127,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L230",
+      "id": "plans_frontnew_testing_checklist_230",
+      "community": 127,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "6. Dashboard/Home Redesign",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L239",
+      "id": "plans_frontnew_6_dashboard_home_redesign",
+      "community": 128,
+      "norm_label": "6. dashboard/home redesign"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L241",
+      "id": "plans_frontnew_goal_241",
+      "community": 128,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L244",
+      "id": "plans_frontnew_files_likely_changed_244",
+      "community": 128,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact changes to make",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L251",
+      "id": "plans_frontnew_exact_changes_to_make_251",
+      "community": 128,
+      "norm_label": "exact changes to make"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L274",
+      "id": "plans_frontnew_things_to_avoid_274",
+      "community": 128,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L281",
+      "id": "plans_frontnew_testing_checklist_281",
+      "community": 128,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "7. Bottom Navigation Redesign",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L291",
+      "id": "plans_frontnew_7_bottom_navigation_redesign",
+      "community": 129,
+      "norm_label": "7. bottom navigation redesign"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L293",
+      "id": "plans_frontnew_goal_293",
+      "community": 129,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L296",
+      "id": "plans_frontnew_files_likely_changed_296",
+      "community": 129,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact changes to make",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L301",
+      "id": "plans_frontnew_exact_changes_to_make_301",
+      "community": 129,
+      "norm_label": "exact changes to make"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L314",
+      "id": "plans_frontnew_things_to_avoid_314",
+      "community": 129,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L320",
+      "id": "plans_frontnew_testing_checklist_320",
+      "community": 129,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "8. Cart Screen Redesign",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L328",
+      "id": "plans_frontnew_8_cart_screen_redesign",
+      "community": 130,
+      "norm_label": "8. cart screen redesign"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L330",
+      "id": "plans_frontnew_goal_330",
+      "community": 130,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L333",
+      "id": "plans_frontnew_files_likely_changed_333",
+      "community": 130,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact changes to make",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L339",
+      "id": "plans_frontnew_exact_changes_to_make_339",
+      "community": 130,
+      "norm_label": "exact changes to make"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L348",
+      "id": "plans_frontnew_things_to_avoid_348",
+      "community": 130,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L354",
+      "id": "plans_frontnew_testing_checklist_354",
+      "community": 130,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "9. Profile Screen Redesign",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L364",
+      "id": "plans_frontnew_9_profile_screen_redesign",
+      "community": 131,
+      "norm_label": "9. profile screen redesign"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L366",
+      "id": "plans_frontnew_goal_366",
+      "community": 131,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L369",
+      "id": "plans_frontnew_files_likely_changed_369",
+      "community": 131,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact changes to make",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L374",
+      "id": "plans_frontnew_exact_changes_to_make_374",
+      "community": 131,
+      "norm_label": "exact changes to make"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L383",
+      "id": "plans_frontnew_things_to_avoid_383",
+      "community": 131,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L389",
+      "id": "plans_frontnew_testing_checklist_389",
+      "community": 131,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "10. Orders And Order Detail Redesign",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L397",
+      "id": "plans_frontnew_10_orders_and_order_detail_redesign",
+      "community": 119,
+      "norm_label": "10. orders and order detail redesign"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L399",
+      "id": "plans_frontnew_goal_399",
+      "community": 119,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L402",
+      "id": "plans_frontnew_files_likely_changed_402",
+      "community": 119,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact changes to make",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L407",
+      "id": "plans_frontnew_exact_changes_to_make_407",
+      "community": 119,
+      "norm_label": "exact changes to make"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L419",
+      "id": "plans_frontnew_things_to_avoid_419",
+      "community": 119,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L424",
+      "id": "plans_frontnew_testing_checklist_424",
+      "community": 119,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "11. Product List And Detail Redesign",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L432",
+      "id": "plans_frontnew_11_product_list_and_detail_redesign",
+      "community": 120,
+      "norm_label": "11. product list and detail redesign"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L434",
+      "id": "plans_frontnew_goal_434",
+      "community": 120,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L437",
+      "id": "plans_frontnew_files_likely_changed_437",
+      "community": 120,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact changes to make",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L443",
+      "id": "plans_frontnew_exact_changes_to_make_443",
+      "community": 120,
+      "norm_label": "exact changes to make"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L451",
+      "id": "plans_frontnew_things_to_avoid_451",
+      "community": 120,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L456",
+      "id": "plans_frontnew_testing_checklist_456",
+      "community": 120,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "12. Checkout Screen Redesign",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L464",
+      "id": "plans_frontnew_12_checkout_screen_redesign",
+      "community": 121,
+      "norm_label": "12. checkout screen redesign"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L466",
+      "id": "plans_frontnew_goal_466",
+      "community": 121,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L469",
+      "id": "plans_frontnew_files_likely_changed_469",
+      "community": 121,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact changes to make",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L474",
+      "id": "plans_frontnew_exact_changes_to_make_474",
+      "community": 121,
+      "norm_label": "exact changes to make"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L482",
+      "id": "plans_frontnew_things_to_avoid_482",
+      "community": 121,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L488",
+      "id": "plans_frontnew_testing_checklist_488",
+      "community": 121,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "13. Icons And Micro-Interactions",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L497",
+      "id": "plans_frontnew_13_icons_and_micro_interactions",
+      "community": 122,
+      "norm_label": "13. icons and micro-interactions"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L499",
+      "id": "plans_frontnew_goal_499",
+      "community": 122,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L502",
+      "id": "plans_frontnew_files_likely_changed_502",
+      "community": 122,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact changes to make",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L509",
+      "id": "plans_frontnew_exact_changes_to_make_509",
+      "community": 122,
+      "norm_label": "exact changes to make"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L518",
+      "id": "plans_frontnew_things_to_avoid_518",
+      "community": 122,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L524",
+      "id": "plans_frontnew_testing_checklist_524",
+      "community": 122,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "14. Responsive And Overflow Pass",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L532",
+      "id": "plans_frontnew_14_responsive_and_overflow_pass",
+      "community": 123,
+      "norm_label": "14. responsive and overflow pass"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L534",
+      "id": "plans_frontnew_goal_534",
+      "community": 123,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L537",
+      "id": "plans_frontnew_files_likely_changed_537",
+      "community": 123,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact changes to make",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L542",
+      "id": "plans_frontnew_exact_changes_to_make_542",
+      "community": 123,
+      "norm_label": "exact changes to make"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L550",
+      "id": "plans_frontnew_things_to_avoid_550",
+      "community": 123,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L555",
+      "id": "plans_frontnew_testing_checklist_555",
+      "community": 123,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "15. Implementation Order",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L564",
+      "id": "plans_frontnew_15_implementation_order",
+      "community": 85,
+      "norm_label": "15. implementation order"
+    },
+    {
+      "label": "Recommended order",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L566",
+      "id": "plans_frontnew_recommended_order",
+      "community": 85,
+      "norm_label": "recommended order"
+    },
+    {
+      "label": "Task-by-task rule",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L582",
+      "id": "plans_frontnew_task_by_task_rule",
+      "community": 85,
+      "norm_label": "task-by-task rule"
+    },
+    {
+      "label": "16. Final Verification",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L590",
+      "id": "plans_frontnew_16_final_verification",
+      "community": 85,
+      "norm_label": "16. final verification"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L592",
+      "id": "plans_frontnew_goal_592",
+      "community": 85,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Commands/checks",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L595",
+      "id": "plans_frontnew_commands_checks",
+      "community": 85,
+      "norm_label": "commands/checks"
+    },
+    {
+      "label": "Manual flow checklist",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L601",
+      "id": "plans_frontnew_manual_flow_checklist",
+      "community": 85,
+      "norm_label": "manual flow checklist"
+    },
+    {
+      "label": "Acceptance criteria",
+      "file_type": "document",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L616",
+      "id": "plans_frontnew_acceptance_criteria",
+      "community": 85,
+      "norm_label": "acceptance criteria"
+    },
+    {
       "label": "API_TEST_REPORT.md",
       "file_type": "document",
       "source_file": "Backend-V1/API_TEST_REPORT.md",
@@ -11428,7 +12292,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L6",
-      "community": 85,
+      "community": 54,
       "norm_label": "{ validate, isstring, isenum, isnumericamount, validatecoordinates }",
       "id": "routes_orderroutes_validate_isstring_isenum_isnumericamount_validatecoordinates"
     },
@@ -11437,7 +12301,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L6",
-      "community": 85,
+      "community": 54,
       "norm_label": "{ validate, isstring, isenum, isnumericamount }",
       "id": "routes_orderroutes_validate_isstring_isenum_isnumericamount"
     },
@@ -11446,7 +12310,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
-      "community": 31,
+      "community": 64,
       "norm_label": "status_colors",
       "id": "ordercard_ordercard_status_colors"
     },
@@ -11455,7 +12319,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L13",
-      "community": 31,
+      "community": 64,
       "norm_label": "payment_colors",
       "id": "ordercard_ordercard_payment_colors"
     },
@@ -11464,7 +12328,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 103,
       "norm_label": "adminnavigator.js",
       "id": "frontend_v1_src_navigation_adminnavigator_js"
     },
@@ -11473,7 +12337,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
       "source_location": "L17",
-      "community": 13,
+      "community": 103,
       "norm_label": "stack",
       "id": "navigation_adminnavigator_stack"
     },
@@ -11482,7 +12346,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
       "source_location": "L23",
-      "community": 13,
+      "community": 103,
       "norm_label": "adminnavigator()",
       "id": "navigation_adminnavigator_adminnavigator"
     },
@@ -11491,7 +12355,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useAdminAuthStore.js",
       "source_location": "L1",
-      "community": 72,
+      "community": 103,
       "norm_label": "useadminauthstore.js",
       "id": "frontend_v1_src_stores_useadminauthstore_js"
     },
@@ -11500,7 +12364,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useAdminAuthStore.js",
       "source_location": "L9",
-      "community": 72,
+      "community": 103,
       "norm_label": "useadminauthstore",
       "id": "stores_useadminauthstore_useadminauthstore"
     },
@@ -11509,7 +12373,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_index_js"
     },
@@ -11518,7 +12382,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 15,
       "norm_label": "admincustomersscreen.js",
       "id": "frontend_v1_src_screens_admin_admincustomersscreen_admincustomersscreen_js"
     },
@@ -11527,7 +12391,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L35",
-      "community": 45,
+      "community": 15,
       "norm_label": "pickfirst()",
       "id": "admincustomersscreen_admincustomersscreen_pickfirst"
     },
@@ -11536,7 +12400,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L39",
-      "community": 45,
+      "community": 15,
       "norm_label": "asboolean()",
       "id": "admincustomersscreen_admincustomersscreen_asboolean"
     },
@@ -11545,7 +12409,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L49",
-      "community": 45,
+      "community": 15,
       "norm_label": "getcustomersfromresponse()",
       "id": "admincustomersscreen_admincustomersscreen_getcustomersfromresponse"
     },
@@ -11554,7 +12418,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L59",
-      "community": 45,
+      "community": 15,
       "norm_label": "normalizecustomer()",
       "id": "admincustomersscreen_admincustomersscreen_normalizecustomer"
     },
@@ -11563,7 +12427,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L93",
-      "community": 45,
+      "community": 15,
       "norm_label": "formatshortaddress()",
       "id": "admincustomersscreen_admincustomersscreen_formatshortaddress"
     },
@@ -11572,7 +12436,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L106",
-      "community": 45,
+      "community": 15,
       "norm_label": "getactionerror()",
       "id": "admincustomersscreen_admincustomersscreen_getactionerror"
     },
@@ -11581,7 +12445,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L110",
-      "community": 45,
+      "community": 15,
       "norm_label": "admincustomersscreen()",
       "id": "admincustomersscreen_admincustomersscreen_admincustomersscreen"
     },
@@ -11590,7 +12454,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L363",
-      "community": 45,
+      "community": 15,
       "norm_label": "customerskeletonlist()",
       "id": "admincustomersscreen_admincustomersscreen_customerskeletonlist"
     },
@@ -11599,7 +12463,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L374",
-      "community": 45,
+      "community": 15,
       "norm_label": "customercard()",
       "id": "admincustomersscreen_admincustomersscreen_customercard"
     },
@@ -11608,7 +12472,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L465",
-      "community": 45,
+      "community": 15,
       "norm_label": "statuspill()",
       "id": "admincustomersscreen_admincustomersscreen_statuspill"
     },
@@ -11617,7 +12481,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L484",
-      "community": 45,
+      "community": 15,
       "norm_label": "togglerow()",
       "id": "admincustomersscreen_admincustomersscreen_togglerow"
     },
@@ -11626,7 +12490,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L505",
-      "community": 45,
+      "community": 15,
       "norm_label": "blockcustomermodal()",
       "id": "admincustomersscreen_admincustomersscreen_blockcustomermodal"
     },
@@ -11635,7 +12499,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L545",
-      "community": 45,
+      "community": 15,
       "norm_label": "styles",
       "id": "admincustomersscreen_admincustomersscreen_styles"
     },
@@ -11644,7 +12508,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_admincustomersscreen_index_js"
     },
@@ -11707,7 +12571,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminDashboardScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 89,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_admindashboardscreen_index_js"
     },
@@ -11716,7 +12580,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminDashboardScreen/AdminDashboardScreen.js",
       "source_location": "L1",
-      "community": 72,
+      "community": 89,
       "norm_label": "admindashboardscreen.js",
       "id": "frontend_v1_src_screens_admin_admindashboardscreen_admindashboardscreen_js"
     },
@@ -11725,7 +12589,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminDashboardScreen/AdminDashboardScreen.js",
       "source_location": "L21",
-      "community": 72,
+      "community": 89,
       "norm_label": "admindashboardscreen()",
       "id": "admindashboardscreen_admindashboardscreen_admindashboardscreen"
     },
@@ -11734,7 +12598,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminDashboardScreen/AdminDashboardScreen.js",
       "source_location": "L219",
-      "community": 72,
+      "community": 89,
       "norm_label": "metriccard()",
       "id": "admindashboardscreen_admindashboardscreen_metriccard"
     },
@@ -11743,7 +12607,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminDashboardScreen/AdminDashboardScreen.js",
       "source_location": "L231",
-      "community": 72,
+      "community": 89,
       "norm_label": "styles",
       "id": "admindashboardscreen_admindashboardscreen_styles"
     },
@@ -11752,7 +12616,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 100,
       "norm_label": "adminproductsscreen.js",
       "id": "frontend_v1_src_screens_admin_adminproductsscreen_adminproductsscreen_js"
     },
@@ -11761,7 +12625,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L26",
-      "community": 15,
+      "community": 100,
       "norm_label": "availability",
       "id": "adminproductsscreen_adminproductsscreen_availability"
     },
@@ -11770,7 +12634,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L28",
-      "community": 15,
+      "community": 100,
       "norm_label": "adminproductsscreen()",
       "id": "adminproductsscreen_adminproductsscreen_adminproductsscreen"
     },
@@ -11779,7 +12643,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L403",
-      "community": 15,
+      "community": 100,
       "norm_label": "adminproductcard()",
       "id": "adminproductsscreen_adminproductsscreen_adminproductcard"
     },
@@ -11788,7 +12652,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L458",
-      "community": 15,
+      "community": 100,
       "norm_label": "styles",
       "id": "adminproductsscreen_adminproductsscreen_styles"
     },
@@ -11797,7 +12661,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminproductsscreen_index_js"
     },
@@ -11833,7 +12697,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminLoginScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminloginscreen_index_js"
     },
@@ -11842,7 +12706,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 15,
       "norm_label": "adminsettingsscreen.js",
       "id": "frontend_v1_src_screens_admin_adminsettingsscreen_adminsettingsscreen_js"
     },
@@ -11851,7 +12715,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L33",
-      "community": 28,
+      "community": 15,
       "norm_label": "default_form",
       "id": "adminsettingsscreen_adminsettingsscreen_default_form"
     },
@@ -11860,7 +12724,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L46",
-      "community": 28,
+      "community": 15,
       "norm_label": "numeric_fields",
       "id": "adminsettingsscreen_adminsettingsscreen_numeric_fields"
     },
@@ -11869,7 +12733,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L52",
-      "community": 28,
+      "community": 15,
       "norm_label": "pickfirst()",
       "id": "adminsettingsscreen_adminsettingsscreen_pickfirst"
     },
@@ -11878,7 +12742,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L56",
-      "community": 28,
+      "community": 15,
       "norm_label": "asboolean()",
       "id": "adminsettingsscreen_adminsettingsscreen_asboolean"
     },
@@ -11887,7 +12751,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L67",
-      "community": 28,
+      "community": 15,
       "norm_label": "astext()",
       "id": "adminsettingsscreen_adminsettingsscreen_astext"
     },
@@ -11896,7 +12760,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L72",
-      "community": 28,
+      "community": 15,
       "norm_label": "getpayloaddata()",
       "id": "adminsettingsscreen_adminsettingsscreen_getpayloaddata"
     },
@@ -11905,7 +12769,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L76",
-      "community": 28,
+      "community": 15,
       "norm_label": "getofferdata()",
       "id": "adminsettingsscreen_adminsettingsscreen_getofferdata"
     },
@@ -11914,7 +12778,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L92",
-      "community": 28,
+      "community": 15,
       "norm_label": "normalizesettings()",
       "id": "adminsettingsscreen_adminsettingsscreen_normalizesettings"
     },
@@ -11923,7 +12787,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L125",
-      "community": 28,
+      "community": 15,
       "norm_label": "buildsettingspayload()",
       "id": "adminsettingsscreen_adminsettingsscreen_buildsettingspayload"
     },
@@ -11932,7 +12796,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L136",
-      "community": 28,
+      "community": 15,
       "norm_label": "buildofferpayload()",
       "id": "adminsettingsscreen_adminsettingsscreen_buildofferpayload"
     },
@@ -11941,7 +12805,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L144",
-      "community": 28,
+      "community": 15,
       "norm_label": "geterrormessage()",
       "id": "adminsettingsscreen_adminsettingsscreen_geterrormessage"
     },
@@ -11950,7 +12814,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L148",
-      "community": 28,
+      "community": 15,
       "norm_label": "adminsettingsscreen()",
       "id": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen"
     },
@@ -11959,7 +12823,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L559",
-      "community": 28,
+      "community": 15,
       "norm_label": "statusbanner()",
       "id": "adminsettingsscreen_adminsettingsscreen_statusbanner"
     },
@@ -11968,7 +12832,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L580",
-      "community": 28,
+      "community": 15,
       "norm_label": "styles",
       "id": "adminsettingsscreen_adminsettingsscreen_styles"
     },
@@ -11977,7 +12841,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminsettingsscreen_index_js"
     },
@@ -11986,7 +12850,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductFormScreen/index.js",
       "source_location": "L1",
-      "community": 59,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminproductformscreen_index_js"
     },
@@ -12067,7 +12931,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/index.js",
       "source_location": "L1",
-      "community": 100,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminordersscreen_index_js"
     },
@@ -12076,7 +12940,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L1",
-      "community": 100,
+      "community": 132,
       "norm_label": "adminordersscreen.js",
       "id": "frontend_v1_src_screens_admin_adminordersscreen_adminordersscreen_js"
     },
@@ -12085,7 +12949,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L24",
-      "community": 100,
+      "community": 132,
       "norm_label": "status_filters",
       "id": "adminordersscreen_adminordersscreen_status_filters"
     },
@@ -12094,7 +12958,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L25",
-      "community": 100,
+      "community": 132,
       "norm_label": "payment_filters",
       "id": "adminordersscreen_adminordersscreen_payment_filters"
     },
@@ -12103,7 +12967,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L27",
-      "community": 100,
+      "community": 132,
       "norm_label": "adminordersscreen()",
       "id": "adminordersscreen_adminordersscreen_adminordersscreen"
     },
@@ -12112,7 +12976,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L199",
-      "community": 100,
+      "community": 132,
       "norm_label": "adminordercard()",
       "id": "adminordersscreen_adminordersscreen_adminordercard"
     },
@@ -12121,7 +12985,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L261",
-      "community": 100,
+      "community": 132,
       "norm_label": "styles",
       "id": "adminordersscreen_adminordersscreen_styles"
     },
@@ -12157,7 +13021,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminEntryScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminentryscreen_index_js"
     },
@@ -12175,7 +13039,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminSettingsApi.js",
       "source_location": "L3",
-      "community": 28,
+      "community": 89,
       "norm_label": "adminsettingsapi",
       "id": "api_adminsettingsapi_adminsettingsapi"
     },
@@ -12193,7 +13057,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminDashboardApi.js",
       "source_location": "L4",
-      "community": 28,
+      "community": 89,
       "norm_label": "admindashboardapi",
       "id": "api_admindashboardapi_admindashboardapi"
     },
@@ -12229,7 +13093,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminImagesApi.js",
       "source_location": "L3",
-      "community": 28,
+      "community": 59,
       "norm_label": "adminimagesapi",
       "id": "api_adminimagesapi_adminimagesapi"
     },
@@ -12247,7 +13111,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminProductsApi.js",
       "source_location": "L3",
-      "community": 28,
+      "community": 59,
       "norm_label": "adminproductsapi",
       "id": "api_adminproductsapi_adminproductsapi"
     },
@@ -12265,7 +13129,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminCustomersApi.js",
       "source_location": "L4",
-      "community": 45,
+      "community": 15,
       "norm_label": "admincustomersapi",
       "id": "api_admincustomersapi_admincustomersapi"
     },
@@ -12328,7 +13192,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/index.js",
       "source_location": "L1",
-      "community": 33,
+      "community": 74,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_adminmetriccard_index_js"
     },
@@ -12337,7 +13201,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L1",
-      "community": 33,
+      "community": 74,
       "norm_label": "adminmetriccard.js",
       "id": "frontend_v1_src_components_adminmetriccard_adminmetriccard_js"
     },
@@ -12346,7 +13210,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L16",
-      "community": 33,
+      "community": 74,
       "norm_label": "adminmetriccard()",
       "id": "adminmetriccard_adminmetriccard_adminmetriccard"
     },
@@ -12355,7 +13219,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L37",
-      "community": 33,
+      "community": 74,
       "norm_label": "styles",
       "id": "adminmetriccard_adminmetriccard_styles"
     },
@@ -12778,7 +13642,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 15,
       "norm_label": "admincustomersscreen.js",
       "id": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js"
     },
@@ -12787,7 +13651,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admincustomersscreen_index_js"
     },
@@ -12805,7 +13669,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L1",
-      "community": 31,
+      "community": 33,
       "norm_label": "orderconfirmationscreen.js",
       "id": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js"
     },
@@ -12859,7 +13723,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 72,
       "norm_label": "profilescreen.js",
       "id": "frontend_v1_src_screens_profilescreen_profilescreen_js"
     },
@@ -12886,7 +13750,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L1",
-      "community": 100,
+      "community": 17,
       "norm_label": "ordersscreen.js",
       "id": "frontend_v1_src_screens_ordersscreen_ordersscreen_js"
     },
@@ -12904,7 +13768,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 74,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminorderdetailscreen_index_js"
     },
@@ -12949,7 +13813,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
-      "community": 33,
+      "community": 72,
       "norm_label": "editprofilescreen.js",
       "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js"
     },
@@ -12958,7 +13822,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 89,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admindashboardscreen_index_js"
     },
@@ -12967,7 +13831,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
       "source_location": "L1",
-      "community": 72,
+      "community": 89,
       "norm_label": "admindashboardscreen.js",
       "id": "frontend_v1_src_screens_admindashboardscreen_admindashboardscreen_js"
     },
@@ -12994,7 +13858,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 100,
       "norm_label": "adminproductsscreen.js",
       "id": "frontend_v1_src_screens_adminproductsscreen_adminproductsscreen_js"
     },
@@ -13003,7 +13867,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 100,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminproductsscreen_index_js"
     },
@@ -13021,7 +13885,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminLoginScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminloginscreen_index_js"
     },
@@ -13048,7 +13912,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 15,
       "norm_label": "adminsettingsscreen.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js"
     },
@@ -13057,7 +13921,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_index_js"
     },
@@ -13066,7 +13930,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/index.js",
       "source_location": "L1",
-      "community": 59,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminproductformscreen_index_js"
     },
@@ -13084,7 +13948,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminordersscreen_index_js"
     },
@@ -13093,7 +13957,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L1",
-      "community": 100,
+      "community": 132,
       "norm_label": "adminordersscreen.js",
       "id": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js"
     },
@@ -13111,7 +13975,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 71,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminentryscreen_index_js"
     },
@@ -13156,7 +14020,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/index.js",
       "source_location": "L2",
-      "community": 13,
+      "community": 71,
       "norm_label": "adminscreensplaceholder",
       "id": "admin_index_adminscreensplaceholder"
     },
@@ -13174,7 +14038,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/store/index.js",
       "source_location": "L2",
-      "community": 117,
+      "community": 72,
       "norm_label": "storesplaceholder",
       "id": "store_index_storesplaceholder"
     },
@@ -13192,7 +14056,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L32",
-      "community": 100,
+      "community": 17,
       "norm_label": "mock_orders",
       "id": "ordersscreen_ordersscreen_mock_orders"
     },
@@ -13210,7 +14074,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/AdminDashboardScreen.js",
       "source_location": "L20",
-      "community": 72,
+      "community": 89,
       "norm_label": "fetchdashboarddata()",
       "id": "admindashboardscreen_admindashboardscreen_fetchdashboarddata"
     },
@@ -13219,7 +14083,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L28",
-      "community": 15,
+      "community": 100,
       "norm_label": "initialmockproducts",
       "id": "adminproductsscreen_adminproductsscreen_initialmockproducts"
     },
@@ -13228,7 +14092,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L36",
-      "community": 15,
+      "community": 100,
       "norm_label": "categories",
       "id": "adminproductsscreen_adminproductsscreen_categories"
     },
@@ -13246,7 +14110,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L23",
-      "community": 100,
+      "community": 132,
       "norm_label": "fetchadminorders()",
       "id": "adminordersscreen_adminordersscreen_fetchadminorders"
     },
@@ -17373,9 +18237,9 @@
       "source_file": "Frontend-V1/__tests__/apiMappers.test.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_tests_apimappers_test_js",
-      "target": "frontend_v1_src_utils_apimappers_js",
-      "confidence_score": 1.0
+      "target": "frontend_v1_src_utils_apimappers_js"
     },
     {
       "relation": "imports",
@@ -17384,9 +18248,9 @@
       "source_file": "Frontend-V1/__tests__/apiMappers.test.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_tests_apimappers_test_js",
-      "target": "utils_apimappers_normalizecartcalculation",
-      "confidence_score": 1.0
+      "target": "utils_apimappers_normalizecartcalculation"
     },
     {
       "relation": "imports",
@@ -17395,9 +18259,9 @@
       "source_file": "Frontend-V1/__tests__/apiMappers.test.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_tests_apimappers_test_js",
-      "target": "utils_apimappers_normalizeorder",
-      "confidence_score": 1.0
+      "target": "utils_apimappers_normalizeorder"
     },
     {
       "relation": "contains",
@@ -17405,9 +18269,9 @@
       "source_file": "Frontend-V1/__tests__/apiMappers.test.js",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_tests_apimappers_test_js",
-      "target": "tests_apimappers_test_result",
-      "confidence_score": 1.0
+      "target": "tests_apimappers_test_result"
     },
     {
       "relation": "contains",
@@ -17610,6 +18474,17 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L7",
       "weight": 1.0,
+      "source": "frontend_v1_src_navigation_customernavigator_js",
+      "target": "frontend_v1_src_stores_index_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
+      "source_location": "L7",
+      "weight": 1.0,
       "confidence_score": 1.0,
       "source": "frontend_v1_src_navigation_customernavigator_js",
       "target": "frontend_v1_src_screens_customer_index_js"
@@ -17741,6 +18616,17 @@
       "target": "theme_shadows_shadows"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "frontend_v1_src_navigation_customernavigator_js",
+      "target": "stores_useauthstore_useauthstore",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -17761,6 +18647,17 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_navigation_customernavigator_js",
       "target": "frontend_v1_src_screens_index_js"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
+      "source_location": "L150",
+      "weight": 1.0,
+      "source": "navigation_customernavigator_customernavigator",
+      "target": "stores_useauthstore_useauthstore"
     },
     {
       "relation": "contains",
@@ -32188,9 +33085,9 @@
       "source_file": "Backend-V1/tests/cartOrder.test.js",
       "source_location": "L178",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_tests_cartorder_test_js",
-      "target": "tests_cartorder_test_settings",
-      "confidence_score": 1.0
+      "target": "tests_cartorder_test_settings"
     },
     {
       "relation": "contains",
@@ -32570,9 +33467,9 @@
       "source_file": "Backend-V1/tests/deliveryPricing.test.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_tests_deliverypricing_test_js",
-      "target": "backend_v1_src_utils_deliverypricing_js",
-      "confidence_score": 1.0
+      "target": "backend_v1_src_utils_deliverypricing_js"
     },
     {
       "relation": "imports",
@@ -32581,9 +33478,9 @@
       "source_file": "Backend-V1/tests/deliveryPricing.test.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_tests_deliverypricing_test_js",
-      "target": "utils_deliverypricing_calculatedistance",
-      "confidence_score": 1.0
+      "target": "utils_deliverypricing_calculatedistance"
     },
     {
       "relation": "imports",
@@ -32592,9 +33489,9 @@
       "source_file": "Backend-V1/tests/deliveryPricing.test.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_tests_deliverypricing_test_js",
-      "target": "utils_deliverypricing_calculatedeliverypricing",
-      "confidence_score": 1.0
+      "target": "utils_deliverypricing_calculatedeliverypricing"
     },
     {
       "relation": "contains",
@@ -32602,9 +33499,9 @@
       "source_file": "Backend-V1/tests/deliveryPricing.test.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_tests_deliverypricing_test_js",
-      "target": "tests_deliverypricing_test_calculatedistance_calculatedeliverypricing",
-      "confidence_score": 1.0
+      "target": "tests_deliverypricing_test_calculatedistance_calculatedeliverypricing"
     },
     {
       "relation": "contains",
@@ -32612,9 +33509,9 @@
       "source_file": "Backend-V1/tests/deliveryPricing.test.js",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_tests_deliverypricing_test_js",
-      "target": "tests_deliverypricing_test_basesettings",
-      "confidence_score": 1.0
+      "target": "tests_deliverypricing_test_basesettings"
     },
     {
       "relation": "contains",
@@ -32622,9 +33519,9 @@
       "source_file": "Backend-V1/tests/deliveryPricing.test.js",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_tests_deliverypricing_test_js",
-      "target": "tests_deliverypricing_test_distance",
-      "confidence_score": 1.0
+      "target": "tests_deliverypricing_test_distance"
     },
     {
       "relation": "contains",
@@ -32632,9 +33529,9 @@
       "source_file": "Backend-V1/tests/deliveryPricing.test.js",
       "source_location": "L106",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_tests_deliverypricing_test_js",
-      "target": "tests_deliverypricing_test_result",
-      "confidence_score": 1.0
+      "target": "tests_deliverypricing_test_result"
     },
     {
       "relation": "contains",
@@ -41110,6 +42007,956 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_md",
+      "target": "plans_frontnew_front_new_design_and_flow_tasks"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_goal"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_1_scope_and_non_negotiables"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L63",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_2_current_flow_review"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L104",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_3_auth_first_navigation_plan"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L144",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_4_design_token_foundation"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L191",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_5_auth_screen_redesign"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L239",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_6_dashboard_home_redesign"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L291",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_7_bottom_navigation_redesign"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L328",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_8_cart_screen_redesign"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L364",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_9_profile_screen_redesign"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L397",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_10_orders_and_order_detail_redesign"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L432",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_11_product_list_and_detail_redesign"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L464",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_12_checkout_screen_redesign"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L497",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_13_icons_and_micro_interactions"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L532",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_14_responsive_and_overflow_pass"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L564",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_15_implementation_order"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L590",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_front_new_design_and_flow_tasks",
+      "target": "plans_frontnew_16_final_verification"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_1_scope_and_non_negotiables",
+      "target": "plans_frontnew_goal_24"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_1_scope_and_non_negotiables",
+      "target": "plans_frontnew_in_scope"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L36",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_1_scope_and_non_negotiables",
+      "target": "plans_frontnew_out_of_scope"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L44",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_1_scope_and_non_negotiables",
+      "target": "plans_frontnew_must_not_change"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L54",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_1_scope_and_non_negotiables",
+      "target": "plans_frontnew_testing_checklist"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L65",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_2_current_flow_review",
+      "target": "plans_frontnew_goal_65"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L68",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_2_current_flow_review",
+      "target": "plans_frontnew_files_likely_checked"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L76",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_2_current_flow_review",
+      "target": "plans_frontnew_current_notes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L83",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_2_current_flow_review",
+      "target": "plans_frontnew_subtasks"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L91",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_2_current_flow_review",
+      "target": "plans_frontnew_things_to_avoid"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L96",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_2_current_flow_review",
+      "target": "plans_frontnew_testing_checklist_96"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L106",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_3_auth_first_navigation_plan",
+      "target": "plans_frontnew_goal_106"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L109",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_3_auth_first_navigation_plan",
+      "target": "plans_frontnew_files_likely_changed"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L115",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_3_auth_first_navigation_plan",
+      "target": "plans_frontnew_exact_changes_to_make"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L128",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_3_auth_first_navigation_plan",
+      "target": "plans_frontnew_things_to_avoid_128"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L134",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_3_auth_first_navigation_plan",
+      "target": "plans_frontnew_testing_checklist_134"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L146",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_4_design_token_foundation",
+      "target": "plans_frontnew_goal_146"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L149",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_4_design_token_foundation",
+      "target": "plans_frontnew_files_likely_changed_149"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L158",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_4_design_token_foundation",
+      "target": "plans_frontnew_exact_changes_to_make_158"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L177",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_4_design_token_foundation",
+      "target": "plans_frontnew_things_to_avoid_177"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L183",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_4_design_token_foundation",
+      "target": "plans_frontnew_testing_checklist_183"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L193",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_5_auth_screen_redesign",
+      "target": "plans_frontnew_goal_193"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L196",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_5_auth_screen_redesign",
+      "target": "plans_frontnew_files_likely_changed_196"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L202",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_5_auth_screen_redesign",
+      "target": "plans_frontnew_exact_changes_to_make_202"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L223",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_5_auth_screen_redesign",
+      "target": "plans_frontnew_things_to_avoid_223"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L230",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_5_auth_screen_redesign",
+      "target": "plans_frontnew_testing_checklist_230"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L241",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_6_dashboard_home_redesign",
+      "target": "plans_frontnew_goal_241"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L244",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_6_dashboard_home_redesign",
+      "target": "plans_frontnew_files_likely_changed_244"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L251",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_6_dashboard_home_redesign",
+      "target": "plans_frontnew_exact_changes_to_make_251"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L274",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_6_dashboard_home_redesign",
+      "target": "plans_frontnew_things_to_avoid_274"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L281",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_6_dashboard_home_redesign",
+      "target": "plans_frontnew_testing_checklist_281"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L293",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_7_bottom_navigation_redesign",
+      "target": "plans_frontnew_goal_293"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L296",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_7_bottom_navigation_redesign",
+      "target": "plans_frontnew_files_likely_changed_296"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L301",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_7_bottom_navigation_redesign",
+      "target": "plans_frontnew_exact_changes_to_make_301"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L314",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_7_bottom_navigation_redesign",
+      "target": "plans_frontnew_things_to_avoid_314"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L320",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_7_bottom_navigation_redesign",
+      "target": "plans_frontnew_testing_checklist_320"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L330",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_8_cart_screen_redesign",
+      "target": "plans_frontnew_goal_330"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L333",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_8_cart_screen_redesign",
+      "target": "plans_frontnew_files_likely_changed_333"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L339",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_8_cart_screen_redesign",
+      "target": "plans_frontnew_exact_changes_to_make_339"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L348",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_8_cart_screen_redesign",
+      "target": "plans_frontnew_things_to_avoid_348"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L354",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_8_cart_screen_redesign",
+      "target": "plans_frontnew_testing_checklist_354"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L366",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_9_profile_screen_redesign",
+      "target": "plans_frontnew_goal_366"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L369",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_9_profile_screen_redesign",
+      "target": "plans_frontnew_files_likely_changed_369"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L374",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_9_profile_screen_redesign",
+      "target": "plans_frontnew_exact_changes_to_make_374"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L383",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_9_profile_screen_redesign",
+      "target": "plans_frontnew_things_to_avoid_383"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L389",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_9_profile_screen_redesign",
+      "target": "plans_frontnew_testing_checklist_389"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L399",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_10_orders_and_order_detail_redesign",
+      "target": "plans_frontnew_goal_399"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L402",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_10_orders_and_order_detail_redesign",
+      "target": "plans_frontnew_files_likely_changed_402"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L407",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_10_orders_and_order_detail_redesign",
+      "target": "plans_frontnew_exact_changes_to_make_407"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L419",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_10_orders_and_order_detail_redesign",
+      "target": "plans_frontnew_things_to_avoid_419"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L424",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_10_orders_and_order_detail_redesign",
+      "target": "plans_frontnew_testing_checklist_424"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L434",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_11_product_list_and_detail_redesign",
+      "target": "plans_frontnew_goal_434"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L437",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_11_product_list_and_detail_redesign",
+      "target": "plans_frontnew_files_likely_changed_437"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L443",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_11_product_list_and_detail_redesign",
+      "target": "plans_frontnew_exact_changes_to_make_443"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L451",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_11_product_list_and_detail_redesign",
+      "target": "plans_frontnew_things_to_avoid_451"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L456",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_11_product_list_and_detail_redesign",
+      "target": "plans_frontnew_testing_checklist_456"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L466",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_12_checkout_screen_redesign",
+      "target": "plans_frontnew_goal_466"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L469",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_12_checkout_screen_redesign",
+      "target": "plans_frontnew_files_likely_changed_469"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L474",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_12_checkout_screen_redesign",
+      "target": "plans_frontnew_exact_changes_to_make_474"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L482",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_12_checkout_screen_redesign",
+      "target": "plans_frontnew_things_to_avoid_482"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L488",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_12_checkout_screen_redesign",
+      "target": "plans_frontnew_testing_checklist_488"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L499",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_13_icons_and_micro_interactions",
+      "target": "plans_frontnew_goal_499"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L502",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_13_icons_and_micro_interactions",
+      "target": "plans_frontnew_files_likely_changed_502"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L509",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_13_icons_and_micro_interactions",
+      "target": "plans_frontnew_exact_changes_to_make_509"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L518",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_13_icons_and_micro_interactions",
+      "target": "plans_frontnew_things_to_avoid_518"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L524",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_13_icons_and_micro_interactions",
+      "target": "plans_frontnew_testing_checklist_524"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L534",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_14_responsive_and_overflow_pass",
+      "target": "plans_frontnew_goal_534"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L537",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_14_responsive_and_overflow_pass",
+      "target": "plans_frontnew_files_likely_changed_537"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L542",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_14_responsive_and_overflow_pass",
+      "target": "plans_frontnew_exact_changes_to_make_542"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L550",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_14_responsive_and_overflow_pass",
+      "target": "plans_frontnew_things_to_avoid_550"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L555",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_14_responsive_and_overflow_pass",
+      "target": "plans_frontnew_testing_checklist_555"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L566",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_15_implementation_order",
+      "target": "plans_frontnew_recommended_order"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L582",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_15_implementation_order",
+      "target": "plans_frontnew_task_by_task_rule"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L592",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_16_final_verification",
+      "target": "plans_frontnew_goal_592"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L595",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_16_final_verification",
+      "target": "plans_frontnew_commands_checks"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L601",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_16_final_verification",
+      "target": "plans_frontnew_manual_flow_checklist"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/frontnew.md",
+      "source_location": "L616",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "plans_frontnew_16_final_verification",
+      "target": "plans_frontnew_acceptance_criteria"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "Backend-V1/API_TEST_REPORT.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -45270,5 +47117,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "9b37f2d70c380266b302a539fb42bca0815eeca0"
+  "built_at_commit": "c38eaa0e7f198badbbe4ea760091396abde535da"
 }
