@@ -16,6 +16,18 @@ const migrate = async () => {
 
     console.log('Connected to MySQL. Running migrations...');
 
+    const ensureColumn = async (tableName, columnName, columnDefinition) => {
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?
+      `, [config.MYSQL_DATABASE, tableName, columnName]);
+
+      if (columns.length === 0) {
+        await connection.query(`ALTER TABLE ${tableName} ADD COLUMN ${columnDefinition}`);
+      }
+    };
+
     // Users Table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -67,6 +79,7 @@ const migrate = async () => {
     if (categoryOrderColumns.length === 0) {
       await connection.query('ALTER TABLE categories ADD COLUMN display_order INT NOT NULL DEFAULT 0 AFTER active');
     }
+    await ensureColumn('categories', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER display_order');
     console.log('Categories table ready.');
 
     // Products Table
@@ -92,6 +105,12 @@ const migrate = async () => {
         INDEX idx_category (category_id)
       );
     `);
+    await ensureColumn('products', 'is_combo', 'is_combo BOOLEAN DEFAULT FALSE AFTER available');
+    await ensureColumn('products', 'featured', 'featured BOOLEAN DEFAULT FALSE AFTER is_combo');
+    await ensureColumn('products', 'display_order', 'display_order INT NOT NULL DEFAULT 0 AFTER featured');
+    await ensureColumn('products', 'original_price', 'original_price DECIMAL(10, 2) AFTER display_order');
+    await ensureColumn('products', 'discount_label', 'discount_label VARCHAR(50) AFTER original_price');
+    await ensureColumn('products', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER discount_label');
     console.log('Products table ready.');
 
     // Orders Table
@@ -160,6 +179,7 @@ const migrate = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
     `);
+    await ensureColumn('settings', 'upi_qr_image_id', 'upi_qr_image_id VARCHAR(255) AFTER upi_id');
     console.log('Settings table ready.');
 
     // Offers Table
@@ -176,6 +196,7 @@ const migrate = async () => {
         INDEX idx_active (active)
       );
     `);
+    await ensureColumn('offers', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER active');
     console.log('Offers table ready.');
 
     // ---------------------------------------------------------

@@ -80,7 +80,7 @@ export default function Products() {
   const toggleAvailability = async (product) => {
     const newStatus = !product.available;
     try {
-      await ProductsApi.update(product.id, { available: newStatus });
+      await ProductsApi.updateAvailability(product.id, newStatus);
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, available: newStatus } : p));
     } catch (err) {
       alert('Failed to update availability: ' + err.message);
@@ -92,7 +92,7 @@ export default function Products() {
     if (!window.confirm(`Mark ${selectedIds.length} products as ${available ? 'In Stock' : 'Out of Stock'}?`)) return;
     setBulkUpdating(true);
     try {
-      await Promise.all(selectedIds.map(id => ProductsApi.update(id, { available })));
+      await Promise.all(selectedIds.map(id => ProductsApi.updateAvailability(id, available)));
       fetchProducts(pagination.page);
     } catch (err) {
       alert('Error updating some products: ' + err.message);
@@ -214,7 +214,7 @@ export default function Products() {
                   </td>
                   <td>
                     <div className="product-info">
-                      <img src={p.image_url || 'https://via.placeholder.com/48'} alt={p.name} className="product-thumbnail" />
+                      <img src={p.imageUrl || p.image_url || 'https://via.placeholder.com/48'} alt={p.name} className="product-thumbnail" />
                       <div className="product-details">
                         <span className="product-name">{p.name}</span>
                         <span className="product-unit">{p.unit || '1 plate'} {p.featured ? '• Featured' : ''}</span>
@@ -292,6 +292,7 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
     featured: false,
     is_combo: false,
     discount_label: '',
+    image_id: '',
     image_url: ''
   });
   
@@ -317,8 +318,12 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
     try {
       setUploadingImage(true);
       const res = await ImagesApi.upload(data);
-      // Backend returns { imageUrl } based on our TASK-BE-002 knowledge
-      setFormData(prev => ({ ...prev, image_url: res.imageUrl || res.url || res.data?.url }));
+      const image = res.image || res.data || res;
+      setFormData(prev => ({
+        ...prev,
+        image_id: image.id || image._id || image.image_id || '',
+        image_url: image.imageUrl || image.image_url || image.url || '',
+      }));
     } catch (err) {
       alert('Image upload failed: ' + err.message);
     } finally {
@@ -336,12 +341,21 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
         price: Number(formData.price),
         original_price: formData.original_price ? Number(formData.original_price) : null,
         display_order: Number(formData.display_order) || 0,
+        imageId: formData.image_id,
+        image_id: formData.image_id,
       };
 
       if (isEdit) {
         await ProductsApi.update(product.id, payload);
+        if (formData.image_id && formData.image_id !== product.image_id) {
+          await ProductsApi.attachImage(product.id, formData.image_id);
+        }
       } else {
-        await ProductsApi.create(payload);
+        const created = await ProductsApi.create(payload);
+        const productId = created.id || created.product?.id || created.data?.id;
+        if (productId && formData.image_id) {
+          await ProductsApi.attachImage(productId, formData.image_id);
+        }
       }
       onSave();
     } catch (err) {
@@ -409,7 +423,7 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
 
             <div className="form-group">
               <label className="form-label">Product Image</label>
-              {formData.image_url && <img src={formData.image_url} alt="Preview" className="image-preview" />}
+              {(formData.image_url || formData.imageUrl) && <img src={formData.image_url || formData.imageUrl} alt="Preview" className="image-preview" />}
               <div className="image-upload-zone" onClick={() => fileInputRef.current?.click()}>
                 <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
                 {uploadingImage ? 'Uploading...' : 'Click to Upload Image'}

@@ -27,7 +27,7 @@ export default function Customers() {
       setLoading(true);
       setError(null);
       const params = { page, limit: 20, ...filters };
-      Object.keys(params).forEach(k => !params[k] && delete params[k]);
+      Object.keys(params).forEach(k => params[k] === '' && delete params[k]);
 
       const res = await CustomersApi.list(params);
       setCustomers(res.data || []);
@@ -79,12 +79,12 @@ export default function Customers() {
   };
 
   const handleToggleBlock = async () => {
-    const newStatus = !selectedCustomer.is_blocked;
+    const newStatus = !selectedCustomer.blocked;
     if (newStatus && !window.confirm('Are you sure you want to block this customer? They will not be able to place orders.')) return;
     try {
       setUpdating(true);
       await CustomersApi.updateBlock(selectedCustomer.id, newStatus);
-      setSelectedCustomer(prev => ({ ...prev, is_blocked: newStatus }));
+      setSelectedCustomer(prev => ({ ...prev, blocked: newStatus }));
       fetchCustomers(pagination.page);
     } catch (err) {
       alert('Failed to update block status: ' + err.message);
@@ -145,11 +145,11 @@ export default function Customers() {
                     <div className="customer-name">
                       {c.name}
                       {c.trusted ? <span className="badge-trusted">Trusted</span> : null}
-                      {c.is_blocked ? <span className="badge-blocked">Blocked</span> : null}
+                      {c.blocked ? <span className="badge-blocked">Blocked</span> : null}
                     </div>
                   </td>
                   <td>{c.phone}</td>
-                  <td>{c.total_orders || 0}</td>
+                  <td>{c.order_count || c.total_orders || 0}</td>
                   <td>{new Date(c.created_at).toLocaleDateString()}</td>
                 </tr>
               ))
@@ -180,7 +180,7 @@ export default function Customers() {
                   <h2 style={{ fontSize: '1.4rem', marginBottom: '0.25rem' }}>{selectedCustomer.name}</h2>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     {selectedCustomer.trusted && <span className="badge-trusted">Trusted</span>}
-                    {selectedCustomer.is_blocked && <span className="badge-blocked">Blocked</span>}
+                    {selectedCustomer.blocked && <span className="badge-blocked">Blocked</span>}
                   </div>
                 </div>
               </div>
@@ -188,7 +188,7 @@ export default function Customers() {
               <div className="stats-grid">
                 <div className="stat-card">
                   <div className="stat-card-label">Total Orders</div>
-                  <div className="stat-card-value">{selectedCustomer.total_orders || 0}</div>
+                  <div className="stat-card-value">{selectedCustomer.order_count || selectedCustomer.total_orders || 0}</div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-card-label">Joined</div>
@@ -204,24 +204,24 @@ export default function Customers() {
                   <span>Phone:</span>
                   <strong>{selectedCustomer.phone}</strong>
                 </div>
-                {selectedCustomer.whatsapp && (
+                {selectedCustomer.whatsapp_number && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span>WhatsApp:</span>
-                    <strong>{selectedCustomer.whatsapp}</strong>
+                    <strong>{selectedCustomer.whatsapp_number}</strong>
                   </div>
                 )}
-                {selectedCustomer.default_address && (
+                {(selectedCustomer.short_address || selectedCustomer.address) && (
                   <div style={{ marginTop: '1rem' }}>
                     <span style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Default Address:</span>
                     <p style={{ background: 'var(--bg-color)', padding: '0.75rem', borderRadius: '4px', fontSize: '0.9rem' }}>
-                      {selectedCustomer.default_address}
+                      {selectedCustomer.short_address || selectedCustomer.address}
                     </p>
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                   <a href={`tel:${selectedCustomer.phone}`} className="btn-primary" style={{ flex: 1, justifyContent: 'center' }}>Call</a>
-                  {selectedCustomer.whatsapp && (
-                    <a href={`https://wa.me/${selectedCustomer.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="btn-primary" style={{ flex: 1, justifyContent: 'center', background: '#25D366' }}>WhatsApp</a>
+                  {selectedCustomer.whatsapp_number && (
+                    <a href={`https://wa.me/${selectedCustomer.whatsapp_number.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="btn-primary" style={{ flex: 1, justifyContent: 'center', background: '#25D366' }}>WhatsApp</a>
                   )}
                 </div>
               </div>
@@ -244,11 +244,11 @@ export default function Customers() {
                 <p>Blocked customers are immediately prevented from placing new orders.</p>
                 <button 
                   className="btn-secondary" 
-                  style={{ width: '100%', borderColor: selectedCustomer.is_blocked ? 'var(--border-color)' : 'var(--danger-color)', color: selectedCustomer.is_blocked ? 'inherit' : 'var(--danger-color)' }}
+                  style={{ width: '100%', borderColor: selectedCustomer.blocked ? 'var(--border-color)' : 'var(--danger-color)', color: selectedCustomer.blocked ? 'inherit' : 'var(--danger-color)' }}
                   onClick={handleToggleBlock}
                   disabled={updating}
                 >
-                  {selectedCustomer.is_blocked ? 'Unblock Customer' : 'Block Customer'}
+                  {selectedCustomer.blocked ? 'Unblock Customer' : 'Block Customer'}
                 </button>
               </div>
 

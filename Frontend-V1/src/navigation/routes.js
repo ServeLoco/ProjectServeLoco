@@ -12,15 +12,4 @@ export const ROUTES = {
   CUSTOMER_PROFILE: 'CustomerProfile',
   CUSTOMER_EDIT_PROFILE: 'CustomerEditProfile',
   CUSTOMER_AUTH: 'CustomerAuth',
-
-  // Admin Routes
-  ADMIN_ENTRY: 'AdminEntry',
-  ADMIN_LOGIN: 'AdminLogin',
-  ADMIN_DASHBOARD: 'AdminDashboard',
-  ADMIN_ORDERS: 'AdminOrders',
-  ADMIN_ORDER_DETAIL: 'AdminOrderDetail',
-  ADMIN_PRODUCTS: 'AdminProducts',
-  ADMIN_PRODUCT_FORM: 'AdminProductForm',
-  ADMIN_CUSTOMERS: 'AdminCustomers',
-  ADMIN_SETTINGS: 'AdminSettings',
 };

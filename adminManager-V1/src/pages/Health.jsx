@@ -30,7 +30,7 @@ export default function Health() {
   };
 
   const isHealthy = health?.status === 'ok';
-  const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
   return (
     <div className="health-container">

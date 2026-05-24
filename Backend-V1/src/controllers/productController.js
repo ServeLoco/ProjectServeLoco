@@ -123,7 +123,9 @@ const updateProduct = async (req, res) => {
 };
 
 const getAdminProducts = async (req, res) => {
-  const { categoryId, search, available, isCombo, featured } = req.query;
+  const { categoryId, category_id, search, available, isCombo, is_combo, featured } = req.query;
+  const finalCategoryId = categoryId || category_id;
+  const finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
   let query = `
     SELECT p.*, c.name as category_name 
     FROM products p 
@@ -132,9 +134,9 @@ const getAdminProducts = async (req, res) => {
   `;
   const params = [];
 
-  if (categoryId) {
+  if (finalCategoryId) {
     query += ' AND p.category_id = ?';
-    params.push(categoryId);
+    params.push(finalCategoryId);
   }
 
   if (search) {
@@ -147,9 +149,9 @@ const getAdminProducts = async (req, res) => {
     params.push(available === 'true' || available === '1' ? 1 : 0);
   }
 
-  if (isCombo !== undefined) {
+  if (finalIsCombo !== undefined) {
     query += ' AND p.is_combo = ?';
-    params.push(isCombo === 'true' || isCombo === '1' ? 1 : 0);
+    params.push(finalIsCombo === 'true' || finalIsCombo === '1' ? 1 : 0);
   }
 
   if (featured !== undefined) {
@@ -209,14 +211,13 @@ const deleteProduct = async (req, res) => {
 
 const updateProductAvailability = async (req, res) => {
   const { id } = req.params;
-  const { available, isAvailable } = req.body;
-  
-  const finalAvail = available !== undefined ? available : isAvailable;
+  const finalAvail = req.validatedData?.available;
   if (finalAvail === undefined) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Availability status required' });
   }
 
-  await pool.query('UPDATE products SET available = ? WHERE id = ?', [finalAvail ? 1 : 0, id]);
+  const normalizedAvailable = finalAvail === true || finalAvail === 'true' || finalAvail === 1 || finalAvail === '1';
+  await pool.query('UPDATE products SET available = ? WHERE id = ?', [normalizedAvailable ? 1 : 0, id]);
   
   const [updatedRows] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
   res.status(200).json({ message: 'Product availability updated', product: updatedRows[0] });

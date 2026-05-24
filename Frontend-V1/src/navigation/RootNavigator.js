@@ -1,19 +1,15 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import CustomerNavigator from './CustomerNavigator';
-import AdminNavigator from './AdminNavigator';
-import { useAdminAuthStore } from '../stores';
 
 /**
  * RootNavigator
- * Determines whether to show Customer or Admin stack based on isAdminMode.
+ * Customer app shell. Management tools live in the separate web project.
  */
 export default function RootNavigator() {
-  const isAdminMode = useAdminAuthStore(state => state.isAdminMode);
-
   return (
     <NavigationContainer>
-      {isAdminMode ? <AdminNavigator /> : <CustomerNavigator />}
+      <CustomerNavigator />
     </NavigationContainer>
   );
 }

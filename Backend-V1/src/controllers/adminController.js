@@ -34,7 +34,7 @@ const me = (req, res) => {
 };
 
 const getAdminCustomers = async (req, res) => {
-  const { search } = req.query;
+  const { search, trusted, blocked } = req.query;
   const pageNum = req.validatedData?.page || parseInt(req.query.page, 10) || 1;
   const limitNum = req.validatedData?.limit || parseInt(req.query.limit, 10) || 20;
   const offset = (pageNum - 1) * limitNum;
@@ -53,11 +53,32 @@ const getAdminCustomers = async (req, res) => {
     params.push(searchWildcard, searchWildcard, searchWildcard);
   }
 
+  if (trusted !== undefined && trusted !== '') {
+    query += ' AND u.trusted = ?';
+    params.push(trusted === 'true' || trusted === '1' ? 1 : 0);
+  }
+
+  if (blocked !== undefined && blocked !== '') {
+    query += ' AND u.blocked = ?';
+    params.push(blocked === 'true' || blocked === '1' ? 1 : 0);
+  }
+
   let countQuery = 'SELECT COUNT(*) as total FROM users u WHERE 1=1';
+  const countParams = [];
   if (search) {
     countQuery += ' AND (u.name LIKE ? OR u.phone LIKE ? OR u.whatsapp_number LIKE ?)';
+    const searchWildcard = `%${search}%`;
+    countParams.push(searchWildcard, searchWildcard, searchWildcard);
   }
-  const [countRows] = await pool.query(countQuery, params);
+  if (trusted !== undefined && trusted !== '') {
+    countQuery += ' AND u.trusted = ?';
+    countParams.push(trusted === 'true' || trusted === '1' ? 1 : 0);
+  }
+  if (blocked !== undefined && blocked !== '') {
+    countQuery += ' AND u.blocked = ?';
+    countParams.push(blocked === 'true' || blocked === '1' ? 1 : 0);
+  }
+  const [countRows] = await pool.query(countQuery, countParams);
   const total = countRows[0].total;
 
   query += ' ORDER BY u.created_at DESC LIMIT ? OFFSET ?';

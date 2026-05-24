@@ -16,7 +16,7 @@ import Settings from './pages/Settings';
 import Images from './pages/Images';
 import Reports from './pages/Reports';
 import Health from './pages/Health';
-import Audit from './pages/Audit';
+import AuditLogs from './pages/AuditLogs';
 
 function App() {
   return (
@@ -37,7 +37,7 @@ function App() {
               <Route path="/images" element={<Images />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/health" element={<Health />} />
-              <Route path="/audit" element={<Audit />} />
+              <Route path="/audit" element={<AuditLogs />} />
             </Route>
           </Route>
         </Routes>

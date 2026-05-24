@@ -1,5 +1,16 @@
 import { apiClient } from './client';
 
+const withQuery = (path, params = {}) => {
+  const qs = new URLSearchParams();
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      qs.set(key, value);
+    }
+  });
+  const query = qs.toString();
+  return query ? `${path}?${query}` : path;
+};
+
 export const AuthApi = {
   login: (credentials) => apiClient('/admin/login', { method: 'POST', body: credentials }),
   me: () => apiClient('/admin/me', { method: 'GET' }),
@@ -10,23 +21,28 @@ export const DashboardApi = {
 };
 
 export const OrdersApi = {
-  list: (params) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/admin/orders?${qs}`, { method: 'GET' });
-  },
+  list: (params) => apiClient(withQuery('/admin/orders', params), { method: 'GET' }),
   get: (id) => apiClient(`/admin/orders/${id}`, { method: 'GET' }),
   updateStatus: (id, status) => apiClient(`/admin/orders/${id}/status`, { method: 'PATCH', body: { status } }),
-  updatePayment: (id, payment) => apiClient(`/admin/orders/${id}/payment`, { method: 'PATCH', body: { payment } }),
+  updatePayment: (id, paymentStatus) => apiClient(
+    `/admin/orders/${id}/payment`,
+    { method: 'PATCH', body: { paymentStatus, payment_status: paymentStatus } }
+  ),
 };
 
 export const ProductsApi = {
-  list: (params) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/admin/products?${qs}`, { method: 'GET' });
-  },
+  list: (params) => apiClient(withQuery('/admin/products', params), { method: 'GET' }),
   create: (data) => apiClient('/admin/products', { method: 'POST', body: data }),
   update: (id, data) => apiClient(`/admin/products/${id}`, { method: 'PUT', body: data }),
   delete: (id) => apiClient(`/admin/products/${id}`, { method: 'DELETE' }),
+  updateAvailability: (id, available) => apiClient(
+    `/admin/products/${id}/availability`,
+    { method: 'PATCH', body: { available, isAvailable: available } }
+  ),
+  attachImage: (id, imageId) => apiClient(
+    `/admin/products/${id}/image`,
+    { method: 'PATCH', body: { imageId, image_id: imageId } }
+  ),
 };
 
 export const CategoriesApi = {
@@ -44,12 +60,9 @@ export const OffersApi = {
 };
 
 export const CustomersApi = {
-  list: (params) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/admin/customers?${qs}`, { method: 'GET' });
-  },
+  list: (params) => apiClient(withQuery('/admin/customers', params), { method: 'GET' }),
   get: (id) => apiClient(`/admin/customers/${id}`, { method: 'GET' }),
-  updateBlock: (id, is_blocked) => apiClient(`/admin/customers/${id}/block`, { method: 'PATCH', body: { is_blocked } }),
+  updateBlock: (id, blocked) => apiClient(`/admin/customers/${id}/block`, { method: 'PATCH', body: { blocked } }),
   updateTrust: (id, trusted) => apiClient(`/admin/customers/${id}/trust`, { method: 'PATCH', body: { trusted } }),
 };
 
@@ -65,27 +78,15 @@ export const ImagesApi = {
 };
 
 export const ReportsApi = {
-  getSales: (params) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/admin/reports/sales?${qs}`, { method: 'GET' });
-  },
-  getCustomers: (params) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/admin/reports/customers?${qs}`, { method: 'GET' });
-  },
-  getTopProducts: (params) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/admin/reports/top-products?${qs}`, { method: 'GET' });
-  },
+  getSales: (params) => apiClient(withQuery('/admin/reports/sales', params), { method: 'GET' }),
+  getCustomers: (params) => apiClient(withQuery('/admin/reports/customers', params), { method: 'GET' }),
+  getTopProducts: (params) => apiClient(withQuery('/admin/reports/top-products', params), { method: 'GET' }),
 };
 
 export const HealthApi = {
-  check: () => apiClient('/health', { method: 'GET' }), // note this hits the public route without /admin prefix
+  check: () => apiClient('/health', { method: 'GET', root: true }),
 };
 
 export const AuditApi = {
-  list: (params) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/admin/audit?${qs}`, { method: 'GET' });
-  }
+  list: (params) => apiClient(withQuery('/admin/audit', params), { method: 'GET' }),
 };

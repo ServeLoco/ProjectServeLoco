@@ -64,6 +64,6 @@ export const layout = {
   // Max content width (for tablets / large screens)
   maxContentWidth: 480,
 
-  // Admin metric card
+  // Metric card
   metricCardMinHeight: 80,
 };

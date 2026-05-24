@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         try {
           const userData = await AuthApi.me();
-          setUser(userData);
+          setUser(userData.user || userData.data || userData);
         } catch (error) {
           storage.clearToken();
         }

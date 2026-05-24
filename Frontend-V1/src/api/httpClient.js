@@ -1,6 +1,6 @@
 import { ApiError, getErrorMessage } from './apiError';
 import { getApiBaseUrl } from './config';
-import { getAdminToken, getCustomerToken } from './sessionTokens';
+import { getCustomerToken } from './sessionTokens';
 
 function isFormData(body) {
   return typeof FormData !== 'undefined' && body instanceof FormData;
@@ -29,11 +29,7 @@ async function buildHeaders({ auth, body, headers }) {
     requestHeaders['Content-Type'] = 'application/json';
   }
 
-  const token = auth === 'admin'
-    ? await getAdminToken()
-    : auth === 'customer'
-      ? await getCustomerToken()
-      : null;
+  const token = auth === 'customer' ? await getCustomerToken() : null;
 
   if (token) {
     requestHeaders.Authorization = `Bearer ${token}`;

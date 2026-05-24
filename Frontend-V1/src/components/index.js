@@ -14,7 +14,6 @@ export { default as ProductImage } from './ProductImage';
 export { default as ProductCard } from './ProductCard';
 export { default as CategoryCard } from './CategoryCard';
 export { default as OrderCard } from './OrderCard';
-export { default as AdminMetricCard } from './AdminMetricCard';
 export { default as BillSummary } from './BillSummary';
 export { default as StickyMiniCart } from './StickyMiniCart';
 export { default as EmptyState } from './EmptyState';

@@ -75,21 +75,21 @@ export default function AuditLogs() {
               logs.map((log) => (
                 <tr key={log.id || log._id}>
                   <td style={{ whiteSpace: 'nowrap' }}>
-                    {new Date(log.created_at).toLocaleString()}
+                    {new Date(log.created_at || log.timestamp).toLocaleString()}
                   </td>
-                  <td>{log.admin_email || log.admin_id || 'System'}</td>
+                  <td>{log.admin_email || log.admin_id || log.adminId || 'System'}</td>
                   <td>
                     <span className={`audit-action-badge ${getActionClass(log.action)}`}>
-                      {log.action}
+                      {log.action || `${log.method || ''} ${log.url || ''}`.trim()}
                     </span>
                   </td>
-                  <td>{log.resource || '-'}</td>
+                  <td>{log.resource || log.url || '-'}</td>
                   <td>
                     <div className="audit-details">
                       {formatDetails(log.details)}
                     </div>
                   </td>
-                  <td>{log.ip_address || '-'}</td>
+                  <td>{log.ip_address || log.ip || '-'}</td>
                 </tr>
               ))
             )}

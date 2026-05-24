@@ -44,7 +44,16 @@ export default function Categories() {
 
   const toggleActive = async (category) => {
     try {
-      await CategoriesApi.update(category.id, { active: !category.active });
+      await CategoriesApi.update(category.id, {
+        name: category.name,
+        slug: category.slug,
+        type: category.type,
+        imageId: category.image_id,
+        image_id: category.image_id,
+        active: !category.active,
+        displayOrder: category.display_order,
+        display_order: category.display_order,
+      });
       fetchCategories();
     } catch (err) {
       alert('Failed to update status: ' + err.message);
@@ -83,7 +92,7 @@ export default function Categories() {
                 <tr key={c.id}>
                   <td>
                     <div className="category-info">
-                      <img src={c.image_url || 'https://via.placeholder.com/48'} alt={c.name} className="category-thumbnail" />
+                      <img src={c.imageUrl || c.image_url || 'https://via.placeholder.com/48'} alt={c.name} className="category-thumbnail" />
                       <div>
                         <span className="category-name">{c.name}</span>
                         <span className="category-slug">/{c.slug}</span>
@@ -134,6 +143,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
     type: 'packed',
     display_order: 0,
     active: true,
+    image_id: '',
     image_url: ''
   });
   
@@ -170,7 +180,12 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
     try {
       setUploadingImage(true);
       const res = await ImagesApi.upload(data);
-      setFormData(prev => ({ ...prev, image_url: res.imageUrl || res.url || res.data?.url }));
+      const image = res.image || res.data || res;
+      setFormData(prev => ({
+        ...prev,
+        image_id: image.id || image._id || image.image_id || '',
+        image_url: image.imageUrl || image.image_url || image.url || '',
+      }));
     } catch (err) {
       alert('Image upload failed: ' + err.message);
     } finally {
@@ -185,6 +200,9 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
       const payload = {
         ...formData,
         display_order: Number(formData.display_order) || 0,
+        displayOrder: Number(formData.display_order) || 0,
+        imageId: formData.image_id,
+        image_id: formData.image_id,
       };
 
       if (isEdit) {
@@ -247,7 +265,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
 
             <div className="form-group">
               <label className="form-label">Category Image</label>
-              {formData.image_url && <img src={formData.image_url} alt="Preview" className="image-preview" />}
+              {(formData.image_url || formData.imageUrl) && <img src={formData.image_url || formData.imageUrl} alt="Preview" className="image-preview" />}
               <div className="image-upload-zone" onClick={() => fileInputRef.current?.click()}>
                 <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
                 {uploadingImage ? 'Uploading...' : 'Click to Upload Image'}

@@ -1,4 +1,32 @@
 const { pool } = require('../db/mysql');
+const { getDb } = require('../db/mongodb');
+const { ObjectId } = require('mongodb');
+
+const attachOfferImageUrls = async (offers) => {
+  const rows = Array.isArray(offers) ? offers : [offers].filter(Boolean);
+  const imageIds = rows
+    .map(row => row.image_id)
+    .filter(id => id && ObjectId.isValid(id))
+    .map(id => new ObjectId(id));
+
+  if (imageIds.length === 0) return offers;
+
+  const db = getDb();
+  const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
+  const imageMap = {};
+  images.forEach(image => {
+    imageMap[image._id.toString()] = image.url;
+  });
+
+  rows.forEach(row => {
+    if (row.image_id && imageMap[row.image_id]) {
+      row.imageUrl = imageMap[row.image_id];
+      row.image_url = imageMap[row.image_id];
+    }
+  });
+
+  return offers;
+};
 
 const getSettings = async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM settings LIMIT 1');
@@ -26,6 +54,7 @@ const getActiveOffer = async (req, res) => {
     return res.status(200).json({ data: null });
   }
 
+  await attachOfferImageUrls(rows[0]);
   res.status(200).json({ data: rows[0] });
 };
 
@@ -33,7 +62,7 @@ const updateSettings = async (req, res) => {
   const fields = [
     'shop_open', 'delivery_available', 'minimum_order_amount', 'delivery_charge',
     'free_delivery_above', 'night_charge', 'night_charge_start', 'night_charge_end',
-    'whatsapp_number', 'upi_id', 'delivery_time_message'
+    'whatsapp_number', 'upi_id', 'upi_qr_image_id', 'delivery_time_message'
   ];
 
   const body = req.body;
@@ -126,6 +155,7 @@ const updateOffer = async (req, res) => {
 
 const getAdminOffers = async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM offers WHERE deleted = 0 ORDER BY id DESC');
+  await attachOfferImageUrls(rows);
   res.status(200).json({ data: rows });
 };
 

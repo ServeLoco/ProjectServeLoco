@@ -6,16 +6,17 @@ export default function Settings() {
   const [settings, setSettings] = useState({
     shop_open: false,
     delivery_available: false,
-    min_order_amount: 0,
+    minimum_order_amount: 0,
     delivery_charge: 0,
-    free_delivery_threshold: 0,
+    free_delivery_above: 0,
     night_charge: 0,
-    night_charge_start_time: '',
-    night_charge_end_time: '',
+    night_charge_start: '',
+    night_charge_end: '',
     delivery_time_message: '',
     whatsapp_number: '',
     support_phone: '',
     upi_id: '',
+    upi_qr_image_id: '',
     upi_qr_image_url: ''
   });
   
@@ -60,7 +61,12 @@ export default function Settings() {
     try {
       setUploadingImage(true);
       const res = await ImagesApi.upload(data);
-      setSettings(prev => ({ ...prev, upi_qr_image_url: res.imageUrl || res.url || res.data?.url }));
+      const image = res.image || res.data || res;
+      setSettings(prev => ({
+        ...prev,
+        upi_qr_image_id: image.id || image._id || image.image_id || '',
+        upi_qr_image_url: image.imageUrl || image.image_url || image.url || '',
+      }));
     } catch (err) {
       alert('QR image upload failed: ' + err.message);
     } finally {
@@ -74,10 +80,11 @@ export default function Settings() {
       // Ensure numeric fields are numbers
       const payload = {
         ...settings,
-        min_order_amount: Number(settings.min_order_amount),
+        minimum_order_amount: Number(settings.minimum_order_amount),
         delivery_charge: Number(settings.delivery_charge),
-        free_delivery_threshold: Number(settings.free_delivery_threshold),
-        night_charge: Number(settings.night_charge)
+        free_delivery_above: Number(settings.free_delivery_above),
+        night_charge: Number(settings.night_charge),
+        upi_qr_image_id: settings.upi_qr_image_id,
       };
       await SettingsApi.update(payload);
       alert('Settings saved successfully!');
@@ -138,7 +145,7 @@ export default function Settings() {
         <div className="settings-form-grid">
           <div className="settings-form-group">
             <label className="settings-label">Minimum Order Amount (₹)</label>
-            <input type="number" min="0" step="1" name="min_order_amount" className="settings-input" value={settings.min_order_amount} onChange={handleChange} />
+            <input type="number" min="0" step="1" name="minimum_order_amount" className="settings-input" value={settings.minimum_order_amount || ''} onChange={handleChange} />
           </div>
           <div className="settings-form-group">
             <label className="settings-label">Standard Delivery Charge (₹)</label>
@@ -146,7 +153,7 @@ export default function Settings() {
           </div>
           <div className="settings-form-group">
             <label className="settings-label">Free Delivery Threshold (₹)</label>
-            <input type="number" min="0" step="1" name="free_delivery_threshold" className="settings-input" placeholder="0 to disable" value={settings.free_delivery_threshold} onChange={handleChange} />
+            <input type="number" min="0" step="1" name="free_delivery_above" className="settings-input" placeholder="0 to disable" value={settings.free_delivery_above || ''} onChange={handleChange} />
           </div>
           <div className="settings-form-group">
             <label className="settings-label">Night Delivery Surcharge (₹)</label>
@@ -154,11 +161,11 @@ export default function Settings() {
           </div>
           <div className="settings-form-group">
             <label className="settings-label">Night Charge Start Time</label>
-            <input type="time" name="night_charge_start_time" className="settings-input" value={settings.night_charge_start_time || ''} onChange={handleChange} />
+            <input type="time" name="night_charge_start" className="settings-input" value={settings.night_charge_start || ''} onChange={handleChange} />
           </div>
           <div className="settings-form-group">
             <label className="settings-label">Night Charge End Time</label>
-            <input type="time" name="night_charge_end_time" className="settings-input" value={settings.night_charge_end_time || ''} onChange={handleChange} />
+            <input type="time" name="night_charge_end" className="settings-input" value={settings.night_charge_end || ''} onChange={handleChange} />
           </div>
         </div>
       </section>

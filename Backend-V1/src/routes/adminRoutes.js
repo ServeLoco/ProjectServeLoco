@@ -161,6 +161,7 @@ router.get('/me', requireAdmin, me);
 // Customers
 router.get('/customers', requireAdmin, validate(paginationSchema), asyncHandler(getAdminCustomers));
 router.get('/customers/:id', requireAdmin, asyncHandler(getAdminCustomerById));
+router.put('/customers/:id/block', requireAdmin, validate(blockSchema), asyncHandler(setBlockStatus));
 router.patch('/customers/:id/block', requireAdmin, validate(blockSchema), asyncHandler(setBlockStatus));
 router.put('/customers/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
 router.patch('/customers/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));

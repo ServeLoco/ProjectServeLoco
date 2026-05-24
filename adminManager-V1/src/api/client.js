@@ -1,16 +1,24 @@
 import { storage } from '../utils/storage';
-import { normalizeKeys } from '../utils/normalizer';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+const API_ORIGIN = (() => {
+  try {
+    return new URL(API_BASE).origin;
+  } catch {
+    return 'http://localhost:3000';
+  }
+})();
 
 export const apiClient = async (endpoint, options = {}) => {
-  const url = `${API_BASE}${endpoint}`;
+  const { root = false, ...requestOptions } = options;
+  const baseUrl = root ? API_ORIGIN : API_BASE;
+  const url = `${baseUrl}${endpoint}`;
   
   const headers = {
-    ...options.headers,
+    ...requestOptions.headers,
   };
 
-  if (!(options.body instanceof FormData)) {
+  if (!(requestOptions.body instanceof FormData)) {
     headers['Content-Type'] = headers['Content-Type'] || 'application/json';
   }
 
@@ -20,7 +28,7 @@ export const apiClient = async (endpoint, options = {}) => {
   }
 
   const config = {
-    ...options,
+    ...requestOptions,
     headers,
   };
 
@@ -45,7 +53,7 @@ export const apiClient = async (endpoint, options = {}) => {
       return Promise.reject(new Error(errorMsg));
     }
 
-    return normalizeKeys(data);
+    return data;
   } catch (error) {
     return Promise.reject(error);
   }

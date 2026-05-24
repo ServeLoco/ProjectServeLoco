@@ -43,7 +43,7 @@ export default function Offers() {
 
   const toggleActive = async (offer) => {
     try {
-      await OffersApi.update(offer.id, { is_active: !offer.is_active });
+      await OffersApi.update(offer.id, { active: !offer.active });
       fetchOffers();
     } catch (err) {
       alert('Failed to update status: ' + err.message);
@@ -71,17 +71,17 @@ export default function Offers() {
         <section className="offers-grid">
           {offers.map(o => (
             <div key={o.id} className="offer-card">
-              <img src={o.image_url || 'https://via.placeholder.com/400x200?text=No+Image'} alt={o.title} className="offer-image" />
+              <img src={o.imageUrl || o.image_url || 'https://via.placeholder.com/400x200?text=No+Image'} alt={o.title} className="offer-image" />
               <div className="offer-content">
                 <h3 className="offer-title">{o.title}</h3>
                 <p className="offer-description">{o.description}</p>
                 <div className="offer-footer">
-                  <span className={`offer-status ${o.is_active ? 'active' : 'inactive'}`}>
-                    {o.is_active ? 'Active' : 'Inactive'}
+                  <span className={`offer-status ${o.active ? 'active' : 'inactive'}`}>
+                    {o.active ? 'Active' : 'Inactive'}
                   </span>
                   <div className="offer-actions">
                     <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => toggleActive(o)}>
-                      {o.is_active ? 'Deactivate' : 'Activate'}
+                      {o.active ? 'Deactivate' : 'Activate'}
                     </button>
                     <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => openEditDrawer(o)}>
                       Edit
@@ -110,8 +110,9 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
   const [formData, setFormData] = useState(offer || {
     title: '',
     description: '',
+    image_id: '',
     image_url: '',
-    is_active: false
+    active: false
   });
   
   const [saving, setSaving] = useState(false);
@@ -133,7 +134,12 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
     try {
       setUploadingImage(true);
       const res = await ImagesApi.upload(data);
-      setFormData(prev => ({ ...prev, image_url: res.imageUrl || res.url || res.data?.url }));
+      const image = res.image || res.data || res;
+      setFormData(prev => ({
+        ...prev,
+        image_id: image.id || image._id || image.image_id || '',
+        image_url: image.imageUrl || image.image_url || image.url || '',
+      }));
     } catch (err) {
       alert('Image upload failed: ' + err.message);
     } finally {
@@ -145,10 +151,15 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
     e.preventDefault();
     try {
       setSaving(true);
+      const payload = {
+        ...formData,
+        imageId: formData.image_id,
+        image_id: formData.image_id,
+      };
       if (isEdit) {
-        await OffersApi.update(offer.id, formData);
+        await OffersApi.update(offer.id, payload);
       } else {
-        await OffersApi.create(formData);
+        await OffersApi.create(payload);
       }
       onSave();
     } catch (err) {
@@ -191,7 +202,7 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
 
             <div className="form-group">
               <label className="form-label">Offer Image / Banner</label>
-              {formData.image_url && <img src={formData.image_url} alt="Preview" className="image-preview" />}
+              {(formData.image_url || formData.imageUrl) && <img src={formData.image_url || formData.imageUrl} alt="Preview" className="image-preview" />}
               <div className="image-upload-zone" onClick={() => fileInputRef.current?.click()}>
                 <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
                 {uploadingImage ? 'Uploading...' : 'Click to Upload Image'}
@@ -200,7 +211,7 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
 
             <div className="form-group" style={{ marginTop: '1rem' }}>
               <label className="checkbox-label" style={{ padding: '1rem', background: 'var(--bg-color)', borderRadius: 'var(--radius-md)' }}>
-                <input type="checkbox" name="is_active" checked={formData.is_active} onChange={handleChange} />
+                <input type="checkbox" name="active" checked={Boolean(formData.active)} onChange={handleChange} />
                 Activate this offer
               </label>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>

@@ -27,9 +27,30 @@ export default function Reports() {
         ReportsApi.getCustomers(params).catch(() => ({ data: {} }))
       ]);
 
-      setSalesData(salesRes.data || {});
+      const rawSales = salesRes.data || salesRes || {};
+      const revenueByPeriod = {
+        today: rawSales.today ?? rawSales.today_sales,
+        week: rawSales.week ?? rawSales.week_sales,
+        month: rawSales.month ?? rawSales.month_sales,
+        all: rawSales.total_revenue ?? rawSales.month ?? rawSales.month_sales
+      };
+      setSalesData({
+        ...rawSales,
+        total_revenue: rawSales.total_revenue ?? revenueByPeriod[period] ?? 0,
+        total_orders: rawSales.total_orders ?? 0,
+        status_breakdown: rawSales.status_breakdown || {},
+        payment_breakdown: rawSales.payment_breakdown || {},
+        payment_status: rawSales.payment_status || {},
+      });
       setTopProducts(productsRes.data || []);
-      setCustomerData(custRes.data || {});
+      const rawCustomers = custRes.data || {};
+      setCustomerData({
+        ...rawCustomers,
+        new_customers: rawCustomers.new_customers ?? rawCustomers.new_customers_30d ?? 0,
+        trusted_total: rawCustomers.trusted_total ?? rawCustomers.trusted_customers ?? 0,
+        blocked_total: rawCustomers.blocked_total ?? rawCustomers.blocked_customers ?? 0,
+        total_users: rawCustomers.total_users ?? rawCustomers.total_customers ?? 0,
+      });
     } catch (err) {
       setError('Failed to load some report data: ' + err.message);
     } finally {
@@ -144,8 +165,8 @@ export default function Reports() {
                 <ul className="breakdown-list">
                   {topProducts.slice(0, 5).map((p, i) => (
                     <li key={i} className="breakdown-item">
-                      <span className="breakdown-name">{p.name || 'Unknown'}</span>
-                      <span className="breakdown-stat">{p.units_sold || 0} units</span>
+                      <span className="breakdown-name">{p.name || p.product_name || 'Unknown'}</span>
+                      <span className="breakdown-stat">{p.units_sold || p.total_quantity || 0} units</span>
                     </li>
                   ))}
                 </ul>
