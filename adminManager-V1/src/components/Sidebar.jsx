@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import './Sidebar.css';
 
 const navItems = [
   { path: '/', label: 'Dashboard' },
@@ -18,23 +19,20 @@ const navItems = [
 
 export default function Sidebar() {
   return (
-    <aside style={{ width: '250px', background: '#333', color: '#fff', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '1rem', fontSize: '1.2rem', fontWeight: 'bold', borderBottom: '1px solid #444' }}>
-        Admin Panel
+    <aside className="admin-sidebar">
+      <div className="sidebar-header">
+        <div className="sidebar-logo">SL</div>
+        <span>ServeLoco Admin</span>
       </div>
-      <nav style={{ flex: 1, overflowY: 'auto' }}>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+      <nav className="sidebar-nav">
+        <ul className="sidebar-list">
           {navItems.map(item => (
             <li key={item.path}>
               <NavLink 
                 to={item.path} 
-                style={({ isActive }) => ({
-                  display: 'block',
-                  padding: '1rem',
-                  color: '#fff',
-                  textDecoration: 'none',
-                  background: isActive ? '#555' : 'transparent',
-                })}
+                className={({ isActive }) => 
+                  `sidebar-item-link${isActive ? ' active' : ''}`
+                }
               >
                 {item.label}
               </NavLink>

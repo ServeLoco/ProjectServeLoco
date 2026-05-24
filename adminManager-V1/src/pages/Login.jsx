@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthProvider';
+import './Login.css';
 
 export default function Login() {
   const [ownerId, setOwnerId] = useState('');
@@ -31,31 +32,37 @@ export default function Login() {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f5f5f5' }}>
-      <div style={{ background: '#fff', padding: '2rem', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', width: '300px' }}>
-        <h2>Admin Login</h2>
-        {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Owner ID</label>
+    <div className="login-page-container">
+      <div className="login-card">
+        <div className="login-logo-badge">SL</div>
+        <h2 className="login-title">ServeLoco Panel</h2>
+        <p className="login-subtitle">Sign in to manage inventory, settings, and orders</p>
+        
+        {error && <div className="login-error-alert">{error}</div>}
+        
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="form-group">
+            <label className="form-label">Owner ID</label>
             <input 
               type="text" 
               value={ownerId} 
               onChange={e => setOwnerId(e.target.value)}
-              style={{ width: '100%', padding: '0.5rem', boxSizing: 'border-box' }}
+              className="form-input"
+              placeholder="Enter Owner ID"
             />
           </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Password</label>
+          <div className="form-group">
+            <label className="form-label">Password</label>
             <input 
               type="password" 
               value={password} 
               onChange={e => setPassword(e.target.value)}
-              style={{ width: '100%', padding: '0.5rem', boxSizing: 'border-box' }}
+              className="form-input"
+              placeholder="••••••••"
             />
           </div>
-          <button type="submit" disabled={loading} style={{ padding: '0.5rem', background: '#007bff', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-            {loading ? 'Logging in...' : 'Login'}
+          <button type="submit" disabled={loading || !ownerId || !password} className="login-submit-btn">
+            {loading ? 'Logging in...' : 'Sign In'}
           </button>
         </form>
       </div>

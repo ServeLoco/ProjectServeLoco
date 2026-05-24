@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from './AuthProvider';
 import { useLocation } from 'react-router-dom';
+import './Header.css';
 
 export default function Header() {
   const { logout, user } = useAuth();
@@ -9,16 +10,35 @@ export default function Header() {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/') return 'Dashboard';
-    return path.substring(1).charAt(0).toUpperCase() + path.substring(2);
+    const cleanPath = path.substring(1);
+    if (cleanPath === 'audit') return 'Activity & Audit Logs';
+    if (cleanPath === 'health') return 'System Health Status';
+    return cleanPath.charAt(0).toUpperCase() + cleanPath.substring(1);
   };
 
+  const userLabel = user?.id || user?.ownerId || 'Admin';
+  const avatarChar = String(userLabel).charAt(0).toUpperCase();
+
   return (
-    <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', background: '#fff', borderBottom: '1px solid #ddd' }}>
-      <h1 style={{ margin: 0, fontSize: '1.5rem' }}>{getPageTitle()}</h1>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <span>Admin: {user?.id || user?.ownerId || 'Unknown'}</span>
-        <button onClick={() => window.location.reload()} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>Refresh</button>
-        <button onClick={logout} style={{ padding: '0.5rem 1rem', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Logout</button>
+    <header className="admin-header">
+      <h1 className="header-title">{getPageTitle()}</h1>
+      <div className="header-actions">
+        <div className="header-user-badge">
+          <div className="user-avatar">{avatarChar}</div>
+          <span className="user-name">{userLabel}</span>
+        </div>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="btn-header-action refresh"
+        >
+          Refresh
+        </button>
+        <button 
+          onClick={logout} 
+          className="btn-header-action logout"
+        >
+          Logout
+        </button>
       </div>
     </header>
   );
