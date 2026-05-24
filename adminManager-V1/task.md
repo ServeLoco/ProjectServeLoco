@@ -342,23 +342,23 @@ This file is the implementation handoff for the independent laptop admin website
 **Decision:** V1 combos are product records, not bundle recipes.
 
 **Subtasks:**
-- [ ] Add combo section in sidebar.
-- [ ] Reuse product create/edit components where practical.
-- [ ] Mark combo records with backend-supported type or `is_combo`.
-- [ ] Add combo table with search/filter.
-- [ ] Add combo create form.
-- [ ] Add combo edit form.
-- [ ] Add combo hide/delete.
-- [ ] Add combo category/type assignment.
-- [ ] Add combo image upload/change.
-- [ ] Add combo price, unit, description, availability, display order, and featured flag.
-- [ ] Add combo filter in Products page.
-- [ ] Confirm combos appear in the mobile app through product APIs.
-- [ ] Confirm combos can be added to cart and ordered like normal products.
+- [x] Add combo section in sidebar.
+- [x] Reuse product create/edit components where practical.
+- [x] Mark combo records with backend-supported type or `is_combo`.
+- [x] Add combo table with search/filter.
+- [x] Add combo create form.
+- [x] Add combo edit form.
+- [x] Add combo hide/delete.
+- [x] Add combo category/type assignment.
+- [x] Add combo image upload/change.
+- [x] Add combo price, unit, description, availability, display order, and featured flag.
+- [x] Add combo filter in Products page.
+- [x] Confirm combos appear in the mobile app through product APIs.
+- [x] Confirm combos can be added to cart and ordered like normal products.
 
 **Acceptance:**
-- [ ] Combos are visible to customers when active/available.
-- [ ] Combos can be hidden without deleting historical order data.
+- [x] Combos are visible to customers when active/available.
+- [x] Combos can be hidden without deleting historical order data.
 
 ## TASK-AM-009: Categories Management
 **Goal:** Control dashboard/category structure used by the mobile app.
@@ -366,27 +366,27 @@ This file is the implementation handoff for the independent laptop admin website
 **Depends on:** TASK-AM-002, image APIs, backend category APIs.
 
 **Subtasks:**
-- [ ] Build categories table/grid.
-- [ ] Show product count per category.
-- [ ] Add category create form.
-- [ ] Add category rename/edit.
-- [ ] Add category display order controls.
-- [ ] Add active/inactive toggle.
-- [ ] Add type selector:
-  - [ ] Packed
-  - [ ] Fast food
-  - [ ] Combo if needed
-- [ ] Add category image upload/change.
-- [ ] Add category image preview and replacement cleanup.
-- [ ] Auto-generate slug from category name when slug is missing.
-- [ ] Validate duplicate names/slugs.
-- [ ] Prevent hard delete when products exist; hide instead.
-- [ ] Confirm category type controls mobile Packed Items / Fast Food filtering.
-- [ ] Confirm category order controls mobile dashboard category grid order.
+- [x] Build categories table/grid.
+- [x] Show product count per category.
+- [x] Add category create form.
+- [x] Add category rename/edit.
+- [x] Add category display order controls.
+- [x] Add active/inactive toggle.
+- [x] Add type selector:
+  - [x] Packed
+  - [x] Fast food
+  - [x] Combo if needed
+- [x] Add category image upload/change.
+- [x] Add category image preview and replacement cleanup.
+- [x] Auto-generate slug from category name when slug is missing.
+- [x] Validate duplicate names/slugs.
+- [x] Prevent hard delete when products exist; hide instead.
+- [x] Confirm category type controls mobile Packed Items / Fast Food filtering.
+- [x] Confirm category order controls mobile dashboard category grid order.
 
 **Acceptance:**
-- [ ] Category name/order/type changes reflect in mobile dashboard.
-- [ ] Deleting a category with products does not break products or orders.
+- [x] Category name/order/type changes reflect in mobile dashboard.
+- [x] Deleting a category with products does not break products or orders.
 
 ## TASK-AM-010: Offers Management
 **Goal:** Manage all offer content shown in the mobile app.
@@ -394,21 +394,21 @@ This file is the implementation handoff for the independent laptop admin website
 **Depends on:** TASK-AM-002, image APIs, backend offer list/delete support.
 
 **Subtasks:**
-- [ ] Build offer history/list table.
-- [ ] Add offer create form.
-- [ ] Add offer edit form.
-- [ ] Add activate/deactivate controls.
-- [ ] Enforce one public active offer at a time in UI and backend if required.
-- [ ] Add hide/delete old offers.
-- [ ] Add offer image upload/change.
-- [ ] Add offer image preview and replacement cleanup.
-- [ ] Edit title, description, active status, and image.
-- [ ] Add scheduling fields only if backend supports start/end dates later.
-- [ ] Add product/category targeting only if backend supports offer rules later.
+- [x] Build offer history/list table.
+- [x] Add offer create form.
+- [x] Add offer edit form.
+- [x] Add activate/deactivate controls.
+- [x] Enforce one public active offer at a time in UI and backend if required.
+- [x] Add hide/delete old offers.
+- [x] Add offer image upload/change.
+- [x] Add offer image preview and replacement cleanup.
+- [x] Edit title, description, active status, and image.
+- [x] Add scheduling fields only if backend supports start/end dates later.
+- [x] Add product/category targeting only if backend supports offer rules later.
 
 **Acceptance:**
-- [ ] Active offer updates on the mobile dashboard.
-- [ ] Inactive/hidden offers do not appear as active public offer.
+- [x] Active offer updates on the mobile dashboard.
+- [x] Inactive/hidden offers do not appear as active public offer.
 
 ## TASK-AM-011: Customers Management
 **Goal:** Manage customer trust/block state and view customer history safely.
@@ -416,30 +416,30 @@ This file is the implementation handoff for the independent laptop admin website
 **Depends on:** TASK-AM-002, backend customer APIs.
 
 **Subtasks:**
-- [ ] Build customer table.
-- [ ] Add search by name, phone, and WhatsApp.
-- [ ] Add filters:
-  - [ ] Trusted
-  - [ ] Blocked
-  - [ ] New customers
-  - [ ] Customers with orders
-- [ ] Build customer detail drawer.
-- [ ] Show customer name, phone, WhatsApp, short address, full address, created date, updated date, trusted state, and blocked state.
-- [ ] Show order count.
-- [ ] Show customer order history if backend supports it.
-- [ ] Show totals if backend supports them:
-  - [ ] Total orders
-  - [ ] Delivered orders
-  - [ ] Cancelled orders
-  - [ ] Lifetime spend
-- [ ] Add trust/untrust action.
-- [ ] Add block/unblock action with confirmation.
-- [ ] Add one-click phone and WhatsApp actions.
-- [ ] Avoid editing customer password or sensitive identity data.
+- [x] Build customer table.
+- [x] Add search by name, phone, and WhatsApp.
+- [x] Add filters:
+  - [x] Trusted
+  - [x] Blocked
+  - [x] New customers
+  - [x] Customers with orders
+- [x] Build customer detail drawer.
+- [x] Show customer name, phone, WhatsApp, short address, full address, created date, updated date, trusted state, and blocked state.
+- [x] Show order count.
+- [x] Show customer order history if backend supports it.
+- [x] Show totals if backend supports them:
+  - [x] Total orders
+  - [x] Delivered orders
+  - [x] Cancelled orders
+  - [x] Lifetime spend
+- [x] Add trust/untrust action.
+- [x] Add block/unblock action with confirmation.
+- [x] Add one-click phone and WhatsApp actions.
+- [x] Avoid editing customer password or sensitive identity data.
 
 **Acceptance:**
-- [ ] Trust/block changes persist.
-- [ ] Blocked customers cannot place new orders.
+- [x] Trust/block changes persist.
+- [x] Blocked customers cannot place new orders.
 
 ## TASK-AM-012: Settings Management
 **Goal:** Let admin control shop, delivery, payment, and checkout settings.
@@ -447,30 +447,30 @@ This file is the implementation handoff for the independent laptop admin website
 **Depends on:** TASK-AM-002, settings API, image APIs for UPI QR if supported.
 
 **Subtasks:**
-- [ ] Load settings from backend.
-- [ ] Update shop open/closed.
-- [ ] Update delivery availability.
-- [ ] Update minimum order amount.
-- [ ] Update delivery charge.
-- [ ] Update free delivery threshold.
-- [ ] Update night charge.
-- [ ] Update night charge start/end time.
-- [ ] Update WhatsApp number.
-- [ ] Update support/contact phone if backend exposes it.
-- [ ] Update UPI ID.
-- [ ] Upload/change UPI QR image if backend supports `upi_qr_image_id`.
-- [ ] Update delivery time message.
-- [ ] Validate time format.
-- [ ] Add checkout impact preview:
-  - [ ] Minimum order
-  - [ ] Delivery charge
-  - [ ] Free delivery threshold
-  - [ ] Night charge
+- [x] Load settings from backend.
+- [x] Update shop open/closed.
+- [x] Update delivery availability.
+- [x] Update minimum order amount.
+- [x] Update delivery charge.
+- [x] Update free delivery threshold.
+- [x] Update night charge.
+- [x] Update night charge start/end time.
+- [x] Update WhatsApp number.
+- [x] Update support/contact phone if backend exposes it.
+- [x] Update UPI ID.
+- [x] Upload/change UPI QR image if backend supports `upi_qr_image_id`.
+- [x] Update delivery time message.
+- [x] Validate time format.
+- [x] Add checkout impact preview:
+  - [x] Minimum order
+  - [x] Delivery charge
+  - [x] Free delivery threshold
+  - [x] Night charge
 
 **Acceptance:**
-- [ ] Setting changes affect mobile dashboard, cart, checkout, and backend order creation.
-- [ ] Shop closed blocks new orders.
-- [ ] Delivery disabled blocks checkout/order creation.
+- [x] Setting changes affect mobile dashboard, cart, checkout, and backend order creation.
+- [x] Shop closed blocks new orders.
+- [x] Delivery disabled blocks checkout/order creation.
 
 ## TASK-AM-013: Image Management
 **Goal:** Give admin visibility and control over uploaded images.
@@ -478,24 +478,24 @@ This file is the implementation handoff for the independent laptop admin website
 **Depends on:** TASK-AM-002, backend image list API.
 
 **Subtasks:**
-- [ ] Build image library page.
-- [ ] Upload images.
-- [ ] Preview uploaded images.
-- [ ] List filename, size, MIME type, URL, alt text, and created date.
-- [ ] Search/filter images by filename or usage.
-- [ ] Show image usage:
-  - [ ] Product image
-  - [ ] Category image
-  - [ ] Offer image
-  - [ ] UPI QR image
-  - [ ] Unused image
-- [ ] Assign images to products.
-- [ ] Assign images to categories.
-- [ ] Assign images to offers.
-- [ ] Prevent deleting images currently assigned to live entities.
-- [ ] Allow deleting unused images after confirmation.
-- [ ] Add alt text editing if backend supports it.
-- [ ] Add image URL copy action.
+- [x] Build image library page.
+- [x] Upload images.
+- [x] Preview uploaded images.
+- [x] List filename, size, MIME type, URL, alt text, and created date.
+- [x] Search/filter images by filename or usage.
+- [x] Show image usage:
+  - [x] Product image
+  - [x] Category image
+  - [x] Offer image
+  - [x] UPI QR image
+  - [x] Unused image
+- [x] Assign images to products.
+- [x] Assign images to categories.
+- [x] Assign images to offers.
+- [x] Prevent deleting images currently assigned to live entities.
+- [x] Allow deleting unused images after confirmation.
+- [x] Add alt text editing if backend supports it.
+- [x] Add image URL copy action.
 
 **Acceptance:**
 - [ ] Uploaded images can be used by products/categories/offers.

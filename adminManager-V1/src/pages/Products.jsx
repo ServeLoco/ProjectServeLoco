@@ -13,7 +13,8 @@ export default function Products() {
     search: '',
     category_id: '',
     available: '',
-    featured: ''
+    featured: '',
+    is_combo: ''
   });
 
   const [selectedIds, setSelectedIds] = useState([]);
@@ -157,8 +158,13 @@ export default function Products() {
           <option value="1">In Stock</option>
           <option value="0">Out of Stock</option>
         </select>
+        <select name="is_combo" className="filter-select" value={filters.is_combo} onChange={handleFilterChange}>
+          <option value="">All Types (Items & Combos)</option>
+          <option value="0">Standard Items Only</option>
+          <option value="1">Combos Only</option>
+        </select>
         <select name="featured" className="filter-select" value={filters.featured} onChange={handleFilterChange}>
-          <option value="">All Types</option>
+          <option value="">All Featured Status</option>
           <option value="1">Featured Only</option>
         </select>
       </section>

@@ -31,14 +31,26 @@ export const ProductsApi = {
 
 export const CategoriesApi = {
   list: () => apiClient('/admin/categories', { method: 'GET' }),
+  create: (data) => apiClient('/admin/categories', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/categories/${id}`, { method: 'PUT', body: data }),
+  delete: (id) => apiClient(`/admin/categories/${id}`, { method: 'DELETE' }),
 };
 
 export const OffersApi = {
   list: () => apiClient('/admin/offers', { method: 'GET' }),
+  create: (data) => apiClient('/admin/offers', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/offers/${id}`, { method: 'PATCH', body: data }),
+  delete: (id) => apiClient(`/admin/offers/${id}`, { method: 'DELETE' }),
 };
 
 export const CustomersApi = {
-  list: () => apiClient('/admin/customers', { method: 'GET' }),
+  list: (params) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiClient(`/admin/customers?${qs}`, { method: 'GET' });
+  },
+  get: (id) => apiClient(`/admin/customers/${id}`, { method: 'GET' }),
+  updateBlock: (id, is_blocked) => apiClient(`/admin/customers/${id}/block`, { method: 'PATCH', body: { is_blocked } }),
+  updateTrust: (id, trusted) => apiClient(`/admin/customers/${id}/trust`, { method: 'PATCH', body: { trusted } }),
 };
 
 export const SettingsApi = {
@@ -49,6 +61,7 @@ export const SettingsApi = {
 export const ImagesApi = {
   list: () => apiClient('/admin/images', { method: 'GET' }),
   upload: (formData) => apiClient('/admin/images', { method: 'POST', body: formData }),
+  delete: (id) => apiClient(`/admin/images/${id}`, { method: 'DELETE' }),
 };
 
 export const ReportsApi = {
