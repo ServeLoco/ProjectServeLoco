@@ -248,6 +248,11 @@ export default function Orders() {
   };
 
   const isTerminalState = (status) => ['Delivered', 'Cancelled'].includes(status);
+  const formatKm = (value) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? `${numeric.toFixed(2)} km` : 'Not captured';
+  };
+  const isFreeDeliverySnapshot = (value) => value === true || value === 1 || value === '1' || value === 'true';
 
   return (
     <div className="orders-container">
@@ -409,6 +414,30 @@ export default function Orders() {
                   <button onClick={handlePrintInvoice} className="btn-print">
                     Print Invoice
                   </button>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h4>Delivery Pricing</h4>
+                <div className="detail-row">
+                  <span>Distance:</span>
+                  <strong>{formatKm(selectedOrder.delivery_distance_km)}</strong>
+                </div>
+                <div className="detail-row">
+                  <span>Radius used:</span>
+                  <strong>{formatKm(selectedOrder.delivery_radius_km_snapshot)}</strong>
+                </div>
+                <div className="detail-row">
+                  <span>Cost per km:</span>
+                  <strong>
+                    {selectedOrder.delivery_cost_per_km_snapshot !== null && selectedOrder.delivery_cost_per_km_snapshot !== undefined
+                      ? `₹${selectedOrder.delivery_cost_per_km_snapshot}`
+                      : 'Not captured'}
+                  </strong>
+                </div>
+                <div className="detail-row">
+                  <span>Free delivery offer:</span>
+                  <strong>{isFreeDeliverySnapshot(selectedOrder.free_delivery_offer_snapshot) ? 'Applied' : 'Not applied'}</strong>
                 </div>
               </div>
 

@@ -42,7 +42,8 @@ function calculateDeliveryPricing({ customerLat, customerLng, settings }) {
   // If shop coordinates are missing
   const shopLat = settings.shop_latitude;
   const shopLng = settings.shop_longitude;
-  if (shopLat === undefined || shopLat === null || shopLng === undefined || shopLng === null) {
+  if (shopLat === undefined || shopLat === null || shopLat === '' ||
+      shopLng === undefined || shopLng === null || shopLng === '') {
     return {
       allowed: false,
       charge: 0,
@@ -53,15 +54,43 @@ function calculateDeliveryPricing({ customerLat, customerLng, settings }) {
     };
   }
 
+  const parsedCustomerLat = Number(customerLat);
+  const parsedCustomerLng = Number(customerLng);
+  const parsedShopLat = Number(shopLat);
+  const parsedShopLng = Number(shopLng);
+
+  if (!Number.isFinite(parsedCustomerLat) || !Number.isFinite(parsedCustomerLng)) {
+    return {
+      allowed: false,
+      charge: 0,
+      distance: null,
+      message: 'Invalid customer GPS location.',
+      code: 'INVALID_CUSTOMER_LOCATION',
+      requiresLocation: true
+    };
+  }
+
+  if (!Number.isFinite(parsedShopLat) || !Number.isFinite(parsedShopLng)) {
+    return {
+      allowed: false,
+      charge: 0,
+      distance: null,
+      message: 'Shop location is not configured correctly by admin.',
+      code: 'INVALID_SHOP_LOCATION',
+      requiresLocation: false
+    };
+  }
+
   const distance = calculateDistance(
-    Number(customerLat),
-    Number(customerLng),
-    Number(shopLat),
-    Number(shopLng)
+    parsedCustomerLat,
+    parsedCustomerLng,
+    parsedShopLat,
+    parsedShopLng
   );
 
-  const radiusLimit = Number(settings.delivery_radius_km) !== undefined && settings.delivery_radius_km !== null
-    ? Number(settings.delivery_radius_km)
+  const parsedRadiusLimit = Number(settings.delivery_radius_km);
+  const radiusLimit = Number.isFinite(parsedRadiusLimit) && parsedRadiusLimit >= 0
+    ? parsedRadiusLimit
     : 8.00;
 
   if (distance > radiusLimit) {
@@ -80,7 +109,8 @@ function calculateDeliveryPricing({ customerLat, customerLng, settings }) {
   const isFreeOfferActive = settings.free_delivery_offer_active === true || settings.free_delivery_offer_active === 1 || settings.free_delivery_offer_active === 'true';
 
   if (!isFreeOfferActive) {
-    const costPerKm = Number(settings.delivery_cost_per_km) || 0;
+    const parsedCostPerKm = Number(settings.delivery_cost_per_km);
+    const costPerKm = Number.isFinite(parsedCostPerKm) && parsedCostPerKm >= 0 ? parsedCostPerKm : 0;
     charge = distance * costPerKm;
   }
 

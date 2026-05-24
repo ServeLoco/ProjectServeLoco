@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
+  AppIcon,
   QuantityStepper,
   Button,
 } from '../../../components';
@@ -99,7 +100,7 @@ export default function CartScreen() {
 
   const renderEmptyState = () => (
     <Animated.View style={[styles.emptyState, { opacity: fadeAnim }]}>
-      <Text style={styles.emptyEmoji}>Cart</Text>
+      <AppIcon name="cart" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
       <Text style={styles.emptyTitle}>Your cart is empty</Text>
       <Text style={styles.emptyDesc}>Looks like you haven't added anything to your cart yet.</Text>
       <Button 
@@ -241,6 +242,7 @@ export default function CartScreen() {
             ) : (
               <Button 
                 label={bill ? `Proceed to Pay (Rs. ${bill.grandTotal})` : 'Checkout'} 
+                variant="success"
                 onPress={handleCheckout}
                 disabled={isCheckoutDisabled}
                 style={styles.checkoutBtn}

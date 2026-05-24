@@ -3,7 +3,7 @@ const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
 const { createOrder, getOrders, getOrderById, cancelOrder } = require('../controllers/orderController');
 const { requireCustomer } = require('../middleware/authMiddleware');
-const { validate, isString, isEnum, isNumericAmount, validateCoordinates } = require('../validators');
+const { validate, isEnum, isNumericAmount, validateCoordinates } = require('../validators');
 
 const createOrderSchema = (req) => {
   const errors = {};

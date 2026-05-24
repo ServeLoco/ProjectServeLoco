@@ -20,14 +20,25 @@ function AppScreen({
   children,
   style,
   bg = colors.bgApp,
-  edges = ['top', 'bottom', 'left', 'right'],
+  edges,
+  safeAreaTop = true,
+  safeAreaBottom = true,
+  safeAreaLeft = true,
+  safeAreaRight = true,
   statusBarStyle = 'dark-content',
   statusBarBg,
   noPadding = false,
 }) {
+  const resolvedEdges = edges || [
+    safeAreaTop && 'top',
+    safeAreaBottom && 'bottom',
+    safeAreaLeft && 'left',
+    safeAreaRight && 'right',
+  ].filter(Boolean);
+
   return (
     <SafeAreaView
-      edges={edges}
+      edges={resolvedEdges}
       style={[styles.safeArea, { backgroundColor: bg }]}
     >
       <StatusBar

@@ -19,6 +19,7 @@ import {
   AppHeader,
   TextInputField,
   ProductCard,
+  AppIcon,
   StickyMiniCart,
   Button,
   SkeletonRow,
@@ -239,7 +240,7 @@ export default function ProductListScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyEmoji}>Search</Text>
+      <AppIcon name="search" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
       <Text style={styles.emptyTitle}>No products found</Text>
       <Text style={styles.emptyDesc}>Try adjusting your search or filters to find what you're looking for.</Text>
       <Button 
@@ -257,7 +258,7 @@ export default function ProductListScreen() {
 
   const renderErrorState = () => (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyEmoji}>!</Text>
+      <AppIcon name="close" size={48} color={colors.error} style={styles.emptyEmoji} />
       <Text style={styles.emptyTitle}>Oops, something went wrong</Text>
       <Text style={styles.emptyDesc}>We couldn't load the products. Please check your connection and try again.</Text>
       <Button label="Retry" onPress={() => fetchProducts()} />

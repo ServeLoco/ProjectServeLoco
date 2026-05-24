@@ -16,6 +16,7 @@ import {
   AppScreen,
   AppHeader,
   Button,
+  AppIcon,
   SkeletonRow,
   ProductImage,
 } from '../../../components';
@@ -207,7 +208,7 @@ export default function OrdersScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyEmoji}>Box</Text>
+      <AppIcon name="orders" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
       <Text style={styles.emptyTitle}>No orders found</Text>
       <Text style={styles.emptyDesc}>You haven't placed any orders yet. Start exploring our delicious menu!</Text>
       <Button 
@@ -219,7 +220,7 @@ export default function OrdersScreen() {
 
   const renderErrorState = () => (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyEmoji}>!</Text>
+      <AppIcon name="close" size={48} color={colors.error} style={styles.emptyEmoji} />
       <Text style={styles.emptyTitle}>Could not load orders</Text>
       <Text style={styles.emptyDesc}>There was a problem fetching your order history.</Text>
       <Button label="Retry" onPress={() => fetchOrders()} />
@@ -231,7 +232,7 @@ export default function OrdersScreen() {
       <AppScreen style={styles.container}>
         <AppHeader title="My Orders" />
         <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>Lock</Text>
+          <AppIcon name="lock" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
           <Text style={styles.emptyTitle}>Login Required</Text>
           <Text style={styles.emptyDesc}>Please login to view your order history.</Text>
           <Button label="Login / Signup" onPress={() => navigation.navigate('Auth')} />

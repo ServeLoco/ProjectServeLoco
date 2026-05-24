@@ -107,6 +107,12 @@ function normalizeCartCalculation(payload = {}) {
     grandTotal: numberOrZero(pickFirst(bill.grandTotal, bill.grand_total, bill.total, bill.payableAmount)),
     minimumOrder: numberOrZero(pickFirst(bill.minimumOrder, bill.minimum_order, bill.minimumOrderAmount)),
     paymentStatus: pickFirst(bill.paymentStatus, bill.payment_status, 'Pending'),
+    deliveryDistanceKm: pickFirst(bill.deliveryDistanceKm, bill.delivery_distance_km, null),
+    deliveryRadiusKm: pickFirst(bill.deliveryRadiusKm, bill.delivery_radius_km, null),
+    deliveryWithinRange: asBoolean(pickFirst(bill.deliveryWithinRange, bill.delivery_within_range), true),
+    requiresLocation: asBoolean(pickFirst(bill.requiresLocation, bill.requires_location), false),
+    freeDeliveryOfferActive: asBoolean(pickFirst(bill.freeDeliveryOfferActive, bill.free_delivery_offer_active), false),
+    deliveryMessage: pickFirst(bill.deliveryMessage, bill.delivery_message, bill.message, ''),
   };
 }
 
@@ -169,6 +175,10 @@ function normalizeOrder(order = {}) {
     previewImg: pickFirst(order.previewImg, order.previewImage, order.imageUrl, items[0]?.imageUrl, null),
     address: pickFirst(order.address, order.deliveryAddress, order.delivery_address, ''),
     mapUrl: pickFirst(order.mapUrl, order.map_url, order.googleMapsUrl, order.google_maps_url, ''),
+    deliveryDistanceKm: pickFirst(order.deliveryDistanceKm, order.delivery_distance_km, null),
+    deliveryRadiusKmSnapshot: pickFirst(order.deliveryRadiusKmSnapshot, order.delivery_radius_km_snapshot, null),
+    deliveryCostPerKmSnapshot: pickFirst(order.deliveryCostPerKmSnapshot, order.delivery_cost_per_km_snapshot, null),
+    freeDeliveryOfferSnapshot: asBoolean(pickFirst(order.freeDeliveryOfferSnapshot, order.free_delivery_offer_snapshot), false),
     customer: {
       name: getCustomerName(order),
       phone: pickFirst(order.phone, order.customerPhone, order.customer_phone, order.customer?.phone, ''),

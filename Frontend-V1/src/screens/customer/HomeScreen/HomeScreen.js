@@ -302,6 +302,7 @@ export default function HomeScreen() {
               </Text>
               <Button
                 label="Shop Offer"
+                variant="highlight"
                 size="small"
                 onPress={handleShopOffer}
                 style={styles.offerBtn}

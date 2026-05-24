@@ -17,7 +17,12 @@ export default function Settings() {
     support_phone: '',
     upi_id: '',
     upi_qr_image_id: '',
-    upi_qr_image_url: ''
+    upi_qr_image_url: '',
+    shop_latitude: '',
+    shop_longitude: '',
+    delivery_radius_km: 8,
+    delivery_cost_per_km: 0,
+    free_delivery_offer_active: false
   });
   
   const [loading, setLoading] = useState(true);
@@ -77,6 +82,7 @@ export default function Settings() {
   const handleSave = async () => {
     try {
       setSaving(true);
+      const nullableNumber = (value) => (value === '' || value === null || value === undefined ? null : Number(value));
       // Ensure numeric fields are numbers
       const payload = {
         ...settings,
@@ -84,6 +90,11 @@ export default function Settings() {
         delivery_charge: Number(settings.delivery_charge),
         free_delivery_above: Number(settings.free_delivery_above),
         night_charge: Number(settings.night_charge),
+        shop_latitude: nullableNumber(settings.shop_latitude),
+        shop_longitude: nullableNumber(settings.shop_longitude),
+        delivery_radius_km: Number(settings.delivery_radius_km),
+        delivery_cost_per_km: Number(settings.delivery_cost_per_km),
+        free_delivery_offer_active: Boolean(settings.free_delivery_offer_active),
         upi_qr_image_id: settings.upi_qr_image_id,
       };
       await SettingsApi.update(payload);
@@ -166,6 +177,84 @@ export default function Settings() {
           <div className="settings-form-group">
             <label className="settings-label">Night Charge End Time</label>
             <input type="time" name="night_charge_end" className="settings-input" value={settings.night_charge_end || ''} onChange={handleChange} />
+          </div>
+        </div>
+      </section>
+
+      <section className="settings-section">
+        <h2 className="settings-section-title">Location Based Delivery</h2>
+        <div className="settings-form-grid">
+          <div className="settings-form-group">
+            <label className="settings-label">Shop Latitude</label>
+            <input
+              type="number"
+              step="0.000001"
+              min="-90"
+              max="90"
+              name="shop_latitude"
+              className="settings-input"
+              placeholder="e.g. 30.900965"
+              value={settings.shop_latitude ?? ''}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="settings-form-group">
+            <label className="settings-label">Shop Longitude</label>
+            <input
+              type="number"
+              step="0.000001"
+              min="-180"
+              max="180"
+              name="shop_longitude"
+              className="settings-input"
+              placeholder="e.g. 75.857276"
+              value={settings.shop_longitude ?? ''}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="settings-form-group">
+            <label className="settings-label">Delivery Radius (km)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              name="delivery_radius_km"
+              className="settings-input"
+              value={settings.delivery_radius_km ?? 8}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="settings-form-group">
+            <label className="settings-label">Delivery Cost Per Km (₹)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              name="delivery_cost_per_km"
+              className="settings-input"
+              value={settings.delivery_cost_per_km ?? 0}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="toggle-switch-wrapper full-width">
+            <div style={{ flex: 1 }}>
+              <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Free Delivery Offer</strong>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>When enabled, all in-range orders get zero delivery charge.</span>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                name="free_delivery_offer_active"
+                checked={Boolean(settings.free_delivery_offer_active)}
+                onChange={handleChange}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+          <div className="settings-form-group full-width">
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6 }}>
+              Customers must pin GPS location at checkout. Backend allows orders only inside the radius and calculates delivery as exact distance multiplied by cost per km.
+            </p>
           </div>
         </div>
       </section>

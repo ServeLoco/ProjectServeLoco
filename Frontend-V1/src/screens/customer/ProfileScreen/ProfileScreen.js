@@ -15,6 +15,7 @@ import {
   AppScreen,
   AppHeader,
   Button,
+  AppIcon,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useAuthStore, useSettingsStore } from '../../../stores';
@@ -91,7 +92,7 @@ export default function ProfileScreen() {
       <AppScreen style={styles.container}>
         <AppHeader title="My Profile" />
         <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>Hi</Text>
+          <AppIcon name="profile" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
           <Text style={styles.emptyTitle}>Welcome to ServeLoco</Text>
           <Text style={styles.emptyDesc}>Login to view your profile, manage addresses, and track your orders.</Text>
           <Button label="Login / Signup" onPress={() => navigation.navigate('Auth')} />
@@ -114,30 +115,30 @@ export default function ProfileScreen() {
                 {profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}
               </Text>
             </View>
-            <TouchableOpacity
-              style={styles.editIconBtn}
-              onPress={() => navigation.navigate('EditProfile')}
-            >
-              <Text style={styles.editIcon}>Edit</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.editIconBtn}
+                onPress={() => navigation.navigate('EditProfile')}
+              >
+                <AppIcon name="edit" size={18} color={colors.primary} />
+              </TouchableOpacity>
           </View>
 
           <Text style={styles.profileName}>{profile?.name || 'User'}</Text>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>Call</Text>
+            <AppIcon name="phone" size={18} color={colors.textSecondary} style={styles.infoIcon} />
             <Text style={styles.infoText}>{user?.phone || 'No phone added'}</Text>
           </View>
 
           {profile?.whatsapp && (
             <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>Msg</Text>
+              <AppIcon name="whatsapp" size={18} color={colors.textSecondary} style={styles.infoIcon} />
               <Text style={styles.infoText}>{profile.whatsapp} (WhatsApp)</Text>
             </View>
           )}
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>Loc</Text>
+            <AppIcon name="location" size={18} color={colors.textSecondary} style={styles.infoIcon} />
             <Text style={styles.infoText} numberOfLines={2}>
               {profile?.address || 'No address added yet.'}
             </Text>
@@ -194,7 +195,7 @@ export default function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <Animated.View style={[styles.modalBackdrop, { opacity: modalOpacity }]} />
           <Animated.View style={[styles.modalContent, { opacity: modalOpacity, transform: [{ scale: modalScale }] }]}>
-            <Text style={styles.modalEmoji}>Hi</Text>
+            <AppIcon name="logout" size={44} color={colors.primary} style={styles.modalEmoji} />
             <Text style={styles.modalTitle}>Leaving so soon?</Text>
             <Text style={styles.modalDesc}>Are you sure you want to logout from your account?</Text>
 
@@ -221,17 +222,26 @@ export default function ProfileScreen() {
 }
 
 function MenuOption({ icon, label, onPress, isDestructive }) {
+  const iconNameByLabel = {
+    Edit: 'edit',
+    Box: 'orders',
+    Pin: 'location',
+    Help: 'phone',
+    Out: 'logout',
+  };
+  const iconColor = isDestructive ? colors.error : colors.textSecondary;
+
   return (
     <TouchableOpacity
       style={styles.menuOption}
       activeOpacity={0.7}
       onPress={onPress}
     >
-      <Text style={styles.menuIcon}>{icon}</Text>
+      <AppIcon name={iconNameByLabel[icon] || 'box'} size={20} color={iconColor} style={styles.menuIcon} />
       <Text style={[styles.menuLabel, isDestructive && { color: colors.error }]}>
         {label}
       </Text>
-      <Text style={styles.menuChevron}>›</Text>
+      <AppIcon name="down" size={18} color={colors.textTertiary} style={styles.menuChevron} />
     </TouchableOpacity>
   );
 }
@@ -303,9 +313,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  editIcon: {
-    fontSize: 16,
-  },
   profileName: {
     ...typography.h2,
     color: colors.textPrimary,
@@ -318,7 +325,6 @@ const styles = StyleSheet.create({
     paddingRight: spacing.lg,
   },
   infoIcon: {
-    fontSize: 16,
     marginRight: spacing.sm,
     marginTop: 2,
   },
@@ -362,10 +368,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   menuIcon: {
-    fontSize: 20,
     marginRight: spacing.md,
     width: 28,
-    textAlign: 'center',
   },
   menuLabel: {
     ...typography.body,
@@ -374,9 +378,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   menuChevron: {
-    fontSize: 24,
-    color: colors.textTertiary,
-    lineHeight: 24,
+    transform: [{ rotate: '-90deg' }],
   },
   modalOverlay: {
     flex: 1,

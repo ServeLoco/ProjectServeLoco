@@ -29,6 +29,7 @@ import AppIcon from '../AppIcon';
  *   numberOfLines   - number of visible lines for multiline
  *   inputRef        - ref for the TextInput
  *   style           - container style
+ *   containerStyle  - alias for container style
  *   inputStyle      - input style override
  *   rightElement    - custom right element (overrides eye toggle)
  */
@@ -48,11 +49,15 @@ function TextInputField({
   numberOfLines = 1,
   inputRef,
   style,
+  containerStyle,
   inputStyle,
   rightElement,
+  editable,
+  maxLength,
 }) {
   const [isSecure, setIsSecure] = useState(secureTextEntry);
   const [isFocused, setIsFocused] = useState(false);
+  const isEditable = editable !== undefined ? editable : !disabled;
 
   const borderColor = error
     ? colors.errorBorder
@@ -61,7 +66,7 @@ function TextInputField({
     : colors.borderStrong;
 
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, containerStyle, style]}>
       {label ? (
         <Text style={styles.label} numberOfLines={1}>
           {label}
@@ -73,7 +78,7 @@ function TextInputField({
           styles.inputWrap,
           { borderColor },
           isFocused && styles.focused,
-          disabled && styles.disabledWrap,
+          (!isEditable || disabled) && styles.disabledWrap,
           multiline && { height: 52 + (numberOfLines - 1) * 22 },
         ]}
       >
@@ -90,12 +95,13 @@ function TextInputField({
           autoCapitalize={autoCapitalize}
           multiline={multiline}
           numberOfLines={multiline ? numberOfLines : 1}
-          editable={!disabled}
+          editable={isEditable}
+          maxLength={maxLength}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           style={[
             styles.input,
-            disabled && styles.disabledInput,
+            (!isEditable || disabled) && styles.disabledInput,
             multiline && styles.multilineInput,
             inputStyle,
           ]}

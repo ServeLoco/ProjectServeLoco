@@ -41,6 +41,93 @@ describe('Cart and Order Tests', () => {
     expect(res.body.valid).toEqual(true);
   });
 
+  it('should calculate distance delivery for cart when coordinates are present', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      delivery_charge: 10,
+      free_delivery_above: 500,
+      night_charge: 0,
+      shop_latitude: 12.9716,
+      shop_longitude: 77.5946,
+      delivery_radius_km: 8,
+      delivery_cost_per_km: 10,
+      free_delivery_offer_active: 0
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .send({
+        latitude: 12.9716,
+        longitude: 77.6046,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.subtotal).toEqual(200);
+    expect(res.body.deliveryDistanceKm).toBeGreaterThan(0);
+    expect(res.body.deliveryWithinRange).toBe(true);
+    expect(res.body.requiresLocation).toBe(false);
+    expect(res.body.deliveryCharge).toBeCloseTo(res.body.deliveryDistanceKm * 10, 2);
+  });
+
+  it('should return out-of-range cart status without blocking calculation response', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      delivery_charge: 10,
+      free_delivery_above: 500,
+      night_charge: 0,
+      shop_latitude: 12.9716,
+      shop_longitude: 77.5946,
+      delivery_radius_km: 8,
+      delivery_cost_per_km: 10,
+      free_delivery_offer_active: 0
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .send({
+        latitude: 13.2,
+        longitude: 77.5946,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.deliveryWithinRange).toBe(false);
+    expect(res.body.valid).toBe(false);
+    expect(res.body.deliveryCharge).toBe(0);
+    expect(res.body.deliveryMessage).toContain('exceeds our delivery limit');
+  });
+
+  it('should make cart delivery free when free delivery offer is active', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      delivery_charge: 10,
+      free_delivery_above: 500,
+      night_charge: 0,
+      shop_latitude: 12.9716,
+      shop_longitude: 77.5946,
+      delivery_radius_km: 8,
+      delivery_cost_per_km: 10,
+      free_delivery_offer_active: 1
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .send({
+        latitude: 12.9716,
+        longitude: 77.6046,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.deliveryWithinRange).toBe(true);
+    expect(res.body.freeDeliveryOfferActive).toBe(true);
+    expect(res.body.deliveryCharge).toBe(0);
+  });
+
   it('should create an order when customer is inside delivery radius', async () => {
     const mockConnection = {
       beginTransaction: jest.fn(),
@@ -85,6 +172,62 @@ describe('Cart and Order Tests', () => {
     expect(res.body.order).toHaveProperty('deliveryCostPerKmSnapshot', 5);
     expect(mockConnection.commit).toHaveBeenCalledTimes(1);
     expect(mockConnection.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('should create matching delivery charge between cart preview and order creation', async () => {
+    const settings = {
+      shop_open: 1,
+      delivery_available: 1,
+      delivery_charge: 10,
+      free_delivery_above: 500,
+      night_charge: 0,
+      shop_latitude: 12.9716,
+      shop_longitude: 77.5946,
+      delivery_radius_km: 8,
+      delivery_cost_per_km: 10,
+      free_delivery_offer_active: 0
+    };
+
+    pool.query.mockResolvedValueOnce([[settings]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+
+    const cartRes = await request(app)
+      .post('/api/cart/calculate')
+      .send({
+        latitude: 12.9716,
+        longitude: 77.6046,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    const mockConnection = {
+      beginTransaction: jest.fn(),
+      query: jest.fn(),
+      commit: jest.fn(),
+      rollback: jest.fn(),
+      release: jest.fn()
+    };
+    pool.getConnection.mockResolvedValue(mockConnection);
+
+    mockConnection.query
+      .mockResolvedValueOnce([[{ blocked: 0 }]])
+      .mockResolvedValueOnce([[settings]])
+      .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]])
+      .mockResolvedValueOnce([{ insertId: 1002 }]);
+
+    const orderRes = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        address: '123 Test St',
+        paymentMethod: 'Cash',
+        latitude: 12.9716,
+        longitude: 77.6046,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(orderRes.statusCode).toEqual(201);
+    expect(orderRes.body.order.deliveryCharge).toBeCloseTo(cartRes.body.deliveryCharge, 2);
+    expect(orderRes.body.order.deliveryDistanceKm).toBeCloseTo(cartRes.body.deliveryDistanceKm, 4);
   });
 
   it('should fail order creation when coordinates are missing', async () => {

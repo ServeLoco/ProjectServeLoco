@@ -22,6 +22,7 @@ import {
   Button,
   SegmentedControl,
   IconButton,
+  AppIcon,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useAuthStore } from '../../../stores';
@@ -294,7 +295,7 @@ export default function AuthScreen() {
 
               {/* Small local illustration / product image placeholder */}
               <Animated.View style={[styles.illustrationBox, { transform: [{ translateY: floatAnimIllustration }] }]}>
-                <Text style={styles.illustrationText}>Bag</Text>
+                <AppIcon name="shoppingBag" size={30} color={colors.primary} />
               </Animated.View>
             </Animated.View>
 
@@ -381,9 +382,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.md,
-  },
-  illustrationText: {
-    fontSize: 28,
   },
   authCard: {
     backgroundColor: colors.bgSurface,

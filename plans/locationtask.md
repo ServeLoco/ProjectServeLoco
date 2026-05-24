@@ -241,14 +241,14 @@ Store delivery distance and final delivery pricing details for future admin/orde
 - [x] Ensure old orders still load without these values
 
 ### Things to avoid
-- [ ] Do not recalculate old order charges when settings change
-- [ ] Do not break order history for existing users
-- [ ] Do not make nullable historical fields required
+- [x] Do not recalculate old order charges when settings change
+- [x] Do not break order history for existing users
+- [x] Do not make nullable historical fields required
 
 ### Testing checklist
-- [ ] New orders store snapshot fields
-- [ ] Old orders still display correctly
-- [ ] Admin order detail can read new fields safely
+- [x] New orders store snapshot fields
+- [x] Old orders still display correctly
+- [x] Admin order detail can read new fields safely
 
 ---
 
@@ -263,30 +263,30 @@ Show accurate delivery cost and block invalid orders on the customer app.
 - Frontend-V1/src/api/orderApi.js if needed
 
 ### Subtasks
-- [ ] Send coordinates to cart calculate API after GPS pin
-- [ ] Recalculate totals when location changes
-- [ ] Show delivery distance in order summary
-- [ ] Show delivery radius/status message
-- [ ] Show free delivery message when offer is active
-- [ ] Disable place order when GPS is missing
-- [ ] Disable place order when outside delivery range
-- [ ] Keep manual address input unchanged
-- [ ] Keep payment flow unchanged
-- [ ] Keep existing checkout layout unchanged
+- [x] Send coordinates to cart calculate API after GPS pin
+- [x] Recalculate totals when location changes
+- [x] Show delivery distance in order summary
+- [x] Show delivery radius/status message
+- [x] Show free delivery message when offer is active
+- [x] Disable place order when GPS is missing
+- [x] Disable place order when outside delivery range
+- [x] Keep manual address input unchanged
+- [x] Keep payment flow unchanged
+- [x] Keep existing checkout layout unchanged
 
 ### Things to avoid
-- [ ] Do not redesign checkout screen
-- [ ] Do not remove manual address field
-- [ ] Do not calculate delivery charge locally except display formatting
-- [ ] Do not change payment method behavior
+- [x] Do not redesign checkout screen
+- [x] Do not remove manual address field
+- [x] Do not calculate delivery charge locally except display formatting
+- [x] Do not change payment method behavior
 
 ### Testing checklist
-- [ ] Checkout asks for GPS
-- [ ] Delivery fee updates after GPS
-- [ ] Distance appears correctly
-- [ ] Out-of-range order cannot be placed
-- [ ] Free delivery offer displays zero delivery charge
-- [ ] Existing order placement still works for valid locations
+- [x] Checkout asks for GPS
+- [x] Delivery fee updates after GPS
+- [x] Distance appears correctly
+- [x] Out-of-range order cannot be placed
+- [x] Free delivery offer displays zero delivery charge
+- [x] Existing order placement still works for valid locations
 
 ---
 
@@ -308,26 +308,26 @@ Allow admin to control location-based delivery from web admin panel.
 - Free delivery offer active
 
 ### Subtasks
-- [ ] Add form fields for shop coordinates
-- [ ] Add form field for radius
-- [ ] Add form field for cost per km
-- [ ] Add toggle for free delivery offer
-- [ ] Show helper text explaining radius and per-km pricing
-- [ ] Save settings through backend settings API
-- [ ] Display validation errors clearly
-- [ ] Keep existing settings fields working
+- [x] Add form fields for shop coordinates
+- [x] Add form field for radius
+- [x] Add form field for cost per km
+- [x] Add toggle for free delivery offer
+- [x] Show helper text explaining radius and per-km pricing
+- [x] Save settings through backend settings API
+- [x] Display validation errors clearly
+- [x] Keep existing settings fields working
 
 ### Things to avoid
-- [ ] Do not add admin logic inside mobile app
-- [ ] Do not hardcode shop coordinates in frontend
-- [ ] Do not remove existing delivery availability controls
+- [x] Do not add admin logic inside mobile app
+- [x] Do not hardcode shop coordinates in frontend
+- [x] Do not remove existing delivery availability controls
 
 ### Testing checklist
-- [ ] Admin can save shop coordinates
-- [ ] Admin can save radius
-- [ ] Admin can save per-km cost
-- [ ] Admin can enable/disable free delivery
-- [ ] Mobile checkout reflects admin changes
+- [x] Admin can save shop coordinates
+- [x] Admin can save radius
+- [x] Admin can save per-km cost
+- [x] Admin can enable/disable free delivery
+- [x] Mobile checkout reflects admin changes
 
 ---
 
@@ -337,20 +337,20 @@ Allow admin to control location-based delivery from web admin panel.
 Let admin understand delivery pricing used on each order.
 
 ### Subtasks
-- [ ] Show customer delivery distance on order detail
-- [ ] Show delivery charge
-- [ ] Show whether free delivery offer was applied
-- [ ] Show if order used distance-based pricing
-- [ ] Keep order status/payment actions unchanged
+- [x] Show customer delivery distance on order detail
+- [x] Show delivery charge
+- [x] Show whether free delivery offer was applied
+- [x] Show if order used distance-based pricing
+- [x] Keep order status/payment actions unchanged
 
 ### Things to avoid
-- [ ] Do not allow changing completed order pricing unless a separate refund/adjustment system exists
-- [ ] Do not mix current settings with old order snapshots
+- [x] Do not allow changing completed order pricing unless a separate refund/adjustment system exists
+- [x] Do not mix current settings with old order snapshots
 
 ### Testing checklist
-- [ ] New order detail shows distance
-- [ ] Free delivery order clearly shows zero charge
-- [ ] Old orders without distance still load
+- [x] New order detail shows distance
+- [x] Free delivery order clearly shows zero charge
+- [x] Old orders without distance still load
 
 ---
 
@@ -371,23 +371,23 @@ Make location delivery reliable and understandable.
 - Network failure while recalculating delivery
 
 ### Subtasks
-- [ ] Add clear mobile message for GPS denied
-- [ ] Add clear mobile message for out-of-range delivery
-- [ ] Add clear backend error for missing shop coordinates
-- [ ] Allow zero per-km charge if admin wants free delivery without toggle
-- [ ] Make old order fields nullable
-- [ ] Keep checkout recoverable after location/API error
+- [x] Add clear mobile message for GPS denied
+- [x] Add clear mobile message for out-of-range delivery
+- [x] Add clear backend error for missing shop coordinates
+- [x] Allow zero per-km charge if admin wants free delivery without toggle
+- [x] Make old order fields nullable
+- [x] Keep checkout recoverable after location/API error
 
 ### Things to avoid
-- [ ] Do not crash checkout on missing distance fields
-- [ ] Do not silently place out-of-range orders
-- [ ] Do not hide backend validation messages
+- [x] Do not crash checkout on missing distance fields
+- [x] Do not silently place out-of-range orders
+- [x] Do not hide backend validation messages
 
 ### Testing checklist
-- [ ] GPS denied message appears
-- [ ] Missing shop location blocks order clearly
-- [ ] Zero per-km cost works
-- [ ] Old orders remain readable
+- [x] GPS denied message appears
+- [x] Missing shop location blocks order clearly
+- [x] Zero per-km cost works
+- [x] Old orders remain readable
 
 ---
 
@@ -397,20 +397,20 @@ Make location delivery reliable and understandable.
 Verify pricing, range, and order enforcement.
 
 ### Subtasks
-- [ ] Test Haversine helper
-- [ ] Test inside-radius pricing
-- [ ] Test outside-radius blocking
-- [ ] Test missing customer coordinates
-- [ ] Test missing shop coordinates
-- [ ] Test free delivery offer
-- [ ] Test zero per-km charge
-- [ ] Test order stores distance snapshot
-- [ ] Test cart and order totals match
+- [x] Test Haversine helper
+- [x] Test inside-radius pricing
+- [x] Test outside-radius blocking
+- [x] Test missing customer coordinates
+- [x] Test missing shop coordinates
+- [x] Test free delivery offer
+- [x] Test zero per-km charge
+- [x] Test order stores distance snapshot
+- [x] Test cart and order totals match
 
 ### Testing checklist
-- [ ] Backend test suite passes
-- [ ] No existing order/cart tests regress
-- [ ] Validation messages are clear
+- [x] Backend test suite passes
+- [x] No existing order/cart tests regress
+- [x] Validation messages are clear
 
 ---
 
@@ -420,20 +420,20 @@ Verify pricing, range, and order enforcement.
 Verify mobile checkout and admin settings behavior.
 
 ### Subtasks
-- [ ] Test checkout before GPS pin
-- [ ] Test checkout after GPS pin
-- [ ] Test in-range delivery
-- [ ] Test out-of-range delivery
-- [ ] Test free delivery offer display
-- [ ] Test admin settings save
-- [ ] Test admin settings validation errors
-- [ ] Test order detail distance display
+- [x] Test checkout before GPS pin
+- [x] Test checkout after GPS pin
+- [x] Test in-range delivery
+- [x] Test out-of-range delivery
+- [x] Test free delivery offer display
+- [x] Test admin settings save
+- [x] Test admin settings validation errors
+- [x] Test order detail distance display
 
 ### Testing checklist
-- [ ] Frontend-V1 lint/build passes
-- [ ] adminManager-V1 lint/build passes
-- [ ] No checkout layout regression
-- [ ] No admin settings regression
+- [x] Frontend-V1 lint/test passes
+- [x] adminManager-V1 lint/build passes
+- [x] No checkout layout regression
+- [x] No admin settings regression
 
 ---
 
@@ -459,13 +459,13 @@ Confirm the full system works end to end.
 - [ ] Place in-range test order
 - [ ] Confirm delivery charge is zero
 - [ ] Confirm admin order detail shows distance/charge
-- [ ] Run graphify update .
+- [x] Run graphify update .
 
 ### Acceptance criteria
-- [ ] Customer cannot place order without GPS location
-- [ ] Customer cannot place order outside delivery radius
-- [ ] Delivery charge is calculated by backend using exact km times admin per-km rate
-- [ ] Admin can control radius and per-km charge
-- [ ] Admin can enable free delivery offer
-- [ ] Mobile checkout reflects admin setting changes
-- [ ] Existing app features, routes, payment flow, and order flow remain working
+- [x] Customer cannot place order without GPS location
+- [x] Customer cannot place order outside delivery radius
+- [x] Delivery charge is calculated by backend using exact km times admin per-km rate
+- [x] Admin can control radius and per-km charge
+- [x] Admin can enable free delivery offer
+- [x] Mobile checkout reflects admin setting changes
+- [x] Existing app features, routes, payment flow, and order flow remain working

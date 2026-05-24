@@ -190,6 +190,13 @@ export default function OrderDetailScreen() {
             <Text style={styles.infoLabel}>Payment Method</Text>
             <Text style={styles.infoValue}>{order.paymentMethod} • <Text style={{ color: order.paymentStatus === 'Paid' ? colors.success : colors.warning }}>{order.paymentStatus}</Text></Text>
           </View>
+
+          {order.deliveryDistanceKm !== null && order.deliveryDistanceKm !== undefined ? (
+            <View style={styles.infoGroup}>
+              <Text style={styles.infoLabel}>Delivery Distance</Text>
+              <Text style={styles.infoValue}>{Number(order.deliveryDistanceKm).toFixed(2)} km</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Bill Summary */}

@@ -11,7 +11,7 @@ import PressableScale from '../PressableScale';
 /**
  * Button
  *
- * Variants: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
+ * Variants: 'primary' | 'secondary' | 'outline' | 'ghost' | 'success' | 'highlight' | 'danger'
  * Sizes:    'large' | 'md' | 'small'
  *
  * Props:

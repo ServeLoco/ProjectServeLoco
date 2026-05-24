@@ -9,11 +9,13 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
+  AppIcon,
   SegmentedControl,
   CategoryCard,
   StickyMiniCart,
@@ -33,6 +35,7 @@ const DEFAULT_CHIPS = ['All', 'Bestsellers', 'New Arrivals', 'Offers'];
 
 export default function CategoriesScreen() {
   const navigation = useNavigation();
+  const { width: windowWidth } = useWindowDimensions();
   const { totalItems, displayTotal } = useCartStore();
   
   const [isLoading, setIsLoading] = useState(true);
@@ -108,10 +111,15 @@ export default function CategoriesScreen() {
     setActiveChip(chip);
   };
 
+  const gridGap = spacing.sm;
+  const gridWidth = windowWidth - (spacing.lg * 2);
+  const categoryCardWidth = Math.floor((gridWidth - (gridGap * 3)) / 4);
+  const categoryImageSize = Math.max(38, categoryCardWidth - spacing.sm);
+
   const renderSkeletonGrid = () => (
-    <View style={styles.grid}>
-      {[1, 2, 3, 4, 5, 6].map((k) => (
-        <View key={k} style={styles.gridItem}>
+        <View style={styles.grid}>
+          {[1, 2, 3, 4, 5, 6].map((k) => (
+        <View key={k} style={[styles.gridItem, { width: categoryCardWidth }]}>
           <LoadingSkeleton style={{ height: 140, borderRadius: radius.md }} />
         </View>
       ))}
@@ -127,7 +135,7 @@ export default function CategoriesScreen() {
         onCartPress={handleCartPress}
         rightActions={[
           {
-            icon: <Text style={{ fontSize: 20 }}>Search</Text>,
+            icon: <AppIcon name="search" size={20} color={colors.textPrimary} />,
             onPress: handleSearchPress,
             label: 'Search',
           }
@@ -178,7 +186,7 @@ export default function CategoriesScreen() {
             renderSkeletonGrid()
           ) : isError ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>Error</Text>
+              <AppIcon name="close" size={48} color={colors.error} style={styles.emptyEmoji} />
               <Text style={styles.emptyTitle}>Failed to load categories</Text>
               <Text style={styles.emptyDesc}>Please check your connection and try again.</Text>
               <Button
@@ -200,6 +208,7 @@ export default function CategoriesScreen() {
                       key={cat.id}
                       style={[
                         styles.gridItem,
+                        { width: categoryCardWidth },
                         {
                           opacity: staggerAnims[idx] || 1,
                           transform: [{
@@ -215,6 +224,9 @@ export default function CategoriesScreen() {
                         name={cat.name}
                         count={cat.count}
                         imageUri={cat.imageUri}
+                        imageWidth={categoryImageSize}
+                        imageHeight={Math.max(36, categoryImageSize * 0.66)}
+                        style={{ width: categoryCardWidth }}
                         onPress={() => handleCategoryPress(cat)}
                       />
                     </Animated.View>
@@ -222,7 +234,7 @@ export default function CategoriesScreen() {
                 </View>
               ) : (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyEmoji}>Empty</Text>
+                  <AppIcon name="box" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
                   <Text style={styles.emptyTitle}>No items found</Text>
                   <Text style={styles.emptyDesc}>We couldn't find any categories for this store type.</Text>
                   <Button 
@@ -301,7 +313,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
   },
   gridItem: {
-    width: '48%', // 2 columns
     marginBottom: spacing.md,
   },
   emptyState: {

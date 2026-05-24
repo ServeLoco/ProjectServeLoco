@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
+  AppIcon,
   TextInputField,
   Button,
 } from '../../../components';
@@ -44,6 +45,11 @@ export default function CheckoutScreen() {
     productId: item.product.id,
     quantity: item.quantity,
   })), [items]);
+  const calculationPayload = useMemo(() => ({
+    items: checkoutItems,
+    latitude: coordinates?.lat,
+    longitude: coordinates?.lng,
+  }), [checkoutItems, coordinates]);
 
   // Form State
   const [address, setAddress] = useState(userProfile?.address || '');
@@ -88,7 +94,7 @@ export default function CheckoutScreen() {
       setCalcError(null);
 
       try {
-        const calculatedBill = normalizeCartCalculation(await cartApi.calculate({ items: checkoutItems }));
+        const calculatedBill = normalizeCartCalculation(await cartApi.calculate(calculationPayload));
         if (isActive) {
           setBill(calculatedBill);
         }
@@ -109,7 +115,7 @@ export default function CheckoutScreen() {
     return () => {
       isActive = false;
     };
-  }, [checkoutItems]);
+  }, [calculationPayload, checkoutItems.length]);
 
   const handleRequestGPS = async () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -122,7 +128,7 @@ export default function CheckoutScreen() {
       if (!hasPermission) {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setGpsStatus('error');
-        setGpsError('Location permission was denied. You can enter the address manually.');
+        setGpsError('Location permission was denied. GPS location is required for delivery range and pricing.');
         return;
       }
 
@@ -167,8 +173,20 @@ export default function CheckoutScreen() {
       setSubmitError('The shop is currently closed. We cannot accept orders right now.');
       return;
     }
+    if (!coordinates) {
+      setSubmitError('Please pin your GPS location to calculate delivery distance.');
+      return;
+    }
     if (isCalculating || calcError || !bill) {
       setSubmitError('Please wait while we verify the order total.');
+      return;
+    }
+    if (bill.requiresLocation) {
+      setSubmitError(bill.deliveryMessage || 'Please pin your GPS location to calculate delivery distance.');
+      return;
+    }
+    if (!bill.deliveryWithinRange) {
+      setSubmitError(bill.deliveryMessage || 'Delivery is not available at this location.');
       return;
     }
     
@@ -179,10 +197,20 @@ export default function CheckoutScreen() {
     Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true }).start();
 
     try {
-      const verifiedBill = normalizeCartCalculation(await cartApi.calculate({ items: checkoutItems }));
+      const verifiedBill = normalizeCartCalculation(await cartApi.calculate(calculationPayload));
       const verifiedMinimum = verifiedBill.minimumOrder || minimumOrder || 0;
 
       setBill(verifiedBill);
+
+      if (verifiedBill.requiresLocation) {
+        setSubmitError(verifiedBill.deliveryMessage || 'Please pin your GPS location to calculate delivery distance.');
+        return;
+      }
+
+      if (!verifiedBill.deliveryWithinRange) {
+        setSubmitError(verifiedBill.deliveryMessage || 'Delivery is not available at this location.');
+        return;
+      }
 
       if (verifiedMinimum && verifiedBill.subtotal < verifiedMinimum) {
         setSubmitError(`Minimum order is Rs. ${verifiedMinimum}. Add items worth Rs. ${verifiedMinimum - verifiedBill.subtotal} more.`);
@@ -224,9 +252,15 @@ export default function CheckoutScreen() {
 
   const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
   const isBelowMinimum = Boolean(bill && requiredMinimum && bill.subtotal < requiredMinimum);
-  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || isBelowMinimum;
+  const hasPinnedLocation = Boolean(coordinates);
+  const hasInvalidDelivery = Boolean(bill && (bill.requiresLocation || !bill.deliveryWithinRange));
+  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || isBelowMinimum || !hasPinnedLocation || hasInvalidDelivery;
   const placeOrderLabel = isSubmitting
     ? 'Processing...'
+    : !hasPinnedLocation
+    ? 'Pin Location to Continue'
+    : hasInvalidDelivery
+    ? 'Delivery Not Available'
     : bill
     ? `Place Order • Rs. ${bill.grandTotal}`
     : isCalculating
@@ -274,7 +308,7 @@ export default function CheckoutScreen() {
               </View>
             ) : (
               <View style={styles.gpsSuccess}>
-                <Text style={styles.gpsSuccessIcon}>Loc</Text>
+                <AppIcon name="location" size={24} color={colors.success} style={styles.gpsSuccessIcon} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.gpsSuccessText}>Location Pinned</Text>
                   <Text style={styles.gpsCoords}>
@@ -282,7 +316,7 @@ export default function CheckoutScreen() {
                   </Text>
                 </View>
                 <TouchableOpacity style={styles.mapActionBtn} onPress={handleOpenMap}>
-                  <Text style={styles.mapActionText}>Map</Text>
+                  <AppIcon name="navigation" size={16} color={colors.primary} />
                 </TouchableOpacity>
               </View>
             )}
@@ -303,7 +337,12 @@ export default function CheckoutScreen() {
               style={[styles.paymentBox, paymentMethod === 'Cash' && styles.paymentBoxActive]}
               onPress={() => setPaymentMethod('Cash')}
             >
-              <Text style={styles.paymentIcon}>Cash</Text>
+              <AppIcon
+                name="rupee"
+                size={28}
+                color={paymentMethod === 'Cash' ? colors.primary : colors.textSecondary}
+                style={styles.paymentIcon}
+              />
               <Text style={[styles.paymentText, paymentMethod === 'Cash' && styles.paymentTextActive]}>Cash on Delivery</Text>
             </TouchableOpacity>
 
@@ -312,7 +351,12 @@ export default function CheckoutScreen() {
               style={[styles.paymentBox, paymentMethod === 'UPI' && styles.paymentBoxActive]}
               onPress={() => setPaymentMethod('UPI')}
             >
-              <Text style={styles.paymentIcon}>UPI</Text>
+              <AppIcon
+                name="creditCard"
+                size={28}
+                color={paymentMethod === 'UPI' ? colors.primary : colors.textSecondary}
+                style={styles.paymentIcon}
+              />
               <Text style={[styles.paymentText, paymentMethod === 'UPI' && styles.paymentTextActive]}>UPI / Online</Text>
             </TouchableOpacity>
           </View>
@@ -341,6 +385,21 @@ export default function CheckoutScreen() {
                   <Text style={styles.summaryLabel}>Delivery</Text>
                   <Text style={styles.summaryValue}>{bill.deliveryCharge === 0 ? 'FREE' : `Rs. ${bill.deliveryCharge}`}</Text>
                 </View>
+                {bill.deliveryDistanceKm !== null && bill.deliveryDistanceKm !== undefined && (
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Distance</Text>
+                    <Text style={styles.summaryValue}>{Number(bill.deliveryDistanceKm).toFixed(2)} km</Text>
+                  </View>
+                )}
+                {(bill.deliveryMessage || bill.requiresLocation || !bill.deliveryWithinRange || bill.freeDeliveryOfferActive) && (
+                  <Text style={[
+                    styles.deliveryStatusText,
+                    !bill.deliveryWithinRange && styles.deliveryStatusError,
+                    bill.freeDeliveryOfferActive && styles.deliveryStatusSuccess,
+                  ]}>
+                    {bill.deliveryMessage || (bill.requiresLocation ? 'Pin location to calculate delivery.' : `Delivery available within ${bill.deliveryRadiusKm || 8} km.`)}
+                  </Text>
+                )}
                 {bill.nightCharge > 0 && (
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Night Charge</Text>
@@ -384,6 +443,7 @@ export default function CheckoutScreen() {
         <Animated.View style={{ transform: [{ scale: btnScale }] }}>
           <Button 
             label={placeOrderLabel}
+            variant="success"
             onPress={handlePlaceOrder}
             disabled={isPlaceOrderDisabled}
             loading={isSubmitting}
@@ -450,7 +510,6 @@ const styles = StyleSheet.create({
     borderColor: colors.success + '40',
   },
   gpsSuccessIcon: {
-    fontSize: 24,
     marginRight: spacing.sm,
   },
   gpsSuccessText: {
@@ -465,16 +524,13 @@ const styles = StyleSheet.create({
   },
   mapActionBtn: {
     backgroundColor: colors.bgSurface,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    width: 34,
+    height: 30,
     borderRadius: radius.xs,
     borderWidth: 1,
     borderColor: colors.border,
-  },
-  mapActionText: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '600',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   gpsErrorText: {
     ...typography.caption,
@@ -500,7 +556,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary + '0D',
   },
   paymentIcon: {
-    fontSize: 28,
     marginBottom: spacing.xs,
   },
   paymentText: {
@@ -547,6 +602,18 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.warning,
     marginTop: spacing.xs,
+  },
+  deliveryStatusText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  deliveryStatusError: {
+    color: colors.error,
+  },
+  deliveryStatusSuccess: {
+    color: colors.success,
+    fontWeight: '600',
   },
   divider: {
     height: 1,
