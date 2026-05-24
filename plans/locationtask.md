@@ -195,29 +195,29 @@ Enforce delivery range and final charge during order placement.
 - Backend-V1/src/validators/index.js
 
 ### Subtasks
-- [ ] Require latitude and longitude for delivery orders
-- [ ] Validate coordinate format
-- [ ] Load latest settings during order creation
-- [ ] Calculate distance and delivery charge server-side
-- [ ] Block order if customer is outside delivery radius
-- [ ] Block order if shop coordinates are missing
-- [ ] Store final delivery charge
-- [ ] Store delivery distance km
-- [ ] Store pricing snapshot if useful
-- [ ] Return clear validation errors to frontend
+- [x] Require latitude and longitude for delivery orders
+- [x] Validate coordinate format
+- [x] Load latest settings during order creation
+- [x] Calculate distance and delivery charge server-side
+- [x] Block order if customer is outside delivery radius
+- [x] Block order if shop coordinates are missing
+- [x] Store final delivery charge
+- [x] Store delivery distance km
+- [x] Store pricing snapshot if useful
+- [x] Return clear validation errors to frontend
 
 ### Things to avoid
-- [ ] Do not accept frontend delivery charge as trusted
-- [ ] Do not create order before distance validation passes
-- [ ] Do not allow free delivery to bypass radius limit
+- [x] Do not accept frontend delivery charge as trusted
+- [x] Do not create order before distance validation passes
+- [x] Do not allow free delivery to bypass radius limit
 
 ### Testing checklist
-- [ ] Missing GPS fails order creation
-- [ ] Invalid GPS fails order creation
-- [ ] Inside-radius GPS creates order
-- [ ] Outside-radius GPS blocks order
-- [ ] Free delivery creates order with zero delivery charge
-- [ ] Stored order contains distance and charge
+- [x] Missing GPS fails order creation
+- [x] Invalid GPS fails order creation
+- [x] Inside-radius GPS creates order
+- [x] Outside-radius GPS blocks order
+- [x] Free delivery creates order with zero delivery charge
+- [x] Stored order contains distance and charge
 
 ---
 
@@ -233,12 +233,12 @@ Store delivery distance and final delivery pricing details for future admin/orde
 - free_delivery_offer_snapshot
 
 ### Subtasks
-- [ ] Add migration for order delivery snapshot fields
-- [ ] Store calculated distance
-- [ ] Store radius used at order time
-- [ ] Store per-km rate used at order time
-- [ ] Store free-offer state used at order time
-- [ ] Ensure old orders still load without these values
+- [x] Add migration for order delivery snapshot fields
+- [x] Store calculated distance
+- [x] Store radius used at order time
+- [x] Store per-km rate used at order time
+- [x] Store free-offer state used at order time
+- [x] Ensure old orders still load without these values
 
 ### Things to avoid
 - [ ] Do not recalculate old order charges when settings change

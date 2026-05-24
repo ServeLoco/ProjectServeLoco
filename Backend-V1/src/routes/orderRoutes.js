@@ -3,7 +3,7 @@ const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
 const { createOrder, getOrders, getOrderById, cancelOrder } = require('../controllers/orderController');
 const { requireCustomer } = require('../middleware/authMiddleware');
-const { validate, isString, isEnum, isNumericAmount } = require('../validators');
+const { validate, isString, isEnum, isNumericAmount, validateCoordinates } = require('../validators');
 
 const createOrderSchema = (req) => {
   const errors = {};
@@ -16,6 +16,20 @@ const createOrderSchema = (req) => {
     errors.payment_method = 'Payment method must be Cash or UPI';
   }
   if (data.mapUrl && !data.map_url) data.map_url = data.mapUrl;
+
+  const customerLat = data.latitude !== undefined ? data.latitude : data.lat;
+  const customerLng = data.longitude !== undefined ? data.longitude : data.lng;
+
+  if (customerLat === undefined || customerLat === null || customerLat === '') {
+    errors.latitude = 'Latitude is required';
+  } else if (customerLng === undefined || customerLng === null || customerLng === '') {
+    errors.longitude = 'Longitude is required';
+  } else if (!validateCoordinates(customerLat, customerLng)) {
+    errors.latitude = 'Invalid GPS coordinates provided';
+  } else {
+    data.latitude = Number(customerLat);
+    data.longitude = Number(customerLng);
+  }
 
   if (!Array.isArray(data.items) || data.items.length === 0) {
     errors.items = 'Order must contain at least one item';

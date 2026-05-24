@@ -1,4 +1,5 @@
 const { pool } = require('../db/mysql');
+const { calculateDeliveryPricing } = require('../utils/deliveryPricing');
 
 const generateOrderNumber = async (connection) => {
   const date = new Date();
@@ -66,7 +67,18 @@ const createOrder = async (req, res) => {
       throw new Error(`Minimum order amount is ₹${settings.minimum_order_amount}`);
     }
 
-    let deliveryCharge = Number(settings.delivery_charge) || 0;
+    // Calculate delivery pricing based on distance
+    const pricing = calculateDeliveryPricing({
+      customerLat: latitude,
+      customerLng: longitude,
+      settings
+    });
+
+    if (!pricing.allowed) {
+      throw new Error(pricing.message);
+    }
+
+    let deliveryCharge = pricing.charge;
     const freeDeliveryAbove = settings.free_delivery_above === null || settings.free_delivery_above === undefined
       ? null
       : Number(settings.free_delivery_above);
@@ -103,13 +115,18 @@ const createOrder = async (req, res) => {
       `INSERT INTO orders (
         order_number, customer_id, customer_name, phone, whatsapp_number, address,
         latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total,
-        payment_method, payment_status, status, note
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?)`,
+        payment_method, payment_status, status, note,
+        delivery_distance_km, delivery_radius_km_snapshot, delivery_cost_per_km_snapshot, free_delivery_offer_snapshot
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?)`,
       [
         orderNumber, userId, user.name, user.phone, user.whatsapp_number, finalAddress,
         latitude || null, longitude || null, map_url || null,
         subtotal, deliveryCharge, nightCharge, total,
-        payment_method, note || null
+        payment_method, note || null,
+        pricing.distance !== null ? Number(pricing.distance.toFixed(4)) : null,
+        settings.delivery_radius_km !== null ? Number(settings.delivery_radius_km) : null,
+        settings.delivery_cost_per_km !== null ? Number(settings.delivery_cost_per_km) : null,
+        settings.free_delivery_offer_active !== null ? Boolean(settings.free_delivery_offer_active) : null
       ]
     );
 
@@ -138,6 +155,10 @@ const createOrder = async (req, res) => {
       paymentMethod: payment_method,
       paymentStatus: 'Pending',
       status: 'Pending',
+      deliveryDistanceKm: pricing.distance !== null ? Number(pricing.distance.toFixed(4)) : null,
+      deliveryRadiusKmSnapshot: settings.delivery_radius_km !== null ? Number(settings.delivery_radius_km) : null,
+      deliveryCostPerKmSnapshot: settings.delivery_cost_per_km !== null ? Number(settings.delivery_cost_per_km) : null,
+      freeDeliveryOfferSnapshot: settings.free_delivery_offer_active !== null ? Boolean(settings.free_delivery_offer_active) : null,
       items: orderItems.map(item => ({
         productId: item.product_id,
         name: item.product_name,

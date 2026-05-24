@@ -143,6 +143,10 @@ const migrate = async () => {
         INDEX idx_created_at (created_at)
       );
     `);
+    await ensureColumn('orders', 'delivery_distance_km', 'delivery_distance_km DECIMAL(10, 4) DEFAULT NULL AFTER longitude');
+    await ensureColumn('orders', 'delivery_radius_km_snapshot', 'delivery_radius_km_snapshot DECIMAL(10, 2) DEFAULT NULL AFTER delivery_distance_km');
+    await ensureColumn('orders', 'delivery_cost_per_km_snapshot', 'delivery_cost_per_km_snapshot DECIMAL(10, 2) DEFAULT NULL AFTER delivery_radius_km_snapshot');
+    await ensureColumn('orders', 'free_delivery_offer_snapshot', 'free_delivery_offer_snapshot BOOLEAN DEFAULT NULL AFTER delivery_cost_per_km_snapshot');
     console.log('Orders table ready.');
 
     // Order Items Table
