@@ -377,7 +377,7 @@
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L14",
       "id": "api_index_authapi",
-      "community": 17,
+      "community": 54,
       "norm_label": "authapi"
     },
     {
@@ -395,7 +395,7 @@
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L23",
       "id": "api_index_ordersapi",
-      "community": 64,
+      "community": 17,
       "norm_label": "ordersapi"
     },
     {
@@ -1691,7 +1691,7 @@
       "source_file": "Frontend-V1/App.js",
       "source_location": "L1",
       "id": "frontend_v1_app_js",
-      "community": 28,
+      "community": 17,
       "norm_label": "app.js"
     },
     {
@@ -1889,7 +1889,7 @@
       "source_file": "Frontend-V1/__tests__/App.test.js",
       "source_location": "L1",
       "id": "frontend_v1_tests_app_test_js",
-      "community": 28,
+      "community": 17,
       "norm_label": "app.test.js"
     },
     {
@@ -2060,7 +2060,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L1",
       "id": "frontend_v1_src_navigation_customernavigator_js",
-      "community": 99,
+      "community": 13,
       "norm_label": "customernavigator.js"
     },
     {
@@ -2069,7 +2069,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L23",
       "id": "navigation_customernavigator_tab",
-      "community": 99,
+      "community": 13,
       "norm_label": "tab"
     },
     {
@@ -2078,7 +2078,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L24",
       "id": "navigation_customernavigator_stack",
-      "community": 99,
+      "community": 13,
       "norm_label": "stack"
     },
     {
@@ -2087,7 +2087,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L26",
       "id": "navigation_customernavigator_animatedtabicon",
-      "community": 99,
+      "community": 13,
       "norm_label": "animatedtabicon()"
     },
     {
@@ -2096,7 +2096,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L70",
       "id": "navigation_customernavigator_customerbottomtabs",
-      "community": 99,
+      "community": 13,
       "norm_label": "customerbottomtabs()"
     },
     {
@@ -2105,7 +2105,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L124",
       "id": "navigation_customernavigator_styles",
-      "community": 99,
+      "community": 13,
       "norm_label": "styles"
     },
     {
@@ -2114,7 +2114,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L146",
       "id": "navigation_customernavigator_customernavigator",
-      "community": 99,
+      "community": 13,
       "norm_label": "customernavigator()"
     },
     {
@@ -2123,7 +2123,7 @@
       "source_file": "Frontend-V1/src/navigation/routes.js",
       "source_location": "L1",
       "id": "frontend_v1_src_navigation_routes_js",
-      "community": 90,
+      "community": 13,
       "norm_label": "routes.js"
     },
     {
@@ -2132,7 +2132,7 @@
       "source_file": "Frontend-V1/src/navigation/routes.js",
       "source_location": "L1",
       "id": "navigation_routes_routes",
-      "community": 90,
+      "community": 13,
       "norm_label": "routes"
     },
     {
@@ -2141,7 +2141,7 @@
       "source_file": "Frontend-V1/src/navigation/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_navigation_index_js",
-      "community": 90,
+      "community": 13,
       "norm_label": "index.js"
     },
     {
@@ -2150,7 +2150,7 @@
       "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
       "source_location": "L1",
       "id": "frontend_v1_src_navigation_rootnavigator_js",
-      "community": 90,
+      "community": 13,
       "norm_label": "rootnavigator.js"
     },
     {
@@ -2159,7 +2159,7 @@
       "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
       "source_location": "L9",
       "id": "navigation_rootnavigator_rootnavigator",
-      "community": 90,
+      "community": 13,
       "norm_label": "rootnavigator()"
     },
     {
@@ -2186,7 +2186,7 @@
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L1",
       "id": "frontend_v1_src_stores_usecartstore_js",
-      "community": 64,
+      "community": 17,
       "norm_label": "usecartstore.js"
     },
     {
@@ -2204,7 +2204,7 @@
       "source_file": "Frontend-V1/src/stores/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_stores_index_js",
-      "community": 64,
+      "community": 17,
       "norm_label": "index.js"
     },
     {
@@ -2213,7 +2213,7 @@
       "source_file": "Frontend-V1/src/stores/useAuthStore.js",
       "source_location": "L1",
       "id": "frontend_v1_src_stores_useauthstore_js",
-      "community": 64,
+      "community": 17,
       "norm_label": "useauthstore.js"
     },
     {
@@ -2231,7 +2231,7 @@
       "source_file": "Frontend-V1/src/stores/useSettingsStore.js",
       "source_location": "L1",
       "id": "frontend_v1_src_stores_usesettingsstore_js",
-      "community": 64,
+      "community": 17,
       "norm_label": "usesettingsstore.js"
     },
     {
@@ -2411,7 +2411,7 @@
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_profilescreen_profilescreen_js",
-      "community": 64,
+      "community": 54,
       "norm_label": "profilescreen.js"
     },
     {
@@ -2420,7 +2420,7 @@
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L23",
       "id": "profilescreen_profilescreen_profilescreen",
-      "community": 64,
+      "community": 54,
       "norm_label": "profilescreen()"
     },
     {
@@ -2429,7 +2429,7 @@
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L223",
       "id": "profilescreen_profilescreen_menuoption",
-      "community": 64,
+      "community": 54,
       "norm_label": "menuoption()"
     },
     {
@@ -2438,7 +2438,7 @@
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L239",
       "id": "profilescreen_profilescreen_styles",
-      "community": 64,
+      "community": 54,
       "norm_label": "styles"
     },
     {
@@ -2501,7 +2501,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_ordersscreen_ordersscreen_js",
-      "community": 64,
+      "community": 17,
       "norm_label": "ordersscreen.js"
     },
     {
@@ -2510,7 +2510,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L31",
       "id": "ordersscreen_ordersscreen_filter_chips",
-      "community": 64,
+      "community": 17,
       "norm_label": "filter_chips"
     },
     {
@@ -2519,7 +2519,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L33",
       "id": "ordersscreen_ordersscreen_ordersscreen",
-      "community": 64,
+      "community": 17,
       "norm_label": "ordersscreen()"
     },
     {
@@ -2528,7 +2528,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L289",
       "id": "ordersscreen_ordersscreen_styles",
-      "community": 64,
+      "community": 17,
       "norm_label": "styles"
     },
     {
@@ -2627,7 +2627,7 @@
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_editprofilescreen_editprofilescreen_js",
-      "community": 17,
+      "community": 54,
       "norm_label": "editprofilescreen.js"
     },
     {
@@ -2636,7 +2636,7 @@
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L21",
       "id": "editprofilescreen_editprofilescreen_editprofilescreen",
-      "community": 17,
+      "community": 54,
       "norm_label": "editprofilescreen()"
     },
     {
@@ -2645,7 +2645,7 @@
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L180",
       "id": "editprofilescreen_editprofilescreen_styles",
-      "community": 17,
+      "community": 54,
       "norm_label": "styles"
     },
     {
@@ -2888,7 +2888,7 @@
       "source_file": "Frontend-V1/src/api/authApi.js",
       "source_location": "L3",
       "id": "api_authapi_authapi",
-      "community": 17,
+      "community": 54,
       "norm_label": "authapi"
     },
     {
@@ -3185,7 +3185,7 @@
       "source_file": "Frontend-V1/src/store/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_store_index_js",
-      "community": 64,
+      "community": 17,
       "norm_label": "index.js"
     },
     {
@@ -3194,7 +3194,7 @@
       "source_file": "Frontend-V1/src/components/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_index_js",
-      "community": 31,
+      "community": 15,
       "norm_label": "index.js"
     },
     {
@@ -3239,7 +3239,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_textbutton_index_js",
-      "community": 82,
+      "community": 15,
       "norm_label": "index.js"
     },
     {
@@ -3248,7 +3248,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_textbutton_textbutton_js",
-      "community": 82,
+      "community": 15,
       "norm_label": "textbutton.js"
     },
     {
@@ -3257,7 +3257,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
       "id": "textbutton_textbutton_textbutton",
-      "community": 82,
+      "community": 15,
       "norm_label": "textbutton()"
     },
     {
@@ -3266,7 +3266,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
       "id": "textbutton_textbutton_styles",
-      "community": 82,
+      "community": 15,
       "norm_label": "styles"
     },
     {
@@ -3410,7 +3410,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_chip_chip_js",
-      "community": 33,
+      "community": 111,
       "norm_label": "chip.js"
     },
     {
@@ -3419,7 +3419,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L20",
       "id": "chip_chip_chip",
-      "community": 33,
+      "community": 111,
       "norm_label": "chip()"
     },
     {
@@ -3428,7 +3428,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L55",
       "id": "chip_chip_chiprow",
-      "community": 33,
+      "community": 111,
       "norm_label": "chiprow()"
     },
     {
@@ -3437,7 +3437,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L76",
       "id": "chip_chip_styles",
-      "community": 33,
+      "community": 111,
       "norm_label": "styles"
     },
     {
@@ -3446,7 +3446,7 @@
       "source_file": "Frontend-V1/src/components/Chip/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_chip_index_js",
-      "community": 33,
+      "community": 111,
       "norm_label": "index.js"
     },
     {
@@ -3626,7 +3626,7 @@
       "source_file": "Frontend-V1/src/components/OrderCard/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_ordercard_index_js",
-      "community": 101,
+      "community": 33,
       "norm_label": "index.js"
     },
     {
@@ -3635,7 +3635,7 @@
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_ordercard_ordercard_js",
-      "community": 101,
+      "community": 33,
       "norm_label": "ordercard.js"
     },
     {
@@ -3644,7 +3644,7 @@
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
       "id": "ordercard_ordercard_ordercard",
-      "community": 101,
+      "community": 33,
       "norm_label": "ordercard()"
     },
     {
@@ -3653,7 +3653,7 @@
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L92",
       "id": "ordercard_ordercard_styles",
-      "community": 101,
+      "community": 33,
       "norm_label": "styles"
     },
     {
@@ -3662,7 +3662,7 @@
       "source_file": "Frontend-V1/src/components/ConfirmModal/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_confirmmodal_index_js",
-      "community": 33,
+      "community": 31,
       "norm_label": "index.js"
     },
     {
@@ -3671,7 +3671,7 @@
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_confirmmodal_confirmmodal_js",
-      "community": 33,
+      "community": 31,
       "norm_label": "confirmmodal.js"
     },
     {
@@ -3680,7 +3680,7 @@
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L27",
       "id": "confirmmodal_confirmmodal_confirmmodal",
-      "community": 33,
+      "community": 31,
       "norm_label": "confirmmodal()"
     },
     {
@@ -3689,7 +3689,7 @@
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L93",
       "id": "confirmmodal_confirmmodal_styles",
-      "community": 33,
+      "community": 31,
       "norm_label": "styles"
     },
     {
@@ -3698,7 +3698,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedcartbadge_index_js",
-      "community": 33,
+      "community": 54,
       "norm_label": "index.js"
     },
     {
@@ -3707,7 +3707,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedcartbadge_animatedcartbadge_js",
-      "community": 33,
+      "community": 54,
       "norm_label": "animatedcartbadge.js"
     },
     {
@@ -3725,7 +3725,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L30",
       "id": "animatedcartbadge_animatedcartbadge_styles",
-      "community": 33,
+      "community": 54,
       "norm_label": "styles"
     },
     {
@@ -3797,7 +3797,7 @@
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_iconbutton_iconbutton_js",
-      "community": 15,
+      "community": 31,
       "norm_label": "iconbutton.js"
     },
     {
@@ -3806,7 +3806,7 @@
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L22",
       "id": "iconbutton_iconbutton_iconbutton",
-      "community": 15,
+      "community": 31,
       "norm_label": "iconbutton()"
     },
     {
@@ -3815,7 +3815,7 @@
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L68",
       "id": "iconbutton_iconbutton_styles",
-      "community": 15,
+      "community": 31,
       "norm_label": "styles"
     },
     {
@@ -3824,7 +3824,7 @@
       "source_file": "Frontend-V1/src/components/IconButton/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_iconbutton_index_js",
-      "community": 15,
+      "community": 31,
       "norm_label": "index.js"
     },
     {
@@ -3896,7 +3896,7 @@
       "source_file": "Frontend-V1/src/components/Button/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_button_index_js",
-      "community": 31,
+      "community": 15,
       "norm_label": "index.js"
     },
     {
@@ -3905,7 +3905,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_segmentedcontrol_index_js",
-      "community": 33,
+      "community": 54,
       "norm_label": "index.js"
     },
     {
@@ -3914,7 +3914,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_segmentedcontrol_segmentedcontrol_js",
-      "community": 33,
+      "community": 54,
       "norm_label": "segmentedcontrol.js"
     },
     {
@@ -3923,7 +3923,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L15",
       "id": "segmentedcontrol_segmentedcontrol_segmentedcontrol",
-      "community": 33,
+      "community": 54,
       "norm_label": "segmentedcontrol()"
     },
     {
@@ -3932,7 +3932,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L54",
       "id": "segmentedcontrol_segmentedcontrol_styles",
-      "community": 33,
+      "community": 54,
       "norm_label": "styles"
     },
     {
@@ -4004,7 +4004,7 @@
       "source_file": "Frontend-V1/src/components/AppIcon/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_appicon_index_js",
-      "community": 15,
+      "community": 33,
       "norm_label": "index.js"
     },
     {
@@ -4013,7 +4013,7 @@
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_appicon_appicon_js",
-      "community": 15,
+      "community": 33,
       "norm_label": "appicon.js"
     },
     {
@@ -4022,7 +4022,7 @@
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L31",
       "id": "appicon_appicon_icons",
-      "community": 15,
+      "community": 33,
       "norm_label": "icons"
     },
     {
@@ -4031,7 +4031,7 @@
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L61",
       "id": "appicon_appicon_appicon",
-      "community": 15,
+      "community": 33,
       "norm_label": "appicon()"
     },
     {
@@ -4040,7 +4040,7 @@
       "source_file": "Frontend-V1/src/components/QuantityStepper/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_quantitystepper_index_js",
-      "community": 31,
+      "community": 54,
       "norm_label": "index.js"
     },
     {
@@ -4049,7 +4049,7 @@
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_quantitystepper_quantitystepper_js",
-      "community": 31,
+      "community": 54,
       "norm_label": "quantitystepper.js"
     },
     {
@@ -4058,7 +4058,7 @@
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L30",
       "id": "quantitystepper_quantitystepper_quantitystepper",
-      "community": 31,
+      "community": 54,
       "norm_label": "quantitystepper()"
     },
     {
@@ -4067,7 +4067,7 @@
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L110",
       "id": "quantitystepper_quantitystepper_styles",
-      "community": 31,
+      "community": 54,
       "norm_label": "styles"
     },
     {
@@ -4076,7 +4076,7 @@
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_appheader_appheader_js",
-      "community": 15,
+      "community": 33,
       "norm_label": "appheader.js"
     },
     {
@@ -4085,7 +4085,7 @@
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L26",
       "id": "appheader_appheader_appheader",
-      "community": 15,
+      "community": 33,
       "norm_label": "appheader()"
     },
     {
@@ -4094,7 +4094,7 @@
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L126",
       "id": "appheader_appheader_styles",
-      "community": 15,
+      "community": 33,
       "norm_label": "styles"
     },
     {
@@ -4103,7 +4103,7 @@
       "source_file": "Frontend-V1/src/components/AppHeader/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_appheader_index_js",
-      "community": 15,
+      "community": 33,
       "norm_label": "index.js"
     },
     {
@@ -4112,7 +4112,7 @@
       "source_file": "Frontend-V1/src/components/ErrorState/ErrorState.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_errorstate_errorstate_js",
-      "community": 31,
+      "community": 15,
       "norm_label": "errorstate.js"
     },
     {
@@ -4121,7 +4121,7 @@
       "source_file": "Frontend-V1/src/components/ErrorState/ErrorState.js",
       "source_location": "L17",
       "id": "errorstate_errorstate_errorstate",
-      "community": 31,
+      "community": 15,
       "norm_label": "errorstate()"
     },
     {
@@ -4130,7 +4130,7 @@
       "source_file": "Frontend-V1/src/components/ErrorState/ErrorState.js",
       "source_location": "L39",
       "id": "errorstate_errorstate_styles",
-      "community": 31,
+      "community": 15,
       "norm_label": "styles"
     },
     {
@@ -4139,7 +4139,7 @@
       "source_file": "Frontend-V1/src/components/ErrorState/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_errorstate_index_js",
-      "community": 31,
+      "community": 15,
       "norm_label": "index.js"
     },
     {
@@ -4148,7 +4148,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_animatedsegmentedcontrol_js",
-      "community": 33,
+      "community": 54,
       "norm_label": "animatedsegmentedcontrol.js"
     },
     {
@@ -4166,7 +4166,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L66",
       "id": "animatedsegmentedcontrol_animatedsegmentedcontrol_styles",
-      "community": 33,
+      "community": 54,
       "norm_label": "styles"
     },
     {
@@ -4175,7 +4175,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_index_js",
-      "community": 33,
+      "community": 54,
       "norm_label": "index.js"
     },
     {
@@ -4184,7 +4184,7 @@
       "source_file": "Frontend-V1/src/components/EmptyState/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_emptystate_index_js",
-      "community": 31,
+      "community": 15,
       "norm_label": "index.js"
     },
     {
@@ -4193,7 +4193,7 @@
       "source_file": "Frontend-V1/src/components/EmptyState/EmptyState.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_emptystate_emptystate_js",
-      "community": 31,
+      "community": 15,
       "norm_label": "emptystate.js"
     },
     {
@@ -4202,7 +4202,7 @@
       "source_file": "Frontend-V1/src/components/EmptyState/EmptyState.js",
       "source_location": "L18",
       "id": "emptystate_emptystate_emptystate",
-      "community": 31,
+      "community": 15,
       "norm_label": "emptystate()"
     },
     {
@@ -4211,7 +4211,7 @@
       "source_file": "Frontend-V1/src/components/EmptyState/EmptyState.js",
       "source_location": "L40",
       "id": "emptystate_emptystate_styles",
-      "community": 31,
+      "community": 15,
       "norm_label": "styles"
     },
     {
@@ -4292,7 +4292,7 @@
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_layout_js",
-      "community": 82,
+      "community": 64,
       "norm_label": "layout.js"
     },
     {
@@ -4301,7 +4301,7 @@
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L7",
       "id": "theme_layout_layout",
-      "community": 82,
+      "community": 64,
       "norm_label": "layout"
     },
     {
@@ -4346,7 +4346,7 @@
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L6",
       "id": "theme_spacing_spacing",
-      "community": 33,
+      "community": 54,
       "norm_label": "spacing"
     },
     {
@@ -4400,7 +4400,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
       "id": "theme_typography_typography",
-      "community": 17,
+      "community": 54,
       "norm_label": "typography"
     },
     {
@@ -4418,7 +4418,7 @@
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_shadows_js",
-      "community": 15,
+      "community": 31,
       "norm_label": "shadows.js"
     },
     {
@@ -4427,7 +4427,7 @@
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L11",
       "id": "theme_shadows_makeshadow",
-      "community": 15,
+      "community": 31,
       "norm_label": "makeshadow()"
     },
     {
@@ -4436,7 +4436,7 @@
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L23",
       "id": "theme_shadows_shadows",
-      "community": 64,
+      "community": 31,
       "norm_label": "shadows"
     },
     {
@@ -4445,7 +4445,7 @@
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_colors_js",
-      "community": 15,
+      "community": 31,
       "norm_label": "colors.js"
     },
     {
@@ -4454,7 +4454,7 @@
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L10",
       "id": "theme_colors_palette",
-      "community": 15,
+      "community": 31,
       "norm_label": "palette"
     },
     {
@@ -4463,7 +4463,7 @@
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L69",
       "id": "theme_colors_colors",
-      "community": 15,
+      "community": 31,
       "norm_label": "colors"
     },
     {
@@ -5147,7 +5147,7 @@
       "source_file": "Backend-V1/tests/cartOrder.test.js",
       "source_location": "L1",
       "id": "backend_v1_tests_cartorder_test_js",
-      "community": 70,
+      "community": 73,
       "norm_label": "cartorder.test.js"
     },
     {
@@ -5156,7 +5156,7 @@
       "source_file": "Backend-V1/tests/cartOrder.test.js",
       "source_location": "L1",
       "id": "tests_cartorder_test_request",
-      "community": 70,
+      "community": 73,
       "norm_label": "request"
     },
     {
@@ -5165,7 +5165,7 @@
       "source_file": "Backend-V1/tests/cartOrder.test.js",
       "source_location": "L2",
       "id": "tests_cartorder_test_express",
-      "community": 70,
+      "community": 73,
       "norm_label": "express"
     },
     {
@@ -5174,7 +5174,7 @@
       "source_file": "Backend-V1/tests/cartOrder.test.js",
       "source_location": "L3",
       "id": "tests_cartorder_test_cartroutes",
-      "community": 70,
+      "community": 73,
       "norm_label": "cartroutes"
     },
     {
@@ -5183,7 +5183,7 @@
       "source_file": "Backend-V1/tests/cartOrder.test.js",
       "source_location": "L4",
       "id": "tests_cartorder_test_orderroutes",
-      "community": 70,
+      "community": 73,
       "norm_label": "orderroutes"
     },
     {
@@ -5192,7 +5192,7 @@
       "source_file": "Backend-V1/tests/cartOrder.test.js",
       "source_location": "L5",
       "id": "tests_cartorder_test_pool",
-      "community": 70,
+      "community": 73,
       "norm_label": "{ pool }"
     },
     {
@@ -5201,7 +5201,7 @@
       "source_file": "Backend-V1/tests/cartOrder.test.js",
       "source_location": "L6",
       "id": "tests_cartorder_test_jwt",
-      "community": 70,
+      "community": 73,
       "norm_label": "jwt"
     },
     {
@@ -5210,7 +5210,7 @@
       "source_file": "Backend-V1/tests/cartOrder.test.js",
       "source_location": "L15",
       "id": "tests_cartorder_test_app",
-      "community": 70,
+      "community": 73,
       "norm_label": "app"
     },
     {
@@ -5219,7 +5219,7 @@
       "source_file": "Backend-V1/tests/cartOrder.test.js",
       "source_location": "L20",
       "id": "tests_cartorder_test_token",
-      "community": 70,
+      "community": 73,
       "norm_label": "token"
     },
     {
@@ -5228,7 +5228,7 @@
       "source_file": "Backend-V1/tests/cartOrder.test.js",
       "source_location": "L45",
       "id": "tests_cartorder_test_mockconnection",
-      "community": 70,
+      "community": 73,
       "norm_label": "mockconnection"
     },
     {
@@ -5399,7 +5399,7 @@
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L1",
       "id": "backend_v1_tests_roleprotection_test_js",
-      "community": 54,
+      "community": 70,
       "norm_label": "roleprotection.test.js"
     },
     {
@@ -5408,7 +5408,7 @@
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L1",
       "id": "tests_roleprotection_test_request",
-      "community": 54,
+      "community": 70,
       "norm_label": "request"
     },
     {
@@ -5417,7 +5417,7 @@
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L2",
       "id": "tests_roleprotection_test_express",
-      "community": 54,
+      "community": 70,
       "norm_label": "express"
     },
     {
@@ -5426,7 +5426,7 @@
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L3",
       "id": "tests_roleprotection_test_authroutes",
-      "community": 54,
+      "community": 70,
       "norm_label": "authroutes"
     },
     {
@@ -5435,7 +5435,7 @@
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L4",
       "id": "tests_roleprotection_test_adminroutes",
-      "community": 54,
+      "community": 70,
       "norm_label": "adminroutes"
     },
     {
@@ -5444,7 +5444,7 @@
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L5",
       "id": "tests_roleprotection_test_pool",
-      "community": 54,
+      "community": 70,
       "norm_label": "{ pool }"
     },
     {
@@ -5453,7 +5453,7 @@
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L6",
       "id": "tests_roleprotection_test_jwt",
-      "community": 54,
+      "community": 70,
       "norm_label": "jwt"
     },
     {
@@ -5462,7 +5462,7 @@
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L14",
       "id": "tests_roleprotection_test_app",
-      "community": 54,
+      "community": 70,
       "norm_label": "app"
     },
     {
@@ -5471,7 +5471,7 @@
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L19",
       "id": "tests_roleprotection_test_customertoken",
-      "community": 54,
+      "community": 70,
       "norm_label": "customertoken"
     },
     {
@@ -5480,7 +5480,7 @@
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L20",
       "id": "tests_roleprotection_test_admintoken",
-      "community": 54,
+      "community": 70,
       "norm_label": "admintoken"
     },
     {
@@ -6245,7 +6245,7 @@
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L4",
       "id": "validators_index_isnumericamount",
-      "community": 85,
+      "community": 47,
       "norm_label": "isnumericamount()"
     },
     {
@@ -9921,6 +9921,708 @@
       "norm_label": "frontend-v1"
     },
     {
+      "label": "locationtask.md",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L1",
+      "id": "plans_locationtask_md",
+      "community": 90,
+      "norm_label": "locationtask.md"
+    },
+    {
+      "label": "Location Based Delivery Tasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L1",
+      "id": "plans_locationtask_location_based_delivery_tasks",
+      "community": 90,
+      "norm_label": "location based delivery tasks"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L3",
+      "id": "plans_locationtask_goal",
+      "community": 90,
+      "norm_label": "goal"
+    },
+    {
+      "label": "1. Current System Review",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L21",
+      "id": "plans_locationtask_1_current_system_review",
+      "community": 107,
+      "norm_label": "1. current system review"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L23",
+      "id": "plans_locationtask_goal_23",
+      "community": 107,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely checked",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L26",
+      "id": "plans_locationtask_files_likely_checked",
+      "community": 107,
+      "norm_label": "files likely checked"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L35",
+      "id": "plans_locationtask_subtasks",
+      "community": 107,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L44",
+      "id": "plans_locationtask_things_to_avoid",
+      "community": 107,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L49",
+      "id": "plans_locationtask_testing_checklist",
+      "community": 107,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "2. Backend Settings Fields",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L56",
+      "id": "plans_locationtask_2_backend_settings_fields",
+      "community": 99,
+      "norm_label": "2. backend settings fields"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L58",
+      "id": "plans_locationtask_goal_58",
+      "community": 99,
+      "norm_label": "goal"
+    },
+    {
+      "label": "New settings fields",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L61",
+      "id": "plans_locationtask_new_settings_fields",
+      "community": 99,
+      "norm_label": "new settings fields"
+    },
+    {
+      "label": "Defaults",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L68",
+      "id": "plans_locationtask_defaults",
+      "community": 99,
+      "norm_label": "defaults"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L75",
+      "id": "plans_locationtask_subtasks_75",
+      "community": 99,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L86",
+      "id": "plans_locationtask_things_to_avoid_86",
+      "community": 99,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L91",
+      "id": "plans_locationtask_testing_checklist_91",
+      "community": 99,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "3. Delivery Pricing Utility",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L99",
+      "id": "plans_locationtask_3_delivery_pricing_utility",
+      "community": 101,
+      "norm_label": "3. delivery pricing utility"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L101",
+      "id": "plans_locationtask_goal_101",
+      "community": 101,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L104",
+      "id": "plans_locationtask_files_likely_changed",
+      "community": 101,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Pricing rules",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L109",
+      "id": "plans_locationtask_pricing_rules",
+      "community": 101,
+      "norm_label": "pricing rules"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L119",
+      "id": "plans_locationtask_subtasks_119",
+      "community": 101,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L130",
+      "id": "plans_locationtask_things_to_avoid_130",
+      "community": 101,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L135",
+      "id": "plans_locationtask_testing_checklist_135",
+      "community": 101,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "4. Cart Calculation API",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L145",
+      "id": "plans_locationtask_4_cart_calculation_api",
+      "community": 104,
+      "norm_label": "4. cart calculation api"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L147",
+      "id": "plans_locationtask_goal_147",
+      "community": 104,
+      "norm_label": "goal"
+    },
+    {
+      "label": "API change",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L150",
+      "id": "plans_locationtask_api_change",
+      "community": 104,
+      "norm_label": "api change"
+    },
+    {
+      "label": "Response should include",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L156",
+      "id": "plans_locationtask_response_should_include",
+      "community": 104,
+      "norm_label": "response should include"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L165",
+      "id": "plans_locationtask_subtasks_165",
+      "community": 104,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L174",
+      "id": "plans_locationtask_things_to_avoid_174",
+      "community": 104,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L179",
+      "id": "plans_locationtask_testing_checklist_179",
+      "community": 104,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "5. Order Creation API",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L187",
+      "id": "plans_locationtask_5_order_creation_api",
+      "community": 108,
+      "norm_label": "5. order creation api"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L189",
+      "id": "plans_locationtask_goal_189",
+      "community": 108,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L192",
+      "id": "plans_locationtask_files_likely_changed_192",
+      "community": 108,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L197",
+      "id": "plans_locationtask_subtasks_197",
+      "community": 108,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L209",
+      "id": "plans_locationtask_things_to_avoid_209",
+      "community": 108,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L214",
+      "id": "plans_locationtask_testing_checklist_214",
+      "community": 108,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "6. Order Database Fields",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L224",
+      "id": "plans_locationtask_6_order_database_fields",
+      "community": 109,
+      "norm_label": "6. order database fields"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L226",
+      "id": "plans_locationtask_goal_226",
+      "community": 109,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Suggested new order fields",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L229",
+      "id": "plans_locationtask_suggested_new_order_fields",
+      "community": 109,
+      "norm_label": "suggested new order fields"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L235",
+      "id": "plans_locationtask_subtasks_235",
+      "community": 109,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L243",
+      "id": "plans_locationtask_things_to_avoid_243",
+      "community": 109,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L248",
+      "id": "plans_locationtask_testing_checklist_248",
+      "community": 109,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "7. Mobile Checkout Updates",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L255",
+      "id": "plans_locationtask_7_mobile_checkout_updates",
+      "community": 110,
+      "norm_label": "7. mobile checkout updates"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L257",
+      "id": "plans_locationtask_goal_257",
+      "community": 110,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L260",
+      "id": "plans_locationtask_files_likely_changed_260",
+      "community": 110,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L265",
+      "id": "plans_locationtask_subtasks_265",
+      "community": 110,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L277",
+      "id": "plans_locationtask_things_to_avoid_277",
+      "community": 110,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L283",
+      "id": "plans_locationtask_testing_checklist_283",
+      "community": 110,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "8. Admin Manager Settings",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L293",
+      "id": "plans_locationtask_8_admin_manager_settings",
+      "community": 105,
+      "norm_label": "8. admin manager settings"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L295",
+      "id": "plans_locationtask_goal_295",
+      "community": 105,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files likely changed",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L298",
+      "id": "plans_locationtask_files_likely_changed_298",
+      "community": 105,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Admin fields to add",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L303",
+      "id": "plans_locationtask_admin_fields_to_add",
+      "community": 105,
+      "norm_label": "admin fields to add"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L310",
+      "id": "plans_locationtask_subtasks_310",
+      "community": 105,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L320",
+      "id": "plans_locationtask_things_to_avoid_320",
+      "community": 105,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L325",
+      "id": "plans_locationtask_testing_checklist_325",
+      "community": 105,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "9. Admin Order Visibility",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L334",
+      "id": "plans_locationtask_9_admin_order_visibility",
+      "community": 112,
+      "norm_label": "9. admin order visibility"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L336",
+      "id": "plans_locationtask_goal_336",
+      "community": 112,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L339",
+      "id": "plans_locationtask_subtasks_339",
+      "community": 112,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L346",
+      "id": "plans_locationtask_things_to_avoid_346",
+      "community": 112,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L350",
+      "id": "plans_locationtask_testing_checklist_350",
+      "community": 112,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "10. Error And Edge Case Handling",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L357",
+      "id": "plans_locationtask_10_error_and_edge_case_handling",
+      "community": 106,
+      "norm_label": "10. error and edge case handling"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L359",
+      "id": "plans_locationtask_goal_359",
+      "community": 106,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Cases to handle",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L362",
+      "id": "plans_locationtask_cases_to_handle",
+      "community": 106,
+      "norm_label": "cases to handle"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L373",
+      "id": "plans_locationtask_subtasks_373",
+      "community": 106,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Things to avoid",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L381",
+      "id": "plans_locationtask_things_to_avoid_381",
+      "community": 106,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L386",
+      "id": "plans_locationtask_testing_checklist_386",
+      "community": 106,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "11. Backend Tests",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L394",
+      "id": "plans_locationtask_11_backend_tests",
+      "community": 90,
+      "norm_label": "11. backend tests"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L396",
+      "id": "plans_locationtask_goal_396",
+      "community": 90,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L399",
+      "id": "plans_locationtask_subtasks_399",
+      "community": 90,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L410",
+      "id": "plans_locationtask_testing_checklist_410",
+      "community": 90,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "12. Frontend Testing",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L417",
+      "id": "plans_locationtask_12_frontend_testing",
+      "community": 113,
+      "norm_label": "12. frontend testing"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L419",
+      "id": "plans_locationtask_goal_419",
+      "community": 113,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L422",
+      "id": "plans_locationtask_subtasks_422",
+      "community": 113,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Testing checklist",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L432",
+      "id": "plans_locationtask_testing_checklist_432",
+      "community": 113,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "13. Final Verification",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L440",
+      "id": "plans_locationtask_13_final_verification",
+      "community": 114,
+      "norm_label": "13. final verification"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L442",
+      "id": "plans_locationtask_goal_442",
+      "community": 114,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Subtasks",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L445",
+      "id": "plans_locationtask_subtasks_445",
+      "community": 114,
+      "norm_label": "subtasks"
+    },
+    {
+      "label": "Acceptance criteria",
+      "file_type": "document",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L464",
+      "id": "plans_locationtask_acceptance_criteria",
+      "community": 114,
+      "norm_label": "acceptance criteria"
+    },
+    {
       "label": "API_TEST_REPORT.md",
       "file_type": "document",
       "source_file": "Backend-V1/API_TEST_REPORT.md",
@@ -10618,7 +11320,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
-      "community": 101,
+      "community": 33,
       "norm_label": "status_colors",
       "id": "ordercard_ordercard_status_colors"
     },
@@ -10627,7 +11329,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L13",
-      "community": 101,
+      "community": 33,
       "norm_label": "payment_colors",
       "id": "ordercard_ordercard_payment_colors"
     },
@@ -10636,7 +11338,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
       "source_location": "L1",
-      "community": 90,
+      "community": 13,
       "norm_label": "adminnavigator.js",
       "id": "frontend_v1_src_navigation_adminnavigator_js"
     },
@@ -10645,7 +11347,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
       "source_location": "L17",
-      "community": 90,
+      "community": 13,
       "norm_label": "stack",
       "id": "navigation_adminnavigator_stack"
     },
@@ -10654,7 +11356,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
       "source_location": "L23",
-      "community": 90,
+      "community": 13,
       "norm_label": "adminnavigator()",
       "id": "navigation_adminnavigator_adminnavigator"
     },
@@ -10663,7 +11365,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useAdminAuthStore.js",
       "source_location": "L1",
-      "community": 90,
+      "community": 17,
       "norm_label": "useadminauthstore.js",
       "id": "frontend_v1_src_stores_useadminauthstore_js"
     },
@@ -10672,7 +11374,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useAdminAuthStore.js",
       "source_location": "L9",
-      "community": 90,
+      "community": 17,
       "norm_label": "useadminauthstore",
       "id": "stores_useadminauthstore_useadminauthstore"
     },
@@ -10681,7 +11383,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_index_js"
     },
@@ -10816,7 +11518,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_admincustomersscreen_index_js"
     },
@@ -10825,7 +11527,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 82,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminorderdetailscreen_index_js"
     },
@@ -10879,7 +11581,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminDashboardScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_admindashboardscreen_index_js"
     },
@@ -11005,7 +11707,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminLoginScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminloginscreen_index_js"
     },
@@ -11014,7 +11716,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "community": 74,
+      "community": 28,
       "norm_label": "adminsettingsscreen.js",
       "id": "frontend_v1_src_screens_admin_adminsettingsscreen_adminsettingsscreen_js"
     },
@@ -11023,7 +11725,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L33",
-      "community": 74,
+      "community": 28,
       "norm_label": "default_form",
       "id": "adminsettingsscreen_adminsettingsscreen_default_form"
     },
@@ -11032,7 +11734,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L46",
-      "community": 74,
+      "community": 28,
       "norm_label": "numeric_fields",
       "id": "adminsettingsscreen_adminsettingsscreen_numeric_fields"
     },
@@ -11041,7 +11743,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L52",
-      "community": 74,
+      "community": 28,
       "norm_label": "pickfirst()",
       "id": "adminsettingsscreen_adminsettingsscreen_pickfirst"
     },
@@ -11050,7 +11752,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L56",
-      "community": 74,
+      "community": 28,
       "norm_label": "asboolean()",
       "id": "adminsettingsscreen_adminsettingsscreen_asboolean"
     },
@@ -11059,7 +11761,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L67",
-      "community": 74,
+      "community": 28,
       "norm_label": "astext()",
       "id": "adminsettingsscreen_adminsettingsscreen_astext"
     },
@@ -11068,7 +11770,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L72",
-      "community": 74,
+      "community": 28,
       "norm_label": "getpayloaddata()",
       "id": "adminsettingsscreen_adminsettingsscreen_getpayloaddata"
     },
@@ -11077,7 +11779,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L76",
-      "community": 74,
+      "community": 28,
       "norm_label": "getofferdata()",
       "id": "adminsettingsscreen_adminsettingsscreen_getofferdata"
     },
@@ -11086,7 +11788,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L92",
-      "community": 74,
+      "community": 28,
       "norm_label": "normalizesettings()",
       "id": "adminsettingsscreen_adminsettingsscreen_normalizesettings"
     },
@@ -11095,7 +11797,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L125",
-      "community": 74,
+      "community": 28,
       "norm_label": "buildsettingspayload()",
       "id": "adminsettingsscreen_adminsettingsscreen_buildsettingspayload"
     },
@@ -11104,7 +11806,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L136",
-      "community": 74,
+      "community": 28,
       "norm_label": "buildofferpayload()",
       "id": "adminsettingsscreen_adminsettingsscreen_buildofferpayload"
     },
@@ -11113,7 +11815,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L144",
-      "community": 74,
+      "community": 28,
       "norm_label": "geterrormessage()",
       "id": "adminsettingsscreen_adminsettingsscreen_geterrormessage"
     },
@@ -11122,7 +11824,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L148",
-      "community": 74,
+      "community": 28,
       "norm_label": "adminsettingsscreen()",
       "id": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen"
     },
@@ -11131,7 +11833,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L559",
-      "community": 74,
+      "community": 28,
       "norm_label": "statusbanner()",
       "id": "adminsettingsscreen_adminsettingsscreen_statusbanner"
     },
@@ -11140,7 +11842,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L580",
-      "community": 74,
+      "community": 28,
       "norm_label": "styles",
       "id": "adminsettingsscreen_adminsettingsscreen_styles"
     },
@@ -11149,7 +11851,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminsettingsscreen_index_js"
     },
@@ -11158,7 +11860,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductFormScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminproductformscreen_index_js"
     },
@@ -11329,7 +12031,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminEntryScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminentryscreen_index_js"
     },
@@ -11347,7 +12049,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminSettingsApi.js",
       "source_location": "L3",
-      "community": 74,
+      "community": 28,
       "norm_label": "adminsettingsapi",
       "id": "api_adminsettingsapi_adminsettingsapi"
     },
@@ -11500,7 +12202,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/index.js",
       "source_location": "L1",
-      "community": 82,
+      "community": 31,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_adminmetriccard_index_js"
     },
@@ -11509,7 +12211,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L1",
-      "community": 82,
+      "community": 31,
       "norm_label": "adminmetriccard.js",
       "id": "frontend_v1_src_components_adminmetriccard_adminmetriccard_js"
     },
@@ -11518,7 +12220,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L16",
-      "community": 82,
+      "community": 31,
       "norm_label": "adminmetriccard()",
       "id": "adminmetriccard_adminmetriccard_adminmetriccard"
     },
@@ -11527,7 +12229,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L37",
-      "community": 82,
+      "community": 31,
       "norm_label": "styles",
       "id": "adminmetriccard_adminmetriccard_styles"
     },
@@ -11959,7 +12661,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admincustomersscreen_index_js"
     },
@@ -12031,7 +12733,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
-      "community": 64,
+      "community": 54,
       "norm_label": "profilescreen.js",
       "id": "frontend_v1_src_screens_profilescreen_profilescreen_js"
     },
@@ -12058,7 +12760,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L1",
-      "community": 64,
+      "community": 17,
       "norm_label": "ordersscreen.js",
       "id": "frontend_v1_src_screens_ordersscreen_ordersscreen_js"
     },
@@ -12076,7 +12778,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminorderdetailscreen_index_js"
     },
@@ -12121,7 +12823,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 54,
       "norm_label": "editprofilescreen.js",
       "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js"
     },
@@ -12130,7 +12832,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admindashboardscreen_index_js"
     },
@@ -12193,7 +12895,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminLoginScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminloginscreen_index_js"
     },
@@ -12220,7 +12922,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "community": 74,
+      "community": 28,
       "norm_label": "adminsettingsscreen.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js"
     },
@@ -12229,7 +12931,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_index_js"
     },
@@ -12238,7 +12940,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminproductformscreen_index_js"
     },
@@ -12256,7 +12958,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminordersscreen_index_js"
     },
@@ -12283,7 +12985,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/index.js",
       "source_location": "L1",
-      "community": 73,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminentryscreen_index_js"
     },
@@ -12328,7 +13030,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/index.js",
       "source_location": "L2",
-      "community": 73,
+      "community": 13,
       "norm_label": "adminscreensplaceholder",
       "id": "admin_index_adminscreensplaceholder"
     },
@@ -12346,7 +13048,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/store/index.js",
       "source_location": "L2",
-      "community": 64,
+      "community": 17,
       "norm_label": "storesplaceholder",
       "id": "store_index_storesplaceholder"
     },
@@ -12364,7 +13066,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L32",
-      "community": 64,
+      "community": 17,
       "norm_label": "mock_orders",
       "id": "ordersscreen_ordersscreen_mock_orders"
     },
@@ -14108,9 +14810,9 @@
       "source_file": "adminManager-V1/src/routes/ProtectedRoute.jsx",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "adminmanager_v1_src_routes_protectedroute_jsx",
-      "target": "adminmanager_v1_src_components_sharedui_jsx",
-      "confidence_score": 1.0
+      "target": "adminmanager_v1_src_components_sharedui_jsx"
     },
     {
       "relation": "imports",
@@ -14119,9 +14821,9 @@
       "source_file": "adminManager-V1/src/routes/ProtectedRoute.jsx",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "adminmanager_v1_src_routes_protectedroute_jsx",
-      "target": "components_sharedui_loading",
-      "confidence_score": 1.0
+      "target": "components_sharedui_loading"
     },
     {
       "relation": "contains",
@@ -39237,6 +39939,776 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "plans_locationtask_md",
+      "target": "plans_locationtask_location_based_delivery_tasks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_goal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_1_current_system_review",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_2_backend_settings_fields",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L99",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_3_delivery_pricing_utility",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L145",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_4_cart_calculation_api",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L187",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_5_order_creation_api",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L224",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_6_order_database_fields",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L255",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_7_mobile_checkout_updates",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L293",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_8_admin_manager_settings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L334",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_9_admin_order_visibility",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L357",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_10_error_and_edge_case_handling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L394",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_11_backend_tests",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L417",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_12_frontend_testing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L440",
+      "weight": 1.0,
+      "source": "plans_locationtask_location_based_delivery_tasks",
+      "target": "plans_locationtask_13_final_verification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "plans_locationtask_1_current_system_review",
+      "target": "plans_locationtask_goal_23",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "plans_locationtask_1_current_system_review",
+      "target": "plans_locationtask_files_likely_checked",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "plans_locationtask_1_current_system_review",
+      "target": "plans_locationtask_subtasks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "plans_locationtask_1_current_system_review",
+      "target": "plans_locationtask_things_to_avoid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "plans_locationtask_1_current_system_review",
+      "target": "plans_locationtask_testing_checklist",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "plans_locationtask_2_backend_settings_fields",
+      "target": "plans_locationtask_goal_58",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L61",
+      "weight": 1.0,
+      "source": "plans_locationtask_2_backend_settings_fields",
+      "target": "plans_locationtask_new_settings_fields",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "plans_locationtask_2_backend_settings_fields",
+      "target": "plans_locationtask_defaults",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L75",
+      "weight": 1.0,
+      "source": "plans_locationtask_2_backend_settings_fields",
+      "target": "plans_locationtask_subtasks_75",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L86",
+      "weight": 1.0,
+      "source": "plans_locationtask_2_backend_settings_fields",
+      "target": "plans_locationtask_things_to_avoid_86",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L91",
+      "weight": 1.0,
+      "source": "plans_locationtask_2_backend_settings_fields",
+      "target": "plans_locationtask_testing_checklist_91",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L101",
+      "weight": 1.0,
+      "source": "plans_locationtask_3_delivery_pricing_utility",
+      "target": "plans_locationtask_goal_101",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L104",
+      "weight": 1.0,
+      "source": "plans_locationtask_3_delivery_pricing_utility",
+      "target": "plans_locationtask_files_likely_changed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L109",
+      "weight": 1.0,
+      "source": "plans_locationtask_3_delivery_pricing_utility",
+      "target": "plans_locationtask_pricing_rules",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L119",
+      "weight": 1.0,
+      "source": "plans_locationtask_3_delivery_pricing_utility",
+      "target": "plans_locationtask_subtasks_119",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L130",
+      "weight": 1.0,
+      "source": "plans_locationtask_3_delivery_pricing_utility",
+      "target": "plans_locationtask_things_to_avoid_130",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L135",
+      "weight": 1.0,
+      "source": "plans_locationtask_3_delivery_pricing_utility",
+      "target": "plans_locationtask_testing_checklist_135",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L147",
+      "weight": 1.0,
+      "source": "plans_locationtask_4_cart_calculation_api",
+      "target": "plans_locationtask_goal_147",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L150",
+      "weight": 1.0,
+      "source": "plans_locationtask_4_cart_calculation_api",
+      "target": "plans_locationtask_api_change",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L156",
+      "weight": 1.0,
+      "source": "plans_locationtask_4_cart_calculation_api",
+      "target": "plans_locationtask_response_should_include",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L165",
+      "weight": 1.0,
+      "source": "plans_locationtask_4_cart_calculation_api",
+      "target": "plans_locationtask_subtasks_165",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L174",
+      "weight": 1.0,
+      "source": "plans_locationtask_4_cart_calculation_api",
+      "target": "plans_locationtask_things_to_avoid_174",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L179",
+      "weight": 1.0,
+      "source": "plans_locationtask_4_cart_calculation_api",
+      "target": "plans_locationtask_testing_checklist_179",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L189",
+      "weight": 1.0,
+      "source": "plans_locationtask_5_order_creation_api",
+      "target": "plans_locationtask_goal_189",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L192",
+      "weight": 1.0,
+      "source": "plans_locationtask_5_order_creation_api",
+      "target": "plans_locationtask_files_likely_changed_192",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L197",
+      "weight": 1.0,
+      "source": "plans_locationtask_5_order_creation_api",
+      "target": "plans_locationtask_subtasks_197",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L209",
+      "weight": 1.0,
+      "source": "plans_locationtask_5_order_creation_api",
+      "target": "plans_locationtask_things_to_avoid_209",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L214",
+      "weight": 1.0,
+      "source": "plans_locationtask_5_order_creation_api",
+      "target": "plans_locationtask_testing_checklist_214",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L226",
+      "weight": 1.0,
+      "source": "plans_locationtask_6_order_database_fields",
+      "target": "plans_locationtask_goal_226",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L229",
+      "weight": 1.0,
+      "source": "plans_locationtask_6_order_database_fields",
+      "target": "plans_locationtask_suggested_new_order_fields",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L235",
+      "weight": 1.0,
+      "source": "plans_locationtask_6_order_database_fields",
+      "target": "plans_locationtask_subtasks_235",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L243",
+      "weight": 1.0,
+      "source": "plans_locationtask_6_order_database_fields",
+      "target": "plans_locationtask_things_to_avoid_243",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L248",
+      "weight": 1.0,
+      "source": "plans_locationtask_6_order_database_fields",
+      "target": "plans_locationtask_testing_checklist_248",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L257",
+      "weight": 1.0,
+      "source": "plans_locationtask_7_mobile_checkout_updates",
+      "target": "plans_locationtask_goal_257",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L260",
+      "weight": 1.0,
+      "source": "plans_locationtask_7_mobile_checkout_updates",
+      "target": "plans_locationtask_files_likely_changed_260",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L265",
+      "weight": 1.0,
+      "source": "plans_locationtask_7_mobile_checkout_updates",
+      "target": "plans_locationtask_subtasks_265",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L277",
+      "weight": 1.0,
+      "source": "plans_locationtask_7_mobile_checkout_updates",
+      "target": "plans_locationtask_things_to_avoid_277",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L283",
+      "weight": 1.0,
+      "source": "plans_locationtask_7_mobile_checkout_updates",
+      "target": "plans_locationtask_testing_checklist_283",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L295",
+      "weight": 1.0,
+      "source": "plans_locationtask_8_admin_manager_settings",
+      "target": "plans_locationtask_goal_295",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L298",
+      "weight": 1.0,
+      "source": "plans_locationtask_8_admin_manager_settings",
+      "target": "plans_locationtask_files_likely_changed_298",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L303",
+      "weight": 1.0,
+      "source": "plans_locationtask_8_admin_manager_settings",
+      "target": "plans_locationtask_admin_fields_to_add",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L310",
+      "weight": 1.0,
+      "source": "plans_locationtask_8_admin_manager_settings",
+      "target": "plans_locationtask_subtasks_310",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L320",
+      "weight": 1.0,
+      "source": "plans_locationtask_8_admin_manager_settings",
+      "target": "plans_locationtask_things_to_avoid_320",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L325",
+      "weight": 1.0,
+      "source": "plans_locationtask_8_admin_manager_settings",
+      "target": "plans_locationtask_testing_checklist_325",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L336",
+      "weight": 1.0,
+      "source": "plans_locationtask_9_admin_order_visibility",
+      "target": "plans_locationtask_goal_336",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L339",
+      "weight": 1.0,
+      "source": "plans_locationtask_9_admin_order_visibility",
+      "target": "plans_locationtask_subtasks_339",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L346",
+      "weight": 1.0,
+      "source": "plans_locationtask_9_admin_order_visibility",
+      "target": "plans_locationtask_things_to_avoid_346",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L350",
+      "weight": 1.0,
+      "source": "plans_locationtask_9_admin_order_visibility",
+      "target": "plans_locationtask_testing_checklist_350",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L359",
+      "weight": 1.0,
+      "source": "plans_locationtask_10_error_and_edge_case_handling",
+      "target": "plans_locationtask_goal_359",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L362",
+      "weight": 1.0,
+      "source": "plans_locationtask_10_error_and_edge_case_handling",
+      "target": "plans_locationtask_cases_to_handle",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L373",
+      "weight": 1.0,
+      "source": "plans_locationtask_10_error_and_edge_case_handling",
+      "target": "plans_locationtask_subtasks_373",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L381",
+      "weight": 1.0,
+      "source": "plans_locationtask_10_error_and_edge_case_handling",
+      "target": "plans_locationtask_things_to_avoid_381",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L386",
+      "weight": 1.0,
+      "source": "plans_locationtask_10_error_and_edge_case_handling",
+      "target": "plans_locationtask_testing_checklist_386",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L396",
+      "weight": 1.0,
+      "source": "plans_locationtask_11_backend_tests",
+      "target": "plans_locationtask_goal_396",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L399",
+      "weight": 1.0,
+      "source": "plans_locationtask_11_backend_tests",
+      "target": "plans_locationtask_subtasks_399",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L410",
+      "weight": 1.0,
+      "source": "plans_locationtask_11_backend_tests",
+      "target": "plans_locationtask_testing_checklist_410",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L419",
+      "weight": 1.0,
+      "source": "plans_locationtask_12_frontend_testing",
+      "target": "plans_locationtask_goal_419",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L422",
+      "weight": 1.0,
+      "source": "plans_locationtask_12_frontend_testing",
+      "target": "plans_locationtask_subtasks_422",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L432",
+      "weight": 1.0,
+      "source": "plans_locationtask_12_frontend_testing",
+      "target": "plans_locationtask_testing_checklist_432",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L442",
+      "weight": 1.0,
+      "source": "plans_locationtask_13_final_verification",
+      "target": "plans_locationtask_goal_442",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L445",
+      "weight": 1.0,
+      "source": "plans_locationtask_13_final_verification",
+      "target": "plans_locationtask_subtasks_445",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/locationtask.md",
+      "source_location": "L464",
+      "weight": 1.0,
+      "source": "plans_locationtask_13_final_verification",
+      "target": "plans_locationtask_acceptance_criteria",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "Backend-V1/API_TEST_REPORT.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -43397,5 +44869,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "d04b135c58f6bfe3dede4c31ef8bc22a95dae972"
+  "built_at_commit": "8e7178239ae263076b21fe804b719fbb47856be9"
 }
