@@ -69,12 +69,23 @@ export const ReportsApi = {
     const qs = new URLSearchParams(params).toString();
     return apiClient(`/admin/reports/sales?${qs}`, { method: 'GET' });
   },
+  getCustomers: (params) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiClient(`/admin/reports/customers?${qs}`, { method: 'GET' });
+  },
+  getTopProducts: (params) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiClient(`/admin/reports/top-products?${qs}`, { method: 'GET' });
+  },
 };
 
 export const HealthApi = {
-  check: () => apiClient('/health', { method: 'GET' }),
+  check: () => apiClient('/health', { method: 'GET' }), // note this hits the public route without /admin prefix
 };
 
 export const AuditApi = {
-  list: () => apiClient('/admin/audit', { method: 'GET' }),
+  list: (params) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiClient(`/admin/audit?${qs}`, { method: 'GET' });
+  }
 };

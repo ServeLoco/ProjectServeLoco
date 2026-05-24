@@ -507,31 +507,31 @@ This file is the implementation handoff for the independent laptop admin website
 **Depends on:** Reports backend support.
 
 **Subtasks:**
-- [ ] Add reports page.
-- [ ] Show sales report:
-  - [ ] Today sales
-  - [ ] Weekly sales
-  - [ ] Monthly sales
-- [ ] Add date range filters.
-- [ ] Show payment method breakdown:
-  - [ ] Cash
-  - [ ] UPI
-- [ ] Show payment status breakdown:
-  - [ ] Pending
-  - [ ] Paid
-  - [ ] Failed
-  - [ ] Refunded
-- [ ] Show order status breakdown.
-- [ ] Show top products report.
-- [ ] Show customer report:
-  - [ ] New customers
-  - [ ] Trusted customers
-  - [ ] Blocked customers
-- [ ] Add CSV export for reports.
+- [x] Add reports page.
+- [x] Show sales report:
+  - [x] Today sales
+  - [x] Weekly sales
+  - [x] Monthly sales
+- [x] Add date range filters.
+- [x] Show payment method breakdown:
+  - [x] Cash
+  - [x] UPI
+- [x] Show payment status breakdown:
+  - [x] Pending
+  - [x] Paid
+  - [x] Failed
+  - [x] Refunded
+- [x] Show order status breakdown.
+- [x] Show top products report.
+- [x] Show customer report:
+  - [x] New customers
+  - [x] Trusted customers
+  - [x] Blocked customers
+- [x] Add CSV export for reports.
 
 **Acceptance:**
-- [ ] Reports match backend order/product/customer data.
-- [ ] CSV export respects current filters.
+- [x] Reports match backend order/product/customer data.
+- [x] CSV export respects current filters.
 
 ## TASK-AM-015: Backend Health Page
 **Goal:** Let admin see whether backend services are healthy.
@@ -539,17 +539,17 @@ This file is the implementation handoff for the independent laptop admin website
 **Depends on:** `/health` or detailed health API.
 
 **Subtasks:**
-- [ ] Add Backend Health sidebar page.
-- [ ] Show API status.
-- [ ] Show MySQL status.
-- [ ] Show MongoDB status.
-- [ ] Show current API base URL.
-- [ ] Show last successful health check time.
-- [ ] Add manual refresh.
-- [ ] Show helpful troubleshooting text for failed checks.
+- [x] Add Backend Health sidebar page.
+- [x] Show API status.
+- [x] Show MySQL status.
+- [x] Show MongoDB status.
+- [x] Show current API base URL.
+- [x] Show last successful health check time.
+- [x] Add manual refresh.
+- [x] Show helpful troubleshooting text for failed checks.
 
 **Acceptance:**
-- [ ] Health page clearly distinguishes API, MySQL, and MongoDB failures.
+- [x] Health page clearly distinguishes API, MySQL, and MongoDB failures.
 
 ## TASK-AM-016: Admin Safety & Audit
 **Goal:** Reduce accidental damage and optionally record admin activity.
@@ -557,26 +557,26 @@ This file is the implementation handoff for the independent laptop admin website
 **Depends on:** Shared UI components and audit backend if implemented.
 
 **Subtasks:**
-- [ ] Add unsaved-change warnings for edit forms.
-- [ ] Add confirmation dialogs for delete/hide/status/payment changes.
-- [ ] Add clear success/error toast messages.
-- [ ] Add audit log data model/API if activity history is required.
-- [ ] Record admin activity for:
-  - [ ] Login/logout
-  - [ ] Product changes
-  - [ ] Category changes
-  - [ ] Offer changes
-  - [ ] Settings changes
-  - [ ] Order status/payment changes
-  - [ ] Customer trust/block changes
-  - [ ] Image uploads/deletes
-- [ ] Add Activity / Audit Log page.
-- [ ] Show latest admin activity.
-- [ ] Prefer soft delete/hide for records referenced by orders.
+- [x] Add unsaved-change warnings for edit forms.
+- [x] Add confirmation dialogs for delete/hide/status/payment changes.
+- [x] Add clear success/error toast messages.
+- [x] Add audit log data model/API if activity history is required.
+- [x] Record admin activity for:
+  - [x] Login/logout
+  - [x] Product changes
+  - [x] Category changes
+  - [x] Offer changes
+  - [x] Settings changes
+  - [x] Order status/payment changes
+  - [x] Customer trust/block changes
+  - [x] Image uploads/deletes
+- [x] Add Activity / Audit Log page.
+- [x] Show latest admin activity.
+- [x] Prefer soft delete/hide for records referenced by orders.
 
 **Acceptance:**
-- [ ] High-impact actions require confirmation.
-- [ ] Activity page works if audit backend is implemented.
+- [x] High-impact actions require confirmation.
+- [x] Activity page works if audit backend is implemented.
 
 ## TASK-MOB-001: Mobile Reflection
 **Goal:** Confirm web admin changes are visible in the mobile app.
