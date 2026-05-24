@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
+import PressableScale from '../PressableScale';
 import ProductImage from '../ProductImage';
 import QuantityStepper from '../QuantityStepper';
 
@@ -42,10 +43,10 @@ function ProductCard({
   const isUnavailable = !resolvedAvailable;
 
   return (
-    <TouchableOpacity
+    <PressableScale
       onPress={onPress}
-      activeOpacity={0.85}
       style={[styles.card, isUnavailable && styles.unavailable, style]}
+      scaleTo={0.98}
       accessibilityRole="button"
       accessibilityLabel={resolvedName}
     >
@@ -91,7 +92,7 @@ function ProductCard({
           )}
         </View>
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

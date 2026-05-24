@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import { colors, motionConfig, radius } from '../../theme';
+import { colors, motionConfig, radius, shadows } from '../../theme';
 import { useReducedMotion } from '../../utils';
 
 /**
@@ -92,6 +92,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     overflow: 'hidden',
     padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
   },
   cardBody: {
     marginTop: 10,
@@ -104,6 +107,9 @@ const styles = StyleSheet.create({
     gap: 12,
     backgroundColor: colors.bgCard,
     borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
   },
   rowBody: {
     flex: 1,

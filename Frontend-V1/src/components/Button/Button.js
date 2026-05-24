@@ -3,10 +3,10 @@ import {
   ActivityIndicator,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { colors, typography, spacing, radius, layout, shadows } from '../../theme';
+import PressableScale from '../PressableScale';
 
 /**
  * Button
@@ -56,11 +56,11 @@ function Button({
   ];
 
   return (
-    <TouchableOpacity
+    <PressableScale
       onPress={onPress}
       style={containerStyle}
       disabled={isDisabled}
-      activeOpacity={0.78}
+      scaleTo={0.96}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
@@ -78,7 +78,7 @@ function Button({
           </Text>
         </View>
       )}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

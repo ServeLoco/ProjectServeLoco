@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { colors, radius, layout, shadows } from '../../theme';
+import PressableScale from '../PressableScale';
 import AppIcon from '../AppIcon';
 
 /**
@@ -33,11 +34,11 @@ function IconButton({
   const borderRadius = shape === 'circle' ? radius.circle : radius.md;
 
   return (
-    <TouchableOpacity
+    <PressableScale
       onPress={onPress}
       disabled={disabled}
-      activeOpacity={0.7}
       style={[styles.touchTarget, style]}
+      scaleTo={0.94}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
@@ -60,7 +61,7 @@ function IconButton({
           />
         ) : icon}
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

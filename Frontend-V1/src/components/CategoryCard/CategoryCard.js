@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
+import PressableScale from '../PressableScale';
 import ProductImage from '../ProductImage';
 
 /**
@@ -29,10 +30,10 @@ function CategoryCard({
   const resolvedProductCount = category.productCount ?? category.count ?? productCount ?? count;
 
   return (
-    <TouchableOpacity
+    <PressableScale
       onPress={onPress}
-      activeOpacity={0.82}
       style={[styles.card, style]}
+      scaleTo={0.96}
       accessibilityRole="button"
       accessibilityLabel={resolvedName}
     >
@@ -50,7 +51,7 @@ function CategoryCard({
       {resolvedProductCount !== undefined && resolvedProductCount !== null ? (
         <Text style={styles.count}>{resolvedProductCount} items</Text>
       ) : null}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
