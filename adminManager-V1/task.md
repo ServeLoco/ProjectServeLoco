@@ -266,35 +266,35 @@ This file is the implementation handoff for the independent laptop admin website
 - `PATCH /api/admin/orders/:id/payment`
 
 **Subtasks:**
-- [ ] Build paginated orders table.
-- [ ] Add search by order number, customer name, and phone.
-- [ ] Add filters:
-  - [ ] Status
-  - [ ] Payment status
-  - [ ] Payment method
+- [x] Build paginated orders table.
+- [x] Add search by order number, customer name, and phone.
+- [x] Add filters:
+  - [x] Status
+  - [x] Payment status
+  - [x] Payment method
   - [ ] Date range
-- [ ] Add quick filters:
-  - [ ] Pending orders
-  - [ ] Preparing orders
-  - [ ] Out for delivery orders
-  - [ ] Delivered orders
-  - [ ] Cancelled orders
-  - [ ] Pending payments
-- [ ] Build order detail view/drawer.
-- [ ] Show order number, customer, phone, WhatsApp, address, map URL, note, item list, subtotal, delivery charge, night charge, total, payment method, payment status, status, created date, and cancel reason.
-- [ ] Add valid status update controls.
-- [ ] Add payment status update controls.
-- [ ] Prevent invalid status transitions before sending request.
-- [ ] Add one-click phone and WhatsApp actions.
-- [ ] Add map link action when `map_url` exists.
+- [x] Add quick filters:
+  - [x] Pending orders
+  - [x] Preparing orders
+  - [x] Out for delivery orders
+  - [x] Delivered orders
+  - [x] Cancelled orders
+  - [x] Pending payments
+- [x] Build order detail view/drawer.
+- [x] Show order number, customer, phone, WhatsApp, address, map URL, note, item list, subtotal, delivery charge, night charge, total, payment method, payment status, status, created date, and cancel reason.
+- [x] Add valid status update controls.
+- [x] Add payment status update controls.
+- [x] Prevent invalid status transitions before sending request.
+- [x] Add one-click phone and WhatsApp actions.
+- [x] Add map link action when `map_url` exists.
 - [ ] Add printable order/invoice view.
 - [ ] Add CSV export for filtered orders.
-- [ ] Show backend validation errors clearly.
+- [x] Show backend validation errors clearly.
 
 **Acceptance:**
-- [ ] Status/payment changes persist in backend.
-- [ ] Mobile order screens show updated status/payment.
-- [ ] Terminal orders cannot be changed in the UI.
+- [x] Status/payment changes persist in backend.
+- [x] Mobile order screens show updated status/payment.
+- [x] Terminal orders cannot be changed in the UI.
 
 ## TASK-AM-007: Products / Items Management
 **Goal:** Let admin control all sellable non-combo items.
