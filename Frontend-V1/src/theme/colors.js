@@ -76,9 +76,10 @@ export const colors = {
   bgSkeletonBase: palette.grey100,
   bgSkeletonShimmer: palette.grey200,
 
-  // --- Text ---
   textPrimary: palette.charcoal,
   textSecondary: palette.grey400,
+  textTertiary: palette.grey300,
+  textMuted: palette.grey400,
   textHint: palette.grey300,
   textDisabled: palette.grey300,
   textInverse: palette.white,
