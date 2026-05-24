@@ -2,31 +2,6 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 
-const STATUS_COLORS = {
-  Pending:          { bg: '#FFF8EE', text: '#F07C00' },
-  Preparing:        { bg: '#EFF6FF', text: '#2563EB' },
-  'Out for Delivery': { bg: '#EDFAF4', text: '#1AA362' },
-  Delivered:        { bg: '#EDFAF4', text: '#1AA362' },
-  Cancelled:        { bg: '#FFF2F2', text: '#DC2626' },
-};
-
-const PAYMENT_COLORS = {
-  Pending: colors.warning,
-  Paid:    colors.success,
-  Failed:  colors.error,
-};
-
-/**
- * OrderCard
- * Customer order list card.
- *
- * Props:
- *   order        - { id, orderNumber, status, paymentStatus, itemCount, total, createdAt, items }
- *   onViewDetails - tap "View Details"
- *   onCancel     - tap "Cancel" (shown only when cancellable prop is true)
- *   cancellable  - shows cancel button
- *   style        - container style
- */
 function OrderCard({ order = {}, onViewDetails, onCancel, cancellable = false, style }) {
   const {
     orderNumber,
@@ -37,7 +12,21 @@ function OrderCard({ order = {}, onViewDetails, onCancel, cancellable = false, s
     createdAt,
   } = order;
 
-  const statusColor = STATUS_COLORS[status] || { bg: colors.bgDisabled, text: colors.textSecondary };
+  const statusColors = {
+    Pending:            { bg: colors.warningLight, text: colors.warning },
+    Preparing:          { bg: colors.infoLight, text: colors.info },
+    'Out for Delivery': { bg: colors.saffronLight, text: colors.saffron },
+    Delivered:          { bg: colors.successLight, text: colors.success },
+    Cancelled:          { bg: colors.errorLight, text: colors.error },
+  };
+
+  const paymentColors = {
+    Pending: colors.warning,
+    Paid:    colors.success,
+    Failed:  colors.error,
+  };
+
+  const statusColor = statusColors[status] || { bg: colors.bgDisabled, text: colors.textSecondary };
 
   const formattedDate = createdAt
     ? new Date(createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
@@ -64,7 +53,7 @@ function OrderCard({ order = {}, onViewDetails, onCancel, cancellable = false, s
       <View style={styles.midRow}>
         <Text style={styles.itemCount}>{itemCount} item{itemCount !== 1 ? 's' : ''}</Text>
         <View style={styles.paymentRow}>
-          <View style={[styles.payDot, { backgroundColor: PAYMENT_COLORS[paymentStatus] || colors.textSecondary }]} />
+          <View style={[styles.payDot, { backgroundColor: paymentColors[paymentStatus] || colors.textSecondary }]} />
           <Text style={styles.paymentText}>{paymentStatus}</Text>
         </View>
       </View>
@@ -107,6 +96,8 @@ const styles = StyleSheet.create({
     padding: spacing.cardPadding,
     ...shadows.card,
     gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   topRow: {
     flexDirection: 'row',
@@ -129,7 +120,9 @@ const styles = StyleSheet.create({
   },
   statusText: {
     ...typography.captionMedium,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 10,
+    textTransform: 'uppercase',
   },
   midRow: {
     flexDirection: 'row',
@@ -166,14 +159,18 @@ const styles = StyleSheet.create({
   viewBtn: {
     flex: 1,
     height: 38,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.bgSurface,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.xs,
   },
   viewBtnText: {
-    ...typography.button,
-    color: colors.primary,
+    ...typography.buttonSmall,
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
   cancelBtn: {
     flex: 1,
@@ -182,10 +179,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.errorBorder,
   },
   cancelBtnText: {
-    ...typography.button,
+    ...typography.buttonSmall,
     color: colors.error,
+    fontWeight: '600',
   },
 });
 

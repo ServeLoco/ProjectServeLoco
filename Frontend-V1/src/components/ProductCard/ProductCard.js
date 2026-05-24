@@ -102,6 +102,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     overflow: 'hidden',
     ...shadows.card,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   unavailable: {
     opacity: 0.6,
@@ -116,7 +118,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.sm,
     left: spacing.sm,
-    backgroundColor: colors.error,
+    backgroundColor: colors.badgeBg,
     borderRadius: radius.xs,
     paddingHorizontal: spacing.xs,
     paddingVertical: 2,

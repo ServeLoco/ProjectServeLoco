@@ -63,7 +63,9 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.xs,
+    ...shadows.card,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   image: {
     marginBottom: spacing.xs,
