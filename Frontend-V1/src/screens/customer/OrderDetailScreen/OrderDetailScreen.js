@@ -17,7 +17,7 @@ import {
   AppIcon,
   Button,
 } from '../../../components';
-import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
+import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useSettingsStore } from '../../../stores';
 import { ordersApi } from '../../../api';
 import { normalizeOrder } from '../../../utils';
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   bottomBar: {
     backgroundColor: colors.bgSurface,
     padding: spacing.lg,
-    paddingBottom: layout.bottomNavHeight,
+    paddingBottom: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     gap: spacing.sm,

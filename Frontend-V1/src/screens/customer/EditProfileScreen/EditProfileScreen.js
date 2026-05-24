@@ -14,7 +14,7 @@ import {
   TextInputField,
   Button,
 } from '../../../components';
-import { colors, spacing, layout } from '../../../theme';
+import { colors, spacing } from '../../../theme';
 import { useAuthStore } from '../../../stores';
 import { authApi } from '../../../api';
 
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   bottomBar: {
     backgroundColor: colors.bgSurface,
     padding: spacing.lg,
-    paddingBottom: layout.bottomNavHeight,
+    paddingBottom: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     gap: spacing.sm,

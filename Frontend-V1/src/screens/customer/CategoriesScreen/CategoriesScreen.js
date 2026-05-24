@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 0,
     paddingTop: spacing.md,
   },
   gridItem: {

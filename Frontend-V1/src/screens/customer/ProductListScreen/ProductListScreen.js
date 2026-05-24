@@ -11,6 +11,7 @@ import {
   Platform,
   UIManager,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
@@ -44,6 +45,9 @@ export default function ProductListScreen() {
   const mode = route.params?.mode || 'category'; // 'search' | 'category'
   const initialCategory = route.params?.categoryName || 'All';
   const offerId = route.params?.offerId || null;
+
+  const { width: windowWidth } = useWindowDimensions();
+  const cardWidth = Math.floor((windowWidth - (spacing.lg * 2) - spacing.md) / 2);
 
   // Stores
   const { items, totalItems, displayTotal, addItem, updateQuantity, removeItem } = useCartStore();
@@ -184,7 +188,8 @@ export default function ProductListScreen() {
               inputRange: [0, 1],
               outputRange: [20, 0]
             })
-          }]
+          }],
+          width: '100%',
         }}
       >
         {children}
@@ -196,6 +201,7 @@ export default function ProductListScreen() {
     <Animated.View
       style={{
         opacity: listOpacity,
+        width: cardWidth,
       }}
     >
       <FadeInItem index={index}>
@@ -213,6 +219,7 @@ export default function ProductListScreen() {
               onIncrement={() => handleIncrement(item)}
               onDecrement={() => handleDecrement(item)}
               disabled={!item.available}
+              style={{ width: '100%' }}
             />
           </TouchableOpacity>
         </View>
@@ -330,9 +337,10 @@ export default function ProductListScreen() {
             data={products}
             keyExtractor={item => item.id}
             renderItem={renderItem}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
             contentContainerStyle={styles.flatListContent}
             showsVerticalScrollIndicator={false}
-            ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
           />
         )}
       </View>
@@ -393,6 +401,10 @@ const styles = StyleSheet.create({
   flatListContent: {
     padding: spacing.lg,
     paddingBottom: spacing.xxxl * 3, // space for sticky cart
+  },
+  row: {
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
   productWrap: {
     // Wrap padding inside flatlist item

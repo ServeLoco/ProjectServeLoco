@@ -20,7 +20,7 @@ import {
   LoadingSkeleton,
   SkeletonRow,
 } from '../../../components';
-import { colors, typography, spacing, radius, shadows } from '../../../theme';
+import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { useAuthStore, useCartStore, useSettingsStore } from '../../../stores';
 import { useAuthGate } from '../../../hooks';
 import { offersApi, productsApi, settingsApi } from '../../../api';
@@ -340,15 +340,19 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Combo Deals (Vertical List of Cards) */}
+          {/* Combo Deals (Horizontal Scroll of Cards) */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Popular Combos</Text>
-            <View style={styles.comboList}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.comboListHorizontal}
+            >
               {featuredProducts.map((combo, idx) => (
                 <Animated.View 
                   key={combo.id} 
                   style={[
-                    styles.comboWrap,
+                    styles.comboWrapHorizontal,
                     {
                       opacity: staggerComboAnims[idx],
                       transform: [{ 
@@ -375,7 +379,7 @@ export default function HomeScreen() {
                   />
                 </Animated.View>
               ))}
-            </View>
+            </ScrollView>
           </View>
         </Animated.ScrollView>
       )}
@@ -557,11 +561,13 @@ const styles = StyleSheet.create({
     minHeight: 96,
     paddingHorizontal: spacing.xs,
   },
-  comboList: {
+  comboListHorizontal: {
     paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+    flexDirection: 'row',
     gap: spacing.md,
   },
-  comboWrap: {
-    marginBottom: spacing.sm,
+  comboWrapHorizontal: {
+    width: layout.productCardWidth,
   },
 });

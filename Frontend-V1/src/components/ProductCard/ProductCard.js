@@ -51,13 +51,14 @@ function ProductCard({
       accessibilityLabel={resolvedName}
     >
       {/* Product image */}
-      <ProductImage
-        uri={resolvedImageUrl}
-        width={layout.productCardWidth - spacing.cardPadding * 2}
-        height={layout.productCardImageHeight}
-        borderRadius={radius.sm}
-        style={styles.image}
-      />
+      <View style={styles.imageContainer}>
+        <ProductImage
+          uri={resolvedImageUrl}
+          width="100%"
+          height={layout.productCardImageHeight}
+          borderRadius={radius.sm}
+        />
+      </View>
 
       {/* Discount label */}
       {resolvedDiscountLabel ? (
@@ -109,11 +110,10 @@ const styles = StyleSheet.create({
   unavailable: {
     opacity: 0.6,
   },
-  image: {
-    margin: spacing.cardPaddingSmall,
-    marginBottom: 0,
-    borderRadius: radius.sm,
-    overflow: 'hidden',
+  imageContainer: {
+    padding: spacing.cardPaddingSmall,
+    paddingBottom: 0,
+    width: '100%',
   },
   discountBadge: {
     position: 'absolute',

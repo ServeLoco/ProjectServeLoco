@@ -20,7 +20,7 @@ import {
   TextInputField,
   Button,
 } from '../../../components';
-import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
+import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../../stores';
 import { cartApi, ordersApi } from '../../../api';
 import { normalizeCartCalculation } from '../../../utils';
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgSurface,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: layout.bottomNavHeight,
+    paddingBottom: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     ...shadows.xl,
