@@ -61,13 +61,13 @@ function AppHeader({
         {onBack ? (
           <TouchableOpacity
             onPress={onBack}
-            style={styles.iconBtn}
+            style={styles.headerBtn}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <AppIcon name="back" size={22} color={colors.textPrimary} />
+            <AppIcon name="back" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -87,7 +87,7 @@ function AppHeader({
           <TouchableOpacity
             key={idx}
             onPress={action.onPress}
-            style={styles.iconBtn}
+            style={styles.headerBtn}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
@@ -100,14 +100,14 @@ function AppHeader({
         {onCartPress !== undefined && (
           <TouchableOpacity
             onPress={onCartPress}
-            style={styles.iconBtn}
+            style={styles.headerBtn}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
             accessibilityLabel="Cart"
           >
             <View style={styles.cartIconWrap}>
-              <AppIcon name="cart" size={22} color={colors.textPrimary} />
+              <AppIcon name="cart" size={20} color={colors.textPrimary} />
               {cartCount > 0 && (
                 <Animated.View style={[styles.badge, { transform: [{ scale: badgeScale }] }]}>
                   <Text style={styles.badgeText}>
@@ -142,6 +142,7 @@ const styles = StyleSheet.create({
   },
   rightSide: {
     justifyContent: 'flex-end',
+    gap: 8,
   },
   title: {
     flex: 1,
@@ -155,6 +156,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: colors.bgSurface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   cartIconWrap: {
     position: 'relative',
     alignItems: 'center',
@@ -162,8 +174,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -6,
-    right: -10,
+    top: -8,
+    right: -8,
     backgroundColor: colors.badgeBg,
     borderRadius: radius.pill,
     minWidth: layout.badgeSize,
