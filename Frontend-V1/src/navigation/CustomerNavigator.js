@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { colors, typography } from '../theme';
+import { colors, typography, radius, shadows } from '../theme';
 import { AppIcon } from '../components';
 
 import {
@@ -20,32 +20,45 @@ import {
   AuthScreen,
 } from '../screens/customer';
 
-import {
-  AdminEntryScreen,
-} from '../screens/admin';
-
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-function AnimatedTabIcon({ name, focused, color }) {
-  const scale = useRef(new Animated.Value(focused ? 1.15 : 1)).current;
+function AnimatedTabIcon({ name, focused }) {
+  const scale = useRef(new Animated.Value(focused ? 1 : 0.9)).current;
+  const opacity = useRef(new Animated.Value(focused ? 1 : 0)).current;
   
   useEffect(() => {
-    Animated.spring(scale, {
-      toValue: focused ? 1.15 : 1,
-      useNativeDriver: true,
-      speed: 24,
-      bounciness: 8,
-    }).start();
-  }, [focused, scale]);
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: focused ? 1 : 0.9,
+        useNativeDriver: true,
+        friction: 6,
+      }),
+      Animated.timing(opacity, {
+        toValue: focused ? 1 : 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [focused]);
 
   return (
-    <Animated.View style={[styles.tabIconWrap, { transform: [{ scale }] }]}>
-      <AppIcon name={name} color={color} size={22} />
-      {focused && (
-        <View style={[styles.tabActiveDot, { backgroundColor: color }]} />
-      )}
-    </Animated.View>
+    <View style={styles.tabIconContainer}>
+      <Animated.View
+        style={[
+          styles.activePill,
+          {
+            opacity,
+            transform: [{ scale }],
+          },
+        ]}
+      />
+      <AppIcon
+        name={name}
+        color={focused ? colors.primaryText : colors.navInactive}
+        size={20}
+      />
+    </View>
   );
 }
 
@@ -62,56 +75,67 @@ function CustomerBottomTabs() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
+          position: 'absolute',
+          bottom: 12,
+          left: 16,
+          right: 16,
+          borderRadius: radius.xl,
           backgroundColor: colors.bgSurface,
-          borderTopColor: colors.border,
-          elevation: 8,
-          height: 60,
-          paddingBottom: 8,
+          height: 64,
+          elevation: 6,
+          ...shadows.lg,
+          borderTopWidth: 0,
+          paddingBottom: 4,
         },
         tabBarLabelStyle: {
           ...typography.caption,
           fontWeight: '600',
+          marginTop: 2,
         },
-        tabBarIcon: ({ focused, color }) => (
-          <AnimatedTabIcon name="home" focused={focused} color={color} />
+        tabBarIcon: ({ focused }) => (
+          <AnimatedTabIcon name="home" focused={focused} />
         ),
       }}
     >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{ tabBarIcon: ({ focused, color }) => <AnimatedTabIcon name="home" focused={focused} color={color} /> }}
+        options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon name="home" focused={focused} /> }}
       />
       <Tab.Screen
         name="Categories"
         component={CategoriesScreen}
-        options={{ tabBarIcon: ({ focused, color }) => <AnimatedTabIcon name="box" focused={focused} color={color} /> }}
+        options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon name="box" focused={focused} /> }}
       />
       <Tab.Screen
         name="Orders"
         component={OrdersScreen}
-        options={{ tabBarIcon: ({ focused, color }) => <AnimatedTabIcon name="orders" focused={focused} color={color} /> }}
+        options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon name="orders" focused={focused} /> }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ tabBarIcon: ({ focused, color }) => <AnimatedTabIcon name="profile" focused={focused} color={color} /> }}
+        options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon name="profile" focused={focused} /> }}
       />
     </Tab.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
-  tabIconWrap: {
+  tabIconContainer: {
+    width: 48,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+    marginTop: 4,
   },
-  tabActiveDot: {
+  activePill: {
     position: 'absolute',
-    bottom: -10,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 48,
+    height: 32,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
   },
 });
 
@@ -148,9 +172,6 @@ export default function CustomerNavigator() {
         component={AuthScreen} 
         options={{ presentation: 'transparentModal', animation: 'fade' }} 
       />
-      
-      {/* Hidden Admin Entry Route */}
-      <Stack.Screen name="AdminEntry" component={AdminEntryScreen} />
     </Stack.Navigator>
   );
 }

@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: colors.textSecondary,
   },
   activeLabel: {
     color: colors.primary,
