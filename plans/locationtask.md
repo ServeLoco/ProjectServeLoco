@@ -117,28 +117,28 @@ Create one backend source of truth for delivery distance, range, and charge.
 - Backend always calculates final delivery charge
 
 ### Subtasks
-- [ ] Create Haversine distance helper
-- [ ] Create delivery pricing helper
-- [ ] Return exact distance in km
-- [ ] Round displayed charge to valid currency amount
-- [ ] Preserve raw distance for order snapshot
-- [ ] Return clear missing-location message
-- [ ] Return clear out-of-range message
-- [ ] Return clear missing-shop-location message
-- [ ] Use same helper in cart and order flows
+- [x] Create Haversine distance helper
+- [x] Create delivery pricing helper
+- [x] Return exact distance in km
+- [x] Round displayed charge to valid currency amount
+- [x] Preserve raw distance for order snapshot
+- [x] Return clear missing-location message
+- [x] Return clear out-of-range message
+- [x] Return clear missing-shop-location message
+- [x] Use same helper in cart and order flows
 
 ### Things to avoid
-- [ ] Do not duplicate delivery fee logic in multiple controllers
-- [ ] Do not calculate final charge in frontend
-- [ ] Do not allow out-of-range orders even if free delivery is active
+- [x] Do not duplicate delivery fee logic in multiple controllers
+- [x] Do not calculate final charge in frontend
+- [x] Do not allow out-of-range orders even if free delivery is active
 
 ### Testing checklist
-- [ ] 0 km distance returns 0 distance
-- [ ] Inside-radius distance returns delivery allowed
-- [ ] Outside-radius distance returns delivery blocked
-- [ ] Free offer returns zero charge inside radius
-- [ ] Per-km charge calculation is correct
-- [ ] Cart and order calculations match
+- [x] 0 km distance returns 0 distance
+- [x] Inside-radius distance returns delivery allowed
+- [x] Outside-radius distance returns delivery blocked
+- [x] Free offer returns zero charge inside radius
+- [x] Per-km charge calculation is correct
+- [x] Cart and order calculations match
 
 ---
 
