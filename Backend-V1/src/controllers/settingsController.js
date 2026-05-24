@@ -41,7 +41,12 @@ const getSettings = async (req, res) => {
       free_delivery_above: 500,
       night_charge: 0,
       support_phone: '',
-      support_whatsapp: ''
+      support_whatsapp: '',
+      shop_latitude: null,
+      shop_longitude: null,
+      delivery_radius_km: 8.00,
+      delivery_cost_per_km: 0.00,
+      free_delivery_offer_active: 0
     };
   }
   res.status(200).json({ data: settings });
@@ -62,10 +67,41 @@ const updateSettings = async (req, res) => {
   const fields = [
     'shop_open', 'delivery_available', 'minimum_order_amount', 'delivery_charge',
     'free_delivery_above', 'night_charge', 'night_charge_start', 'night_charge_end',
-    'whatsapp_number', 'upi_id', 'upi_qr_image_id', 'delivery_time_message'
+    'whatsapp_number', 'upi_id', 'upi_qr_image_id', 'delivery_time_message',
+    'shop_latitude', 'shop_longitude', 'delivery_radius_km', 'delivery_cost_per_km',
+    'free_delivery_offer_active'
   ];
 
   const body = req.body;
+
+  // Validate coordinates when provided
+  if (body.shop_latitude !== undefined && body.shop_latitude !== null && body.shop_latitude !== '') {
+    const lat = Number(body.shop_latitude);
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Latitude must be between -90 and 90' });
+    }
+  }
+  if (body.shop_longitude !== undefined && body.shop_longitude !== null && body.shop_longitude !== '') {
+    const lng = Number(body.shop_longitude);
+    if (isNaN(lng) || lng < -180 || lng > 180) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Longitude must be between -180 and 180' });
+    }
+  }
+
+  // Prevent negative values for delivery radius and per-km cost
+  if (body.delivery_radius_km !== undefined && body.delivery_radius_km !== null && body.delivery_radius_km !== '') {
+    const radius = Number(body.delivery_radius_km);
+    if (isNaN(radius) || radius < 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Delivery radius cannot be negative' });
+    }
+  }
+  if (body.delivery_cost_per_km !== undefined && body.delivery_cost_per_km !== null && body.delivery_cost_per_km !== '') {
+    const cost = Number(body.delivery_cost_per_km);
+    if (isNaN(cost) || cost < 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Delivery cost per km cannot be negative' });
+    }
+  }
+
   const updates = [];
   const params = [];
 
@@ -73,8 +109,10 @@ const updateSettings = async (req, res) => {
     if (body[field] !== undefined) {
       updates.push(`${field} = ?`);
       let val = body[field];
-      if (['shop_open', 'delivery_available'].includes(field)) {
+      if (['shop_open', 'delivery_available', 'free_delivery_offer_active'].includes(field)) {
         val = (val === true || val === 'true' || val === 1) ? 1 : 0;
+      } else if (['shop_latitude', 'shop_longitude', 'delivery_radius_km', 'delivery_cost_per_km'].includes(field)) {
+        val = (val === null || val === '') ? null : Number(val);
       }
       params.push(val);
     }

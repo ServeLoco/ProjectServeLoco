@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-25)
 
 ## Corpus Check
-- 237 files · ~88,168 words
+- 237 files · ~88,442 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1583 nodes · 2906 edges · 115 communities (103 shown, 12 thin omitted)
+- 1583 nodes · 2906 edges · 114 communities (102 shown, 12 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 5 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8e717823`
+- Built from commit: `1b5cb1e4`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -102,7 +102,6 @@
 - [[_COMMUNITY_Community 93|Community 93]]
 - [[_COMMUNITY_Community 94|Community 94]]
 - [[_COMMUNITY_Community 99|Community 99]]
-- [[_COMMUNITY_Community 100|Community 100]]
 - [[_COMMUNITY_Community 101|Community 101]]
 - [[_COMMUNITY_Community 102|Community 102]]
 - [[_COMMUNITY_Community 103|Community 103]]
@@ -142,7 +141,7 @@
 - `Header()` --calls--> `useAuth()`  [EXTRACTED]
   adminManager-V1/src/components/Header.jsx → adminManager-V1/src/components/AuthProvider.jsx
 
-## Communities (115 total, 12 thin omitted)
+## Communities (114 total, 12 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -193,16 +192,16 @@ Cohesion: 0.04
 Nodes (48): 10. Order Detail, 11. Profile, 12. Edit Profile, 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail (+40 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.12
-Nodes (4): styles, styles, styles, styles
+Cohesion: 0.07
+Nodes (10): styles, ICONS, styles, styles, PAYMENT_COLORS, STATUS_COLORS, styles, styles (+2 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.25
 Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
 
 ### Community 17 - "Community 17"
-Cohesion: 0.12
-Nodes (18): AdminDashboardScreen(), MetricCard(), styles, AdminEntryScreen(), styles, AdminLoginScreen(), styles, OrdersApi (+10 more)
+Cohesion: 0.13
+Nodes (22): AdminDashboardScreen(), MetricCard(), styles, AdminEntryScreen(), styles, AdminLoginScreen(), styles, authApi (+14 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.28
@@ -250,11 +249,11 @@ Nodes (16): permissions, displayName, expo, android, assetBundlePatterns, ios, n
 
 ### Community 31 - "Community 31"
 Cohesion: 0.08
-Nodes (10): styles, styles, styles, styles, styles, styles, styles, colors (+2 more)
+Nodes (7): styles, styles, styles, styles, styles, styles, styles
 
 ### Community 33 - "Community 33"
 Cohesion: 0.08
-Nodes (16): styles, ICONS, styles, PAYMENT_COLORS, STATUS_COLORS, styles, OrderConfirmationScreen(), styles (+8 more)
+Nodes (15): styles, styles, styles, styles, OrderConfirmationScreen(), styles, styles, styles (+7 more)
 
 ### Community 34 - "Community 34"
 Cohesion: 0.07
@@ -309,8 +308,8 @@ Cohesion: 0.67
 Nodes (3): Included, Not Included, V1 Scope
 
 ### Community 54 - "Community 54"
-Cohesion: 0.12
-Nodes (13): styles, styles, authApi, AuthApi, EditProfileScreen(), styles, MenuOption(), ProfileScreen() (+5 more)
+Cohesion: 0.18
+Nodes (7): OrdersApi, styles, FILTER_CHIPS, MOCK_ORDERS, OrdersScreen(), styles, shadows
 
 ### Community 56 - "Community 56"
 Cohesion: 0.17
@@ -345,8 +344,8 @@ Cohesion: 0.19
 Nodes (14): cartApi, ordersApi, CartScreen(), styles, CheckoutScreen(), getLocationErrorMessage(), requestLocationPermission(), styles (+6 more)
 
 ### Community 65 - "Community 65"
-Cohesion: 0.22
-Nodes (11): calculateCart(), extractToken(), requireAdmin(), requireCustomer(), { verifyToken }, asyncHandler, { calculateCart }, express (+3 more)
+Cohesion: 0.20
+Nodes (9): adminRoutes, adminToken, app, authRoutes, customerToken, express, jwt, { pool } (+1 more)
 
 ### Community 66 - "Community 66"
 Cohesion: 0.10
@@ -365,8 +364,8 @@ Cohesion: 0.50
 Nodes (4): Backend, Databases, Frontend, Tech Stack
 
 ### Community 70 - "Community 70"
-Cohesion: 0.07
-Nodes (26): { pool }, config, mysql, pool, adminRoutes, app, express, jwt (+18 more)
+Cohesion: 0.08
+Nodes (24): { pool }, config, mysql, pool, adminRoutes, app, express, jwt (+16 more)
 
 ### Community 71 - "Community 71"
 Cohesion: 0.18
@@ -377,8 +376,8 @@ Cohesion: 0.22
 Nodes (8): app, express, { getDb }, imageRoutes, jwt, mockInsertOne, request, token
 
 ### Community 73 - "Community 73"
-Cohesion: 0.20
-Nodes (9): app, cartRoutes, express, jwt, mockConnection, orderRoutes, { pool }, request (+1 more)
+Cohesion: 0.12
+Nodes (15): calculateCart(), asyncHandler, { calculateCart }, express, { requireCustomer }, router, app, cartRoutes (+7 more)
 
 ### Community 74 - "Community 74"
 Cohesion: 0.24
@@ -421,8 +420,8 @@ Cohesion: 0.16
 Nodes (15): cancelOrder(), createOrder(), generateOrderNumber(), getOrderById(), getOrders(), { pool }, asyncHandler, { createOrder, getOrders, getOrderById, cancelOrder } (+7 more)
 
 ### Community 86 - "Community 86"
-Cohesion: 0.13
-Nodes (20): { hashPassword, comparePassword, signCustomerToken }, login(), me(), { pool }, register(), updateProfile(), asyncHandler, authLimiter (+12 more)
+Cohesion: 0.11
+Nodes (25): { hashPassword, comparePassword, signCustomerToken }, login(), me(), { pool }, register(), updateProfile(), extractToken(), requireAdmin() (+17 more)
 
 ### Community 88 - "Community 88"
 Cohesion: 0.22
@@ -451,10 +450,6 @@ Nodes (3): Expanding the ESLint configuration, React Compiler, React + Vite
 ### Community 99 - "Community 99"
 Cohesion: 0.29
 Nodes (7): 2. Backend Settings Fields, Defaults, Goal, New settings fields, Subtasks, Testing checklist, Things to avoid
-
-### Community 100 - "Community 100"
-Cohesion: 0.25
-Nodes (7): app, authRoutes, bcrypt, express, jwt, { pool }, request
 
 ### Community 101 - "Community 101"
 Cohesion: 0.29
@@ -512,11 +507,11 @@ Nodes (4): 13. Final Verification, Acceptance criteria, Goal, Subtasks
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `colors` connect `Community 31` to `Community 64`, `Community 33`, `Community 74`, `Community 43`, `Community 13`, `Community 46`, `Community 15`, `Community 111`, `Community 17`, `Community 45`, `Community 82`, `Community 54`, `Community 59`, `Community 28`?**
+- **Why does `colors` connect `Community 15` to `Community 64`, `Community 33`, `Community 74`, `Community 43`, `Community 13`, `Community 46`, `Community 111`, `Community 45`, `Community 17`, `Community 82`, `Community 54`, `Community 59`, `Community 28`, `Community 31`?**
   _High betweenness centrality (0.015) - this node is a cross-community bridge._
-- **Why does `typography` connect `Community 54` to `Community 64`, `Community 33`, `Community 74`, `Community 43`, `Community 13`, `Community 45`, `Community 15`, `Community 111`, `Community 17`, `Community 82`, `Community 59`, `Community 28`, `Community 31`?**
+- **Why does `typography` connect `Community 17` to `Community 64`, `Community 33`, `Community 74`, `Community 43`, `Community 13`, `Community 45`, `Community 15`, `Community 111`, `Community 82`, `Community 54`, `Community 59`, `Community 28`, `Community 31`?**
   _High betweenness centrality (0.013) - this node is a cross-community bridge._
-- **Why does `spacing` connect `Community 54` to `Community 64`, `Community 33`, `Community 74`, `Community 43`, `Community 45`, `Community 111`, `Community 15`, `Community 17`, `Community 82`, `Community 59`, `Community 28`, `Community 31`?**
+- **Why does `spacing` connect `Community 17` to `Community 64`, `Community 33`, `Community 74`, `Community 43`, `Community 45`, `Community 111`, `Community 15`, `Community 82`, `Community 54`, `Community 59`, `Community 28`, `Community 31`?**
   _High betweenness centrality (0.011) - this node is a cross-community bridge._
 - **What connects `install-dbs.sh script`, `id`, `name` to the rest of the system?**
   _805 weakly-connected nodes found - possible documentation gaps or missing edges._

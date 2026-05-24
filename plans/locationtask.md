@@ -73,26 +73,26 @@ Add backend-controlled delivery configuration.
 - shop_longitude = null
 
 ### Subtasks
-- [ ] Add migration for new settings fields
-- [ ] Update settings model/query logic if needed
-- [ ] Update settings controller allow-list
-- [ ] Validate numeric fields
-- [ ] Validate latitude range from -90 to 90
-- [ ] Validate longitude range from -180 to 180
-- [ ] Prevent negative radius
-- [ ] Prevent negative per-km charge
-- [ ] Return new settings fields from settings API
+- [x] Add migration for new settings fields
+- [x] Update settings model/query logic if needed
+- [x] Update settings controller allow-list
+- [x] Validate numeric fields
+- [x] Validate latitude range from -90 to 90
+- [x] Validate longitude range from -180 to 180
+- [x] Prevent negative radius
+- [x] Prevent negative per-km charge
+- [x] Return new settings fields from settings API
 
 ### Things to avoid
-- [ ] Do not remove old delivery_charge field
-- [ ] Do not break existing mobile settings consumers
-- [ ] Do not require shop coordinates for admin settings page to load
+- [x] Do not remove old delivery_charge field
+- [x] Do not break existing mobile settings consumers
+- [x] Do not require shop coordinates for admin settings page to load
 
 ### Testing checklist
-- [ ] Settings API returns new fields
-- [ ] Admin can update new fields
-- [ ] Invalid coordinates are rejected
-- [ ] Existing settings still update correctly
+- [x] Settings API returns new fields
+- [x] Admin can update new fields
+- [x] Invalid coordinates are rejected
+- [x] Existing settings still update correctly
 
 ---
 

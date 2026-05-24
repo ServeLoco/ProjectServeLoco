@@ -176,10 +176,20 @@ const migrate = async () => {
         upi_id VARCHAR(100),
         upi_qr_image_id VARCHAR(255),
         delivery_time_message VARCHAR(255),
+        shop_latitude DECIMAL(10, 8) DEFAULT NULL,
+        shop_longitude DECIMAL(11, 8) DEFAULT NULL,
+        delivery_radius_km DECIMAL(10, 2) DEFAULT 8.00,
+        delivery_cost_per_km DECIMAL(10, 2) DEFAULT 0.00,
+        free_delivery_offer_active BOOLEAN DEFAULT FALSE,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
     `);
     await ensureColumn('settings', 'upi_qr_image_id', 'upi_qr_image_id VARCHAR(255) AFTER upi_id');
+    await ensureColumn('settings', 'shop_latitude', 'shop_latitude DECIMAL(10, 8) DEFAULT NULL AFTER delivery_time_message');
+    await ensureColumn('settings', 'shop_longitude', 'shop_longitude DECIMAL(11, 8) DEFAULT NULL AFTER shop_latitude');
+    await ensureColumn('settings', 'delivery_radius_km', 'delivery_radius_km DECIMAL(10, 2) DEFAULT 8.00 AFTER shop_longitude');
+    await ensureColumn('settings', 'delivery_cost_per_km', 'delivery_cost_per_km DECIMAL(10, 2) DEFAULT 0.00 AFTER delivery_radius_km');
+    await ensureColumn('settings', 'free_delivery_offer_active', 'free_delivery_offer_active BOOLEAN DEFAULT FALSE AFTER delivery_cost_per_km');
     console.log('Settings table ready.');
 
     // Offers Table
