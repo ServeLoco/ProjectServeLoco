@@ -11,11 +11,11 @@
 import { Easing } from 'react-native';
 
 // ── Durations ────────────────────────────────────────────────
-export const tapMs = 150;          // tap / press feedback
-export const smallMs = 200;        // chip, tab, toggle, stepper
-export const screenMs = 320;       // screen content entrance
-export const staggerMs = 38;       // delay between staggered cards
-export const loopMs = 750;         // auth illustration float loop (half-cycle)
+export const tapMs = 120;          // tap / press feedback
+export const smallMs = 180;        // chip, tab, toggle, stepper
+export const screenMs = 280;       // screen content entrance
+export const staggerMs = 30;       // delay between staggered cards
+export const loopMs = 700;         // auth illustration float loop (half-cycle)
 export const entryDistance = 12;   // px for fade+slide upward entry
 export const modalScaleStart = 0.96; // modal scale from value
 

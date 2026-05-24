@@ -12,7 +12,9 @@ export const radius = {
   xs: 4,
   sm: 6,
   md: 8,       // default card radius per spec
+  input: 10,   // standard input radius
   lg: 12,
+  button: 12,  // premium button radius
   xl: 16,      // modals, bottom sheets
   xxl: 24,
   pill: 100,   // chips, toggles, badges, pill buttons

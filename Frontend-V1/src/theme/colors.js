@@ -10,55 +10,60 @@
 const palette = {
   // Neutrals
   white: '#FFFFFF',
-  offWhite: '#F7F6F2',
-  grey50: '#F4F4F5',
-  grey100: '#E8E8EA',
-  grey200: '#D4D4D8',
-  grey300: '#A1A1AA',
-  grey400: '#71717A',
-  grey500: '#52525B',
-  grey600: '#3F3F46',
-  charcoal: '#1C1C1E',
-  black: '#0A0A0A',
+  offWhite: '#EEF0F3',    // Base background
+  grey50: '#E6E8EC',      // Inset inputs / fallback canvas background
+  grey100: '#DFE2E6',     // Disabled / borders
+  grey200: '#C7CCD4',     // Soft borders
+  grey300: '#9CA3AF',     // Inactive navigation / hints
+  grey400: '#6B7280',     // Muted text (cool grey)
+  grey500: '#4B5563',
+  grey600: '#374151',
+  charcoal: '#0E1116',    // Ink/dark text
+  black: '#000000',
 
-  // Primary — warm amber-orange
-  primary50: '#FFF8EE',
-  primary100: '#FFECD0',
-  primary200: '#FFD49A',
-  primary300: '#FFB85A',
-  primary400: '#FF9A20',
-  primary500: '#F07C00',  // main primary
-  primary600: '#C76200',
-  primary700: '#9E4D00',
+  // Primary — Ink/dark
+  primary50: '#F3F4F6',
+  primary100: '#E5E7EB',
+  primary200: '#D1D5DB',
+  primary300: '#9CA3AF',
+  primary400: '#4B5563',
+  primary500: '#0E1116',  // Near-black ink
+  primary600: '#05070A',
+  primary700: '#000000',
 
-  // Success — cool teal-green
-  success50: '#EDFAF4',
-  success100: '#C6F0DC',
-  success200: '#7DDEB2',
-  success300: '#34C57E',
-  success500: '#1AA362',  // main success
-  success600: '#148050',
-  success700: '#0E5E3A',
+  // Success — Green
+  success50: '#EAFDF5',
+  success100: '#C6F4DF',
+  success200: '#7FE7B9',
+  success300: '#3FE09D',
+  success500: '#1FB574',  // Success green
+  success600: '#179E62',
+  success700: '#0E814F',
 
-  // Error
-  error50: '#FFF2F2',
-  error300: '#F87171',
-  error500: '#DC2626',
-  error600: '#B91C1C',
+  // Error — Danger Red
+  error50: '#FFF0F0',
+  error300: '#FCA5A5',
+  error500: '#E5484D',  // Danger red
+  error600: '#C93B40',
 
-  // Warning
-  warning300: '#FCD34D',
-  warning500: '#D97706',
+  // Warning — Amber
+  warning300: '#FDE047',
+  warning500: '#F4A62A',  // Warning amber
 
-  // Info
-  info300: '#60A5FA',
-  info500: '#2563EB',
+  // Info — Blue
+  info300: '#93C5FD',
+  info500: '#3B82F6',  // Info blue
+
+  // Saffron/Orange — Highlight/Offer
+  saffron300: '#FFBB99',
+  saffron500: '#FF7A3A',  // Saffron highlight
+  saffron600: '#E05A1A',
 
   // Overlay
-  overlayLight: 'rgba(0,0,0,0.04)',
-  overlayMid: 'rgba(0,0,0,0.40)',
-  overlayDark: 'rgba(0,0,0,0.65)',
-  overlayWhite: 'rgba(255,255,255,0.90)',
+  overlayLight: 'rgba(0,0,0,0.02)',
+  overlayMid: 'rgba(0,0,0,0.30)',
+  overlayDark: 'rgba(0,0,0,0.50)',
+  overlayWhite: 'rgba(255,255,255,0.92)',
 };
 
 export const colors = {
@@ -73,21 +78,21 @@ export const colors = {
 
   // --- Text ---
   textPrimary: palette.charcoal,
-  textSecondary: palette.grey500,
+  textSecondary: palette.grey400,
   textHint: palette.grey300,
   textDisabled: palette.grey300,
   textInverse: palette.white,
-  textLink: palette.primary500,
+  textLink: palette.info500,
   textError: palette.error500,
   textSuccess: palette.success500,
 
-  // --- Primary Accent (warm amber-orange) ---
+  // --- Primary Accent (near-black ink) ---
   primary: palette.primary500,
   primaryLight: palette.primary100,
   primaryDark: palette.primary600,
   primaryText: palette.white,
 
-  // --- Success Accent (cool teal-green) ---
+  // --- Success Accent (cool green) ---
   success: palette.success500,
   successLight: palette.success50,
   successDark: palette.success600,
@@ -100,7 +105,7 @@ export const colors = {
 
   // --- Warning ---
   warning: palette.warning500,
-  warningLight: '#FFFBEB',
+  warningLight: '#FFFDF5',
 
   // --- Info ---
   info: palette.info500,
@@ -124,10 +129,23 @@ export const colors = {
   // --- Misc ---
   shimmerFrom: palette.grey100,
   shimmerTo: palette.grey200,
-  badgeBg: palette.primary500,
+  badgeBg: palette.saffron500,
   badgeText: palette.white,
   divider: palette.grey100,
   shadow: palette.black,
+
+  // --- 3D Buttons & Gradients (gradient-ready color pairs) ---
+  btnDarkStart: '#2A303D',       // Ink gradient top
+  btnDarkEnd: '#0E1116',         // Ink/dark button base
+  btnSuccessStart: '#3FE09D',    // Soft green top
+  btnSuccessEnd: '#1FB574',      // Success green base
+  btnHighlightStart: '#FF9A66',  // Soft saffron top
+  btnHighlightEnd: '#FF7A3A',    // Saffron highlight base
+
+  // Saffron / orange highlight tokens (added)
+  saffron: palette.saffron500,
+  saffronLight: '#FFF2EB',
+  saffronDark: palette.saffron600,
 
   // Raw palette for edge cases
   palette,

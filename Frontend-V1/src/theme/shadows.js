@@ -24,23 +24,23 @@ export const shadows = {
   none: {},
 
   // Subtle — for cards on white bg
-  xs: makeShadow(1, 0.04, 2, 1),
+  xs: makeShadow(1, 0.03, 3, 1),
 
   // Card default
-  sm: makeShadow(2, 0.06, 4, 2),
+  sm: makeShadow(3, 0.04, 6, 2),
 
   // Interactive card / pressed raised state
-  md: makeShadow(4, 0.08, 8, 3),
+  md: makeShadow(5, 0.06, 10, 3),
 
   // Modal / bottom sheet
-  lg: makeShadow(8, 0.12, 16, 4),
+  lg: makeShadow(8, 0.08, 16, 4),
 
   // Floating sticky mini-cart / FAB
-  xl: makeShadow(12, 0.16, 24, 6),
+  xl: makeShadow(12, 0.10, 24, 6),
 
   // Card aliases
-  card: makeShadow(2, 0.06, 6, 2),
-  cardRaised: makeShadow(6, 0.10, 12, 3),
-  modal: makeShadow(16, 0.18, 32, 8),
-  navBar: makeShadow(4, 0.06, 8, -2),
+  card: makeShadow(3, 0.04, 8, 2),            // Softer, premium card shadow
+  cardRaised: makeShadow(6, 0.07, 14, 4),      // Tactile raised card shadow
+  modal: makeShadow(16, 0.12, 28, 8),
+  navBar: makeShadow(4, 0.03, 10, -2),         // Premium bottom nav bar shadow
 };
