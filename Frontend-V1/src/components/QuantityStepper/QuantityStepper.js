@@ -117,12 +117,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 72,
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
   },
   addBtnCompact: {
     height: 30,
     paddingHorizontal: spacing.sm,
     minWidth: 56,
     borderRadius: radius.sm,
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#000000',
   },
   addLabel: {
     ...typography.button,
@@ -142,11 +146,15 @@ const styles = StyleSheet.create({
     height: 36,
     overflow: 'hidden',
     minWidth: 104,
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
   },
   stepperCompact: {
     height: 30,
     minWidth: 84,
     borderRadius: radius.sm,
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#000000',
   },
   stepBtn: {
     width: 36,

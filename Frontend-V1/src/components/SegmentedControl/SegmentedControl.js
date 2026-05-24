@@ -54,10 +54,12 @@ function SegmentedControl({
 const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
-    backgroundColor: colors.bgDisabled,
+    backgroundColor: colors.bgInput,
     borderRadius: radius.pill,
-    padding: 3,
+    padding: 2,
     height: 40,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
   },
   segment: {
     flex: 1,
@@ -67,7 +69,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   activeSegment: {
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.primary,
     ...shadows.xs,
   },
   label: {
@@ -76,8 +78,8 @@ const styles = StyleSheet.create({
   },
   activeLabel: {
     ...typography.labelLarge,
-    color: colors.textPrimary,
-    fontWeight: '600',
+    color: colors.primaryText,
+    fontWeight: '700',
   },
 });
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { colors, radius, layout } from '../../theme';
+import { colors, radius, layout, shadows } from '../../theme';
 import AppIcon from '../AppIcon';
 
 /**
@@ -82,9 +82,14 @@ const styles = StyleSheet.create({
   },
   filled: {
     backgroundColor: colors.primary,
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
   },
   tinted: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.xs,
   },
   outline: {
     backgroundColor: 'transparent',
@@ -93,6 +98,8 @@ const styles = StyleSheet.create({
   },
   danger: {
     backgroundColor: colors.errorLight,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.errorBorder,
   },
   disabled: {
     opacity: 0.4,

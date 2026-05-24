@@ -66,18 +66,20 @@ function AnimatedSegmentedControl({ options = [], value, onChange, style }) {
 const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
-    backgroundColor: colors.bgDisabled,
+    backgroundColor: colors.bgInput,
     borderRadius: radius.pill,
-    padding: 3,
+    padding: 2,
     height: 40,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
   },
   activeIndicator: {
     position: 'absolute',
-    top: 3,
-    bottom: 3,
-    left: 3,
-    backgroundColor: colors.bgSurface,
+    top: 2,
+    bottom: 2,
+    left: 2,
+    backgroundColor: colors.primary,
     borderRadius: radius.pill,
     ...shadows.xs,
   },
@@ -94,8 +96,8 @@ const styles = StyleSheet.create({
   },
   activeLabel: {
     ...typography.labelLarge,
-    color: colors.textPrimary,
-    fontWeight: '600',
+    color: colors.primaryText,
+    fontWeight: '700',
   },
 });
 

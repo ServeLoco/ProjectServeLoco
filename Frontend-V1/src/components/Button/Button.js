@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { colors, typography, spacing, radius, layout } from '../../theme';
+import { colors, typography, spacing, radius, layout, shadows } from '../../theme';
 
 /**
  * Button
@@ -67,7 +67,7 @@ function Button({
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === 'primary' ? colors.primaryText : colors.primary}
+          color={variant === 'primary' || variant === 'success' || variant === 'highlight' || variant === 'danger' ? colors.primaryText : colors.primary}
           size="small"
         />
       ) : (
@@ -84,7 +84,7 @@ function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.md,
+    borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -108,12 +108,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
 
-  // ── Primary ──────────────────────────────────────
+  // ── Primary (Ink Black 3D) ────────────────────────
   primary: {
     backgroundColor: colors.primary,
+    borderBottomWidth: 3,
+    borderBottomColor: '#000000',
   },
   primary_disabled: {
     backgroundColor: colors.bgDisabled,
+    borderBottomWidth: 0,
   },
   label_primary: {
     color: colors.primaryText,
@@ -122,15 +125,53 @@ const styles = StyleSheet.create({
     color: colors.textDisabled,
   },
 
-  // ── Secondary ────────────────────────────────────
+  // ── Success (Green 3D Confirm) ─────────────────────
+  success: {
+    backgroundColor: colors.success,
+    borderBottomWidth: 3,
+    borderBottomColor: colors.successDark,
+  },
+  success_disabled: {
+    backgroundColor: colors.bgDisabled,
+    borderBottomWidth: 0,
+  },
+  label_success: {
+    color: colors.successText,
+  },
+  label_success_disabled: {
+    color: colors.textDisabled,
+  },
+
+  // ── Highlight (Saffron 3D Offer) ───────────────────
+  highlight: {
+    backgroundColor: colors.saffron,
+    borderBottomWidth: 3,
+    borderBottomColor: colors.saffronDark,
+  },
+  highlight_disabled: {
+    backgroundColor: colors.bgDisabled,
+    borderBottomWidth: 0,
+  },
+  label_highlight: {
+    color: colors.primaryText,
+  },
+  label_highlight_disabled: {
+    color: colors.textDisabled,
+  },
+
+  // ── Secondary (White Raised) ───────────────────────
   secondary: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.xs,
   },
   secondary_disabled: {
     backgroundColor: colors.bgDisabled,
+    borderWidth: 0,
   },
   label_secondary: {
-    color: colors.primary,
+    color: colors.textSecondary,
   },
   label_secondary_disabled: {
     color: colors.textDisabled,
@@ -167,12 +208,15 @@ const styles = StyleSheet.create({
     color: colors.textDisabled,
   },
 
-  // ── Danger ───────────────────────────────────────
+  // ── Danger (Red 3D Cancel) ────────────────────────
   danger: {
     backgroundColor: colors.error,
+    borderBottomWidth: 3,
+    borderBottomColor: colors.errorBorder,
   },
   danger_disabled: {
     backgroundColor: colors.bgDisabled,
+    borderBottomWidth: 0,
   },
   label_danger: {
     color: colors.textInverse,

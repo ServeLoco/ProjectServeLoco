@@ -57,8 +57,8 @@ function TextInputField({
   const borderColor = error
     ? colors.errorBorder
     : isFocused
-    ? colors.borderFocus
-    : colors.border;
+    ? colors.primary
+    : colors.borderStrong;
 
   return (
     <View style={[styles.container, style]}>
@@ -144,9 +144,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: layout.inputHeight,
     backgroundColor: colors.bgInput,
-    borderRadius: radius.md,
+    borderRadius: radius.input,
     borderWidth: borderWidth.thin,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     paddingHorizontal: layout.inputPaddingH,
     overflow: 'hidden',
   },

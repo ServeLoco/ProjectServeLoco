@@ -5,7 +5,7 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
-import { colors, typography, spacing, radius, layout } from '../../theme';
+import { colors, typography, spacing, radius, layout, shadows } from '../../theme';
 
 /**
  * Chip
@@ -84,19 +84,24 @@ const styles = StyleSheet.create({
   },
   chipActive: {
     backgroundColor: colors.primary,
+    ...shadows.xs,
   },
   chipInactive: {
-    backgroundColor: colors.bgDisabled,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.xs,
   },
   label: {
     ...typography.labelSmall,
   },
   labelActive: {
     color: colors.primaryText,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   labelInactive: {
     color: colors.textSecondary,
+    fontWeight: '500',
   },
   row: {
     flexDirection: 'row',
