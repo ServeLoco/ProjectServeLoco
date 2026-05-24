@@ -60,7 +60,10 @@ const requiredKeys = [
   'MONGODB_DATABASE'
 ];
 
-const missing = requiredKeys.filter((key) => !config[key]);
+const missing = requiredKeys.filter((key) => {
+  if (key === 'MYSQL_PASSWORD' && !isProd) return config[key] === undefined;
+  return !config[key];
+});
 if (missing.length > 0) {
   throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
 }

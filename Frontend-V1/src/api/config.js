@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = 'http://192.168.1.6:3000/api';
+const DEFAULT_API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000/api';
 let apiBaseUrl = DEFAULT_API_BASE_URL;
 
 function normalizeBaseUrl(baseUrl) {

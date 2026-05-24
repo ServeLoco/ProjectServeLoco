@@ -132,6 +132,28 @@ const productSchema = (req) => {
   return { errors, data };
 };
 
+const productAvailabilitySchema = (req) => {
+  const available = normalizeField(req, 'available', 'available');
+  const isAvailable = normalizeField(req, 'isAvailable', 'is_available');
+  const finalAvailable = available !== undefined ? available : isAvailable;
+  const errors = {};
+
+  if (!isId(req.params.id)) errors.id = 'Valid Product ID is required in URL';
+  if (!isBoolean(finalAvailable)) errors.available = 'Availability status must be a boolean';
+
+  return { errors, data: { id: req.params.id, available: finalAvailable } };
+};
+
+const productImageSchema = (req) => {
+  const imageId = normalizeField(req, 'imageId', 'image_id');
+  const errors = {};
+
+  if (!isId(req.params.id)) errors.id = 'Valid Product ID is required in URL';
+  if (!isString(imageId)) errors.image_id = 'Image ID is required';
+
+  return { errors, data: { id: req.params.id, image_id: imageId } };
+};
+
 // Routes
 router.post('/login', loginLimiter, validate(loginSchema), login);
 router.get('/me', requireAdmin, me);
