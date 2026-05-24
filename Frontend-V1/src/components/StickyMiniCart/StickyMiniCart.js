@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, LayoutAnimation, UIManager, Platform } from 'react-native';
+import { StyleSheet, Text, View, LayoutAnimation, UIManager, Platform } from 'react-native';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
+import PressableScale from '../PressableScale';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -31,10 +32,10 @@ function StickyMiniCart({ itemCount = 0, total = 0, onPress, visible = true, sty
 
   return (
     <View style={[styles.container, style]}>
-      <TouchableOpacity
+      <PressableScale
         onPress={onPress}
-        activeOpacity={0.88}
         style={styles.bar}
+        scaleTo={0.96}
         accessibilityRole="button"
         accessibilityLabel={`View cart, ${itemCount} item${itemCount !== 1 ? 's' : ''}`}
       >
@@ -47,7 +48,7 @@ function StickyMiniCart({ itemCount = 0, total = 0, onPress, visible = true, sty
 
         {/* Right: estimated total */}
         <Text style={styles.total}>Rs. {Number(total).toFixed(0)}</Text>
-      </TouchableOpacity>
+      </PressableScale>
     </View>
   );
 }
@@ -68,6 +69,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     justifyContent: 'space-between',
+    borderBottomWidth: 3,
+    borderBottomColor: '#000000',
   },
   badge: {
     backgroundColor: 'rgba(255,255,255,0.25)',
