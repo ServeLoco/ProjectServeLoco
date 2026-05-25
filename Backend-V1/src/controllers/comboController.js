@@ -108,16 +108,12 @@ const saveComboItems = async (comboId, comboItems, connection = pool) => {
 
 const getAdminCombos = async (req, res) => {
   const { search, available, featured } = req.query;
-  let query = \`
-    SELECT * 
-    FROM combos 
-    WHERE deleted = 0
-  \`;
+  let query = "SELECT * FROM combos WHERE deleted = 0";
   const params = [];
 
   if (search) {
     query += ' AND name LIKE ?';
-    params.push(\`%\${search}%\`);
+    params.push(`%${search}%`);
   }
 
   if (available !== undefined) {
@@ -142,11 +138,11 @@ const getAdminCombos = async (req, res) => {
 
 const getAdminComboById = async (req, res) => {
   const { id } = req.params;
-  const [rows] = await pool.query(\`
+  const [rows] = await pool.query(`
     SELECT * 
     FROM combos 
     WHERE id = ? AND deleted = 0
-  \`, [id]);
+  `, [id]);
   
   if (rows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Combo not found' });

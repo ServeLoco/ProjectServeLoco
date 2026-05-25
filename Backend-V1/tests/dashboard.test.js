@@ -259,6 +259,8 @@ describe('Dashboard Public and Admin API Tests', () => {
       ]]);
       // Mock duplicate check (returns none)
       pool.query.mockResolvedValueOnce([[]]);
+      // Mock display order duplicate check (returns none)
+      pool.query.mockResolvedValueOnce([[]]);
       // Mock insert item
       pool.query.mockResolvedValueOnce([{ insertId: 500 }]);
 

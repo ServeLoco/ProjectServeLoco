@@ -131,7 +131,7 @@ describe('Cart and Order Tests', () => {
   it('should create an order when customer is inside delivery radius', async () => {
     const mockConnection = {
       beginTransaction: jest.fn(),
-      query: jest.fn(),
+      query: jest.fn((sql, params) => { console.log('QUERY:', sql); return Promise.resolve(); }),
       commit: jest.fn(),
       rollback: jest.fn(),
       release: jest.fn()
@@ -152,7 +152,9 @@ describe('Cart and Order Tests', () => {
         delivery_cost_per_km: 5
       }]]) // settings
       .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]) // product check
-      .mockResolvedValueOnce([{ insertId: 1001 }]); // insert order
+      .mockResolvedValueOnce([{ insertId: 1001 }])
+      .mockResolvedValueOnce([[{ COLUMN_NAME: "item_type" }]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]); // insert order
 
     const res = await request(app)
       .post('/api/orders')
@@ -212,7 +214,9 @@ describe('Cart and Order Tests', () => {
       .mockResolvedValueOnce([[{ blocked: 0 }]])
       .mockResolvedValueOnce([[settings]])
       .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]])
-      .mockResolvedValueOnce([{ insertId: 1002 }]);
+      .mockResolvedValueOnce([{ insertId: 1002 }])
+      .mockResolvedValueOnce([[{ COLUMN_NAME: "item_type" }]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
 
     const orderRes = await request(app)
       .post('/api/orders')
