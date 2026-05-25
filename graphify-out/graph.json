@@ -4,65 +4,254 @@
   "graph": {},
   "nodes": [
     {
+      "label": "notificationRoutes.js",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L1",
+      "id": "backend_v1_src_routes_notificationroutes_js",
+      "community": 187,
+      "norm_label": "notificationroutes.js"
+    },
+    {
+      "label": "express",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L1",
+      "id": "routes_notificationroutes_express",
+      "community": 187,
+      "norm_label": "express"
+    },
+    {
+      "label": "router",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L2",
+      "id": "routes_notificationroutes_router",
+      "community": 187,
+      "norm_label": "router"
+    },
+    {
+      "label": "asyncHandler",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L3",
+      "id": "routes_notificationroutes_asynchandler",
+      "community": 187,
+      "norm_label": "asynchandler"
+    },
+    {
+      "label": "{ requireCustomer }",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L4",
+      "id": "routes_notificationroutes_requirecustomer",
+      "community": 187,
+      "norm_label": "{ requirecustomer }"
+    },
+    {
+      "label": "{\n  getNotifications,\n  getUnreadCount,\n  markAllRead,\n  markRead,\n  deleteNotification\n}",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "id": "routes_notificationroutes_getnotifications_getunreadcount_markallread_markread_deletenotification",
+      "community": 187,
+      "norm_label": "{\n  getnotifications,\n  getunreadcount,\n  markallread,\n  markread,\n  deletenotification\n}"
+    },
+    {
+      "label": "notificationService.js",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L1",
+      "id": "backend_v1_src_utils_notificationservice_js",
+      "community": 65,
+      "norm_label": "notificationservice.js"
+    },
+    {
+      "label": "{ pool }",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L1",
+      "id": "utils_notificationservice_pool",
+      "community": 65,
+      "norm_label": "{ pool }"
+    },
+    {
+      "label": "createNotification()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L7",
+      "id": "utils_notificationservice_createnotification",
+      "community": 65,
+      "norm_label": "createnotification()"
+    },
+    {
+      "label": "createManyNotifications()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L30",
+      "id": "utils_notificationservice_createmanynotifications",
+      "community": 65,
+      "norm_label": "createmanynotifications()"
+    },
+    {
+      "label": "createOrderNotification()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L52",
+      "id": "utils_notificationservice_createordernotification",
+      "community": 65,
+      "norm_label": "createordernotification()"
+    },
+    {
+      "label": "createNotificationBatch()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L119",
+      "id": "utils_notificationservice_createnotificationbatch",
+      "community": 65,
+      "norm_label": "createnotificationbatch()"
+    },
+    {
+      "label": "createBroadcastNotification()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L135",
+      "id": "utils_notificationservice_createbroadcastnotification",
+      "community": 65,
+      "norm_label": "createbroadcastnotification()"
+    },
+    {
+      "label": "getUnreadCount()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L162",
+      "id": "utils_notificationservice_getunreadcount",
+      "community": 65,
+      "norm_label": "getunreadcount()"
+    },
+    {
+      "label": "markAllRead()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L170",
+      "id": "utils_notificationservice_markallread",
+      "community": 65,
+      "norm_label": "markallread()"
+    },
+    {
+      "label": "softDeleteNotification()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L178",
+      "id": "utils_notificationservice_softdeletenotification",
+      "community": 65,
+      "norm_label": "softdeletenotification()"
+    },
+    {
+      "label": "notifications.test.js",
+      "file_type": "code",
+      "source_file": "Backend-V1/tests/notifications.test.js",
+      "source_location": "L1",
+      "id": "backend_v1_tests_notifications_test_js",
+      "community": 192,
+      "norm_label": "notifications.test.js"
+    },
+    {
+      "label": "request",
+      "file_type": "code",
+      "source_file": "Backend-V1/tests/notifications.test.js",
+      "source_location": "L1",
+      "id": "tests_notifications_test_request",
+      "community": 192,
+      "norm_label": "request"
+    },
+    {
+      "label": "app",
+      "file_type": "code",
+      "source_file": "Backend-V1/tests/notifications.test.js",
+      "source_location": "L2",
+      "id": "tests_notifications_test_app",
+      "community": 192,
+      "norm_label": "app"
+    },
+    {
+      "label": "{ pool }",
+      "file_type": "code",
+      "source_file": "Backend-V1/tests/notifications.test.js",
+      "source_location": "L3",
+      "id": "tests_notifications_test_pool",
+      "community": 192,
+      "norm_label": "{ pool }"
+    },
+    {
+      "label": "{ signCustomerToken, signAdminToken }",
+      "file_type": "code",
+      "source_file": "Backend-V1/tests/notifications.test.js",
+      "source_location": "L4",
+      "id": "tests_notifications_test_signcustomertoken_signadmintoken",
+      "community": 192,
+      "norm_label": "{ signcustomertoken, signadmintoken }"
+    },
+    {
       "label": "notificationsApi.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_api_notificationsapi_js",
       "community": 28,
-      "norm_label": "notificationsapi.js"
+      "norm_label": "notificationsapi.js",
+      "id": "frontend_v1_src_api_notificationsapi_js"
     },
     {
       "label": "list()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L4",
-      "id": "api_notificationsapi_list",
       "community": 28,
-      "norm_label": "list()"
+      "norm_label": "list()",
+      "id": "api_notificationsapi_list"
     },
     {
       "label": "getUnreadCount()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L19",
-      "id": "api_notificationsapi_getunreadcount",
       "community": 28,
-      "norm_label": "getunreadcount()"
+      "norm_label": "getunreadcount()",
+      "id": "api_notificationsapi_getunreadcount"
     },
     {
       "label": "markAllRead()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L24",
-      "id": "api_notificationsapi_markallread",
       "community": 28,
-      "norm_label": "markallread()"
+      "norm_label": "markallread()",
+      "id": "api_notificationsapi_markallread"
     },
     {
       "label": "markRead()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L28",
-      "id": "api_notificationsapi_markread",
       "community": 28,
-      "norm_label": "markread()"
+      "norm_label": "markread()",
+      "id": "api_notificationsapi_markread"
     },
     {
       "label": "deleteNotification()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L32",
-      "id": "api_notificationsapi_deletenotification",
       "community": 28,
-      "norm_label": "deletenotification()"
+      "norm_label": "deletenotification()",
+      "id": "api_notificationsapi_deletenotification"
     },
     {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/index.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 59,
       "norm_label": "index.js",
       "id": "frontend_v1_src_api_index_js"
     },
@@ -116,7 +305,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L5",
-      "community": 43,
+      "community": 59,
       "norm_label": "asarray()",
       "id": "utils_apimappers_asarray"
     },
@@ -170,7 +359,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L95",
-      "community": 43,
+      "community": 59,
       "norm_label": "normalizecategory()",
       "id": "utils_apimappers_normalizecategory"
     },
@@ -314,7 +503,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L23",
-      "community": 46,
+      "community": 17,
       "norm_label": "ordersapi",
       "id": "api_index_ordersapi"
     },
@@ -323,7 +512,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L33",
-      "community": 43,
+      "community": 62,
       "norm_label": "productsapi",
       "id": "api_index_productsapi"
     },
@@ -404,7 +593,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L101",
-      "community": 87,
+      "community": 49,
       "norm_label": "auditapi",
       "id": "api_index_auditapi"
     },
@@ -422,7 +611,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L118",
-      "community": 49,
+      "community": 87,
       "norm_label": "notificationsapi",
       "id": "api_index_notificationsapi"
     },
@@ -458,7 +647,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Notifications.jsx",
       "source_location": "L1",
-      "community": 49,
+      "community": 87,
       "norm_label": "notifications.jsx",
       "id": "adminmanager_v1_src_pages_notifications_jsx"
     },
@@ -467,7 +656,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Notifications.jsx",
       "source_location": "L5",
-      "community": 49,
+      "community": 87,
       "norm_label": "notifications()",
       "id": "pages_notifications_notifications"
     },
@@ -620,7 +809,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L237",
-      "community": 35,
+      "community": 27,
       "norm_label": "getauditlogs()",
       "id": "controllers_admincontroller_getauditlogs"
     },
@@ -926,7 +1115,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L1",
-      "community": 54,
+      "community": 183,
       "norm_label": "ordercontroller.js",
       "id": "backend_v1_src_controllers_ordercontroller_js"
     },
@@ -935,7 +1124,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L1",
-      "community": 54,
+      "community": 183,
       "norm_label": "{ pool }",
       "id": "controllers_ordercontroller_pool"
     },
@@ -944,7 +1133,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L2",
-      "community": 54,
+      "community": 183,
       "norm_label": "{ calculatedeliverypricing }",
       "id": "controllers_ordercontroller_calculatedeliverypricing"
     },
@@ -953,7 +1142,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L3",
-      "community": 54,
+      "community": 183,
       "norm_label": "notificationservice",
       "id": "controllers_ordercontroller_notificationservice"
     },
@@ -962,7 +1151,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L4",
-      "community": 54,
+      "community": 183,
       "norm_label": "{ calculatethresholddeliverycharge }",
       "id": "controllers_ordercontroller_calculatethresholddeliverycharge"
     },
@@ -971,7 +1160,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L6",
-      "community": 54,
+      "community": 183,
       "norm_label": "generateordernumber()",
       "id": "controllers_ordercontroller_generateordernumber"
     },
@@ -980,7 +1169,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L23",
-      "community": 54,
+      "community": 183,
       "norm_label": "createorder()",
       "id": "controllers_ordercontroller_createorder"
     },
@@ -998,7 +1187,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L216",
-      "community": 54,
+      "community": 183,
       "norm_label": "getorderbyid()",
       "id": "controllers_ordercontroller_getorderbyid"
     },
@@ -1007,7 +1196,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L240",
-      "community": 54,
+      "community": 183,
       "norm_label": "cancelorder()",
       "id": "controllers_ordercontroller_cancelorder"
     },
@@ -1264,141 +1453,6 @@
       "id": "controllers_notificationcontroller_deletenotification"
     },
     {
-      "label": "notificationRoutes.js",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L1",
-      "community": 187,
-      "norm_label": "notificationroutes.js",
-      "id": "backend_v1_src_routes_notificationroutes_js"
-    },
-    {
-      "label": "express",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L1",
-      "community": 187,
-      "norm_label": "express",
-      "id": "routes_notificationroutes_express"
-    },
-    {
-      "label": "router",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L2",
-      "community": 187,
-      "norm_label": "router",
-      "id": "routes_notificationroutes_router"
-    },
-    {
-      "label": "asyncHandler",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L3",
-      "community": 187,
-      "norm_label": "asynchandler",
-      "id": "routes_notificationroutes_asynchandler"
-    },
-    {
-      "label": "{ requireCustomer }",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L4",
-      "community": 187,
-      "norm_label": "{ requirecustomer }",
-      "id": "routes_notificationroutes_requirecustomer"
-    },
-    {
-      "label": "{\n  getNotifications,\n  getUnreadCount,\n  markAllRead,\n  markRead,\n  deleteNotification\n}",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L5",
-      "community": 187,
-      "norm_label": "{\n  getnotifications,\n  getunreadcount,\n  markallread,\n  markread,\n  deletenotification\n}",
-      "id": "routes_notificationroutes_getnotifications_getunreadcount_markallread_markread_deletenotification"
-    },
-    {
-      "label": "notificationService.js",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L1",
-      "community": 65,
-      "norm_label": "notificationservice.js",
-      "id": "backend_v1_src_utils_notificationservice_js"
-    },
-    {
-      "label": "{ pool }",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L1",
-      "community": 65,
-      "norm_label": "{ pool }",
-      "id": "utils_notificationservice_pool"
-    },
-    {
-      "label": "createNotification()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L7",
-      "community": 65,
-      "norm_label": "createnotification()",
-      "id": "utils_notificationservice_createnotification"
-    },
-    {
-      "label": "createManyNotifications()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L30",
-      "community": 65,
-      "norm_label": "createmanynotifications()",
-      "id": "utils_notificationservice_createmanynotifications"
-    },
-    {
-      "label": "createOrderNotification()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L52",
-      "community": 65,
-      "norm_label": "createordernotification()",
-      "id": "utils_notificationservice_createordernotification"
-    },
-    {
-      "label": "createBroadcastNotification()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L135",
-      "community": 65,
-      "norm_label": "createbroadcastnotification()",
-      "id": "utils_notificationservice_createbroadcastnotification"
-    },
-    {
-      "label": "getUnreadCount()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L162",
-      "community": 65,
-      "norm_label": "getunreadcount()",
-      "id": "utils_notificationservice_getunreadcount"
-    },
-    {
-      "label": "markAllRead()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L170",
-      "community": 65,
-      "norm_label": "markallread()",
-      "id": "utils_notificationservice_markallread"
-    },
-    {
-      "label": "softDeleteNotification()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L178",
-      "community": 65,
-      "norm_label": "softdeletenotification()",
-      "id": "utils_notificationservice_softdeletenotification"
-    },
-    {
       "label": "migrate.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/db/migrate.js",
@@ -1439,7 +1493,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L1",
-      "community": 43,
+      "community": 191,
       "norm_label": "categoriesscreen.js",
       "id": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js"
     },
@@ -1448,7 +1502,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L34",
-      "community": 43,
+      "community": 191,
       "norm_label": "default_chips",
       "id": "categoriesscreen_categoriesscreen_default_chips"
     },
@@ -1457,7 +1511,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L36",
-      "community": 43,
+      "community": 191,
       "norm_label": "categoriesscreen()",
       "id": "categoriesscreen_categoriesscreen_categoriesscreen"
     },
@@ -1466,7 +1520,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L292",
-      "community": 43,
+      "community": 191,
       "norm_label": "styles",
       "id": "categoriesscreen_categoriesscreen_styles"
     },
@@ -3229,7 +3283,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/AuditLogs.jsx",
       "source_location": "L1",
-      "community": 87,
+      "community": 49,
       "norm_label": "auditlogs.jsx",
       "id": "adminmanager_v1_src_pages_auditlogs_jsx"
     },
@@ -3238,7 +3292,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/AuditLogs.jsx",
       "source_location": "L5",
-      "community": 87,
+      "community": 49,
       "norm_label": "auditlogs()",
       "id": "pages_auditlogs_auditlogs"
     },
@@ -4048,7 +4102,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/App.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 147,
       "norm_label": "app.js",
       "id": "frontend_v1_app_js"
     },
@@ -4057,7 +4111,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/App.js",
       "source_location": "L9",
-      "community": 28,
+      "community": 147,
       "norm_label": "app()",
       "id": "frontend_v1_app_app"
     },
@@ -4246,7 +4300,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/__tests__/App.test.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 147,
       "norm_label": "app.test.js",
       "id": "frontend_v1_tests_app_test_js"
     },
@@ -4570,7 +4624,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L9",
-      "community": 43,
+      "community": 17,
       "norm_label": "usecartstore",
       "id": "stores_usecartstore_usecartstore"
     },
@@ -4624,7 +4678,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/appLogo.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 169,
       "norm_label": "applogo.js",
       "id": "frontend_v1_src_assets_applogo_js"
     },
@@ -4633,7 +4687,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/appLogo.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 169,
       "norm_label": "applogo",
       "id": "assets_applogo_applogo"
     },
@@ -4642,7 +4696,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/index.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 169,
       "norm_label": "index.js",
       "id": "frontend_v1_src_assets_index_js"
     },
@@ -4651,7 +4705,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/fallbackImages.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 169,
       "norm_label": "fallbackimages.js",
       "id": "frontend_v1_src_assets_fallbackimages_js"
     },
@@ -5191,7 +5245,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/dashboardApi.js",
       "source_location": "L4",
-      "community": 28,
+      "community": 43,
       "norm_label": "dashboardapi",
       "id": "api_dashboardapi_dashboardapi"
     },
@@ -5434,7 +5488,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/sessionTokens.js",
       "source_location": "L3",
-      "community": 28,
+      "community": 147,
       "norm_label": "setcustomertokenprovider()",
       "id": "api_sessiontokens_setcustomertokenprovider"
     },
@@ -5479,7 +5533,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/settingsApi.js",
       "source_location": "L3",
-      "community": 28,
+      "community": 43,
       "norm_label": "settingsapi",
       "id": "api_settingsapi_settingsapi"
     },
@@ -5533,7 +5587,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/offersApi.js",
       "source_location": "L3",
-      "community": 28,
+      "community": 43,
       "norm_label": "offersapi",
       "id": "api_offersapi_offersapi"
     },
@@ -5596,7 +5650,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_index_js"
     },
@@ -5641,7 +5695,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 43,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textbutton_index_js"
     },
@@ -5650,7 +5704,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 43,
       "norm_label": "textbutton.js",
       "id": "frontend_v1_src_components_textbutton_textbutton_js"
     },
@@ -5659,7 +5713,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
-      "community": 17,
+      "community": 43,
       "norm_label": "textbutton()",
       "id": "textbutton_textbutton_textbutton"
     },
@@ -5668,7 +5722,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
-      "community": 17,
+      "community": 43,
       "norm_label": "styles",
       "id": "textbutton_textbutton_styles"
     },
@@ -5722,7 +5776,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedFadeSlide/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedfadeslide_index_js"
     },
@@ -5731,7 +5785,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/ProductImage.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 169,
       "norm_label": "productimage.js",
       "id": "frontend_v1_src_components_productimage_productimage_js"
     },
@@ -5740,7 +5794,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/ProductImage.js",
       "source_location": "L6",
-      "community": 118,
+      "community": 169,
       "norm_label": "fallback_source",
       "id": "productimage_productimage_fallback_source"
     },
@@ -5749,7 +5803,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/ProductImage.js",
       "source_location": "L21",
-      "community": 118,
+      "community": 169,
       "norm_label": "productimage()",
       "id": "productimage_productimage_productimage"
     },
@@ -5758,7 +5812,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/ProductImage.js",
       "source_location": "L66",
-      "community": 118,
+      "community": 169,
       "norm_label": "styles",
       "id": "productimage_productimage_styles"
     },
@@ -5812,7 +5866,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 193,
       "norm_label": "chip.js",
       "id": "frontend_v1_src_components_chip_chip_js"
     },
@@ -5821,7 +5875,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L20",
-      "community": 30,
+      "community": 193,
       "norm_label": "chip()",
       "id": "chip_chip_chip"
     },
@@ -5830,7 +5884,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L55",
-      "community": 30,
+      "community": 193,
       "norm_label": "chiprow()",
       "id": "chip_chip_chiprow"
     },
@@ -5839,7 +5893,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L76",
-      "community": 30,
+      "community": 193,
       "norm_label": "styles",
       "id": "chip_chip_styles"
     },
@@ -5848,7 +5902,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Chip/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 193,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_chip_index_js"
     },
@@ -5992,7 +6046,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 118,
       "norm_label": "appscreen.js",
       "id": "frontend_v1_src_components_appscreen_appscreen_js"
     },
@@ -6001,7 +6055,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L19",
-      "community": 30,
+      "community": 118,
       "norm_label": "appscreen()",
       "id": "appscreen_appscreen_appscreen"
     },
@@ -6010,7 +6064,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L55",
-      "community": 30,
+      "community": 118,
       "norm_label": "styles",
       "id": "appscreen_appscreen_styles"
     },
@@ -6019,7 +6073,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appscreen_index_js"
     },
@@ -6028,7 +6082,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_ordercard_index_js"
     },
@@ -6037,7 +6091,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "ordercard.js",
       "id": "frontend_v1_src_components_ordercard_ordercard_js"
     },
@@ -6046,7 +6100,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
-      "community": 15,
+      "community": 30,
       "norm_label": "ordercard()",
       "id": "ordercard_ordercard_ordercard"
     },
@@ -6055,7 +6109,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L92",
-      "community": 15,
+      "community": 30,
       "norm_label": "styles",
       "id": "ordercard_ordercard_styles"
     },
@@ -6064,7 +6118,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_confirmmodal_index_js"
     },
@@ -6073,7 +6127,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "confirmmodal.js",
       "id": "frontend_v1_src_components_confirmmodal_confirmmodal_js"
     },
@@ -6082,7 +6136,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L27",
-      "community": 15,
+      "community": 30,
       "norm_label": "confirmmodal()",
       "id": "confirmmodal_confirmmodal_confirmmodal"
     },
@@ -6091,7 +6145,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L93",
-      "community": 15,
+      "community": 30,
       "norm_label": "styles",
       "id": "confirmmodal_confirmmodal_styles"
     },
@@ -6163,7 +6217,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "stickyminicart.js",
       "id": "frontend_v1_src_components_stickyminicart_stickyminicart_js"
     },
@@ -6172,7 +6226,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L18",
-      "community": 30,
+      "community": 45,
       "norm_label": "stickyminicart()",
       "id": "stickyminicart_stickyminicart_stickyminicart"
     },
@@ -6181,7 +6235,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L114",
-      "community": 30,
+      "community": 45,
       "norm_label": "styles",
       "id": "stickyminicart_stickyminicart_styles"
     },
@@ -6199,7 +6253,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 118,
       "norm_label": "iconbutton.js",
       "id": "frontend_v1_src_components_iconbutton_iconbutton_js"
     },
@@ -6208,7 +6262,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L22",
-      "community": 30,
+      "community": 118,
       "norm_label": "iconbutton()",
       "id": "iconbutton_iconbutton_iconbutton"
     },
@@ -6217,7 +6271,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L68",
-      "community": 30,
+      "community": 118,
       "norm_label": "styles",
       "id": "iconbutton_iconbutton_styles"
     },
@@ -6226,7 +6280,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_iconbutton_index_js"
     },
@@ -6298,7 +6352,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Button/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_button_index_js"
     },
@@ -6307,7 +6361,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_segmentedcontrol_index_js"
     },
@@ -6316,7 +6370,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "segmentedcontrol.js",
       "id": "frontend_v1_src_components_segmentedcontrol_segmentedcontrol_js"
     },
@@ -6325,7 +6379,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L19",
-      "community": 15,
+      "community": 30,
       "norm_label": "segmentedcontrol()",
       "id": "segmentedcontrol_segmentedcontrol_segmentedcontrol"
     },
@@ -6334,7 +6388,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L99",
-      "community": 15,
+      "community": 30,
       "norm_label": "styles",
       "id": "segmentedcontrol_segmentedcontrol_styles"
     },
@@ -6343,7 +6397,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 118,
       "norm_label": "staggeredlist.js",
       "id": "frontend_v1_src_components_staggeredlist_staggeredlist_js"
     },
@@ -6352,7 +6406,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L6",
-      "community": 45,
+      "community": 118,
       "norm_label": "staggeredlist()",
       "id": "staggeredlist_staggeredlist_staggeredlist"
     },
@@ -6361,7 +6415,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_staggeredlist_index_js"
     },
@@ -6406,7 +6460,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appicon_index_js"
     },
@@ -6415,7 +6469,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 118,
       "norm_label": "appicon.js",
       "id": "frontend_v1_src_components_appicon_appicon_js"
     },
@@ -6424,7 +6478,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L38",
-      "community": 30,
+      "community": 118,
       "norm_label": "icons",
       "id": "appicon_appicon_icons"
     },
@@ -6433,7 +6487,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L75",
-      "community": 30,
+      "community": 118,
       "norm_label": "appicon()",
       "id": "appicon_appicon_appicon"
     },
@@ -6478,7 +6532,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 118,
       "norm_label": "appheader.js",
       "id": "frontend_v1_src_components_appheader_appheader_js"
     },
@@ -6487,7 +6541,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L26",
-      "community": 30,
+      "community": 118,
       "norm_label": "appheader()",
       "id": "appheader_appheader_appheader"
     },
@@ -6496,7 +6550,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L126",
-      "community": 30,
+      "community": 118,
       "norm_label": "styles",
       "id": "appheader_appheader_styles"
     },
@@ -6505,7 +6559,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appheader_index_js"
     },
@@ -6514,7 +6568,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ErrorState/ErrorState.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 118,
       "norm_label": "errorstate.js",
       "id": "frontend_v1_src_components_errorstate_errorstate_js"
     },
@@ -6523,7 +6577,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ErrorState/ErrorState.js",
       "source_location": "L17",
-      "community": 45,
+      "community": 118,
       "norm_label": "errorstate()",
       "id": "errorstate_errorstate_errorstate"
     },
@@ -6532,7 +6586,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ErrorState/ErrorState.js",
       "source_location": "L39",
-      "community": 45,
+      "community": 118,
       "norm_label": "styles",
       "id": "errorstate_errorstate_styles"
     },
@@ -6541,7 +6595,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ErrorState/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_errorstate_index_js"
     },
@@ -6586,7 +6640,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/EmptyState/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_emptystate_index_js"
     },
@@ -6595,7 +6649,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/EmptyState/EmptyState.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 118,
       "norm_label": "emptystate.js",
       "id": "frontend_v1_src_components_emptystate_emptystate_js"
     },
@@ -6604,7 +6658,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/EmptyState/EmptyState.js",
       "source_location": "L18",
-      "community": 45,
+      "community": 118,
       "norm_label": "emptystate()",
       "id": "emptystate_emptystate_emptystate"
     },
@@ -6613,7 +6667,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/EmptyState/EmptyState.js",
       "source_location": "L40",
-      "community": 45,
+      "community": 118,
       "norm_label": "styles",
       "id": "emptystate_emptystate_styles"
     },
@@ -6622,7 +6676,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/PressableScale/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_pressablescale_index_js"
     },
@@ -6631,7 +6685,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/PressableScale/PressableScale.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "pressablescale.js",
       "id": "frontend_v1_src_components_pressablescale_pressablescale_js"
     },
@@ -6640,7 +6694,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/PressableScale/PressableScale.js",
       "source_location": "L6",
-      "community": 30,
+      "community": 45,
       "norm_label": "pressablescale()",
       "id": "pressablescale_pressablescale_pressablescale"
     },
@@ -6649,7 +6703,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/PressableScale/PressableScale.js",
       "source_location": "L53",
-      "community": 30,
+      "community": 45,
       "norm_label": "styles",
       "id": "pressablescale_pressablescale_styles"
     },
@@ -6694,7 +6748,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 45,
       "norm_label": "layout.js",
       "id": "frontend_v1_src_theme_layout_js"
     },
@@ -6703,7 +6757,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L7",
-      "community": 17,
+      "community": 43,
       "norm_label": "layout",
       "id": "theme_layout_layout"
     },
@@ -6739,7 +6793,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "spacing.js",
       "id": "frontend_v1_src_theme_spacing_js"
     },
@@ -6748,7 +6802,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L6",
-      "community": 15,
+      "community": 30,
       "norm_label": "spacing",
       "id": "theme_spacing_spacing"
     },
@@ -6757,7 +6811,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "typography.js",
       "id": "frontend_v1_src_theme_typography_js"
     },
@@ -6766,7 +6820,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L11",
-      "community": 30,
+      "community": 45,
       "norm_label": "fontfamily",
       "id": "theme_typography_fontfamily"
     },
@@ -6775,7 +6829,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L32",
-      "community": 30,
+      "community": 45,
       "norm_label": "fontweights",
       "id": "theme_typography_fontweights"
     },
@@ -6784,7 +6838,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L40",
-      "community": 30,
+      "community": 45,
       "norm_label": "fontsizes",
       "id": "theme_typography_fontsizes"
     },
@@ -6793,7 +6847,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L53",
-      "community": 30,
+      "community": 45,
       "norm_label": "lineheights",
       "id": "theme_typography_lineheights"
     },
@@ -6802,7 +6856,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
-      "community": 17,
+      "community": 15,
       "norm_label": "typography",
       "id": "theme_typography_typography"
     },
@@ -6811,7 +6865,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_theme_index_js"
     },
@@ -6820,7 +6874,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "shadows.js",
       "id": "frontend_v1_src_theme_shadows_js"
     },
@@ -6829,7 +6883,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L11",
-      "community": 30,
+      "community": 45,
       "norm_label": "makeshadow()",
       "id": "theme_shadows_makeshadow"
     },
@@ -6838,7 +6892,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L23",
-      "community": 15,
+      "community": 17,
       "norm_label": "shadows",
       "id": "theme_shadows_shadows"
     },
@@ -6847,7 +6901,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "colors.js",
       "id": "frontend_v1_src_theme_colors_js"
     },
@@ -6856,7 +6910,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L10",
-      "community": 30,
+      "community": 45,
       "norm_label": "palette",
       "id": "theme_colors_palette"
     },
@@ -6910,7 +6964,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 147,
       "norm_label": "noemojicheck.js",
       "id": "frontend_v1_src_utils_noemojicheck_js"
     },
@@ -6919,7 +6973,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L6",
-      "community": 28,
+      "community": 147,
       "norm_label": "hasemoji()",
       "id": "utils_noemojicheck_hasemoji"
     },
@@ -6928,7 +6982,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L18",
-      "community": 28,
+      "community": 147,
       "norm_label": "stripemojis()",
       "id": "utils_noemojicheck_stripemojis"
     },
@@ -6937,7 +6991,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L29",
-      "community": 28,
+      "community": 147,
       "norm_label": "assertnoemoji()",
       "id": "utils_noemojicheck_assertnoemoji"
     },
@@ -6946,7 +7000,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/index.js",
       "source_location": "L1",
-      "community": 43,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_utils_index_js"
     },
@@ -7945,7 +7999,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L1",
-      "community": 74,
+      "community": 186,
       "norm_label": "adminauth.test.js",
       "id": "backend_v1_tests_adminauth_test_js"
     },
@@ -7954,7 +8008,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L1",
-      "community": 74,
+      "community": 186,
       "norm_label": "request",
       "id": "tests_adminauth_test_request"
     },
@@ -7963,7 +8017,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L2",
-      "community": 74,
+      "community": 186,
       "norm_label": "express",
       "id": "tests_adminauth_test_express"
     },
@@ -7972,7 +8026,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L3",
-      "community": 74,
+      "community": 186,
       "norm_label": "adminroutes",
       "id": "tests_adminauth_test_adminroutes"
     },
@@ -7981,7 +8035,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L4",
-      "community": 74,
+      "community": 186,
       "norm_label": "{ pool }",
       "id": "tests_adminauth_test_pool"
     },
@@ -7990,7 +8044,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L5",
-      "community": 74,
+      "community": 186,
       "norm_label": "jwt",
       "id": "tests_adminauth_test_jwt"
     },
@@ -7999,7 +8053,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L13",
-      "community": 74,
+      "community": 186,
       "norm_label": "app",
       "id": "tests_adminauth_test_app"
     },
@@ -8278,7 +8332,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mysql.js",
       "source_location": "L1",
-      "community": 74,
+      "community": 145,
       "norm_label": "mysql.js",
       "id": "backend_v1_src_db_mysql_js"
     },
@@ -8287,7 +8341,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mysql.js",
       "source_location": "L1",
-      "community": 74,
+      "community": 145,
       "norm_label": "mysql",
       "id": "db_mysql_mysql"
     },
@@ -8296,7 +8350,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mysql.js",
       "source_location": "L2",
-      "community": 74,
+      "community": 145,
       "norm_label": "config",
       "id": "db_mysql_config"
     },
@@ -8305,7 +8359,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mysql.js",
       "source_location": "L4",
-      "community": 74,
+      "community": 145,
       "norm_label": "pool",
       "id": "db_mysql_pool"
     },
@@ -8314,7 +8368,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mysql.js",
       "source_location": "L15",
-      "community": 74,
+      "community": 145,
       "norm_label": "checkconnection()",
       "id": "db_mysql_checkconnection"
     },
@@ -8359,7 +8413,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L22",
-      "community": 35,
+      "community": 71,
       "norm_label": "getdb()",
       "id": "db_mongodb_getdb"
     },
@@ -8566,7 +8620,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L39",
-      "community": 54,
+      "community": 86,
       "norm_label": "validate()",
       "id": "validators_index_validate"
     },
@@ -9052,7 +9106,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/cartRoutes.js",
       "source_location": "L1",
-      "community": 86,
+      "community": 103,
       "norm_label": "cartroutes.js",
       "id": "backend_v1_src_routes_cartroutes_js"
     },
@@ -9061,7 +9115,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/cartRoutes.js",
       "source_location": "L1",
-      "community": 86,
+      "community": 103,
       "norm_label": "express",
       "id": "routes_cartroutes_express"
     },
@@ -9070,7 +9124,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/cartRoutes.js",
       "source_location": "L2",
-      "community": 86,
+      "community": 103,
       "norm_label": "router",
       "id": "routes_cartroutes_router"
     },
@@ -9079,7 +9133,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/cartRoutes.js",
       "source_location": "L3",
-      "community": 86,
+      "community": 103,
       "norm_label": "asynchandler",
       "id": "routes_cartroutes_asynchandler"
     },
@@ -9088,7 +9142,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/cartRoutes.js",
       "source_location": "L4",
-      "community": 86,
+      "community": 103,
       "norm_label": "{ calculatecart }",
       "id": "routes_cartroutes_calculatecart"
     },
@@ -9241,7 +9295,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L1",
-      "community": 188,
+      "community": 71,
       "norm_label": "auditmiddleware.js",
       "id": "backend_v1_src_middleware_auditmiddleware_js"
     },
@@ -9250,7 +9304,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L1",
-      "community": 188,
+      "community": 71,
       "norm_label": "{ getdb }",
       "id": "middleware_auditmiddleware_getdb"
     },
@@ -9259,7 +9313,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L3",
-      "community": 188,
+      "community": 71,
       "norm_label": "logauditerror()",
       "id": "middleware_auditmiddleware_logauditerror"
     },
@@ -9268,7 +9322,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L9",
-      "community": 188,
+      "community": 71,
       "norm_label": "auditlog()",
       "id": "middleware_auditmiddleware_auditlog"
     },
@@ -10213,7 +10267,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L322",
-      "community": 35,
+      "community": 71,
       "norm_label": "deleteproduct()",
       "id": "controllers_productcontroller_deleteproduct"
     },
@@ -10231,7 +10285,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L347",
-      "community": 35,
+      "community": 71,
       "norm_label": "updateproductimage()",
       "id": "controllers_productcontroller_updateproductimage"
     },
@@ -10303,7 +10357,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/cartController.js",
       "source_location": "L1",
-      "community": 183,
+      "community": 145,
       "norm_label": "cartcontroller.js",
       "id": "backend_v1_src_controllers_cartcontroller_js"
     },
@@ -10312,7 +10366,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/cartController.js",
       "source_location": "L1",
-      "community": 183,
+      "community": 145,
       "norm_label": "{ pool }",
       "id": "controllers_cartcontroller_pool"
     },
@@ -10321,7 +10375,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/cartController.js",
       "source_location": "L2",
-      "community": 183,
+      "community": 145,
       "norm_label": "{ calculatethresholddeliverycharge }",
       "id": "controllers_cartcontroller_calculatethresholddeliverycharge"
     },
@@ -10330,7 +10384,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/cartController.js",
       "source_location": "L4",
-      "community": 183,
+      "community": 54,
       "norm_label": "calculatecart()",
       "id": "controllers_cartcontroller_calculatecart"
     },
@@ -13399,7 +13453,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L800",
-      "community": 73,
+      "community": 194,
       "norm_label": "18. admin manager tests",
       "id": "plans_admindashboardtask_18_admin_manager_tests"
     },
@@ -13408,7 +13462,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L802",
-      "community": 73,
+      "community": 194,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_802"
     },
@@ -13417,7 +13471,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L805",
-      "community": 73,
+      "community": 194,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_805"
     },
@@ -13426,7 +13480,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L819",
-      "community": 73,
+      "community": 194,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_819"
     },
@@ -13435,7 +13489,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L826",
-      "community": 186,
+      "community": 73,
       "norm_label": "19. frontend tests",
       "id": "plans_admindashboardtask_19_frontend_tests"
     },
@@ -13444,7 +13498,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L828",
-      "community": 186,
+      "community": 73,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_828"
     },
@@ -13453,7 +13507,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L831",
-      "community": 186,
+      "community": 73,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_831"
     },
@@ -13462,7 +13516,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L845",
-      "community": 186,
+      "community": 73,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_845"
     },
@@ -17602,7 +17656,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
-      "community": 15,
+      "community": 30,
       "norm_label": "status_colors",
       "id": "ordercard_ordercard_status_colors"
     },
@@ -17611,7 +17665,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L13",
-      "community": 15,
+      "community": 30,
       "norm_label": "payment_colors",
       "id": "ordercard_ordercard_payment_colors"
     },
@@ -17818,7 +17872,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 60,
       "norm_label": "adminorderdetailscreen.js",
       "id": "frontend_v1_src_screens_admin_adminorderdetailscreen_adminorderdetailscreen_js"
     },
@@ -17827,7 +17881,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L20",
-      "community": 147,
+      "community": 60,
       "norm_label": "order_statuses",
       "id": "adminorderdetailscreen_adminorderdetailscreen_order_statuses"
     },
@@ -17836,7 +17890,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L21",
-      "community": 147,
+      "community": 60,
       "norm_label": "payment_statuses",
       "id": "adminorderdetailscreen_adminorderdetailscreen_payment_statuses"
     },
@@ -17845,7 +17899,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L23",
-      "community": 147,
+      "community": 60,
       "norm_label": "adminorderdetailscreen()",
       "id": "adminorderdetailscreen_adminorderdetailscreen_adminorderdetailscreen"
     },
@@ -17854,7 +17908,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L257",
-      "community": 147,
+      "community": 60,
       "norm_label": "styles",
       "id": "adminorderdetailscreen_adminorderdetailscreen_styles"
     },
@@ -17908,7 +17962,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L1",
-      "community": 191,
+      "community": 59,
       "norm_label": "adminproductsscreen.js",
       "id": "frontend_v1_src_screens_admin_adminproductsscreen_adminproductsscreen_js"
     },
@@ -17917,7 +17971,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L26",
-      "community": 191,
+      "community": 59,
       "norm_label": "availability",
       "id": "adminproductsscreen_adminproductsscreen_availability"
     },
@@ -17926,7 +17980,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L28",
-      "community": 191,
+      "community": 59,
       "norm_label": "adminproductsscreen()",
       "id": "adminproductsscreen_adminproductsscreen_adminproductsscreen"
     },
@@ -17935,7 +17989,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L403",
-      "community": 191,
+      "community": 59,
       "norm_label": "adminproductcard()",
       "id": "adminproductsscreen_adminproductsscreen_adminproductcard"
     },
@@ -17944,7 +17998,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L458",
-      "community": 191,
+      "community": 59,
       "norm_label": "styles",
       "id": "adminproductsscreen_adminproductsscreen_styles"
     },
@@ -17998,7 +18052,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "community": 169,
+      "community": 102,
       "norm_label": "adminsettingsscreen.js",
       "id": "frontend_v1_src_screens_admin_adminsettingsscreen_adminsettingsscreen_js"
     },
@@ -18007,7 +18061,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L33",
-      "community": 169,
+      "community": 102,
       "norm_label": "default_form",
       "id": "adminsettingsscreen_adminsettingsscreen_default_form"
     },
@@ -18016,7 +18070,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L46",
-      "community": 169,
+      "community": 102,
       "norm_label": "numeric_fields",
       "id": "adminsettingsscreen_adminsettingsscreen_numeric_fields"
     },
@@ -18025,7 +18079,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L52",
-      "community": 169,
+      "community": 102,
       "norm_label": "pickfirst()",
       "id": "adminsettingsscreen_adminsettingsscreen_pickfirst"
     },
@@ -18034,7 +18088,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L56",
-      "community": 169,
+      "community": 102,
       "norm_label": "asboolean()",
       "id": "adminsettingsscreen_adminsettingsscreen_asboolean"
     },
@@ -18043,7 +18097,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L67",
-      "community": 169,
+      "community": 102,
       "norm_label": "astext()",
       "id": "adminsettingsscreen_adminsettingsscreen_astext"
     },
@@ -18052,7 +18106,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L72",
-      "community": 169,
+      "community": 102,
       "norm_label": "getpayloaddata()",
       "id": "adminsettingsscreen_adminsettingsscreen_getpayloaddata"
     },
@@ -18061,7 +18115,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L76",
-      "community": 169,
+      "community": 102,
       "norm_label": "getofferdata()",
       "id": "adminsettingsscreen_adminsettingsscreen_getofferdata"
     },
@@ -18070,7 +18124,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L92",
-      "community": 169,
+      "community": 102,
       "norm_label": "normalizesettings()",
       "id": "adminsettingsscreen_adminsettingsscreen_normalizesettings"
     },
@@ -18079,7 +18133,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L125",
-      "community": 169,
+      "community": 102,
       "norm_label": "buildsettingspayload()",
       "id": "adminsettingsscreen_adminsettingsscreen_buildsettingspayload"
     },
@@ -18088,7 +18142,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L136",
-      "community": 169,
+      "community": 102,
       "norm_label": "buildofferpayload()",
       "id": "adminsettingsscreen_adminsettingsscreen_buildofferpayload"
     },
@@ -18097,7 +18151,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L144",
-      "community": 169,
+      "community": 102,
       "norm_label": "geterrormessage()",
       "id": "adminsettingsscreen_adminsettingsscreen_geterrormessage"
     },
@@ -18106,7 +18160,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L148",
-      "community": 169,
+      "community": 102,
       "norm_label": "adminsettingsscreen()",
       "id": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen"
     },
@@ -18115,7 +18169,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L559",
-      "community": 169,
+      "community": 102,
       "norm_label": "statusbanner()",
       "id": "adminsettingsscreen_adminsettingsscreen_statusbanner"
     },
@@ -18124,7 +18178,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L580",
-      "community": 169,
+      "community": 102,
       "norm_label": "styles",
       "id": "adminsettingsscreen_adminsettingsscreen_styles"
     },
@@ -18223,7 +18277,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 149,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminordersscreen_index_js"
     },
@@ -18331,7 +18385,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminSettingsApi.js",
       "source_location": "L3",
-      "community": 15,
+      "community": 102,
       "norm_label": "adminsettingsapi",
       "id": "api_adminsettingsapi_adminsettingsapi"
     },
@@ -18349,7 +18403,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminDashboardApi.js",
       "source_location": "L4",
-      "community": 28,
+      "community": 15,
       "norm_label": "admindashboardapi",
       "id": "api_admindashboardapi_admindashboardapi"
     },
@@ -18367,7 +18421,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminOrdersApi.js",
       "source_location": "L4",
-      "community": 28,
+      "community": 60,
       "norm_label": "adminordersapi",
       "id": "api_adminordersapi_adminordersapi"
     },
@@ -18430,7 +18484,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/sessionTokens.js",
       "source_location": "L8",
-      "community": 28,
+      "community": 147,
       "norm_label": "setadmintokenprovider()",
       "id": "api_sessiontokens_setadmintokenprovider"
     },
@@ -18457,7 +18511,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminCategoriesApi.js",
       "source_location": "L3",
-      "community": 28,
+      "community": 59,
       "norm_label": "admincategoriesapi",
       "id": "api_admincategoriesapi_admincategoriesapi"
     },
@@ -18475,7 +18529,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminAuthApi.js",
       "source_location": "L3",
-      "community": 28,
+      "community": 15,
       "norm_label": "adminauthapi",
       "id": "api_adminauthapi_adminauthapi"
     },
@@ -18484,7 +18538,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_adminmetriccard_index_js"
     },
@@ -18493,7 +18547,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "adminmetriccard.js",
       "id": "frontend_v1_src_components_adminmetriccard_adminmetriccard_js"
     },
@@ -18502,7 +18556,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L16",
-      "community": 15,
+      "community": 30,
       "norm_label": "adminmetriccard()",
       "id": "adminmetriccard_adminmetriccard_adminmetriccard"
     },
@@ -18511,7 +18565,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L37",
-      "community": 15,
+      "community": 30,
       "norm_label": "styles",
       "id": "adminmetriccard_adminmetriccard_styles"
     },
@@ -18871,7 +18925,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/cartRoutes.js",
       "source_location": "L6",
-      "community": 86,
+      "community": 103,
       "norm_label": "{ requirecustomer }",
       "id": "routes_cartroutes_requirecustomer"
     },
@@ -18889,7 +18943,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/index.js",
       "source_location": "L2",
-      "community": 118,
+      "community": 169,
       "norm_label": "assetsplaceholder",
       "id": "assets_index_assetsplaceholder"
     },
@@ -18952,7 +19006,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L1",
-      "community": 43,
+      "community": 191,
       "norm_label": "categoriesscreen.js",
       "id": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js"
     },
@@ -19033,7 +19087,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 60,
       "norm_label": "adminorderdetailscreen.js",
       "id": "frontend_v1_src_screens_adminorderdetailscreen_adminorderdetailscreen_js"
     },
@@ -19114,7 +19168,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L1",
-      "community": 191,
+      "community": 59,
       "norm_label": "adminproductsscreen.js",
       "id": "frontend_v1_src_screens_adminproductsscreen_adminproductsscreen_js"
     },
@@ -19123,7 +19177,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 59,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminproductsscreen_index_js"
     },
@@ -19168,7 +19222,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "community": 169,
+      "community": 102,
       "norm_label": "adminsettingsscreen.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js"
     },
@@ -19321,7 +19375,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L19",
-      "community": 147,
+      "community": 60,
       "norm_label": "fetchadminorderdetails()",
       "id": "adminorderdetailscreen_adminorderdetailscreen_fetchadminorderdetails"
     },
@@ -19339,7 +19393,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L28",
-      "community": 191,
+      "community": 59,
       "norm_label": "initialmockproducts",
       "id": "adminproductsscreen_adminproductsscreen_initialmockproducts"
     },
@@ -19348,7 +19402,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L36",
-      "community": 191,
+      "community": 59,
       "norm_label": "categories",
       "id": "adminproductsscreen_adminproductsscreen_categories"
     },
@@ -19393,7 +19447,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L31",
-      "community": 43,
+      "community": 191,
       "norm_label": "mock_categories",
       "id": "categoriesscreen_categoriesscreen_mock_categories"
     },
@@ -19402,7 +19456,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L40",
-      "community": 43,
+      "community": 191,
       "norm_label": "mock_chips",
       "id": "categoriesscreen_categoriesscreen_mock_chips"
     },
@@ -19438,7 +19492,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/index.js",
       "source_location": "L2",
-      "community": 30,
+      "community": 45,
       "norm_label": "themeplaceholder",
       "id": "theme_index_themeplaceholder"
     },
@@ -20498,15 +20552,360 @@
   ],
   "links": [
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "routes_notificationroutes_express"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "routes_notificationroutes_router"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "routes_notificationroutes_asynchandler"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "middleware_authmiddleware_requirecustomer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "routes_notificationroutes_requirecustomer"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "controllers_notificationcontroller_getnotifications"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "controllers_notificationcontroller_getunreadcount"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "controllers_notificationcontroller_markallread"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "controllers_notificationcontroller_markread"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "controllers_notificationcontroller_deletenotification"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "routes_notificationroutes_getnotifications_getunreadcount_markallread_markread_deletenotification"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L20",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_routes_notificationroutes_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "backend_v1_src_controllers_notificationcontroller_js"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "db_mysql_pool"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_pool"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_createnotification"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_createmanynotifications"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L52",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_createordernotification"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L119",
+      "weight": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_createnotificationbatch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L135",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_createbroadcastnotification"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L162",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_getunreadcount"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L170",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_markallread"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L178",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_softdeletenotification"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L105",
+      "weight": 1.0,
+      "source": "utils_notificationservice_createordernotification",
+      "target": "utils_notificationservice_createnotification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L153",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "utils_notificationservice_createbroadcastnotification",
+      "target": "utils_notificationservice_createmanynotifications"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L141",
+      "weight": 1.0,
+      "source": "utils_notificationservice_createbroadcastnotification",
+      "target": "utils_notificationservice_createnotificationbatch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/tests/notifications.test.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "backend_v1_tests_notifications_test_js",
+      "target": "tests_notifications_test_request",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/tests/notifications.test.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "backend_v1_tests_notifications_test_js",
+      "target": "tests_notifications_test_app",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/tests/notifications.test.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "backend_v1_tests_notifications_test_js",
+      "target": "db_mysql_pool",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/tests/notifications.test.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "backend_v1_tests_notifications_test_js",
+      "target": "tests_notifications_test_pool",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/tests/notifications.test.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "backend_v1_tests_notifications_test_js",
+      "target": "utils_auth_signcustomertoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/tests/notifications.test.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "backend_v1_tests_notifications_test_js",
+      "target": "utils_auth_signadmintoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/tests/notifications.test.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "backend_v1_tests_notifications_test_js",
+      "target": "tests_notifications_test_signcustomertoken_signadmintoken",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_v1_src_api_notificationsapi_js",
-      "target": "api_httpclient_apiclient",
-      "confidence_score": 1.0
+      "target": "api_httpclient_apiclient"
     },
     {
       "relation": "imports",
@@ -26143,17 +26542,6 @@
       "target": "src_app_dashboardroutes"
     },
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L20",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_routes_notificationroutes_js"
-    },
-    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "Backend-V1/src/app.js",
@@ -26388,17 +26776,6 @@
       "target": "controllers_notificationcontroller_deletenotification"
     },
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_notificationroutes_js",
-      "target": "backend_v1_src_controllers_notificationcontroller_js"
-    },
-    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -26408,213 +26785,6 @@
       "confidence_score": 1.0,
       "source": "controllers_notificationcontroller_getnotifications",
       "target": "controllers_notificationcontroller_getunreadcount"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_notificationroutes_js",
-      "target": "controllers_notificationcontroller_getnotifications"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_notificationroutes_js",
-      "target": "controllers_notificationcontroller_getunreadcount"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_notificationroutes_js",
-      "target": "controllers_notificationcontroller_markallread"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_notificationroutes_js",
-      "target": "controllers_notificationcontroller_markread"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_notificationroutes_js",
-      "target": "controllers_notificationcontroller_deletenotification"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_notificationroutes_js",
-      "target": "routes_notificationroutes_express"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_notificationroutes_js",
-      "target": "routes_notificationroutes_router"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_notificationroutes_js",
-      "target": "routes_notificationroutes_asynchandler"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_notificationroutes_js",
-      "target": "routes_notificationroutes_requirecustomer"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_notificationroutes_js",
-      "target": "routes_notificationroutes_getnotifications_getunreadcount_markallread_markread_deletenotification"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "db_mysql_pool"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_pool"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_createnotification"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L30",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_createmanynotifications"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L52",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_createordernotification"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L135",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_createbroadcastnotification"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L162",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_getunreadcount"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L170",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_markallread"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L178",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_softdeletenotification"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/utils/notificationService.js",
-      "source_location": "L153",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "utils_notificationservice_createbroadcastnotification",
-      "target": "utils_notificationservice_createmanynotifications"
     },
     {
       "relation": "contains",
@@ -60158,5 +60328,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "30b851b785782309fe709c7a20962e2938be11b4"
+  "built_at_commit": "14f7fa180e63ef168deaffc9f1c2c632eec5f99e"
 }

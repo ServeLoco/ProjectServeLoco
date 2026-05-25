@@ -255,7 +255,6 @@ function normalizeDashboard(payload = {}) {
       amount: numberOrZero(pickFirst(product.amount, product.salesAmount, product.sales_amount, product.total)),
     })),
   };
-  };
 }
 
 function normalizeNotification(item = {}) {
