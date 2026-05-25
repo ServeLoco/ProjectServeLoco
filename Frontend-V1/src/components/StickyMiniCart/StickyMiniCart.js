@@ -114,7 +114,7 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: layout.bottomNavHeight + 20,
+    bottom: layout.bottomNavHeight + layout.stickyCartMarginBottom + 12,
     left: layout.stickyCartMarginH,
     right: layout.stickyCartMarginH,
     zIndex: 999,

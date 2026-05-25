@@ -22,7 +22,7 @@ import {
   PressableScale,
   ProductImage,
 } from '../../../components';
-import { colors, typography, spacing, radius, shadows } from '../../../theme';
+import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
 import { productsApi } from '../../../api';
 import { asArray, normalizeCategory } from '../../../utils';
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xxxl * 2, // Space for sticky cart
+    paddingBottom: layout.stickyCartScrollPadding,
   },
   list: {
     paddingTop: spacing.sm,

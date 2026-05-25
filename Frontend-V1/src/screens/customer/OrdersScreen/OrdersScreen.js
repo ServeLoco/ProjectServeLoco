@@ -20,7 +20,7 @@ import {
   SkeletonRow,
   ProductImage,
 } from '../../../components';
-import { colors, typography, spacing, radius } from '../../../theme';
+import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { ordersApi } from '../../../api';
 import { asArray, normalizeOrder } from '../../../utils';
 
@@ -29,6 +29,32 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 const FILTER_CHIPS = ['All', 'Pending', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
+const STATUS_CODE_LABELS = {
+  0: 'Pending',
+  1: 'Preparing',
+  2: 'Out for Delivery',
+  3: 'Delivered',
+  4: 'Cancelled',
+};
+
+const formatStatus = (status) => {
+  if (status === null || status === undefined || status === '') return 'Pending';
+  const raw = String(status).trim();
+  if (/^\d+$/.test(raw)) return STATUS_CODE_LABELS[raw] || 'Pending';
+  return raw.replace(/_/g, ' ');
+};
+
+const formatDate = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 
 export default function OrdersScreen() {
   const navigation = useNavigation();
@@ -52,7 +78,7 @@ export default function OrdersScreen() {
       .then(response => {
       let filtered = asArray(response, ['orders']).map(normalizeOrder);
       if (activeFilter !== 'All') {
-        filtered = filtered.filter(o => o.status === activeFilter);
+        filtered = filtered.filter(o => formatStatus(o.status) === activeFilter);
       }
 
       // Crossfade
@@ -141,7 +167,7 @@ export default function OrdersScreen() {
   };
 
   const getStatusColor = (status) => {
-    switch(status) {
+    switch(formatStatus(status)) {
       case 'Delivered': return colors.success;
       case 'Cancelled': return colors.error;
       case 'Pending':
@@ -151,24 +177,35 @@ export default function OrdersScreen() {
     }
   };
 
-  const renderItem = ({ item, index }) => (
-    <FadeInItem index={index} status={item.status}>
+  const renderItem = ({ item, index }) => {
+    const statusLabel = formatStatus(item.status);
+    const orderLabel = item.orderNumber || item.order_number || item.id;
+
+    return (
+    <FadeInItem index={index} status={statusLabel}>
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <View>
-            <Text style={styles.orderId}>{item.id}</Text>
-            <Text style={styles.orderDate}>{item.date}</Text>
+          <View style={styles.orderTitleBlock}>
+            <Text style={styles.orderId} numberOfLines={1}>Order #{orderLabel}</Text>
+            <Text style={styles.orderDate}>{formatDate(item.date)}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '1A' }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(statusLabel) + '1A' }]}>
+            <Text style={[styles.statusText, { color: getStatusColor(statusLabel) }]} numberOfLines={1}>
+              {statusLabel}
+            </Text>
           </View>
         </View>
         
         <View style={styles.cardBody}>
-          <ProductImage uri={item.previewImg} width={56} height={56} borderRadius={radius.md} style={styles.previewImg} />
+          <View style={styles.previewWrap}>
+            <ProductImage uri={item.previewImg} width={56} height={56} borderRadius={radius.md} style={styles.previewImg} />
+          </View>
           <View style={styles.cardDetails}>
             <Text style={styles.itemCount}>{item.itemCount} Item{item.itemCount > 1 ? 's' : ''}</Text>
-            <Text style={styles.paymentMethod}>Payment: {item.paymentMethod}</Text>
+            <Text style={styles.paymentMethod} numberOfLines={1}>{item.paymentMethod} payment</Text>
+          </View>
+          <View style={styles.amountBlock}>
+            <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalAmount}>Rs. {item.total}</Text>
           </View>
         </View>
@@ -196,6 +233,7 @@ export default function OrdersScreen() {
       </View>
     </FadeInItem>
   );
+  };
 
   const renderSkeleton = () => (
     <View style={styles.skeletonContainer}>
@@ -328,22 +366,28 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   card: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.bgSurface,
     padding: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
+    ...shadows.card,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  orderTitleBlock: {
+    flex: 1,
+    minWidth: 0,
   },
   orderId: {
     ...typography.labelLarge,
     color: colors.textPrimary,
-    fontWeight: '700',
+    fontWeight: '900',
     marginBottom: 2,
   },
   orderDate: {
@@ -351,29 +395,42 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   statusBadge: {
+    maxWidth: 140,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radius.sm,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
   },
   statusText: {
     ...typography.caption,
-    fontWeight: '700',
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    fontSize: 10,
+    letterSpacing: 0.2,
   },
   cardBody: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.md,
+    gap: spacing.sm,
   },
-  previewImg: {
+  previewWrap: {
     width: 60,
     height: 60,
     borderRadius: radius.md,
-    backgroundColor: colors.bgDisabled,
-    marginRight: spacing.md,
+    backgroundColor: colors.bgInput,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  previewImg: {
+    backgroundColor: colors.bgInput,
   },
   cardDetails: {
     flex: 1,
     justifyContent: 'center',
+    minWidth: 0,
   },
   itemCount: {
     ...typography.labelLarge,
@@ -385,10 +442,21 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginVertical: 2,
   },
+  amountBlock: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    minWidth: 76,
+  },
+  totalLabel: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 10,
+    marginBottom: 2,
+  },
   totalAmount: {
     ...typography.label,
     color: colors.textPrimary,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   divider: {
     height: 1,

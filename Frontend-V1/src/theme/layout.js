@@ -31,6 +31,7 @@ export const layout = {
   stickyCartHeight: 60,
   stickyCartMarginH: 16,
   stickyCartMarginBottom: 16,
+  stickyCartScrollPadding: 180,
 
   // Input
   inputHeight: 52,

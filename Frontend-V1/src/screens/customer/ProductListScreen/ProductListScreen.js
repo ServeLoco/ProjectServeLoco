@@ -23,7 +23,7 @@ import {
   Button,
   SkeletonRow,
 } from '../../../components';
-import { colors, typography, spacing, radius } from '../../../theme';
+import { colors, typography, spacing, radius, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
 import { useAuthGate } from '../../../hooks';
 import { productsApi, dashboardApi } from '../../../api';
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxxl * 3, // space for sticky cart
+    paddingBottom: layout.stickyCartScrollPadding,
   },
   row: {
     justifyContent: 'space-between',

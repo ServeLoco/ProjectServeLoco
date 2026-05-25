@@ -21,7 +21,7 @@ import {
   LoadingSkeleton,
   SkeletonRow,
 } from '../../../components';
-import { colors, typography, spacing, radius, shadows } from '../../../theme';
+import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { useCartStore, useSettingsStore } from '../../../stores';
 import { useAuthGate } from '../../../hooks';
 import { dashboardApi, settingsApi } from '../../../api';
@@ -222,7 +222,8 @@ export default function HomeScreen() {
 
   const comboGap = spacing.sm;
   const comboGridWidth = windowWidth - (spacing.md * 2);
-  const comboCardWidth = Math.floor((comboGridWidth - (comboGap * 2)) / 3);
+  const productBlockCardWidth = Math.floor((comboGridWidth - (comboGap * 2)) / 3);
+  const comboCardWidth = Math.floor((comboGridWidth - comboGap) / 2);
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
@@ -386,6 +387,8 @@ export default function HomeScreen() {
             if (section.sectionType === 'product_block' || section.sectionType === 'combo_block') {
               const isComboBlock = section.sectionType === 'combo_block';
               const normalizedItems = section.items.map(normalizeProduct);
+              const visibleItems = isComboBlock ? normalizedItems.slice(0, 2) : normalizedItems;
+              const shouldShowSeeAll = section.showSeeAll || (isComboBlock && normalizedItems.length > 2);
               return (
                 <View key={section.id} style={styles.section}>
                   <View style={styles.sectionHeader}>
@@ -399,7 +402,7 @@ export default function HomeScreen() {
                           </View>
                         )}
                       </View>
-                      {section.showSeeAll && (
+                      {shouldShowSeeAll && (
                         <TouchableOpacity 
                           style={styles.seeMoreBtn}
                           onPress={() => navigation.navigate('ProductList', { 
@@ -415,14 +418,15 @@ export default function HomeScreen() {
                       )}
                     </View>
                   </View>
-                  <View style={styles.comboGrid}>
-                    {normalizedItems.map((item, idx) => {
+                  <View style={[styles.comboGrid, isComboBlock && styles.comboGridFeatured]}>
+                    {visibleItems.map((item, idx) => {
                       const isItemCombo = isComboBlock || item.isCombo || item.is_combo;
+                      const cardWidth = isComboBlock ? comboCardWidth : productBlockCardWidth;
                       return (
                         <Animated.View 
                           key={item.id} 
                           style={{ 
-                            width: comboCardWidth,
+                            width: cardWidth,
                             opacity: staggerComboAnims[idx] || 1,
                             transform: [{ 
                               translateY: (staggerComboAnims[idx] || new Animated.Value(1)).interpolate({
@@ -447,8 +451,8 @@ export default function HomeScreen() {
                             onDecrement={() => handleDecrement(item)}
                             disabled={!item.available}
                             compact
-                            dense
-                            imageHeight={70}
+                            dense={!isComboBlock}
+                            imageHeight={isComboBlock ? 82 : 70}
                           />
                         </Animated.View>
                       );
@@ -479,7 +483,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgApp,
   },
   scrollContent: {
-    paddingBottom: 130,
+    paddingBottom: layout.stickyCartScrollPadding,
   },
   skeletonContainer: {
     flex: 1,
@@ -700,6 +704,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+  },
+  comboGridFeatured: {
+    alignItems: 'stretch',
   },
   sectionHeaderTop: {
     flexDirection: 'row',

@@ -52,10 +52,12 @@ function ProductCard({
   const resolvedComboItems = product.comboItems ?? product.combo_items ?? comboItems ?? [];
   const resolvedIsCombo = Boolean(product.isCombo ?? product.is_combo ?? isCombo ?? resolvedComboItems.length > 0);
   const isUnavailable = !resolvedAvailable;
-  const comboPreview = resolvedComboItems
-    .slice(0, 3)
-    .map(item => `${item.quantity > 1 ? `${item.quantity}x ` : ''}${item.name}`)
-    .join(' + ');
+  const comboItemLabels = resolvedComboItems
+    .filter(Boolean)
+    .map(item => `${Number(item.quantity) > 1 ? `${item.quantity}x ` : ''}${item.name || item.product_name || item.title || 'Item'}`);
+  const visibleComboLabels = comboItemLabels.slice(0, 2);
+  const hiddenComboCount = Math.max(comboItemLabels.length - visibleComboLabels.length, 0);
+  const comboCount = comboItemLabels.length || 1;
 
   return (
     <PressableScale
@@ -79,6 +81,16 @@ function ProductCard({
         dense && styles.imageContainerDense,
         resolvedIsCombo && styles.comboImageContainer,
       ]}>
+        {resolvedIsCombo ? (
+          <>
+            <View style={styles.comboImageGlow} />
+            <View style={[styles.comboCornerPill, dense && styles.comboCornerPillDense]}>
+              <Text style={[styles.comboCornerPillText, dense && styles.comboCornerPillTextDense]}>
+                Combo
+              </Text>
+            </View>
+          </>
+        ) : null}
         <ProductImage
           uri={resolvedImageUrl}
           width="100%"
@@ -100,23 +112,39 @@ function ProductCard({
         {resolvedIsCombo ? (
           <View style={[styles.comboMetaRow, dense && styles.comboMetaRowDense]}>
             <Text style={[styles.comboMetaText, dense && styles.comboMetaTextDense]} numberOfLines={1}>
-              {resolvedComboItems.length || 1} item combo
+              Bundle deal
+            </Text>
+            <Text style={[styles.comboCountText, dense && styles.comboCountTextDense]} numberOfLines={1}>
+              {comboCount} items
             </Text>
           </View>
         ) : null}
-        <Text style={[styles.name, compact && styles.nameCompact, dense && styles.nameDense]} numberOfLines={2}>
+        <Text style={[styles.name, compact && styles.nameCompact, dense && styles.nameDense, resolvedIsCombo && styles.comboName]} numberOfLines={2}>
           {resolvedName}
         </Text>
-        {resolvedIsCombo && comboPreview ? (
-          <Text style={[styles.comboItemsText, dense && styles.comboItemsTextDense]} numberOfLines={dense ? 1 : 2}>
-            {comboPreview}
-          </Text>
+        {resolvedIsCombo && visibleComboLabels.length > 0 ? (
+          <View style={[styles.comboItemsWrap, dense && styles.comboItemsWrapDense]}>
+            {visibleComboLabels.map((label, index) => (
+              <View key={`${label}-${index}`} style={[styles.comboItemChip, dense && styles.comboItemChipDense]}>
+                <Text style={[styles.comboItemChipText, dense && styles.comboItemChipTextDense]} numberOfLines={1}>
+                  {label}
+                </Text>
+              </View>
+            ))}
+            {hiddenComboCount > 0 ? (
+              <View style={[styles.comboItemChip, styles.comboItemMoreChip, dense && styles.comboItemChipDense]}>
+                <Text style={[styles.comboItemChipText, styles.comboItemMoreText, dense && styles.comboItemChipTextDense]} numberOfLines={1}>
+                  +{hiddenComboCount}
+                </Text>
+              </View>
+            ) : null}
+          </View>
         ) : resolvedUnit ? (
           <Text style={[styles.unit, compact && styles.unitCompact]} numberOfLines={1}>
             {resolvedUnit}
           </Text>
         ) : null}
-        <View style={[styles.footer, compact && styles.footerCompact, dense && styles.footerDense]}>
+        <View style={[styles.footer, compact && styles.footerCompact, dense && styles.footerDense, resolvedIsCombo && styles.comboFooter]}>
           <View style={styles.priceWrap}>
             <Text style={[styles.price, compact && styles.priceCompact, dense && styles.priceDense]}>
               Rs. {resolvedPrice}
@@ -156,7 +184,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   comboCard: {
-    borderColor: colors.successLight,
+    backgroundColor: '#FFFDF7',
+    borderColor: '#FFD7C2',
     ...shadows.cardRaised,
   },
   cardCompact: {
@@ -182,7 +211,47 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   comboImageContainer: {
-    backgroundColor: colors.successLight,
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: '#FFEBDD',
+  },
+  comboImageGlow: {
+    position: 'absolute',
+    right: -28,
+    top: -24,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'rgba(255, 122, 58, 0.24)',
+  },
+  comboCornerPill: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    zIndex: 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    ...shadows.xs,
+  },
+  comboCornerPillDense: {
+    top: 6,
+    right: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  comboCornerPillText: {
+    ...typography.caption,
+    color: colors.textInverse,
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  comboCornerPillTextDense: {
+    fontSize: 7,
+    lineHeight: 9,
   },
   discountBadge: {
     position: 'absolute',
@@ -194,7 +263,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   comboDiscountBadge: {
-    backgroundColor: colors.success,
+    backgroundColor: colors.badgeBg,
   },
   discountText: {
     ...typography.caption,
@@ -214,31 +283,50 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   comboMetaRow: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.successLight,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.xs,
     marginBottom: 1,
   },
   comboMetaRowDense: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    maxWidth: '100%',
+    gap: 4,
   },
   comboMetaText: {
     ...typography.caption,
-    color: colors.successDark,
-    fontWeight: '800',
+    color: colors.badgeBg,
+    fontWeight: '900',
     fontSize: 10,
     textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   comboMetaTextDense: {
-    fontSize: 8,
+    fontSize: 7,
+    lineHeight: 9,
+  },
+  comboCountText: {
+    ...typography.caption,
+    color: colors.successDark,
+    backgroundColor: colors.successLight,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: '800',
+  },
+  comboCountTextDense: {
+    fontSize: 7,
+    lineHeight: 9,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
   },
   name: {
     ...typography.label,
     color: colors.textPrimary,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
   nameCompact: {
     fontSize: 12,
@@ -249,6 +337,11 @@ const styles = StyleSheet.create({
     lineHeight: 13,
     fontWeight: '700',
   },
+  comboName: {
+    fontWeight: '900',
+    letterSpacing: 0,
+    textAlign: 'center',
+  },
   unit: {
     ...typography.caption,
     color: colors.textSecondary,
@@ -257,14 +350,52 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 12,
   },
-  comboItemsText: {
+  comboItemsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    gap: 4,
+    minHeight: 22,
+  },
+  comboItemsWrapDense: {
+    gap: 3,
+    minHeight: 18,
+  },
+  comboItemChip: {
+    flex: 1,
+    maxWidth: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: '#FFE0CC',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  comboItemChipDense: {
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  comboItemChipText: {
     ...typography.caption,
     color: colors.textSecondary,
-    lineHeight: 15,
-  },
-  comboItemsTextDense: {
+    textAlign: 'center',
     fontSize: 9,
     lineHeight: 11,
+    fontWeight: '700',
+  },
+  comboItemChipTextDense: {
+    fontSize: 7,
+    lineHeight: 9,
+  },
+  comboItemMoreChip: {
+    flex: 0,
+    minWidth: 34,
+    backgroundColor: '#FFF3EA',
+    borderColor: '#FFD7C2',
+  },
+  comboItemMoreText: {
+    color: colors.badgeBg,
   },
   footer: {
     flexDirection: 'row',
@@ -283,12 +414,21 @@ const styles = StyleSheet.create({
     marginTop: 2,
     gap: 4,
   },
+  comboFooter: {
+    paddingTop: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: '#FFE7D8',
+  },
   price: {
     ...typography.price,
     color: colors.textPrimary,
   },
   priceWrap: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
     flexShrink: 1,
+    flexWrap: 'wrap',
   },
   priceCompact: {
     fontSize: 13,

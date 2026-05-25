@@ -36,13 +36,15 @@ function QuantityStepper({
   compact = false,
   dense = false,
 }) {
+  const normalizedQuantity = Math.max(0, Number(quantity) || 0);
   const prevQuantity = useRef(quantity);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if ((prevQuantity.current === 0 && quantity > 0) || (prevQuantity.current > 0 && quantity === 0)) {
+    const previousQuantity = Math.max(0, Number(prevQuantity.current) || 0);
+    if ((previousQuantity === 0 && normalizedQuantity > 0) || (previousQuantity > 0 && normalizedQuantity === 0)) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    } else if (prevQuantity.current > 0 && quantity > 0 && prevQuantity.current !== quantity) {
+    } else if (previousQuantity > 0 && normalizedQuantity > 0 && previousQuantity !== normalizedQuantity) {
       // Scale bump on qty change
       scaleAnim.setValue(1.3);
       Animated.spring(scaleAnim, {
@@ -51,10 +53,10 @@ function QuantityStepper({
         useNativeDriver: true,
       }).start();
     }
-    prevQuantity.current = quantity;
-  }, [quantity, scaleAnim]);
+    prevQuantity.current = normalizedQuantity;
+  }, [normalizedQuantity, scaleAnim]);
 
-  if (quantity === 0) {
+  if (normalizedQuantity === 0) {
     return (
       <TouchableOpacity
         onPress={onAdd}
@@ -72,7 +74,7 @@ function QuantityStepper({
         <Text
           style={[styles.addLabel, compact && styles.addLabelCompact, dense && styles.addLabelDense]}
         >
-          Add
+          ADD
         </Text>
       </TouchableOpacity>
     );
@@ -92,7 +94,7 @@ function QuantityStepper({
       </TouchableOpacity>
 
       <Animated.Text style={[styles.qty, compact && styles.qtyCompact, dense && styles.qtyDense, { transform: [{ scale: scaleAnim }] }]}>
-        {quantity}
+        {normalizedQuantity}
       </Animated.Text>
 
       <TouchableOpacity
