@@ -13,6 +13,7 @@ import Categories from './pages/Categories';
 import Offers from './pages/Offers';
 import MobileDashboard from './pages/MobileDashboard';
 import Customers from './pages/Customers';
+import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 import Images from './pages/Images';
 import Reports from './pages/Reports';
@@ -35,6 +36,7 @@ function App() {
               <Route path="/offers" element={<Offers />} />
               <Route path="/mobile-dashboard" element={<MobileDashboard />} />
               <Route path="/customers" element={<Customers />} />
+              <Route path="/notifications" element={<Notifications />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/images" element={<Images />} />
               <Route path="/reports" element={<Reports />} />

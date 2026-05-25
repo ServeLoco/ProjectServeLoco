@@ -11,6 +11,7 @@ const navItems = [
   { path: '/offers', label: 'Offers' },
   { path: '/mobile-dashboard', label: 'Mobile Dashboard' },
   { path: '/customers', label: 'Customers' },
+  { path: '/notifications', label: 'Notifications' },
   { path: '/settings', label: 'Settings' },
   { path: '/images', label: 'Images' },
   { path: '/reports', label: 'Reports' },

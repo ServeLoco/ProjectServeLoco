@@ -115,3 +115,9 @@ export const MobileDashboardApi = {
   deleteSectionItem: (id, itemId) => apiClient(`/admin/dashboard-sections/${id}/items/${itemId}`, { method: 'DELETE' }),
 };
 
+export const NotificationsApi = {
+  list: (params) => apiClient(withQuery('/admin/notifications', params), { method: 'GET' }),
+  get: (id) => apiClient(`/admin/notifications/${id}`, { method: 'GET' }),
+  create: (data) => apiClient('/admin/notifications', { method: 'POST', body: data }),
+  delete: (id) => apiClient(`/admin/notifications/${id}`, { method: 'DELETE' }),
+};
