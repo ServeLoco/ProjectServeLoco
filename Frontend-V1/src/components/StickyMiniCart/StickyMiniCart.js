@@ -106,7 +106,8 @@ const styles = StyleSheet.create({
     bottom: layout.bottomNavHeight + 28,
     left: layout.stickyCartMarginH,
     right: layout.stickyCartMarginH,
-    zIndex: 20,
+    zIndex: 999,
+    elevation: 24,
     ...shadows.xl,
   },
   bar: {

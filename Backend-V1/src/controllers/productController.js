@@ -172,6 +172,7 @@ const getProductById = async (req, res) => {
 };
 
 const createProduct = async (req, res) => {
+  // Normal products require category. Combos are bundles and do not require category.
   const { name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label, combo_items } = req.validatedData;
   const [result] = await pool.query(
     'INSERT INTO products (name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -192,6 +193,7 @@ const createProduct = async (req, res) => {
 };
 
 const updateProduct = async (req, res) => {
+  // Normal products require category. Combos are bundles and do not require category.
   const { id } = req.params;
   const { name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label, combo_items } = req.validatedData;
 

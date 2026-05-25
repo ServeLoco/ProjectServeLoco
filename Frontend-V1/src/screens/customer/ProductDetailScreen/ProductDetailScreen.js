@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -35,7 +35,6 @@ export default function ProductDetailScreen() {
   // Stores
   const {
     items,
-    totalItems,
     addItem,
     addCombo,
     decrementCombo,
@@ -43,6 +42,10 @@ export default function ProductDetailScreen() {
     updateQuantity,
     removeItem,
   } = useCartStore();
+  const cartItemCount = useMemo(
+    () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
+    [items]
+  );
 
   // Animations
   const imgFade = useRef(new Animated.Value(0)).current;
@@ -148,7 +151,7 @@ export default function ProductDetailScreen() {
       <AppHeader
         title={product.name}
         onBack={() => navigation.goBack()}
-        cartCount={totalItems}
+        cartCount={cartItemCount}
         onCartPress={() => navigation.navigate('Cart')}
         bg="transparent"
         bordered={false}

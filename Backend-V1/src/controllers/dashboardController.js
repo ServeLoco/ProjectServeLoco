@@ -184,11 +184,88 @@ const attachComboItems = async (products = []) => {
   });
 };
 
+const mapCategoryRows = (rows) => rows.map(r => ({
+  id: r.id,
+  sectionItemId: r.section_item_id,
+  name: r.name,
+  slug: r.slug,
+  type: r.type,
+  imageUrl: r.imageUrl || r.image_url,
+  image_id: r.image_id,
+  active: r.active,
+  displayOrder: r.display_order
+}));
+
+const mapProductRows = (rows) => rows.map(r => ({
+  id: r.id,
+  sectionItemId: r.section_item_id,
+  name: r.name,
+  price: r.price,
+  unit: r.unit,
+  description: r.description,
+  imageUrl: r.imageUrl || r.image_url,
+  image_id: r.image_id,
+  available: r.available,
+  isCombo: r.is_combo,
+  featured: r.featured,
+  originalPrice: r.original_price,
+  discountLabel: r.discount_label,
+  categoryId: r.category_id,
+  categoryName: r.category_name,
+  categoryType: r.category_type,
+  comboItems: r.combo_items || []
+}));
+
+const getDefaultCategoryItems = async (expectedStoreType, limit = 8) => {
+  const params = [];
+  let query = `
+    SELECT c.*, c.display_order
+    FROM categories c
+    WHERE c.active = 1 AND c.deleted = 0
+  `;
+
+  if (expectedStoreType) {
+    query += ' AND c.type = ?';
+    params.push(expectedStoreType);
+  }
+
+  query += ' ORDER BY c.display_order ASC, c.id ASC LIMIT ?';
+  params.push(limit);
+
+  const [rows] = await pool.query(query, params);
+  await resolveImageUrls(rows);
+  return mapCategoryRows(rows);
+};
+
+const getDefaultComboItems = async (expectedStoreType, limit = 6) => {
+  const params = [];
+  let query = `
+    SELECT p.*, cat.name as category_name, cat.type as category_type
+    FROM products p
+    LEFT JOIN categories cat ON p.category_id = cat.id
+    WHERE p.is_combo = 1 AND p.available = 1 AND p.deleted = 0
+  `;
+
+  if (expectedStoreType) {
+    query += ' AND cat.type = ?';
+    params.push(expectedStoreType);
+  }
+
+  query += ' ORDER BY p.display_order ASC, p.id ASC LIMIT ?';
+  params.push(limit);
+
+  const [rows] = await pool.query(query, params);
+  await resolveImageUrls(rows);
+  await attachComboItems(rows);
+  return mapProductRows(rows);
+};
+
 /**
  * Public endpoint: GET /api/dashboard
  * Loads active sections & their items based on storeType.
  */
 const getDashboard = async (req, res) => {
+  // Dashboard category grid is derived from categories.
   const { storeType = 'all' } = req.query;
   const expectedStoreType = getExpectedStoreType(storeType);
 
@@ -209,6 +286,8 @@ const getDashboard = async (req, res) => {
     query += ' ORDER BY display_order ASC, id ASC';
 
     const [sections] = await pool.query(query, params);
+    const [configuredRows] = await pool.query('SELECT DISTINCT section_type FROM dashboard_sections');
+    const configuredTypes = new Set(configuredRows.map(row => row.section_type));
     const resultSections = [];
 
     for (const section of sections) {
@@ -255,17 +334,10 @@ const getDashboard = async (req, res) => {
           filteredRows = rows.filter(r => r.type === expectedStoreType);
         }
 
-        items = filteredRows.map(r => ({
-          id: r.id,
-          sectionItemId: r.section_item_id,
-          name: r.name,
-          slug: r.slug,
-          type: r.type,
-          imageUrl: r.imageUrl || r.image_url,
-          image_id: r.image_id,
-          active: r.active,
-          displayOrder: r.display_order
-        }));
+        items = mapCategoryRows(filteredRows);
+        if (items.length === 0 && section.slug === 'categories-grid') {
+          items = await getDefaultCategoryItems(expectedStoreType, section.max_visible_items || 8);
+        }
       } else if (section.section_type === 'product_block') {
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type
@@ -287,25 +359,7 @@ const getDashboard = async (req, res) => {
           filteredRows = rows.filter(r => r.category_type === expectedStoreType);
         }
 
-        items = filteredRows.map(r => ({
-          id: r.id,
-          sectionItemId: r.section_item_id,
-          name: r.name,
-          price: r.price,
-          unit: r.unit,
-          description: r.description,
-          imageUrl: r.imageUrl || r.image_url,
-          image_id: r.image_id,
-          available: r.available,
-          isCombo: r.is_combo,
-          featured: r.featured,
-          originalPrice: r.original_price,
-          discountLabel: r.discount_label,
-          categoryId: r.category_id,
-          categoryName: r.category_name,
-          categoryType: r.category_type,
-          comboItems: r.combo_items || []
-        }));
+        items = mapProductRows(filteredRows);
       } else if (section.section_type === 'combo_block') {
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type
@@ -326,27 +380,10 @@ const getDashboard = async (req, res) => {
         if (expectedStoreType) {
           filteredRows = rows.filter(r => r.category_type === expectedStoreType);
         }
-        filteredRows = filteredRows.filter(r => (r.combo_items || []).length > 0);
-
-        items = filteredRows.map(r => ({
-          id: r.id,
-          sectionItemId: r.section_item_id,
-          name: r.name,
-          price: r.price,
-          unit: r.unit,
-          description: r.description,
-          imageUrl: r.imageUrl || r.image_url,
-          image_id: r.image_id,
-          available: r.available,
-          isCombo: r.is_combo,
-          featured: r.featured,
-          originalPrice: r.original_price,
-          discountLabel: r.discount_label,
-          categoryId: r.category_id,
-          categoryName: r.category_name,
-          categoryType: r.category_type,
-          comboItems: r.combo_items || []
-        }));
+        items = mapProductRows(filteredRows);
+        if (items.length === 0 && section.slug === 'popular-combos') {
+          items = await getDefaultComboItems(expectedStoreType, section.max_visible_items || 6);
+        }
       }
 
       const maxVisible = section.max_visible_items || 6;
@@ -367,6 +404,42 @@ const getDashboard = async (req, res) => {
         });
       }
     }
+
+    if (!configuredTypes.has('category_grid')) {
+      const categoryItems = await getDefaultCategoryItems(expectedStoreType, 8);
+      if (categoryItems.length > 0) {
+        resultSections.push({
+          id: 'default-categories-grid',
+          title: 'Shop by Category',
+          slug: 'categories-grid',
+          sectionType: 'category_grid',
+          storeType: 'all',
+          displayOrder: 1,
+          maxVisibleItems: 8,
+          showSeeAll: false,
+          items: categoryItems
+        });
+      }
+    }
+
+    if (!configuredTypes.has('combo_block')) {
+      const comboItems = await getDefaultComboItems(expectedStoreType, 6);
+      if (comboItems.length > 0) {
+        resultSections.push({
+          id: 'default-popular-combos',
+          title: 'Popular Combos',
+          slug: 'popular-combos',
+          sectionType: 'combo_block',
+          storeType: 'all',
+          displayOrder: 2,
+          maxVisibleItems: 6,
+          showSeeAll: true,
+          items: comboItems
+        });
+      }
+    }
+
+    resultSections.sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
 
     res.status(200).json({
       data: {

@@ -79,8 +79,8 @@ function CustomerBottomTabs() {
         tabBarStyle: {
           position: 'absolute',
           bottom: 16,
-          left: 20,
-          right: 20,
+          left: 40,
+          right: 40,
           borderRadius: 30,
           backgroundColor: colors.bgSurface,
           height: 64,

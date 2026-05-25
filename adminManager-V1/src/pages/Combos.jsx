@@ -3,6 +3,7 @@ import { ProductsApi, CategoriesApi, ImagesApi } from '../api';
 import './Products.css';
 
 export default function Combos() {
+  // Combos are bundles and do not require category.
   const [products, setProducts] = useState([]);
   const [comboProducts, setComboProducts] = useState([]);
   const [categories, setCategories] = useState([]);

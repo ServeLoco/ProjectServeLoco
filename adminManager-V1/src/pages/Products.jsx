@@ -9,12 +9,13 @@ export default function Products() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Normal products require category. Combos are bundles and do not require category.
   const [filters, setFilters] = useState({
     search: '',
     category_id: '',
     available: '',
     featured: '',
-    is_combo: ''
+    is_combo: '0' // Default to normal products
   });
 
   const [selectedIds, setSelectedIds] = useState([]);
@@ -160,11 +161,6 @@ export default function Products() {
           <option value="1">In Stock</option>
           <option value="0">Out of Stock</option>
         </select>
-        <select name="is_combo" className="filter-select" value={filters.is_combo} onChange={handleFilterChange}>
-          <option value="">All Types (Items & Combos)</option>
-          <option value="0">Standard Items Only</option>
-          <option value="1">Combos Only</option>
-        </select>
         <select name="featured" className="filter-select" value={filters.featured} onChange={handleFilterChange}>
           <option value="">All Featured Status</option>
           <option value="1">Featured Only</option>
@@ -292,7 +288,6 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
     display_order: 0,
     available: true,
     featured: false,
-    is_combo: false,
     discount_label: '',
     image_id: '',
     image_url: ''
@@ -451,10 +446,6 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
               <label className="checkbox-label">
                 <input type="checkbox" name="featured" checked={formData.featured} onChange={handleChange} />
                 Featured Product
-              </label>
-              <label className="checkbox-label">
-                <input type="checkbox" name="is_combo" checked={formData.is_combo} onChange={handleChange} />
-                Is Combo Box
               </label>
             </div>
           </div>

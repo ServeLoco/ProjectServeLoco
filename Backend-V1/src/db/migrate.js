@@ -346,61 +346,86 @@ const migrate = async () => {
     }
     console.log('Seeded sample products.');
 
-    // Seed Dashboard Sections (Idempotent)
-    const [sectionsRows] = await connection.query('SELECT * FROM dashboard_sections LIMIT 1');
-    if (sectionsRows.length === 0) {
-      console.log('Seeding default dashboard sections...');
-      // 1. Hero Offers
-      const [offerSec] = await connection.query(`
+    // Seed Dashboard Sections (Idempotent per default section)
+    console.log('Ensuring default dashboard sections...');
+    const ensureDashboardSection = async ({ title, slug, sectionType, displayOrder, maxVisibleItems, showSeeAll }) => {
+      const [existing] = await connection.query(
+        'SELECT id FROM dashboard_sections WHERE slug = ? LIMIT 1',
+        [slug]
+      );
+      if (existing.length > 0) return existing[0].id;
+
+      const [result] = await connection.query(`
         INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all)
-        VALUES ('Special Offers', 'hero-offers', 'offer_banner', 'all', 0, 1, false)
-      `);
-      const offerSectionId = offerSec.insertId;
+        VALUES (?, ?, ?, 'all', ?, ?, ?)
+      `, [title, slug, sectionType, displayOrder, maxVisibleItems, showSeeAll]);
+      return result.insertId;
+    };
 
-      // Link any active offer to this section
-      const [activeOffers] = await connection.query('SELECT id FROM offers WHERE active = 1 AND deleted = 0 LIMIT 1');
-      if (activeOffers.length > 0) {
-        await connection.query(`
-          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
-          VALUES (?, 'offer', ?, 0)
-        `, [offerSectionId, activeOffers[0].id]);
-      }
+    const offerSectionId = await ensureDashboardSection({
+      title: 'Special Offers',
+      slug: 'hero-offers',
+      sectionType: 'offer_banner',
+      displayOrder: 0,
+      maxVisibleItems: 1,
+      showSeeAll: false
+    });
 
-      // 2. Categories Grid
-      const [catSec] = await connection.query(`
-        INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all)
-        VALUES ('Shop by Category', 'categories-grid', 'category_grid', 'all', 1, 8, false)
-      `);
-      const catSectionId = catSec.insertId;
-
-      // Link existing active categories to this section
-      const [activeCats] = await connection.query('SELECT id, display_order FROM categories WHERE active = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
-      for (const cat of activeCats) {
-        await connection.query(`
-          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
-          VALUES (?, 'category', ?, ?)
-        `, [catSectionId, cat.id, cat.display_order]);
-      }
-
-      // 3. Popular Combos
-      const [comboSec] = await connection.query(`
-        INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all)
-        VALUES ('Popular Combos', 'popular-combos', 'combo_block', 'all', 2, 6, true)
-      `);
-      const comboSectionId = comboSec.insertId;
-
-      // Link existing active combos to this section
-      const [activeCombos] = await connection.query('SELECT id FROM products WHERE is_combo = 1 AND available = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
-      let comboOrder = 0;
-      for (const combo of activeCombos) {
-        await connection.query(`
-          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
-          VALUES (?, 'combo', ?, ?)
-        `, [comboSectionId, combo.id, comboOrder++]);
-      }
-
-      console.log('Seeded default dashboard sections and items.');
+    const [activeOffers] = await connection.query('SELECT id FROM offers WHERE active = 1 AND deleted = 0 LIMIT 1');
+    if (activeOffers.length > 0) {
+      await connection.query(`
+        INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
+        SELECT ?, 'offer', ?, 0 FROM DUAL
+        WHERE NOT EXISTS (
+          SELECT 1 FROM dashboard_section_items
+          WHERE section_id = ? AND item_type = 'offer' AND item_id = ? AND deleted_at IS NULL
+        )
+      `, [offerSectionId, activeOffers[0].id, offerSectionId, activeOffers[0].id]);
     }
+
+    const catSectionId = await ensureDashboardSection({
+      title: 'Shop by Category',
+      slug: 'categories-grid',
+      sectionType: 'category_grid',
+      displayOrder: 1,
+      maxVisibleItems: 8,
+      showSeeAll: false
+    });
+
+    const [activeCats] = await connection.query('SELECT id, display_order FROM categories WHERE active = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
+    for (const cat of activeCats) {
+      await connection.query(`
+        INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
+        SELECT ?, 'category', ?, ? FROM DUAL
+        WHERE NOT EXISTS (
+          SELECT 1 FROM dashboard_section_items
+          WHERE section_id = ? AND item_type = 'category' AND item_id = ? AND deleted_at IS NULL
+        )
+      `, [catSectionId, cat.id, cat.display_order, catSectionId, cat.id]);
+    }
+
+    const comboSectionId = await ensureDashboardSection({
+      title: 'Popular Combos',
+      slug: 'popular-combos',
+      sectionType: 'combo_block',
+      displayOrder: 2,
+      maxVisibleItems: 6,
+      showSeeAll: true
+    });
+
+    const [activeCombos] = await connection.query('SELECT id FROM products WHERE is_combo = 1 AND available = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
+    let comboOrder = 0;
+    for (const combo of activeCombos) {
+      await connection.query(`
+        INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
+        SELECT ?, 'combo', ?, ? FROM DUAL
+        WHERE NOT EXISTS (
+          SELECT 1 FROM dashboard_section_items
+          WHERE section_id = ? AND item_type = 'combo' AND item_id = ? AND deleted_at IS NULL
+        )
+      `, [comboSectionId, combo.id, comboOrder++, comboSectionId, combo.id]);
+    }
+    console.log('Default dashboard sections and items ready.');
 
     console.log('Migration and seeding completed successfully!');
   } catch (error) {

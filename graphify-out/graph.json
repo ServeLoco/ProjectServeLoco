@@ -1727,7 +1727,7 @@
       "source_file": "Frontend-V1/App.js",
       "source_location": "L1",
       "id": "frontend_v1_app_js",
-      "community": 28,
+      "community": 100,
       "norm_label": "app.js"
     },
     {
@@ -1736,7 +1736,7 @@
       "source_file": "Frontend-V1/App.js",
       "source_location": "L9",
       "id": "frontend_v1_app_app",
-      "community": 28,
+      "community": 100,
       "norm_label": "app()"
     },
     {
@@ -1925,7 +1925,7 @@
       "source_file": "Frontend-V1/__tests__/App.test.js",
       "source_location": "L1",
       "id": "frontend_v1_tests_app_test_js",
-      "community": 28,
+      "community": 100,
       "norm_label": "app.test.js"
     },
     {
@@ -2114,7 +2114,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L1",
       "id": "frontend_v1_src_navigation_customernavigator_js",
-      "community": 144,
+      "community": 13,
       "norm_label": "customernavigator.js"
     },
     {
@@ -2123,7 +2123,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L25",
       "id": "navigation_customernavigator_tab",
-      "community": 144,
+      "community": 13,
       "norm_label": "tab"
     },
     {
@@ -2132,7 +2132,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L26",
       "id": "navigation_customernavigator_stack",
-      "community": 144,
+      "community": 13,
       "norm_label": "stack"
     },
     {
@@ -2141,7 +2141,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L28",
       "id": "navigation_customernavigator_animatedtabicon",
-      "community": 144,
+      "community": 13,
       "norm_label": "animatedtabicon()"
     },
     {
@@ -2150,7 +2150,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L72",
       "id": "navigation_customernavigator_customerbottomtabs",
-      "community": 144,
+      "community": 13,
       "norm_label": "customerbottomtabs()"
     },
     {
@@ -2159,7 +2159,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L128",
       "id": "navigation_customernavigator_styles",
-      "community": 144,
+      "community": 13,
       "norm_label": "styles"
     },
     {
@@ -2168,7 +2168,7 @@
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L158",
       "id": "navigation_customernavigator_customernavigator",
-      "community": 144,
+      "community": 13,
       "norm_label": "customernavigator()"
     },
     {
@@ -2177,7 +2177,7 @@
       "source_file": "Frontend-V1/src/navigation/routes.js",
       "source_location": "L1",
       "id": "frontend_v1_src_navigation_routes_js",
-      "community": 144,
+      "community": 13,
       "norm_label": "routes.js"
     },
     {
@@ -2186,7 +2186,7 @@
       "source_file": "Frontend-V1/src/navigation/routes.js",
       "source_location": "L1",
       "id": "navigation_routes_routes",
-      "community": 144,
+      "community": 13,
       "norm_label": "routes"
     },
     {
@@ -2195,7 +2195,7 @@
       "source_file": "Frontend-V1/src/navigation/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_navigation_index_js",
-      "community": 144,
+      "community": 13,
       "norm_label": "index.js"
     },
     {
@@ -2240,7 +2240,7 @@
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L1",
       "id": "frontend_v1_src_stores_usecartstore_js",
-      "community": 17,
+      "community": 15,
       "norm_label": "usecartstore.js"
     },
     {
@@ -2249,7 +2249,7 @@
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L9",
       "id": "stores_usecartstore_usecartstore",
-      "community": 17,
+      "community": 43,
       "norm_label": "usecartstore"
     },
     {
@@ -2285,7 +2285,7 @@
       "source_file": "Frontend-V1/src/stores/useSettingsStore.js",
       "source_location": "L1",
       "id": "frontend_v1_src_stores_usesettingsstore_js",
-      "community": 17,
+      "community": 15,
       "norm_label": "usesettingsstore.js"
     },
     {
@@ -2294,7 +2294,7 @@
       "source_file": "Frontend-V1/src/stores/useSettingsStore.js",
       "source_location": "L9",
       "id": "stores_usesettingsstore_usesettingsstore",
-      "community": 17,
+      "community": 15,
       "norm_label": "usesettingsstore"
     },
     {
@@ -2366,7 +2366,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_orderconfirmationscreen_orderconfirmationscreen_js",
-      "community": 33,
+      "community": 148,
       "norm_label": "orderconfirmationscreen.js"
     },
     {
@@ -2375,7 +2375,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L15",
       "id": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen",
-      "community": 33,
+      "community": 148,
       "norm_label": "orderconfirmationscreen()"
     },
     {
@@ -2384,7 +2384,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L136",
       "id": "orderconfirmationscreen_orderconfirmationscreen_styles",
-      "community": 33,
+      "community": 148,
       "norm_label": "styles"
     },
     {
@@ -2418,7 +2418,7 @@
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L298",
+      "source_location": "L301",
       "id": "productdetailscreen_productdetailscreen_styles",
       "community": 43,
       "norm_label": "styles"
@@ -2454,7 +2454,7 @@
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L262",
+      "source_location": "L270",
       "id": "categoriesscreen_categoriesscreen_styles",
       "community": 43,
       "norm_label": "styles"
@@ -2573,7 +2573,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_ordersscreen_ordersscreen_js",
-      "community": 15,
+      "community": 17,
       "norm_label": "ordersscreen.js"
     },
     {
@@ -2582,7 +2582,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L31",
       "id": "ordersscreen_ordersscreen_filter_chips",
-      "community": 15,
+      "community": 17,
       "norm_label": "filter_chips"
     },
     {
@@ -2591,7 +2591,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L33",
       "id": "ordersscreen_ordersscreen_ordersscreen",
-      "community": 15,
+      "community": 17,
       "norm_label": "ordersscreen()"
     },
     {
@@ -2600,7 +2600,7 @@
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L274",
       "id": "ordersscreen_ordersscreen_styles",
-      "community": 15,
+      "community": 17,
       "norm_label": "styles"
     },
     {
@@ -2618,7 +2618,7 @@
       "source_file": "Frontend-V1/src/screens/customer/NotificationsScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_notificationsscreen_index_js",
-      "community": 13,
+      "community": 148,
       "norm_label": "index.js"
     },
     {
@@ -2627,7 +2627,7 @@
       "source_file": "Frontend-V1/src/screens/customer/NotificationsScreen/NotificationsScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_notificationsscreen_notificationsscreen_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "notificationsscreen.js"
     },
     {
@@ -2636,7 +2636,7 @@
       "source_file": "Frontend-V1/src/screens/customer/NotificationsScreen/NotificationsScreen.js",
       "source_location": "L6",
       "id": "notificationsscreen_notificationsscreen_mock_notifications",
-      "community": 100,
+      "community": 148,
       "norm_label": "mock_notifications"
     },
     {
@@ -2645,7 +2645,7 @@
       "source_file": "Frontend-V1/src/screens/customer/NotificationsScreen/NotificationsScreen.js",
       "source_location": "L33",
       "id": "notificationsscreen_notificationsscreen_notificationsscreen",
-      "community": 100,
+      "community": 148,
       "norm_label": "notificationsscreen()"
     },
     {
@@ -2654,7 +2654,7 @@
       "source_file": "Frontend-V1/src/screens/customer/NotificationsScreen/NotificationsScreen.js",
       "source_location": "L106",
       "id": "notificationsscreen_notificationsscreen_styles",
-      "community": 100,
+      "community": 148,
       "norm_label": "styles"
     },
     {
@@ -2679,7 +2679,7 @@
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/HomeScreen/HomeScreen.js",
-      "source_location": "L404",
+      "source_location": "L410",
       "id": "homescreen_homescreen_styles",
       "community": 43,
       "norm_label": "styles"
@@ -2690,7 +2690,7 @@
       "source_file": "Frontend-V1/src/screens/customer/HomeScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_homescreen_index_js",
-      "community": 13,
+      "community": 43,
       "norm_label": "index.js"
     },
     {
@@ -2789,7 +2789,7 @@
       "source_file": "Frontend-V1/src/screens/customer/CartScreen/CartScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_screens_customer_cartscreen_cartscreen_js",
-      "community": 17,
+      "community": 15,
       "norm_label": "cartscreen.js"
     },
     {
@@ -2798,7 +2798,7 @@
       "source_file": "Frontend-V1/src/screens/customer/CartScreen/CartScreen.js",
       "source_location": "L31",
       "id": "cartscreen_cartscreen_cartscreen",
-      "community": 17,
+      "community": 15,
       "norm_label": "cartscreen()"
     },
     {
@@ -2807,7 +2807,7 @@
       "source_file": "Frontend-V1/src/screens/customer/CartScreen/CartScreen.js",
       "source_location": "L268",
       "id": "cartscreen_cartscreen_styles",
-      "community": 17,
+      "community": 15,
       "norm_label": "styles"
     },
     {
@@ -2895,7 +2895,7 @@
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L413",
+      "source_location": "L419",
       "id": "productlistscreen_productlistscreen_styles",
       "community": 43,
       "norm_label": "styles"
@@ -2933,7 +2933,7 @@
       "source_file": "Frontend-V1/src/api/cartApi.js",
       "source_location": "L3",
       "id": "api_cartapi_cartapi",
-      "community": 17,
+      "community": 15,
       "norm_label": "cartapi"
     },
     {
@@ -3167,7 +3167,7 @@
       "source_file": "Frontend-V1/src/api/sessionTokens.js",
       "source_location": "L3",
       "id": "api_sessiontokens_setcustomertokenprovider",
-      "community": 28,
+      "community": 100,
       "norm_label": "setcustomertokenprovider()"
     },
     {
@@ -3329,7 +3329,7 @@
       "source_file": "Frontend-V1/src/components/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_index_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "index.js"
     },
     {
@@ -3374,7 +3374,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_textbutton_index_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "index.js"
     },
     {
@@ -3383,7 +3383,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_textbutton_textbutton_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "textbutton.js"
     },
     {
@@ -3392,7 +3392,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
       "id": "textbutton_textbutton_textbutton",
-      "community": 100,
+      "community": 148,
       "norm_label": "textbutton()"
     },
     {
@@ -3401,7 +3401,7 @@
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
       "id": "textbutton_textbutton_styles",
-      "community": 100,
+      "community": 148,
       "norm_label": "styles"
     },
     {
@@ -3428,7 +3428,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedQuantitySwitcher/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedquantityswitcher_index_js",
-      "community": 100,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -3455,7 +3455,7 @@
       "source_file": "Frontend-V1/src/components/AnimatedFadeSlide/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_animatedfadeslide_index_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "index.js"
     },
     {
@@ -3725,7 +3725,7 @@
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_appscreen_appscreen_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "appscreen.js"
     },
     {
@@ -3734,7 +3734,7 @@
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L19",
       "id": "appscreen_appscreen_appscreen",
-      "community": 100,
+      "community": 148,
       "norm_label": "appscreen()"
     },
     {
@@ -3743,7 +3743,7 @@
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L55",
       "id": "appscreen_appscreen_styles",
-      "community": 100,
+      "community": 148,
       "norm_label": "styles"
     },
     {
@@ -3752,7 +3752,7 @@
       "source_file": "Frontend-V1/src/components/AppScreen/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_appscreen_index_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "index.js"
     },
     {
@@ -3761,7 +3761,7 @@
       "source_file": "Frontend-V1/src/components/OrderCard/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_ordercard_index_js",
-      "community": 153,
+      "community": 148,
       "norm_label": "index.js"
     },
     {
@@ -3770,7 +3770,7 @@
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_ordercard_ordercard_js",
-      "community": 153,
+      "community": 148,
       "norm_label": "ordercard.js"
     },
     {
@@ -3779,7 +3779,7 @@
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
       "id": "ordercard_ordercard_ordercard",
-      "community": 153,
+      "community": 148,
       "norm_label": "ordercard()"
     },
     {
@@ -3788,7 +3788,7 @@
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L92",
       "id": "ordercard_ordercard_styles",
-      "community": 153,
+      "community": 148,
       "norm_label": "styles"
     },
     {
@@ -3797,7 +3797,7 @@
       "source_file": "Frontend-V1/src/components/ConfirmModal/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_confirmmodal_index_js",
-      "community": 15,
+      "community": 33,
       "norm_label": "index.js"
     },
     {
@@ -3806,7 +3806,7 @@
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_confirmmodal_confirmmodal_js",
-      "community": 15,
+      "community": 33,
       "norm_label": "confirmmodal.js"
     },
     {
@@ -3815,7 +3815,7 @@
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L27",
       "id": "confirmmodal_confirmmodal_confirmmodal",
-      "community": 15,
+      "community": 33,
       "norm_label": "confirmmodal()"
     },
     {
@@ -3824,7 +3824,7 @@
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L93",
       "id": "confirmmodal_confirmmodal_styles",
-      "community": 15,
+      "community": 33,
       "norm_label": "styles"
     },
     {
@@ -3896,7 +3896,7 @@
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_stickyminicart_stickyminicart_js",
-      "community": 46,
+      "community": 45,
       "norm_label": "stickyminicart.js"
     },
     {
@@ -3905,7 +3905,7 @@
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L17",
       "id": "stickyminicart_stickyminicart_stickyminicart",
-      "community": 46,
+      "community": 45,
       "norm_label": "stickyminicart()"
     },
     {
@@ -3914,7 +3914,7 @@
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L103",
       "id": "stickyminicart_stickyminicart_styles",
-      "community": 46,
+      "community": 45,
       "norm_label": "styles"
     },
     {
@@ -4004,7 +4004,7 @@
       "source_file": "Frontend-V1/src/components/Button/Button.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_button_button_js",
-      "community": 46,
+      "community": 148,
       "norm_label": "button.js"
     },
     {
@@ -4013,7 +4013,7 @@
       "source_file": "Frontend-V1/src/components/Button/Button.js",
       "source_location": "L29",
       "id": "button_button_button",
-      "community": 46,
+      "community": 148,
       "norm_label": "button()"
     },
     {
@@ -4022,7 +4022,7 @@
       "source_file": "Frontend-V1/src/components/Button/Button.js",
       "source_location": "L85",
       "id": "button_button_styles",
-      "community": 46,
+      "community": 148,
       "norm_label": "styles"
     },
     {
@@ -4031,7 +4031,7 @@
       "source_file": "Frontend-V1/src/components/Button/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_button_index_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "index.js"
     },
     {
@@ -4040,7 +4040,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_segmentedcontrol_index_js",
-      "community": 15,
+      "community": 148,
       "norm_label": "index.js"
     },
     {
@@ -4049,7 +4049,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_segmentedcontrol_segmentedcontrol_js",
-      "community": 15,
+      "community": 148,
       "norm_label": "segmentedcontrol.js"
     },
     {
@@ -4058,7 +4058,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L15",
       "id": "segmentedcontrol_segmentedcontrol_segmentedcontrol",
-      "community": 15,
+      "community": 148,
       "norm_label": "segmentedcontrol()"
     },
     {
@@ -4067,7 +4067,7 @@
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L54",
       "id": "segmentedcontrol_segmentedcontrol_styles",
-      "community": 15,
+      "community": 148,
       "norm_label": "styles"
     },
     {
@@ -4076,7 +4076,7 @@
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_staggeredlist_staggeredlist_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "staggeredlist.js"
     },
     {
@@ -4085,7 +4085,7 @@
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L6",
       "id": "staggeredlist_staggeredlist_staggeredlist",
-      "community": 100,
+      "community": 148,
       "norm_label": "staggeredlist()"
     },
     {
@@ -4094,7 +4094,7 @@
       "source_file": "Frontend-V1/src/components/StaggeredList/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_staggeredlist_index_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "index.js"
     },
     {
@@ -4247,7 +4247,7 @@
       "source_file": "Frontend-V1/src/components/ErrorState/ErrorState.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_errorstate_errorstate_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "errorstate.js"
     },
     {
@@ -4256,7 +4256,7 @@
       "source_file": "Frontend-V1/src/components/ErrorState/ErrorState.js",
       "source_location": "L17",
       "id": "errorstate_errorstate_errorstate",
-      "community": 100,
+      "community": 148,
       "norm_label": "errorstate()"
     },
     {
@@ -4265,7 +4265,7 @@
       "source_file": "Frontend-V1/src/components/ErrorState/ErrorState.js",
       "source_location": "L39",
       "id": "errorstate_errorstate_styles",
-      "community": 100,
+      "community": 148,
       "norm_label": "styles"
     },
     {
@@ -4274,7 +4274,7 @@
       "source_file": "Frontend-V1/src/components/ErrorState/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_errorstate_index_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "index.js"
     },
     {
@@ -4319,7 +4319,7 @@
       "source_file": "Frontend-V1/src/components/EmptyState/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_emptystate_index_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "index.js"
     },
     {
@@ -4328,7 +4328,7 @@
       "source_file": "Frontend-V1/src/components/EmptyState/EmptyState.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_emptystate_emptystate_js",
-      "community": 100,
+      "community": 148,
       "norm_label": "emptystate.js"
     },
     {
@@ -4337,7 +4337,7 @@
       "source_file": "Frontend-V1/src/components/EmptyState/EmptyState.js",
       "source_location": "L18",
       "id": "emptystate_emptystate_emptystate",
-      "community": 100,
+      "community": 148,
       "norm_label": "emptystate()"
     },
     {
@@ -4346,7 +4346,7 @@
       "source_file": "Frontend-V1/src/components/EmptyState/EmptyState.js",
       "source_location": "L40",
       "id": "emptystate_emptystate_styles",
-      "community": 100,
+      "community": 148,
       "norm_label": "styles"
     },
     {
@@ -4355,7 +4355,7 @@
       "source_file": "Frontend-V1/src/components/PressableScale/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_pressablescale_index_js",
-      "community": 46,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -4427,7 +4427,7 @@
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_layout_js",
-      "community": 43,
+      "community": 17,
       "norm_label": "layout.js"
     },
     {
@@ -4436,7 +4436,7 @@
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L7",
       "id": "theme_layout_layout",
-      "community": 43,
+      "community": 17,
       "norm_label": "layout"
     },
     {
@@ -4454,7 +4454,7 @@
       "source_file": "Frontend-V1/src/theme/borders.js",
       "source_location": "L10",
       "id": "theme_borders_radius",
-      "community": 15,
+      "community": 33,
       "norm_label": "radius"
     },
     {
@@ -4472,7 +4472,7 @@
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_spacing_js",
-      "community": 33,
+      "community": 15,
       "norm_label": "spacing.js"
     },
     {
@@ -4490,7 +4490,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_typography_js",
-      "community": 33,
+      "community": 45,
       "norm_label": "typography.js"
     },
     {
@@ -4499,7 +4499,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L11",
       "id": "theme_typography_fontfamily",
-      "community": 33,
+      "community": 45,
       "norm_label": "fontfamily"
     },
     {
@@ -4508,7 +4508,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L32",
       "id": "theme_typography_fontweights",
-      "community": 33,
+      "community": 45,
       "norm_label": "fontweights"
     },
     {
@@ -4517,7 +4517,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L40",
       "id": "theme_typography_fontsizes",
-      "community": 33,
+      "community": 45,
       "norm_label": "fontsizes"
     },
     {
@@ -4526,7 +4526,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L53",
       "id": "theme_typography_lineheights",
-      "community": 33,
+      "community": 45,
       "norm_label": "lineheights"
     },
     {
@@ -4535,7 +4535,7 @@
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
       "id": "theme_typography_typography",
-      "community": 89,
+      "community": 15,
       "norm_label": "typography"
     },
     {
@@ -4544,7 +4544,7 @@
       "source_file": "Frontend-V1/src/theme/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_index_js",
-      "community": 33,
+      "community": 45,
       "norm_label": "index.js"
     },
     {
@@ -4553,7 +4553,7 @@
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_shadows_js",
-      "community": 33,
+      "community": 148,
       "norm_label": "shadows.js"
     },
     {
@@ -4562,7 +4562,7 @@
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L11",
       "id": "theme_shadows_makeshadow",
-      "community": 33,
+      "community": 148,
       "norm_label": "makeshadow()"
     },
     {
@@ -4580,7 +4580,7 @@
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_colors_js",
-      "community": 33,
+      "community": 148,
       "norm_label": "colors.js"
     },
     {
@@ -4589,7 +4589,7 @@
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L10",
       "id": "theme_colors_palette",
-      "community": 33,
+      "community": 148,
       "norm_label": "palette"
     },
     {
@@ -4598,7 +4598,7 @@
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L69",
       "id": "theme_colors_colors",
-      "community": 33,
+      "community": 148,
       "norm_label": "colors"
     },
     {
@@ -4607,7 +4607,7 @@
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L1",
       "id": "frontend_v1_src_theme_motion_js",
-      "community": 31,
+      "community": 45,
       "norm_label": "motion.js"
     },
     {
@@ -4625,7 +4625,7 @@
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L27",
       "id": "theme_motion_easingmodal",
-      "community": 31,
+      "community": 45,
       "norm_label": "easingmodal"
     },
     {
@@ -4634,7 +4634,7 @@
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L33",
       "id": "theme_motion_motionconfig",
-      "community": 31,
+      "community": 28,
       "norm_label": "motionconfig"
     },
     {
@@ -4787,7 +4787,7 @@
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L1",
       "id": "frontend_v1_src_utils_noemojicheck_js",
-      "community": 28,
+      "community": 100,
       "norm_label": "noemojicheck.js"
     },
     {
@@ -4796,7 +4796,7 @@
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L6",
       "id": "utils_noemojicheck_hasemoji",
-      "community": 28,
+      "community": 100,
       "norm_label": "hasemoji()"
     },
     {
@@ -4805,7 +4805,7 @@
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L18",
       "id": "utils_noemojicheck_stripemojis",
-      "community": 28,
+      "community": 100,
       "norm_label": "stripemojis()"
     },
     {
@@ -4814,7 +4814,7 @@
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L29",
       "id": "utils_noemojicheck_assertnoemoji",
-      "community": 28,
+      "community": 100,
       "norm_label": "assertnoemoji()"
     },
     {
@@ -4823,7 +4823,7 @@
       "source_file": "Frontend-V1/src/utils/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_utils_index_js",
-      "community": 45,
+      "community": 43,
       "norm_label": "index.js"
     },
     {
@@ -5390,7 +5390,7 @@
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L1",
       "id": "backend_v1_tests_productcategory_test_js",
-      "community": 149,
+      "community": 115,
       "norm_label": "productcategory.test.js"
     },
     {
@@ -5399,7 +5399,7 @@
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L1",
       "id": "tests_productcategory_test_request",
-      "community": 149,
+      "community": 115,
       "norm_label": "request"
     },
     {
@@ -5408,7 +5408,7 @@
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L2",
       "id": "tests_productcategory_test_express",
-      "community": 149,
+      "community": 115,
       "norm_label": "express"
     },
     {
@@ -5417,7 +5417,7 @@
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L3",
       "id": "tests_productcategory_test_adminroutes",
-      "community": 149,
+      "community": 115,
       "norm_label": "adminroutes"
     },
     {
@@ -5426,7 +5426,7 @@
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L4",
       "id": "tests_productcategory_test_productroutes",
-      "community": 149,
+      "community": 115,
       "norm_label": "productroutes"
     },
     {
@@ -5435,7 +5435,7 @@
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L5",
       "id": "tests_productcategory_test_pool",
-      "community": 149,
+      "community": 115,
       "norm_label": "{ pool }"
     },
     {
@@ -5444,7 +5444,7 @@
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L6",
       "id": "tests_productcategory_test_jwt",
-      "community": 149,
+      "community": 115,
       "norm_label": "jwt"
     },
     {
@@ -5453,7 +5453,7 @@
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L14",
       "id": "tests_productcategory_test_app",
-      "community": 149,
+      "community": 115,
       "norm_label": "app"
     },
     {
@@ -5462,7 +5462,7 @@
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L20",
       "id": "tests_productcategory_test_token",
-      "community": 149,
+      "community": 115,
       "norm_label": "token"
     },
     {
@@ -5921,7 +5921,7 @@
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L1",
       "id": "backend_v1_tests_remaining_test_js",
-      "community": 148,
+      "community": 149,
       "norm_label": "remaining.test.js"
     },
     {
@@ -5930,7 +5930,7 @@
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L1",
       "id": "tests_remaining_test_request",
-      "community": 148,
+      "community": 149,
       "norm_label": "request"
     },
     {
@@ -5939,7 +5939,7 @@
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L2",
       "id": "tests_remaining_test_express",
-      "community": 148,
+      "community": 149,
       "norm_label": "express"
     },
     {
@@ -5948,7 +5948,7 @@
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L3",
       "id": "tests_remaining_test_adminroutes",
-      "community": 148,
+      "community": 149,
       "norm_label": "adminroutes"
     },
     {
@@ -5957,7 +5957,7 @@
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L4",
       "id": "tests_remaining_test_orderroutes",
-      "community": 148,
+      "community": 149,
       "norm_label": "orderroutes"
     },
     {
@@ -5966,7 +5966,7 @@
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L5",
       "id": "tests_remaining_test_pool",
-      "community": 148,
+      "community": 149,
       "norm_label": "{ pool }"
     },
     {
@@ -5975,7 +5975,7 @@
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L6",
       "id": "tests_remaining_test_jwt",
-      "community": 148,
+      "community": 149,
       "norm_label": "jwt"
     },
     {
@@ -5984,7 +5984,7 @@
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L15",
       "id": "tests_remaining_test_app",
-      "community": 148,
+      "community": 149,
       "norm_label": "app"
     },
     {
@@ -5993,7 +5993,7 @@
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L20",
       "id": "tests_remaining_test_admintoken",
-      "community": 148,
+      "community": 149,
       "norm_label": "admintoken"
     },
     {
@@ -6002,7 +6002,7 @@
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L21",
       "id": "tests_remaining_test_customertoken",
-      "community": 148,
+      "community": 149,
       "norm_label": "customertoken"
     },
     {
@@ -7761,10 +7761,46 @@
       "norm_label": "attachcomboitems()"
     },
     {
+      "label": "mapCategoryRows()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L187",
+      "id": "controllers_dashboardcontroller_mapcategoryrows",
+      "community": 64,
+      "norm_label": "mapcategoryrows()"
+    },
+    {
+      "label": "mapProductRows()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L199",
+      "id": "controllers_dashboardcontroller_mapproductrows",
+      "community": 64,
+      "norm_label": "mapproductrows()"
+    },
+    {
+      "label": "getDefaultCategoryItems()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L219",
+      "id": "controllers_dashboardcontroller_getdefaultcategoryitems",
+      "community": 64,
+      "norm_label": "getdefaultcategoryitems()"
+    },
+    {
+      "label": "getDefaultComboItems()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L240",
+      "id": "controllers_dashboardcontroller_getdefaultcomboitems",
+      "community": 64,
+      "norm_label": "getdefaultcomboitems()"
+    },
+    {
       "label": "getDashboard()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
-      "source_location": "L191",
+      "source_location": "L267",
       "id": "controllers_dashboardcontroller_getdashboard",
       "community": 64,
       "norm_label": "getdashboard()"
@@ -7773,7 +7809,7 @@
       "label": "getSectionItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
-      "source_location": "L385",
+      "source_location": "L457",
       "id": "controllers_dashboardcontroller_getsectionitems",
       "community": 64,
       "norm_label": "getsectionitems()"
@@ -7782,7 +7818,7 @@
       "label": "getAdminSections()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
-      "source_location": "L564",
+      "source_location": "L636",
       "id": "controllers_dashboardcontroller_getadminsections",
       "community": 64,
       "norm_label": "getadminsections()"
@@ -7791,7 +7827,7 @@
       "label": "getAdminSectionById()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
-      "source_location": "L578",
+      "source_location": "L650",
       "id": "controllers_dashboardcontroller_getadminsectionbyid",
       "community": 64,
       "norm_label": "getadminsectionbyid()"
@@ -7800,7 +7836,7 @@
       "label": "createAdminSection()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
-      "source_location": "L639",
+      "source_location": "L711",
       "id": "controllers_dashboardcontroller_createadminsection",
       "community": 64,
       "norm_label": "createadminsection()"
@@ -7809,7 +7845,7 @@
       "label": "updateAdminSection()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
-      "source_location": "L684",
+      "source_location": "L756",
       "id": "controllers_dashboardcontroller_updateadminsection",
       "community": 64,
       "norm_label": "updateadminsection()"
@@ -7818,7 +7854,7 @@
       "label": "deleteAdminSection()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
-      "source_location": "L754",
+      "source_location": "L826",
       "id": "controllers_dashboardcontroller_deleteadminsection",
       "community": 64,
       "norm_label": "deleteadminsection()"
@@ -7827,7 +7863,7 @@
       "label": "addAdminSectionItem()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
-      "source_location": "L778",
+      "source_location": "L850",
       "id": "controllers_dashboardcontroller_addadminsectionitem",
       "community": 64,
       "norm_label": "addadminsectionitem()"
@@ -7836,7 +7872,7 @@
       "label": "updateAdminSectionItem()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
-      "source_location": "L850",
+      "source_location": "L922",
       "id": "controllers_dashboardcontroller_updateadminsectionitem",
       "community": 64,
       "norm_label": "updateadminsectionitem()"
@@ -7845,7 +7881,7 @@
       "label": "deleteAdminSectionItem()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
-      "source_location": "L892",
+      "source_location": "L964",
       "id": "controllers_dashboardcontroller_deleteadminsectionitem",
       "community": 64,
       "norm_label": "deleteadminsectionitem()"
@@ -7854,7 +7890,7 @@
       "label": "reorderAdminSections()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
-      "source_location": "L916",
+      "source_location": "L988",
       "id": "controllers_dashboardcontroller_reorderadminsections",
       "community": 64,
       "norm_label": "reorderadminsections()"
@@ -7863,7 +7899,7 @@
       "label": "reorderAdminSectionItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
-      "source_location": "L946",
+      "source_location": "L1018",
       "id": "controllers_dashboardcontroller_reorderadminsectionitems",
       "community": 64,
       "norm_label": "reorderadminsectionitems()"
@@ -11591,7 +11627,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L773",
       "id": "plans_admindashboardtask_17_backend_tests",
-      "community": 74,
+      "community": 152,
       "norm_label": "17. backend tests"
     },
     {
@@ -11600,7 +11636,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L775",
       "id": "plans_admindashboardtask_goal_775",
-      "community": 74,
+      "community": 152,
       "norm_label": "goal"
     },
     {
@@ -11609,7 +11645,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L778",
       "id": "plans_admindashboardtask_subtasks_778",
-      "community": 74,
+      "community": 152,
       "norm_label": "subtasks"
     },
     {
@@ -11618,7 +11654,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L793",
       "id": "plans_admindashboardtask_testing_checklist_793",
-      "community": 74,
+      "community": 152,
       "norm_label": "testing checklist"
     },
     {
@@ -11663,7 +11699,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L826",
       "id": "plans_admindashboardtask_19_frontend_tests",
-      "community": 155,
+      "community": 74,
       "norm_label": "19. frontend tests"
     },
     {
@@ -11672,7 +11708,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L828",
       "id": "plans_admindashboardtask_goal_828",
-      "community": 155,
+      "community": 74,
       "norm_label": "goal"
     },
     {
@@ -11681,7 +11717,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L831",
       "id": "plans_admindashboardtask_subtasks_831",
-      "community": 155,
+      "community": 74,
       "norm_label": "subtasks"
     },
     {
@@ -11690,7 +11726,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L845",
       "id": "plans_admindashboardtask_testing_checklist_845",
-      "community": 155,
+      "community": 74,
       "norm_label": "testing checklist"
     },
     {
@@ -11727,6 +11763,1248 @@
       "source_location": "L883",
       "id": "plans_admindashboardtask_acceptance_criteria",
       "community": 143,
+      "norm_label": "acceptance criteria"
+    },
+    {
+      "label": "bugstask.md",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L1",
+      "id": "plans_bugstask_md",
+      "community": 144,
+      "norm_label": "bugstask.md"
+    },
+    {
+      "label": "ServeLoco Bug Audit And Repair Tasks",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L1",
+      "id": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "community": 144,
+      "norm_label": "serveloco bug audit and repair tasks"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L3",
+      "id": "plans_bugstask_goal",
+      "community": 144,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Correct Data Model",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L8",
+      "id": "plans_bugstask_correct_data_model",
+      "community": 168,
+      "norm_label": "correct data model"
+    },
+    {
+      "label": "Product Is The Main Source Of Truth",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L10",
+      "id": "plans_bugstask_product_is_the_main_source_of_truth",
+      "community": 168,
+      "norm_label": "product is the main source of truth"
+    },
+    {
+      "label": "Category Is Product Metadata And Dashboard Navigation",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L16",
+      "id": "plans_bugstask_category_is_product_metadata_and_dashboard_navigation",
+      "community": 168,
+      "norm_label": "category is product metadata and dashboard navigation"
+    },
+    {
+      "label": "Combo Is A Product Bundle",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L23",
+      "id": "plans_bugstask_combo_is_a_product_bundle",
+      "community": 168,
+      "norm_label": "combo is a product bundle"
+    },
+    {
+      "label": "Dashboard Blocks Are Derived Or Curated",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L31",
+      "id": "plans_bugstask_dashboard_blocks_are_derived_or_curated",
+      "community": 168,
+      "norm_label": "dashboard blocks are derived or curated"
+    },
+    {
+      "label": "Bugs Found",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L38",
+      "id": "plans_bugstask_bugs_found",
+      "community": 31,
+      "norm_label": "bugs found"
+    },
+    {
+      "label": "Bug 1: Admin Combo Form Incorrectly Asks For Category",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L40",
+      "id": "plans_bugstask_bug_1_admin_combo_form_incorrectly_asks_for_category",
+      "community": 31,
+      "norm_label": "bug 1: admin combo form incorrectly asks for category"
+    },
+    {
+      "label": "Evidence",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L42",
+      "id": "plans_bugstask_evidence",
+      "community": 31,
+      "norm_label": "evidence"
+    },
+    {
+      "label": "Expected Behavior",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L51",
+      "id": "plans_bugstask_expected_behavior",
+      "community": 31,
+      "norm_label": "expected behavior"
+    },
+    {
+      "label": "Impact",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L56",
+      "id": "plans_bugstask_impact",
+      "community": 31,
+      "norm_label": "impact"
+    },
+    {
+      "label": "Bug 2: Product Form Can Create Combos",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L63",
+      "id": "plans_bugstask_bug_2_product_form_can_create_combos",
+      "community": 31,
+      "norm_label": "bug 2: product form can create combos"
+    },
+    {
+      "label": "Evidence",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L65",
+      "id": "plans_bugstask_evidence_65",
+      "community": 31,
+      "norm_label": "evidence"
+    },
+    {
+      "label": "Expected Behavior",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L68",
+      "id": "plans_bugstask_expected_behavior_68",
+      "community": 31,
+      "norm_label": "expected behavior"
+    },
+    {
+      "label": "Impact",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L72",
+      "id": "plans_bugstask_impact_72",
+      "community": 31,
+      "norm_label": "impact"
+    },
+    {
+      "label": "Bug 3: New Categories Do Not Automatically Show On Mobile Dashboard",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L79",
+      "id": "plans_bugstask_bug_3_new_categories_do_not_automatically_show_on_mobile_dashboard",
+      "community": 31,
+      "norm_label": "bug 3: new categories do not automatically show on mobile dashboard"
+    },
+    {
+      "label": "Evidence",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L81",
+      "id": "plans_bugstask_evidence_81",
+      "community": 31,
+      "norm_label": "evidence"
+    },
+    {
+      "label": "Expected Behavior",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L86",
+      "id": "plans_bugstask_expected_behavior_86",
+      "community": 31,
+      "norm_label": "expected behavior"
+    },
+    {
+      "label": "Impact",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L91",
+      "id": "plans_bugstask_impact_91",
+      "community": 31,
+      "norm_label": "impact"
+    },
+    {
+      "label": "Bug 4: Bottom Nav Categories Screen Can Filter Out All Categories",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L96",
+      "id": "plans_bugstask_bug_4_bottom_nav_categories_screen_can_filter_out_all_categories",
+      "community": 31,
+      "norm_label": "bug 4: bottom nav categories screen can filter out all categories"
+    },
+    {
+      "label": "Evidence",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L98",
+      "id": "plans_bugstask_evidence_98",
+      "community": 31,
+      "norm_label": "evidence"
+    },
+    {
+      "label": "Expected Behavior",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L103",
+      "id": "plans_bugstask_expected_behavior_103",
+      "community": 31,
+      "norm_label": "expected behavior"
+    },
+    {
+      "label": "Impact",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L108",
+      "id": "plans_bugstask_impact_108",
+      "community": 31,
+      "norm_label": "impact"
+    },
+    {
+      "label": "Bug 5: Clicking A Category Can Hide Matching Products",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L113",
+      "id": "plans_bugstask_bug_5_clicking_a_category_can_hide_matching_products",
+      "community": 31,
+      "norm_label": "bug 5: clicking a category can hide matching products"
+    },
+    {
+      "label": "Evidence",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L115",
+      "id": "plans_bugstask_evidence_115",
+      "community": 31,
+      "norm_label": "evidence"
+    },
+    {
+      "label": "Expected Behavior",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L120",
+      "id": "plans_bugstask_expected_behavior_120",
+      "community": 31,
+      "norm_label": "expected behavior"
+    },
+    {
+      "label": "Impact",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L124",
+      "id": "plans_bugstask_impact_124",
+      "community": 31,
+      "norm_label": "impact"
+    },
+    {
+      "label": "Bug 6: Orders Are Not Showing Reliably",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L129",
+      "id": "plans_bugstask_bug_6_orders_are_not_showing_reliably",
+      "community": 31,
+      "norm_label": "bug 6: orders are not showing reliably"
+    },
+    {
+      "label": "Evidence To Check",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L131",
+      "id": "plans_bugstask_evidence_to_check",
+      "community": 31,
+      "norm_label": "evidence to check"
+    },
+    {
+      "label": "Likely Causes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L137",
+      "id": "plans_bugstask_likely_causes",
+      "community": 31,
+      "norm_label": "likely causes"
+    },
+    {
+      "label": "Expected Behavior",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L144",
+      "id": "plans_bugstask_expected_behavior_144",
+      "community": 31,
+      "norm_label": "expected behavior"
+    },
+    {
+      "label": "Bug 7: Admin Display Order Allows Duplicates",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L152",
+      "id": "plans_bugstask_bug_7_admin_display_order_allows_duplicates",
+      "community": 31,
+      "norm_label": "bug 7: admin display order allows duplicates"
+    },
+    {
+      "label": "Evidence",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L154",
+      "id": "plans_bugstask_evidence_154",
+      "community": 31,
+      "norm_label": "evidence"
+    },
+    {
+      "label": "Expected Behavior",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L158",
+      "id": "plans_bugstask_expected_behavior_158",
+      "community": 31,
+      "norm_label": "expected behavior"
+    },
+    {
+      "label": "Required Scopes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L162",
+      "id": "plans_bugstask_required_scopes",
+      "community": 31,
+      "norm_label": "required scopes"
+    },
+    {
+      "label": "Bug 8: Combo Items Can Be Duplicated Or Invalid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L171",
+      "id": "plans_bugstask_bug_8_combo_items_can_be_duplicated_or_invalid",
+      "community": 31,
+      "norm_label": "bug 8: combo items can be duplicated or invalid"
+    },
+    {
+      "label": "Evidence",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L173",
+      "id": "plans_bugstask_evidence_173",
+      "community": 31,
+      "norm_label": "evidence"
+    },
+    {
+      "label": "Expected Behavior",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L177",
+      "id": "plans_bugstask_expected_behavior_177",
+      "community": 31,
+      "norm_label": "expected behavior"
+    },
+    {
+      "label": "Bug 9: API Response Shapes Are Inconsistent",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L186",
+      "id": "plans_bugstask_bug_9_api_response_shapes_are_inconsistent",
+      "community": 31,
+      "norm_label": "bug 9: api response shapes are inconsistent"
+    },
+    {
+      "label": "Evidence",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L188",
+      "id": "plans_bugstask_evidence_188",
+      "community": 31,
+      "norm_label": "evidence"
+    },
+    {
+      "label": "Expected Behavior",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L193",
+      "id": "plans_bugstask_expected_behavior_193",
+      "community": 31,
+      "norm_label": "expected behavior"
+    },
+    {
+      "label": "Impact",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L197",
+      "id": "plans_bugstask_impact_197",
+      "community": 31,
+      "norm_label": "impact"
+    },
+    {
+      "label": "Bug 10: Dashboard Section Model Conflicts With Derived Category Model",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L202",
+      "id": "plans_bugstask_bug_10_dashboard_section_model_conflicts_with_derived_category_model",
+      "community": 31,
+      "norm_label": "bug 10: dashboard section model conflicts with derived category model"
+    },
+    {
+      "label": "Evidence",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L204",
+      "id": "plans_bugstask_evidence_204",
+      "community": 31,
+      "norm_label": "evidence"
+    },
+    {
+      "label": "Expected Behavior",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L208",
+      "id": "plans_bugstask_expected_behavior_208",
+      "community": 31,
+      "norm_label": "expected behavior"
+    },
+    {
+      "label": "Implementation Order",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L215",
+      "id": "plans_bugstask_implementation_order",
+      "community": 144,
+      "norm_label": "implementation order"
+    },
+    {
+      "label": "Task 1: Lock The Product-First Rules In Code Comments And API Contracts",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L221",
+      "id": "plans_bugstask_task_1_lock_the_product_first_rules_in_code_comments_and_api_contracts",
+      "community": 155,
+      "norm_label": "task 1: lock the product-first rules in code comments and api contracts"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L223",
+      "id": "plans_bugstask_goal_223",
+      "community": 155,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L226",
+      "id": "plans_bugstask_files_likely_changed",
+      "community": 155,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact Changes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L233",
+      "id": "plans_bugstask_exact_changes",
+      "community": 155,
+      "norm_label": "exact changes"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L240",
+      "id": "plans_bugstask_things_to_avoid",
+      "community": 155,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L244",
+      "id": "plans_bugstask_testing_checklist",
+      "community": 155,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 2: Remove Combo Creation From Product Admin",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L250",
+      "id": "plans_bugstask_task_2_remove_combo_creation_from_product_admin",
+      "community": 156,
+      "norm_label": "task 2: remove combo creation from product admin"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L252",
+      "id": "plans_bugstask_goal_252",
+      "community": 156,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L255",
+      "id": "plans_bugstask_files_likely_changed_255",
+      "community": 156,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact Changes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L260",
+      "id": "plans_bugstask_exact_changes_260",
+      "community": 156,
+      "norm_label": "exact changes"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L267",
+      "id": "plans_bugstask_things_to_avoid_267",
+      "community": 156,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L271",
+      "id": "plans_bugstask_testing_checklist_271",
+      "community": 156,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 3: Refactor Combos Away From Product Category Requirement",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L279",
+      "id": "plans_bugstask_task_3_refactor_combos_away_from_product_category_requirement",
+      "community": 153,
+      "norm_label": "task 3: refactor combos away from product category requirement"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L281",
+      "id": "plans_bugstask_goal_281",
+      "community": 153,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L284",
+      "id": "plans_bugstask_files_likely_changed_284",
+      "community": 153,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Suggested Database Model",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L291",
+      "id": "plans_bugstask_suggested_database_model",
+      "community": 153,
+      "norm_label": "suggested database model"
+    },
+    {
+      "label": "Migration Requirements",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L316",
+      "id": "plans_bugstask_migration_requirements",
+      "community": 153,
+      "norm_label": "migration requirements"
+    },
+    {
+      "label": "Exact Changes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L322",
+      "id": "plans_bugstask_exact_changes_322",
+      "community": 153,
+      "norm_label": "exact changes"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L328",
+      "id": "plans_bugstask_things_to_avoid_328",
+      "community": 153,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L332",
+      "id": "plans_bugstask_testing_checklist_332",
+      "community": 153,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 4: Fix Admin Combo Page UI And Validation",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L341",
+      "id": "plans_bugstask_task_4_fix_admin_combo_page_ui_and_validation",
+      "community": 157,
+      "norm_label": "task 4: fix admin combo page ui and validation"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L343",
+      "id": "plans_bugstask_goal_343",
+      "community": 157,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L346",
+      "id": "plans_bugstask_files_likely_changed_346",
+      "community": 157,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact Changes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L351",
+      "id": "plans_bugstask_exact_changes_351",
+      "community": 157,
+      "norm_label": "exact changes"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L363",
+      "id": "plans_bugstask_things_to_avoid_363",
+      "community": 157,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L368",
+      "id": "plans_bugstask_testing_checklist_368",
+      "community": 157,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 5: Fix Combo Add-To-Cart Behavior",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L378",
+      "id": "plans_bugstask_task_5_fix_combo_add_to_cart_behavior",
+      "community": 158,
+      "norm_label": "task 5: fix combo add-to-cart behavior"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L380",
+      "id": "plans_bugstask_goal_380",
+      "community": 158,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L383",
+      "id": "plans_bugstask_files_likely_changed_383",
+      "community": 158,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact Changes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L390",
+      "id": "plans_bugstask_exact_changes_390",
+      "community": 158,
+      "norm_label": "exact changes"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L398",
+      "id": "plans_bugstask_things_to_avoid_398",
+      "community": 158,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L403",
+      "id": "plans_bugstask_testing_checklist_403",
+      "community": 158,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 6: Make Dashboard Category Grid Derived From Categories",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L412",
+      "id": "plans_bugstask_task_6_make_dashboard_category_grid_derived_from_categories",
+      "community": 159,
+      "norm_label": "task 6: make dashboard category grid derived from categories"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L414",
+      "id": "plans_bugstask_goal_414",
+      "community": 159,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L417",
+      "id": "plans_bugstask_files_likely_changed_417",
+      "community": 159,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact Changes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L423",
+      "id": "plans_bugstask_exact_changes_423",
+      "community": 159,
+      "norm_label": "exact changes"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L431",
+      "id": "plans_bugstask_things_to_avoid_431",
+      "community": 159,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L436",
+      "id": "plans_bugstask_testing_checklist_436",
+      "community": 159,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 7: Fix Bottom-Nav Categories Screen",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L447",
+      "id": "plans_bugstask_task_7_fix_bottom_nav_categories_screen",
+      "community": 160,
+      "norm_label": "task 7: fix bottom-nav categories screen"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L449",
+      "id": "plans_bugstask_goal_449",
+      "community": 160,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L452",
+      "id": "plans_bugstask_files_likely_changed_452",
+      "community": 160,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact Changes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L456",
+      "id": "plans_bugstask_exact_changes_456",
+      "community": 160,
+      "norm_label": "exact changes"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L465",
+      "id": "plans_bugstask_things_to_avoid_465",
+      "community": 160,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L469",
+      "id": "plans_bugstask_testing_checklist_469",
+      "community": 160,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 8: Fix Category Click Product Filtering",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L477",
+      "id": "plans_bugstask_task_8_fix_category_click_product_filtering",
+      "community": 161,
+      "norm_label": "task 8: fix category click product filtering"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L479",
+      "id": "plans_bugstask_goal_479",
+      "community": 161,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L482",
+      "id": "plans_bugstask_files_likely_changed_482",
+      "community": 161,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact Changes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L487",
+      "id": "plans_bugstask_exact_changes_487",
+      "community": 161,
+      "norm_label": "exact changes"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L494",
+      "id": "plans_bugstask_things_to_avoid_494",
+      "community": 161,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L498",
+      "id": "plans_bugstask_testing_checklist_498",
+      "community": 161,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 9: Fix Orders Not Showing",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L505",
+      "id": "plans_bugstask_task_9_fix_orders_not_showing",
+      "community": 162,
+      "norm_label": "task 9: fix orders not showing"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L507",
+      "id": "plans_bugstask_goal_507",
+      "community": 162,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L510",
+      "id": "plans_bugstask_files_likely_changed_510",
+      "community": 162,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact Changes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L516",
+      "id": "plans_bugstask_exact_changes_516",
+      "community": 162,
+      "norm_label": "exact changes"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L528",
+      "id": "plans_bugstask_things_to_avoid_528",
+      "community": 162,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L533",
+      "id": "plans_bugstask_testing_checklist_533",
+      "community": 162,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 10: Add Admin Display Order Validation",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L543",
+      "id": "plans_bugstask_task_10_add_admin_display_order_validation",
+      "community": 163,
+      "norm_label": "task 10: add admin display order validation"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L545",
+      "id": "plans_bugstask_goal_545",
+      "community": 163,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L548",
+      "id": "plans_bugstask_files_likely_changed_548",
+      "community": 163,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact Changes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L558",
+      "id": "plans_bugstask_exact_changes_558",
+      "community": 163,
+      "norm_label": "exact changes"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L569",
+      "id": "plans_bugstask_things_to_avoid_569",
+      "community": 163,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L574",
+      "id": "plans_bugstask_testing_checklist_574",
+      "community": 163,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 11: Normalize API List Responses",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L584",
+      "id": "plans_bugstask_task_11_normalize_api_list_responses",
+      "community": 164,
+      "norm_label": "task 11: normalize api list responses"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L586",
+      "id": "plans_bugstask_goal_586",
+      "community": 164,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L589",
+      "id": "plans_bugstask_files_likely_changed_589",
+      "community": 164,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Exact Changes",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L595",
+      "id": "plans_bugstask_exact_changes_595",
+      "community": 164,
+      "norm_label": "exact changes"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L608",
+      "id": "plans_bugstask_things_to_avoid_608",
+      "community": 164,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L612",
+      "id": "plans_bugstask_testing_checklist_612",
+      "community": 164,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 12: Add Missing Backend Tests",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L621",
+      "id": "plans_bugstask_task_12_add_missing_backend_tests",
+      "community": 165,
+      "norm_label": "task 12: add missing backend tests"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L623",
+      "id": "plans_bugstask_goal_623",
+      "community": 165,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L626",
+      "id": "plans_bugstask_files_likely_changed_626",
+      "community": 165,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Required Tests",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L629",
+      "id": "plans_bugstask_required_tests",
+      "community": 165,
+      "norm_label": "required tests"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L640",
+      "id": "plans_bugstask_things_to_avoid_640",
+      "community": 165,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L644",
+      "id": "plans_bugstask_testing_checklist_644",
+      "community": 165,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 13: Add Mobile Frontend Tests Or Manual Checklists",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L649",
+      "id": "plans_bugstask_task_13_add_mobile_frontend_tests_or_manual_checklists",
+      "community": 166,
+      "norm_label": "task 13: add mobile frontend tests or manual checklists"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L651",
+      "id": "plans_bugstask_goal_651",
+      "community": 166,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L654",
+      "id": "plans_bugstask_files_likely_changed_654",
+      "community": 166,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Required Checks",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L658",
+      "id": "plans_bugstask_required_checks",
+      "community": 166,
+      "norm_label": "required checks"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L668",
+      "id": "plans_bugstask_things_to_avoid_668",
+      "community": 166,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L672",
+      "id": "plans_bugstask_testing_checklist_672",
+      "community": 166,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 14: Add Admin Manager Tests Or Manual Checklists",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L678",
+      "id": "plans_bugstask_task_14_add_admin_manager_tests_or_manual_checklists",
+      "community": 167,
+      "norm_label": "task 14: add admin manager tests or manual checklists"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L680",
+      "id": "plans_bugstask_goal_680",
+      "community": 167,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Files Likely Changed",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L683",
+      "id": "plans_bugstask_files_likely_changed_683",
+      "community": 167,
+      "norm_label": "files likely changed"
+    },
+    {
+      "label": "Required Checks",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L687",
+      "id": "plans_bugstask_required_checks_687",
+      "community": 167,
+      "norm_label": "required checks"
+    },
+    {
+      "label": "Things To Avoid",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L697",
+      "id": "plans_bugstask_things_to_avoid_697",
+      "community": 167,
+      "norm_label": "things to avoid"
+    },
+    {
+      "label": "Testing Checklist",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L701",
+      "id": "plans_bugstask_testing_checklist_701",
+      "community": 167,
+      "norm_label": "testing checklist"
+    },
+    {
+      "label": "Task 15: Final End-To-End Verification",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L707",
+      "id": "plans_bugstask_task_15_final_end_to_end_verification",
+      "community": 144,
+      "norm_label": "task 15: final end-to-end verification"
+    },
+    {
+      "label": "Goal",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L709",
+      "id": "plans_bugstask_goal_709",
+      "community": 144,
+      "norm_label": "goal"
+    },
+    {
+      "label": "Steps",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L712",
+      "id": "plans_bugstask_steps",
+      "community": 144,
+      "norm_label": "steps"
+    },
+    {
+      "label": "Acceptance Criteria",
+      "file_type": "document",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L733",
+      "id": "plans_bugstask_acceptance_criteria",
+      "community": 144,
       "norm_label": "acceptance criteria"
     },
     {
@@ -13256,7 +14534,7 @@
       "source_file": "plans/frontnew.md",
       "source_location": "L590",
       "id": "plans_frontnew_16_final_verification",
-      "community": 152,
+      "community": 85,
       "norm_label": "16. final verification"
     },
     {
@@ -13265,7 +14543,7 @@
       "source_file": "plans/frontnew.md",
       "source_location": "L592",
       "id": "plans_frontnew_goal_592",
-      "community": 152,
+      "community": 85,
       "norm_label": "goal"
     },
     {
@@ -13274,7 +14552,7 @@
       "source_file": "plans/frontnew.md",
       "source_location": "L595",
       "id": "plans_frontnew_commands_checks",
-      "community": 152,
+      "community": 85,
       "norm_label": "commands/checks"
     },
     {
@@ -13283,7 +14561,7 @@
       "source_file": "plans/frontnew.md",
       "source_location": "L601",
       "id": "plans_frontnew_manual_flow_checklist",
-      "community": 152,
+      "community": 85,
       "norm_label": "manual flow checklist"
     },
     {
@@ -13292,7 +14570,7 @@
       "source_file": "plans/frontnew.md",
       "source_location": "L616",
       "id": "plans_frontnew_acceptance_criteria",
-      "community": 152,
+      "community": 85,
       "norm_label": "acceptance criteria"
     },
     {
@@ -14596,7 +15874,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
-      "community": 153,
+      "community": 148,
       "norm_label": "status_colors",
       "id": "ordercard_ordercard_status_colors"
     },
@@ -14605,7 +15883,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L13",
-      "community": 153,
+      "community": 148,
       "norm_label": "payment_colors",
       "id": "ordercard_ordercard_payment_colors"
     },
@@ -14614,7 +15892,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
       "source_location": "L1",
-      "community": 144,
+      "community": 13,
       "norm_label": "adminnavigator.js",
       "id": "frontend_v1_src_navigation_adminnavigator_js"
     },
@@ -14623,7 +15901,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
       "source_location": "L17",
-      "community": 144,
+      "community": 13,
       "norm_label": "stack",
       "id": "navigation_adminnavigator_stack"
     },
@@ -14632,7 +15910,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
       "source_location": "L23",
-      "community": 144,
+      "community": 13,
       "norm_label": "adminnavigator()",
       "id": "navigation_adminnavigator_adminnavigator"
     },
@@ -14659,7 +15937,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_index_js"
     },
@@ -14668,7 +15946,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L1",
-      "community": 31,
+      "community": 28,
       "norm_label": "admincustomersscreen.js",
       "id": "frontend_v1_src_screens_admin_admincustomersscreen_admincustomersscreen_js"
     },
@@ -14677,7 +15955,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L35",
-      "community": 31,
+      "community": 28,
       "norm_label": "pickfirst()",
       "id": "admincustomersscreen_admincustomersscreen_pickfirst"
     },
@@ -14686,7 +15964,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L39",
-      "community": 31,
+      "community": 28,
       "norm_label": "asboolean()",
       "id": "admincustomersscreen_admincustomersscreen_asboolean"
     },
@@ -14695,7 +15973,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L49",
-      "community": 31,
+      "community": 28,
       "norm_label": "getcustomersfromresponse()",
       "id": "admincustomersscreen_admincustomersscreen_getcustomersfromresponse"
     },
@@ -14704,7 +15982,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L59",
-      "community": 31,
+      "community": 28,
       "norm_label": "normalizecustomer()",
       "id": "admincustomersscreen_admincustomersscreen_normalizecustomer"
     },
@@ -14713,7 +15991,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L93",
-      "community": 31,
+      "community": 28,
       "norm_label": "formatshortaddress()",
       "id": "admincustomersscreen_admincustomersscreen_formatshortaddress"
     },
@@ -14722,7 +16000,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L106",
-      "community": 31,
+      "community": 28,
       "norm_label": "getactionerror()",
       "id": "admincustomersscreen_admincustomersscreen_getactionerror"
     },
@@ -14731,7 +16009,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L110",
-      "community": 31,
+      "community": 28,
       "norm_label": "admincustomersscreen()",
       "id": "admincustomersscreen_admincustomersscreen_admincustomersscreen"
     },
@@ -14740,7 +16018,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L363",
-      "community": 31,
+      "community": 28,
       "norm_label": "customerskeletonlist()",
       "id": "admincustomersscreen_admincustomersscreen_customerskeletonlist"
     },
@@ -14749,7 +16027,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L374",
-      "community": 31,
+      "community": 28,
       "norm_label": "customercard()",
       "id": "admincustomersscreen_admincustomersscreen_customercard"
     },
@@ -14758,7 +16036,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L465",
-      "community": 31,
+      "community": 28,
       "norm_label": "statuspill()",
       "id": "admincustomersscreen_admincustomersscreen_statuspill"
     },
@@ -14767,7 +16045,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L484",
-      "community": 31,
+      "community": 28,
       "norm_label": "togglerow()",
       "id": "admincustomersscreen_admincustomersscreen_togglerow"
     },
@@ -14776,7 +16054,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L505",
-      "community": 31,
+      "community": 28,
       "norm_label": "blockcustomermodal()",
       "id": "admincustomersscreen_admincustomersscreen_blockcustomermodal"
     },
@@ -14785,7 +16063,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L545",
-      "community": 31,
+      "community": 28,
       "norm_label": "styles",
       "id": "admincustomersscreen_admincustomersscreen_styles"
     },
@@ -14794,7 +16072,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_admincustomersscreen_index_js"
     },
@@ -14803,7 +16081,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 89,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminorderdetailscreen_index_js"
     },
@@ -14857,7 +16135,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminDashboardScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_admindashboardscreen_index_js"
     },
@@ -14983,7 +16261,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminLoginScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminloginscreen_index_js"
     },
@@ -15127,7 +16405,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminsettingsscreen_index_js"
     },
@@ -15136,7 +16414,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductFormScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminproductformscreen_index_js"
     },
@@ -15217,7 +16495,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/index.js",
       "source_location": "L1",
-      "community": 89,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminordersscreen_index_js"
     },
@@ -15307,7 +16585,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminEntryScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminentryscreen_index_js"
     },
@@ -15415,7 +16693,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminCustomersApi.js",
       "source_location": "L4",
-      "community": 31,
+      "community": 28,
       "norm_label": "admincustomersapi",
       "id": "api_admincustomersapi_admincustomersapi"
     },
@@ -15424,7 +16702,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/sessionTokens.js",
       "source_location": "L8",
-      "community": 28,
+      "community": 100,
       "norm_label": "setadmintokenprovider()",
       "id": "api_sessiontokens_setadmintokenprovider"
     },
@@ -15928,7 +17206,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L1",
-      "community": 31,
+      "community": 28,
       "norm_label": "admincustomersscreen.js",
       "id": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js"
     },
@@ -15937,7 +17215,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admincustomersscreen_index_js"
     },
@@ -15955,7 +17233,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L1",
-      "community": 33,
+      "community": 148,
       "norm_label": "orderconfirmationscreen.js",
       "id": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js"
     },
@@ -16036,7 +17314,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 17,
       "norm_label": "ordersscreen.js",
       "id": "frontend_v1_src_screens_ordersscreen_ordersscreen_js"
     },
@@ -16054,7 +17332,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 89,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminorderdetailscreen_index_js"
     },
@@ -16108,7 +17386,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admindashboardscreen_index_js"
     },
@@ -16153,7 +17431,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/index.js",
       "source_location": "L1",
-      "community": 59,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminproductsscreen_index_js"
     },
@@ -16171,7 +17449,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminLoginScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminloginscreen_index_js"
     },
@@ -16189,7 +17467,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CartScreen/CartScreen.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 15,
       "norm_label": "cartscreen.js",
       "id": "frontend_v1_src_screens_cartscreen_cartscreen_js"
     },
@@ -16207,7 +17485,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_index_js"
     },
@@ -16216,7 +17494,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminproductformscreen_index_js"
     },
@@ -16234,7 +17512,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/index.js",
       "source_location": "L1",
-      "community": 89,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminordersscreen_index_js"
     },
@@ -16261,7 +17539,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/index.js",
       "source_location": "L1",
-      "community": 115,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminentryscreen_index_js"
     },
@@ -16306,7 +17584,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/index.js",
       "source_location": "L2",
-      "community": 115,
+      "community": 13,
       "norm_label": "adminscreensplaceholder",
       "id": "admin_index_adminscreensplaceholder"
     },
@@ -16342,7 +17620,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L32",
-      "community": 15,
+      "community": 17,
       "norm_label": "mock_orders",
       "id": "ordersscreen_ordersscreen_mock_orders"
     },
@@ -16477,7 +17755,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/index.js",
       "source_location": "L2",
-      "community": 33,
+      "community": 45,
       "norm_label": "themeplaceholder",
       "id": "theme_index_themeplaceholder"
     },
@@ -19327,9 +20605,9 @@
       "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
-      "target": "pages_mobiledashboard_readlist",
-      "confidence_score": 1.0
+      "target": "pages_mobiledashboard_readlist"
     },
     {
       "relation": "contains",
@@ -40865,9 +42143,9 @@
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_middleware_auditmiddleware_js",
-      "target": "middleware_auditmiddleware_logauditerror",
-      "confidence_score": 1.0
+      "target": "middleware_auditmiddleware_logauditerror"
     },
     {
       "relation": "contains",
@@ -40886,9 +42164,9 @@
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L39",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "middleware_auditmiddleware_auditlog",
-      "target": "middleware_auditmiddleware_logauditerror",
-      "confidence_score": 1.0
+      "target": "middleware_auditmiddleware_logauditerror"
     },
     {
       "relation": "imports_from",
@@ -41146,9 +42424,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_dashboardcontroller_js",
-      "target": "controllers_dashboardcontroller_section_types",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_section_types"
     },
     {
       "relation": "contains",
@@ -41156,9 +42434,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_dashboardcontroller_js",
-      "target": "controllers_dashboardcontroller_store_types",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_store_types"
     },
     {
       "relation": "contains",
@@ -41166,9 +42444,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_dashboardcontroller_js",
-      "target": "controllers_dashboardcontroller_section_item_types",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_section_item_types"
     },
     {
       "relation": "contains",
@@ -41176,9 +42454,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_dashboardcontroller_js",
-      "target": "controllers_dashboardcontroller_getexpectedstoretype",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_getexpectedstoretype"
     },
     {
       "relation": "contains",
@@ -41186,9 +42464,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L19",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_dashboardcontroller_js",
-      "target": "controllers_dashboardcontroller_isinvaliddatevalue",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_isinvaliddatevalue"
     },
     {
       "relation": "contains",
@@ -41196,9 +42474,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_dashboardcontroller_js",
-      "target": "controllers_dashboardcontroller_validatevisibilitywindow",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_validatevisibilitywindow"
     },
     {
       "relation": "contains",
@@ -41206,9 +42484,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_dashboardcontroller_js",
-      "target": "controllers_dashboardcontroller_aspositiveinteger",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_aspositiveinteger"
     },
     {
       "relation": "contains",
@@ -41216,9 +42494,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L37",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_dashboardcontroller_js",
-      "target": "controllers_dashboardcontroller_validatesectionpayload",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_validatesectionpayload"
     },
     {
       "relation": "contains",
@@ -41226,9 +42504,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L56",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_dashboardcontroller_js",
-      "target": "controllers_dashboardcontroller_getlinkediteminfo",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_getlinkediteminfo"
     },
     {
       "relation": "contains",
@@ -41259,6 +42537,46 @@
       "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_dashboardcontroller_js",
       "target": "controllers_dashboardcontroller_attachcomboitems"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L187",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_dashboardcontroller_js",
+      "target": "controllers_dashboardcontroller_mapcategoryrows"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L199",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_dashboardcontroller_js",
+      "target": "controllers_dashboardcontroller_mapproductrows"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L219",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_dashboardcontroller_js",
+      "target": "controllers_dashboardcontroller_getdefaultcategoryitems"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L240",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_dashboardcontroller_js",
+      "target": "controllers_dashboardcontroller_getdefaultcomboitems"
     },
     {
       "relation": "contains",
@@ -41387,9 +42705,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L193",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_getdashboard",
-      "target": "controllers_dashboardcontroller_getexpectedstoretype",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_getexpectedstoretype"
     },
     {
       "relation": "calls",
@@ -41398,9 +42716,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L388",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_getsectionitems",
-      "target": "controllers_dashboardcontroller_getexpectedstoretype",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_getexpectedstoretype"
     },
     {
       "relation": "calls",
@@ -41409,9 +42727,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_validatevisibilitywindow",
-      "target": "controllers_dashboardcontroller_isinvaliddatevalue",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_isinvaliddatevalue"
     },
     {
       "relation": "calls",
@@ -41420,9 +42738,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L53",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_validatesectionpayload",
-      "target": "controllers_dashboardcontroller_validatevisibilitywindow",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_validatevisibilitywindow"
     },
     {
       "relation": "calls",
@@ -41431,9 +42749,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L786",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_addadminsectionitem",
-      "target": "controllers_dashboardcontroller_validatevisibilitywindow",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_validatevisibilitywindow"
     },
     {
       "relation": "calls",
@@ -41442,9 +42760,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L854",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_updateadminsectionitem",
-      "target": "controllers_dashboardcontroller_validatevisibilitywindow",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_validatevisibilitywindow"
     },
     {
       "relation": "calls",
@@ -41453,9 +42771,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L50",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_validatesectionpayload",
-      "target": "controllers_dashboardcontroller_aspositiveinteger",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_aspositiveinteger"
     },
     {
       "relation": "calls",
@@ -41464,9 +42782,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L646",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_createadminsection",
-      "target": "controllers_dashboardcontroller_aspositiveinteger",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_aspositiveinteger"
     },
     {
       "relation": "calls",
@@ -41475,9 +42793,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L734",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_updateadminsection",
-      "target": "controllers_dashboardcontroller_aspositiveinteger",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_aspositiveinteger"
     },
     {
       "relation": "calls",
@@ -41486,9 +42804,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L642",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_createadminsection",
-      "target": "controllers_dashboardcontroller_validatesectionpayload",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_validatesectionpayload"
     },
     {
       "relation": "calls",
@@ -41497,9 +42815,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L688",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_updateadminsection",
-      "target": "controllers_dashboardcontroller_validatesectionpayload",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_validatesectionpayload"
     },
     {
       "relation": "calls",
@@ -41508,9 +42826,9 @@
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L808",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_addadminsectionitem",
-      "target": "controllers_dashboardcontroller_getlinkediteminfo",
-      "confidence_score": 1.0
+      "target": "controllers_dashboardcontroller_getlinkediteminfo"
     },
     {
       "relation": "calls",
@@ -41521,6 +42839,28 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_getcomboitemsbycomboids",
+      "target": "controllers_dashboardcontroller_resolveimageurls"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L236",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_dashboardcontroller_getdefaultcategoryitems",
+      "target": "controllers_dashboardcontroller_resolveimageurls"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L258",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_dashboardcontroller_getdefaultcomboitems",
       "target": "controllers_dashboardcontroller_resolveimageurls"
     },
     {
@@ -41572,6 +42912,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L259",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_dashboardcontroller_getdefaultcomboitems",
+      "target": "controllers_dashboardcontroller_attachcomboitems"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L183",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -41599,6 +42950,72 @@
       "confidence_score": 1.0,
       "source": "controllers_dashboardcontroller_getadminsectionbyid",
       "target": "controllers_dashboardcontroller_attachcomboitems"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L237",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_dashboardcontroller_getdefaultcategoryitems",
+      "target": "controllers_dashboardcontroller_mapcategoryrows"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L336",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_dashboardcontroller_getdashboard",
+      "target": "controllers_dashboardcontroller_mapcategoryrows"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L260",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_dashboardcontroller_getdefaultcomboitems",
+      "target": "controllers_dashboardcontroller_mapproductrows"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L361",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_dashboardcontroller_getdashboard",
+      "target": "controllers_dashboardcontroller_mapproductrows"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L338",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_dashboardcontroller_getdashboard",
+      "target": "controllers_dashboardcontroller_getdefaultcategoryitems"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/dashboardController.js",
+      "source_location": "L384",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_dashboardcontroller_getdashboard",
+      "target": "controllers_dashboardcontroller_getdefaultcomboitems"
     },
     {
       "relation": "contains",
@@ -46945,6 +48362,1376 @@
       "confidence_score": 1.0,
       "source": "plans_admindashboardtask_16_final_end_to_end_verification",
       "target": "plans_admindashboardtask_acceptance_criteria"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "plans_bugstask_md",
+      "target": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_goal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_correct_data_model",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_bugs_found",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L215",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_implementation_order",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L221",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_1_lock_the_product_first_rules_in_code_comments_and_api_contracts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L250",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_2_remove_combo_creation_from_product_admin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L279",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_3_refactor_combos_away_from_product_category_requirement",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L341",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_4_fix_admin_combo_page_ui_and_validation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L378",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_5_fix_combo_add_to_cart_behavior",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L412",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_6_make_dashboard_category_grid_derived_from_categories",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L447",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_7_fix_bottom_nav_categories_screen",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L477",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_8_fix_category_click_product_filtering",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L505",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_9_fix_orders_not_showing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L543",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_10_add_admin_display_order_validation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L584",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_11_normalize_api_list_responses",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L621",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_12_add_missing_backend_tests",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L649",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_13_add_mobile_frontend_tests_or_manual_checklists",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L678",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_14_add_admin_manager_tests_or_manual_checklists",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L707",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_task_15_final_end_to_end_verification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L733",
+      "weight": 1.0,
+      "source": "plans_bugstask_serveloco_bug_audit_and_repair_tasks",
+      "target": "plans_bugstask_acceptance_criteria",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "plans_bugstask_correct_data_model",
+      "target": "plans_bugstask_product_is_the_main_source_of_truth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "plans_bugstask_correct_data_model",
+      "target": "plans_bugstask_category_is_product_metadata_and_dashboard_navigation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "plans_bugstask_correct_data_model",
+      "target": "plans_bugstask_combo_is_a_product_bundle",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "plans_bugstask_correct_data_model",
+      "target": "plans_bugstask_dashboard_blocks_are_derived_or_curated",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "plans_bugstask_bugs_found",
+      "target": "plans_bugstask_bug_1_admin_combo_form_incorrectly_asks_for_category",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "plans_bugstask_bugs_found",
+      "target": "plans_bugstask_bug_2_product_form_can_create_combos",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L79",
+      "weight": 1.0,
+      "source": "plans_bugstask_bugs_found",
+      "target": "plans_bugstask_bug_3_new_categories_do_not_automatically_show_on_mobile_dashboard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "plans_bugstask_bugs_found",
+      "target": "plans_bugstask_bug_4_bottom_nav_categories_screen_can_filter_out_all_categories",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L113",
+      "weight": 1.0,
+      "source": "plans_bugstask_bugs_found",
+      "target": "plans_bugstask_bug_5_clicking_a_category_can_hide_matching_products",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L129",
+      "weight": 1.0,
+      "source": "plans_bugstask_bugs_found",
+      "target": "plans_bugstask_bug_6_orders_are_not_showing_reliably",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L152",
+      "weight": 1.0,
+      "source": "plans_bugstask_bugs_found",
+      "target": "plans_bugstask_bug_7_admin_display_order_allows_duplicates",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L171",
+      "weight": 1.0,
+      "source": "plans_bugstask_bugs_found",
+      "target": "plans_bugstask_bug_8_combo_items_can_be_duplicated_or_invalid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L186",
+      "weight": 1.0,
+      "source": "plans_bugstask_bugs_found",
+      "target": "plans_bugstask_bug_9_api_response_shapes_are_inconsistent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L202",
+      "weight": 1.0,
+      "source": "plans_bugstask_bugs_found",
+      "target": "plans_bugstask_bug_10_dashboard_section_model_conflicts_with_derived_category_model",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_1_admin_combo_form_incorrectly_asks_for_category",
+      "target": "plans_bugstask_evidence",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_1_admin_combo_form_incorrectly_asks_for_category",
+      "target": "plans_bugstask_expected_behavior",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_1_admin_combo_form_incorrectly_asks_for_category",
+      "target": "plans_bugstask_impact",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L65",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_2_product_form_can_create_combos",
+      "target": "plans_bugstask_evidence_65",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_2_product_form_can_create_combos",
+      "target": "plans_bugstask_expected_behavior_68",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_2_product_form_can_create_combos",
+      "target": "plans_bugstask_impact_72",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L81",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_3_new_categories_do_not_automatically_show_on_mobile_dashboard",
+      "target": "plans_bugstask_evidence_81",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L86",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_3_new_categories_do_not_automatically_show_on_mobile_dashboard",
+      "target": "plans_bugstask_expected_behavior_86",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L91",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_3_new_categories_do_not_automatically_show_on_mobile_dashboard",
+      "target": "plans_bugstask_impact_91",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L98",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_4_bottom_nav_categories_screen_can_filter_out_all_categories",
+      "target": "plans_bugstask_evidence_98",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L103",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_4_bottom_nav_categories_screen_can_filter_out_all_categories",
+      "target": "plans_bugstask_expected_behavior_103",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L108",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_4_bottom_nav_categories_screen_can_filter_out_all_categories",
+      "target": "plans_bugstask_impact_108",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L115",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_5_clicking_a_category_can_hide_matching_products",
+      "target": "plans_bugstask_evidence_115",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L120",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_5_clicking_a_category_can_hide_matching_products",
+      "target": "plans_bugstask_expected_behavior_120",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L124",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_5_clicking_a_category_can_hide_matching_products",
+      "target": "plans_bugstask_impact_124",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L131",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_6_orders_are_not_showing_reliably",
+      "target": "plans_bugstask_evidence_to_check",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L137",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_6_orders_are_not_showing_reliably",
+      "target": "plans_bugstask_likely_causes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L144",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_6_orders_are_not_showing_reliably",
+      "target": "plans_bugstask_expected_behavior_144",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L154",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_7_admin_display_order_allows_duplicates",
+      "target": "plans_bugstask_evidence_154",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L158",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_7_admin_display_order_allows_duplicates",
+      "target": "plans_bugstask_expected_behavior_158",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L162",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_7_admin_display_order_allows_duplicates",
+      "target": "plans_bugstask_required_scopes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L173",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_8_combo_items_can_be_duplicated_or_invalid",
+      "target": "plans_bugstask_evidence_173",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L177",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_8_combo_items_can_be_duplicated_or_invalid",
+      "target": "plans_bugstask_expected_behavior_177",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L188",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_9_api_response_shapes_are_inconsistent",
+      "target": "plans_bugstask_evidence_188",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L193",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_9_api_response_shapes_are_inconsistent",
+      "target": "plans_bugstask_expected_behavior_193",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L197",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_9_api_response_shapes_are_inconsistent",
+      "target": "plans_bugstask_impact_197",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L204",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_10_dashboard_section_model_conflicts_with_derived_category_model",
+      "target": "plans_bugstask_evidence_204",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L208",
+      "weight": 1.0,
+      "source": "plans_bugstask_bug_10_dashboard_section_model_conflicts_with_derived_category_model",
+      "target": "plans_bugstask_expected_behavior_208",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L223",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_1_lock_the_product_first_rules_in_code_comments_and_api_contracts",
+      "target": "plans_bugstask_goal_223",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L226",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_1_lock_the_product_first_rules_in_code_comments_and_api_contracts",
+      "target": "plans_bugstask_files_likely_changed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L233",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_1_lock_the_product_first_rules_in_code_comments_and_api_contracts",
+      "target": "plans_bugstask_exact_changes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L240",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_1_lock_the_product_first_rules_in_code_comments_and_api_contracts",
+      "target": "plans_bugstask_things_to_avoid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L244",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_1_lock_the_product_first_rules_in_code_comments_and_api_contracts",
+      "target": "plans_bugstask_testing_checklist",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L252",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_2_remove_combo_creation_from_product_admin",
+      "target": "plans_bugstask_goal_252",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L255",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_2_remove_combo_creation_from_product_admin",
+      "target": "plans_bugstask_files_likely_changed_255",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L260",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_2_remove_combo_creation_from_product_admin",
+      "target": "plans_bugstask_exact_changes_260",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L267",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_2_remove_combo_creation_from_product_admin",
+      "target": "plans_bugstask_things_to_avoid_267",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L271",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_2_remove_combo_creation_from_product_admin",
+      "target": "plans_bugstask_testing_checklist_271",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L281",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_3_refactor_combos_away_from_product_category_requirement",
+      "target": "plans_bugstask_goal_281",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L284",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_3_refactor_combos_away_from_product_category_requirement",
+      "target": "plans_bugstask_files_likely_changed_284",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L291",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_3_refactor_combos_away_from_product_category_requirement",
+      "target": "plans_bugstask_suggested_database_model",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L316",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_3_refactor_combos_away_from_product_category_requirement",
+      "target": "plans_bugstask_migration_requirements",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L322",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_3_refactor_combos_away_from_product_category_requirement",
+      "target": "plans_bugstask_exact_changes_322",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L328",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_3_refactor_combos_away_from_product_category_requirement",
+      "target": "plans_bugstask_things_to_avoid_328",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L332",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_3_refactor_combos_away_from_product_category_requirement",
+      "target": "plans_bugstask_testing_checklist_332",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L343",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_4_fix_admin_combo_page_ui_and_validation",
+      "target": "plans_bugstask_goal_343",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L346",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_4_fix_admin_combo_page_ui_and_validation",
+      "target": "plans_bugstask_files_likely_changed_346",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L351",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_4_fix_admin_combo_page_ui_and_validation",
+      "target": "plans_bugstask_exact_changes_351",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L363",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_4_fix_admin_combo_page_ui_and_validation",
+      "target": "plans_bugstask_things_to_avoid_363",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L368",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_4_fix_admin_combo_page_ui_and_validation",
+      "target": "plans_bugstask_testing_checklist_368",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L380",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_5_fix_combo_add_to_cart_behavior",
+      "target": "plans_bugstask_goal_380",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L383",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_5_fix_combo_add_to_cart_behavior",
+      "target": "plans_bugstask_files_likely_changed_383",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L390",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_5_fix_combo_add_to_cart_behavior",
+      "target": "plans_bugstask_exact_changes_390",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L398",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_5_fix_combo_add_to_cart_behavior",
+      "target": "plans_bugstask_things_to_avoid_398",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L403",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_5_fix_combo_add_to_cart_behavior",
+      "target": "plans_bugstask_testing_checklist_403",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L414",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_6_make_dashboard_category_grid_derived_from_categories",
+      "target": "plans_bugstask_goal_414",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L417",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_6_make_dashboard_category_grid_derived_from_categories",
+      "target": "plans_bugstask_files_likely_changed_417",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L423",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_6_make_dashboard_category_grid_derived_from_categories",
+      "target": "plans_bugstask_exact_changes_423",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L431",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_6_make_dashboard_category_grid_derived_from_categories",
+      "target": "plans_bugstask_things_to_avoid_431",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L436",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_6_make_dashboard_category_grid_derived_from_categories",
+      "target": "plans_bugstask_testing_checklist_436",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L449",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_7_fix_bottom_nav_categories_screen",
+      "target": "plans_bugstask_goal_449",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L452",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_7_fix_bottom_nav_categories_screen",
+      "target": "plans_bugstask_files_likely_changed_452",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L456",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_7_fix_bottom_nav_categories_screen",
+      "target": "plans_bugstask_exact_changes_456",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L465",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_7_fix_bottom_nav_categories_screen",
+      "target": "plans_bugstask_things_to_avoid_465",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L469",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_7_fix_bottom_nav_categories_screen",
+      "target": "plans_bugstask_testing_checklist_469",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L479",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_8_fix_category_click_product_filtering",
+      "target": "plans_bugstask_goal_479",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L482",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_8_fix_category_click_product_filtering",
+      "target": "plans_bugstask_files_likely_changed_482",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L487",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_8_fix_category_click_product_filtering",
+      "target": "plans_bugstask_exact_changes_487",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L494",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_8_fix_category_click_product_filtering",
+      "target": "plans_bugstask_things_to_avoid_494",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L498",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_8_fix_category_click_product_filtering",
+      "target": "plans_bugstask_testing_checklist_498",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L507",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_9_fix_orders_not_showing",
+      "target": "plans_bugstask_goal_507",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L510",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_9_fix_orders_not_showing",
+      "target": "plans_bugstask_files_likely_changed_510",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L516",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_9_fix_orders_not_showing",
+      "target": "plans_bugstask_exact_changes_516",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L528",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_9_fix_orders_not_showing",
+      "target": "plans_bugstask_things_to_avoid_528",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L533",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_9_fix_orders_not_showing",
+      "target": "plans_bugstask_testing_checklist_533",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L545",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_10_add_admin_display_order_validation",
+      "target": "plans_bugstask_goal_545",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L548",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_10_add_admin_display_order_validation",
+      "target": "plans_bugstask_files_likely_changed_548",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L558",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_10_add_admin_display_order_validation",
+      "target": "plans_bugstask_exact_changes_558",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L569",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_10_add_admin_display_order_validation",
+      "target": "plans_bugstask_things_to_avoid_569",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L574",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_10_add_admin_display_order_validation",
+      "target": "plans_bugstask_testing_checklist_574",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L586",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_11_normalize_api_list_responses",
+      "target": "plans_bugstask_goal_586",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L589",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_11_normalize_api_list_responses",
+      "target": "plans_bugstask_files_likely_changed_589",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L595",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_11_normalize_api_list_responses",
+      "target": "plans_bugstask_exact_changes_595",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L608",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_11_normalize_api_list_responses",
+      "target": "plans_bugstask_things_to_avoid_608",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L612",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_11_normalize_api_list_responses",
+      "target": "plans_bugstask_testing_checklist_612",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L623",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_12_add_missing_backend_tests",
+      "target": "plans_bugstask_goal_623",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L626",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_12_add_missing_backend_tests",
+      "target": "plans_bugstask_files_likely_changed_626",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L629",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_12_add_missing_backend_tests",
+      "target": "plans_bugstask_required_tests",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L640",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_12_add_missing_backend_tests",
+      "target": "plans_bugstask_things_to_avoid_640",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L644",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_12_add_missing_backend_tests",
+      "target": "plans_bugstask_testing_checklist_644",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L651",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_13_add_mobile_frontend_tests_or_manual_checklists",
+      "target": "plans_bugstask_goal_651",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L654",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_13_add_mobile_frontend_tests_or_manual_checklists",
+      "target": "plans_bugstask_files_likely_changed_654",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L658",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_13_add_mobile_frontend_tests_or_manual_checklists",
+      "target": "plans_bugstask_required_checks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L668",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_13_add_mobile_frontend_tests_or_manual_checklists",
+      "target": "plans_bugstask_things_to_avoid_668",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L672",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_13_add_mobile_frontend_tests_or_manual_checklists",
+      "target": "plans_bugstask_testing_checklist_672",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L680",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_14_add_admin_manager_tests_or_manual_checklists",
+      "target": "plans_bugstask_goal_680",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L683",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_14_add_admin_manager_tests_or_manual_checklists",
+      "target": "plans_bugstask_files_likely_changed_683",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L687",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_14_add_admin_manager_tests_or_manual_checklists",
+      "target": "plans_bugstask_required_checks_687",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L697",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_14_add_admin_manager_tests_or_manual_checklists",
+      "target": "plans_bugstask_things_to_avoid_697",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L701",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_14_add_admin_manager_tests_or_manual_checklists",
+      "target": "plans_bugstask_testing_checklist_701",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L709",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_15_final_end_to_end_verification",
+      "target": "plans_bugstask_goal_709",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "plans/bugstask.md",
+      "source_location": "L712",
+      "weight": 1.0,
+      "source": "plans_bugstask_task_15_final_end_to_end_verification",
+      "target": "plans_bugstask_steps",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -52939,5 +55726,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "f7af5e30d2480874e82f9484c0b9ebd2a6899d62"
+  "built_at_commit": "83e726ce0403259a683acc4edb7dfab1dc5ecd80"
 }

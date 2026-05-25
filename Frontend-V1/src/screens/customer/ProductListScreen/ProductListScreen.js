@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -56,8 +56,6 @@ export default function ProductListScreen() {
   // Stores
   const {
     items,
-    totalItems,
-    displayTotal,
     addItem,
     addCombo,
     decrementCombo,
@@ -75,6 +73,14 @@ export default function ProductListScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [products, setProducts] = useState([]);
+  const cartItemCount = useMemo(
+    () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
+    [items]
+  );
+  const cartDisplayTotal = useMemo(
+    () => items.reduce((total, item) => total + ((Number(item.product?.price) || 0) * (Number(item.quantity) || 0)), 0),
+    [items]
+  );
 
   // Filter crossfade animation
   const listOpacity = useRef(new Animated.Value(1)).current;
@@ -323,7 +329,7 @@ export default function ProductListScreen() {
             : 'Products'
         }
         onBack={() => navigation.goBack()}
-        cartCount={totalItems}
+        cartCount={cartItemCount}
         onCartPress={() => navigation.navigate('Cart')}
       />
 
@@ -402,8 +408,8 @@ export default function ProductListScreen() {
       </View>
 
       <StickyMiniCart
-        itemCount={totalItems}
-        totalAmount={displayTotal}
+        itemCount={cartItemCount}
+        totalAmount={cartDisplayTotal}
         onPress={() => navigation.navigate('Cart')}
       />
     </AppScreen>

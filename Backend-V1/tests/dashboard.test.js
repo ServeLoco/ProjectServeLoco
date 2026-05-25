@@ -55,6 +55,12 @@ describe('Dashboard Public and Admin API Tests', () => {
         }
       ]]);
 
+      // Mock configured section types lookup
+      pool.query.mockResolvedValueOnce([[
+        { section_type: 'category_grid' },
+        { section_type: 'combo_block' }
+      ]]);
+
       // Mock section items retrieval
       pool.query.mockResolvedValueOnce([[
         {
@@ -91,6 +97,49 @@ describe('Dashboard Public and Admin API Tests', () => {
       expect(res.body.data.sections[0].title).toEqual('Popular Combos');
       expect(res.body.data.sections[0].items[0].name).toEqual('Burger & Fries Combo');
       expect(res.body.data.sections[0].items[0].comboItems).toHaveLength(1);
+    });
+
+    it('should recover the default category section when dashboard item links are missing', async () => {
+      pool.query.mockResolvedValueOnce([[
+        {
+          id: 2,
+          title: 'Shop by Category',
+          slug: 'categories-grid',
+          section_type: 'category_grid',
+          store_type: 'all',
+          active: 1,
+          display_order: 1,
+          max_visible_items: 8,
+          show_see_all: 0
+        }
+      ]]);
+
+      pool.query.mockResolvedValueOnce([[
+        { section_type: 'category_grid' },
+        { section_type: 'combo_block' }
+      ]]);
+
+      // No explicit dashboard_section_items linked.
+      pool.query.mockResolvedValueOnce([[]]);
+
+      // Fallback to active categories.
+      pool.query.mockResolvedValueOnce([[
+        {
+          id: 5,
+          name: 'Snacks',
+          slug: 'snacks',
+          type: 'packed',
+          active: 1,
+          display_order: 2
+        }
+      ]]);
+
+      const res = await request(app).get('/api/dashboard?storeType=packed');
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.data.sections).toHaveLength(1);
+      expect(res.body.data.sections[0].sectionType).toEqual('category_grid');
+      expect(res.body.data.sections[0].items[0].name).toEqual('Snacks');
     });
   });
 

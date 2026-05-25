@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -36,8 +36,6 @@ export default function HomeScreen() {
   // Stores
   const {
     items,
-    totalItems,
-    displayTotal,
     addItem,
     addCombo,
     decrementCombo,
@@ -52,6 +50,14 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardSections, setDashboardSections] = useState([]);
   const currentApiStoreType = storeType === 'Fast Food' ? 'fast_food' : 'packed';
+  const cartItemCount = useMemo(
+    () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
+    [items]
+  );
+  const cartDisplayTotal = useMemo(
+    () => items.reduce((total, item) => total + ((Number(item.product?.price) || 0) * (Number(item.quantity) || 0)), 0),
+    [items]
+  );
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -393,8 +399,8 @@ export default function HomeScreen() {
 
       {/* Sticky Mini Cart */}
       <StickyMiniCart
-        itemCount={totalItems}
-        totalAmount={displayTotal}
+        itemCount={cartItemCount}
+        totalAmount={cartDisplayTotal}
         onPress={handleCartPress}
       />
     </AppScreen>

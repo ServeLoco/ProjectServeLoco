@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-25)
 
 ## Corpus Check
-- 250 files · ~127,442 words
+- 251 files · ~131,547 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1947 nodes · 3374 edges · 156 communities (142 shown, 14 thin omitted)
+- 2089 nodes · 3524 edges · 169 communities (157 shown, 12 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f7af5e30`
+- Built from commit: `83e726ce`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -158,6 +158,19 @@
 - [[_COMMUNITY_Community 153|Community 153]]
 - [[_COMMUNITY_Community 154|Community 154]]
 - [[_COMMUNITY_Community 155|Community 155]]
+- [[_COMMUNITY_Community 156|Community 156]]
+- [[_COMMUNITY_Community 157|Community 157]]
+- [[_COMMUNITY_Community 158|Community 158]]
+- [[_COMMUNITY_Community 159|Community 159]]
+- [[_COMMUNITY_Community 160|Community 160]]
+- [[_COMMUNITY_Community 161|Community 161]]
+- [[_COMMUNITY_Community 162|Community 162]]
+- [[_COMMUNITY_Community 163|Community 163]]
+- [[_COMMUNITY_Community 164|Community 164]]
+- [[_COMMUNITY_Community 165|Community 165]]
+- [[_COMMUNITY_Community 166|Community 166]]
+- [[_COMMUNITY_Community 167|Community 167]]
+- [[_COMMUNITY_Community 168|Community 168]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `colors` - 74 edges
@@ -183,7 +196,7 @@
 - `getAuditLogs()` --calls--> `getDb()`  [INFERRED]
   Backend-V1/src/controllers/adminController.js → Backend-V1/src/db/mongodb.js
 
-## Communities (156 total, 14 thin omitted)
+## Communities (169 total, 12 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -225,21 +238,25 @@ Nodes (16): Bottom Navigation, Build Phases, Category Cards, Combo Deals, First 
 Cohesion: 0.20
 Nodes (9): Bottom Navigation, Category Cards, Combo Deals, Frontend Home Dashboard Design, Offer Banner, ServeLoco Plan, Toggle Button, Top Section (+1 more)
 
+### Community 13 - "Community 13"
+Cohesion: 0.05
+Nodes (9): adminScreensPlaceholder, customerScreensPlaceholder, AdminNavigator(), Stack, CustomerNavigator(), Stack, styles, Tab (+1 more)
+
 ### Community 14 - "Community 14"
 Cohesion: 0.04
 Nodes (48): 10. Order Detail, 11. Profile, 12. Edit Profile, 13. Admin Entry, 14. Admin Login, 15. Admin Dashboard, 16. Admin Orders, 17. Admin Order Detail (+40 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.10
-Nodes (30): AdminDashboardScreen(), MetricCard(), styles, AdminEntryScreen(), styles, AdminLoginScreen(), styles, authApi (+22 more)
+Cohesion: 0.11
+Nodes (28): AdminDashboardScreen(), MetricCard(), styles, AdminEntryScreen(), styles, AdminLoginScreen(), styles, authApi (+20 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.25
 Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
 
 ### Community 17 - "Community 17"
-Cohesion: 0.17
-Nodes (15): cartApi, OrdersApi, ordersApi, CartScreen(), styles, CheckoutScreen(), getLocationErrorMessage(), requestLocationPermission() (+7 more)
+Cohesion: 0.15
+Nodes (15): OrdersApi, ordersApi, CheckoutScreen(), getLocationErrorMessage(), requestLocationPermission(), styles, OrderDetailScreen(), STATUS_STEPS (+7 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.28
@@ -275,7 +292,7 @@ Nodes (38): config, getAdminCustomerById(), getAdminCustomers(), getAdminOrderBy
 
 ### Community 28 - "Community 28"
 Cohesion: 0.06
-Nodes (48): AdminSettingsScreen(), asBoolean(), asText(), buildOfferPayload(), buildSettingsPayload(), DEFAULT_FORM, getErrorMessage(), getOfferData() (+40 more)
+Nodes (58): AdminCustomersScreen(), asBoolean(), BlockCustomerModal(), CustomerCard(), CustomerSkeletonList(), formatShortAddress(), getActionError(), getCustomersFromResponse() (+50 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.06
@@ -286,12 +303,12 @@ Cohesion: 0.12
 Nodes (16): permissions, displayName, expo, android, assetBundlePatterns, ios, name, orientation (+8 more)
 
 ### Community 31 - "Community 31"
-Cohesion: 0.20
-Nodes (16): AdminCustomersScreen(), asBoolean(), BlockCustomerModal(), CustomerCard(), CustomerSkeletonList(), formatShortAddress(), getActionError(), getCustomersFromResponse() (+8 more)
+Cohesion: 0.05
+Nodes (39): Bug 10: Dashboard Section Model Conflicts With Derived Category Model, Bug 1: Admin Combo Form Incorrectly Asks For Category, Bug 2: Product Form Can Create Combos, Bug 3: New Categories Do Not Automatically Show On Mobile Dashboard, Bug 4: Bottom Nav Categories Screen Can Filter Out All Categories, Bug 5: Clicking A Category Can Hide Matching Products, Bug 6: Orders Are Not Showing Reliably, Bug 7: Admin Display Order Allows Duplicates (+31 more)
 
 ### Community 33 - "Community 33"
 Cohesion: 0.07
-Nodes (16): styles, styles, ICONS, styles, styles, OrderConfirmationScreen(), styles, styles (+8 more)
+Nodes (9): styles, styles, ICONS, styles, styles, styles, styles, borderWidth (+1 more)
 
 ### Community 34 - "Community 34"
 Cohesion: 0.07
@@ -302,7 +319,7 @@ Cohesion: 0.14
 Nodes (21): attachComboItems(), config, createProduct(), fs, getAdminProductById(), getAdminProducts(), getComboItemsByComboIds(), { getDb } (+13 more)
 
 ### Community 43 - "Community 43"
-Cohesion: 0.09
+Cohesion: 0.11
 Nodes (29): ProductsApi, productsApi, CategoriesScreen(), DEFAULT_CHIPS, MOCK_CATEGORIES, MOCK_CHIPS, styles, FAST_FOOD_CATEGORIES (+21 more)
 
 ### Community 44 - "Community 44"
@@ -310,12 +327,12 @@ Cohesion: 0.33
 Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
-Cohesion: 0.10
-Nodes (17): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles (+9 more)
+Cohesion: 0.07
+Nodes (24): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles (+16 more)
 
 ### Community 46 - "Community 46"
-Cohesion: 0.07
-Nodes (9): appLogo, assetsPlaceholder, styles, styles, styles, FALLBACK_SOURCE, styles, styles (+1 more)
+Cohesion: 0.09
+Nodes (7): appLogo, assetsPlaceholder, styles, styles, FALLBACK_SOURCE, styles, styles
 
 ### Community 47 - "Community 47"
 Cohesion: 0.28
@@ -362,7 +379,7 @@ Cohesion: 0.11
 Nodes (18): dependencies, expo, expo-image-picker, expo-location, lucide-react-native, react, react-native, @react-native-async-storage/async-storage (+10 more)
 
 ### Community 59 - "Community 59"
-Cohesion: 0.12
+Cohesion: 0.13
 Nodes (30): AdminProductFormScreen(), buildImageFormData(), getImageData(), getImageId(), getImageUrl(), getResponseData(), styles, AdminProductCard() (+22 more)
 
 ### Community 60 - "Community 60"
@@ -379,7 +396,7 @@ Nodes (6): Backend Plan, Default Local Admin, Environment Variables, images, Mon
 
 ### Community 64 - "Community 64"
 Cohesion: 0.10
-Nodes (31): addAdminSectionItem(), asPositiveInteger(), attachComboItems(), createAdminSection(), deleteAdminSection(), deleteAdminSectionItem(), getAdminSectionById(), getAdminSections() (+23 more)
+Nodes (35): addAdminSectionItem(), asPositiveInteger(), attachComboItems(), createAdminSection(), deleteAdminSection(), deleteAdminSectionItem(), getAdminSectionById(), getAdminSections() (+27 more)
 
 ### Community 65 - "Community 65"
 Cohesion: 0.18
@@ -419,7 +436,7 @@ Nodes (10): extractToken(), requireAdmin(), requireCustomer(), { verifyToken }, 
 
 ### Community 74 - "Community 74"
 Cohesion: 0.12
-Nodes (15): 16. Rollout Plan, 17. Backend Tests, 18. Admin Manager Tests, Admin Controlled Mobile Dashboard Tasks, Goal, Goal, Goal, Goal (+7 more)
+Nodes (15): 16. Rollout Plan, 18. Admin Manager Tests, 19. Frontend Tests, Admin Controlled Mobile Dashboard Tasks, Goal, Goal, Goal, Goal (+7 more)
 
 ### Community 75 - "Community 75"
 Cohesion: 0.04
@@ -454,8 +471,8 @@ Cohesion: 0.09
 Nodes (22): dependencies, react, react-dom, devDependencies, eslint, @eslint/js, eslint-plugin-react-hooks, eslint-plugin-react-refresh (+14 more)
 
 ### Community 85 - "Community 85"
-Cohesion: 0.33
-Nodes (5): 15. Implementation Order, Front New Design And Flow Tasks, Goal, Recommended order, Task-by-task rule
+Cohesion: 0.18
+Nodes (10): 15. Implementation Order, 16. Final Verification, Acceptance criteria, Commands/checks, Front New Design And Flow Tasks, Goal, Goal, Manual flow checklist (+2 more)
 
 ### Community 86 - "Community 86"
 Cohesion: 0.13
@@ -466,8 +483,8 @@ Cohesion: 0.18
 Nodes (10): adminRoutes, adminToken, app, dashboardRoutes, express, { getDb }, jwt, mockDb (+2 more)
 
 ### Community 89 - "Community 89"
-Cohesion: 0.18
-Nodes (11): AdminOrderDetailScreen(), ORDER_STATUSES, PAYMENT_STATUSES, styles, AdminOrderCard(), AdminOrdersScreen(), PAYMENT_FILTERS, STATUS_FILTERS (+3 more)
+Cohesion: 0.17
+Nodes (10): AdminOrderDetailScreen(), ORDER_STATUSES, PAYMENT_STATUSES, styles, AdminOrderCard(), AdminOrdersScreen(), PAYMENT_FILTERS, STATUS_FILTERS (+2 more)
 
 ### Community 90 - "Community 90"
 Cohesion: 0.29
@@ -490,8 +507,8 @@ Cohesion: 0.29
 Nodes (7): 2. Backend Settings Fields, Defaults, Goal, New settings fields, Subtasks, Testing checklist, Things to avoid
 
 ### Community 100 - "Community 100"
-Cohesion: 0.08
-Nodes (6): styles, styles, styles, MOCK_NOTIFICATIONS, styles, styles
+Cohesion: 0.36
+Nodes (5): setAdminTokenProvider(), setCustomerTokenProvider(), App(), assertNoEmoji(), hasEmoji()
 
 ### Community 101 - "Community 101"
 Cohesion: 0.29
@@ -544,6 +561,10 @@ Nodes (4): 12. Frontend Testing, Goal, Subtasks, Testing checklist
 ### Community 114 - "Community 114"
 Cohesion: 0.50
 Nodes (4): 13. Final Verification, Acceptance criteria, Goal, Subtasks
+
+### Community 115 - "Community 115"
+Cohesion: 0.22
+Nodes (8): adminRoutes, app, express, jwt, { pool }, productRoutes, request, token
 
 ### Community 116 - "Community 116"
 Cohesion: 0.29
@@ -658,8 +679,8 @@ Cohesion: 0.40
 Nodes (6): 16. Final End-To-End Verification, 20. Final End-To-End Verification, Acceptance criteria, Goal, Goal, Steps
 
 ### Community 144 - "Community 144"
-Cohesion: 0.15
-Nodes (7): AdminNavigator(), Stack, CustomerNavigator(), Stack, styles, Tab, ROUTES
+Cohesion: 0.25
+Nodes (7): Acceptance Criteria, Goal, Goal, Implementation Order, ServeLoco Bug Audit And Repair Tasks, Steps, Task 15: Final End-To-End Verification
 
 ### Community 145 - "Community 145"
 Cohesion: 0.60
@@ -674,52 +695,104 @@ Cohesion: 0.40
 Nodes (5): 15. Permissions And Audit, Goal, Subtasks, Testing checklist, Things to avoid
 
 ### Community 148 - "Community 148"
-Cohesion: 0.20
-Nodes (9): adminRoutes, adminToken, app, customerToken, express, jwt, orderRoutes, { pool } (+1 more)
+Cohesion: 0.05
+Nodes (15): styles, styles, styles, styles, MOCK_NOTIFICATIONS, styles, PAYMENT_COLORS, STATUS_COLORS (+7 more)
 
 ### Community 149 - "Community 149"
-Cohesion: 0.22
-Nodes (8): adminRoutes, app, express, jwt, { pool }, productRoutes, request, token
+Cohesion: 0.20
+Nodes (9): adminRoutes, adminToken, app, customerToken, express, jwt, orderRoutes, { pool } (+1 more)
 
 ### Community 150 - "Community 150"
 Cohesion: 0.25
 Nodes (7): app, authRoutes, bcrypt, express, jwt, { pool }, request
 
 ### Community 152 - "Community 152"
-Cohesion: 0.40
-Nodes (5): 16. Final Verification, Acceptance criteria, Commands/checks, Goal, Manual flow checklist
+Cohesion: 0.50
+Nodes (4): 17. Backend Tests, Goal, Subtasks, Testing checklist
 
 ### Community 153 - "Community 153"
-Cohesion: 0.33
-Nodes (3): PAYMENT_COLORS, STATUS_COLORS, styles
+Cohesion: 0.25
+Nodes (8): Exact Changes, Files Likely Changed, Goal, Migration Requirements, Suggested Database Model, Task 3: Refactor Combos Away From Product Category Requirement, Testing Checklist, Things To Avoid
 
 ### Community 154 - "Community 154"
 Cohesion: 0.50
 Nodes (4): 14. Admin Manager Tests, Goal, Subtasks, Testing checklist
 
 ### Community 155 - "Community 155"
-Cohesion: 0.50
-Nodes (4): 19. Frontend Tests, Goal, Subtasks, Testing checklist
+Cohesion: 0.33
+Nodes (6): Exact Changes, Files Likely Changed, Goal, Task 1: Lock The Product-First Rules In Code Comments And API Contracts, Testing Checklist, Things To Avoid
+
+### Community 156 - "Community 156"
+Cohesion: 0.33
+Nodes (6): Exact Changes, Files Likely Changed, Goal, Task 2: Remove Combo Creation From Product Admin, Testing Checklist, Things To Avoid
+
+### Community 157 - "Community 157"
+Cohesion: 0.33
+Nodes (6): Exact Changes, Files Likely Changed, Goal, Task 4: Fix Admin Combo Page UI And Validation, Testing Checklist, Things To Avoid
+
+### Community 158 - "Community 158"
+Cohesion: 0.33
+Nodes (6): Exact Changes, Files Likely Changed, Goal, Task 5: Fix Combo Add-To-Cart Behavior, Testing Checklist, Things To Avoid
+
+### Community 159 - "Community 159"
+Cohesion: 0.33
+Nodes (6): Exact Changes, Files Likely Changed, Goal, Task 6: Make Dashboard Category Grid Derived From Categories, Testing Checklist, Things To Avoid
+
+### Community 160 - "Community 160"
+Cohesion: 0.33
+Nodes (6): Exact Changes, Files Likely Changed, Goal, Task 7: Fix Bottom-Nav Categories Screen, Testing Checklist, Things To Avoid
+
+### Community 161 - "Community 161"
+Cohesion: 0.33
+Nodes (6): Exact Changes, Files Likely Changed, Goal, Task 8: Fix Category Click Product Filtering, Testing Checklist, Things To Avoid
+
+### Community 162 - "Community 162"
+Cohesion: 0.33
+Nodes (6): Exact Changes, Files Likely Changed, Goal, Task 9: Fix Orders Not Showing, Testing Checklist, Things To Avoid
+
+### Community 163 - "Community 163"
+Cohesion: 0.33
+Nodes (6): Exact Changes, Files Likely Changed, Goal, Task 10: Add Admin Display Order Validation, Testing Checklist, Things To Avoid
+
+### Community 164 - "Community 164"
+Cohesion: 0.33
+Nodes (6): Exact Changes, Files Likely Changed, Goal, Task 11: Normalize API List Responses, Testing Checklist, Things To Avoid
+
+### Community 165 - "Community 165"
+Cohesion: 0.33
+Nodes (6): Files Likely Changed, Goal, Required Tests, Task 12: Add Missing Backend Tests, Testing Checklist, Things To Avoid
+
+### Community 166 - "Community 166"
+Cohesion: 0.33
+Nodes (6): Files Likely Changed, Goal, Required Checks, Task 13: Add Mobile Frontend Tests Or Manual Checklists, Testing Checklist, Things To Avoid
+
+### Community 167 - "Community 167"
+Cohesion: 0.33
+Nodes (6): Files Likely Changed, Goal, Required Checks, Task 14: Add Admin Manager Tests Or Manual Checklists, Testing Checklist, Things To Avoid
+
+### Community 168 - "Community 168"
+Cohesion: 0.40
+Nodes (5): Category Is Product Metadata And Dashboard Navigation, Combo Is A Product Bundle, Correct Data Model, Dashboard Blocks Are Derived Or Curated, Product Is The Main Source Of Truth
 
 ## Knowledge Gaps
-- **1071 isolated node(s):** `install-dbs.sh script`, `id`, `name`, `resources`, `name` (+1066 more)
+- **1180 isolated node(s):** `install-dbs.sh script`, `id`, `name`, `resources`, `name` (+1175 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **14 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **12 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `colors` connect `Community 33` to `Community 89`, `Community 100`, `Community 43`, `Community 45`, `Community 46`, `Community 15`, `Community 144`, `Community 17`, `Community 145`, `Community 153`, `Community 59`, `Community 28`, `Community 31`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
-- **Why does `Admin Controlled Mobile Dashboard Tasks` connect `Community 74` to `Community 132`, `Community 133`, `Community 134`, `Community 135`, `Community 136`, `Community 137`, `Community 138`, `Community 139`, `Community 140`, `Community 141`, `Community 142`, `Community 143`, `Community 146`, `Community 147`, `Community 154`, `Community 155`, `Community 71`, `Community 72`, `Community 111`, `Community 116`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
+- **Why does `Admin Controlled Mobile Dashboard Tasks` connect `Community 74` to `Community 132`, `Community 133`, `Community 134`, `Community 135`, `Community 136`, `Community 137`, `Community 138`, `Community 139`, `Community 140`, `Community 141`, `Community 142`, `Community 143`, `Community 146`, `Community 147`, `Community 152`, `Community 154`, `Community 71`, `Community 72`, `Community 111`, `Community 116`?**
+  _High betweenness centrality (0.008) - this node is a cross-community bridge._
+- **Why does `colors` connect `Community 148` to `Community 33`, `Community 100`, `Community 43`, `Community 13`, `Community 45`, `Community 15`, `Community 46`, `Community 17`, `Community 145`, `Community 89`, `Community 59`, `Community 28`?**
+  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+- **Why does `pool` connect `Community 70` to `Community 64`, `Community 65`, `Community 66`, `Community 35`, `Community 103`, `Community 115`, `Community 149`, `Community 150`, `Community 54`, `Community 88`, `Community 86`, `Community 56`, `Community 27`?**
+  _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **What connects `install-dbs.sh script`, `id`, `name` to the rest of the system?**
-  _1071 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1180 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.08333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 6` be split into smaller, more focused modules?**
   _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._
-- **Should `Community 8` be split into smaller, more focused modules?**
-  _Cohesion score 0.11764705882352941 - nodes in this community are weakly interconnected._

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -36,7 +36,15 @@ const DEFAULT_CHIPS = ['All', 'Bestsellers', 'New Arrivals', 'Offers'];
 export default function CategoriesScreen() {
   const navigation = useNavigation();
   const { width: windowWidth } = useWindowDimensions();
-  const { totalItems, displayTotal } = useCartStore();
+  const items = useCartStore(state => state.items);
+  const cartItemCount = useMemo(
+    () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
+    [items]
+  );
+  const cartDisplayTotal = useMemo(
+    () => items.reduce((total, item) => total + ((Number(item.product?.price) || 0) * (Number(item.quantity) || 0)), 0),
+    [items]
+  );
   
   const [isLoading, setIsLoading] = useState(true);
   const [storeType, setStoreType] = useState('Packed Items');
@@ -131,7 +139,7 @@ export default function CategoriesScreen() {
       {/* Header */}
       <AppHeader
         title="Categories"
-        cartCount={totalItems}
+        cartCount={cartItemCount}
         onCartPress={handleCartPress}
         rightActions={[
           {
@@ -251,8 +259,8 @@ export default function CategoriesScreen() {
 
       {/* Sticky Mini Cart */}
       <StickyMiniCart
-        itemCount={totalItems}
-        totalAmount={displayTotal}
+        itemCount={cartItemCount}
+        totalAmount={cartDisplayTotal}
         onPress={handleCartPress}
       />
     </AppScreen>
