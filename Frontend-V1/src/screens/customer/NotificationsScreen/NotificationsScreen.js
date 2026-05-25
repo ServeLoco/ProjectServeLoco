@@ -1,44 +1,59 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { AppScreen, AppHeader, AppIcon } from '../../../components';
 import { colors, typography, spacing, radius } from '../../../theme';
-
-const MOCK_NOTIFICATIONS = [
-  {
-    id: '1',
-    title: 'Order Delivered 🎉',
-    body: 'Your order #SL-9402 has been successfully delivered. Enjoy your meal!',
-    time: '2 hours ago',
-    read: false,
-    type: 'success',
-  },
-  {
-    id: '2',
-    title: '30% Discount Activated! 🏷️',
-    body: 'Use code SNACK30 on your next snack order to save big today.',
-    time: '5 hours ago',
-    read: false,
-    type: 'offer',
-  },
-  {
-    id: '3',
-    title: 'Welcome to ServeLoco! 🛵',
-    body: 'Thanks for signing up. Browse packed snacks or order freshly prepared food instantly.',
-    time: '1 day ago',
-    read: true,
-    type: 'info',
-  },
-];
+import { notificationsApi } from '../../../api';
+import { useAuthStore } from '../../../stores';
 
 export default function NotificationsScreen({ navigation }) {
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchNotifications();
+    } else {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const res = await notificationsApi.list({ limit: 50 });
+      setNotifications(res.data || []);
+      
+      const hasUnread = (res.data || []).some(n => !n.read);
+      if (hasUnread) {
+        // Mark all as read on the backend automatically
+        await notificationsApi.markAllRead();
+      }
+    } catch (err) {
+      console.warn('Failed to fetch notifications', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const clearNotification = (id) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+  const markAllAsRead = async () => {
+    if (!isAuthenticated) return;
+    try {
+      await notificationsApi.markAllRead();
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (err) {
+      console.warn('Failed to mark all as read', err);
+    }
+  };
+
+  const clearNotification = async (id) => {
+    if (!isAuthenticated) return;
+    try {
+      await notificationsApi.deleteNotification(id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch (err) {
+      console.warn('Failed to delete notification', err);
+    }
   };
 
   const renderItem = ({ item }) => {
@@ -62,7 +77,7 @@ export default function NotificationsScreen({ navigation }) {
           <View style={styles.cardContent}>
             <Text style={[styles.title, !item.read && styles.unreadText]}>{item.title}</Text>
             <Text style={styles.body}>{item.body}</Text>
-            <Text style={styles.time}>{item.time}</Text>
+            <Text style={styles.time}>{item.timeLabel || item.time}</Text>
           </View>
           <TouchableOpacity onPress={() => clearNotification(item.id)} style={styles.deleteBtn}>
             <AppIcon name="close" size={16} color={colors.textSecondary} />
@@ -86,7 +101,18 @@ export default function NotificationsScreen({ navigation }) {
         }
       />
 
-      <FlatList
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : !isAuthenticated ? (
+        <View style={styles.emptyState}>
+          <AppIcon name="profile" size={48} color={colors.textSecondary} />
+          <Text style={styles.emptyTitle}>Please log in</Text>
+          <Text style={styles.emptySubtitle}>Log in to view your notifications.</Text>
+        </View>
+      ) : (
+        <FlatList
         data={notifications}
         keyExtractor={item => item.id}
         renderItem={renderItem}
@@ -99,6 +125,7 @@ export default function NotificationsScreen({ navigation }) {
           </View>
         }
       />
+      )}
     </AppScreen>
   );
 }
@@ -111,6 +138,11 @@ const styles = StyleSheet.create({
   listContent: {
     padding: spacing.md,
     gap: spacing.md,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   notificationCard: {
     backgroundColor: colors.bgSurface,

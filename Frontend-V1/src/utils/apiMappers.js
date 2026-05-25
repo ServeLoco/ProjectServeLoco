@@ -255,7 +255,46 @@ function normalizeDashboard(payload = {}) {
       amount: numberOrZero(pickFirst(product.amount, product.salesAmount, product.sales_amount, product.total)),
     })),
   };
+  };
 }
+
+function normalizeNotification(item = {}) {
+  const id = String(pickFirst(item.id, item._id));
+  const read = asBoolean(pickFirst(item.read, item.isRead, item.is_read), false);
+  const createdAt = pickFirst(item.createdAt, item.created_at, item.timestamp);
+  
+  // Calculate simple timeLabel if missing
+  let timeLabel = item.timeLabel || item.time_ago || item.timeAgo;
+  if (!timeLabel && createdAt) {
+    const diff = Math.max(0, new Date() - new Date(createdAt));
+    const mins = Math.floor(diff / 60000);
+    const hrs = Math.floor(mins / 60);
+    const days = Math.floor(hrs / 24);
+    
+    if (days > 0) timeLabel = `${days}d ago`;
+    else if (hrs > 0) timeLabel = `${hrs}h ago`;
+    else if (mins > 0) timeLabel = `${mins}m ago`;
+    else timeLabel = 'Just now';
+  }
+
+  return {
+    ...item,
+    id,
+    title: pickFirst(item.title, item.heading, ''),
+    body: pickFirst(item.body, item.message, item.text, ''),
+    type: pickFirst(item.type, item.status, 'info'),
+    sourceType: pickFirst(item.sourceType, item.source_type, null),
+    sourceId: pickFirst(item.sourceId, item.source_id, null),
+    actionType: pickFirst(item.actionType, item.action_type, null),
+    actionPayload: pickFirst(item.actionPayload, item.action_payload, null),
+    read,
+    createdAt,
+    timeLabel,
+  };
+}
+
+export const mapNotification = normalizeNotification;
+
 
 export {
   asArray,
@@ -266,5 +305,6 @@ export {
   normalizeProduct,
   normalizeSession,
   normalizeSettings,
+  normalizeNotification,
   pickFirst,
 };

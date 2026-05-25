@@ -4,454 +4,670 @@
   "graph": {},
   "nodes": [
     {
+      "label": "App.jsx",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L1",
+      "id": "adminmanager_v1_src_app_jsx",
+      "community": 49,
+      "norm_label": "app.jsx"
+    },
+    {
+      "label": "App()",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L23",
+      "id": "src_app_app",
+      "community": 48,
+      "norm_label": "app()"
+    },
+    {
+      "label": "index.js",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L1",
+      "id": "adminmanager_v1_src_api_index_js",
+      "community": 87,
+      "norm_label": "index.js"
+    },
+    {
+      "label": "withQuery()",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L3",
+      "id": "api_index_withquery",
+      "community": 87,
+      "norm_label": "withquery()"
+    },
+    {
+      "label": "AuthApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L14",
+      "id": "api_index_authapi",
+      "community": 15,
+      "norm_label": "authapi"
+    },
+    {
+      "label": "DashboardApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L19",
+      "id": "api_index_dashboardapi",
+      "community": 49,
+      "norm_label": "dashboardapi"
+    },
+    {
+      "label": "OrdersApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L23",
+      "id": "api_index_ordersapi",
+      "community": 62,
+      "norm_label": "ordersapi"
+    },
+    {
+      "label": "ProductsApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L33",
+      "id": "api_index_productsapi",
+      "community": 62,
+      "norm_label": "productsapi"
+    },
+    {
+      "label": "CombosApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L48",
+      "id": "api_index_combosapi",
+      "community": 62,
+      "norm_label": "combosapi"
+    },
+    {
+      "label": "CategoriesApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L59",
+      "id": "api_index_categoriesapi",
+      "community": 62,
+      "norm_label": "categoriesapi"
+    },
+    {
+      "label": "OffersApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L66",
+      "id": "api_index_offersapi",
+      "community": 152,
+      "norm_label": "offersapi"
+    },
+    {
+      "label": "CustomersApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L73",
+      "id": "api_index_customersapi",
+      "community": 87,
+      "norm_label": "customersapi"
+    },
+    {
+      "label": "SettingsApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L80",
+      "id": "api_index_settingsapi",
+      "community": 49,
+      "norm_label": "settingsapi"
+    },
+    {
+      "label": "ImagesApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L85",
+      "id": "api_index_imagesapi",
+      "community": 152,
+      "norm_label": "imagesapi"
+    },
+    {
+      "label": "ReportsApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L91",
+      "id": "api_index_reportsapi",
+      "community": 87,
+      "norm_label": "reportsapi"
+    },
+    {
+      "label": "HealthApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L97",
+      "id": "api_index_healthapi",
+      "community": 87,
+      "norm_label": "healthapi"
+    },
+    {
+      "label": "AuditApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L101",
+      "id": "api_index_auditapi",
+      "community": 87,
+      "norm_label": "auditapi"
+    },
+    {
+      "label": "MobileDashboardApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L105",
+      "id": "api_index_mobiledashboardapi",
+      "community": 62,
+      "norm_label": "mobiledashboardapi"
+    },
+    {
+      "label": "NotificationsApi",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L118",
+      "id": "api_index_notificationsapi",
+      "community": 87,
+      "norm_label": "notificationsapi"
+    },
+    {
+      "label": "Sidebar.jsx",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/components/Sidebar.jsx",
+      "source_location": "L1",
+      "id": "adminmanager_v1_src_components_sidebar_jsx",
+      "community": 171,
+      "norm_label": "sidebar.jsx"
+    },
+    {
+      "label": "navItems",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/components/Sidebar.jsx",
+      "source_location": "L5",
+      "id": "components_sidebar_navitems",
+      "community": 171,
+      "norm_label": "navitems"
+    },
+    {
+      "label": "Sidebar()",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/components/Sidebar.jsx",
+      "source_location": "L22",
+      "id": "components_sidebar_sidebar",
+      "community": 171,
+      "norm_label": "sidebar()"
+    },
+    {
+      "label": "Notifications.jsx",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/pages/Notifications.jsx",
+      "source_location": "L1",
+      "id": "adminmanager_v1_src_pages_notifications_jsx",
+      "community": 87,
+      "norm_label": "notifications.jsx"
+    },
+    {
+      "label": "Notifications()",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/pages/Notifications.jsx",
+      "source_location": "L5",
+      "id": "pages_notifications_notifications",
+      "community": 87,
+      "norm_label": "notifications()"
+    },
+    {
       "label": "adminController.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L1",
-      "id": "backend_v1_src_controllers_admincontroller_js",
       "community": 27,
-      "norm_label": "admincontroller.js"
+      "norm_label": "admincontroller.js",
+      "id": "backend_v1_src_controllers_admincontroller_js"
     },
     {
       "label": "config",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L1",
-      "id": "controllers_admincontroller_config",
       "community": 27,
-      "norm_label": "config"
+      "norm_label": "config",
+      "id": "controllers_admincontroller_config"
     },
     {
       "label": "{ signAdminToken }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L2",
-      "id": "controllers_admincontroller_signadmintoken",
       "community": 27,
-      "norm_label": "{ signadmintoken }"
+      "norm_label": "{ signadmintoken }",
+      "id": "controllers_admincontroller_signadmintoken"
     },
     {
       "label": "{ pool }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L3",
-      "id": "controllers_admincontroller_pool",
       "community": 27,
-      "norm_label": "{ pool }"
+      "norm_label": "{ pool }",
+      "id": "controllers_admincontroller_pool"
     },
     {
       "label": "notificationService",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L4",
-      "id": "controllers_admincontroller_notificationservice",
       "community": 27,
-      "norm_label": "notificationservice"
+      "norm_label": "notificationservice",
+      "id": "controllers_admincontroller_notificationservice"
     },
     {
       "label": "queryRows()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L6",
-      "id": "controllers_admincontroller_queryrows",
       "community": 27,
-      "norm_label": "queryrows()"
+      "norm_label": "queryrows()",
+      "id": "controllers_admincontroller_queryrows"
     },
     {
       "label": "login()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L11",
-      "id": "controllers_admincontroller_login",
       "community": 27,
-      "norm_label": "login()"
+      "norm_label": "login()",
+      "id": "controllers_admincontroller_login"
     },
     {
       "label": "me()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L30",
-      "id": "controllers_admincontroller_me",
       "community": 27,
-      "norm_label": "me()"
+      "norm_label": "me()",
+      "id": "controllers_admincontroller_me"
     },
     {
       "label": "getAdminCustomers()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L37",
-      "id": "controllers_admincontroller_getadmincustomers",
       "community": 27,
-      "norm_label": "getadmincustomers()"
+      "norm_label": "getadmincustomers()",
+      "id": "controllers_admincontroller_getadmincustomers"
     },
     {
       "label": "setBlockStatus()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L101",
-      "id": "controllers_admincontroller_setblockstatus",
       "community": 27,
-      "norm_label": "setblockstatus()"
+      "norm_label": "setblockstatus()",
+      "id": "controllers_admincontroller_setblockstatus"
     },
     {
       "label": "setTrustStatus()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L109",
-      "id": "controllers_admincontroller_settruststatus",
       "community": 27,
-      "norm_label": "settruststatus()"
+      "norm_label": "settruststatus()",
+      "id": "controllers_admincontroller_settruststatus"
     },
     {
       "label": "getDashboard()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L117",
-      "id": "controllers_admincontroller_getdashboard",
       "community": 27,
-      "norm_label": "getdashboard()"
+      "norm_label": "getdashboard()",
+      "id": "controllers_admincontroller_getdashboard"
     },
     {
       "label": "getSalesReport()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L173",
-      "id": "controllers_admincontroller_getsalesreport",
       "community": 27,
-      "norm_label": "getsalesreport()"
+      "norm_label": "getsalesreport()",
+      "id": "controllers_admincontroller_getsalesreport"
     },
     {
       "label": "getAdminCustomerById()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L190",
-      "id": "controllers_admincontroller_getadmincustomerbyid",
       "community": 27,
-      "norm_label": "getadmincustomerbyid()"
+      "norm_label": "getadmincustomerbyid()",
+      "id": "controllers_admincontroller_getadmincustomerbyid"
     },
     {
       "label": "getTopProductsReport()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L212",
-      "id": "controllers_admincontroller_gettopproductsreport",
       "community": 27,
-      "norm_label": "gettopproductsreport()"
+      "norm_label": "gettopproductsreport()",
+      "id": "controllers_admincontroller_gettopproductsreport"
     },
     {
       "label": "getCustomersReport()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L225",
-      "id": "controllers_admincontroller_getcustomersreport",
       "community": 27,
-      "norm_label": "getcustomersreport()"
+      "norm_label": "getcustomersreport()",
+      "id": "controllers_admincontroller_getcustomersreport"
     },
     {
       "label": "getAuditLogs()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L237",
-      "id": "controllers_admincontroller_getauditlogs",
       "community": 27,
-      "norm_label": "getauditlogs()"
+      "norm_label": "getauditlogs()",
+      "id": "controllers_admincontroller_getauditlogs"
     },
     {
       "label": "getAdminOrders()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L267",
-      "id": "controllers_admincontroller_getadminorders",
       "community": 27,
-      "norm_label": "getadminorders()"
+      "norm_label": "getadminorders()",
+      "id": "controllers_admincontroller_getadminorders"
     },
     {
       "label": "getAdminOrderById()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L332",
-      "id": "controllers_admincontroller_getadminorderbyid",
       "community": 27,
-      "norm_label": "getadminorderbyid()"
+      "norm_label": "getadminorderbyid()",
+      "id": "controllers_admincontroller_getadminorderbyid"
     },
     {
       "label": "updateOrderStatus()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L347",
-      "id": "controllers_admincontroller_updateorderstatus",
       "community": 27,
-      "norm_label": "updateorderstatus()"
+      "norm_label": "updateorderstatus()",
+      "id": "controllers_admincontroller_updateorderstatus"
     },
     {
       "label": "updateOrderPayment()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L403",
-      "id": "controllers_admincontroller_updateorderpayment",
       "community": 27,
-      "norm_label": "updateorderpayment()"
+      "norm_label": "updateorderpayment()",
+      "id": "controllers_admincontroller_updateorderpayment"
     },
     {
       "label": "getAdminNotifications()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L448",
-      "id": "controllers_admincontroller_getadminnotifications",
       "community": 27,
-      "norm_label": "getadminnotifications()"
+      "norm_label": "getadminnotifications()",
+      "id": "controllers_admincontroller_getadminnotifications"
     },
     {
       "label": "createAdminNotification()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L472",
-      "id": "controllers_admincontroller_createadminnotification",
       "community": 27,
-      "norm_label": "createadminnotification()"
+      "norm_label": "createadminnotification()",
+      "id": "controllers_admincontroller_createadminnotification"
     },
     {
       "label": "getAdminNotificationById()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L520",
-      "id": "controllers_admincontroller_getadminnotificationbyid",
       "community": 27,
-      "norm_label": "getadminnotificationbyid()"
+      "norm_label": "getadminnotificationbyid()",
+      "id": "controllers_admincontroller_getadminnotificationbyid"
     },
     {
       "label": "deleteAdminNotification()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L531",
-      "id": "controllers_admincontroller_deleteadminnotification",
       "community": 27,
-      "norm_label": "deleteadminnotification()"
+      "norm_label": "deleteadminnotification()",
+      "id": "controllers_admincontroller_deleteadminnotification"
     },
     {
       "label": "adminRoutes.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L1",
-      "id": "backend_v1_src_routes_adminroutes_js",
       "community": 27,
-      "norm_label": "adminroutes.js"
+      "norm_label": "adminroutes.js",
+      "id": "backend_v1_src_routes_adminroutes_js"
     },
     {
       "label": "express",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L1",
-      "id": "routes_adminroutes_express",
       "community": 27,
-      "norm_label": "express"
+      "norm_label": "express",
+      "id": "routes_adminroutes_express"
     },
     {
       "label": "{ login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification }",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L2",
-      "id": "routes_adminroutes_login_me_getadmincustomers_getadmincustomerbyid_setblockstatus_settruststatus_getdashboard_getsalesreport_gettopproductsreport_getcustomersreport_getadminorders_getadminorderbyid_updateorderstatus_updateorderpayment_getauditlogs_getadminnotifications_createadminnotification_getadminnotificationbyid_deleteadminnotification",
       "community": 27,
-      "norm_label": "{ login, me, getadmincustomers, getadmincustomerbyid, setblockstatus, settruststatus, getdashboard, getsalesreport, gettopproductsreport, getcustomersreport, getadminorders, getadminorderbyid, updateorderstatus, updateorderpayment, getauditlogs, getadminnotifications, createadminnotification, getadminnotificationbyid, deleteadminnotification }"
+      "norm_label": "{ login, me, getadmincustomers, getadmincustomerbyid, setblockstatus, settruststatus, getdashboard, getsalesreport, gettopproductsreport, getcustomersreport, getadminorders, getadminorderbyid, updateorderstatus, updateorderpayment, getauditlogs, getadminnotifications, createadminnotification, getadminnotificationbyid, deleteadminnotification }",
+      "id": "routes_adminroutes_login_me_getadmincustomers_getadmincustomerbyid_setblockstatus_settruststatus_getdashboard_getsalesreport_gettopproductsreport_getcustomersreport_getadminorders_getadminorderbyid_updateorderstatus_updateorderpayment_getauditlogs_getadminnotifications_createadminnotification_getadminnotificationbyid_deleteadminnotification"
     },
     {
       "label": "{ getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer }",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L3",
-      "id": "routes_adminroutes_getsettings_updatesettings_getactiveoffer_createoffer_updateoffer_getadminoffers_deleteoffer",
       "community": 27,
-      "norm_label": "{ getsettings, updatesettings, getactiveoffer, createoffer, updateoffer, getadminoffers, deleteoffer }"
+      "norm_label": "{ getsettings, updatesettings, getactiveoffer, createoffer, updateoffer, getadminoffers, deleteoffer }",
+      "id": "routes_adminroutes_getsettings_updatesettings_getactiveoffer_createoffer_updateoffer_getadminoffers_deleteoffer"
     },
     {
       "label": "{ createCategory, deleteCategory, getAdminCategories, updateCategory }",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L4",
-      "id": "routes_adminroutes_createcategory_deletecategory_getadmincategories_updatecategory",
       "community": 27,
-      "norm_label": "{ createcategory, deletecategory, getadmincategories, updatecategory }"
+      "norm_label": "{ createcategory, deletecategory, getadmincategories, updatecategory }",
+      "id": "routes_adminroutes_createcategory_deletecategory_getadmincategories_updatecategory"
     },
     {
       "label": "{ createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage }",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L5",
-      "id": "routes_adminroutes_createproduct_updateproduct_getadminproducts_getadminproductbyid_deleteproduct_updateproductavailability_updateproductimage",
       "community": 27,
-      "norm_label": "{ createproduct, updateproduct, getadminproducts, getadminproductbyid, deleteproduct, updateproductavailability, updateproductimage }"
+      "norm_label": "{ createproduct, updateproduct, getadminproducts, getadminproductbyid, deleteproduct, updateproductavailability, updateproductimage }",
+      "id": "routes_adminroutes_createproduct_updateproduct_getadminproducts_getadminproductbyid_deleteproduct_updateproductavailability_updateproductimage"
     },
     {
       "label": "{ createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability }",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L6",
-      "id": "routes_adminroutes_createcombo_updatecombo_getadmincombos_getadmincombobyid_deletecombo_updatecomboavailability",
       "community": 27,
-      "norm_label": "{ createcombo, updatecombo, getadmincombos, getadmincombobyid, deletecombo, updatecomboavailability }"
+      "norm_label": "{ createcombo, updatecombo, getadmincombos, getadmincombobyid, deletecombo, updatecomboavailability }",
+      "id": "routes_adminroutes_createcombo_updatecombo_getadmincombos_getadmincombobyid_deletecombo_updatecomboavailability"
     },
     {
       "label": "{\n  getAdminSections,\n  getAdminSectionById,\n  createAdminSection,\n  updateAdminSection,\n  deleteAdminSection,\n  addAdminSectionItem,\n  updateAdminSectionItem,\n  deleteAdminSectionItem,\n  reorderAdminSections,\n  reorderAdminSectionItems\n}",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L7",
-      "id": "routes_adminroutes_getadminsections_getadminsectionbyid_createadminsection_updateadminsection_deleteadminsection_addadminsectionitem_updateadminsectionitem_deleteadminsectionitem_reorderadminsections_reorderadminsectionitems",
       "community": 27,
-      "norm_label": "{\n  getadminsections,\n  getadminsectionbyid,\n  createadminsection,\n  updateadminsection,\n  deleteadminsection,\n  addadminsectionitem,\n  updateadminsectionitem,\n  deleteadminsectionitem,\n  reorderadminsections,\n  reorderadminsectionitems\n}"
+      "norm_label": "{\n  getadminsections,\n  getadminsectionbyid,\n  createadminsection,\n  updateadminsection,\n  deleteadminsection,\n  addadminsectionitem,\n  updateadminsectionitem,\n  deleteadminsectionitem,\n  reorderadminsections,\n  reorderadminsectionitems\n}",
+      "id": "routes_adminroutes_getadminsections_getadminsectionbyid_createadminsection_updateadminsection_deleteadminsection_addadminsectionitem_updateadminsectionitem_deleteadminsectionitem_reorderadminsections_reorderadminsectionitems"
     },
     {
       "label": "{ requireAdmin }",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L19",
-      "id": "routes_adminroutes_requireadmin",
       "community": 27,
-      "norm_label": "{ requireadmin }"
+      "norm_label": "{ requireadmin }",
+      "id": "routes_adminroutes_requireadmin"
     },
     {
       "label": "{ auditLog }",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L20",
-      "id": "routes_adminroutes_auditlog",
       "community": 27,
-      "norm_label": "{ auditlog }"
+      "norm_label": "{ auditlog }",
+      "id": "routes_adminroutes_auditlog"
     },
     {
       "label": "{ validate, isString, isId, isBoolean, isNumericAmount, validatePagination, normalizeField }",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L21",
-      "id": "routes_adminroutes_validate_isstring_isid_isboolean_isnumericamount_validatepagination_normalizefield",
       "community": 27,
-      "norm_label": "{ validate, isstring, isid, isboolean, isnumericamount, validatepagination, normalizefield }"
+      "norm_label": "{ validate, isstring, isid, isboolean, isnumericamount, validatepagination, normalizefield }",
+      "id": "routes_adminroutes_validate_isstring_isid_isboolean_isnumericamount_validatepagination_normalizefield"
     },
     {
       "label": "asyncHandler",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L22",
-      "id": "routes_adminroutes_asynchandler",
       "community": 27,
-      "norm_label": "asynchandler"
+      "norm_label": "asynchandler",
+      "id": "routes_adminroutes_asynchandler"
     },
     {
       "label": "rateLimit",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L23",
-      "id": "routes_adminroutes_ratelimit",
       "community": 27,
-      "norm_label": "ratelimit"
+      "norm_label": "ratelimit",
+      "id": "routes_adminroutes_ratelimit"
     },
     {
       "label": "router",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L26",
-      "id": "routes_adminroutes_router",
       "community": 27,
-      "norm_label": "router"
+      "norm_label": "router",
+      "id": "routes_adminroutes_router"
     },
     {
       "label": "loginLimiter",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L28",
-      "id": "routes_adminroutes_loginlimiter",
       "community": 27,
-      "norm_label": "loginlimiter"
+      "norm_label": "loginlimiter",
+      "id": "routes_adminroutes_loginlimiter"
     },
     {
       "label": "loginSchema()",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L34",
-      "id": "routes_adminroutes_loginschema",
       "community": 47,
-      "norm_label": "loginschema()"
+      "norm_label": "loginschema()",
+      "id": "routes_adminroutes_loginschema"
     },
     {
       "label": "paginationSchema()",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L47",
-      "id": "routes_adminroutes_paginationschema",
       "community": 47,
-      "norm_label": "paginationschema()"
+      "norm_label": "paginationschema()",
+      "id": "routes_adminroutes_paginationschema"
     },
     {
       "label": "blockSchema()",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L53",
-      "id": "routes_adminroutes_blockschema",
       "community": 47,
-      "norm_label": "blockschema()"
+      "norm_label": "blockschema()",
+      "id": "routes_adminroutes_blockschema"
     },
     {
       "label": "trustSchema()",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L69",
-      "id": "routes_adminroutes_trustschema",
       "community": 47,
-      "norm_label": "trustschema()"
+      "norm_label": "trustschema()",
+      "id": "routes_adminroutes_trustschema"
     },
     {
       "label": "categorySchema()",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L84",
-      "id": "routes_adminroutes_categoryschema",
       "community": 47,
-      "norm_label": "categoryschema()"
+      "norm_label": "categoryschema()",
+      "id": "routes_adminroutes_categoryschema"
     },
     {
       "label": "productSchema()",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L110",
-      "id": "routes_adminroutes_productschema",
       "community": 47,
-      "norm_label": "productschema()"
+      "norm_label": "productschema()",
+      "id": "routes_adminroutes_productschema"
     },
     {
       "label": "comboSchema()",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L166",
-      "id": "routes_adminroutes_comboschema",
       "community": 47,
-      "norm_label": "comboschema()"
+      "norm_label": "comboschema()",
+      "id": "routes_adminroutes_comboschema"
     },
     {
       "label": "productAvailabilitySchema()",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L215",
-      "id": "routes_adminroutes_productavailabilityschema",
       "community": 47,
-      "norm_label": "productavailabilityschema()"
+      "norm_label": "productavailabilityschema()",
+      "id": "routes_adminroutes_productavailabilityschema"
     },
     {
       "label": "comboAvailabilitySchema()",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L227",
-      "id": "routes_adminroutes_comboavailabilityschema",
       "community": 47,
-      "norm_label": "comboavailabilityschema()"
+      "norm_label": "comboavailabilityschema()",
+      "id": "routes_adminroutes_comboavailabilityschema"
     },
     {
       "label": "productImageSchema()",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L239",
-      "id": "routes_adminroutes_productimageschema",
       "community": 47,
-      "norm_label": "productimageschema()"
+      "norm_label": "productimageschema()",
+      "id": "routes_adminroutes_productimageschema"
     },
     {
       "label": "orderController.js",
@@ -722,15 +938,6 @@
       "community": 48,
       "norm_label": "notificationroutes",
       "id": "src_app_notificationroutes"
-    },
-    {
-      "label": "app",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L22",
-      "community": 48,
-      "norm_label": "app",
-      "id": "src_app_app"
     },
     {
       "label": "notificationController.js",
@@ -2325,24 +2532,6 @@
       "id": "adminmanager_v1_src_main_jsx"
     },
     {
-      "label": "App.jsx",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L1",
-      "community": 49,
-      "norm_label": "app.jsx",
-      "id": "adminmanager_v1_src_app_jsx"
-    },
-    {
-      "label": "App()",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L22",
-      "community": 49,
-      "norm_label": "app()",
-      "id": "adminmanager_v1_src_app_jsx_src_app_app"
-    },
-    {
       "label": "AdminLayout.jsx",
       "file_type": "code",
       "source_file": "adminManager-V1/src/layout/AdminLayout.jsx",
@@ -2377,150 +2566,6 @@
       "community": 92,
       "norm_label": "protectedroute()",
       "id": "routes_protectedroute_protectedroute"
-    },
-    {
-      "label": "index.js",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L1",
-      "community": 87,
-      "norm_label": "index.js",
-      "id": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "label": "withQuery()",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L3",
-      "community": 87,
-      "norm_label": "withquery()",
-      "id": "api_index_withquery"
-    },
-    {
-      "label": "AuthApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L14",
-      "community": 15,
-      "norm_label": "authapi",
-      "id": "api_index_authapi"
-    },
-    {
-      "label": "DashboardApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L19",
-      "community": 87,
-      "norm_label": "dashboardapi",
-      "id": "api_index_dashboardapi"
-    },
-    {
-      "label": "OrdersApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L23",
-      "community": 46,
-      "norm_label": "ordersapi",
-      "id": "api_index_ordersapi"
-    },
-    {
-      "label": "ProductsApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L33",
-      "community": 43,
-      "norm_label": "productsapi",
-      "id": "api_index_productsapi"
-    },
-    {
-      "label": "CombosApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L48",
-      "community": 62,
-      "norm_label": "combosapi",
-      "id": "api_index_combosapi"
-    },
-    {
-      "label": "CategoriesApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L59",
-      "community": 62,
-      "norm_label": "categoriesapi",
-      "id": "api_index_categoriesapi"
-    },
-    {
-      "label": "OffersApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L66",
-      "community": 87,
-      "norm_label": "offersapi",
-      "id": "api_index_offersapi"
-    },
-    {
-      "label": "CustomersApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L73",
-      "community": 49,
-      "norm_label": "customersapi",
-      "id": "api_index_customersapi"
-    },
-    {
-      "label": "SettingsApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L80",
-      "community": 87,
-      "norm_label": "settingsapi",
-      "id": "api_index_settingsapi"
-    },
-    {
-      "label": "ImagesApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L85",
-      "community": 87,
-      "norm_label": "imagesapi",
-      "id": "api_index_imagesapi"
-    },
-    {
-      "label": "ReportsApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L91",
-      "community": 49,
-      "norm_label": "reportsapi",
-      "id": "api_index_reportsapi"
-    },
-    {
-      "label": "HealthApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L97",
-      "community": 87,
-      "norm_label": "healthapi",
-      "id": "api_index_healthapi"
-    },
-    {
-      "label": "AuditApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L101",
-      "community": 87,
-      "norm_label": "auditapi",
-      "id": "api_index_auditapi"
-    },
-    {
-      "label": "MobileDashboardApi",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L105",
-      "community": 62,
-      "norm_label": "mobiledashboardapi",
-      "id": "api_index_mobiledashboardapi"
     },
     {
       "label": "client.js",
@@ -2572,7 +2617,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/components/AuthProvider.jsx",
       "source_location": "L7",
-      "community": 92,
+      "community": 49,
       "norm_label": "authprovider()",
       "id": "components_authprovider_authprovider"
     },
@@ -2584,33 +2629,6 @@
       "community": 92,
       "norm_label": "useauth()",
       "id": "components_authprovider_useauth"
-    },
-    {
-      "label": "Sidebar.jsx",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/components/Sidebar.jsx",
-      "source_location": "L1",
-      "community": 171,
-      "norm_label": "sidebar.jsx",
-      "id": "adminmanager_v1_src_components_sidebar_jsx"
-    },
-    {
-      "label": "navItems",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/components/Sidebar.jsx",
-      "source_location": "L5",
-      "community": 171,
-      "norm_label": "navitems",
-      "id": "components_sidebar_navitems"
-    },
-    {
-      "label": "Sidebar()",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/components/Sidebar.jsx",
-      "source_location": "L21",
-      "community": 171,
-      "norm_label": "sidebar()",
-      "id": "components_sidebar_sidebar"
     },
     {
       "label": "SharedUI.jsx",
@@ -2698,7 +2716,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Settings.jsx",
       "source_location": "L1",
-      "community": 87,
+      "community": 49,
       "norm_label": "settings.jsx",
       "id": "adminmanager_v1_src_pages_settings_jsx"
     },
@@ -2707,7 +2725,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Settings.jsx",
       "source_location": "L5",
-      "community": 87,
+      "community": 49,
       "norm_label": "default_settings",
       "id": "pages_settings_default_settings"
     },
@@ -2716,7 +2734,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Settings.jsx",
       "source_location": "L29",
-      "community": 87,
+      "community": 49,
       "norm_label": "settings()",
       "id": "pages_settings_settings"
     },
@@ -2725,7 +2743,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Reports.jsx",
       "source_location": "L1",
-      "community": 49,
+      "community": 87,
       "norm_label": "reports.jsx",
       "id": "adminmanager_v1_src_pages_reports_jsx"
     },
@@ -2734,7 +2752,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Reports.jsx",
       "source_location": "L5",
-      "community": 49,
+      "community": 87,
       "norm_label": "reports()",
       "id": "pages_reports_reports"
     },
@@ -2788,7 +2806,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Images.jsx",
       "source_location": "L1",
-      "community": 87,
+      "community": 152,
       "norm_label": "images.jsx",
       "id": "adminmanager_v1_src_pages_images_jsx"
     },
@@ -2797,7 +2815,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Images.jsx",
       "source_location": "L5",
-      "community": 87,
+      "community": 152,
       "norm_label": "images()",
       "id": "pages_images_images"
     },
@@ -2806,7 +2824,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Offers.jsx",
       "source_location": "L1",
-      "community": 87,
+      "community": 152,
       "norm_label": "offers.jsx",
       "id": "adminmanager_v1_src_pages_offers_jsx"
     },
@@ -2815,7 +2833,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Offers.jsx",
       "source_location": "L6",
-      "community": 87,
+      "community": 152,
       "norm_label": "offers()",
       "id": "pages_offers_offers"
     },
@@ -2824,7 +2842,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Offers.jsx",
       "source_location": "L109",
-      "community": 87,
+      "community": 152,
       "norm_label": "offerformdrawer()",
       "id": "pages_offers_offerformdrawer"
     },
@@ -2833,7 +2851,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Customers.jsx",
       "source_location": "L1",
-      "community": 49,
+      "community": 87,
       "norm_label": "customers.jsx",
       "id": "adminmanager_v1_src_pages_customers_jsx"
     },
@@ -2842,7 +2860,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Customers.jsx",
       "source_location": "L5",
-      "community": 49,
+      "community": 87,
       "norm_label": "customers()",
       "id": "pages_customers_customers"
     },
@@ -2887,7 +2905,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Dashboard.jsx",
       "source_location": "L1",
-      "community": 87,
+      "community": 49,
       "norm_label": "dashboard.jsx",
       "id": "adminmanager_v1_src_pages_dashboard_jsx"
     },
@@ -2896,7 +2914,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Dashboard.jsx",
       "source_location": "L6",
-      "community": 87,
+      "community": 49,
       "norm_label": "dashboard()",
       "id": "pages_dashboard_dashboard"
     },
@@ -4165,7 +4183,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 13,
       "norm_label": "customernavigator.js",
       "id": "frontend_v1_src_navigation_customernavigator_js"
     },
@@ -4174,7 +4192,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L25",
-      "community": 118,
+      "community": 13,
       "norm_label": "tab",
       "id": "navigation_customernavigator_tab"
     },
@@ -4183,7 +4201,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L26",
-      "community": 118,
+      "community": 13,
       "norm_label": "stack",
       "id": "navigation_customernavigator_stack"
     },
@@ -4192,7 +4210,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L28",
-      "community": 118,
+      "community": 13,
       "norm_label": "animatedtabicon()",
       "id": "navigation_customernavigator_animatedtabicon"
     },
@@ -4201,7 +4219,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L72",
-      "community": 118,
+      "community": 13,
       "norm_label": "customerbottomtabs()",
       "id": "navigation_customernavigator_customerbottomtabs"
     },
@@ -4210,7 +4228,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L128",
-      "community": 118,
+      "community": 13,
       "norm_label": "styles",
       "id": "navigation_customernavigator_styles"
     },
@@ -4219,7 +4237,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L158",
-      "community": 118,
+      "community": 13,
       "norm_label": "customernavigator()",
       "id": "navigation_customernavigator_customernavigator"
     },
@@ -4228,7 +4246,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/routes.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 13,
       "norm_label": "routes.js",
       "id": "frontend_v1_src_navigation_routes_js"
     },
@@ -4237,7 +4255,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/routes.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 13,
       "norm_label": "routes",
       "id": "navigation_routes_routes"
     },
@@ -4246,7 +4264,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/index.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_navigation_index_js"
     },
@@ -4255,7 +4273,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 13,
       "norm_label": "rootnavigator.js",
       "id": "frontend_v1_src_navigation_rootnavigator_js"
     },
@@ -4264,7 +4282,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/RootNavigator.js",
       "source_location": "L9",
-      "community": 118,
+      "community": 13,
       "norm_label": "rootnavigator()",
       "id": "navigation_rootnavigator_rootnavigator"
     },
@@ -4354,7 +4372,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/appLogo.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 118,
       "norm_label": "applogo.js",
       "id": "frontend_v1_src_assets_applogo_js"
     },
@@ -4363,7 +4381,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/appLogo.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 118,
       "norm_label": "applogo",
       "id": "assets_applogo_applogo"
     },
@@ -4372,7 +4390,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_assets_index_js"
     },
@@ -4381,7 +4399,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/fallbackImages.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 118,
       "norm_label": "fallbackimages.js",
       "id": "frontend_v1_src_assets_fallbackimages_js"
     },
@@ -4498,7 +4516,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 15,
       "norm_label": "profilescreen.js",
       "id": "frontend_v1_src_screens_customer_profilescreen_profilescreen_js"
     },
@@ -4507,7 +4525,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L22",
-      "community": 17,
+      "community": 15,
       "norm_label": "profilescreen()",
       "id": "profilescreen_profilescreen_profilescreen"
     },
@@ -4516,7 +4534,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L168",
-      "community": 17,
+      "community": 15,
       "norm_label": "menuoption()",
       "id": "profilescreen_profilescreen_menuoption"
     },
@@ -4525,7 +4543,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L197",
-      "community": 17,
+      "community": 15,
       "norm_label": "styles",
       "id": "profilescreen_profilescreen_styles"
     },
@@ -4750,7 +4768,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 15,
       "norm_label": "editprofilescreen.js",
       "id": "frontend_v1_src_screens_customer_editprofilescreen_editprofilescreen_js"
     },
@@ -4759,7 +4777,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L21",
-      "community": 30,
+      "community": 15,
       "norm_label": "editprofilescreen()",
       "id": "editprofilescreen_editprofilescreen_editprofilescreen"
     },
@@ -4768,7 +4786,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L180",
-      "community": 30,
+      "community": 15,
       "norm_label": "styles",
       "id": "editprofilescreen_editprofilescreen_styles"
     },
@@ -5371,7 +5389,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_index_js"
     },
@@ -5380,7 +5398,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/CategoryCard/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_categorycard_index_js"
     },
@@ -5389,7 +5407,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/CategoryCard/CategoryCard.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 118,
       "norm_label": "categorycard.js",
       "id": "frontend_v1_src_components_categorycard_categorycard_js"
     },
@@ -5398,7 +5416,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/CategoryCard/CategoryCard.js",
       "source_location": "L16",
-      "community": 30,
+      "community": 118,
       "norm_label": "categorycard()",
       "id": "categorycard_categorycard_categorycard"
     },
@@ -5407,7 +5425,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/CategoryCard/CategoryCard.js",
       "source_location": "L53",
-      "community": 30,
+      "community": 118,
       "norm_label": "styles",
       "id": "categorycard_categorycard_styles"
     },
@@ -5506,7 +5524,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/ProductImage.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 118,
       "norm_label": "productimage.js",
       "id": "frontend_v1_src_components_productimage_productimage_js"
     },
@@ -5515,7 +5533,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/ProductImage.js",
       "source_location": "L6",
-      "community": 30,
+      "community": 118,
       "norm_label": "fallback_source",
       "id": "productimage_productimage_fallback_source"
     },
@@ -5524,7 +5542,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/ProductImage.js",
       "source_location": "L21",
-      "community": 30,
+      "community": 118,
       "norm_label": "productimage()",
       "id": "productimage_productimage_productimage"
     },
@@ -5533,7 +5551,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/ProductImage.js",
       "source_location": "L66",
-      "community": 30,
+      "community": 118,
       "norm_label": "styles",
       "id": "productimage_productimage_styles"
     },
@@ -5542,7 +5560,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 118,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_productimage_index_js"
     },
@@ -5551,7 +5569,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextInputField/TextInputField.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "textinputfield.js",
       "id": "frontend_v1_src_components_textinputfield_textinputfield_js"
     },
@@ -5560,7 +5578,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextInputField/TextInputField.js",
       "source_location": "L36",
-      "community": 147,
+      "community": 30,
       "norm_label": "textinputfield()",
       "id": "textinputfield_textinputfield_textinputfield"
     },
@@ -5569,7 +5587,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextInputField/TextInputField.js",
       "source_location": "L139",
-      "community": 147,
+      "community": 30,
       "norm_label": "styles",
       "id": "textinputfield_textinputfield_styles"
     },
@@ -5578,7 +5596,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextInputField/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textinputfield_index_js"
     },
@@ -5722,7 +5740,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/BillSummary/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_billsummary_index_js"
     },
@@ -5731,7 +5749,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/BillSummary/BillSummary.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "billsummary.js",
       "id": "frontend_v1_src_components_billsummary_billsummary_js"
     },
@@ -5740,7 +5758,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/BillSummary/BillSummary.js",
       "source_location": "L18",
-      "community": 147,
+      "community": 30,
       "norm_label": "billsummary()",
       "id": "billsummary_billsummary_billsummary"
     },
@@ -5749,7 +5767,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/BillSummary/BillSummary.js",
       "source_location": "L60",
-      "community": 147,
+      "community": 30,
       "norm_label": "billrow()",
       "id": "billsummary_billsummary_billrow"
     },
@@ -5758,7 +5776,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/BillSummary/BillSummary.js",
       "source_location": "L81",
-      "community": 147,
+      "community": 30,
       "norm_label": "styles",
       "id": "billsummary_billsummary_styles"
     },
@@ -5767,7 +5785,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "appscreen.js",
       "id": "frontend_v1_src_components_appscreen_appscreen_js"
     },
@@ -5776,7 +5794,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L19",
-      "community": 30,
+      "community": 147,
       "norm_label": "appscreen()",
       "id": "appscreen_appscreen_appscreen"
     },
@@ -5785,7 +5803,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L55",
-      "community": 30,
+      "community": 147,
       "norm_label": "styles",
       "id": "appscreen_appscreen_styles"
     },
@@ -5794,7 +5812,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appscreen_index_js"
     },
@@ -5803,7 +5821,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 60,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_ordercard_index_js"
     },
@@ -5812,7 +5830,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 60,
       "norm_label": "ordercard.js",
       "id": "frontend_v1_src_components_ordercard_ordercard_js"
     },
@@ -5821,7 +5839,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
-      "community": 147,
+      "community": 60,
       "norm_label": "ordercard()",
       "id": "ordercard_ordercard_ordercard"
     },
@@ -5830,7 +5848,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L92",
-      "community": 147,
+      "community": 60,
       "norm_label": "styles",
       "id": "ordercard_ordercard_styles"
     },
@@ -5839,7 +5857,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 60,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_confirmmodal_index_js"
     },
@@ -5848,7 +5866,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 60,
       "norm_label": "confirmmodal.js",
       "id": "frontend_v1_src_components_confirmmodal_confirmmodal_js"
     },
@@ -5857,7 +5875,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L27",
-      "community": 147,
+      "community": 60,
       "norm_label": "confirmmodal()",
       "id": "confirmmodal_confirmmodal_confirmmodal"
     },
@@ -5866,7 +5884,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L93",
-      "community": 147,
+      "community": 60,
       "norm_label": "styles",
       "id": "confirmmodal_confirmmodal_styles"
     },
@@ -5875,7 +5893,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedcartbadge_index_js"
     },
@@ -5884,7 +5902,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 45,
       "norm_label": "animatedcartbadge.js",
       "id": "frontend_v1_src_components_animatedcartbadge_animatedcartbadge_js"
     },
@@ -5902,7 +5920,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L30",
-      "community": 147,
+      "community": 45,
       "norm_label": "styles",
       "id": "animatedcartbadge_animatedcartbadge_styles"
     },
@@ -5965,7 +5983,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_stickyminicart_index_js"
     },
@@ -6010,7 +6028,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductCard/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_productcard_index_js"
     },
@@ -6019,7 +6037,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductCard/ProductCard.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "productcard.js",
       "id": "frontend_v1_src_components_productcard_productcard_js"
     },
@@ -6028,7 +6046,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductCard/ProductCard.js",
       "source_location": "L21",
-      "community": 30,
+      "community": 45,
       "norm_label": "productcard()",
       "id": "productcard_productcard_productcard"
     },
@@ -6037,7 +6055,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductCard/ProductCard.js",
       "source_location": "L176",
-      "community": 30,
+      "community": 45,
       "norm_label": "styles",
       "id": "productcard_productcard_styles"
     },
@@ -6082,7 +6100,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 60,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_segmentedcontrol_index_js"
     },
@@ -6091,7 +6109,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 60,
       "norm_label": "segmentedcontrol.js",
       "id": "frontend_v1_src_components_segmentedcontrol_segmentedcontrol_js"
     },
@@ -6100,7 +6118,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L19",
-      "community": 147,
+      "community": 60,
       "norm_label": "segmentedcontrol()",
       "id": "segmentedcontrol_segmentedcontrol_segmentedcontrol"
     },
@@ -6109,7 +6127,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L99",
-      "community": 147,
+      "community": 60,
       "norm_label": "styles",
       "id": "segmentedcontrol_segmentedcontrol_styles"
     },
@@ -6217,7 +6235,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_quantitystepper_index_js"
     },
@@ -6226,7 +6244,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 45,
       "norm_label": "quantitystepper.js",
       "id": "frontend_v1_src_components_quantitystepper_quantitystepper_js"
     },
@@ -6235,7 +6253,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L30",
-      "community": 147,
+      "community": 45,
       "norm_label": "quantitystepper()",
       "id": "quantitystepper_quantitystepper_quantitystepper"
     },
@@ -6244,7 +6262,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L114",
-      "community": 147,
+      "community": 45,
       "norm_label": "styles",
       "id": "quantitystepper_quantitystepper_styles"
     },
@@ -6325,7 +6343,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 45,
       "norm_label": "animatedsegmentedcontrol.js",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_animatedsegmentedcontrol_js"
     },
@@ -6343,7 +6361,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L66",
-      "community": 147,
+      "community": 45,
       "norm_label": "styles",
       "id": "animatedsegmentedcontrol_animatedsegmentedcontrol_styles"
     },
@@ -6352,7 +6370,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_index_js"
     },
@@ -6397,7 +6415,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/PressableScale/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_pressablescale_index_js"
     },
@@ -6487,7 +6505,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/borders.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "borders.js",
       "id": "frontend_v1_src_theme_borders_js"
     },
@@ -6496,7 +6514,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/borders.js",
       "source_location": "L10",
-      "community": 147,
+      "community": 30,
       "norm_label": "radius",
       "id": "theme_borders_radius"
     },
@@ -6505,7 +6523,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/borders.js",
       "source_location": "L24",
-      "community": 147,
+      "community": 30,
       "norm_label": "borderwidth",
       "id": "theme_borders_borderwidth"
     },
@@ -6514,7 +6532,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 15,
       "norm_label": "spacing.js",
       "id": "frontend_v1_src_theme_spacing_js"
     },
@@ -6523,7 +6541,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L6",
-      "community": 147,
+      "community": 15,
       "norm_label": "spacing",
       "id": "theme_spacing_spacing"
     },
@@ -6532,7 +6550,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "typography.js",
       "id": "frontend_v1_src_theme_typography_js"
     },
@@ -6541,7 +6559,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L11",
-      "community": 147,
+      "community": 30,
       "norm_label": "fontfamily",
       "id": "theme_typography_fontfamily"
     },
@@ -6550,7 +6568,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L32",
-      "community": 147,
+      "community": 30,
       "norm_label": "fontweights",
       "id": "theme_typography_fontweights"
     },
@@ -6559,7 +6577,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L40",
-      "community": 147,
+      "community": 30,
       "norm_label": "fontsizes",
       "id": "theme_typography_fontsizes"
     },
@@ -6568,7 +6586,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L53",
-      "community": 147,
+      "community": 30,
       "norm_label": "lineheights",
       "id": "theme_typography_lineheights"
     },
@@ -6577,7 +6595,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
-      "community": 147,
+      "community": 15,
       "norm_label": "typography",
       "id": "theme_typography_typography"
     },
@@ -6586,7 +6604,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_theme_index_js"
     },
@@ -6595,7 +6613,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "shadows.js",
       "id": "frontend_v1_src_theme_shadows_js"
     },
@@ -6604,7 +6622,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L11",
-      "community": 30,
+      "community": 147,
       "norm_label": "makeshadow()",
       "id": "theme_shadows_makeshadow"
     },
@@ -6613,7 +6631,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L23",
-      "community": 17,
+      "community": 60,
       "norm_label": "shadows",
       "id": "theme_shadows_shadows"
     },
@@ -6622,7 +6640,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "colors.js",
       "id": "frontend_v1_src_theme_colors_js"
     },
@@ -6631,7 +6649,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L10",
-      "community": 30,
+      "community": 147,
       "norm_label": "palette",
       "id": "theme_colors_palette"
     },
@@ -6640,7 +6658,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L69",
-      "community": 30,
+      "community": 147,
       "norm_label": "colors",
       "id": "theme_colors_colors"
     },
@@ -6676,7 +6694,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L33",
-      "community": 45,
+      "community": 102,
       "norm_label": "motionconfig",
       "id": "theme_motion_motionconfig"
     },
@@ -7297,7 +7315,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L1",
-      "community": 70,
+      "community": 145,
       "norm_label": "settingsoffers.test.js",
       "id": "backend_v1_tests_settingsoffers_test_js"
     },
@@ -7306,7 +7324,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L1",
-      "community": 70,
+      "community": 145,
       "norm_label": "request",
       "id": "tests_settingsoffers_test_request"
     },
@@ -7315,7 +7333,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L2",
-      "community": 70,
+      "community": 145,
       "norm_label": "express",
       "id": "tests_settingsoffers_test_express"
     },
@@ -7324,7 +7342,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L3",
-      "community": 70,
+      "community": 145,
       "norm_label": "adminroutes",
       "id": "tests_settingsoffers_test_adminroutes"
     },
@@ -7333,7 +7351,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L4",
-      "community": 70,
+      "community": 145,
       "norm_label": "{ pool }",
       "id": "tests_settingsoffers_test_pool"
     },
@@ -7342,7 +7360,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L5",
-      "community": 70,
+      "community": 145,
       "norm_label": "jwt",
       "id": "tests_settingsoffers_test_jwt"
     },
@@ -7351,7 +7369,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L13",
-      "community": 70,
+      "community": 145,
       "norm_label": "app",
       "id": "tests_settingsoffers_test_app"
     },
@@ -7360,7 +7378,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L17",
-      "community": 70,
+      "community": 145,
       "norm_label": "admintoken",
       "id": "tests_settingsoffers_test_admintoken"
     },
@@ -7864,7 +7882,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L1",
-      "community": 70,
+      "community": 169,
       "norm_label": "adminauth.test.js",
       "id": "backend_v1_tests_adminauth_test_js"
     },
@@ -7873,7 +7891,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L1",
-      "community": 70,
+      "community": 169,
       "norm_label": "request",
       "id": "tests_adminauth_test_request"
     },
@@ -7882,7 +7900,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L2",
-      "community": 70,
+      "community": 169,
       "norm_label": "express",
       "id": "tests_adminauth_test_express"
     },
@@ -7891,7 +7909,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L3",
-      "community": 70,
+      "community": 169,
       "norm_label": "adminroutes",
       "id": "tests_adminauth_test_adminroutes"
     },
@@ -7900,7 +7918,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L4",
-      "community": 70,
+      "community": 169,
       "norm_label": "{ pool }",
       "id": "tests_adminauth_test_pool"
     },
@@ -7909,7 +7927,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L5",
-      "community": 70,
+      "community": 169,
       "norm_label": "jwt",
       "id": "tests_adminauth_test_jwt"
     },
@@ -7918,7 +7936,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/adminAuth.test.js",
       "source_location": "L13",
-      "community": 70,
+      "community": 169,
       "norm_label": "app",
       "id": "tests_adminauth_test_app"
     },
@@ -7927,7 +7945,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L1",
-      "community": 145,
+      "community": 70,
       "norm_label": "auth.test.js",
       "id": "backend_v1_tests_auth_test_js"
     },
@@ -7936,7 +7954,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L1",
-      "community": 145,
+      "community": 70,
       "norm_label": "request",
       "id": "tests_auth_test_request"
     },
@@ -7945,7 +7963,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L2",
-      "community": 145,
+      "community": 70,
       "norm_label": "express",
       "id": "tests_auth_test_express"
     },
@@ -7954,7 +7972,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L3",
-      "community": 145,
+      "community": 70,
       "norm_label": "authroutes",
       "id": "tests_auth_test_authroutes"
     },
@@ -7963,7 +7981,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L4",
-      "community": 145,
+      "community": 70,
       "norm_label": "{ pool }",
       "id": "tests_auth_test_pool"
     },
@@ -7972,7 +7990,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L5",
-      "community": 145,
+      "community": 70,
       "norm_label": "bcrypt",
       "id": "tests_auth_test_bcrypt"
     },
@@ -7981,7 +7999,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L6",
-      "community": 145,
+      "community": 70,
       "norm_label": "jwt",
       "id": "tests_auth_test_jwt"
     },
@@ -7990,7 +8008,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L14",
-      "community": 145,
+      "community": 70,
       "norm_label": "app",
       "id": "tests_auth_test_app"
     },
@@ -8305,7 +8323,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L1",
-      "community": 191,
+      "community": 151,
       "norm_label": "index.js",
       "id": "backend_v1_src_db_index_js"
     },
@@ -8314,7 +8332,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L1",
-      "community": 191,
+      "community": 151,
       "norm_label": "mysqldb",
       "id": "db_index_mysqldb"
     },
@@ -8323,7 +8341,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L2",
-      "community": 191,
+      "community": 151,
       "norm_label": "mongodb",
       "id": "db_index_mongodb"
     },
@@ -8332,7 +8350,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L4",
-      "community": 191,
+      "community": 151,
       "norm_label": "initdb()",
       "id": "db_index_initdb"
     },
@@ -8341,7 +8359,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L14",
-      "community": 191,
+      "community": 151,
       "norm_label": "closedb()",
       "id": "db_index_closedb"
     },
@@ -8350,7 +8368,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L21",
-      "community": 191,
+      "community": 151,
       "norm_label": "checkhealth()",
       "id": "db_index_checkhealth"
     },
@@ -8737,7 +8755,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/dashboardRoutes.js",
       "source_location": "L1",
-      "community": 152,
+      "community": 64,
       "norm_label": "dashboardroutes.js",
       "id": "backend_v1_src_routes_dashboardroutes_js"
     },
@@ -8746,7 +8764,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/dashboardRoutes.js",
       "source_location": "L1",
-      "community": 152,
+      "community": 64,
       "norm_label": "express",
       "id": "routes_dashboardroutes_express"
     },
@@ -8755,7 +8773,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/dashboardRoutes.js",
       "source_location": "L2",
-      "community": 152,
+      "community": 64,
       "norm_label": "router",
       "id": "routes_dashboardroutes_router"
     },
@@ -8764,7 +8782,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/dashboardRoutes.js",
       "source_location": "L3",
-      "community": 152,
+      "community": 64,
       "norm_label": "asynchandler",
       "id": "routes_dashboardroutes_asynchandler"
     },
@@ -8773,7 +8791,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/dashboardRoutes.js",
       "source_location": "L4",
-      "community": 152,
+      "community": 64,
       "norm_label": "{ getdashboard, getsectionitems }",
       "id": "routes_dashboardroutes_getdashboard_getsectionitems"
     },
@@ -9124,7 +9142,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/errorHandler.js",
       "source_location": "L1",
-      "community": 169,
+      "community": 48,
       "norm_label": "errorhandler.js",
       "id": "backend_v1_src_middleware_errorhandler_js"
     },
@@ -9133,7 +9151,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/errorHandler.js",
       "source_location": "L1",
-      "community": 169,
+      "community": 48,
       "norm_label": "config",
       "id": "middleware_errorhandler_config"
     },
@@ -9142,7 +9160,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/errorHandler.js",
       "source_location": "L3",
-      "community": 169,
+      "community": 48,
       "norm_label": "errorhandler()",
       "id": "middleware_errorhandler_errorhandler"
     },
@@ -9151,7 +9169,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/errorHandler.js",
       "source_location": "L39",
-      "community": 169,
+      "community": 48,
       "norm_label": "notfoundhandler()",
       "id": "middleware_errorhandler_notfoundhandler"
     },
@@ -10357,7 +10375,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/thresholdDelivery.js",
       "source_location": "L1",
-      "community": 54,
+      "community": 183,
       "norm_label": "thresholddelivery.js",
       "id": "backend_v1_src_utils_thresholddelivery_js"
     },
@@ -10366,7 +10384,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/thresholdDelivery.js",
       "source_location": "L3",
-      "community": 54,
+      "community": 183,
       "norm_label": "isenabled()",
       "id": "utils_thresholddelivery_isenabled"
     },
@@ -10375,7 +10393,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/thresholdDelivery.js",
       "source_location": "L8",
-      "community": 54,
+      "community": 183,
       "norm_label": "getnonnegativeamount()",
       "id": "utils_thresholddelivery_getnonnegativeamount"
     },
@@ -10384,7 +10402,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/thresholdDelivery.js",
       "source_location": "L13",
-      "community": 54,
+      "community": 183,
       "norm_label": "getfreedeliverythreshold()",
       "id": "utils_thresholddelivery_getfreedeliverythreshold"
     },
@@ -10393,7 +10411,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/thresholdDelivery.js",
       "source_location": "L18",
-      "community": 54,
+      "community": 183,
       "norm_label": "calculatethresholddeliverycharge()",
       "id": "utils_thresholddelivery_calculatethresholddeliverycharge"
     },
@@ -13282,7 +13300,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L773",
-      "community": 183,
+      "community": 73,
       "norm_label": "17. backend tests",
       "id": "plans_admindashboardtask_17_backend_tests"
     },
@@ -13291,7 +13309,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L775",
-      "community": 183,
+      "community": 73,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_775"
     },
@@ -13300,7 +13318,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L778",
-      "community": 183,
+      "community": 73,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_778"
     },
@@ -13309,7 +13327,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L793",
-      "community": 183,
+      "community": 73,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_793"
     },
@@ -13354,7 +13372,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L826",
-      "community": 73,
+      "community": 186,
       "norm_label": "19. frontend tests",
       "id": "plans_admindashboardtask_19_frontend_tests"
     },
@@ -13363,7 +13381,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L828",
-      "community": 73,
+      "community": 186,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_828"
     },
@@ -13372,7 +13390,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L831",
-      "community": 73,
+      "community": 186,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_831"
     },
@@ -13381,7 +13399,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L845",
-      "community": 73,
+      "community": 186,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_845"
     },
@@ -17521,7 +17539,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
-      "community": 147,
+      "community": 60,
       "norm_label": "status_colors",
       "id": "ordercard_ordercard_status_colors"
     },
@@ -17530,7 +17548,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L13",
-      "community": 147,
+      "community": 60,
       "norm_label": "payment_colors",
       "id": "ordercard_ordercard_payment_colors"
     },
@@ -17539,7 +17557,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 13,
       "norm_label": "adminnavigator.js",
       "id": "frontend_v1_src_navigation_adminnavigator_js"
     },
@@ -17548,7 +17566,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
       "source_location": "L17",
-      "community": 118,
+      "community": 13,
       "norm_label": "stack",
       "id": "navigation_adminnavigator_stack"
     },
@@ -17557,7 +17575,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/AdminNavigator.js",
       "source_location": "L23",
-      "community": 118,
+      "community": 13,
       "norm_label": "adminnavigator()",
       "id": "navigation_adminnavigator_adminnavigator"
     },
@@ -17584,7 +17602,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_index_js"
     },
@@ -17593,7 +17611,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 102,
       "norm_label": "admincustomersscreen.js",
       "id": "frontend_v1_src_screens_admin_admincustomersscreen_admincustomersscreen_js"
     },
@@ -17602,7 +17620,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L35",
-      "community": 45,
+      "community": 102,
       "norm_label": "pickfirst()",
       "id": "admincustomersscreen_admincustomersscreen_pickfirst"
     },
@@ -17611,7 +17629,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L39",
-      "community": 45,
+      "community": 102,
       "norm_label": "asboolean()",
       "id": "admincustomersscreen_admincustomersscreen_asboolean"
     },
@@ -17620,7 +17638,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L49",
-      "community": 45,
+      "community": 102,
       "norm_label": "getcustomersfromresponse()",
       "id": "admincustomersscreen_admincustomersscreen_getcustomersfromresponse"
     },
@@ -17629,7 +17647,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L59",
-      "community": 45,
+      "community": 102,
       "norm_label": "normalizecustomer()",
       "id": "admincustomersscreen_admincustomersscreen_normalizecustomer"
     },
@@ -17638,7 +17656,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L93",
-      "community": 45,
+      "community": 102,
       "norm_label": "formatshortaddress()",
       "id": "admincustomersscreen_admincustomersscreen_formatshortaddress"
     },
@@ -17647,7 +17665,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L106",
-      "community": 45,
+      "community": 102,
       "norm_label": "getactionerror()",
       "id": "admincustomersscreen_admincustomersscreen_getactionerror"
     },
@@ -17656,7 +17674,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L110",
-      "community": 45,
+      "community": 102,
       "norm_label": "admincustomersscreen()",
       "id": "admincustomersscreen_admincustomersscreen_admincustomersscreen"
     },
@@ -17665,7 +17683,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L363",
-      "community": 45,
+      "community": 102,
       "norm_label": "customerskeletonlist()",
       "id": "admincustomersscreen_admincustomersscreen_customerskeletonlist"
     },
@@ -17674,7 +17692,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L374",
-      "community": 45,
+      "community": 102,
       "norm_label": "customercard()",
       "id": "admincustomersscreen_admincustomersscreen_customercard"
     },
@@ -17683,7 +17701,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L465",
-      "community": 45,
+      "community": 102,
       "norm_label": "statuspill()",
       "id": "admincustomersscreen_admincustomersscreen_statuspill"
     },
@@ -17692,7 +17710,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L484",
-      "community": 45,
+      "community": 102,
       "norm_label": "togglerow()",
       "id": "admincustomersscreen_admincustomersscreen_togglerow"
     },
@@ -17701,7 +17719,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L505",
-      "community": 45,
+      "community": 102,
       "norm_label": "blockcustomermodal()",
       "id": "admincustomersscreen_admincustomersscreen_blockcustomermodal"
     },
@@ -17710,7 +17728,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L545",
-      "community": 45,
+      "community": 102,
       "norm_label": "styles",
       "id": "admincustomersscreen_admincustomersscreen_styles"
     },
@@ -17728,7 +17746,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminorderdetailscreen_index_js"
     },
@@ -17737,7 +17755,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "adminorderdetailscreen.js",
       "id": "frontend_v1_src_screens_admin_adminorderdetailscreen_adminorderdetailscreen_js"
     },
@@ -17746,7 +17764,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L20",
-      "community": 60,
+      "community": 30,
       "norm_label": "order_statuses",
       "id": "adminorderdetailscreen_adminorderdetailscreen_order_statuses"
     },
@@ -17755,7 +17773,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L21",
-      "community": 60,
+      "community": 30,
       "norm_label": "payment_statuses",
       "id": "adminorderdetailscreen_adminorderdetailscreen_payment_statuses"
     },
@@ -17764,7 +17782,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L23",
-      "community": 60,
+      "community": 30,
       "norm_label": "adminorderdetailscreen()",
       "id": "adminorderdetailscreen_adminorderdetailscreen_adminorderdetailscreen"
     },
@@ -17773,7 +17791,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L257",
-      "community": 60,
+      "community": 30,
       "norm_label": "styles",
       "id": "adminorderdetailscreen_adminorderdetailscreen_styles"
     },
@@ -17782,7 +17800,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminDashboardScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_admindashboardscreen_index_js"
     },
@@ -17872,7 +17890,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminproductsscreen_index_js"
     },
@@ -17908,7 +17926,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminLoginScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminloginscreen_index_js"
     },
@@ -17917,7 +17935,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 102,
       "norm_label": "adminsettingsscreen.js",
       "id": "frontend_v1_src_screens_admin_adminsettingsscreen_adminsettingsscreen_js"
     },
@@ -17926,7 +17944,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L33",
-      "community": 28,
+      "community": 102,
       "norm_label": "default_form",
       "id": "adminsettingsscreen_adminsettingsscreen_default_form"
     },
@@ -17935,7 +17953,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L46",
-      "community": 28,
+      "community": 102,
       "norm_label": "numeric_fields",
       "id": "adminsettingsscreen_adminsettingsscreen_numeric_fields"
     },
@@ -17944,7 +17962,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L52",
-      "community": 28,
+      "community": 102,
       "norm_label": "pickfirst()",
       "id": "adminsettingsscreen_adminsettingsscreen_pickfirst"
     },
@@ -17953,7 +17971,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L56",
-      "community": 28,
+      "community": 102,
       "norm_label": "asboolean()",
       "id": "adminsettingsscreen_adminsettingsscreen_asboolean"
     },
@@ -17962,7 +17980,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L67",
-      "community": 28,
+      "community": 102,
       "norm_label": "astext()",
       "id": "adminsettingsscreen_adminsettingsscreen_astext"
     },
@@ -17971,7 +17989,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L72",
-      "community": 28,
+      "community": 102,
       "norm_label": "getpayloaddata()",
       "id": "adminsettingsscreen_adminsettingsscreen_getpayloaddata"
     },
@@ -17980,7 +17998,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L76",
-      "community": 28,
+      "community": 102,
       "norm_label": "getofferdata()",
       "id": "adminsettingsscreen_adminsettingsscreen_getofferdata"
     },
@@ -17989,7 +18007,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L92",
-      "community": 28,
+      "community": 102,
       "norm_label": "normalizesettings()",
       "id": "adminsettingsscreen_adminsettingsscreen_normalizesettings"
     },
@@ -17998,7 +18016,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L125",
-      "community": 28,
+      "community": 102,
       "norm_label": "buildsettingspayload()",
       "id": "adminsettingsscreen_adminsettingsscreen_buildsettingspayload"
     },
@@ -18007,7 +18025,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L136",
-      "community": 28,
+      "community": 102,
       "norm_label": "buildofferpayload()",
       "id": "adminsettingsscreen_adminsettingsscreen_buildofferpayload"
     },
@@ -18016,7 +18034,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L144",
-      "community": 28,
+      "community": 102,
       "norm_label": "geterrormessage()",
       "id": "adminsettingsscreen_adminsettingsscreen_geterrormessage"
     },
@@ -18025,7 +18043,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L148",
-      "community": 28,
+      "community": 102,
       "norm_label": "adminsettingsscreen()",
       "id": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen"
     },
@@ -18034,7 +18052,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L559",
-      "community": 28,
+      "community": 102,
       "norm_label": "statusbanner()",
       "id": "adminsettingsscreen_adminsettingsscreen_statusbanner"
     },
@@ -18043,7 +18061,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L580",
-      "community": 28,
+      "community": 102,
       "norm_label": "styles",
       "id": "adminsettingsscreen_adminsettingsscreen_styles"
     },
@@ -18052,7 +18070,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminsettingsscreen_index_js"
     },
@@ -18061,7 +18079,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductFormScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 59,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminproductformscreen_index_js"
     },
@@ -18142,7 +18160,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminordersscreen_index_js"
     },
@@ -18232,7 +18250,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminEntryScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminentryscreen_index_js"
     },
@@ -18250,7 +18268,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminSettingsApi.js",
       "source_location": "L3",
-      "community": 28,
+      "community": 15,
       "norm_label": "adminsettingsapi",
       "id": "api_adminsettingsapi_adminsettingsapi"
     },
@@ -18268,7 +18286,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminDashboardApi.js",
       "source_location": "L4",
-      "community": 28,
+      "community": 15,
       "norm_label": "admindashboardapi",
       "id": "api_admindashboardapi_admindashboardapi"
     },
@@ -18286,7 +18304,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminOrdersApi.js",
       "source_location": "L4",
-      "community": 60,
+      "community": 28,
       "norm_label": "adminordersapi",
       "id": "api_adminordersapi_adminordersapi"
     },
@@ -18340,7 +18358,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminCustomersApi.js",
       "source_location": "L4",
-      "community": 45,
+      "community": 28,
       "norm_label": "admincustomersapi",
       "id": "api_admincustomersapi_admincustomersapi"
     },
@@ -18403,7 +18421,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_adminmetriccard_index_js"
     },
@@ -18412,7 +18430,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "adminmetriccard.js",
       "id": "frontend_v1_src_components_adminmetriccard_adminmetriccard_js"
     },
@@ -18421,7 +18439,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L16",
-      "community": 147,
+      "community": 30,
       "norm_label": "adminmetriccard()",
       "id": "adminmetriccard_adminmetriccard_adminmetriccard"
     },
@@ -18430,7 +18448,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L37",
-      "community": 147,
+      "community": 30,
       "norm_label": "styles",
       "id": "adminmetriccard_adminmetriccard_styles"
     },
@@ -18808,7 +18826,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/index.js",
       "source_location": "L2",
-      "community": 15,
+      "community": 118,
       "norm_label": "assetsplaceholder",
       "id": "assets_index_assetsplaceholder"
     },
@@ -18817,7 +18835,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 102,
       "norm_label": "admincustomersscreen.js",
       "id": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js"
     },
@@ -18898,7 +18916,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 15,
       "norm_label": "profilescreen.js",
       "id": "frontend_v1_src_screens_profilescreen_profilescreen_js"
     },
@@ -18943,7 +18961,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminorderdetailscreen_index_js"
     },
@@ -18952,7 +18970,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "adminorderdetailscreen.js",
       "id": "frontend_v1_src_screens_adminorderdetailscreen_adminorderdetailscreen_js"
     },
@@ -18988,7 +19006,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 15,
       "norm_label": "editprofilescreen.js",
       "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js"
     },
@@ -18997,7 +19015,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminDashboardScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admindashboardscreen_index_js"
     },
@@ -19042,7 +19060,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 59,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminproductsscreen_index_js"
     },
@@ -19060,7 +19078,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminLoginScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminloginscreen_index_js"
     },
@@ -19087,7 +19105,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 102,
       "norm_label": "adminsettingsscreen.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js"
     },
@@ -19096,7 +19114,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_index_js"
     },
@@ -19123,7 +19141,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 60,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminordersscreen_index_js"
     },
@@ -19150,7 +19168,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminEntryScreen/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminentryscreen_index_js"
     },
@@ -19195,7 +19213,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/index.js",
       "source_location": "L2",
-      "community": 102,
+      "community": 13,
       "norm_label": "adminscreensplaceholder",
       "id": "admin_index_adminscreensplaceholder"
     },
@@ -19240,7 +19258,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L19",
-      "community": 60,
+      "community": 30,
       "norm_label": "fetchadminorderdetails()",
       "id": "adminorderdetailscreen_adminorderdetailscreen_fetchadminorderdetails"
     },
@@ -19366,7 +19384,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/index.js",
       "source_location": "L2",
-      "community": 147,
+      "community": 30,
       "norm_label": "themeplaceholder",
       "id": "theme_index_themeplaceholder"
     },
@@ -20426,6 +20444,1107 @@
   ],
   "links": [
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "components_authprovider_authprovider"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_notifications_jsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "src_app_app",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/main.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_main_jsx",
+      "target": "adminmanager_v1_src_app_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_components_authprovider_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_routes_protectedroute_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_layout_adminlayout_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_login_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_dashboard_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_orders_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_products_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_combos_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_categories_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_offers_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_mobiledashboard_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_customers_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_settings_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_images_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_reports_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_health_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_auditlogs_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_audit_jsx"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_app"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_client_apiclient"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_withquery"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_authapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_dashboardapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_ordersapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_productsapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L48",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_combosapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L32",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_categoriesapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L36",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_offersapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L40",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_customersapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L44",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_settingsapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L49",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_imagesapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L54",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_reportsapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L61",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_healthapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L65",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_auditapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L94",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_mobiledashboardapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L118",
+      "weight": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "api_index_notificationsapi",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Notifications.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "adminmanager_v1_src_pages_notifications_jsx",
+      "target": "adminmanager_v1_src_api_index_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/api/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_api_index_js",
+      "target": "adminmanager_v1_src_api_client_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/components/AuthProvider.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_components_authprovider_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Health.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_health_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Settings.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_settings_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Reports.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_reports_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_products_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Images.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_images_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Offers.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_offers_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Customers.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_customers_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Orders.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_orders_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Dashboard.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_dashboard_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Combos.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_combos_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Categories.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_categories_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/AuditLogs.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_auditlogs_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/components/AuthProvider.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_components_authprovider_jsx",
+      "target": "api_index_authapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
+      "source_location": "L21",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_profilescreen_profilescreen_js",
+      "target": "api_index_authapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_editprofilescreen_editprofilescreen_js",
+      "target": "api_index_authapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/AuthScreen/AuthScreen.js",
+      "source_location": "L28",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_authscreen_authscreen_js",
+      "target": "api_index_authapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Dashboard.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_dashboard_jsx",
+      "target": "api_index_dashboardapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/HomeScreen/HomeScreen.js",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_homescreen_homescreen_js",
+      "target": "api_index_dashboardapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "api_index_dashboardapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Orders.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_orders_jsx",
+      "target": "api_index_ordersapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/OrderDetailScreen/OrderDetailScreen.js",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_orderdetailscreen_orderdetailscreen_js",
+      "target": "api_index_ordersapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_ordersscreen_ordersscreen_js",
+      "target": "api_index_ordersapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CheckoutScreen/CheckoutScreen.js",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_checkoutscreen_checkoutscreen_js",
+      "target": "api_index_ordersapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "api_index_productsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_products_jsx",
+      "target": "api_index_productsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Combos.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_combos_jsx",
+      "target": "api_index_productsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
+      "target": "api_index_productsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductDetailScreen/ProductDetailScreen.js",
+      "source_location": "L21",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productdetailscreen_productdetailscreen_js",
+      "target": "api_index_productsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L28",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "api_index_productsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/HomeScreen/HomeScreen.js",
+      "source_location": "L26",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_homescreen_homescreen_js",
+      "target": "api_index_productsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Combos.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_combos_jsx",
+      "target": "api_index_combosapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
+      "target": "api_index_combosapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_products_jsx",
+      "target": "api_index_categoriesapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Categories.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_categories_jsx",
+      "target": "api_index_categoriesapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
+      "target": "api_index_categoriesapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Combos.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_combos_jsx",
+      "target": "api_index_categoriesapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Offers.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_offers_jsx",
+      "target": "api_index_offersapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
+      "target": "api_index_offersapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/HomeScreen/HomeScreen.js",
+      "source_location": "L26",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_homescreen_homescreen_js",
+      "target": "api_index_offersapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Customers.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_customers_jsx",
+      "target": "api_index_customersapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Settings.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_settings_jsx",
+      "target": "api_index_settingsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Dashboard.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_dashboard_jsx",
+      "target": "api_index_settingsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/HomeScreen/HomeScreen.js",
+      "source_location": "L26",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_homescreen_homescreen_js",
+      "target": "api_index_settingsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Settings.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_settings_jsx",
+      "target": "api_index_imagesapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_products_jsx",
+      "target": "api_index_imagesapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Images.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_images_jsx",
+      "target": "api_index_imagesapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Offers.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_offers_jsx",
+      "target": "api_index_imagesapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Combos.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_combos_jsx",
+      "target": "api_index_imagesapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Categories.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_categories_jsx",
+      "target": "api_index_imagesapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Reports.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_reports_jsx",
+      "target": "api_index_reportsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Health.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_health_jsx",
+      "target": "api_index_healthapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/AuditLogs.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_auditlogs_jsx",
+      "target": "api_index_auditapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
+      "target": "api_index_mobiledashboardapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Notifications.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "adminmanager_v1_src_pages_notifications_jsx",
+      "target": "api_index_notificationsapi",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/components/Sidebar.jsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_components_sidebar_jsx",
+      "target": "components_sidebar_navitems"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/components/Sidebar.jsx",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_components_sidebar_jsx",
+      "target": "components_sidebar_sidebar"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/layout/AdminLayout.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_layout_adminlayout_jsx",
+      "target": "adminmanager_v1_src_components_sidebar_jsx"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Notifications.jsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "adminmanager_v1_src_pages_notifications_jsx",
+      "target": "pages_notifications_notifications",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "Backend-V1/src/controllers/adminController.js",
@@ -20653,9 +21772,9 @@
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L448",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_admincontroller_js",
-      "target": "controllers_admincontroller_getadminnotifications",
-      "confidence_score": 1.0
+      "target": "controllers_admincontroller_getadminnotifications"
     },
     {
       "relation": "contains",
@@ -20663,9 +21782,9 @@
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L472",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_admincontroller_js",
-      "target": "controllers_admincontroller_createadminnotification",
-      "confidence_score": 1.0
+      "target": "controllers_admincontroller_createadminnotification"
     },
     {
       "relation": "contains",
@@ -20673,9 +21792,9 @@
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L520",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_admincontroller_js",
-      "target": "controllers_admincontroller_getadminnotificationbyid",
-      "confidence_score": 1.0
+      "target": "controllers_admincontroller_getadminnotificationbyid"
     },
     {
       "relation": "contains",
@@ -20683,9 +21802,9 @@
       "source_file": "Backend-V1/src/controllers/adminController.js",
       "source_location": "L531",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_controllers_admincontroller_js",
-      "target": "controllers_admincontroller_deleteadminnotification",
-      "confidence_score": 1.0
+      "target": "controllers_admincontroller_deleteadminnotification"
     },
     {
       "relation": "imports_from",
@@ -20936,9 +22055,9 @@
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "controllers_admincontroller_getadminnotifications",
-      "confidence_score": 1.0
+      "target": "controllers_admincontroller_getadminnotifications"
     },
     {
       "relation": "imports",
@@ -20947,9 +22066,9 @@
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "controllers_admincontroller_createadminnotification",
-      "confidence_score": 1.0
+      "target": "controllers_admincontroller_createadminnotification"
     },
     {
       "relation": "imports",
@@ -20958,9 +22077,9 @@
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "controllers_admincontroller_getadminnotificationbyid",
-      "confidence_score": 1.0
+      "target": "controllers_admincontroller_getadminnotificationbyid"
     },
     {
       "relation": "imports",
@@ -20969,9 +22088,9 @@
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "controllers_admincontroller_deleteadminnotification",
-      "confidence_score": 1.0
+      "target": "controllers_admincontroller_deleteadminnotification"
     },
     {
       "relation": "contains",
@@ -20989,9 +22108,9 @@
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "routes_adminroutes_login_me_getadmincustomers_getadmincustomerbyid_setblockstatus_settruststatus_getdashboard_getsalesreport_gettopproductsreport_getcustomersreport_getadminorders_getadminorderbyid_updateorderstatus_updateorderpayment_getauditlogs_getadminnotifications_createadminnotification_getadminnotificationbyid_deleteadminnotification",
-      "confidence_score": 1.0
+      "target": "routes_adminroutes_login_me_getadmincustomers_getadmincustomerbyid_setblockstatus_settruststatus_getdashboard_getsalesreport_gettopproductsreport_getcustomersreport_getadminorders_getadminorderbyid_updateorderstatus_updateorderpayment_getauditlogs_getadminnotifications_createadminnotification_getadminnotificationbyid_deleteadminnotification"
     },
     {
       "relation": "imports",
@@ -22682,16 +23801,6 @@
       "target": "src_app_notificationroutes"
     },
     {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_app"
-    },
-    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -23184,17 +24293,6 @@
       "confidence_score": 1.0,
       "source": "backend_v1_src_db_migrate_js",
       "target": "backend_v1_src_config_env_js"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "api_index_productsapi"
     },
     {
       "relation": "contains",
@@ -24837,247 +25935,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/main.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_main_jsx",
-      "target": "adminmanager_v1_src_app_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_components_authprovider_jsx"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "components_authprovider_authprovider"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_routes_protectedroute_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_layout_adminlayout_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_login_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_dashboard_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L9",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_orders_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L10",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_products_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_combos_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_categories_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_offers_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_mobiledashboard_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_customers_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_settings_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_images_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_reports_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L18",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_health_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_auditlogs_jsx"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L21",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_app_jsx_src_app_app"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_audit_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/layout/AdminLayout.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_layout_adminlayout_jsx",
-      "target": "adminmanager_v1_src_components_sidebar_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "adminManager-V1/src/layout/AdminLayout.jsx",
       "source_location": "L4",
       "weight": 1.0,
@@ -25159,772 +26016,6 @@
       "weight": 1.0,
       "source": "routes_protectedroute_protectedroute",
       "target": "components_authprovider_useauth"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "adminmanager_v1_src_api_client_js"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_client_apiclient"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_withquery"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_authapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_dashboardapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_ordersapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L22",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_productsapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L48",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_combosapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L32",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_categoriesapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L36",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_offersapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L40",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_customersapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L44",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_settingsapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L49",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_imagesapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L54",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_reportsapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L61",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_healthapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L65",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_auditapi"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/api/index.js",
-      "source_location": "L94",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_api_index_js",
-      "target": "api_index_mobiledashboardapi"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/components/AuthProvider.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_components_authprovider_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Health.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_health_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Settings.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_settings_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Reports.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_reports_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_products_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Images.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_images_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Offers.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_offers_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Customers.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_customers_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Orders.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_orders_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Dashboard.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_dashboard_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Combos.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_combos_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Categories.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_categories_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/AuditLogs.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_auditlogs_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/components/AuthProvider.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_components_authprovider_jsx",
-      "target": "api_index_authapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
-      "source_location": "L21",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_profilescreen_profilescreen_js",
-      "target": "api_index_authapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_editprofilescreen_editprofilescreen_js",
-      "target": "api_index_authapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/AuthScreen/AuthScreen.js",
-      "source_location": "L28",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_authscreen_authscreen_js",
-      "target": "api_index_authapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Dashboard.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_dashboard_jsx",
-      "target": "api_index_dashboardapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/HomeScreen/HomeScreen.js",
-      "source_location": "L27",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_homescreen_homescreen_js",
-      "target": "api_index_dashboardapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L30",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "api_index_dashboardapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Orders.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_orders_jsx",
-      "target": "api_index_ordersapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/OrderDetailScreen/OrderDetailScreen.js",
-      "source_location": "L22",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_orderdetailscreen_orderdetailscreen_js",
-      "target": "api_index_ordersapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
-      "source_location": "L24",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_ordersscreen_ordersscreen_js",
-      "target": "api_index_ordersapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CheckoutScreen/CheckoutScreen.js",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_checkoutscreen_checkoutscreen_js",
-      "target": "api_index_ordersapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_products_jsx",
-      "target": "api_index_productsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Combos.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_combos_jsx",
-      "target": "api_index_productsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
-      "target": "api_index_productsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductDetailScreen/ProductDetailScreen.js",
-      "source_location": "L21",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productdetailscreen_productdetailscreen_js",
-      "target": "api_index_productsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L28",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "api_index_productsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/HomeScreen/HomeScreen.js",
-      "source_location": "L26",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_homescreen_homescreen_js",
-      "target": "api_index_productsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Combos.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_combos_jsx",
-      "target": "api_index_combosapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
-      "target": "api_index_combosapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_products_jsx",
-      "target": "api_index_categoriesapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Categories.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_categories_jsx",
-      "target": "api_index_categoriesapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
-      "target": "api_index_categoriesapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Combos.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_combos_jsx",
-      "target": "api_index_categoriesapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Offers.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_offers_jsx",
-      "target": "api_index_offersapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
-      "target": "api_index_offersapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/HomeScreen/HomeScreen.js",
-      "source_location": "L26",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_homescreen_homescreen_js",
-      "target": "api_index_offersapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Customers.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_customers_jsx",
-      "target": "api_index_customersapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Settings.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_settings_jsx",
-      "target": "api_index_settingsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Dashboard.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_dashboard_jsx",
-      "target": "api_index_settingsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/HomeScreen/HomeScreen.js",
-      "source_location": "L26",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_homescreen_homescreen_js",
-      "target": "api_index_settingsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Settings.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_settings_jsx",
-      "target": "api_index_imagesapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_products_jsx",
-      "target": "api_index_imagesapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Images.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_images_jsx",
-      "target": "api_index_imagesapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Offers.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_offers_jsx",
-      "target": "api_index_imagesapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Combos.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_combos_jsx",
-      "target": "api_index_imagesapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Categories.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_categories_jsx",
-      "target": "api_index_imagesapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Reports.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_reports_jsx",
-      "target": "api_index_reportsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Health.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_health_jsx",
-      "target": "api_index_healthapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/AuditLogs.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_auditlogs_jsx",
-      "target": "api_index_auditapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
-      "target": "api_index_mobiledashboardapi"
     },
     {
       "relation": "imports_from",
@@ -26118,26 +26209,6 @@
       "weight": 1.0,
       "source": "pages_login_login",
       "target": "components_authprovider_useauth"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/components/Sidebar.jsx",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_components_sidebar_jsx",
-      "target": "components_sidebar_navitems"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/components/Sidebar.jsx",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_components_sidebar_jsx",
-      "target": "components_sidebar_sidebar"
     },
     {
       "relation": "contains",
@@ -59905,5 +59976,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "2be0f91f062a7d0a34c02f19a824003004081d0e"
+  "built_at_commit": "a58b3fefee60a6e5fa702bb130fff583816d45e3"
 }
