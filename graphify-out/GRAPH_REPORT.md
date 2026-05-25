@@ -1,7 +1,7 @@
 # Graph Report - ProjectServeLoco  (2026-05-25)
 
 ## Corpus Check
-- 252 files · ~133,102 words
+- 252 files · ~133,241 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1cbbfe44`
+- Built from commit: `8b8cd1ce`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -285,8 +285,8 @@ Cohesion: 0.50
 Nodes (3): config, { getDefaultConfig }, { getDefaultConfig, mergeConfig }
 
 ### Community 27 - "Community 27"
-Cohesion: 0.08
-Nodes (34): config, getAdminCustomerById(), getAdminCustomers(), getAdminOrderById(), getAdminOrders(), getAuditLogs(), getCustomersReport(), getDashboard() (+26 more)
+Cohesion: 0.07
+Nodes (36): config, getAdminCustomerById(), getAdminCustomers(), getAdminOrderById(), getAdminOrders(), getAuditLogs(), getCustomersReport(), getDashboard() (+28 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.05
@@ -305,8 +305,8 @@ Cohesion: 0.05
 Nodes (39): Bug 10: Dashboard Section Model Conflicts With Derived Category Model, Bug 1: Admin Combo Form Incorrectly Asks For Category, Bug 2: Product Form Can Create Combos, Bug 3: New Categories Do Not Automatically Show On Mobile Dashboard, Bug 4: Bottom Nav Categories Screen Can Filter Out All Categories, Bug 5: Clicking A Category Can Hide Matching Products, Bug 6: Orders Are Not Showing Reliably, Bug 7: Admin Display Order Allows Duplicates (+31 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.11
-Nodes (6): styles, ICONS, styles, styles, colors, palette
+Cohesion: 0.20
+Nodes (9): adminRoutes, adminToken, app, customerToken, express, jwt, orderRoutes, { pool } (+1 more)
 
 ### Community 34 - "Community 34"
 Cohesion: 0.07
@@ -333,8 +333,8 @@ Cohesion: 0.09
 Nodes (7): appLogo, assetsPlaceholder, styles, styles, FALLBACK_SOURCE, styles, styles
 
 ### Community 47 - "Community 47"
-Cohesion: 0.23
-Nodes (18): blockSchema(), categorySchema(), loginSchema(), paginationSchema(), productAvailabilitySchema(), productImageSchema(), productSchema(), trustSchema() (+10 more)
+Cohesion: 0.28
+Nodes (15): blockSchema(), categorySchema(), loginSchema(), productAvailabilitySchema(), productImageSchema(), productSchema(), trustSchema(), loginSchema() (+7 more)
 
 ### Community 48 - "Community 48"
 Cohesion: 0.09
@@ -362,7 +362,7 @@ Nodes (3): Included, Not Included, V1 Scope
 
 ### Community 54 - "Community 54"
 Cohesion: 0.10
-Nodes (26): calculateCart(), { calculateDeliveryPricing }, cancelOrder(), createOrder(), generateOrderNumber(), getOrderById(), getOrders(), { pool } (+18 more)
+Nodes (27): calculateCart(), { calculateDeliveryPricing }, cancelOrder(), createOrder(), generateOrderNumber(), getOrderById(), getOrders(), { pool } (+19 more)
 
 ### Community 56 - "Community 56"
 Cohesion: 0.17
@@ -438,7 +438,7 @@ Nodes (3): styles, styles, styles
 
 ### Community 74 - "Community 74"
 Cohesion: 0.12
-Nodes (15): 14. Admin Manager Tests, 16. Rollout Plan, 19. Frontend Tests, Admin Controlled Mobile Dashboard Tasks, Goal, Goal, Goal, Goal (+7 more)
+Nodes (15): 14. Admin Manager Tests, 16. Rollout Plan, 18. Admin Manager Tests, Admin Controlled Mobile Dashboard Tasks, Goal, Goal, Goal, Goal (+7 more)
 
 ### Community 75 - "Community 75"
 Cohesion: 0.04
@@ -694,11 +694,11 @@ Nodes (5): 15. Permissions And Audit, Goal, Subtasks, Testing checklist, Things 
 
 ### Community 148 - "Community 148"
 Cohesion: 0.05
-Nodes (27): AdminEntryScreen(), styles, styles, styles, styles, Chip(), ChipRow(), styles (+19 more)
+Nodes (26): AdminEntryScreen(), styles, styles, styles, ICONS, styles, styles, styles (+18 more)
 
 ### Community 149 - "Community 149"
-Cohesion: 0.20
-Nodes (9): adminRoutes, adminToken, app, authRoutes, customerToken, express, jwt, { pool } (+1 more)
+Cohesion: 0.60
+Nodes (3): Chip(), ChipRow(), styles
 
 ### Community 150 - "Community 150"
 Cohesion: 0.29
@@ -713,8 +713,8 @@ Cohesion: 0.25
 Nodes (8): Exact Changes, Files Likely Changed, Goal, Migration Requirements, Suggested Database Model, Task 3: Refactor Combos Away From Product Category Requirement, Testing Checklist, Things To Avoid
 
 ### Community 154 - "Community 154"
-Cohesion: 0.36
-Nodes (6): AdminProductCard(), AdminProductsScreen(), AVAILABILITY, CATEGORIES, initialMockProducts, styles
+Cohesion: 0.14
+Nodes (10): AdminProductCard(), AdminProductsScreen(), AVAILABILITY, CATEGORIES, initialMockProducts, styles, styles, MOCK_NOTIFICATIONS (+2 more)
 
 ### Community 155 - "Community 155"
 Cohesion: 0.33
@@ -778,23 +778,23 @@ Nodes (4): CustomerNavigator(), Stack, styles, Tab
 
 ### Community 170 - "Community 170"
 Cohesion: 0.50
-Nodes (4): 18. Admin Manager Tests, Goal, Subtasks, Testing checklist
+Nodes (4): 19. Frontend Tests, Goal, Subtasks, Testing checklist
 
 ## Knowledge Gaps
-- **1184 isolated node(s):** `{ pool }`, `{ getDb }`, `{ ObjectId }`, `path`, `fs` (+1179 more)
+- **1184 isolated node(s):** `{ pool }`, `{ pool }`, `{ getDb }`, `{ ObjectId }`, `SECTION_TYPES` (+1179 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **13 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `pool` connect `Community 70` to `Community 64`, `Community 65`, `Community 66`, `Community 35`, `Community 100`, `Community 103`, `Community 149`, `Community 54`, `Community 86`, `Community 88`, `Community 56`, `Community 27`?**
+- **Why does `Admin Controlled Mobile Dashboard Tasks` connect `Community 74` to `Community 132`, `Community 133`, `Community 134`, `Community 135`, `Community 136`, `Community 137`, `Community 138`, `Community 139`, `Community 140`, `Community 141`, `Community 142`, `Community 143`, `Community 146`, `Community 147`, `Community 152`, `Community 170`, `Community 71`, `Community 72`, `Community 111`, `Community 116`?**
   _High betweenness centrality (0.006) - this node is a cross-community bridge._
-- **Why does `AuthApi` connect `Community 15` to `Community 49`, `Community 92`?**
+- **Why does `colors` connect `Community 148` to `Community 169`, `Community 73`, `Community 43`, `Community 45`, `Community 46`, `Community 15`, `Community 17`, `Community 145`, `Community 149`, `Community 89`, `Community 154`, `Community 59`, `Community 28`, `Community 30`?**
   _High betweenness centrality (0.006) - this node is a cross-community bridge._
-- **Why does `colors` connect `Community 33` to `Community 169`, `Community 73`, `Community 43`, `Community 45`, `Community 46`, `Community 15`, `Community 17`, `Community 145`, `Community 148`, `Community 89`, `Community 154`, `Community 59`, `Community 28`, `Community 30`?**
-  _High betweenness centrality (0.006) - this node is a cross-community bridge._
-- **What connects `{ pool }`, `{ getDb }`, `{ ObjectId }` to the rest of the system?**
+- **Why does `ProductsApi` connect `Community 43` to `Community 49`, `Community 62`, `Community 151`?**
+  _High betweenness centrality (0.005) - this node is a cross-community bridge._
+- **What connects `{ pool }`, `{ pool }`, `{ getDb }` to the rest of the system?**
   _1184 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._

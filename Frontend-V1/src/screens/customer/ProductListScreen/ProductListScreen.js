@@ -100,9 +100,12 @@ export default function ProductListScreen() {
         });
         filtered = asArray(response, ['items']).map(normalizeProduct);
       } else {
+        const isOriginalCategory = activeCategory === initialCategory;
+        const queryCategoryId = isOriginalCategory ? route.params?.categoryId : undefined;
+
         response = await productsApi.getProducts({
           category: activeCategory !== 'All' ? activeCategory : undefined,
-          categoryId: route.params?.categoryId,
+          categoryId: queryCategoryId,
           q: searchQuery || undefined,
           search: searchQuery || undefined,
           available: showAvailableOnly ? true : undefined,
@@ -119,7 +122,11 @@ export default function ProductListScreen() {
 
         // Category Filter
         if (activeCategory !== 'All') {
-          filtered = filtered.filter(p => p.category === activeCategory);
+          const isOriginalCategory = activeCategory === initialCategory;
+          const queryCategoryId = isOriginalCategory ? route.params?.categoryId : undefined;
+          if (!queryCategoryId) {
+            filtered = filtered.filter(p => String(p.category || '').toLowerCase() === String(activeCategory).toLowerCase());
+          }
         }
       }
 

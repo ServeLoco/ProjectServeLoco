@@ -54,9 +54,11 @@ export default function CategoriesScreen() {
   const [isError, setIsError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   
+  const normalizedStoreType = storeType === 'Fast Food' ? 'fast_food' : storeType === 'Packed Items' ? 'packed' : storeType;
+
   const displayCategories = categories.filter(category => {
     const type = String(category.type || '').toLowerCase();
-    const typeMatches = !type || type === storeType.toLowerCase();
+    const typeMatches = !type || type === normalizedStoreType.toLowerCase();
     const chipMatches = activeChip === 'All'
       || category.subcategories?.some(item => String(item.name || item).toLowerCase() === activeChip.toLowerCase());
     return typeMatches && chipMatches;
@@ -74,7 +76,9 @@ export default function CategoriesScreen() {
     slideAnim.setValue(20);
     staggerAnims.forEach(anim => anim.setValue(0));
 
-    productsApi.getCategories({ type: storeType })
+    const normalizedStoreType = storeType === 'Fast Food' ? 'fast_food' : storeType === 'Packed Items' ? 'packed' : storeType;
+
+    productsApi.getCategories({ type: normalizedStoreType })
       .then(response => {
         const nextCategories = asArray(response, ['categories']).map(normalizeCategory);
         setCategories(nextCategories);
