@@ -9,81 +9,57 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const useCartStore = create(
   persist(
     (set, get) => ({
-      items: [], // Array of { product, quantity }
+      items: [], // Array of { product, quantity, type: 'product' | 'combo' }
       
       addItem: (product, quantity = 1) => {
         const { items } = get();
-        const existingItemIndex = items.findIndex((item) => item.product.id === product.id);
+        const existingItemIndex = items.findIndex((item) => item.product.id === product.id && item.type !== 'combo');
         
         if (existingItemIndex >= 0) {
           const updatedItems = [...items];
           updatedItems[existingItemIndex].quantity += quantity;
           set({ items: updatedItems });
         } else {
-          set({ items: [...items, { product, quantity }] });
+          set({ items: [...items, { product, quantity, type: 'product' }] });
         }
       },
 
       addCombo: (combo, quantity = 1) => {
-        const comboItems = combo?.comboItems || combo?.combo_items || [];
-
-        if (!Array.isArray(comboItems) || comboItems.length === 0) {
-          get().addItem(combo, quantity);
-          return;
+        const { items } = get();
+        const existingItemIndex = items.findIndex((item) => item.product.id === combo.id && item.type === 'combo');
+        
+        if (existingItemIndex >= 0) {
+          const updatedItems = [...items];
+          updatedItems[existingItemIndex].quantity += quantity;
+          set({ items: updatedItems });
+        } else {
+          set({ items: [...items, { product: combo, quantity, type: 'combo' }] });
         }
-
-        comboItems.forEach((item) => {
-          const itemQuantity = Math.max(1, Number(item.quantity || item.qty || 1));
-          get().addItem(item, itemQuantity * quantity);
-        });
       },
 
       decrementCombo: (combo) => {
-        const comboItems = combo?.comboItems || combo?.combo_items || [];
-
-        if (!Array.isArray(comboItems) || comboItems.length === 0) {
-          const current = get().items.find(item => item.product.id === combo.id)?.quantity || 0;
-          get().updateQuantity(combo.id, current - 1);
-          return;
-        }
-
-        comboItems.forEach((item) => {
-          const itemQuantity = Math.max(1, Number(item.quantity || item.qty || 1));
-          const current = get().items.find(cartItem => cartItem.product.id === item.id)?.quantity || 0;
-          get().updateQuantity(item.id, current - itemQuantity);
-        });
+        const current = get().items.find(item => item.product.id === combo.id && item.type === 'combo')?.quantity || 0;
+        get().updateQuantity(combo.id, current - 1, 'combo');
       },
 
       getComboQuantity: (combo) => {
-        const comboItems = combo?.comboItems || combo?.combo_items || [];
-
-        if (!Array.isArray(comboItems) || comboItems.length === 0) {
-          return get().items.find(item => item.product.id === combo?.id)?.quantity || 0;
-        }
-
-        const counts = comboItems.map((item) => {
-          const itemQuantity = Math.max(1, Number(item.quantity || item.qty || 1));
-          const current = get().items.find(cartItem => cartItem.product.id === item.id)?.quantity || 0;
-          return Math.floor(current / itemQuantity);
-        });
-
-        return counts.length ? Math.min(...counts) : 0;
+        return get().items.find(item => item.product.id === combo?.id && item.type === 'combo')?.quantity || 0;
       },
       
-      removeItem: (productId) => {
+      removeItem: (productId, type = 'product') => {
         const { items } = get();
-        set({ items: items.filter((item) => item.product.id !== productId) });
+        set({ items: items.filter((item) => !(item.product.id === productId && (item.type || 'product') === type)) });
       },
       
-      updateQuantity: (productId, quantity) => {
+      updateQuantity: (productId, quantity, type = 'product') => {
         const { items } = get();
         if (quantity <= 0) {
-          get().removeItem(productId);
+          get().removeItem(productId, type);
           return;
         }
         
         const updatedItems = items.map((item) => {
-          if (item.product.id === productId) {
+          if (item.product.id === productId && (item.type || 'product') === type) {
             return { ...item, quantity };
           }
           return item;

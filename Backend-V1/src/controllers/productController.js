@@ -111,41 +111,42 @@ const getProducts = async (req, res) => {
   const finalCategoryId = categoryId || category_id;
   const finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
 
-  let query = 'SELECT p.*, c.name as category_name, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.available = 1 AND p.deleted = 0';
-  const params = [];
+  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order
+    FROM products p LEFT JOIN categories c ON p.category_id = c.id
+    WHERE p.available = 1 AND p.deleted = 0`;
+  
+  const comboQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, 1 as is_combo, p.featured, p.original_price, p.discount_label, NULL as category_id, NULL as category_name, 'all' as category_type, 999 as cat_display_order
+    FROM combos p
+    WHERE p.available = 1 AND p.deleted = 0`;
 
-  if (finalCategoryId) {
-    query += ' AND p.category_id = ?';
-    params.push(finalCategoryId);
+  let finalQuery = '';
+  const finalParams = [];
+
+  const buildSubQuery = (baseQuery, isComboType) => {
+    let q = baseQuery;
+    if (finalCategoryId && !isComboType) q += ` AND p.category_id = ${pool.escape(finalCategoryId)}`;
+    if (type && !isComboType) q += ` AND c.type = ${pool.escape(type)}`;
+    if (search) q += ` AND p.name LIKE ${pool.escape('%' + search + '%')}`;
+    if (featured !== undefined) q += ` AND p.featured = ${featured === 'true' || featured === '1' ? 1 : 0}`;
+    return q;
+  };
+
+  if (finalIsCombo === true || finalIsCombo === '1' || finalIsCombo === 'true') {
+    finalQuery = buildSubQuery(comboQuery, true);
+  } else if (finalIsCombo === false || finalIsCombo === '0' || finalIsCombo === 'false') {
+    finalQuery = buildSubQuery(productQuery, false);
+  } else {
+    // If not specified, return both (e.g. for search)
+    finalQuery = `(${buildSubQuery(productQuery, false)}) UNION (${buildSubQuery(comboQuery, true)})`;
   }
 
-  if (type) {
-    query += ' AND c.type = ?';
-    params.push(type);
-  }
-
-  if (search) {
-    query += ' AND p.name LIKE ?';
-    params.push(`%${search}%`);
-  }
-
-  if (finalIsCombo !== undefined) {
-    query += ' AND p.is_combo = ?';
-    params.push(finalIsCombo === 'true' || finalIsCombo === '1' ? 1 : 0);
-  }
-
-  if (featured !== undefined) {
-    query += ' AND p.featured = ?';
-    params.push(featured === 'true' || featured === '1' ? 1 : 0);
-  }
-
-  query += ' ORDER BY c.display_order ASC, p.id ASC';
+  finalQuery += ' ORDER BY cat_display_order ASC, id ASC';
   if (limit && Number.isInteger(Number(limit)) && Number(limit) > 0) {
-    query += ' LIMIT ?';
-    params.push(Number(limit));
+    finalQuery += ' LIMIT ?';
+    finalParams.push(Number(limit));
   }
 
-  const [rows] = await pool.query(query, params);
+  const [rows] = await pool.query(finalQuery, finalParams);
 
   await resolveImageUrls(rows);
   await attachComboItems(rows);
@@ -278,8 +279,7 @@ const getAdminProducts = async (req, res) => {
   const [rows] = await pool.query(query, params);
 
   await resolveImageUrls(rows);
-  await attachComboItems(rows);
-
+  // attachComboItems is handled differently for admin routes, but getAdminProducts only fetches regular products anyway
   res.status(200).json({ data: { products: rows }, products: rows });
 };
 
@@ -298,8 +298,6 @@ const getAdminProductById = async (req, res) => {
 
   const product = rows[0];
   await resolveImageUrls([product]);
-  await attachComboItems([product]);
-
   res.status(200).json({ data: product });
 };
 

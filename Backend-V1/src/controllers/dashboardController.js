@@ -77,19 +77,18 @@ const getLinkedItemInfo = async (itemType, itemId) => {
 
   if (itemType === 'combo') {
     const [rows] = await pool.query(
-      `SELECT p.id, p.is_combo, p.available, c.type as store_type,
-        (SELECT COUNT(*) FROM product_combo_items pci
-         JOIN products child ON child.id = pci.product_id
-         WHERE pci.combo_product_id = p.id AND child.deleted = 0 AND child.available = 1 AND child.is_combo = 0) as child_count
-       FROM products p
-       LEFT JOIN categories c ON p.category_id = c.id
-       WHERE p.id = ? AND p.is_combo = 1 AND p.deleted = 0`,
+      `SELECT p.id, p.available,
+        (SELECT COUNT(*) FROM combo_items ci
+         JOIN products child ON child.id = ci.product_id
+         WHERE ci.combo_id = p.id AND child.deleted = 0 AND child.available = 1) as child_count
+       FROM combos p
+       WHERE p.id = ? AND p.deleted = 0`,
       [itemId]
     );
     if (rows.length === 0) return { error: 'Combo product does not exist' };
     if (rows[0].available !== undefined && !rows[0].available) return { error: 'Only available combos can be added to dashboard blocks.' };
-    if (Number(rows[0].child_count) === 0) return { error: 'Combo must include at least one available non-combo product.' };
-    return { storeType: rows[0].store_type };
+    if (Number(rows[0].child_count) === 0) return { error: 'Combo must include at least one available product.' };
+    return { storeType: 'all' };
   }
 
   if (itemType === 'offer') {
@@ -130,10 +129,10 @@ const getComboItemsByComboIds = async (comboIds = []) => {
 
   const [rows] = await pool.query(
     `SELECT
-      pci.combo_product_id,
-      pci.product_id,
-      pci.quantity,
-      pci.display_order,
+      ci.combo_id as combo_product_id,
+      ci.product_id,
+      ci.quantity,
+      ci.display_order,
       p.id,
       p.name,
       p.price,
@@ -148,11 +147,11 @@ const getComboItemsByComboIds = async (comboIds = []) => {
       p.category_id,
       c.name as category_name,
       c.type as category_type
-    FROM product_combo_items pci
-    JOIN products p ON p.id = pci.product_id
+    FROM combo_items ci
+    JOIN products p ON p.id = ci.product_id
     LEFT JOIN categories c ON p.category_id = c.id
-    WHERE pci.combo_product_id IN (?) AND p.deleted = 0 AND p.available = 1 AND p.is_combo = 0
-    ORDER BY pci.combo_product_id ASC, pci.display_order ASC, pci.id ASC`,
+    WHERE ci.combo_id IN (?) AND p.deleted = 0 AND p.available = 1
+    ORDER BY ci.combo_id ASC, ci.display_order ASC, p.id ASC`,
     [ids]
   );
 
@@ -173,7 +172,7 @@ const getComboItemsByComboIds = async (comboIds = []) => {
 
 // Helper to attach combo child items to parent products
 const attachComboItems = async (products = []) => {
-  const comboIds = products.filter(product => product.is_combo).map(product => product.id);
+  const comboIds = products.filter(product => product.is_combo || product.isCombo).map(product => product.id);
   const comboItemsMap = await getComboItemsByComboIds(comboIds);
 
   products.forEach(product => {
@@ -213,7 +212,8 @@ const mapProductRows = (rows) => rows.map(r => ({
   categoryId: r.category_id,
   categoryName: r.category_name,
   categoryType: r.category_type,
-  comboItems: r.combo_items || []
+  comboItems: r.combo_items || [],
+  isCombo: r.is_combo || r.isCombo || false
 }));
 
 const getDefaultCategoryItems = async (expectedStoreType, limit = 8) => {
@@ -240,16 +240,10 @@ const getDefaultCategoryItems = async (expectedStoreType, limit = 8) => {
 const getDefaultComboItems = async (expectedStoreType, limit = 6) => {
   const params = [];
   let query = `
-    SELECT p.*, cat.name as category_name, cat.type as category_type
-    FROM products p
-    LEFT JOIN categories cat ON p.category_id = cat.id
-    WHERE p.is_combo = 1 AND p.available = 1 AND p.deleted = 0
+    SELECT p.*, 1 as is_combo, 'all' as category_type
+    FROM combos p
+    WHERE p.available = 1 AND p.deleted = 0
   `;
-
-  if (expectedStoreType) {
-    query += ' AND cat.type = ?';
-    params.push(expectedStoreType);
-  }
 
   query += ' ORDER BY p.display_order ASC, p.id ASC LIMIT ?';
   params.push(limit);
@@ -362,12 +356,11 @@ const getDashboard = async (req, res) => {
         items = mapProductRows(filteredRows);
       } else if (section.section_type === 'combo_block') {
         const [rows] = await pool.query(
-          `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type
+          `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, 'all' as category_type
            FROM dashboard_section_items dsi
-           JOIN products p ON p.id = dsi.item_id
-           LEFT JOIN categories cat ON p.category_id = cat.id
+           JOIN combos p ON p.id = dsi.item_id
            WHERE dsi.section_id = ? AND dsi.item_type = 'combo' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-             AND p.is_combo = 1 AND p.available = 1 AND p.deleted = 0
+             AND p.available = 1 AND p.deleted = 0
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
@@ -377,9 +370,6 @@ const getDashboard = async (req, res) => {
         await attachComboItems(rows);
 
         let filteredRows = rows;
-        if (expectedStoreType) {
-          filteredRows = rows.filter(r => r.category_type === expectedStoreType);
-        }
         items = mapProductRows(filteredRows);
         if (items.length === 0 && section.slug === 'popular-combos') {
           items = await getDefaultComboItems(expectedStoreType, section.max_visible_items || 6);
@@ -572,16 +562,13 @@ const getSectionItems = async (req, res) => {
         comboItems: r.combo_items || []
       }));
     } else if (section.section_type === 'combo_block') {
-      const comboStoreFilter = expectedStoreType ? 'AND cat.type = ?' : '';
-      const params = expectedStoreType ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
+      const params = [section.id, limitNumber, offset];
       const [rows] = await pool.query(
-        `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type
+        `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, 'all' as category_type
          FROM dashboard_section_items dsi
-         JOIN products p ON p.id = dsi.item_id
-         LEFT JOIN categories cat ON p.category_id = cat.id
+         JOIN combos p ON p.id = dsi.item_id
          WHERE dsi.section_id = ? AND dsi.item_type = 'combo' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-           AND p.is_combo = 1 AND p.available = 1 AND p.deleted = 0
-           ${comboStoreFilter}
+           AND p.available = 1 AND p.deleted = 0
            AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
            AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
          ORDER BY dsi.display_order ASC, dsi.id ASC
@@ -681,7 +668,7 @@ const getAdminSectionById = async (req, res) => {
           await resolveImageUrls([details]);
         }
       } else if (item.item_type === 'combo') {
-        const [combos] = await pool.query('SELECT * FROM products WHERE id = ? AND is_combo = 1', [item.item_id]);
+        const [combos] = await pool.query('SELECT *, 1 as is_combo FROM combos WHERE id = ?', [item.item_id]);
         if (combos.length > 0) {
           details = combos[0];
           await resolveImageUrls([details]);

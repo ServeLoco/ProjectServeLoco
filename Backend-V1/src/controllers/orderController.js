@@ -44,8 +44,17 @@ const createOrder = async (req, res) => {
     const orderItems = [];
     
     for (const item of items) {
-      const [prodRows] = await connection.query('SELECT * FROM products WHERE id = ? AND available = 1', [item.product_id]);
-      if (prodRows.length === 0) throw new Error(`Product ID ${item.product_id} is unavailable or does not exist`);
+      const isCombo = item.type === 'combo' || item.isCombo || item.is_combo;
+      const productId = item.product_id || item.productId;
+      let prodRows;
+
+      if (isCombo) {
+        [prodRows] = await connection.query('SELECT * FROM combos WHERE id = ? AND available = 1 AND deleted = 0', [productId]);
+      } else {
+        [prodRows] = await connection.query('SELECT * FROM products WHERE id = ? AND available = 1 AND deleted = 0', [productId]);
+      }
+
+      if (prodRows.length === 0) throw new Error(`${isCombo ? 'Combo' : 'Product'} ID ${productId} is unavailable or does not exist`);
       
       const product = prodRows[0];
       const quantity = parseInt(item.quantity, 10);
@@ -58,7 +67,8 @@ const createOrder = async (req, res) => {
         product_name: product.name,
         quantity,
         unit_price: unitPrice,
-        line_total: lineTotal
+        line_total: lineTotal,
+        item_type: isCombo ? 'combo' : 'product'
       });
     }
 
@@ -132,11 +142,22 @@ const createOrder = async (req, res) => {
 
     const orderId = orderResult.insertId;
 
+    // Ensure item_type column exists before inserting
+    const [itemTypeCols] = await connection.query(`
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'order_items' AND COLUMN_NAME = 'item_type'
+    `, [process.env.MYSQL_DATABASE || 'serveloco']);
+
+    if (itemTypeCols.length === 0) {
+      await connection.query('ALTER TABLE order_items ADD COLUMN item_type VARCHAR(50) DEFAULT "product" AFTER product_id');
+    }
+
     for (const oi of orderItems) {
       await connection.query(
-        `INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, line_total)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [orderId, oi.product_id, oi.product_name, oi.quantity, oi.unit_price, oi.line_total]
+        `INSERT INTO order_items (order_id, product_id, item_type, product_name, quantity, unit_price, line_total)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [orderId, oi.product_id, oi.item_type || 'product', oi.product_name, oi.quantity, oi.unit_price, oi.line_total]
       );
     }
 
@@ -164,7 +185,8 @@ const createOrder = async (req, res) => {
         name: item.product_name,
         quantity: item.quantity,
         unitPrice: item.unit_price,
-        lineTotal: item.line_total
+        lineTotal: item.line_total,
+        type: item.item_type
       }))
     };
 

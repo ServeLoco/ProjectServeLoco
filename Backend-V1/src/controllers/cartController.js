@@ -15,7 +15,16 @@ const calculateCart = async (req, res) => {
   const processedItems = [];
 
   for (const item of items) {
-    const [prodRows] = await pool.query('SELECT * FROM products WHERE id = ? AND available = 1', [item.product_id || item.productId]);
+    const isCombo = item.type === 'combo' || item.isCombo || item.is_combo;
+    const productId = item.product_id || item.productId;
+    let prodRows;
+    
+    if (isCombo) {
+      [prodRows] = await pool.query('SELECT * FROM combos WHERE id = ? AND available = 1 AND deleted = 0', [productId]);
+    } else {
+      [prodRows] = await pool.query('SELECT * FROM products WHERE id = ? AND available = 1 AND deleted = 0', [productId]);
+    }
+
     if (prodRows.length > 0) {
       const product = prodRows[0];
       const quantity = parseInt(item.quantity, 10) || 1;
@@ -27,7 +36,8 @@ const calculateCart = async (req, res) => {
         name: product.name,
         quantity,
         unitPrice,
-        lineTotal
+        lineTotal,
+        type: isCombo ? 'combo' : 'product'
       });
     }
   }
