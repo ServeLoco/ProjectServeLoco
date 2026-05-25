@@ -445,6 +445,103 @@ const updateOrderPayment = async (req, res) => {
   res.status(200).json({ message: 'Order payment status updated successfully', order: updatedOrder });
 };
 
+const getAdminNotifications = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const offset = (page - 1) * limit;
+
+  const [rows] = await pool.query(
+    'SELECT * FROM notification_batches WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?',
+    [limit, offset]
+  );
+  
+  const [countRows] = await pool.query('SELECT COUNT(*) as total FROM notification_batches WHERE deleted_at IS NULL');
+  const total = countRows[0].total;
+
+  res.json({
+    data: rows,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
+  });
+};
+
+const createAdminNotification = async (req, res) => {
+  const { title, body, type, target, customerIds } = req.body;
+  const adminId = req.admin.id;
+
+  if (!title || !body || !type || !target) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'title, body, type, and target are required' });
+  }
+
+  if (body.length > 240) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Body too long (max 240 characters)' });
+  }
+
+  let targetUserIds = [];
+
+  if (target === 'everyone') {
+    const [users] = await pool.query('SELECT id FROM users WHERE blocked = 0');
+    targetUserIds = users.map(u => u.id);
+  } else {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Unsupported target' });
+  }
+
+  if (targetUserIds.length === 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No recipients found for target' });
+  }
+
+  const result = await notificationService.createBroadcastNotification({
+    title,
+    body,
+    type,
+    createdByAdminId: adminId,
+    targetUserIds,
+    targetName: target
+  });
+
+  if (!result) {
+    return res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to create broadcast notification' });
+  }
+
+  res.status(201).json({
+    success: true,
+    message: 'Broadcast sent successfully',
+    data: {
+      batchId: result.batchId,
+      recipientCount: result.count
+    }
+  });
+};
+
+const getAdminNotificationById = async (req, res) => {
+  const { id } = req.params;
+  const [rows] = await pool.query('SELECT * FROM notification_batches WHERE id = ?', [id]);
+  
+  if (rows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Notification batch not found' });
+  }
+
+  res.json({ data: rows[0] });
+};
+
+const deleteAdminNotification = async (req, res) => {
+  const { id } = req.params;
+  
+  const [batchRows] = await pool.query('SELECT * FROM notification_batches WHERE id = ?', [id]);
+  if (batchRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Notification batch not found' });
+  }
+
+  await pool.query('UPDATE notification_batches SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+  await pool.query('UPDATE notifications SET deleted_at = CURRENT_TIMESTAMP WHERE batch_id = ?', [id]);
+
+  res.json({ success: true, message: 'Broadcast deleted successfully' });
+};
+
 module.exports = {
   login,
   me,
@@ -460,5 +557,9 @@ module.exports = {
   getAdminCustomerById,
   getTopProductsReport,
   getCustomersReport,
-  getAuditLogs
+  getAuditLogs,
+  getAdminNotifications,
+  createAdminNotification,
+  getAdminNotificationById,
+  deleteAdminNotification
 };

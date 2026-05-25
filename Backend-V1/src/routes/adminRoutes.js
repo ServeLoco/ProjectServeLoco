@@ -1,5 +1,5 @@
 const express = require('express');
-const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs } = require('../controllers/adminController');
+const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
@@ -314,5 +314,11 @@ router.delete('/offers/:id', requireAdmin, auditLog, asyncHandler(deleteOffer));
 
 // Audit
 router.get('/audit', requireAdmin, asyncHandler(getAuditLogs));
+
+// Notifications
+router.get('/notifications', requireAdmin, asyncHandler(getAdminNotifications));
+router.post('/notifications', requireAdmin, auditLog, asyncHandler(createAdminNotification));
+router.get('/notifications/:id', requireAdmin, asyncHandler(getAdminNotificationById));
+router.delete('/notifications/:id', requireAdmin, auditLog, asyncHandler(deleteAdminNotification));
 
 module.exports = router;
