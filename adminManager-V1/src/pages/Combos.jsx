@@ -1,22 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ProductsApi, CategoriesApi, ImagesApi } from '../api';
+import { ProductsApi, CombosApi, ImagesApi } from '../api';
 import './Products.css';
 
 export default function Combos() {
   // Combos are bundles and do not require category.
   const [products, setProducts] = useState([]);
   const [comboProducts, setComboProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const [filters, setFilters] = useState({
     search: '',
-    category_id: '',
     available: '',
-    featured: '',
-    is_combo: '1' // Lock to combos
+    featured: ''
   });
 
   const [selectedIds, setSelectedIds] = useState([]);
@@ -27,22 +24,12 @@ export default function Combos() {
   const [editingProduct, setEditingProduct] = useState(null);
 
   useEffect(() => {
-    fetchCategories();
     fetchComboProducts();
   }, []);
 
   useEffect(() => {
     fetchProducts(1);
   }, [filters]);
-
-  const fetchCategories = async () => {
-    try {
-      const res = await CategoriesApi.list();
-      setCategories(res.data || []);
-    } catch (err) {
-      console.error('Failed to load categories', err);
-    }
-  };
 
   const readProducts = (res) => res?.products || res?.data?.products || res?.data || [];
 
@@ -62,7 +49,7 @@ export default function Combos() {
       const params = { page, limit: 20, ...filters };
       Object.keys(params).forEach(k => !params[k] && params[k] !== false && delete params[k]);
 
-      const res = await ProductsApi.list(params);
+      const res = await CombosApi.list(params);
       setProducts(readProducts(res));
       if (res.pagination) {
         setPagination(res.pagination);
@@ -94,7 +81,7 @@ export default function Combos() {
   const toggleAvailability = async (product) => {
     const newStatus = !product.available;
     try {
-      await ProductsApi.updateAvailability(product.id, newStatus);
+      await CombosApi.updateAvailability(product.id, newStatus);
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, available: newStatus } : p));
     } catch (err) {
       alert('Failed to update availability: ' + err.message);
@@ -106,7 +93,7 @@ export default function Combos() {
     if (!window.confirm(`Mark ${selectedIds.length} products as ${available ? 'In Stock' : 'Out of Stock'}?`)) return;
     setBulkUpdating(true);
     try {
-      await Promise.all(selectedIds.map(id => ProductsApi.updateAvailability(id, available)));
+      await Promise.all(selectedIds.map(id => CombosApi.updateAvailability(id, available)));
       fetchProducts(pagination.page);
     } catch (err) {
       alert('Error updating some products: ' + err.message);
@@ -119,7 +106,7 @@ export default function Combos() {
     if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} products?`)) return;
     setBulkUpdating(true);
     try {
-      await Promise.all(selectedIds.map(id => ProductsApi.delete(id)));
+      await Promise.all(selectedIds.map(id => CombosApi.delete(id)));
       fetchProducts(1);
     } catch (err) {
       alert('Error deleting some products: ' + err.message);
@@ -161,12 +148,7 @@ export default function Combos() {
           value={filters.search}
           onChange={handleFilterChange}
         />
-        <select name="category_id" className="filter-select" value={filters.category_id} onChange={handleFilterChange}>
-          <option value="">All Categories</option>
-          {categories.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+
         <select name="available" className="filter-select" value={filters.available} onChange={handleFilterChange}>
           <option value="">All Availability</option>
           <option value="1">In Stock</option>
@@ -204,7 +186,6 @@ export default function Combos() {
               </th>
               <th>Combo</th>
               <th>Price</th>
-              <th>Category</th>
               <th>Order</th>
               <th>Availability</th>
               <th>Actions</th>
@@ -239,7 +220,6 @@ export default function Combos() {
                     <strong style={{ color: 'var(--text-primary)' }}>₹{p.price}</strong>
                     {p.original_price && <div style={{ fontSize: '0.8rem', textDecoration: 'line-through', color: 'var(--text-secondary)' }}>₹{p.original_price}</div>}
                   </td>
-                  <td>{p.category_name}</td>
                   <td>{p.display_order || 0}</td>
                   <td>
                     <button 
@@ -282,7 +262,6 @@ export default function Combos() {
       {drawerOpen && (
         <ProductFormDrawer 
           product={editingProduct} 
-          categories={categories}
           products={comboProducts}
           onClose={closeDrawer} 
           onSave={() => { closeDrawer(); fetchProducts(pagination.page); }}
@@ -293,7 +272,7 @@ export default function Combos() {
 }
 
 // Separate Component for the Drawer
-function ProductFormDrawer({ product, categories, products, onClose, onSave }) {
+function ProductFormDrawer({ product, products, onClose, onSave }) {
   const isEdit = !!product;
   const [formData, setFormData] = useState(product || {
     name: '',
@@ -301,15 +280,12 @@ function ProductFormDrawer({ product, categories, products, onClose, onSave }) {
     price: '',
     original_price: '',
     unit: '',
-    category_id: '',
     display_order: 0,
     available: true,
     featured: false,
-    is_combo: true,
     discount_label: '',
     image_id: '',
-    image_url: '',
-    combo_items: []
+    image_url: ''
   });
   const [comboItems, setComboItems] = useState(
     (product?.combo_items || product?.comboItems || []).map((item, index) => ({
@@ -373,6 +349,26 @@ function ProductFormDrawer({ product, categories, products, onClose, onSave }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation
+    const selectedProductIds = new Set();
+    for (const item of comboItems) {
+      if (!item.product_id) continue;
+      if (selectedProductIds.has(item.product_id)) {
+        alert('This product is already in the combo. Increase quantity instead.');
+        return;
+      }
+      selectedProductIds.add(item.product_id);
+    }
+    if (selectedProductIds.size === 0) {
+      alert('Please add at least one product to the combo.');
+      return;
+    }
+    if (Number(formData.price) <= 0) {
+      alert('Combo price must be positive.');
+      return;
+    }
+
     try {
       setSaving(true);
       // Convert number strings
@@ -381,8 +377,6 @@ function ProductFormDrawer({ product, categories, products, onClose, onSave }) {
         price: Number(formData.price),
         original_price: formData.original_price ? Number(formData.original_price) : null,
         display_order: Number(formData.display_order) || 0,
-        is_combo: true,
-        isCombo: true,
         combo_items: comboItems
           .filter(item => item.product_id)
           .map((item, index) => ({
@@ -403,20 +397,13 @@ function ProductFormDrawer({ product, categories, products, onClose, onSave }) {
       };
 
       if (isEdit) {
-        await ProductsApi.update(product.id, payload);
-        if (formData.image_id && formData.image_id !== product.image_id) {
-          await ProductsApi.attachImage(product.id, formData.image_id);
-        }
+        await CombosApi.update(product.id, payload);
       } else {
-        const created = await ProductsApi.create(payload);
-        const productId = created.id || created.product?.id || created.data?.id;
-        if (productId && formData.image_id) {
-          await ProductsApi.attachImage(productId, formData.image_id);
-        }
+        await CombosApi.create(payload);
       }
       onSave();
     } catch (err) {
-      alert('Failed to save product: ' + err.message);
+      alert('Failed to save combo: ' + err.message);
       setSaving(false);
     }
   };
@@ -425,7 +412,7 @@ function ProductFormDrawer({ product, categories, products, onClose, onSave }) {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
       setSaving(true);
-      await ProductsApi.delete(product.id);
+      await CombosApi.delete(product.id);
       onSave();
     } catch (err) {
       alert('Delete failed: ' + err.message);
@@ -463,13 +450,6 @@ function ProductFormDrawer({ product, categories, products, onClose, onSave }) {
               <div className="form-group">
                 <label className="form-label">Unit (e.g., 1 Plate)</label>
                 <input type="text" name="unit" className="form-input" value={formData.unit || ''} onChange={handleChange} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Category</label>
-                <select required name="category_id" className="form-select" value={formData.category_id} onChange={handleChange}>
-                  <option value="">Select Category</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
               </div>
             </div>
 

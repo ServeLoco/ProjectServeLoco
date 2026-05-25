@@ -45,6 +45,17 @@ export const ProductsApi = {
   ),
 };
 
+export const CombosApi = {
+  list: (params) => apiClient(withQuery('/admin/combos', params), { method: 'GET' }),
+  create: (data) => apiClient('/admin/combos', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/combos/${id}`, { method: 'PUT', body: data }),
+  delete: (id) => apiClient(`/admin/combos/${id}`, { method: 'DELETE' }),
+  updateAvailability: (id, available) => apiClient(
+    `/admin/combos/${id}/availability`,
+    { method: 'PATCH', body: { available, isAvailable: available } }
+  ),
+};
+
 export const CategoriesApi = {
   list: () => apiClient('/admin/categories', { method: 'GET' }),
   create: (data) => apiClient('/admin/categories', { method: 'POST', body: data }),

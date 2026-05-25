@@ -3,6 +3,7 @@ const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setT
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
+const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability } = require('../controllers/comboController');
 const {
   getAdminSections,
   getAdminSectionById,
@@ -162,6 +163,55 @@ const productSchema = (req) => {
   return { errors, data };
 };
 
+const comboSchema = (req) => {
+  const rawComboItems = normalizeField(req, 'comboItems', 'combo_items');
+  const data = {
+    name: normalizeField(req, 'name', 'name'),
+    price: normalizeField(req, 'price', 'price'),
+    unit: normalizeField(req, 'unit', 'unit'),
+    description: normalizeField(req, 'description', 'description'),
+    image_id: normalizeField(req, 'imageId', 'image_id'),
+    available: normalizeField(req, 'available', 'available'),
+    featured: normalizeField(req, 'featured', 'featured'),
+    display_order: normalizeField(req, 'displayOrder', 'display_order'),
+    original_price: normalizeField(req, 'originalPrice', 'original_price'),
+    discount_label: normalizeField(req, 'discountLabel', 'discount_label'),
+    combo_items: Array.isArray(rawComboItems) ? rawComboItems.map((item, index) => ({
+      product_id: item.productId || item.product_id || item.id,
+      quantity: item.quantity || item.qty || 1,
+      display_order: item.displayOrder || item.display_order || index,
+    })) : undefined
+  };
+  const errors = {};
+  if (!isString(data.name)) errors.name = 'Name is required';
+  if (!isNumericAmount(data.price)) errors.price = 'Valid price is required';
+  
+  if (data.available !== undefined && !isBoolean(data.available)) errors.available = 'Available must be boolean';
+  if (data.featured !== undefined && !isBoolean(data.featured)) errors.featured = 'featured must be boolean';
+  if (data.combo_items !== undefined) {
+    for (let i = 0; i < data.combo_items.length; i++) {
+      const item = data.combo_items[i];
+      if (!isId(item.product_id)) errors.combo_items = `Combo item ${i + 1}: valid product is required`;
+      if (!Number.isInteger(Number(item.quantity)) || Number(item.quantity) <= 0) {
+        errors.combo_items = `Combo item ${i + 1}: quantity must be at least 1`;
+      }
+      item.quantity = Number(item.quantity) || 1;
+      item.display_order = Number(item.display_order) || i;
+    }
+  }
+  
+  if (data.available !== undefined) {
+    data.available = data.available === true || data.available === 'true' || data.available === 1;
+  }
+  if (data.featured !== undefined) {
+    data.featured = data.featured === true || data.featured === 'true' || data.featured === 1;
+  }
+  if (data.display_order !== undefined) {
+    data.display_order = Number(data.display_order) || 0;
+  }
+  return { errors, data };
+};
+
 const productAvailabilitySchema = (req) => {
   const available = normalizeField(req, 'available', 'available');
   const isAvailable = normalizeField(req, 'isAvailable', 'is_available');
@@ -169,6 +219,18 @@ const productAvailabilitySchema = (req) => {
   const errors = {};
 
   if (!isId(req.params.id)) errors.id = 'Valid Product ID is required in URL';
+  if (!isBoolean(finalAvailable)) errors.available = 'Availability status must be a boolean';
+
+  return { errors, data: { id: req.params.id, available: finalAvailable } };
+};
+
+const comboAvailabilitySchema = (req) => {
+  const available = normalizeField(req, 'available', 'available');
+  const isAvailable = normalizeField(req, 'isAvailable', 'is_available');
+  const finalAvailable = available !== undefined ? available : isAvailable;
+  const errors = {};
+
+  if (!isId(req.params.id)) errors.id = 'Valid Combo ID is required in URL';
   if (!isBoolean(finalAvailable)) errors.available = 'Availability status must be a boolean';
 
   return { errors, data: { id: req.params.id, available: finalAvailable } };
@@ -208,6 +270,13 @@ router.put('/products/:id', requireAdmin, auditLog, validate(productSchema), asy
 router.delete('/products/:id', requireAdmin, auditLog, asyncHandler(deleteProduct));
 router.patch('/products/:id/availability', requireAdmin, auditLog, validate(productAvailabilitySchema), asyncHandler(updateProductAvailability));
 router.patch('/products/:id/image', requireAdmin, auditLog, validate(productImageSchema), asyncHandler(updateProductImage));
+
+router.get('/combos', requireAdmin, asyncHandler(getAdminCombos));
+router.get('/combos/:id', requireAdmin, asyncHandler(getAdminComboById));
+router.post('/combos', requireAdmin, auditLog, validate(comboSchema), asyncHandler(createCombo));
+router.put('/combos/:id', requireAdmin, auditLog, validate(comboSchema), asyncHandler(updateCombo));
+router.delete('/combos/:id', requireAdmin, auditLog, asyncHandler(deleteCombo));
+router.patch('/combos/:id/availability', requireAdmin, auditLog, validate(comboAvailabilitySchema), asyncHandler(updateComboAvailability));
 
 router.get('/dashboard', requireAdmin, asyncHandler(getDashboard));
 

@@ -130,6 +130,60 @@ const migrate = async () => {
     `);
     console.log('Product combo items table ready.');
 
+    // Combos Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS combos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        price DECIMAL(10, 2) NOT NULL,
+        original_price DECIMAL(10, 2),
+        unit VARCHAR(50),
+        image_id VARCHAR(255),
+        available BOOLEAN DEFAULT TRUE,
+        featured BOOLEAN DEFAULT FALSE,
+        display_order INT NOT NULL DEFAULT 0,
+        discount_label VARCHAR(50),
+        deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Combos table ready.');
+
+    // Combo Items Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS combo_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        combo_id INT NOT NULL,
+        product_id INT NOT NULL,
+        quantity INT NOT NULL DEFAULT 1,
+        display_order INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_combo_item (combo_id, product_id),
+        FOREIGN KEY (combo_id) REFERENCES combos(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+        INDEX idx_combo_item_combo (combo_id),
+        INDEX idx_combo_item_product (product_id)
+      );
+    `);
+    console.log('Combo items table ready.');
+
+    // Data Migration for Combos
+    await connection.query(`
+      INSERT IGNORE INTO combos (id, name, description, price, original_price, unit, image_id, available, featured, display_order, discount_label, deleted, created_at, updated_at)
+      SELECT id, name, description, price, original_price, unit, image_id, available, featured, display_order, discount_label, deleted, created_at, updated_at
+      FROM products
+      WHERE is_combo = 1
+    `);
+    
+    await connection.query(`
+      INSERT IGNORE INTO combo_items (combo_id, product_id, quantity, display_order, created_at)
+      SELECT combo_product_id, product_id, quantity, display_order, created_at
+      FROM product_combo_items
+    `);
+    console.log('Combo data migration completed.');
+
     // Orders Table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS orders (
