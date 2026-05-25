@@ -1,9 +1,49 @@
-const DEFAULT_API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000/api';
-let apiBaseUrl = DEFAULT_API_BASE_URL;
+import { NativeModules, Platform } from 'react-native';
 
 function normalizeBaseUrl(baseUrl) {
   return String(baseUrl || '').replace(/\/+$/, '');
 }
+
+function getDevServerHost() {
+  const scriptURL = NativeModules?.SourceCode?.scriptURL;
+  const host = String(scriptURL || '').match(/^[^:]+:\/\/([^:/]+)/)?.[1];
+
+  if (
+    !host ||
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host.startsWith('169.254.')
+  ) {
+    return null;
+  }
+
+  return host;
+}
+
+function resolveDefaultApiBaseUrl() {
+  const envBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+
+  if (envBaseUrl) {
+    return normalizeBaseUrl(envBaseUrl);
+  }
+
+  if (__DEV__) {
+    const devServerHost = getDevServerHost();
+
+    if (devServerHost) {
+      return `http://${devServerHost}:3000/api`;
+    }
+
+    if (Platform.OS === 'android') {
+      return 'http://10.0.2.2:3000/api';
+    }
+  }
+
+  return 'http://localhost:3000/api';
+}
+
+const DEFAULT_API_BASE_URL = resolveDefaultApiBaseUrl();
+let apiBaseUrl = DEFAULT_API_BASE_URL;
 
 function getApiBaseUrl() {
   return normalizeBaseUrl(apiBaseUrl);

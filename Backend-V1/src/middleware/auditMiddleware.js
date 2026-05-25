@@ -1,5 +1,11 @@
 const { getDb } = require('../db/mongodb');
 
+const logAuditError = (message, error) => {
+  if (process.env.AUDIT_LOG_DEBUG === 'true') {
+    console.error(message, error);
+  }
+};
+
 const auditLog = async (req, res, next) => {
   // Capture the original send method to log response status if needed
   const originalSend = res.send;
@@ -22,12 +28,15 @@ const auditLog = async (req, res, next) => {
 
     try {
       const db = getDb();
-      // Fire and forget
-      db.collection('audit_logs').insertOne(logEntry).catch(err => {
-        console.error('Failed to write audit log:', err);
-      });
+      const collection = db.collection('audit_logs');
+      if (collection?.insertOne) {
+        // Fire and forget; audit logging must not block admin actions.
+        collection.insertOne(logEntry).catch(err => {
+          logAuditError('Failed to write audit log:', err);
+        });
+      }
     } catch (err) {
-      console.error('Audit log setup error:', err);
+      logAuditError('Audit log setup error:', err);
     }
 
     return res.send(data);

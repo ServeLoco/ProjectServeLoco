@@ -4,6 +4,7 @@ import './Products.css';
 
 export default function Combos() {
   const [products, setProducts] = useState([]);
+  const [comboProducts, setComboProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
   const [loading, setLoading] = useState(false);
@@ -26,6 +27,7 @@ export default function Combos() {
 
   useEffect(() => {
     fetchCategories();
+    fetchComboProducts();
   }, []);
 
   useEffect(() => {
@@ -41,6 +43,17 @@ export default function Combos() {
     }
   };
 
+  const readProducts = (res) => res?.products || res?.data?.products || res?.data || [];
+
+  const fetchComboProducts = async () => {
+    try {
+      const res = await ProductsApi.list({ is_combo: '0', available: '1' });
+      setComboProducts(readProducts(res));
+    } catch (err) {
+      console.error('Failed to load combo member products', err);
+    }
+  };
+
   const fetchProducts = async (page = 1) => {
     try {
       setLoading(true);
@@ -49,7 +62,7 @@ export default function Combos() {
       Object.keys(params).forEach(k => !params[k] && params[k] !== false && delete params[k]);
 
       const res = await ProductsApi.list(params);
-      setProducts(res.data || []);
+      setProducts(readProducts(res));
       if (res.pagination) {
         setPagination(res.pagination);
       }
@@ -212,7 +225,12 @@ export default function Combos() {
                       <img src={p.imageUrl || p.image_url || 'https://via.placeholder.com/48'} alt={p.name} className="product-thumbnail" />
                       <div className="product-details">
                         <span className="product-name">{p.name}</span>
-                        <span className="product-unit">{p.unit || '1 plate'} {p.featured ? '• Featured' : ''}</span>
+                        <span className="product-unit">
+                          {p.unit || '1 plate'} {p.featured ? '• Featured' : ''}
+                        </span>
+                        <span className="product-unit">
+                          {(p.combo_items || p.comboItems || []).length} included item(s)
+                        </span>
                       </div>
                     </div>
                   </td>
@@ -264,6 +282,7 @@ export default function Combos() {
         <ProductFormDrawer 
           product={editingProduct} 
           categories={categories}
+          products={comboProducts}
           onClose={closeDrawer} 
           onSave={() => { closeDrawer(); fetchProducts(pagination.page); }}
         />
@@ -273,7 +292,7 @@ export default function Combos() {
 }
 
 // Separate Component for the Drawer
-function ProductFormDrawer({ product, categories, onClose, onSave }) {
+function ProductFormDrawer({ product, categories, products, onClose, onSave }) {
   const isEdit = !!product;
   const [formData, setFormData] = useState(product || {
     name: '',
@@ -288,8 +307,16 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
     is_combo: true,
     discount_label: '',
     image_id: '',
-    image_url: ''
+    image_url: '',
+    combo_items: []
   });
+  const [comboItems, setComboItems] = useState(
+    (product?.combo_items || product?.comboItems || []).map((item, index) => ({
+      product_id: String(item.product_id || item.productId || item.id || ''),
+      quantity: Number(item.quantity || 1),
+      display_order: Number(item.display_order || item.displayOrder || index),
+    }))
+  );
   
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -326,6 +353,23 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
     }
   };
 
+  const addComboItem = () => {
+    setComboItems(prev => ([
+      ...prev,
+      { product_id: '', quantity: 1, display_order: prev.length },
+    ]));
+  };
+
+  const updateComboItem = (index, field, value) => {
+    setComboItems(prev => prev.map((item, itemIndex) => (
+      itemIndex === index ? { ...item, [field]: value } : item
+    )));
+  };
+
+  const removeComboItem = (index) => {
+    setComboItems(prev => prev.filter((_, itemIndex) => itemIndex !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -338,6 +382,21 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
         display_order: Number(formData.display_order) || 0,
         is_combo: true,
         isCombo: true,
+        combo_items: comboItems
+          .filter(item => item.product_id)
+          .map((item, index) => ({
+            product_id: Number(item.product_id),
+            productId: Number(item.product_id),
+            quantity: Number(item.quantity) || 1,
+            display_order: index,
+          })),
+        comboItems: comboItems
+          .filter(item => item.product_id)
+          .map((item, index) => ({
+            productId: Number(item.product_id),
+            quantity: Number(item.quantity) || 1,
+            displayOrder: index,
+          })),
         imageId: formData.image_id,
         image_id: formData.image_id,
       };
@@ -416,6 +475,70 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
             <div className="form-group">
               <label className="form-label">Description</label>
               <textarea name="description" className="form-textarea" value={formData.description || ''} onChange={handleChange} />
+            </div>
+
+            <div className="form-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                <label className="form-label" style={{ margin: 0 }}>Combo Items</label>
+                <button type="button" className="btn-secondary" onClick={addComboItem}>
+                  + Add Item
+                </button>
+              </div>
+              <p style={{ margin: '0.35rem 0 0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                These products will be added separately to the customer cart when this combo is selected.
+              </p>
+
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                {comboItems.length === 0 && (
+                  <div style={{
+                    padding: '0.85rem',
+                    border: '1px dashed var(--border-color)',
+                    borderRadius: '8px',
+                    color: 'var(--text-secondary)',
+                    background: 'var(--bg-color)',
+                  }}>
+                    No products inside this combo yet.
+                  </div>
+                )}
+
+                {comboItems.map((item, index) => (
+                  <div
+                    key={`${item.product_id}-${index}`}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 90px auto',
+                      gap: '0.75rem',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <select
+                      className="form-select"
+                      value={item.product_id}
+                      onChange={(e) => updateComboItem(index, 'product_id', e.target.value)}
+                    >
+                      <option value="">Select product</option>
+                      {products.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    <input
+                      className="form-input"
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={item.quantity}
+                      onChange={(e) => updateComboItem(index, 'quantity', e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="action-link danger"
+                      onClick={() => removeComboItem(index)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="form-group">

@@ -23,6 +23,52 @@ export const useCartStore = create(
           set({ items: [...items, { product, quantity }] });
         }
       },
+
+      addCombo: (combo, quantity = 1) => {
+        const comboItems = combo?.comboItems || combo?.combo_items || [];
+
+        if (!Array.isArray(comboItems) || comboItems.length === 0) {
+          get().addItem(combo, quantity);
+          return;
+        }
+
+        comboItems.forEach((item) => {
+          const itemQuantity = Math.max(1, Number(item.quantity || item.qty || 1));
+          get().addItem(item, itemQuantity * quantity);
+        });
+      },
+
+      decrementCombo: (combo) => {
+        const comboItems = combo?.comboItems || combo?.combo_items || [];
+
+        if (!Array.isArray(comboItems) || comboItems.length === 0) {
+          const current = get().items.find(item => item.product.id === combo.id)?.quantity || 0;
+          get().updateQuantity(combo.id, current - 1);
+          return;
+        }
+
+        comboItems.forEach((item) => {
+          const itemQuantity = Math.max(1, Number(item.quantity || item.qty || 1));
+          const current = get().items.find(cartItem => cartItem.product.id === item.id)?.quantity || 0;
+          get().updateQuantity(item.id, current - itemQuantity);
+        });
+      },
+
+      getComboQuantity: (combo) => {
+        const comboItems = combo?.comboItems || combo?.combo_items || [];
+
+        if (!Array.isArray(comboItems) || comboItems.length === 0) {
+          return get().items.find(item => item.product.id === combo?.id)?.quantity || 0;
+        }
+
+        const counts = comboItems.map((item) => {
+          const itemQuantity = Math.max(1, Number(item.quantity || item.qty || 1));
+          const current = get().items.find(cartItem => cartItem.product.id === item.id)?.quantity || 0;
+          return Math.floor(current / itemQuantity);
+        });
+
+        return counts.length ? Math.min(...counts) : 0;
+      },
       
       removeItem: (productId) => {
         const { items } = get();

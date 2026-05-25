@@ -113,6 +113,23 @@ const migrate = async () => {
     await ensureColumn('products', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER discount_label');
     console.log('Products table ready.');
 
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_combo_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        combo_product_id INT NOT NULL,
+        product_id INT NOT NULL,
+        quantity INT NOT NULL DEFAULT 1,
+        display_order INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_combo_product (combo_product_id, product_id),
+        FOREIGN KEY (combo_product_id) REFERENCES products(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+        INDEX idx_combo_product (combo_product_id),
+        INDEX idx_combo_item_product (product_id)
+      );
+    `);
+    console.log('Product combo items table ready.');
+
     // Orders Table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS orders (
@@ -213,6 +230,63 @@ const migrate = async () => {
     await ensureColumn('offers', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER active');
     console.log('Offers table ready.');
 
+    // Dashboard Sections Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS dashboard_sections (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) NOT NULL,
+        section_type ENUM('offer_banner', 'category_grid', 'product_block', 'combo_block') NOT NULL,
+        store_type ENUM('packed', 'fast_food', 'all') NOT NULL DEFAULT 'all',
+        active BOOLEAN DEFAULT TRUE,
+        display_order INT NOT NULL DEFAULT 0,
+        max_visible_items INT NOT NULL DEFAULT 6,
+        show_see_all BOOLEAN DEFAULT TRUE,
+        linked_category_id INT DEFAULT NULL,
+        linked_offer_id INT DEFAULT NULL,
+        starts_at TIMESTAMP NULL DEFAULT NULL,
+        ends_at TIMESTAMP NULL DEFAULT NULL,
+        version INT NOT NULL DEFAULT 1,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_active_slug (slug, deleted_at),
+        INDEX idx_active (active),
+        INDEX idx_display_order (display_order),
+        INDEX idx_store_type (store_type)
+      );
+    `);
+    await ensureColumn('dashboard_sections', 'starts_at', 'starts_at TIMESTAMP NULL DEFAULT NULL AFTER linked_offer_id');
+    await ensureColumn('dashboard_sections', 'ends_at', 'ends_at TIMESTAMP NULL DEFAULT NULL AFTER starts_at');
+    await ensureColumn('dashboard_sections', 'version', 'version INT NOT NULL DEFAULT 1 AFTER ends_at');
+    await ensureColumn('dashboard_sections', 'deleted_at', 'deleted_at TIMESTAMP NULL DEFAULT NULL AFTER version');
+    console.log('Dashboard sections table ready.');
+
+    // Dashboard Section Items Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS dashboard_section_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        section_id INT NOT NULL,
+        item_type ENUM('product', 'category', 'combo', 'offer') NOT NULL,
+        item_id INT NOT NULL,
+        display_order INT NOT NULL DEFAULT 0,
+        active BOOLEAN DEFAULT TRUE,
+        starts_at TIMESTAMP NULL DEFAULT NULL,
+        ends_at TIMESTAMP NULL DEFAULT NULL,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_section_item (section_id, item_type, item_id, deleted_at),
+        FOREIGN KEY (section_id) REFERENCES dashboard_sections(id) ON DELETE CASCADE,
+        INDEX idx_active (active),
+        INDEX idx_display_order (display_order)
+      );
+    `);
+    await ensureColumn('dashboard_section_items', 'starts_at', 'starts_at TIMESTAMP NULL DEFAULT NULL AFTER active');
+    await ensureColumn('dashboard_section_items', 'ends_at', 'ends_at TIMESTAMP NULL DEFAULT NULL AFTER starts_at');
+    await ensureColumn('dashboard_section_items', 'deleted_at', 'deleted_at TIMESTAMP NULL DEFAULT NULL AFTER ends_at');
+    console.log('Dashboard section items table ready.');
+
     // ---------------------------------------------------------
     // SEED DATA (Idempotent)
     // ---------------------------------------------------------
@@ -271,6 +345,62 @@ const migrate = async () => {
       }
     }
     console.log('Seeded sample products.');
+
+    // Seed Dashboard Sections (Idempotent)
+    const [sectionsRows] = await connection.query('SELECT * FROM dashboard_sections LIMIT 1');
+    if (sectionsRows.length === 0) {
+      console.log('Seeding default dashboard sections...');
+      // 1. Hero Offers
+      const [offerSec] = await connection.query(`
+        INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all)
+        VALUES ('Special Offers', 'hero-offers', 'offer_banner', 'all', 0, 1, false)
+      `);
+      const offerSectionId = offerSec.insertId;
+
+      // Link any active offer to this section
+      const [activeOffers] = await connection.query('SELECT id FROM offers WHERE active = 1 AND deleted = 0 LIMIT 1');
+      if (activeOffers.length > 0) {
+        await connection.query(`
+          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
+          VALUES (?, 'offer', ?, 0)
+        `, [offerSectionId, activeOffers[0].id]);
+      }
+
+      // 2. Categories Grid
+      const [catSec] = await connection.query(`
+        INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all)
+        VALUES ('Shop by Category', 'categories-grid', 'category_grid', 'all', 1, 8, false)
+      `);
+      const catSectionId = catSec.insertId;
+
+      // Link existing active categories to this section
+      const [activeCats] = await connection.query('SELECT id, display_order FROM categories WHERE active = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
+      for (const cat of activeCats) {
+        await connection.query(`
+          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
+          VALUES (?, 'category', ?, ?)
+        `, [catSectionId, cat.id, cat.display_order]);
+      }
+
+      // 3. Popular Combos
+      const [comboSec] = await connection.query(`
+        INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all)
+        VALUES ('Popular Combos', 'popular-combos', 'combo_block', 'all', 2, 6, true)
+      `);
+      const comboSectionId = comboSec.insertId;
+
+      // Link existing active combos to this section
+      const [activeCombos] = await connection.query('SELECT id FROM products WHERE is_combo = 1 AND available = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
+      let comboOrder = 0;
+      for (const combo of activeCombos) {
+        await connection.query(`
+          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
+          VALUES (?, 'combo', ?, ?)
+        `, [comboSectionId, combo.id, comboOrder++]);
+      }
+
+      console.log('Seeded default dashboard sections and items.');
+    }
 
     console.log('Migration and seeding completed successfully!');
   } catch (error) {

@@ -53,6 +53,22 @@ const runMigration = async () => {
       await connection.query('ALTER TABLE products ADD COLUMN original_price DECIMAL(10, 2)');
       console.log('Added original_price column to products');
     }
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_combo_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        combo_product_id INT NOT NULL,
+        product_id INT NOT NULL,
+        quantity INT NOT NULL DEFAULT 1,
+        display_order INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_combo_product (combo_product_id, product_id),
+        FOREIGN KEY (combo_product_id) REFERENCES products(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+        INDEX idx_combo_product (combo_product_id),
+        INDEX idx_combo_item_product (product_id)
+      )
+    `);
+    console.log('Product combo items table ready');
     if (!colNames.includes('discount_label')) {
       await connection.query('ALTER TABLE products ADD COLUMN discount_label VARCHAR(50)');
       console.log('Added discount_label column to products');

@@ -34,6 +34,7 @@ function QuantityStepper({
   onDecrement,
   disabled = false,
   compact = false,
+  dense = false,
 }) {
   const prevQuantity = useRef(quantity);
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -62,13 +63,14 @@ function QuantityStepper({
         style={[
           styles.addBtn,
           compact && styles.addBtnCompact,
+          dense && styles.addBtnDense,
           disabled && styles.disabled,
         ]}
         accessibilityRole="button"
         accessibilityLabel="Add to cart"
       >
         <Text
-          style={[styles.addLabel, compact && styles.addLabelCompact]}
+          style={[styles.addLabel, compact && styles.addLabelCompact, dense && styles.addLabelDense]}
         >
           Add
         </Text>
@@ -77,19 +79,19 @@ function QuantityStepper({
   }
 
   return (
-    <View style={[styles.stepper, compact && styles.stepperCompact]}>
+    <View style={[styles.stepper, compact && styles.stepperCompact, dense && styles.stepperDense]}>
       <TouchableOpacity
         onPress={onDecrement}
         disabled={disabled}
         activeOpacity={0.7}
-        style={[styles.stepBtn, compact && styles.stepBtnCompact]}
+        style={[styles.stepBtn, compact && styles.stepBtnCompact, dense && styles.stepBtnDense]}
         accessibilityRole="button"
         accessibilityLabel="Decrease quantity"
       >
         <Text style={styles.stepIcon}>-</Text>
       </TouchableOpacity>
 
-      <Animated.Text style={[styles.qty, compact && styles.qtyCompact, { transform: [{ scale: scaleAnim }] }]}>
+      <Animated.Text style={[styles.qty, compact && styles.qtyCompact, dense && styles.qtyDense, { transform: [{ scale: scaleAnim }] }]}>
         {quantity}
       </Animated.Text>
 
@@ -97,7 +99,7 @@ function QuantityStepper({
         onPress={onIncrement}
         disabled={disabled}
         activeOpacity={0.7}
-        style={[styles.stepBtn, compact && styles.stepBtnCompact]}
+        style={[styles.stepBtn, compact && styles.stepBtnCompact, dense && styles.stepBtnDense]}
         accessibilityRole="button"
         accessibilityLabel="Increase quantity"
       >
@@ -128,6 +130,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1.5,
     borderBottomColor: '#000000',
   },
+  addBtnDense: {
+    height: 26,
+    minWidth: 48,
+    paddingHorizontal: spacing.xs,
+  },
   addLabel: {
     ...typography.button,
     color: colors.primaryText,
@@ -135,6 +142,10 @@ const styles = StyleSheet.create({
   addLabelCompact: {
     ...typography.buttonSmall,
     color: colors.primaryText,
+  },
+  addLabelDense: {
+    fontSize: 10,
+    lineHeight: 12,
   },
 
   // ── Stepper ──────────────────────────────────────
@@ -156,6 +167,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1.5,
     borderBottomColor: '#000000',
   },
+  stepperDense: {
+    height: 26,
+    minWidth: 76,
+  },
   stepBtn: {
     width: 36,
     height: 36,
@@ -165,6 +180,10 @@ const styles = StyleSheet.create({
   stepBtnCompact: {
     width: 28,
     height: 30,
+  },
+  stepBtnDense: {
+    width: 24,
+    height: 26,
   },
   stepIcon: {
     ...typography.h3,
@@ -184,6 +203,10 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.primaryText,
     fontWeight: '700',
+  },
+  qtyDense: {
+    fontSize: 11,
+    lineHeight: 13,
   },
 
   disabled: {

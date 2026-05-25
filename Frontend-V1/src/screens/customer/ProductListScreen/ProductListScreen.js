@@ -27,7 +27,7 @@ import {
 import { colors, typography, spacing, radius } from '../../../theme';
 import { useCartStore } from '../../../stores';
 import { useAuthGate } from '../../../hooks';
-import { productsApi } from '../../../api';
+import { productsApi, dashboardApi } from '../../../api';
 import { asArray, normalizeProduct } from '../../../utils';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -46,12 +46,25 @@ export default function ProductListScreen() {
   const mode = route.params?.mode || 'category'; // 'search' | 'category'
   const initialCategory = route.params?.categoryName || 'All';
   const offerId = route.params?.offerId || null;
+  const sectionSlug = route.params?.sectionSlug || null;
+  const sectionTitle = route.params?.sectionTitle || null;
+  const sectionStoreType = route.params?.storeType || 'all';
 
   const { width: windowWidth } = useWindowDimensions();
   const cardWidth = Math.floor((windowWidth - (spacing.lg * 2) - spacing.md) / 2);
 
   // Stores
-  const { items, totalItems, displayTotal, addItem, updateQuantity, removeItem } = useCartStore();
+  const {
+    items,
+    totalItems,
+    displayTotal,
+    addItem,
+    addCombo,
+    decrementCombo,
+    getComboQuantity,
+    updateQuantity,
+    removeItem,
+  } = useCartStore();
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,31 +84,42 @@ export default function ProductListScreen() {
     setIsError(false);
 
     try {
-      const response = await productsApi.getProducts({
-        category: activeCategory !== 'All' ? activeCategory : undefined,
-        categoryId: route.params?.categoryId,
-        q: searchQuery || undefined,
-        search: searchQuery || undefined,
-        available: showAvailableOnly ? true : undefined,
-        offerId: offerId || undefined,
-        sort: sortBy,
-      });
+      let response;
+      let filtered = [];
 
-      let filtered = asArray(response, ['products']).map(normalizeProduct);
+      if (sectionSlug) {
+        response = await dashboardApi.getSectionItems(sectionSlug, {
+          available: showAvailableOnly ? true : undefined,
+          storeType: sectionStoreType,
+        });
+        filtered = asArray(response, ['items']).map(normalizeProduct);
+      } else {
+        response = await productsApi.getProducts({
+          category: activeCategory !== 'All' ? activeCategory : undefined,
+          categoryId: route.params?.categoryId,
+          q: searchQuery || undefined,
+          search: searchQuery || undefined,
+          available: showAvailableOnly ? true : undefined,
+          offerId: offerId || undefined,
+          featured: mode === 'combos' ? true : undefined,
+          sort: sortBy,
+        });
+        filtered = asArray(response, ['products']).map(normalizeProduct);
 
-      // Offer Filter
-      if (offerId) {
-        filtered = filtered.filter(p => !!p.discountLabel);
+        // Offer Filter
+        if (offerId) {
+          filtered = filtered.filter(p => !!p.discountLabel);
+        }
+
+        // Category Filter
+        if (activeCategory !== 'All') {
+          filtered = filtered.filter(p => p.category === activeCategory);
+        }
       }
 
       // Search Filter
       if (searchQuery) {
         filtered = filtered.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
-      }
-
-      // Category Filter
-      if (activeCategory !== 'All') {
-        filtered = filtered.filter(p => p.category === activeCategory);
       }
 
       // Availability Filter
@@ -147,14 +171,31 @@ export default function ProductListScreen() {
   };
 
   const handleAddToCart = (product) => {
-    requireAuth(null, () => addItem(product));
+    requireAuth(null, () => {
+      if (product.isCombo || product.is_combo || product.comboItems?.length) {
+        addCombo(product);
+      } else {
+        addItem(product);
+      }
+    });
   };
 
   const handleIncrement = (product) => {
-    requireAuth(null, () => addItem(product));
+    requireAuth(null, () => {
+      if (product.isCombo || product.is_combo || product.comboItems?.length) {
+        addCombo(product);
+      } else {
+        addItem(product);
+      }
+    });
   };
 
   const handleDecrement = (product) => {
+    if (product.isCombo || product.is_combo || product.comboItems?.length) {
+      decrementCombo(product);
+      return;
+    }
+
     const currentQty = getQty(product.id);
     if (currentQty <= 1) {
       removeItem(product.id);
@@ -214,8 +255,10 @@ export default function ProductListScreen() {
               originalPrice={item.originalPrice}
               discountLabel={item.discountLabel}
               unit={item.unit}
+              isCombo={item.isCombo}
+              comboItems={item.comboItems}
               imageUri={item.imageUri}
-              quantity={getQty(item.id)}
+              quantity={item.isCombo || item.is_combo || item.comboItems?.length ? getComboQuantity(item) : getQty(item.id)}
               onAdd={() => handleAddToCart(item)}
               onIncrement={() => handleIncrement(item)}
               onDecrement={() => handleDecrement(item)}
@@ -268,7 +311,17 @@ export default function ProductListScreen() {
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
       <AppHeader
-        title={mode === 'search' ? 'Search Products' : (offerId ? 'Special Offers' : 'Products')}
+        title={
+          sectionTitle
+            ? sectionTitle
+            : mode === 'search'
+            ? 'Search Products'
+            : mode === 'combos'
+            ? 'Popular Combos'
+            : offerId
+            ? 'Special Offers'
+            : 'Products'
+        }
         onBack={() => navigation.goBack()}
         cartCount={totalItems}
         onCartPress={() => navigation.navigate('Cart')}
@@ -286,29 +339,31 @@ export default function ProductListScreen() {
           </View>
         )}
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-          {CATEGORY_CHIPS.map(chip => (
+        {!sectionSlug && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+            {CATEGORY_CHIPS.map(chip => (
+              <TouchableOpacity
+                key={chip}
+                style={[styles.chip, activeCategory === chip && styles.chipActive]}
+                onPress={() => {
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  setActiveCategory(chip);
+                }}
+              >
+                <Text style={[styles.chipText, activeCategory === chip && styles.chipTextActive]}>{chip}</Text>
+              </TouchableOpacity>
+            ))}
             <TouchableOpacity
-              key={chip}
-              style={[styles.chip, activeCategory === chip && styles.chipActive]}
+              style={[styles.chip, showAvailableOnly && styles.chipActive]}
               onPress={() => {
                 LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setActiveCategory(chip);
+                setShowAvailableOnly(!showAvailableOnly);
               }}
             >
-              <Text style={[styles.chipText, activeCategory === chip && styles.chipTextActive]}>{chip}</Text>
+              <Text style={[styles.chipText, showAvailableOnly && styles.chipTextActive]}>Available Only</Text>
             </TouchableOpacity>
-          ))}
-          <TouchableOpacity
-            style={[styles.chip, showAvailableOnly && styles.chipActive]}
-            onPress={() => {
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-              setShowAvailableOnly(!showAvailableOnly);
-            }}
-          >
-            <Text style={[styles.chipText, showAvailableOnly && styles.chipTextActive]}>Available Only</Text>
-          </TouchableOpacity>
-        </ScrollView>
+          </ScrollView>
+        )}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
           {SORT_OPTIONS.map(opt => (

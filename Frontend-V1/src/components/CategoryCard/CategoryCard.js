@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
 import PressableScale from '../PressableScale';
 import ProductImage from '../ProductImage';
@@ -18,8 +18,6 @@ function CategoryCard({
   name,
   imageUrl,
   imageUri,
-  productCount,
-  count,
   onPress,
   style,
   imageHeight = 56,
@@ -27,7 +25,6 @@ function CategoryCard({
 }) {
   const resolvedName = category.name ?? name;
   const resolvedImageUrl = category.imageUrl ?? category.imageUri ?? imageUrl ?? imageUri;
-  const resolvedProductCount = category.productCount ?? category.count ?? productCount ?? count;
 
   return (
     <PressableScale
@@ -37,20 +34,18 @@ function CategoryCard({
       accessibilityRole="button"
       accessibilityLabel={resolvedName}
     >
-      <ProductImage
-        uri={resolvedImageUrl}
-        width={imageWidth || layout.categoryCardWidth - 16}
-        height={imageHeight}
-        borderRadius={radius.sm}
-        style={styles.image}
-        resizeMode="contain"
-      />
+      <View style={[styles.imageWrapper, { height: imageHeight, width: imageWidth || '100%' }]}>
+        <ProductImage
+          uri={resolvedImageUrl}
+          width="100%"
+          height="100%"
+          borderRadius={radius.sm}
+          resizeMode="contain"
+        />
+      </View>
       <Text style={styles.name} numberOfLines={2}>
         {resolvedName}
       </Text>
-      {resolvedProductCount !== undefined && resolvedProductCount !== null ? (
-        <Text style={styles.count}>{resolvedProductCount} items</Text>
-      ) : null}
     </PressableScale>
   );
 }
@@ -58,29 +53,33 @@ function CategoryCard({
 const styles = StyleSheet.create({
   card: {
     width: layout.categoryCardWidth,
-    minHeight: layout.categoryCardHeight,
+    height: layout.categoryCardHeight,
     backgroundColor: colors.bgCard,
     borderRadius: radius.md,
-    padding: spacing.sm,
+    padding: spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  image: {
+  imageWrapper: {
+    width: '100%',
+    backgroundColor: '#F5F6F8',
+    borderRadius: radius.sm,
+    padding: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.xs,
   },
   name: {
     ...typography.labelSmall,
+    fontSize: 11,
+    fontWeight: '600',
     color: colors.textPrimary,
     textAlign: 'center',
-    marginTop: spacing.xs,
-  },
-  count: {
-    ...typography.caption,
-    color: colors.textSecondary,
     marginTop: 2,
+    lineHeight: 14,
   },
 });
 

@@ -11,6 +11,7 @@ import Products from './pages/Products';
 import Combos from './pages/Combos';
 import Categories from './pages/Categories';
 import Offers from './pages/Offers';
+import MobileDashboard from './pages/MobileDashboard';
 import Customers from './pages/Customers';
 import Settings from './pages/Settings';
 import Images from './pages/Images';
@@ -32,6 +33,7 @@ function App() {
               <Route path="/combos" element={<Combos />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/offers" element={<Offers />} />
+              <Route path="/mobile-dashboard" element={<MobileDashboard />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/images" element={<Images />} />

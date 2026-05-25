@@ -1,12 +1,11 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Modal,
   Animated,
   Linking,
 } from 'react-native';
@@ -14,7 +13,6 @@ import { useNavigation } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
-  Button,
   AppIcon,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
@@ -23,16 +21,10 @@ import { authApi } from '../../../api';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const user = useAuthStore(state => state.user);
   const profile = useAuthStore(state => state.profile);
-  const logout = useAuthStore(state => state.logout);
   const setProfile = useAuthStore(state => state.setProfile);
   const supportPhone = useSettingsStore(state => state.supportPhone);
-
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const modalOpacity = useRef(new Animated.Value(0)).current;
-  const modalScale = useRef(new Animated.Value(0.8)).current;
 
   const cardFade = useRef(new Animated.Value(0)).current;
   const cardSlide = useRef(new Animated.Value(10)).current;
@@ -40,66 +32,28 @@ export default function ProfileScreen() {
   const listAnim2 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (isAuthenticated) {
-      authApi.getMe()
-        .then(response => {
-          const nextProfile = response?.user || response?.profile || response?.data || response;
-          setProfile(nextProfile);
-        })
-        .catch(() => {});
+    authApi.getMe()
+      .then(response => {
+        const nextProfile = response?.user || response?.profile || response?.data || response;
+        setProfile(nextProfile);
+      })
+      .catch(() => {});
 
-      Animated.stagger(100, [
-        Animated.parallel([
-          Animated.timing(cardFade, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.timing(cardSlide, { toValue: 0, duration: 400, useNativeDriver: true }),
-        ]),
-        Animated.timing(listAnim1, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.timing(listAnim2, { toValue: 1, duration: 300, useNativeDriver: true }),
-      ]).start();
-    }
-  }, [isAuthenticated, setProfile]);
-
-  const openLogoutModal = () => {
-    setShowLogoutModal(true);
-    Animated.parallel([
-      Animated.timing(modalOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
-      Animated.spring(modalScale, { toValue: 1, friction: 6, useNativeDriver: true })
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(cardFade, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(cardSlide, { toValue: 0, duration: 400, useNativeDriver: true }),
+      ]),
+      Animated.timing(listAnim1, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(listAnim2, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
-  };
-
-  const closeLogoutModal = () => {
-    Animated.parallel([
-      Animated.timing(modalOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(modalScale, { toValue: 0.8, duration: 200, useNativeDriver: true })
-    ]).start(() => {
-      setShowLogoutModal(false);
-    });
-  };
-
-  const handleLogout = () => {
-    closeLogoutModal();
-    logout();
-  };
+  }, [setProfile]);
 
   const handleHelpSupport = () => {
     if (supportPhone) {
       Linking.openURL(`tel:${supportPhone}`);
     }
   };
-
-  if (!isAuthenticated) {
-    return (
-      <AppScreen style={styles.container}>
-        <AppHeader title="My Profile" />
-        <View style={styles.emptyState}>
-          <AppIcon name="profile" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
-          <Text style={styles.emptyTitle}>Welcome to ServeLoco</Text>
-          <Text style={styles.emptyDesc}>Login to view your profile, manage addresses, and track your orders.</Text>
-          <Button label="Login / Signup" onPress={() => navigation.navigate('Auth')} />
-        </View>
-      </AppScreen>
-    );
-  }
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
@@ -180,42 +134,9 @@ export default function ProfileScreen() {
             label="Help and Support"
             onPress={handleHelpSupport}
           />
-          <MenuOption
-            icon="Out"
-            label="Logout"
-            onPress={openLogoutModal}
-            isDestructive
-          />
         </Animated.View>
 
       </ScrollView>
-
-      {/* Logout Modal */}
-      <Modal visible={showLogoutModal} transparent animationType="none" onRequestClose={closeLogoutModal}>
-        <View style={styles.modalOverlay}>
-          <Animated.View style={[styles.modalBackdrop, { opacity: modalOpacity }]} />
-          <Animated.View style={[styles.modalContent, { opacity: modalOpacity, transform: [{ scale: modalScale }] }]}>
-            <AppIcon name="logout" size={44} color={colors.primary} style={styles.modalEmoji} />
-            <Text style={styles.modalTitle}>Leaving so soon?</Text>
-            <Text style={styles.modalDesc}>Are you sure you want to logout from your account?</Text>
-
-            <View style={styles.modalActions}>
-              <Button
-                label="Stay Logged In"
-                onPress={closeLogoutModal}
-                style={styles.modalBtn}
-              />
-              <Button
-                label="Logout"
-                variant="outline"
-                onPress={handleLogout}
-                style={[styles.modalBtn, { borderColor: colors.error }]}
-                textStyle={{ color: colors.error }}
-              />
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
 
     </AppScreen>
   );
@@ -227,7 +148,6 @@ function MenuOption({ icon, label, onPress, isDestructive }) {
     Box: 'orders',
     Pin: 'location',
     Help: 'phone',
-    Out: 'logout',
   };
   const iconColor = isDestructive ? colors.error : colors.textSecondary;
 

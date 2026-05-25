@@ -90,3 +90,17 @@ export const HealthApi = {
 export const AuditApi = {
   list: (params) => apiClient(withQuery('/admin/audit', params), { method: 'GET' }),
 };
+
+export const MobileDashboardApi = {
+  listSections: () => apiClient('/admin/dashboard-sections', { method: 'GET' }),
+  createSection: (data) => apiClient('/admin/dashboard-sections', { method: 'POST', body: data }),
+  reorderSections: (sectionIds) => apiClient('/admin/dashboard-sections/reorder', { method: 'PATCH', body: { sectionIds } }),
+  getSection: (id) => apiClient(`/admin/dashboard-sections/${id}`, { method: 'GET' }),
+  updateSection: (id, data) => apiClient(`/admin/dashboard-sections/${id}`, { method: 'PATCH', body: data }),
+  deleteSection: (id) => apiClient(`/admin/dashboard-sections/${id}`, { method: 'DELETE' }),
+  addSectionItem: (id, item) => apiClient(`/admin/dashboard-sections/${id}/items`, { method: 'POST', body: item }),
+  reorderSectionItems: (id, itemIds) => apiClient(`/admin/dashboard-sections/${id}/items/reorder`, { method: 'PATCH', body: { itemIds } }),
+  updateSectionItem: (id, itemId, data) => apiClient(`/admin/dashboard-sections/${id}/items/${itemId}`, { method: 'PATCH', body: data }),
+  deleteSectionItem: (id, itemId) => apiClient(`/admin/dashboard-sections/${id}/items/${itemId}`, { method: 'DELETE' }),
+};
+

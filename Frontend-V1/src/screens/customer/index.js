@@ -10,3 +10,5 @@ export { default as OrderDetailScreen } from './OrderDetailScreen';
 export { default as ProfileScreen } from './ProfileScreen';
 export { default as EditProfileScreen } from './EditProfileScreen';
 export { default as AuthScreen } from './AuthScreen';
+export { default as NotificationsScreen } from './NotificationsScreen';
+

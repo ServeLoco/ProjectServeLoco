@@ -41,6 +41,8 @@ export default function Products() {
     }
   };
 
+  const readProducts = (res) => res?.products || res?.data?.products || res?.data || [];
+
   const fetchProducts = async (page = 1) => {
     try {
       setLoading(true);
@@ -49,7 +51,7 @@ export default function Products() {
       Object.keys(params).forEach(k => !params[k] && params[k] !== false && delete params[k]);
 
       const res = await ProductsApi.list(params);
-      setProducts(res.data || []);
+      setProducts(readProducts(res));
       if (res.pagination) {
         setPagination(res.pagination);
       }

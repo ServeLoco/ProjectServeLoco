@@ -55,7 +55,7 @@ export const layout = {
 
   // Category card
   categoryCardWidth: 100,
-  categoryCardHeight: 110,
+  categoryCardHeight: 115,
 
   // Horizontal list
   horizontalListPaddingH: 16,

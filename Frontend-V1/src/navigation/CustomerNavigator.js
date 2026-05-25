@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, typography, radius, shadows } from '../theme';
@@ -19,6 +19,7 @@ import {
   OrderDetailScreen,
   EditProfileScreen,
   AuthScreen,
+  NotificationsScreen,
 } from '../screens/customer';
 
 const Tab = createBottomTabNavigator();
@@ -77,15 +78,17 @@ function CustomerBottomTabs() {
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
           position: 'absolute',
-          bottom: 12,
-          left: 16,
-          right: 16,
-          borderRadius: radius.xl,
+          bottom: 16,
+          left: 20,
+          right: 20,
+          borderRadius: 30,
           backgroundColor: colors.bgSurface,
           height: 64,
-          elevation: 6,
+          elevation: 8,
           ...shadows.lg,
-          borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderTopWidth: 1, // enforce consistent border styling around the floating bar
           paddingBottom: 4,
         },
         tabBarLabelStyle: {
@@ -123,6 +126,12 @@ function CustomerBottomTabs() {
 }
 
 const styles = StyleSheet.create({
+  bootScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgApp,
+  },
   tabIconContainer: {
     width: 48,
     height: 32,
@@ -148,6 +157,15 @@ const styles = StyleSheet.create({
  */
 export default function CustomerNavigator() {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const hasHydrated = useAuthStore(state => state.hasHydrated);
+
+  if (!hasHydrated) {
+    return (
+      <View style={styles.bootScreen}>
+        <ActivityIndicator size="small" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <Stack.Navigator 
@@ -173,6 +191,7 @@ export default function CustomerNavigator() {
           {/* Account / Misc Flow */}
           <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthScreen} />

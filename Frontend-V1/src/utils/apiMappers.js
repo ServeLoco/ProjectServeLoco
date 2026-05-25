@@ -44,8 +44,31 @@ function getDiscountLabel(item) {
   );
 }
 
+function getComboItems(item = {}) {
+  const rawItems = asArray(
+    item.comboItems ||
+    item.combo_items ||
+    item.includedItems ||
+    item.included_items ||
+    item.bundleItems ||
+    item.bundle_items,
+    ['comboItems', 'combo_items', 'items', 'products']
+  );
+
+  return rawItems.map((comboItem, index) => {
+    const source = comboItem.product || comboItem.item || comboItem;
+    return {
+      ...normalizeProduct(source),
+      quantity: Math.max(1, numberOrZero(pickFirst(comboItem.quantity, comboItem.qty, 1)) || 1),
+      displayOrder: numberOrZero(pickFirst(comboItem.displayOrder, comboItem.display_order, index)),
+    };
+  });
+}
+
 function normalizeProduct(item = {}) {
   const id = String(pickFirst(item.id, item._id, item.productId, item.product_id, item.slug));
+  const isCombo = asBoolean(pickFirst(item.isCombo, item.is_combo), false);
+  const comboItems = getComboItems(item);
 
   return {
     ...item,
@@ -61,6 +84,10 @@ function normalizeProduct(item = {}) {
     imageUrl: pickFirst(item.imageUrl, item.image_url, item.image, item.url, null),
     imageUri: pickFirst(item.imageUrl, item.image_url, item.image, item.url, null),
     description: pickFirst(item.description, item.shortDescription, item.short_description, ''),
+    isCombo,
+    is_combo: isCombo,
+    comboItems,
+    combo_items: comboItems,
     relatedProducts: asArray(item.relatedProducts || item.related_products || item.related, ['products']).map(normalizeProduct),
   };
 }

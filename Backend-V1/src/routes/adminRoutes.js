@@ -3,11 +3,24 @@ const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setT
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
+const {
+  getAdminSections,
+  getAdminSectionById,
+  createAdminSection,
+  updateAdminSection,
+  deleteAdminSection,
+  addAdminSectionItem,
+  updateAdminSectionItem,
+  deleteAdminSectionItem,
+  reorderAdminSections,
+  reorderAdminSectionItems
+} = require('../controllers/dashboardController');
 const { requireAdmin } = require('../middleware/authMiddleware');
 const { auditLog } = require('../middleware/auditMiddleware');
 const { validate, isString, isId, isBoolean, isNumericAmount, validatePagination, normalizeField } = require('../validators');
 const asyncHandler = require('../utils/asyncHandler');
 const rateLimit = require('express-rate-limit');
+
 
 const router = express.Router();
 
@@ -94,6 +107,7 @@ const categorySchema = (req) => {
 };
 
 const productSchema = (req) => {
+  const rawComboItems = normalizeField(req, 'comboItems', 'combo_items');
   const data = {
     name: normalizeField(req, 'name', 'name'),
     price: normalizeField(req, 'price', 'price'),
@@ -106,7 +120,12 @@ const productSchema = (req) => {
     featured: normalizeField(req, 'featured', 'featured'),
     display_order: normalizeField(req, 'displayOrder', 'display_order'),
     original_price: normalizeField(req, 'originalPrice', 'original_price'),
-    discount_label: normalizeField(req, 'discountLabel', 'discount_label')
+    discount_label: normalizeField(req, 'discountLabel', 'discount_label'),
+    combo_items: Array.isArray(rawComboItems) ? rawComboItems.map((item, index) => ({
+      product_id: item.productId || item.product_id || item.id,
+      quantity: item.quantity || item.qty || 1,
+      display_order: item.displayOrder || item.display_order || index,
+    })) : undefined
   };
   const errors = {};
   if (!isString(data.name)) errors.name = 'Name is required';
@@ -116,6 +135,17 @@ const productSchema = (req) => {
   if (data.available !== undefined && !isBoolean(data.available)) errors.available = 'Available must be boolean';
   if (data.is_combo !== undefined && !isBoolean(data.is_combo)) errors.is_combo = 'is_combo must be boolean';
   if (data.featured !== undefined && !isBoolean(data.featured)) errors.featured = 'featured must be boolean';
+  if (data.combo_items !== undefined) {
+    for (let i = 0; i < data.combo_items.length; i++) {
+      const item = data.combo_items[i];
+      if (!isId(item.product_id)) errors.combo_items = `Combo item ${i + 1}: valid product is required`;
+      if (!Number.isInteger(Number(item.quantity)) || Number(item.quantity) <= 0) {
+        errors.combo_items = `Combo item ${i + 1}: quantity must be at least 1`;
+      }
+      item.quantity = Number(item.quantity) || 1;
+      item.display_order = Number(item.display_order) || i;
+    }
+  }
   
   if (data.available !== undefined) {
     data.available = data.available === true || data.available === 'true' || data.available === 1;
@@ -180,6 +210,21 @@ router.patch('/products/:id/availability', requireAdmin, auditLog, validate(prod
 router.patch('/products/:id/image', requireAdmin, auditLog, validate(productImageSchema), asyncHandler(updateProductImage));
 
 router.get('/dashboard', requireAdmin, asyncHandler(getDashboard));
+
+// Admin Dashboard Sections CRUD
+router.get('/dashboard-sections', requireAdmin, asyncHandler(getAdminSections));
+router.post('/dashboard-sections', requireAdmin, auditLog, asyncHandler(createAdminSection));
+router.patch('/dashboard-sections/reorder', requireAdmin, auditLog, asyncHandler(reorderAdminSections));
+router.get('/dashboard-sections/:id', requireAdmin, asyncHandler(getAdminSectionById));
+router.patch('/dashboard-sections/:id', requireAdmin, auditLog, asyncHandler(updateAdminSection));
+router.delete('/dashboard-sections/:id', requireAdmin, auditLog, asyncHandler(deleteAdminSection));
+
+// Section Items
+router.post('/dashboard-sections/:id/items', requireAdmin, auditLog, asyncHandler(addAdminSectionItem));
+router.patch('/dashboard-sections/:id/items/reorder', requireAdmin, auditLog, asyncHandler(reorderAdminSectionItems));
+router.patch('/dashboard-sections/:id/items/:itemId', requireAdmin, auditLog, asyncHandler(updateAdminSectionItem));
+router.delete('/dashboard-sections/:id/items/:itemId', requireAdmin, auditLog, asyncHandler(deleteAdminSectionItem));
+
 router.get('/reports/sales', requireAdmin, asyncHandler(getSalesReport));
 router.get('/reports/customers', requireAdmin, asyncHandler(getCustomersReport));
 router.get('/reports/top-products', requireAdmin, asyncHandler(getTopProductsReport));

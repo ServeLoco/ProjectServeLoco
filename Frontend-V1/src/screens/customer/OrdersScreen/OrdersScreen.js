@@ -21,7 +21,6 @@ import {
   ProductImage,
 } from '../../../components';
 import { colors, typography, spacing, radius } from '../../../theme';
-import { useAuthStore } from '../../../stores';
 import { ordersApi } from '../../../api';
 import { asArray, normalizeOrder } from '../../../utils';
 
@@ -34,7 +33,6 @@ const FILTER_CHIPS = ['All', 'Pending', 'Preparing', 'Delivered', 'Cancelled'];
 export default function OrdersScreen() {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
-  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
   const [activeFilter, setActiveFilter] = useState('All');
   const [orders, setOrders] = useState([]);
@@ -69,10 +67,10 @@ export default function OrdersScreen() {
   };
 
   useEffect(() => {
-    if (isFocused && isAuthenticated) {
+    if (isFocused) {
       fetchOrders();
     }
-  }, [activeFilter, isFocused, isAuthenticated]); // Re-fetch on focus or filter change
+  }, [activeFilter, isFocused]); // Re-fetch on focus or filter change
 
   const handleCancelOrder = (orderId) => {
     setCancellingId(orderId);
@@ -226,20 +224,6 @@ export default function OrdersScreen() {
       <Button label="Retry" onPress={() => fetchOrders()} />
     </View>
   );
-
-  if (!isAuthenticated) {
-    return (
-      <AppScreen style={styles.container}>
-        <AppHeader title="My Orders" />
-        <View style={styles.emptyState}>
-          <AppIcon name="lock" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
-          <Text style={styles.emptyTitle}>Login Required</Text>
-          <Text style={styles.emptyDesc}>Please login to view your order history.</Text>
-          <Button label="Login / Signup" onPress={() => navigation.navigate('Auth')} />
-        </View>
-      </AppScreen>
-    );
-  }
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>

@@ -13,8 +13,11 @@ export const useAuthStore = create(
       user: null,
       profile: null,
       isAuthenticated: false,
+      hasHydrated: false,
       redirectRoute: null,
       previewStartedAt: Date.now(),
+
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       
       setRedirectRoute: (route) => set({ redirectRoute: route }),
       
@@ -45,6 +48,9 @@ export const useAuthStore = create(
     {
       name: 'serveloco-customer-auth',
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

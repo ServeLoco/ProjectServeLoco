@@ -10,6 +10,8 @@ import {
   Animated,
   LayoutAnimation,
   UIManager,
+  Image,
+  Keyboard,
 } from 'react-native';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -21,17 +23,18 @@ import {
   TextInputField,
   Button,
   SegmentedControl,
-  AppIcon,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useAuthStore } from '../../../stores';
 import { authApi } from '../../../api';
 import { normalizeSession } from '../../../utils';
+import { appLogo } from '../../../assets';
 
 export default function AuthScreen() {
   const setSession = useAuthStore(state => state.setSession);
 
   const [mode, setMode] = useState('Login'); // 'Login' | 'Sign Up'
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -46,7 +49,6 @@ export default function AuthScreen() {
   // Animations
   const fadeAnimHeader = useRef(new Animated.Value(0)).current;
   const slideAnimHeader = useRef(new Animated.Value(20)).current;
-  const floatAnimIllustration = useRef(new Animated.Value(0)).current;
   const fadeAnimCard = useRef(new Animated.Value(0)).current;
   const slideAnimCard = useRef(new Animated.Value(30)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
@@ -64,13 +66,25 @@ export default function AuthScreen() {
       ])
     ]).start();
 
-    // Float loop
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnimIllustration, { toValue: -10, duration: 2000, useNativeDriver: true }),
-        Animated.timing(floatAnimIllustration, { toValue: 0, duration: 2000, useNativeDriver: true }),
-      ])
-    ).start();
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setKeyboardVisible(true);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove();
+    };
   }, []);
 
   const triggerShake = () => {
@@ -257,26 +271,22 @@ export default function AuthScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Header / Brand Placeholder */}
             <Animated.View 
               style={[
                 styles.header, 
                 { opacity: fadeAnimHeader, transform: [{ translateY: slideAnimHeader }] }
               ]}
             >
-              <View style={styles.headerTop}>
-                <View style={styles.logoPlaceholder}>
-                  <Text style={styles.logoText}>ServeLoco</Text>
+              {!isKeyboardVisible && (
+                <View style={styles.headerTop}>
+                  <Image
+                    source={appLogo}
+                    style={styles.logoImage}
+                    resizeMode="contain"
+                    accessibilityIgnoresInvertColors
+                  />
                 </View>
-              </View>
-              <Text style={styles.trustLine}>
-                Food, snacks and essentials delivered fast.
-              </Text>
-
-              {/* Small local illustration / product image placeholder */}
-              <Animated.View style={[styles.illustrationBox, { transform: [{ translateY: floatAnimIllustration }] }]}>
-                <AppIcon name="shoppingBag" size={30} color={colors.primary} />
-              </Animated.View>
+              )}
             </Animated.View>
 
             {/* Auth Card */}
@@ -326,42 +336,20 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.xxxl,
   },
   header: {
-    marginBottom: spacing.xl,
-    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+    marginTop: spacing.sm,
   },
   headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  logoPlaceholder: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-  },
-  logoText: {
-    ...typography.h3,
-    color: colors.textInverse,
-  },
-  trustLine: {
-    ...typography.body,
-    color: colors.textSecondary,
-    maxWidth: '80%',
-  },
-  illustrationBox: {
-    width: 60,
-    height: 60,
-    borderRadius: radius.md,
-    backgroundColor: colors.bgDisabled,
-    alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.md,
+    alignItems: 'center',
+  },
+  logoImage: {
+    width: '100%',
+    height: 250,
   },
   authCard: {
     backgroundColor: colors.bgSurface,

@@ -9,6 +9,7 @@ const navItems = [
   { path: '/combos', label: 'Combos' },
   { path: '/categories', label: 'Categories' },
   { path: '/offers', label: 'Offers' },
+  { path: '/mobile-dashboard', label: 'Mobile Dashboard' },
   { path: '/customers', label: 'Customers' },
   { path: '/settings', label: 'Settings' },
   { path: '/images', label: 'Images' },

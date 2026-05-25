@@ -13,3 +13,5 @@ export { cartApi } from './cartApi';
 export { ordersApi } from './ordersApi';
 export { settingsApi } from './settingsApi';
 export { offersApi } from './offersApi';
+export { dashboardApi } from './dashboardApi';
+

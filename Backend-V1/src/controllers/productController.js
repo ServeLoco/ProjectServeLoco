@@ -5,9 +5,111 @@ const path = require('path');
 const fs = require('fs');
 const config = require('../config/env');
 
+const resolveImageUrls = async (rows) => {
+  const imageIds = rows
+    .map(r => r.image_id)
+    .filter(id => id && ObjectId.isValid(id))
+    .map(id => new ObjectId(id));
+
+  if (imageIds.length === 0) return;
+
+  const db = getDb();
+  const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
+  const imageMap = {};
+  images.forEach(img => { imageMap[img._id.toString()] = img.url; });
+  rows.forEach(row => {
+    if (row.image_id && imageMap[row.image_id]) {
+      row.imageUrl = imageMap[row.image_id];
+      row.image_url = imageMap[row.image_id];
+    }
+  });
+};
+
+const getComboItemsByComboIds = async (comboIds = []) => {
+  const ids = comboIds.filter(Boolean);
+  if (ids.length === 0) return {};
+
+  const [rows] = await pool.query(
+    `SELECT
+      pci.combo_product_id,
+      pci.product_id,
+      pci.quantity,
+      pci.display_order,
+      p.id,
+      p.name,
+      p.price,
+      p.unit,
+      p.description,
+      p.image_id,
+      p.available,
+      p.is_combo,
+      p.featured,
+      p.original_price,
+      p.discount_label,
+      p.category_id,
+      c.name as category_name,
+      c.type as category_type
+    FROM product_combo_items pci
+    JOIN products p ON p.id = pci.product_id
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE pci.combo_product_id IN (?) AND p.deleted = 0
+    ORDER BY pci.combo_product_id ASC, pci.display_order ASC, pci.id ASC`,
+    [ids]
+  );
+
+  await resolveImageUrls(rows);
+
+  return rows.reduce((map, row) => {
+    const comboId = row.combo_product_id;
+    if (!map[comboId]) map[comboId] = [];
+    map[comboId].push({
+      ...row,
+      productId: row.product_id,
+      product_id: row.product_id,
+      quantity: Number(row.quantity) || 1,
+    });
+    return map;
+  }, {});
+};
+
+const attachComboItems = async (products = []) => {
+  const comboIds = products.filter(product => product.is_combo).map(product => product.id);
+  const comboItemsMap = await getComboItemsByComboIds(comboIds);
+
+  products.forEach(product => {
+    const comboItems = comboItemsMap[product.id] || [];
+    product.combo_items = comboItems;
+    product.comboItems = comboItems;
+    product.combo_count = comboItems.length;
+  });
+};
+
+const saveComboItems = async (comboProductId, comboItems, connection = pool) => {
+  if (!Array.isArray(comboItems)) return;
+
+  await connection.query('DELETE FROM product_combo_items WHERE combo_product_id = ?', [comboProductId]);
+
+  const rows = comboItems
+    .map((item, index) => ({
+      product_id: Number(item.product_id || item.productId || item.id),
+      quantity: Number(item.quantity || item.qty || 1),
+      display_order: Number(item.display_order || item.displayOrder || index),
+    }))
+    .filter(item => item.product_id && item.product_id !== Number(comboProductId) && item.quantity > 0);
+
+  if (rows.length === 0) return;
+
+  await connection.query(
+    `INSERT INTO product_combo_items (combo_product_id, product_id, quantity, display_order)
+     VALUES ?`,
+    [rows.map(item => [comboProductId, item.product_id, item.quantity, item.display_order])]
+  );
+};
+
 const getProducts = async (req, res) => {
-  const { categoryId, category_id, search, type } = req.query;
+  const { categoryId, category_id, search, type, isCombo, is_combo, featured, limit } = req.query;
   const finalCategoryId = categoryId || category_id;
+  const finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
 
   let query = 'SELECT p.*, c.name as category_name, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.available = 1 AND p.deleted = 0';
   const params = [];
@@ -27,21 +129,26 @@ const getProducts = async (req, res) => {
     params.push(`%${search}%`);
   }
 
+  if (finalIsCombo !== undefined) {
+    query += ' AND p.is_combo = ?';
+    params.push(finalIsCombo === 'true' || finalIsCombo === '1' ? 1 : 0);
+  }
+
+  if (featured !== undefined) {
+    query += ' AND p.featured = ?';
+    params.push(featured === 'true' || featured === '1' ? 1 : 0);
+  }
+
   query += ' ORDER BY c.display_order ASC, p.id ASC';
+  if (limit && Number.isInteger(Number(limit)) && Number(limit) > 0) {
+    query += ' LIMIT ?';
+    params.push(Number(limit));
+  }
 
   const [rows] = await pool.query(query, params);
 
-  // Resolve image URLs from MongoDB
-  const imageIds = rows.map(r => r.image_id).filter(id => id && ObjectId.isValid(id)).map(id => new ObjectId(id));
-  if (imageIds.length > 0) {
-    const db = getDb();
-    const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
-    const imageMap = {};
-    images.forEach(img => { imageMap[img._id.toString()] = img.url; });
-    rows.forEach(r => {
-      if (r.image_id && imageMap[r.image_id]) r.imageUrl = imageMap[r.image_id];
-    });
-  }
+  await resolveImageUrls(rows);
+  await attachComboItems(rows);
 
   res.status(200).json({ data: { products: rows }, products: rows });
 };
@@ -58,17 +165,14 @@ const getProductById = async (req, res) => {
   }
 
   const product = rows[0];
-  if (product.image_id && ObjectId.isValid(product.image_id)) {
-    const db = getDb();
-    const image = await db.collection('images').findOne({ _id: new ObjectId(product.image_id) });
-    if (image) product.imageUrl = image.url;
-  }
+  await resolveImageUrls([product]);
+  await attachComboItems([product]);
 
   res.status(200).json({ data: product });
 };
 
 const createProduct = async (req, res) => {
-  const { name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label, combo_items } = req.validatedData;
   const [result] = await pool.query(
     'INSERT INTO products (name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
@@ -81,12 +185,15 @@ const createProduct = async (req, res) => {
       discount_label || null
     ]
   );
+  if (is_combo) {
+    await saveComboItems(result.insertId, combo_items);
+  }
   res.status(201).json({ message: 'Product created', id: result.insertId });
 };
 
 const updateProduct = async (req, res) => {
   const { id } = req.params;
-  const { name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label, combo_items } = req.validatedData;
 
   // Check if image_id changed, delete old image from MongoDB and disk
   const [existing] = await pool.query('SELECT image_id FROM products WHERE id = ?', [id]);
@@ -119,6 +226,11 @@ const updateProduct = async (req, res) => {
       id
     ]
   );
+  if (is_combo) {
+    await saveComboItems(id, combo_items);
+  } else if (combo_items !== undefined) {
+    await pool.query('DELETE FROM product_combo_items WHERE combo_product_id = ?', [id]);
+  }
   res.status(200).json({ message: 'Product updated' });
 };
 
@@ -163,21 +275,8 @@ const getAdminProducts = async (req, res) => {
 
   const [rows] = await pool.query(query, params);
 
-  // Resolve image URLs
-  const imageIds = rows.map(r => r.image_id).filter(id => id && ObjectId.isValid(id)).map(id => new ObjectId(id));
-  if (imageIds.length > 0) {
-    const db = getDb();
-    const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
-    const imageMap = {};
-    images.forEach(img => {
-      imageMap[img._id.toString()] = img.url;
-    });
-    rows.forEach(r => {
-      if (r.image_id && imageMap[r.image_id]) {
-        r.imageUrl = imageMap[r.image_id];
-      }
-    });
-  }
+  await resolveImageUrls(rows);
+  await attachComboItems(rows);
 
   res.status(200).json({ data: { products: rows }, products: rows });
 };
@@ -195,7 +294,11 @@ const getAdminProductById = async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
-  res.status(200).json({ data: rows[0] });
+  const product = rows[0];
+  await resolveImageUrls([product]);
+  await attachComboItems([product]);
+
+  res.status(200).json({ data: product });
 };
 
 const deleteProduct = async (req, res) => {

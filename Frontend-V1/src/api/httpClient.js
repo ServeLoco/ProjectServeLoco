@@ -2,6 +2,8 @@ import { ApiError, getErrorMessage } from './apiError';
 import { getApiBaseUrl } from './config';
 import { getCustomerToken } from './sessionTokens';
 
+const REQUEST_TIMEOUT_MS = 15000;
+
 function isFormData(body) {
   return typeof FormData !== 'undefined' && body instanceof FormData;
 }
@@ -43,6 +45,28 @@ function buildBody(body) {
   return isFormData(body) ? body : JSON.stringify(body);
 }
 
+function createTimeoutSignal(signal) {
+  if (typeof AbortController === 'undefined') {
+    return { signal, clear: () => {} };
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+  }
+
+  return {
+    signal: controller.signal,
+    clear: () => clearTimeout(timeoutId),
+  };
+}
+
 async function request(path, options = {}) {
   const {
     auth = null,
@@ -54,6 +78,7 @@ async function request(path, options = {}) {
 
   const url = `${getApiBaseUrl()}${path}`;
   const requestHeaders = await buildHeaders({ auth, body, headers });
+  const timeout = createTimeoutSignal(signal);
 
   let response;
   let payload;
@@ -63,15 +88,26 @@ async function request(path, options = {}) {
       method,
       headers: requestHeaders,
       body: buildBody(body),
-      signal,
+      signal: timeout.signal,
     });
     payload = await parseResponse(response);
   } catch (error) {
-    throw new ApiError('Network request failed. Please try again.', {
+    const isTimeout = timeout.signal?.aborted && !signal?.aborted;
+    const timeoutMessage = __DEV__
+      ? `Request timed out. Check that Backend-V1 is running and reachable from your phone at ${getApiBaseUrl()}.`
+      : 'Request timed out. Check that Backend-V1 is running and reachable from your phone.';
+    throw new ApiError(
+      isTimeout
+        ? timeoutMessage
+        : 'Network request failed. Please try again.',
+      {
       code: 'NETWORK_ERROR',
       details: error,
       isNetworkError: true,
-    });
+      },
+    );
+  } finally {
+    timeout.clear();
   }
 
   if (!response.ok) {

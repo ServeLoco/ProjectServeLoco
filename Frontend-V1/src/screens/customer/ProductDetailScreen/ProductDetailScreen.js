@@ -33,7 +33,16 @@ export default function ProductDetailScreen() {
   const [loadError, setLoadError] = useState('');
 
   // Stores
-  const { items, totalItems, addItem, updateQuantity, removeItem } = useCartStore();
+  const {
+    items,
+    totalItems,
+    addItem,
+    addCombo,
+    decrementCombo,
+    getComboQuantity,
+    updateQuantity,
+    removeItem,
+  } = useCartStore();
 
   // Animations
   const imgFade = useRef(new Animated.Value(0)).current;
@@ -87,9 +96,22 @@ export default function ProductDetailScreen() {
     return item ? item.quantity : 0;
   };
 
-  const handleAddToCart = (item) => requireAuth(null, () => addItem(item));
-  const handleIncrement = (item) => requireAuth(null, () => addItem(item));
+  const isComboProduct = (item) => item?.isCombo || item?.is_combo || item?.comboItems?.length;
+
+  const handleAddToCart = (item) => requireAuth(null, () => {
+    if (isComboProduct(item)) addCombo(item);
+    else addItem(item);
+  });
+  const handleIncrement = (item) => requireAuth(null, () => {
+    if (isComboProduct(item)) addCombo(item);
+    else addItem(item);
+  });
   const handleDecrement = (item) => {
+    if (isComboProduct(item)) {
+      decrementCombo(item);
+      return;
+    }
+
     const currentQty = getQty(item.id);
     if (currentQty <= 1) removeItem(item.id);
     else updateQuantity(item.id, currentQty - 1);
@@ -118,7 +140,7 @@ export default function ProductDetailScreen() {
     );
   }
 
-  const currentQty = getQty(product.id);
+  const currentQty = isComboProduct(product) ? getComboQuantity(product) : getQty(product.id);
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
@@ -213,8 +235,10 @@ export default function ProductDetailScreen() {
                   originalPrice={rel.originalPrice}
                   discountLabel={rel.discountLabel}
                   unit={rel.unit}
+                  isCombo={rel.isCombo}
+                  comboItems={rel.comboItems}
                   imageUri={rel.imageUri}
-                  quantity={getQty(rel.id)}
+                  quantity={isComboProduct(rel) ? getComboQuantity(rel) : getQty(rel.id)}
                   onAdd={() => handleAddToCart(rel)}
                   onIncrement={() => handleIncrement(rel)}
                   onDecrement={() => handleDecrement(rel)}
