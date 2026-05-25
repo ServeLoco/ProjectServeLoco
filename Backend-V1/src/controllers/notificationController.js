@@ -1,0 +1,113 @@
+const { pool } = require('../db/mysql');
+const notificationService = require('../utils/notificationService');
+
+const getNotifications = async (req, res) => {
+  const userId = req.user.id;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const unreadOnly = req.query.unreadOnly === 'true';
+  const offset = (page - 1) * limit;
+
+  let query = 'SELECT * FROM notifications WHERE user_id = ? AND deleted_at IS NULL';
+  const params = [userId];
+
+  if (unreadOnly) {
+    query += ' AND read_at IS NULL';
+  }
+
+  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+  params.push(limit, offset);
+
+  const [rows] = await pool.query(query, params);
+
+  // Get total count for pagination
+  let countQuery = 'SELECT COUNT(*) as total FROM notifications WHERE user_id = ? AND deleted_at IS NULL';
+  const countParams = [userId];
+  if (unreadOnly) {
+    countQuery += ' AND read_at IS NULL';
+  }
+  const [countRows] = await pool.query(countQuery, countParams);
+  const total = countRows[0].total;
+
+  const unreadCount = await notificationService.getUnreadCount(userId);
+
+  const normalizedRows = rows.map(r => ({
+    id: r.id,
+    title: r.title,
+    body: r.body,
+    type: r.type,
+    sourceType: r.source_type,
+    sourceId: r.source_id,
+    actionType: r.action_type,
+    actionPayload: r.action_payload ? JSON.parse(r.action_payload) : null,
+    read: !!r.read_at,
+    readAt: r.read_at,
+    createdAt: r.created_at,
+  }));
+
+  res.json({
+    data: normalizedRows,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    },
+    unreadCount
+  });
+};
+
+const getUnreadCount = async (req, res) => {
+  const userId = req.user.id;
+  const unreadCount = await notificationService.getUnreadCount(userId);
+  res.json({ unreadCount });
+};
+
+const markAllRead = async (req, res) => {
+  const userId = req.user.id;
+  await notificationService.markAllRead(userId);
+  res.json({ success: true, message: 'All notifications marked as read' });
+};
+
+const markRead = async (req, res) => {
+  const userId = req.user.id;
+  const notificationId = req.params.id;
+
+  const [result] = await pool.query(
+    'UPDATE notifications SET read_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND read_at IS NULL AND deleted_at IS NULL',
+    [notificationId, userId]
+  );
+
+  if (result.affectedRows === 0) {
+    // Might be already read, or not found/deleted
+    const [check] = await pool.query('SELECT id, read_at FROM notifications WHERE id = ? AND user_id = ? AND deleted_at IS NULL', [notificationId, userId]);
+    if (check.length === 0) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+  }
+
+  res.json({ success: true, message: 'Notification marked as read' });
+};
+
+const deleteNotification = async (req, res) => {
+  const userId = req.user.id;
+  const notificationId = req.params.id;
+
+  const result = await notificationService.softDeleteNotification(userId, notificationId);
+  if (result.affectedRows === 0) {
+    const [check] = await pool.query('SELECT id FROM notifications WHERE id = ? AND user_id = ?', [notificationId, userId]);
+    if (check.length === 0) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+  }
+
+  res.json({ success: true, message: 'Notification deleted' });
+};
+
+module.exports = {
+  getNotifications,
+  getUnreadCount,
+  markAllRead,
+  markRead,
+  deleteNotification
+};

@@ -4,1093 +4,1174 @@
   "graph": {},
   "nodes": [
     {
+      "label": "notificationService.js",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L1",
+      "id": "backend_v1_src_utils_notificationservice_js",
+      "community": 65,
+      "norm_label": "notificationservice.js"
+    },
+    {
+      "label": "{ pool }",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L1",
+      "id": "utils_notificationservice_pool",
+      "community": 65,
+      "norm_label": "{ pool }"
+    },
+    {
+      "label": "createNotification()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L7",
+      "id": "utils_notificationservice_createnotification",
+      "community": 65,
+      "norm_label": "createnotification()"
+    },
+    {
+      "label": "createManyNotifications()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L30",
+      "id": "utils_notificationservice_createmanynotifications",
+      "community": 65,
+      "norm_label": "createmanynotifications()"
+    },
+    {
+      "label": "createOrderNotification()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L52",
+      "id": "utils_notificationservice_createordernotification",
+      "community": 65,
+      "norm_label": "createordernotification()"
+    },
+    {
+      "label": "createBroadcastNotification()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L135",
+      "id": "utils_notificationservice_createbroadcastnotification",
+      "community": 65,
+      "norm_label": "createbroadcastnotification()"
+    },
+    {
+      "label": "getUnreadCount()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L162",
+      "id": "utils_notificationservice_getunreadcount",
+      "community": 65,
+      "norm_label": "getunreadcount()"
+    },
+    {
+      "label": "markAllRead()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L170",
+      "id": "utils_notificationservice_markallread",
+      "community": 65,
+      "norm_label": "markallread()"
+    },
+    {
+      "label": "softDeleteNotification()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L178",
+      "id": "utils_notificationservice_softdeletenotification",
+      "community": 65,
+      "norm_label": "softdeletenotification()"
+    },
+    {
       "label": "migrate.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/db/migrate.js",
       "source_location": "L1",
-      "id": "backend_v1_src_db_migrate_js",
       "community": 81,
-      "norm_label": "migrate.js"
+      "norm_label": "migrate.js",
+      "id": "backend_v1_src_db_migrate_js"
     },
     {
       "label": "mysql",
       "file_type": "code",
       "source_file": "Backend-V1/src/db/migrate.js",
       "source_location": "L2",
-      "id": "db_migrate_mysql",
       "community": 81,
-      "norm_label": "mysql"
+      "norm_label": "mysql",
+      "id": "db_migrate_mysql"
     },
     {
       "label": "config",
       "file_type": "code",
       "source_file": "Backend-V1/src/db/migrate.js",
       "source_location": "L3",
-      "id": "db_migrate_config",
       "community": 81,
-      "norm_label": "config"
+      "norm_label": "config",
+      "id": "db_migrate_config"
     },
     {
       "label": "migrate()",
       "file_type": "code",
       "source_file": "Backend-V1/src/db/migrate.js",
       "source_location": "L5",
-      "id": "db_migrate_migrate",
       "community": 81,
-      "norm_label": "migrate()"
+      "norm_label": "migrate()",
+      "id": "db_migrate_migrate"
     },
     {
       "label": "CategoriesScreen.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "community": 88,
-      "norm_label": "categoriesscreen.js"
+      "community": 43,
+      "norm_label": "categoriesscreen.js",
+      "id": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js"
     },
     {
       "label": "DEFAULT_CHIPS",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L34",
-      "id": "categoriesscreen_categoriesscreen_default_chips",
-      "community": 88,
-      "norm_label": "default_chips"
+      "community": 43,
+      "norm_label": "default_chips",
+      "id": "categoriesscreen_categoriesscreen_default_chips"
     },
     {
       "label": "CategoriesScreen()",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L36",
-      "id": "categoriesscreen_categoriesscreen_categoriesscreen",
-      "community": 88,
-      "norm_label": "categoriesscreen()"
+      "community": 43,
+      "norm_label": "categoriesscreen()",
+      "id": "categoriesscreen_categoriesscreen_categoriesscreen"
     },
     {
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L292",
-      "id": "categoriesscreen_categoriesscreen_styles",
-      "community": 88,
-      "norm_label": "styles"
+      "community": 43,
+      "norm_label": "styles",
+      "id": "categoriesscreen_categoriesscreen_styles"
     },
     {
       "label": "plannoti.md",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L1",
-      "id": "plans_plannoti_md",
       "community": 179,
-      "norm_label": "plannoti.md"
+      "norm_label": "plannoti.md",
+      "id": "plans_plannoti_md"
     },
     {
       "label": "Notifications System Tasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L1",
-      "id": "plans_plannoti_notifications_system_tasks",
       "community": 179,
-      "norm_label": "notifications system tasks"
+      "norm_label": "notifications system tasks",
+      "id": "plans_plannoti_notifications_system_tasks"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L3",
-      "id": "plans_plannoti_goal",
       "community": 179,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal"
     },
     {
       "label": "1. Current System Review",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L14",
-      "id": "plans_plannoti_1_current_system_review",
       "community": 180,
-      "norm_label": "1. current system review"
+      "norm_label": "1. current system review",
+      "id": "plans_plannoti_1_current_system_review"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L16",
-      "id": "plans_plannoti_goal_16",
       "community": 180,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_16"
     },
     {
       "label": "Files likely checked",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L19",
-      "id": "plans_plannoti_files_likely_checked",
       "community": 180,
-      "norm_label": "files likely checked"
+      "norm_label": "files likely checked",
+      "id": "plans_plannoti_files_likely_checked"
     },
     {
       "label": "Current known state",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L34",
-      "id": "plans_plannoti_current_known_state",
       "community": 180,
-      "norm_label": "current known state"
+      "norm_label": "current known state",
+      "id": "plans_plannoti_current_known_state"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L43",
-      "id": "plans_plannoti_subtasks",
       "community": 180,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks"
     },
     {
       "label": "Things to avoid",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L61",
-      "id": "plans_plannoti_things_to_avoid",
       "community": 180,
-      "norm_label": "things to avoid"
+      "norm_label": "things to avoid",
+      "id": "plans_plannoti_things_to_avoid"
     },
     {
       "label": "Testing checklist",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L67",
-      "id": "plans_plannoti_testing_checklist",
       "community": 180,
-      "norm_label": "testing checklist"
+      "norm_label": "testing checklist",
+      "id": "plans_plannoti_testing_checklist"
     },
     {
       "label": "2. Notification Data Model",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L74",
-      "id": "plans_plannoti_2_notification_data_model",
       "community": 89,
-      "norm_label": "2. notification data model"
+      "norm_label": "2. notification data model",
+      "id": "plans_plannoti_2_notification_data_model"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L76",
-      "id": "plans_plannoti_goal_76",
       "community": 89,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_76"
     },
     {
       "label": "Suggested table: `notifications`",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L79",
-      "id": "plans_plannoti_suggested_table_notifications",
       "community": 89,
-      "norm_label": "suggested table: `notifications`"
+      "norm_label": "suggested table: `notifications`",
+      "id": "plans_plannoti_suggested_table_notifications"
     },
     {
       "label": "Fields",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L82",
-      "id": "plans_plannoti_fields",
       "community": 89,
-      "norm_label": "fields"
+      "norm_label": "fields",
+      "id": "plans_plannoti_fields"
     },
     {
       "label": "Field meaning",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L101",
-      "id": "plans_plannoti_field_meaning",
       "community": 89,
-      "norm_label": "field meaning"
+      "norm_label": "field meaning",
+      "id": "plans_plannoti_field_meaning"
     },
     {
       "label": "Suggested indexes",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L117",
-      "id": "plans_plannoti_suggested_indexes",
       "community": 89,
-      "norm_label": "suggested indexes"
+      "norm_label": "suggested indexes",
+      "id": "plans_plannoti_suggested_indexes"
     },
     {
       "label": "Suggested table: `notification_batches`",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L126",
-      "id": "plans_plannoti_suggested_table_notification_batches",
       "community": 89,
-      "norm_label": "suggested table: `notification_batches`"
+      "norm_label": "suggested table: `notification_batches`",
+      "id": "plans_plannoti_suggested_table_notification_batches"
     },
     {
       "label": "Fields",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L129",
-      "id": "plans_plannoti_fields_129",
       "community": 89,
-      "norm_label": "fields"
+      "norm_label": "fields",
+      "id": "plans_plannoti_fields_129"
     },
     {
       "label": "Batch table subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L140",
-      "id": "plans_plannoti_batch_table_subtasks",
       "community": 89,
-      "norm_label": "batch table subtasks"
+      "norm_label": "batch table subtasks",
+      "id": "plans_plannoti_batch_table_subtasks"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L146",
-      "id": "plans_plannoti_subtasks_146",
       "community": 89,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks_146"
     },
     {
       "label": "Things to avoid",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L158",
-      "id": "plans_plannoti_things_to_avoid_158",
       "community": 89,
-      "norm_label": "things to avoid"
+      "norm_label": "things to avoid",
+      "id": "plans_plannoti_things_to_avoid_158"
     },
     {
       "label": "Testing checklist",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L164",
-      "id": "plans_plannoti_testing_checklist_164",
       "community": 89,
-      "norm_label": "testing checklist"
+      "norm_label": "testing checklist",
+      "id": "plans_plannoti_testing_checklist_164"
     },
     {
       "label": "3. Backend Notification Utility",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L172",
-      "id": "plans_plannoti_3_backend_notification_utility",
       "community": 176,
-      "norm_label": "3. backend notification utility"
+      "norm_label": "3. backend notification utility",
+      "id": "plans_plannoti_3_backend_notification_utility"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L174",
-      "id": "plans_plannoti_goal_174",
       "community": 176,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_174"
     },
     {
       "label": "Files likely added",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L177",
-      "id": "plans_plannoti_files_likely_added",
       "community": 176,
-      "norm_label": "files likely added"
+      "norm_label": "files likely added",
+      "id": "plans_plannoti_files_likely_added"
     },
     {
       "label": "Required helper functions",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L180",
-      "id": "plans_plannoti_required_helper_functions",
       "community": 176,
-      "norm_label": "required helper functions"
+      "norm_label": "required helper functions",
+      "id": "plans_plannoti_required_helper_functions"
     },
     {
       "label": "Order notification templates",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L190",
-      "id": "plans_plannoti_order_notification_templates",
       "community": 176,
-      "norm_label": "order notification templates"
+      "norm_label": "order notification templates",
+      "id": "plans_plannoti_order_notification_templates"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L224",
-      "id": "plans_plannoti_subtasks_224",
       "community": 176,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks_224"
     },
     {
       "label": "Things to avoid",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L236",
-      "id": "plans_plannoti_things_to_avoid_236",
       "community": 176,
-      "norm_label": "things to avoid"
+      "norm_label": "things to avoid",
+      "id": "plans_plannoti_things_to_avoid_236"
     },
     {
       "label": "Testing checklist",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L242",
-      "id": "plans_plannoti_testing_checklist_242",
       "community": 176,
-      "norm_label": "testing checklist"
+      "norm_label": "testing checklist",
+      "id": "plans_plannoti_testing_checklist_242"
     },
     {
       "label": "4. Customer Notification APIs",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L251",
-      "id": "plans_plannoti_4_customer_notification_apis",
       "community": 142,
-      "norm_label": "4. customer notification apis"
+      "norm_label": "4. customer notification apis",
+      "id": "plans_plannoti_4_customer_notification_apis"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L253",
-      "id": "plans_plannoti_goal_253",
       "community": 142,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_253"
     },
     {
       "label": "Suggested files",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L256",
-      "id": "plans_plannoti_suggested_files",
       "community": 142,
-      "norm_label": "suggested files"
+      "norm_label": "suggested files",
+      "id": "plans_plannoti_suggested_files"
     },
     {
       "label": "Routes",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L261",
-      "id": "plans_plannoti_routes",
       "community": 142,
-      "norm_label": "routes"
+      "norm_label": "routes",
+      "id": "plans_plannoti_routes"
     },
     {
       "label": "Auth",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L268",
-      "id": "plans_plannoti_auth",
       "community": 142,
-      "norm_label": "auth"
+      "norm_label": "auth",
+      "id": "plans_plannoti_auth"
     },
     {
       "label": "`GET /api/notifications` query params",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L271",
-      "id": "plans_plannoti_get_api_notifications_query_params",
       "community": 142,
-      "norm_label": "`get /api/notifications` query params"
+      "norm_label": "`get /api/notifications` query params",
+      "id": "plans_plannoti_get_api_notifications_query_params"
     },
     {
       "label": "`GET /api/notifications` response",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L276",
-      "id": "plans_plannoti_get_api_notifications_response",
       "community": 142,
-      "norm_label": "`get /api/notifications` response"
+      "norm_label": "`get /api/notifications` response",
+      "id": "plans_plannoti_get_api_notifications_response"
     },
     {
       "label": "Notification response fields",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L281",
-      "id": "plans_plannoti_notification_response_fields",
       "community": 142,
-      "norm_label": "notification response fields"
+      "norm_label": "notification response fields",
+      "id": "plans_plannoti_notification_response_fields"
     },
     {
       "label": "Mark-as-read behavior",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L295",
-      "id": "plans_plannoti_mark_as_read_behavior",
       "community": 142,
-      "norm_label": "mark-as-read behavior"
+      "norm_label": "mark-as-read behavior",
+      "id": "plans_plannoti_mark_as_read_behavior"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L300",
-      "id": "plans_plannoti_subtasks_300",
       "community": 142,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks_300"
     },
     {
       "label": "Things to avoid",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L314",
-      "id": "plans_plannoti_things_to_avoid_314",
       "community": 142,
-      "norm_label": "things to avoid"
+      "norm_label": "things to avoid",
+      "id": "plans_plannoti_things_to_avoid_314"
     },
     {
       "label": "Testing checklist",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L320",
-      "id": "plans_plannoti_testing_checklist_320",
       "community": 142,
-      "norm_label": "testing checklist"
+      "norm_label": "testing checklist",
+      "id": "plans_plannoti_testing_checklist_320"
     },
     {
       "label": "5. Automatic Order Notifications",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L330",
-      "id": "plans_plannoti_5_automatic_order_notifications",
       "community": 181,
-      "norm_label": "5. automatic order notifications"
+      "norm_label": "5. automatic order notifications",
+      "id": "plans_plannoti_5_automatic_order_notifications"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L332",
-      "id": "plans_plannoti_goal_332",
       "community": 181,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_332"
     },
     {
       "label": "Backend files likely changed",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L335",
-      "id": "plans_plannoti_backend_files_likely_changed",
       "community": 181,
-      "norm_label": "backend files likely changed"
+      "norm_label": "backend files likely changed",
+      "id": "plans_plannoti_backend_files_likely_changed"
     },
     {
       "label": "Trigger points",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L340",
-      "id": "plans_plannoti_trigger_points",
       "community": 181,
-      "norm_label": "trigger points"
+      "norm_label": "trigger points",
+      "id": "plans_plannoti_trigger_points"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L346",
-      "id": "plans_plannoti_subtasks_346",
       "community": 181,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks_346"
     },
     {
       "label": "Things to avoid",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L373",
-      "id": "plans_plannoti_things_to_avoid_373",
       "community": 181,
-      "norm_label": "things to avoid"
+      "norm_label": "things to avoid",
+      "id": "plans_plannoti_things_to_avoid_373"
     },
     {
       "label": "Testing checklist",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L381",
-      "id": "plans_plannoti_testing_checklist_381",
       "community": 181,
-      "norm_label": "testing checklist"
+      "norm_label": "testing checklist",
+      "id": "plans_plannoti_testing_checklist_381"
     },
     {
       "label": "6. Admin Broadcast Notifications",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L393",
-      "id": "plans_plannoti_6_admin_broadcast_notifications",
       "community": 173,
-      "norm_label": "6. admin broadcast notifications"
+      "norm_label": "6. admin broadcast notifications",
+      "id": "plans_plannoti_6_admin_broadcast_notifications"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L395",
-      "id": "plans_plannoti_goal_395",
       "community": 173,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_395"
     },
     {
       "label": "Backend routes",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L398",
-      "id": "plans_plannoti_backend_routes",
       "community": 173,
-      "norm_label": "backend routes"
+      "norm_label": "backend routes",
+      "id": "plans_plannoti_backend_routes"
     },
     {
       "label": "Admin list behavior",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L404",
-      "id": "plans_plannoti_admin_list_behavior",
       "community": 173,
-      "norm_label": "admin list behavior"
+      "norm_label": "admin list behavior",
+      "id": "plans_plannoti_admin_list_behavior"
     },
     {
       "label": "Broadcast target options",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L414",
-      "id": "plans_plannoti_broadcast_target_options",
       "community": 173,
-      "norm_label": "broadcast target options"
+      "norm_label": "broadcast target options",
+      "id": "plans_plannoti_broadcast_target_options"
     },
     {
       "label": "`POST /api/admin/notifications` body",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L425",
-      "id": "plans_plannoti_post_api_admin_notifications_body",
       "community": 173,
-      "norm_label": "`post /api/admin/notifications` body"
+      "norm_label": "`post /api/admin/notifications` body",
+      "id": "plans_plannoti_post_api_admin_notifications_body"
     },
     {
       "label": "Valid `type`",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L432",
-      "id": "plans_plannoti_valid_type",
       "community": 173,
-      "norm_label": "valid `type`"
+      "norm_label": "valid `type`",
+      "id": "plans_plannoti_valid_type"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L439",
-      "id": "plans_plannoti_subtasks_439",
       "community": 173,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks_439"
     },
     {
       "label": "Things to avoid",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L455",
-      "id": "plans_plannoti_things_to_avoid_455",
       "community": 173,
-      "norm_label": "things to avoid"
+      "norm_label": "things to avoid",
+      "id": "plans_plannoti_things_to_avoid_455"
     },
     {
       "label": "Testing checklist",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L464",
-      "id": "plans_plannoti_testing_checklist_464",
       "community": 173,
-      "norm_label": "testing checklist"
+      "norm_label": "testing checklist",
+      "id": "plans_plannoti_testing_checklist_464"
     },
     {
       "label": "7. Admin Manager UI",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L474",
-      "id": "plans_plannoti_7_admin_manager_ui",
       "community": 174,
-      "norm_label": "7. admin manager ui"
+      "norm_label": "7. admin manager ui",
+      "id": "plans_plannoti_7_admin_manager_ui"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L476",
-      "id": "plans_plannoti_goal_476",
       "community": 174,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_476"
     },
     {
       "label": "Files likely changed",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L479",
-      "id": "plans_plannoti_files_likely_changed",
       "community": 174,
-      "norm_label": "files likely changed"
+      "norm_label": "files likely changed",
+      "id": "plans_plannoti_files_likely_changed"
     },
     {
       "label": "Page layout",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L486",
-      "id": "plans_plannoti_page_layout",
       "community": 174,
-      "norm_label": "page layout"
+      "norm_label": "page layout",
+      "id": "plans_plannoti_page_layout"
     },
     {
       "label": "Send form fields",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L492",
-      "id": "plans_plannoti_send_form_fields",
       "community": 174,
-      "norm_label": "send form fields"
+      "norm_label": "send form fields",
+      "id": "plans_plannoti_send_form_fields"
     },
     {
       "label": "Form validation",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L500",
-      "id": "plans_plannoti_form_validation",
       "community": 174,
-      "norm_label": "form validation"
+      "norm_label": "form validation",
+      "id": "plans_plannoti_form_validation"
     },
     {
       "label": "Recent notifications table/card list",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L510",
-      "id": "plans_plannoti_recent_notifications_table_card_list",
       "community": 174,
-      "norm_label": "recent notifications table/card list"
+      "norm_label": "recent notifications table/card list",
+      "id": "plans_plannoti_recent_notifications_table_card_list"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L518",
-      "id": "plans_plannoti_subtasks_518",
       "community": 174,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks_518"
     },
     {
       "label": "Things to avoid",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L532",
-      "id": "plans_plannoti_things_to_avoid_532",
       "community": 174,
-      "norm_label": "things to avoid"
+      "norm_label": "things to avoid",
+      "id": "plans_plannoti_things_to_avoid_532"
     },
     {
       "label": "Testing checklist",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L538",
-      "id": "plans_plannoti_testing_checklist_538",
       "community": 174,
-      "norm_label": "testing checklist"
+      "norm_label": "testing checklist",
+      "id": "plans_plannoti_testing_checklist_538"
     },
     {
       "label": "8. Mobile API Layer",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L550",
-      "id": "plans_plannoti_8_mobile_api_layer",
       "community": 175,
-      "norm_label": "8. mobile api layer"
+      "norm_label": "8. mobile api layer",
+      "id": "plans_plannoti_8_mobile_api_layer"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L552",
-      "id": "plans_plannoti_goal_552",
       "community": 175,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_552"
     },
     {
       "label": "Files likely changed",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L555",
-      "id": "plans_plannoti_files_likely_changed_555",
       "community": 175,
-      "norm_label": "files likely changed"
+      "norm_label": "files likely changed",
+      "id": "plans_plannoti_files_likely_changed_555"
     },
     {
       "label": "Mobile API methods",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L562",
-      "id": "plans_plannoti_mobile_api_methods",
       "community": 175,
-      "norm_label": "mobile api methods"
+      "norm_label": "mobile api methods",
+      "id": "plans_plannoti_mobile_api_methods"
     },
     {
       "label": "Suggested mobile state",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L569",
-      "id": "plans_plannoti_suggested_mobile_state",
       "community": 175,
-      "norm_label": "suggested mobile state"
+      "norm_label": "suggested mobile state",
+      "id": "plans_plannoti_suggested_mobile_state"
     },
     {
       "label": "Normalized notification model",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L589",
-      "id": "plans_plannoti_normalized_notification_model",
       "community": 175,
-      "norm_label": "normalized notification model"
+      "norm_label": "normalized notification model",
+      "id": "plans_plannoti_normalized_notification_model"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L602",
-      "id": "plans_plannoti_subtasks_602",
       "community": 175,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks_602"
     },
     {
       "label": "Things to avoid",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L621",
-      "id": "plans_plannoti_things_to_avoid_621",
       "community": 175,
-      "norm_label": "things to avoid"
+      "norm_label": "things to avoid",
+      "id": "plans_plannoti_things_to_avoid_621"
     },
     {
       "label": "Testing checklist",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L628",
-      "id": "plans_plannoti_testing_checklist_628",
       "community": 175,
-      "norm_label": "testing checklist"
+      "norm_label": "testing checklist",
+      "id": "plans_plannoti_testing_checklist_628"
     },
     {
       "label": "9. Mobile Bell Badge And Seen State",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L638",
-      "id": "plans_plannoti_9_mobile_bell_badge_and_seen_state",
       "community": 177,
-      "norm_label": "9. mobile bell badge and seen state"
+      "norm_label": "9. mobile bell badge and seen state",
+      "id": "plans_plannoti_9_mobile_bell_badge_and_seen_state"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L640",
-      "id": "plans_plannoti_goal_640",
       "community": 177,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_640"
     },
     {
       "label": "Current issue",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L643",
-      "id": "plans_plannoti_current_issue",
       "community": 177,
-      "norm_label": "current issue"
+      "norm_label": "current issue",
+      "id": "plans_plannoti_current_issue"
     },
     {
       "label": "Desired behavior",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L646",
-      "id": "plans_plannoti_desired_behavior",
       "community": 177,
-      "norm_label": "desired behavior"
+      "norm_label": "desired behavior",
+      "id": "plans_plannoti_desired_behavior"
     },
     {
       "label": "Files likely changed",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L655",
-      "id": "plans_plannoti_files_likely_changed_655",
       "community": 177,
-      "norm_label": "files likely changed"
+      "norm_label": "files likely changed",
+      "id": "plans_plannoti_files_likely_changed_655"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L660",
-      "id": "plans_plannoti_subtasks_660",
       "community": 177,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks_660"
     },
     {
       "label": "Things to avoid",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L672",
-      "id": "plans_plannoti_things_to_avoid_672",
       "community": 177,
-      "norm_label": "things to avoid"
+      "norm_label": "things to avoid",
+      "id": "plans_plannoti_things_to_avoid_672"
     },
     {
       "label": "Testing checklist",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L678",
-      "id": "plans_plannoti_testing_checklist_678",
       "community": 177,
-      "norm_label": "testing checklist"
+      "norm_label": "testing checklist",
+      "id": "plans_plannoti_testing_checklist_678"
     },
     {
       "label": "10. Optional Real Push Notifications",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L687",
-      "id": "plans_plannoti_10_optional_real_push_notifications",
       "community": 178,
-      "norm_label": "10. optional real push notifications"
+      "norm_label": "10. optional real push notifications",
+      "id": "plans_plannoti_10_optional_real_push_notifications"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L689",
-      "id": "plans_plannoti_goal_689",
       "community": 178,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_689"
     },
     {
       "label": "Important note",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L692",
-      "id": "plans_plannoti_important_note",
       "community": 178,
-      "norm_label": "important note"
+      "norm_label": "important note",
+      "id": "plans_plannoti_important_note"
     },
     {
       "label": "Possible approach",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L695",
-      "id": "plans_plannoti_possible_approach",
       "community": 178,
-      "norm_label": "possible approach"
+      "norm_label": "possible approach",
+      "id": "plans_plannoti_possible_approach"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L702",
-      "id": "plans_plannoti_subtasks_702",
       "community": 178,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks_702"
     },
     {
       "label": "Things to avoid",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L712",
-      "id": "plans_plannoti_things_to_avoid_712",
       "community": 178,
-      "norm_label": "things to avoid"
+      "norm_label": "things to avoid",
+      "id": "plans_plannoti_things_to_avoid_712"
     },
     {
       "label": "Testing checklist",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L717",
-      "id": "plans_plannoti_testing_checklist_717",
       "community": 178,
-      "norm_label": "testing checklist"
+      "norm_label": "testing checklist",
+      "id": "plans_plannoti_testing_checklist_717"
     },
     {
       "label": "11. Error Handling And Edge Cases",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L725",
-      "id": "plans_plannoti_11_error_handling_and_edge_cases",
       "community": 182,
-      "norm_label": "11. error handling and edge cases"
+      "norm_label": "11. error handling and edge cases",
+      "id": "plans_plannoti_11_error_handling_and_edge_cases"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L727",
-      "id": "plans_plannoti_goal_727",
       "community": 182,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_727"
     },
     {
       "label": "Edge cases",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L730",
-      "id": "plans_plannoti_edge_cases",
       "community": 182,
-      "norm_label": "edge cases"
+      "norm_label": "edge cases",
+      "id": "plans_plannoti_edge_cases"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L748",
-      "id": "plans_plannoti_subtasks_748",
       "community": 182,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks_748"
     },
     {
       "label": "Things to avoid",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L761",
-      "id": "plans_plannoti_things_to_avoid_761",
       "community": 182,
-      "norm_label": "things to avoid"
+      "norm_label": "things to avoid",
+      "id": "plans_plannoti_things_to_avoid_761"
     },
     {
       "label": "Testing checklist",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L767",
-      "id": "plans_plannoti_testing_checklist_767",
       "community": 182,
-      "norm_label": "testing checklist"
+      "norm_label": "testing checklist",
+      "id": "plans_plannoti_testing_checklist_767"
     },
     {
       "label": "12. Backend Tests",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L776",
-      "id": "plans_plannoti_12_backend_tests",
       "community": 184,
-      "norm_label": "12. backend tests"
+      "norm_label": "12. backend tests",
+      "id": "plans_plannoti_12_backend_tests"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L778",
-      "id": "plans_plannoti_goal_778",
       "community": 184,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_778"
     },
     {
       "label": "Suggested test files",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L781",
-      "id": "plans_plannoti_suggested_test_files",
       "community": 184,
-      "norm_label": "suggested test files"
+      "norm_label": "suggested test files",
+      "id": "plans_plannoti_suggested_test_files"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L785",
-      "id": "plans_plannoti_subtasks_785",
       "community": 184,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks_785"
     },
     {
       "label": "Testing checklist",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L803",
-      "id": "plans_plannoti_testing_checklist_803",
       "community": 184,
-      "norm_label": "testing checklist"
+      "norm_label": "testing checklist",
+      "id": "plans_plannoti_testing_checklist_803"
     },
     {
       "label": "13. Frontend Testing",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L810",
-      "id": "plans_plannoti_13_frontend_testing",
       "community": 185,
-      "norm_label": "13. frontend testing"
+      "norm_label": "13. frontend testing",
+      "id": "plans_plannoti_13_frontend_testing"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L812",
-      "id": "plans_plannoti_goal_812",
       "community": 185,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_812"
     },
     {
       "label": "Customer app tests",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L815",
-      "id": "plans_plannoti_customer_app_tests",
       "community": 185,
-      "norm_label": "customer app tests"
+      "norm_label": "customer app tests",
+      "id": "plans_plannoti_customer_app_tests"
     },
     {
       "label": "Admin Manager tests",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L828",
-      "id": "plans_plannoti_admin_manager_tests",
       "community": 185,
-      "norm_label": "admin manager tests"
+      "norm_label": "admin manager tests",
+      "id": "plans_plannoti_admin_manager_tests"
     },
     {
       "label": "Build checks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L835",
-      "id": "plans_plannoti_build_checks",
       "community": 185,
-      "norm_label": "build checks"
+      "norm_label": "build checks",
+      "id": "plans_plannoti_build_checks"
     },
     {
       "label": "14. Final Verification",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L842",
-      "id": "plans_plannoti_14_final_verification",
       "community": 179,
-      "norm_label": "14. final verification"
+      "norm_label": "14. final verification",
+      "id": "plans_plannoti_14_final_verification"
     },
     {
       "label": "Goal",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L844",
-      "id": "plans_plannoti_goal_844",
       "community": 179,
-      "norm_label": "goal"
+      "norm_label": "goal",
+      "id": "plans_plannoti_goal_844"
     },
     {
       "label": "Subtasks",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L847",
-      "id": "plans_plannoti_subtasks_847",
       "community": 179,
-      "norm_label": "subtasks"
+      "norm_label": "subtasks",
+      "id": "plans_plannoti_subtasks_847"
     },
     {
       "label": "Acceptance criteria",
       "file_type": "document",
       "source_file": "plans/plannoti.md",
       "source_location": "L871",
-      "id": "plans_plannoti_acceptance_criteria",
       "community": 179,
-      "norm_label": "acceptance criteria"
+      "norm_label": "acceptance criteria",
+      "id": "plans_plannoti_acceptance_criteria"
     },
     {
       "label": "install-dbs.sh",
@@ -1384,7 +1465,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/main.jsx",
       "source_location": "L1",
-      "community": 151,
+      "community": 49,
       "norm_label": "main.jsx",
       "id": "adminmanager_v1_src_main_jsx"
     },
@@ -1393,7 +1474,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/App.jsx",
       "source_location": "L1",
-      "community": 151,
+      "community": 49,
       "norm_label": "app.jsx",
       "id": "adminmanager_v1_src_app_jsx"
     },
@@ -1402,7 +1483,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/App.jsx",
       "source_location": "L22",
-      "community": 151,
+      "community": 49,
       "norm_label": "app()",
       "id": "adminmanager_v1_src_app_jsx_src_app_app"
     },
@@ -1474,7 +1555,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L19",
-      "community": 49,
+      "community": 43,
       "norm_label": "dashboardapi",
       "id": "api_index_dashboardapi"
     },
@@ -1483,7 +1564,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L23",
-      "community": 74,
+      "community": 17,
       "norm_label": "ordersapi",
       "id": "api_index_ordersapi"
     },
@@ -1501,7 +1582,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L48",
-      "community": 87,
+      "community": 62,
       "norm_label": "combosapi",
       "id": "api_index_combosapi"
     },
@@ -1510,7 +1591,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L59",
-      "community": 87,
+      "community": 62,
       "norm_label": "categoriesapi",
       "id": "api_index_categoriesapi"
     },
@@ -1519,7 +1600,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L66",
-      "community": 87,
+      "community": 62,
       "norm_label": "offersapi",
       "id": "api_index_offersapi"
     },
@@ -1555,7 +1636,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L91",
-      "community": 151,
+      "community": 87,
       "norm_label": "reportsapi",
       "id": "api_index_reportsapi"
     },
@@ -1582,7 +1663,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L105",
-      "community": 87,
+      "community": 62,
       "norm_label": "mobiledashboardapi",
       "id": "api_index_mobiledashboardapi"
     },
@@ -1636,7 +1717,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/components/AuthProvider.jsx",
       "source_location": "L7",
-      "community": 92,
+      "community": 49,
       "norm_label": "authprovider()",
       "id": "components_authprovider_authprovider"
     },
@@ -1789,7 +1870,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Reports.jsx",
       "source_location": "L1",
-      "community": 151,
+      "community": 87,
       "norm_label": "reports.jsx",
       "id": "adminmanager_v1_src_pages_reports_jsx"
     },
@@ -1798,7 +1879,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Reports.jsx",
       "source_location": "L5",
-      "community": 151,
+      "community": 87,
       "norm_label": "reports()",
       "id": "pages_reports_reports"
     },
@@ -1933,7 +2014,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Audit.jsx",
       "source_location": "L1",
-      "community": 151,
+      "community": 49,
       "norm_label": "audit.jsx",
       "id": "adminmanager_v1_src_pages_audit_jsx"
     },
@@ -1942,7 +2023,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Audit.jsx",
       "source_location": "L3",
-      "community": 151,
+      "community": 49,
       "norm_label": "audit()",
       "id": "pages_audit_audit"
     },
@@ -2041,7 +2122,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
       "source_location": "L1",
-      "community": 87,
+      "community": 62,
       "norm_label": "mobiledashboard.jsx",
       "id": "adminmanager_v1_src_pages_mobiledashboard_jsx"
     },
@@ -2050,7 +2131,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
       "source_location": "L8",
-      "community": 87,
+      "community": 62,
       "norm_label": "mobiledashboard()",
       "id": "pages_mobiledashboard_mobiledashboard"
     },
@@ -2842,7 +2923,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/App.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 28,
       "norm_label": "app.js",
       "id": "frontend_v1_app_js"
     },
@@ -3040,7 +3121,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/__tests__/App.test.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 28,
       "norm_label": "app.test.js",
       "id": "frontend_v1_tests_app_test_js"
     },
@@ -3049,7 +3130,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/__tests__/apiMappers.test.js",
       "source_location": "L1",
-      "community": 88,
+      "community": 59,
       "norm_label": "apimappers.test.js",
       "id": "frontend_v1_tests_apimappers_test_js"
     },
@@ -3058,7 +3139,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/__tests__/apiMappers.test.js",
       "source_location": "L8",
-      "community": 88,
+      "community": 59,
       "norm_label": "result",
       "id": "tests_apimappers_test_result"
     },
@@ -3400,7 +3481,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useSettingsStore.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 17,
       "norm_label": "usesettingsstore.js",
       "id": "frontend_v1_src_stores_usesettingsstore_js"
     },
@@ -3652,7 +3733,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L1",
-      "community": 74,
+      "community": 17,
       "norm_label": "ordersscreen.js",
       "id": "frontend_v1_src_screens_customer_ordersscreen_ordersscreen_js"
     },
@@ -3661,7 +3742,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L31",
-      "community": 74,
+      "community": 17,
       "norm_label": "filter_chips",
       "id": "ordersscreen_ordersscreen_filter_chips"
     },
@@ -3670,7 +3751,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L32",
-      "community": 74,
+      "community": 17,
       "norm_label": "status_code_labels",
       "id": "ordersscreen_ordersscreen_status_code_labels"
     },
@@ -3679,7 +3760,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L40",
-      "community": 74,
+      "community": 17,
       "norm_label": "formatstatus()",
       "id": "ordersscreen_ordersscreen_formatstatus"
     },
@@ -3688,7 +3769,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L47",
-      "community": 74,
+      "community": 17,
       "norm_label": "formatdate()",
       "id": "ordersscreen_ordersscreen_formatdate"
     },
@@ -3697,7 +3778,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L59",
-      "community": 74,
+      "community": 17,
       "norm_label": "ordersscreen()",
       "id": "ordersscreen_ordersscreen_ordersscreen"
     },
@@ -3706,7 +3787,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/OrdersScreen.js",
       "source_location": "L321",
-      "community": 74,
+      "community": 17,
       "norm_label": "styles",
       "id": "ordersscreen_ordersscreen_styles"
     },
@@ -4021,7 +4102,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/dashboardApi.js",
       "source_location": "L4",
-      "community": 43,
+      "community": 28,
       "norm_label": "dashboardapi",
       "id": "api_dashboardapi_dashboardapi"
     },
@@ -4201,7 +4282,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/index.js",
       "source_location": "L1",
-      "community": 59,
+      "community": 28,
       "norm_label": "index.js",
       "id": "frontend_v1_src_api_index_js"
     },
@@ -4318,7 +4399,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/settingsApi.js",
       "source_location": "L3",
-      "community": 43,
+      "community": 28,
       "norm_label": "settingsapi",
       "id": "api_settingsapi_settingsapi"
     },
@@ -4372,7 +4453,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/offersApi.js",
       "source_location": "L3",
-      "community": 43,
+      "community": 28,
       "norm_label": "offersapi",
       "id": "api_offersapi_offersapi"
     },
@@ -4480,7 +4561,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textbutton_index_js"
     },
@@ -4489,7 +4570,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "textbutton.js",
       "id": "frontend_v1_src_components_textbutton_textbutton_js"
     },
@@ -4498,7 +4579,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
-      "community": 30,
+      "community": 147,
       "norm_label": "textbutton()",
       "id": "textbutton_textbutton_textbutton"
     },
@@ -4507,7 +4588,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
-      "community": 30,
+      "community": 147,
       "norm_label": "styles",
       "id": "textbutton_textbutton_styles"
     },
@@ -4534,7 +4615,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedQuantitySwitcher/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedquantityswitcher_index_js"
     },
@@ -4561,7 +4642,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedFadeSlide/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedfadeslide_index_js"
     },
@@ -4867,7 +4948,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_ordercard_index_js"
     },
@@ -4876,7 +4957,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "ordercard.js",
       "id": "frontend_v1_src_components_ordercard_ordercard_js"
     },
@@ -4885,7 +4966,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
-      "community": 147,
+      "community": 30,
       "norm_label": "ordercard()",
       "id": "ordercard_ordercard_ordercard"
     },
@@ -4894,7 +4975,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L92",
-      "community": 147,
+      "community": 30,
       "norm_label": "styles",
       "id": "ordercard_ordercard_styles"
     },
@@ -4903,7 +4984,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_confirmmodal_index_js"
     },
@@ -4912,7 +4993,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "confirmmodal.js",
       "id": "frontend_v1_src_components_confirmmodal_confirmmodal_js"
     },
@@ -4921,7 +5002,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L27",
-      "community": 147,
+      "community": 30,
       "norm_label": "confirmmodal()",
       "id": "confirmmodal_confirmmodal_confirmmodal"
     },
@@ -4930,7 +5011,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L93",
-      "community": 147,
+      "community": 30,
       "norm_label": "styles",
       "id": "confirmmodal_confirmmodal_styles"
     },
@@ -4939,7 +5020,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedcartbadge_index_js"
     },
@@ -4948,7 +5029,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 30,
       "norm_label": "animatedcartbadge.js",
       "id": "frontend_v1_src_components_animatedcartbadge_animatedcartbadge_js"
     },
@@ -4966,7 +5047,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L30",
-      "community": 45,
+      "community": 30,
       "norm_label": "styles",
       "id": "animatedcartbadge_animatedcartbadge_styles"
     },
@@ -4975,7 +5056,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedStickyMiniCart/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedstickyminicart_index_js"
     },
@@ -5002,7 +5083,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "stickyminicart.js",
       "id": "frontend_v1_src_components_stickyminicart_stickyminicart_js"
     },
@@ -5011,7 +5092,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L18",
-      "community": 30,
+      "community": 147,
       "norm_label": "stickyminicart()",
       "id": "stickyminicart_stickyminicart_stickyminicart"
     },
@@ -5020,7 +5101,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L114",
-      "community": 30,
+      "community": 147,
       "norm_label": "styles",
       "id": "stickyminicart_stickyminicart_styles"
     },
@@ -5029,7 +5110,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_stickyminicart_index_js"
     },
@@ -5038,7 +5119,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "iconbutton.js",
       "id": "frontend_v1_src_components_iconbutton_iconbutton_js"
     },
@@ -5047,7 +5128,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L22",
-      "community": 30,
+      "community": 147,
       "norm_label": "iconbutton()",
       "id": "iconbutton_iconbutton_iconbutton"
     },
@@ -5056,7 +5137,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L68",
-      "community": 30,
+      "community": 147,
       "norm_label": "styles",
       "id": "iconbutton_iconbutton_styles"
     },
@@ -5065,7 +5146,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_iconbutton_index_js"
     },
@@ -5074,7 +5155,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductCard/index.js",
       "source_location": "L1",
-      "community": 152,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_productcard_index_js"
     },
@@ -5083,7 +5164,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductCard/ProductCard.js",
       "source_location": "L1",
-      "community": 152,
+      "community": 30,
       "norm_label": "productcard.js",
       "id": "frontend_v1_src_components_productcard_productcard_js"
     },
@@ -5092,7 +5173,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductCard/ProductCard.js",
       "source_location": "L21",
-      "community": 152,
+      "community": 30,
       "norm_label": "productcard()",
       "id": "productcard_productcard_productcard"
     },
@@ -5101,7 +5182,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductCard/ProductCard.js",
       "source_location": "L176",
-      "community": 152,
+      "community": 30,
       "norm_label": "styles",
       "id": "productcard_productcard_styles"
     },
@@ -5110,7 +5191,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Button/Button.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 147,
       "norm_label": "button.js",
       "id": "frontend_v1_src_components_button_button_js"
     },
@@ -5119,7 +5200,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Button/Button.js",
       "source_location": "L29",
-      "community": 15,
+      "community": 147,
       "norm_label": "button()",
       "id": "button_button_button"
     },
@@ -5128,7 +5209,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Button/Button.js",
       "source_location": "L85",
-      "community": 15,
+      "community": 147,
       "norm_label": "styles",
       "id": "button_button_styles"
     },
@@ -5182,7 +5263,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 45,
       "norm_label": "staggeredlist.js",
       "id": "frontend_v1_src_components_staggeredlist_staggeredlist_js"
     },
@@ -5191,7 +5272,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L6",
-      "community": 147,
+      "community": 45,
       "norm_label": "staggeredlist()",
       "id": "staggeredlist_staggeredlist_staggeredlist"
     },
@@ -5200,7 +5281,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_staggeredlist_index_js"
     },
@@ -5245,7 +5326,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appicon_index_js"
     },
@@ -5254,7 +5335,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "appicon.js",
       "id": "frontend_v1_src_components_appicon_appicon_js"
     },
@@ -5263,7 +5344,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L38",
-      "community": 30,
+      "community": 147,
       "norm_label": "icons",
       "id": "appicon_appicon_icons"
     },
@@ -5272,7 +5353,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L75",
-      "community": 30,
+      "community": 147,
       "norm_label": "appicon()",
       "id": "appicon_appicon_appicon"
     },
@@ -5281,7 +5362,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/index.js",
       "source_location": "L1",
-      "community": 152,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_quantitystepper_index_js"
     },
@@ -5290,7 +5371,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L1",
-      "community": 152,
+      "community": 30,
       "norm_label": "quantitystepper.js",
       "id": "frontend_v1_src_components_quantitystepper_quantitystepper_js"
     },
@@ -5299,7 +5380,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L30",
-      "community": 152,
+      "community": 30,
       "norm_label": "quantitystepper()",
       "id": "quantitystepper_quantitystepper_quantitystepper"
     },
@@ -5308,7 +5389,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/QuantityStepper/QuantityStepper.js",
       "source_location": "L114",
-      "community": 152,
+      "community": 30,
       "norm_label": "styles",
       "id": "quantitystepper_quantitystepper_styles"
     },
@@ -5317,7 +5398,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "appheader.js",
       "id": "frontend_v1_src_components_appheader_appheader_js"
     },
@@ -5326,7 +5407,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L26",
-      "community": 30,
+      "community": 147,
       "norm_label": "appheader()",
       "id": "appheader_appheader_appheader"
     },
@@ -5335,7 +5416,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L126",
-      "community": 30,
+      "community": 147,
       "norm_label": "styles",
       "id": "appheader_appheader_styles"
     },
@@ -5344,7 +5425,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appheader_index_js"
     },
@@ -5389,7 +5470,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 30,
       "norm_label": "animatedsegmentedcontrol.js",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_animatedsegmentedcontrol_js"
     },
@@ -5407,7 +5488,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L66",
-      "community": 45,
+      "community": 30,
       "norm_label": "styles",
       "id": "animatedsegmentedcontrol_animatedsegmentedcontrol_styles"
     },
@@ -5416,7 +5497,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_index_js"
     },
@@ -5461,7 +5542,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/PressableScale/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 147,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_pressablescale_index_js"
     },
@@ -5533,7 +5614,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 30,
       "norm_label": "layout.js",
       "id": "frontend_v1_src_theme_layout_js"
     },
@@ -5542,7 +5623,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L7",
-      "community": 17,
+      "community": 43,
       "norm_label": "layout",
       "id": "theme_layout_layout"
     },
@@ -5560,7 +5641,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/borders.js",
       "source_location": "L10",
-      "community": 15,
+      "community": 30,
       "norm_label": "radius",
       "id": "theme_borders_radius"
     },
@@ -5578,7 +5659,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 30,
       "norm_label": "spacing.js",
       "id": "frontend_v1_src_theme_spacing_js"
     },
@@ -5587,7 +5668,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L6",
-      "community": 15,
+      "community": 30,
       "norm_label": "spacing",
       "id": "theme_spacing_spacing"
     },
@@ -5677,7 +5758,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L23",
-      "community": 59,
+      "community": 17,
       "norm_label": "shadows",
       "id": "theme_shadows_shadows"
     },
@@ -5704,7 +5785,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L69",
-      "community": 30,
+      "community": 15,
       "norm_label": "colors",
       "id": "theme_colors_colors"
     },
@@ -5713,7 +5794,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "motion.js",
       "id": "frontend_v1_src_theme_motion_js"
     },
@@ -5731,7 +5812,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L27",
-      "community": 30,
+      "community": 45,
       "norm_label": "easingmodal",
       "id": "theme_motion_easingmodal"
     },
@@ -5740,7 +5821,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L33",
-      "community": 102,
+      "community": 45,
       "norm_label": "motionconfig",
       "id": "theme_motion_motionconfig"
     },
@@ -5749,7 +5830,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L1",
-      "community": 88,
+      "community": 59,
       "norm_label": "apimappers.js",
       "id": "frontend_v1_src_utils_apimappers_js"
     },
@@ -5758,7 +5839,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L1",
-      "community": 88,
+      "community": 59,
       "norm_label": "pickfirst()",
       "id": "utils_apimappers_pickfirst"
     },
@@ -5767,7 +5848,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L5",
-      "community": 88,
+      "community": 59,
       "norm_label": "asarray()",
       "id": "utils_apimappers_asarray"
     },
@@ -5776,7 +5857,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L19",
-      "community": 88,
+      "community": 59,
       "norm_label": "asboolean()",
       "id": "utils_apimappers_asboolean"
     },
@@ -5785,7 +5866,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L30",
-      "community": 88,
+      "community": 59,
       "norm_label": "numberorzero()",
       "id": "utils_apimappers_numberorzero"
     },
@@ -5794,7 +5875,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L35",
-      "community": 88,
+      "community": 59,
       "norm_label": "getdiscountlabel()",
       "id": "utils_apimappers_getdiscountlabel"
     },
@@ -5803,7 +5884,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L47",
-      "community": 88,
+      "community": 59,
       "norm_label": "getcomboitems()",
       "id": "utils_apimappers_getcomboitems"
     },
@@ -5812,7 +5893,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L68",
-      "community": 88,
+      "community": 59,
       "norm_label": "normalizeproduct()",
       "id": "utils_apimappers_normalizeproduct"
     },
@@ -5821,7 +5902,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L95",
-      "community": 88,
+      "community": 59,
       "norm_label": "normalizecategory()",
       "id": "utils_apimappers_normalizecategory"
     },
@@ -5830,7 +5911,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L112",
-      "community": 88,
+      "community": 59,
       "norm_label": "normalizesettings()",
       "id": "utils_apimappers_normalizesettings"
     },
@@ -5839,7 +5920,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L126",
-      "community": 88,
+      "community": 59,
       "norm_label": "normalizecartcalculation()",
       "id": "utils_apimappers_normalizecartcalculation"
     },
@@ -5857,7 +5938,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L156",
-      "community": 88,
+      "community": 59,
       "norm_label": "getcustomername()",
       "id": "utils_apimappers_getcustomername"
     },
@@ -5866,7 +5947,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L166",
-      "community": 88,
+      "community": 59,
       "norm_label": "getorderitems()",
       "id": "utils_apimappers_getorderitems"
     },
@@ -5875,7 +5956,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L177",
-      "community": 88,
+      "community": 59,
       "norm_label": "normalizeorder()",
       "id": "utils_apimappers_normalizeorder"
     },
@@ -5884,7 +5965,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L225",
-      "community": 88,
+      "community": 59,
       "norm_label": "normalizedashboard()",
       "id": "utils_apimappers_normalizedashboard"
     },
@@ -5929,7 +6010,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 43,
       "norm_label": "index.js",
       "id": "frontend_v1_src_utils_index_js"
     },
@@ -6361,7 +6442,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L1",
-      "community": 70,
+      "community": 118,
       "norm_label": "settingsoffers.test.js",
       "id": "backend_v1_tests_settingsoffers_test_js"
     },
@@ -6370,7 +6451,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L1",
-      "community": 70,
+      "community": 118,
       "norm_label": "request",
       "id": "tests_settingsoffers_test_request"
     },
@@ -6379,7 +6460,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L2",
-      "community": 70,
+      "community": 118,
       "norm_label": "express",
       "id": "tests_settingsoffers_test_express"
     },
@@ -6388,7 +6469,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L3",
-      "community": 70,
+      "community": 118,
       "norm_label": "adminroutes",
       "id": "tests_settingsoffers_test_adminroutes"
     },
@@ -6397,7 +6478,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L4",
-      "community": 70,
+      "community": 118,
       "norm_label": "{ pool }",
       "id": "tests_settingsoffers_test_pool"
     },
@@ -6406,7 +6487,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L5",
-      "community": 70,
+      "community": 118,
       "norm_label": "jwt",
       "id": "tests_settingsoffers_test_jwt"
     },
@@ -6415,7 +6496,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L13",
-      "community": 70,
+      "community": 118,
       "norm_label": "app",
       "id": "tests_settingsoffers_test_app"
     },
@@ -6424,7 +6505,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L17",
-      "community": 70,
+      "community": 118,
       "norm_label": "admintoken",
       "id": "tests_settingsoffers_test_admintoken"
     },
@@ -6532,7 +6613,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L1",
-      "community": 70,
+      "community": 74,
       "norm_label": "productcategory.test.js",
       "id": "backend_v1_tests_productcategory_test_js"
     },
@@ -6541,7 +6622,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L1",
-      "community": 70,
+      "community": 74,
       "norm_label": "request",
       "id": "tests_productcategory_test_request"
     },
@@ -6550,7 +6631,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L2",
-      "community": 70,
+      "community": 74,
       "norm_label": "express",
       "id": "tests_productcategory_test_express"
     },
@@ -6559,7 +6640,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L3",
-      "community": 70,
+      "community": 74,
       "norm_label": "adminroutes",
       "id": "tests_productcategory_test_adminroutes"
     },
@@ -6568,7 +6649,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L4",
-      "community": 70,
+      "community": 74,
       "norm_label": "productroutes",
       "id": "tests_productcategory_test_productroutes"
     },
@@ -6577,7 +6658,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L5",
-      "community": 70,
+      "community": 74,
       "norm_label": "{ pool }",
       "id": "tests_productcategory_test_pool"
     },
@@ -6586,7 +6667,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L6",
-      "community": 70,
+      "community": 74,
       "norm_label": "jwt",
       "id": "tests_productcategory_test_jwt"
     },
@@ -6595,7 +6676,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L15",
-      "community": 70,
+      "community": 74,
       "norm_label": "app",
       "id": "tests_productcategory_test_app"
     },
@@ -6604,7 +6685,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/productCategory.test.js",
       "source_location": "L21",
-      "community": 70,
+      "community": 74,
       "norm_label": "token",
       "id": "tests_productcategory_test_token"
     },
@@ -6613,7 +6694,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 67,
       "norm_label": "image.test.js",
       "id": "backend_v1_tests_image_test_js"
     },
@@ -6622,7 +6703,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L1",
-      "community": 118,
+      "community": 67,
       "norm_label": "request",
       "id": "tests_image_test_request"
     },
@@ -6631,7 +6712,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L2",
-      "community": 118,
+      "community": 67,
       "norm_label": "express",
       "id": "tests_image_test_express"
     },
@@ -6640,7 +6721,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L3",
-      "community": 118,
+      "community": 67,
       "norm_label": "imageroutes",
       "id": "tests_image_test_imageroutes"
     },
@@ -6649,7 +6730,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L4",
-      "community": 118,
+      "community": 67,
       "norm_label": "{ getdb }",
       "id": "tests_image_test_getdb"
     },
@@ -6658,7 +6739,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L5",
-      "community": 118,
+      "community": 67,
       "norm_label": "jwt",
       "id": "tests_image_test_jwt"
     },
@@ -6667,7 +6748,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L11",
-      "community": 118,
+      "community": 67,
       "norm_label": "mockinsertone",
       "id": "tests_image_test_mockinsertone"
     },
@@ -6676,7 +6757,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L18",
-      "community": 118,
+      "community": 67,
       "norm_label": "app",
       "id": "tests_image_test_app"
     },
@@ -6685,7 +6766,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L22",
-      "community": 118,
+      "community": 67,
       "norm_label": "token",
       "id": "tests_image_test_token"
     },
@@ -6784,7 +6865,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/deliveryPricing.test.js",
       "source_location": "L1",
-      "community": 54,
+      "community": 88,
       "norm_label": "deliverypricing.test.js",
       "id": "backend_v1_tests_deliverypricing_test_js"
     },
@@ -6793,7 +6874,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/deliveryPricing.test.js",
       "source_location": "L1",
-      "community": 54,
+      "community": 88,
       "norm_label": "{\n  calculatedistance,\n  calculatedeliverypricing,\n}",
       "id": "tests_deliverypricing_test_calculatedistance_calculatedeliverypricing"
     },
@@ -6802,7 +6883,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/deliveryPricing.test.js",
       "source_location": "L7",
-      "community": 54,
+      "community": 88,
       "norm_label": "basesettings",
       "id": "tests_deliverypricing_test_basesettings"
     },
@@ -6811,7 +6892,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/deliveryPricing.test.js",
       "source_location": "L16",
-      "community": 54,
+      "community": 88,
       "norm_label": "distance",
       "id": "tests_deliverypricing_test_distance"
     },
@@ -6820,7 +6901,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/deliveryPricing.test.js",
       "source_location": "L22",
-      "community": 54,
+      "community": 88,
       "norm_label": "result",
       "id": "tests_deliverypricing_test_result"
     },
@@ -6991,7 +7072,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L1",
-      "community": 70,
+      "community": 102,
       "norm_label": "auth.test.js",
       "id": "backend_v1_tests_auth_test_js"
     },
@@ -7000,7 +7081,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L1",
-      "community": 70,
+      "community": 102,
       "norm_label": "request",
       "id": "tests_auth_test_request"
     },
@@ -7009,7 +7090,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L2",
-      "community": 70,
+      "community": 102,
       "norm_label": "express",
       "id": "tests_auth_test_express"
     },
@@ -7018,7 +7099,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L3",
-      "community": 70,
+      "community": 102,
       "norm_label": "authroutes",
       "id": "tests_auth_test_authroutes"
     },
@@ -7027,7 +7108,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L4",
-      "community": 70,
+      "community": 102,
       "norm_label": "{ pool }",
       "id": "tests_auth_test_pool"
     },
@@ -7036,7 +7117,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L5",
-      "community": 70,
+      "community": 102,
       "norm_label": "bcrypt",
       "id": "tests_auth_test_bcrypt"
     },
@@ -7045,7 +7126,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L6",
-      "community": 70,
+      "community": 102,
       "norm_label": "jwt",
       "id": "tests_auth_test_jwt"
     },
@@ -7054,7 +7135,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L14",
-      "community": 70,
+      "community": 102,
       "norm_label": "app",
       "id": "tests_auth_test_app"
     },
@@ -7333,7 +7414,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 48,
       "norm_label": "server.js",
       "id": "backend_v1_src_server_js"
     },
@@ -7342,7 +7423,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 48,
       "norm_label": "app",
       "id": "src_server_app"
     },
@@ -7351,7 +7432,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L2",
-      "community": 60,
+      "community": 48,
       "norm_label": "config",
       "id": "src_server_config"
     },
@@ -7360,7 +7441,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L3",
-      "community": 60,
+      "community": 48,
       "norm_label": "db",
       "id": "src_server_db"
     },
@@ -7369,7 +7450,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L9",
-      "community": 60,
+      "community": 48,
       "norm_label": "startserver()",
       "id": "src_server_startserver"
     },
@@ -7378,7 +7459,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L25",
-      "community": 60,
+      "community": 48,
       "norm_label": "shutdown()",
       "id": "src_server_shutdown"
     },
@@ -7387,7 +7468,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L1",
-      "community": 65,
+      "community": 149,
       "norm_label": "seed_demo.js",
       "id": "backend_v1_src_db_seed_demo_js"
     },
@@ -7396,7 +7477,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L2",
-      "community": 65,
+      "community": 149,
       "norm_label": "{ pool }",
       "id": "db_seed_demo_pool"
     },
@@ -7405,7 +7486,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L3",
-      "community": 65,
+      "community": 149,
       "norm_label": "{ getdb, connect }",
       "id": "db_seed_demo_getdb_connect"
     },
@@ -7414,7 +7495,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L4",
-      "community": 65,
+      "community": 149,
       "norm_label": "{ objectid }",
       "id": "db_seed_demo_objectid"
     },
@@ -7423,7 +7504,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L5",
-      "community": 65,
+      "community": 149,
       "norm_label": "bcrypt",
       "id": "db_seed_demo_bcrypt"
     },
@@ -7432,7 +7513,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L7",
-      "community": 65,
+      "community": 149,
       "norm_label": "seeddemodata()",
       "id": "db_seed_demo_seeddemodata"
     },
@@ -7486,7 +7567,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L1",
-      "community": 65,
+      "community": 149,
       "norm_label": "mongodb.js",
       "id": "backend_v1_src_db_mongodb_js"
     },
@@ -7495,7 +7576,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L1",
-      "community": 65,
+      "community": 149,
       "norm_label": "{ mongoclient }",
       "id": "db_mongodb_mongoclient"
     },
@@ -7504,7 +7585,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L2",
-      "community": 65,
+      "community": 149,
       "norm_label": "config",
       "id": "db_mongodb_config"
     },
@@ -7513,7 +7594,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L7",
-      "community": 65,
+      "community": 149,
       "norm_label": "connect()",
       "id": "db_mongodb_connect"
     },
@@ -7531,7 +7612,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L29",
-      "community": 65,
+      "community": 149,
       "norm_label": "close()",
       "id": "db_mongodb_close"
     },
@@ -7540,7 +7621,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L38",
-      "community": 65,
+      "community": 149,
       "norm_label": "checkconnection()",
       "id": "db_mongodb_checkconnection"
     },
@@ -7549,7 +7630,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 48,
       "norm_label": "index.js",
       "id": "backend_v1_src_db_index_js"
     },
@@ -7558,7 +7639,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 48,
       "norm_label": "mysqldb",
       "id": "db_index_mysqldb"
     },
@@ -7567,7 +7648,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L2",
-      "community": 60,
+      "community": 48,
       "norm_label": "mongodb",
       "id": "db_index_mongodb"
     },
@@ -7576,7 +7657,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L4",
-      "community": 60,
+      "community": 48,
       "norm_label": "initdb()",
       "id": "db_index_initdb"
     },
@@ -7585,7 +7666,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L14",
-      "community": 60,
+      "community": 48,
       "norm_label": "closedb()",
       "id": "db_index_closedb"
     },
@@ -7594,7 +7675,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L21",
-      "community": 60,
+      "community": 48,
       "norm_label": "checkhealth()",
       "id": "db_index_checkhealth"
     },
@@ -7702,7 +7783,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L16",
-      "community": 54,
+      "community": 71,
       "norm_label": "validatecoordinates()",
       "id": "validators_index_validatecoordinates"
     },
@@ -8665,7 +8746,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/authMiddleware.js",
       "source_location": "L1",
-      "community": 71,
+      "community": 86,
       "norm_label": "authmiddleware.js",
       "id": "backend_v1_src_middleware_authmiddleware_js"
     },
@@ -8674,7 +8755,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/authMiddleware.js",
       "source_location": "L1",
-      "community": 71,
+      "community": 86,
       "norm_label": "{ verifytoken }",
       "id": "middleware_authmiddleware_verifytoken"
     },
@@ -8683,7 +8764,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/authMiddleware.js",
       "source_location": "L3",
-      "community": 71,
+      "community": 86,
       "norm_label": "extracttoken()",
       "id": "middleware_authmiddleware_extracttoken"
     },
@@ -8692,7 +8773,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/authMiddleware.js",
       "source_location": "L11",
-      "community": 71,
+      "community": 86,
       "norm_label": "requirecustomer()",
       "id": "middleware_authmiddleware_requirecustomer"
     },
@@ -8701,7 +8782,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/authMiddleware.js",
       "source_location": "L29",
-      "community": 71,
+      "community": 86,
       "norm_label": "requireadmin()",
       "id": "middleware_authmiddleware_requireadmin"
     },
@@ -9979,7 +10060,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/cartController.js",
       "source_location": "L4",
-      "community": 54,
+      "community": 71,
       "norm_label": "calculatecart()",
       "id": "controllers_cartcontroller_calculatecart"
     },
@@ -10042,7 +10123,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/deliveryPricing.js",
       "source_location": "L1",
-      "community": 54,
+      "community": 88,
       "norm_label": "deliverypricing.js",
       "id": "backend_v1_src_utils_deliverypricing_js"
     },
@@ -10051,7 +10132,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/deliveryPricing.js",
       "source_location": "L9",
-      "community": 54,
+      "community": 88,
       "norm_label": "calculatedistance()",
       "id": "utils_deliverypricing_calculatedistance"
     },
@@ -10060,7 +10141,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/deliveryPricing.js",
       "source_location": "L29",
-      "community": 54,
+      "community": 88,
       "norm_label": "calculatedeliverypricing()",
       "id": "utils_deliverypricing_calculatedeliverypricing"
     },
@@ -10087,7 +10168,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/thresholdDelivery.js",
       "source_location": "L1",
-      "community": 54,
+      "community": 151,
       "norm_label": "thresholddelivery.js",
       "id": "backend_v1_src_utils_thresholddelivery_js"
     },
@@ -10096,7 +10177,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/thresholdDelivery.js",
       "source_location": "L3",
-      "community": 54,
+      "community": 151,
       "norm_label": "isenabled()",
       "id": "utils_thresholddelivery_isenabled"
     },
@@ -10105,7 +10186,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/thresholdDelivery.js",
       "source_location": "L8",
-      "community": 54,
+      "community": 151,
       "norm_label": "getnonnegativeamount()",
       "id": "utils_thresholddelivery_getnonnegativeamount"
     },
@@ -10114,7 +10195,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/thresholdDelivery.js",
       "source_location": "L13",
-      "community": 54,
+      "community": 151,
       "norm_label": "getfreedeliverythreshold()",
       "id": "utils_thresholddelivery_getfreedeliverythreshold"
     },
@@ -10123,7 +10204,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/thresholdDelivery.js",
       "source_location": "L18",
-      "community": 54,
+      "community": 151,
       "norm_label": "calculatethresholddeliverycharge()",
       "id": "utils_thresholddelivery_calculatethresholddeliverycharge"
     },
@@ -10204,7 +10285,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/auth.js",
       "source_location": "L30",
-      "community": 71,
+      "community": 86,
       "norm_label": "verifytoken()",
       "id": "utils_auth_verifytoken"
     },
@@ -13048,7 +13129,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L800",
-      "community": 73,
+      "community": 169,
       "norm_label": "18. admin manager tests",
       "id": "plans_admindashboardtask_18_admin_manager_tests"
     },
@@ -13057,7 +13138,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L802",
-      "community": 73,
+      "community": 169,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_802"
     },
@@ -13066,7 +13147,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L805",
-      "community": 73,
+      "community": 169,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_805"
     },
@@ -13075,7 +13156,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L819",
-      "community": 73,
+      "community": 169,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_819"
     },
@@ -17152,7 +17233,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L591",
-      "community": 169,
+      "community": 73,
       "norm_label": "14. admin manager tests",
       "id": "plans_admindashboardtask_14_admin_manager_tests"
     },
@@ -17161,7 +17242,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L593",
-      "community": 169,
+      "community": 73,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_593"
     },
@@ -17170,7 +17251,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L596",
-      "community": 169,
+      "community": 73,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_596"
     },
@@ -17179,7 +17260,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L607",
-      "community": 169,
+      "community": 73,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_607"
     },
@@ -17251,7 +17332,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
-      "community": 147,
+      "community": 30,
       "norm_label": "status_colors",
       "id": "ordercard_ordercard_status_colors"
     },
@@ -17260,7 +17341,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L13",
-      "community": 147,
+      "community": 30,
       "norm_label": "payment_colors",
       "id": "ordercard_ordercard_payment_colors"
     },
@@ -17323,7 +17404,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 45,
       "norm_label": "admincustomersscreen.js",
       "id": "frontend_v1_src_screens_admin_admincustomersscreen_admincustomersscreen_js"
     },
@@ -17332,7 +17413,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L35",
-      "community": 102,
+      "community": 45,
       "norm_label": "pickfirst()",
       "id": "admincustomersscreen_admincustomersscreen_pickfirst"
     },
@@ -17341,7 +17422,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L39",
-      "community": 102,
+      "community": 45,
       "norm_label": "asboolean()",
       "id": "admincustomersscreen_admincustomersscreen_asboolean"
     },
@@ -17350,7 +17431,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L49",
-      "community": 102,
+      "community": 45,
       "norm_label": "getcustomersfromresponse()",
       "id": "admincustomersscreen_admincustomersscreen_getcustomersfromresponse"
     },
@@ -17359,7 +17440,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L59",
-      "community": 102,
+      "community": 45,
       "norm_label": "normalizecustomer()",
       "id": "admincustomersscreen_admincustomersscreen_normalizecustomer"
     },
@@ -17368,7 +17449,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L93",
-      "community": 102,
+      "community": 45,
       "norm_label": "formatshortaddress()",
       "id": "admincustomersscreen_admincustomersscreen_formatshortaddress"
     },
@@ -17377,7 +17458,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L106",
-      "community": 102,
+      "community": 45,
       "norm_label": "getactionerror()",
       "id": "admincustomersscreen_admincustomersscreen_getactionerror"
     },
@@ -17386,7 +17467,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L110",
-      "community": 102,
+      "community": 45,
       "norm_label": "admincustomersscreen()",
       "id": "admincustomersscreen_admincustomersscreen_admincustomersscreen"
     },
@@ -17395,7 +17476,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L363",
-      "community": 102,
+      "community": 45,
       "norm_label": "customerskeletonlist()",
       "id": "admincustomersscreen_admincustomersscreen_customerskeletonlist"
     },
@@ -17404,7 +17485,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L374",
-      "community": 102,
+      "community": 45,
       "norm_label": "customercard()",
       "id": "admincustomersscreen_admincustomersscreen_customercard"
     },
@@ -17413,7 +17494,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L465",
-      "community": 102,
+      "community": 45,
       "norm_label": "statuspill()",
       "id": "admincustomersscreen_admincustomersscreen_statuspill"
     },
@@ -17422,7 +17503,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L484",
-      "community": 102,
+      "community": 45,
       "norm_label": "togglerow()",
       "id": "admincustomersscreen_admincustomersscreen_togglerow"
     },
@@ -17431,7 +17512,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L505",
-      "community": 102,
+      "community": 45,
       "norm_label": "blockcustomermodal()",
       "id": "admincustomersscreen_admincustomersscreen_blockcustomermodal"
     },
@@ -17440,7 +17521,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L545",
-      "community": 102,
+      "community": 45,
       "norm_label": "styles",
       "id": "admincustomersscreen_admincustomersscreen_styles"
     },
@@ -17458,7 +17539,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 60,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminorderdetailscreen_index_js"
     },
@@ -17467,7 +17548,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L1",
-      "community": 59,
+      "community": 60,
       "norm_label": "adminorderdetailscreen.js",
       "id": "frontend_v1_src_screens_admin_adminorderdetailscreen_adminorderdetailscreen_js"
     },
@@ -17476,7 +17557,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L20",
-      "community": 59,
+      "community": 60,
       "norm_label": "order_statuses",
       "id": "adminorderdetailscreen_adminorderdetailscreen_order_statuses"
     },
@@ -17485,7 +17566,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L21",
-      "community": 59,
+      "community": 60,
       "norm_label": "payment_statuses",
       "id": "adminorderdetailscreen_adminorderdetailscreen_payment_statuses"
     },
@@ -17494,7 +17575,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L23",
-      "community": 59,
+      "community": 60,
       "norm_label": "adminorderdetailscreen()",
       "id": "adminorderdetailscreen_adminorderdetailscreen_adminorderdetailscreen"
     },
@@ -17503,7 +17584,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L257",
-      "community": 59,
+      "community": 60,
       "norm_label": "styles",
       "id": "adminorderdetailscreen_adminorderdetailscreen_styles"
     },
@@ -17647,7 +17728,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 28,
       "norm_label": "adminsettingsscreen.js",
       "id": "frontend_v1_src_screens_admin_adminsettingsscreen_adminsettingsscreen_js"
     },
@@ -17656,7 +17737,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L33",
-      "community": 102,
+      "community": 28,
       "norm_label": "default_form",
       "id": "adminsettingsscreen_adminsettingsscreen_default_form"
     },
@@ -17665,7 +17746,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L46",
-      "community": 102,
+      "community": 28,
       "norm_label": "numeric_fields",
       "id": "adminsettingsscreen_adminsettingsscreen_numeric_fields"
     },
@@ -17674,7 +17755,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L52",
-      "community": 102,
+      "community": 28,
       "norm_label": "pickfirst()",
       "id": "adminsettingsscreen_adminsettingsscreen_pickfirst"
     },
@@ -17683,7 +17764,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L56",
-      "community": 102,
+      "community": 28,
       "norm_label": "asboolean()",
       "id": "adminsettingsscreen_adminsettingsscreen_asboolean"
     },
@@ -17692,7 +17773,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L67",
-      "community": 102,
+      "community": 28,
       "norm_label": "astext()",
       "id": "adminsettingsscreen_adminsettingsscreen_astext"
     },
@@ -17701,7 +17782,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L72",
-      "community": 102,
+      "community": 28,
       "norm_label": "getpayloaddata()",
       "id": "adminsettingsscreen_adminsettingsscreen_getpayloaddata"
     },
@@ -17710,7 +17791,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L76",
-      "community": 102,
+      "community": 28,
       "norm_label": "getofferdata()",
       "id": "adminsettingsscreen_adminsettingsscreen_getofferdata"
     },
@@ -17719,7 +17800,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L92",
-      "community": 102,
+      "community": 28,
       "norm_label": "normalizesettings()",
       "id": "adminsettingsscreen_adminsettingsscreen_normalizesettings"
     },
@@ -17728,7 +17809,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L125",
-      "community": 102,
+      "community": 28,
       "norm_label": "buildsettingspayload()",
       "id": "adminsettingsscreen_adminsettingsscreen_buildsettingspayload"
     },
@@ -17737,7 +17818,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L136",
-      "community": 102,
+      "community": 28,
       "norm_label": "buildofferpayload()",
       "id": "adminsettingsscreen_adminsettingsscreen_buildofferpayload"
     },
@@ -17746,7 +17827,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L144",
-      "community": 102,
+      "community": 28,
       "norm_label": "geterrormessage()",
       "id": "adminsettingsscreen_adminsettingsscreen_geterrormessage"
     },
@@ -17755,7 +17836,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L148",
-      "community": 102,
+      "community": 28,
       "norm_label": "adminsettingsscreen()",
       "id": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen"
     },
@@ -17764,7 +17845,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L559",
-      "community": 102,
+      "community": 28,
       "norm_label": "statusbanner()",
       "id": "adminsettingsscreen_adminsettingsscreen_statusbanner"
     },
@@ -17773,7 +17854,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L580",
-      "community": 102,
+      "community": 28,
       "norm_label": "styles",
       "id": "adminsettingsscreen_adminsettingsscreen_styles"
     },
@@ -17881,7 +17962,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L1",
-      "community": 59,
+      "community": 60,
       "norm_label": "adminordersscreen.js",
       "id": "frontend_v1_src_screens_admin_adminordersscreen_adminordersscreen_js"
     },
@@ -17890,7 +17971,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L24",
-      "community": 59,
+      "community": 60,
       "norm_label": "status_filters",
       "id": "adminordersscreen_adminordersscreen_status_filters"
     },
@@ -17899,7 +17980,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L25",
-      "community": 59,
+      "community": 60,
       "norm_label": "payment_filters",
       "id": "adminordersscreen_adminordersscreen_payment_filters"
     },
@@ -17908,7 +17989,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L27",
-      "community": 59,
+      "community": 60,
       "norm_label": "adminordersscreen()",
       "id": "adminordersscreen_adminordersscreen_adminordersscreen"
     },
@@ -17917,7 +17998,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L199",
-      "community": 59,
+      "community": 60,
       "norm_label": "adminordercard()",
       "id": "adminordersscreen_adminordersscreen_adminordercard"
     },
@@ -17926,7 +18007,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L261",
-      "community": 59,
+      "community": 60,
       "norm_label": "styles",
       "id": "adminordersscreen_adminordersscreen_styles"
     },
@@ -17980,7 +18061,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminSettingsApi.js",
       "source_location": "L3",
-      "community": 102,
+      "community": 28,
       "norm_label": "adminsettingsapi",
       "id": "api_adminsettingsapi_adminsettingsapi"
     },
@@ -17998,7 +18079,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminDashboardApi.js",
       "source_location": "L4",
-      "community": 15,
+      "community": 28,
       "norm_label": "admindashboardapi",
       "id": "api_admindashboardapi_admindashboardapi"
     },
@@ -18016,7 +18097,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminOrdersApi.js",
       "source_location": "L4",
-      "community": 59,
+      "community": 60,
       "norm_label": "adminordersapi",
       "id": "api_adminordersapi_adminordersapi"
     },
@@ -18070,7 +18151,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminCustomersApi.js",
       "source_location": "L4",
-      "community": 102,
+      "community": 45,
       "norm_label": "admincustomersapi",
       "id": "api_admincustomersapi_admincustomersapi"
     },
@@ -18106,7 +18187,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminCategoriesApi.js",
       "source_location": "L3",
-      "community": 59,
+      "community": 28,
       "norm_label": "admincategoriesapi",
       "id": "api_admincategoriesapi_admincategoriesapi"
     },
@@ -18124,7 +18205,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminAuthApi.js",
       "source_location": "L3",
-      "community": 15,
+      "community": 28,
       "norm_label": "adminauthapi",
       "id": "api_adminauthapi_adminauthapi"
     },
@@ -18133,7 +18214,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_adminmetriccard_index_js"
     },
@@ -18142,7 +18223,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 30,
       "norm_label": "adminmetriccard.js",
       "id": "frontend_v1_src_components_adminmetriccard_adminmetriccard_js"
     },
@@ -18151,7 +18232,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L16",
-      "community": 147,
+      "community": 30,
       "norm_label": "adminmetriccard()",
       "id": "adminmetriccard_adminmetriccard_adminmetriccard"
     },
@@ -18160,7 +18241,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L37",
-      "community": 147,
+      "community": 30,
       "norm_label": "styles",
       "id": "adminmetriccard_adminmetriccard_styles"
     },
@@ -18538,7 +18619,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L3",
-      "community": 65,
+      "community": 149,
       "norm_label": "{ getdb }",
       "id": "db_seed_demo_getdb"
     },
@@ -18556,7 +18637,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 45,
       "norm_label": "admincustomersscreen.js",
       "id": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js"
     },
@@ -18610,7 +18691,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L1",
-      "community": 88,
+      "community": 43,
       "norm_label": "categoriesscreen.js",
       "id": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js"
     },
@@ -18664,7 +18745,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L1",
-      "community": 74,
+      "community": 17,
       "norm_label": "ordersscreen.js",
       "id": "frontend_v1_src_screens_ordersscreen_ordersscreen_js"
     },
@@ -18682,7 +18763,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 60,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminorderdetailscreen_index_js"
     },
@@ -18691,7 +18772,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L1",
-      "community": 59,
+      "community": 60,
       "norm_label": "adminorderdetailscreen.js",
       "id": "frontend_v1_src_screens_adminorderdetailscreen_adminorderdetailscreen_js"
     },
@@ -18781,7 +18862,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/index.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminproductsscreen_index_js"
     },
@@ -18826,7 +18907,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 28,
       "norm_label": "adminsettingsscreen.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js"
     },
@@ -18835,7 +18916,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 46,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_index_js"
     },
@@ -18844,7 +18925,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 46,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminproductformscreen_index_js"
     },
@@ -18871,7 +18952,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L1",
-      "community": 59,
+      "community": 60,
       "norm_label": "adminordersscreen.js",
       "id": "frontend_v1_src_screens_adminordersscreen_adminordersscreen_js"
     },
@@ -18970,7 +19051,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/OrdersScreen.js",
       "source_location": "L32",
-      "community": 74,
+      "community": 17,
       "norm_label": "mock_orders",
       "id": "ordersscreen_ordersscreen_mock_orders"
     },
@@ -18979,7 +19060,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L19",
-      "community": 59,
+      "community": 60,
       "norm_label": "fetchadminorderdetails()",
       "id": "adminorderdetailscreen_adminorderdetailscreen_fetchadminorderdetails"
     },
@@ -19024,7 +19105,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrdersScreen/AdminOrdersScreen.js",
       "source_location": "L23",
-      "community": 59,
+      "community": 60,
       "norm_label": "fetchadminorders()",
       "id": "adminordersscreen_adminordersscreen_fetchadminorders"
     },
@@ -19051,7 +19132,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L31",
-      "community": 88,
+      "community": 43,
       "norm_label": "mock_categories",
       "id": "categoriesscreen_categoriesscreen_mock_categories"
     },
@@ -19060,7 +19141,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L40",
-      "community": 88,
+      "community": 43,
       "norm_label": "mock_chips",
       "id": "categoriesscreen_categoriesscreen_mock_chips"
     },
@@ -19096,7 +19177,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/index.js",
       "source_location": "L2",
-      "community": 59,
+      "community": 28,
       "norm_label": "apiplaceholder",
       "id": "api_index_apiplaceholder"
     },
@@ -20165,6 +20246,108 @@
   ],
   "links": [
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "db_mysql_pool",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_pool",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_createnotification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_createmanynotifications",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_createordernotification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L135",
+      "weight": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_createbroadcastnotification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L162",
+      "weight": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_getunreadcount",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L170",
+      "weight": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_markallread",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L178",
+      "weight": 1.0,
+      "source": "backend_v1_src_utils_notificationservice_js",
+      "target": "utils_notificationservice_softdeletenotification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/utils/notificationService.js",
+      "source_location": "L153",
+      "weight": 1.0,
+      "source": "utils_notificationservice_createbroadcastnotification",
+      "target": "utils_notificationservice_createmanynotifications",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "Backend-V1/src/db/migrate.js",
@@ -20469,9 +20652,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_md",
-      "target": "plans_plannoti_notifications_system_tasks",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_notifications_system_tasks"
     },
     {
       "relation": "contains",
@@ -20479,9 +20662,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_goal",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal"
     },
     {
       "relation": "contains",
@@ -20489,9 +20672,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_1_current_system_review",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_1_current_system_review"
     },
     {
       "relation": "contains",
@@ -20499,9 +20682,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L74",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_2_notification_data_model",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_2_notification_data_model"
     },
     {
       "relation": "contains",
@@ -20509,9 +20692,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L172",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_3_backend_notification_utility",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_3_backend_notification_utility"
     },
     {
       "relation": "contains",
@@ -20519,9 +20702,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L251",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_4_customer_notification_apis",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_4_customer_notification_apis"
     },
     {
       "relation": "contains",
@@ -20529,9 +20712,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L330",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_5_automatic_order_notifications",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_5_automatic_order_notifications"
     },
     {
       "relation": "contains",
@@ -20539,9 +20722,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L393",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_6_admin_broadcast_notifications",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_6_admin_broadcast_notifications"
     },
     {
       "relation": "contains",
@@ -20549,9 +20732,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L474",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_7_admin_manager_ui",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_7_admin_manager_ui"
     },
     {
       "relation": "contains",
@@ -20559,9 +20742,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L550",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_8_mobile_api_layer",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_8_mobile_api_layer"
     },
     {
       "relation": "contains",
@@ -20569,9 +20752,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L638",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_9_mobile_bell_badge_and_seen_state",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_9_mobile_bell_badge_and_seen_state"
     },
     {
       "relation": "contains",
@@ -20579,9 +20762,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L687",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_10_optional_real_push_notifications",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_10_optional_real_push_notifications"
     },
     {
       "relation": "contains",
@@ -20589,9 +20772,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L725",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_11_error_handling_and_edge_cases",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_11_error_handling_and_edge_cases"
     },
     {
       "relation": "contains",
@@ -20599,9 +20782,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L776",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_12_backend_tests",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_12_backend_tests"
     },
     {
       "relation": "contains",
@@ -20609,9 +20792,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L810",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_13_frontend_testing",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_13_frontend_testing"
     },
     {
       "relation": "contains",
@@ -20619,9 +20802,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L842",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_notifications_system_tasks",
-      "target": "plans_plannoti_14_final_verification",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_14_final_verification"
     },
     {
       "relation": "contains",
@@ -20629,9 +20812,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_1_current_system_review",
-      "target": "plans_plannoti_goal_16",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_16"
     },
     {
       "relation": "contains",
@@ -20639,9 +20822,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L19",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_1_current_system_review",
-      "target": "plans_plannoti_files_likely_checked",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_files_likely_checked"
     },
     {
       "relation": "contains",
@@ -20649,9 +20832,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L34",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_1_current_system_review",
-      "target": "plans_plannoti_current_known_state",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_current_known_state"
     },
     {
       "relation": "contains",
@@ -20659,9 +20842,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_1_current_system_review",
-      "target": "plans_plannoti_subtasks",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks"
     },
     {
       "relation": "contains",
@@ -20669,9 +20852,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L61",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_1_current_system_review",
-      "target": "plans_plannoti_things_to_avoid",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_things_to_avoid"
     },
     {
       "relation": "contains",
@@ -20679,9 +20862,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L67",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_1_current_system_review",
-      "target": "plans_plannoti_testing_checklist",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_testing_checklist"
     },
     {
       "relation": "contains",
@@ -20689,9 +20872,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L76",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_2_notification_data_model",
-      "target": "plans_plannoti_goal_76",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_76"
     },
     {
       "relation": "contains",
@@ -20699,9 +20882,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L79",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_2_notification_data_model",
-      "target": "plans_plannoti_suggested_table_notifications",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_suggested_table_notifications"
     },
     {
       "relation": "contains",
@@ -20709,9 +20892,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L82",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_2_notification_data_model",
-      "target": "plans_plannoti_fields",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_fields"
     },
     {
       "relation": "contains",
@@ -20719,9 +20902,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L101",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_2_notification_data_model",
-      "target": "plans_plannoti_field_meaning",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_field_meaning"
     },
     {
       "relation": "contains",
@@ -20729,9 +20912,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L117",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_2_notification_data_model",
-      "target": "plans_plannoti_suggested_indexes",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_suggested_indexes"
     },
     {
       "relation": "contains",
@@ -20739,9 +20922,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L126",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_2_notification_data_model",
-      "target": "plans_plannoti_suggested_table_notification_batches",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_suggested_table_notification_batches"
     },
     {
       "relation": "contains",
@@ -20749,9 +20932,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L129",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_2_notification_data_model",
-      "target": "plans_plannoti_fields_129",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_fields_129"
     },
     {
       "relation": "contains",
@@ -20759,9 +20942,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L140",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_2_notification_data_model",
-      "target": "plans_plannoti_batch_table_subtasks",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_batch_table_subtasks"
     },
     {
       "relation": "contains",
@@ -20769,9 +20952,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L146",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_2_notification_data_model",
-      "target": "plans_plannoti_subtasks_146",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks_146"
     },
     {
       "relation": "contains",
@@ -20779,9 +20962,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L158",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_2_notification_data_model",
-      "target": "plans_plannoti_things_to_avoid_158",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_things_to_avoid_158"
     },
     {
       "relation": "contains",
@@ -20789,9 +20972,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L164",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_2_notification_data_model",
-      "target": "plans_plannoti_testing_checklist_164",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_testing_checklist_164"
     },
     {
       "relation": "contains",
@@ -20799,9 +20982,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L174",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_3_backend_notification_utility",
-      "target": "plans_plannoti_goal_174",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_174"
     },
     {
       "relation": "contains",
@@ -20809,9 +20992,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L177",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_3_backend_notification_utility",
-      "target": "plans_plannoti_files_likely_added",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_files_likely_added"
     },
     {
       "relation": "contains",
@@ -20819,9 +21002,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L180",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_3_backend_notification_utility",
-      "target": "plans_plannoti_required_helper_functions",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_required_helper_functions"
     },
     {
       "relation": "contains",
@@ -20829,9 +21012,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L190",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_3_backend_notification_utility",
-      "target": "plans_plannoti_order_notification_templates",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_order_notification_templates"
     },
     {
       "relation": "contains",
@@ -20839,9 +21022,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L224",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_3_backend_notification_utility",
-      "target": "plans_plannoti_subtasks_224",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks_224"
     },
     {
       "relation": "contains",
@@ -20849,9 +21032,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L236",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_3_backend_notification_utility",
-      "target": "plans_plannoti_things_to_avoid_236",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_things_to_avoid_236"
     },
     {
       "relation": "contains",
@@ -20859,9 +21042,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L242",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_3_backend_notification_utility",
-      "target": "plans_plannoti_testing_checklist_242",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_testing_checklist_242"
     },
     {
       "relation": "contains",
@@ -20869,9 +21052,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L253",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_4_customer_notification_apis",
-      "target": "plans_plannoti_goal_253",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_253"
     },
     {
       "relation": "contains",
@@ -20879,9 +21062,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L256",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_4_customer_notification_apis",
-      "target": "plans_plannoti_suggested_files",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_suggested_files"
     },
     {
       "relation": "contains",
@@ -20889,9 +21072,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L261",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_4_customer_notification_apis",
-      "target": "plans_plannoti_routes",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_routes"
     },
     {
       "relation": "contains",
@@ -20899,9 +21082,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L268",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_4_customer_notification_apis",
-      "target": "plans_plannoti_auth",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_auth"
     },
     {
       "relation": "contains",
@@ -20909,9 +21092,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L271",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_4_customer_notification_apis",
-      "target": "plans_plannoti_get_api_notifications_query_params",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_get_api_notifications_query_params"
     },
     {
       "relation": "contains",
@@ -20919,9 +21102,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L276",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_4_customer_notification_apis",
-      "target": "plans_plannoti_get_api_notifications_response",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_get_api_notifications_response"
     },
     {
       "relation": "contains",
@@ -20929,9 +21112,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L281",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_4_customer_notification_apis",
-      "target": "plans_plannoti_notification_response_fields",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_notification_response_fields"
     },
     {
       "relation": "contains",
@@ -20939,9 +21122,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L295",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_4_customer_notification_apis",
-      "target": "plans_plannoti_mark_as_read_behavior",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_mark_as_read_behavior"
     },
     {
       "relation": "contains",
@@ -20949,9 +21132,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L300",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_4_customer_notification_apis",
-      "target": "plans_plannoti_subtasks_300",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks_300"
     },
     {
       "relation": "contains",
@@ -20959,9 +21142,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L314",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_4_customer_notification_apis",
-      "target": "plans_plannoti_things_to_avoid_314",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_things_to_avoid_314"
     },
     {
       "relation": "contains",
@@ -20969,9 +21152,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L320",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_4_customer_notification_apis",
-      "target": "plans_plannoti_testing_checklist_320",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_testing_checklist_320"
     },
     {
       "relation": "contains",
@@ -20979,9 +21162,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L332",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_5_automatic_order_notifications",
-      "target": "plans_plannoti_goal_332",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_332"
     },
     {
       "relation": "contains",
@@ -20989,9 +21172,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L335",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_5_automatic_order_notifications",
-      "target": "plans_plannoti_backend_files_likely_changed",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_backend_files_likely_changed"
     },
     {
       "relation": "contains",
@@ -20999,9 +21182,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L340",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_5_automatic_order_notifications",
-      "target": "plans_plannoti_trigger_points",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_trigger_points"
     },
     {
       "relation": "contains",
@@ -21009,9 +21192,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L346",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_5_automatic_order_notifications",
-      "target": "plans_plannoti_subtasks_346",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks_346"
     },
     {
       "relation": "contains",
@@ -21019,9 +21202,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L373",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_5_automatic_order_notifications",
-      "target": "plans_plannoti_things_to_avoid_373",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_things_to_avoid_373"
     },
     {
       "relation": "contains",
@@ -21029,9 +21212,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L381",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_5_automatic_order_notifications",
-      "target": "plans_plannoti_testing_checklist_381",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_testing_checklist_381"
     },
     {
       "relation": "contains",
@@ -21039,9 +21222,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L395",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_6_admin_broadcast_notifications",
-      "target": "plans_plannoti_goal_395",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_395"
     },
     {
       "relation": "contains",
@@ -21049,9 +21232,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L398",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_6_admin_broadcast_notifications",
-      "target": "plans_plannoti_backend_routes",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_backend_routes"
     },
     {
       "relation": "contains",
@@ -21059,9 +21242,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L404",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_6_admin_broadcast_notifications",
-      "target": "plans_plannoti_admin_list_behavior",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_admin_list_behavior"
     },
     {
       "relation": "contains",
@@ -21069,9 +21252,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L414",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_6_admin_broadcast_notifications",
-      "target": "plans_plannoti_broadcast_target_options",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_broadcast_target_options"
     },
     {
       "relation": "contains",
@@ -21079,9 +21262,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L425",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_6_admin_broadcast_notifications",
-      "target": "plans_plannoti_post_api_admin_notifications_body",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_post_api_admin_notifications_body"
     },
     {
       "relation": "contains",
@@ -21089,9 +21272,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L432",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_6_admin_broadcast_notifications",
-      "target": "plans_plannoti_valid_type",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_valid_type"
     },
     {
       "relation": "contains",
@@ -21099,9 +21282,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L439",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_6_admin_broadcast_notifications",
-      "target": "plans_plannoti_subtasks_439",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks_439"
     },
     {
       "relation": "contains",
@@ -21109,9 +21292,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L455",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_6_admin_broadcast_notifications",
-      "target": "plans_plannoti_things_to_avoid_455",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_things_to_avoid_455"
     },
     {
       "relation": "contains",
@@ -21119,9 +21302,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L464",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_6_admin_broadcast_notifications",
-      "target": "plans_plannoti_testing_checklist_464",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_testing_checklist_464"
     },
     {
       "relation": "contains",
@@ -21129,9 +21312,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L476",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_7_admin_manager_ui",
-      "target": "plans_plannoti_goal_476",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_476"
     },
     {
       "relation": "contains",
@@ -21139,9 +21322,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L479",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_7_admin_manager_ui",
-      "target": "plans_plannoti_files_likely_changed",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_files_likely_changed"
     },
     {
       "relation": "contains",
@@ -21149,9 +21332,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L486",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_7_admin_manager_ui",
-      "target": "plans_plannoti_page_layout",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_page_layout"
     },
     {
       "relation": "contains",
@@ -21159,9 +21342,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L492",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_7_admin_manager_ui",
-      "target": "plans_plannoti_send_form_fields",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_send_form_fields"
     },
     {
       "relation": "contains",
@@ -21169,9 +21352,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L500",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_7_admin_manager_ui",
-      "target": "plans_plannoti_form_validation",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_form_validation"
     },
     {
       "relation": "contains",
@@ -21179,9 +21362,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L510",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_7_admin_manager_ui",
-      "target": "plans_plannoti_recent_notifications_table_card_list",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_recent_notifications_table_card_list"
     },
     {
       "relation": "contains",
@@ -21189,9 +21372,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L518",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_7_admin_manager_ui",
-      "target": "plans_plannoti_subtasks_518",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks_518"
     },
     {
       "relation": "contains",
@@ -21199,9 +21382,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L532",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_7_admin_manager_ui",
-      "target": "plans_plannoti_things_to_avoid_532",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_things_to_avoid_532"
     },
     {
       "relation": "contains",
@@ -21209,9 +21392,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L538",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_7_admin_manager_ui",
-      "target": "plans_plannoti_testing_checklist_538",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_testing_checklist_538"
     },
     {
       "relation": "contains",
@@ -21219,9 +21402,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L552",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_8_mobile_api_layer",
-      "target": "plans_plannoti_goal_552",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_552"
     },
     {
       "relation": "contains",
@@ -21229,9 +21412,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L555",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_8_mobile_api_layer",
-      "target": "plans_plannoti_files_likely_changed_555",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_files_likely_changed_555"
     },
     {
       "relation": "contains",
@@ -21239,9 +21422,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L562",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_8_mobile_api_layer",
-      "target": "plans_plannoti_mobile_api_methods",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_mobile_api_methods"
     },
     {
       "relation": "contains",
@@ -21249,9 +21432,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L569",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_8_mobile_api_layer",
-      "target": "plans_plannoti_suggested_mobile_state",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_suggested_mobile_state"
     },
     {
       "relation": "contains",
@@ -21259,9 +21442,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L589",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_8_mobile_api_layer",
-      "target": "plans_plannoti_normalized_notification_model",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_normalized_notification_model"
     },
     {
       "relation": "contains",
@@ -21269,9 +21452,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L602",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_8_mobile_api_layer",
-      "target": "plans_plannoti_subtasks_602",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks_602"
     },
     {
       "relation": "contains",
@@ -21279,9 +21462,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L621",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_8_mobile_api_layer",
-      "target": "plans_plannoti_things_to_avoid_621",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_things_to_avoid_621"
     },
     {
       "relation": "contains",
@@ -21289,9 +21472,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L628",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_8_mobile_api_layer",
-      "target": "plans_plannoti_testing_checklist_628",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_testing_checklist_628"
     },
     {
       "relation": "contains",
@@ -21299,9 +21482,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L640",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_9_mobile_bell_badge_and_seen_state",
-      "target": "plans_plannoti_goal_640",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_640"
     },
     {
       "relation": "contains",
@@ -21309,9 +21492,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L643",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_9_mobile_bell_badge_and_seen_state",
-      "target": "plans_plannoti_current_issue",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_current_issue"
     },
     {
       "relation": "contains",
@@ -21319,9 +21502,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L646",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_9_mobile_bell_badge_and_seen_state",
-      "target": "plans_plannoti_desired_behavior",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_desired_behavior"
     },
     {
       "relation": "contains",
@@ -21329,9 +21512,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L655",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_9_mobile_bell_badge_and_seen_state",
-      "target": "plans_plannoti_files_likely_changed_655",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_files_likely_changed_655"
     },
     {
       "relation": "contains",
@@ -21339,9 +21522,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L660",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_9_mobile_bell_badge_and_seen_state",
-      "target": "plans_plannoti_subtasks_660",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks_660"
     },
     {
       "relation": "contains",
@@ -21349,9 +21532,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L672",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_9_mobile_bell_badge_and_seen_state",
-      "target": "plans_plannoti_things_to_avoid_672",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_things_to_avoid_672"
     },
     {
       "relation": "contains",
@@ -21359,9 +21542,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L678",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_9_mobile_bell_badge_and_seen_state",
-      "target": "plans_plannoti_testing_checklist_678",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_testing_checklist_678"
     },
     {
       "relation": "contains",
@@ -21369,9 +21552,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L689",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_10_optional_real_push_notifications",
-      "target": "plans_plannoti_goal_689",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_689"
     },
     {
       "relation": "contains",
@@ -21379,9 +21562,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L692",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_10_optional_real_push_notifications",
-      "target": "plans_plannoti_important_note",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_important_note"
     },
     {
       "relation": "contains",
@@ -21389,9 +21572,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L695",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_10_optional_real_push_notifications",
-      "target": "plans_plannoti_possible_approach",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_possible_approach"
     },
     {
       "relation": "contains",
@@ -21399,9 +21582,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L702",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_10_optional_real_push_notifications",
-      "target": "plans_plannoti_subtasks_702",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks_702"
     },
     {
       "relation": "contains",
@@ -21409,9 +21592,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L712",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_10_optional_real_push_notifications",
-      "target": "plans_plannoti_things_to_avoid_712",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_things_to_avoid_712"
     },
     {
       "relation": "contains",
@@ -21419,9 +21602,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L717",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_10_optional_real_push_notifications",
-      "target": "plans_plannoti_testing_checklist_717",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_testing_checklist_717"
     },
     {
       "relation": "contains",
@@ -21429,9 +21612,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L727",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_11_error_handling_and_edge_cases",
-      "target": "plans_plannoti_goal_727",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_727"
     },
     {
       "relation": "contains",
@@ -21439,9 +21622,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L730",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_11_error_handling_and_edge_cases",
-      "target": "plans_plannoti_edge_cases",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_edge_cases"
     },
     {
       "relation": "contains",
@@ -21449,9 +21632,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L748",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_11_error_handling_and_edge_cases",
-      "target": "plans_plannoti_subtasks_748",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks_748"
     },
     {
       "relation": "contains",
@@ -21459,9 +21642,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L761",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_11_error_handling_and_edge_cases",
-      "target": "plans_plannoti_things_to_avoid_761",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_things_to_avoid_761"
     },
     {
       "relation": "contains",
@@ -21469,9 +21652,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L767",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_11_error_handling_and_edge_cases",
-      "target": "plans_plannoti_testing_checklist_767",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_testing_checklist_767"
     },
     {
       "relation": "contains",
@@ -21479,9 +21662,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L778",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_12_backend_tests",
-      "target": "plans_plannoti_goal_778",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_778"
     },
     {
       "relation": "contains",
@@ -21489,9 +21672,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L781",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_12_backend_tests",
-      "target": "plans_plannoti_suggested_test_files",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_suggested_test_files"
     },
     {
       "relation": "contains",
@@ -21499,9 +21682,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L785",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_12_backend_tests",
-      "target": "plans_plannoti_subtasks_785",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks_785"
     },
     {
       "relation": "contains",
@@ -21509,9 +21692,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L803",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_12_backend_tests",
-      "target": "plans_plannoti_testing_checklist_803",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_testing_checklist_803"
     },
     {
       "relation": "contains",
@@ -21519,9 +21702,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L812",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_13_frontend_testing",
-      "target": "plans_plannoti_goal_812",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_812"
     },
     {
       "relation": "contains",
@@ -21529,9 +21712,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L815",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_13_frontend_testing",
-      "target": "plans_plannoti_customer_app_tests",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_customer_app_tests"
     },
     {
       "relation": "contains",
@@ -21539,9 +21722,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L828",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_13_frontend_testing",
-      "target": "plans_plannoti_admin_manager_tests",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_admin_manager_tests"
     },
     {
       "relation": "contains",
@@ -21549,9 +21732,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L835",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_13_frontend_testing",
-      "target": "plans_plannoti_build_checks",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_build_checks"
     },
     {
       "relation": "contains",
@@ -21559,9 +21742,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L844",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_14_final_verification",
-      "target": "plans_plannoti_goal_844",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_goal_844"
     },
     {
       "relation": "contains",
@@ -21569,9 +21752,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L847",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_14_final_verification",
-      "target": "plans_plannoti_subtasks_847",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_subtasks_847"
     },
     {
       "relation": "contains",
@@ -21579,9 +21762,9 @@
       "source_file": "plans/plannoti.md",
       "source_location": "L871",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_plannoti_14_final_verification",
-      "target": "plans_plannoti_acceptance_criteria",
-      "confidence_score": 1.0
+      "target": "plans_plannoti_acceptance_criteria"
     },
     {
       "relation": "contains",
@@ -59219,5 +59402,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "085b5b0c2e8c6b912b863fac867030504ff7e802"
+  "built_at_commit": "100d1f4bc0b4e24787372dc6386aa8040b830fea"
 }
