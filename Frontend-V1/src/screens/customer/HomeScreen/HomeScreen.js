@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
   Image,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import {
   AppScreen,
   AppIcon,
@@ -120,6 +120,18 @@ export default function HomeScreen() {
       clearTimeout(loadTimer);
     };
   }, [currentApiStoreType, fadeAnim, setSettings, slideAnim, staggerCatAnims, staggerComboAnims]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+      notificationsApi.getUnreadCount()
+        .then(count => {
+          if (isActive) setUnreadCount(count || 0);
+        })
+        .catch(() => {});
+      return () => { isActive = false; };
+    }, [])
+  );
 
   useEffect(() => {
     // 1. Badge pulse/glow loop animation (1.0 to 2.0 scale)

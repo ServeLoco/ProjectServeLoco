@@ -508,7 +508,7 @@ const migrate = async () => {
         type VARCHAR(50) NOT NULL,
         target VARCHAR(50) NOT NULL,
         recipient_count INT NOT NULL DEFAULT 0,
-        created_by_admin_id INT,
+        created_by_admin_id VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP NULL DEFAULT NULL
       );
@@ -531,7 +531,7 @@ const migrate = async () => {
         action_payload JSON,
         read_at TIMESTAMP NULL DEFAULT NULL,
         seen_at TIMESTAMP NULL DEFAULT NULL,
-        created_by_admin_id INT,
+        created_by_admin_id VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP NULL DEFAULT NULL,
