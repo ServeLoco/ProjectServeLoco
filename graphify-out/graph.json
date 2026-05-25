@@ -467,7 +467,7 @@
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L91",
       "id": "api_index_reportsapi",
-      "community": 151,
+      "community": 87,
       "norm_label": "reportsapi"
     },
     {
@@ -476,7 +476,7 @@
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L97",
       "id": "api_index_healthapi",
-      "community": 87,
+      "community": 151,
       "norm_label": "healthapi"
     },
     {
@@ -656,7 +656,7 @@
       "source_file": "adminManager-V1/src/pages/Health.jsx",
       "source_location": "L1",
       "id": "adminmanager_v1_src_pages_health_jsx",
-      "community": 87,
+      "community": 151,
       "norm_label": "health.jsx"
     },
     {
@@ -665,7 +665,7 @@
       "source_file": "adminManager-V1/src/pages/Health.jsx",
       "source_location": "L5",
       "id": "pages_health_health",
-      "community": 87,
+      "community": 151,
       "norm_label": "health()"
     },
     {
@@ -701,7 +701,7 @@
       "source_file": "adminManager-V1/src/pages/Reports.jsx",
       "source_location": "L1",
       "id": "adminmanager_v1_src_pages_reports_jsx",
-      "community": 151,
+      "community": 87,
       "norm_label": "reports.jsx"
     },
     {
@@ -710,7 +710,7 @@
       "source_file": "adminManager-V1/src/pages/Reports.jsx",
       "source_location": "L5",
       "id": "pages_reports_reports",
-      "community": 151,
+      "community": 87,
       "norm_label": "reports()"
     },
     {
@@ -2481,7 +2481,7 @@
       "label": "styles",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L287",
+      "source_location": "L292",
       "id": "categoriesscreen_categoriesscreen_styles",
       "community": 43,
       "norm_label": "styles"
@@ -3149,7 +3149,7 @@
       "source_file": "Frontend-V1/src/api/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_api_index_js",
-      "community": 43,
+      "community": 15,
       "norm_label": "index.js"
     },
     {
@@ -3599,7 +3599,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_chip_chip_js",
-      "community": 148,
+      "community": 30,
       "norm_label": "chip.js"
     },
     {
@@ -3608,7 +3608,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L20",
       "id": "chip_chip_chip",
-      "community": 148,
+      "community": 30,
       "norm_label": "chip()"
     },
     {
@@ -3617,7 +3617,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L55",
       "id": "chip_chip_chiprow",
-      "community": 148,
+      "community": 30,
       "norm_label": "chiprow()"
     },
     {
@@ -3626,7 +3626,7 @@
       "source_file": "Frontend-V1/src/components/Chip/Chip.js",
       "source_location": "L76",
       "id": "chip_chip_styles",
-      "community": 148,
+      "community": 30,
       "norm_label": "styles"
     },
     {
@@ -3635,7 +3635,7 @@
       "source_file": "Frontend-V1/src/components/Chip/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_chip_index_js",
-      "community": 148,
+      "community": 30,
       "norm_label": "index.js"
     },
     {
@@ -3680,7 +3680,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/index.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_loadingskeleton_index_js",
-      "community": 74,
+      "community": 43,
       "norm_label": "index.js"
     },
     {
@@ -3689,7 +3689,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L1",
       "id": "frontend_v1_src_components_loadingskeleton_loadingskeleton_js",
-      "community": 74,
+      "community": 43,
       "norm_label": "loadingskeleton.js"
     },
     {
@@ -3698,7 +3698,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L16",
       "id": "loadingskeleton_loadingskeleton_loadingskeleton",
-      "community": 74,
+      "community": 43,
       "norm_label": "loadingskeleton()"
     },
     {
@@ -3707,7 +3707,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L57",
       "id": "loadingskeleton_loadingskeleton_skeletoncard",
-      "community": 74,
+      "community": 43,
       "norm_label": "skeletoncard()"
     },
     {
@@ -3716,7 +3716,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L74",
       "id": "loadingskeleton_loadingskeleton_skeletonrow",
-      "community": 74,
+      "community": 43,
       "norm_label": "skeletonrow()"
     },
     {
@@ -3725,7 +3725,7 @@
       "source_file": "Frontend-V1/src/components/LoadingSkeleton/LoadingSkeleton.js",
       "source_location": "L86",
       "id": "loadingskeleton_loadingskeleton_styles",
-      "community": 74,
+      "community": 43,
       "norm_label": "styles"
     },
     {
@@ -11996,7 +11996,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L773",
       "id": "plans_admindashboardtask_17_backend_tests",
-      "community": 172,
+      "community": 73,
       "norm_label": "17. backend tests"
     },
     {
@@ -12005,7 +12005,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L775",
       "id": "plans_admindashboardtask_goal_775",
-      "community": 172,
+      "community": 73,
       "norm_label": "goal"
     },
     {
@@ -12014,7 +12014,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L778",
       "id": "plans_admindashboardtask_subtasks_778",
-      "community": 172,
+      "community": 73,
       "norm_label": "subtasks"
     },
     {
@@ -12023,7 +12023,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L793",
       "id": "plans_admindashboardtask_testing_checklist_793",
-      "community": 172,
+      "community": 73,
       "norm_label": "testing checklist"
     },
     {
@@ -12068,7 +12068,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L826",
       "id": "plans_admindashboardtask_19_frontend_tests",
-      "community": 73,
+      "community": 148,
       "norm_label": "19. frontend tests"
     },
     {
@@ -12077,7 +12077,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L828",
       "id": "plans_admindashboardtask_goal_828",
-      "community": 73,
+      "community": 148,
       "norm_label": "goal"
     },
     {
@@ -12086,7 +12086,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L831",
       "id": "plans_admindashboardtask_subtasks_831",
-      "community": 73,
+      "community": 148,
       "norm_label": "subtasks"
     },
     {
@@ -12095,7 +12095,7 @@
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L845",
       "id": "plans_admindashboardtask_testing_checklist_845",
-      "community": 73,
+      "community": 148,
       "norm_label": "testing checklist"
     },
     {
@@ -18079,7 +18079,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/index.js",
       "source_location": "L2",
-      "community": 43,
+      "community": 15,
       "norm_label": "apiplaceholder",
       "id": "api_index_apiplaceholder"
     },
@@ -57082,5 +57082,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "e4ab8f0344c3cc214e051482c0558b35711ab9be"
+  "built_at_commit": "a7abdab95ebf680c59b6bfa3a0fee85519462d08"
 }

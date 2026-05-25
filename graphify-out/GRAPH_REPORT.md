@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-25)
 
 ## Corpus Check
-- 255 files · ~149,199 words
+- 255 files · ~149,250 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2126 nodes · 3620 edges · 173 communities (158 shown, 15 thin omitted)
+- 2126 nodes · 3620 edges · 172 communities (157 shown, 15 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e4ab8f03`
+- Built from commit: `a7abdab9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -174,7 +174,6 @@
 - [[_COMMUNITY_Community 169|Community 169]]
 - [[_COMMUNITY_Community 170|Community 170]]
 - [[_COMMUNITY_Community 171|Community 171]]
-- [[_COMMUNITY_Community 172|Community 172]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `colors` - 74 edges
@@ -200,7 +199,7 @@
 - `AnimatedCartBadge()` --calls--> `useReducedMotion()`  [EXTRACTED]
   Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js → Frontend-V1/src/utils/motionPreferences.js
 
-## Communities (173 total, 15 thin omitted)
+## Communities (172 total, 15 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -248,7 +247,7 @@ Nodes (48): 10. Order Detail, 11. Profile, 12. Edit Profile, 13. Admin Entry, 14
 
 ### Community 15 - "Community 15"
 Cohesion: 0.12
-Nodes (25): AdminDashboardScreen(), MetricCard(), styles, AdminEntryScreen(), styles, AdminLoginScreen(), styles, adminAuthApi (+17 more)
+Nodes (26): AdminDashboardScreen(), MetricCard(), styles, AdminEntryScreen(), styles, AdminLoginScreen(), styles, adminAuthApi (+18 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.25
@@ -299,8 +298,8 @@ Cohesion: 0.06
 Nodes (35): 10. Visual Acceptance Checklist, 11. Implementation Protocol, 12. Assumptions, 1. Design Goal, 2. Reference Match Checklist, 3. Current App Analysis, 4. Design Rules, 5. Things That Must Not Change (+27 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.04
-Nodes (35): styles, AnimatedCartBadge(), styles, styles, styles, ICONS, styles, styles (+27 more)
+Cohesion: 0.03
+Nodes (38): styles, AnimatedCartBadge(), styles, styles, styles, ICONS, styles, styles (+30 more)
 
 ### Community 31 - "Community 31"
 Cohesion: 0.05
@@ -319,8 +318,8 @@ Cohesion: 0.13
 Nodes (23): attachComboItems(), config, createProduct(), deleteProduct(), fs, getAdminProductById(), getAdminProducts(), getComboItemsByComboIds() (+15 more)
 
 ### Community 43 - "Community 43"
-Cohesion: 0.12
-Nodes (30): dashboardApi, apiPlaceholder, ProductsApi, offersApi, productsApi, settingsApi, CategoriesScreen(), DEFAULT_CHIPS (+22 more)
+Cohesion: 0.10
+Nodes (33): dashboardApi, ProductsApi, offersApi, productsApi, settingsApi, CategoriesScreen(), DEFAULT_CHIPS, MOCK_CATEGORIES (+25 more)
 
 ### Community 44 - "Community 44"
 Cohesion: 0.33
@@ -428,11 +427,11 @@ Nodes (13): 2. Dashboard Data Model, Field meaning, Goal, Item types, New table:
 
 ### Community 73 - "Community 73"
 Cohesion: 0.12
-Nodes (15): 16. Rollout Plan, 18. Admin Manager Tests, 19. Frontend Tests, Admin Controlled Mobile Dashboard Tasks, Goal, Goal, Goal, Goal (+7 more)
+Nodes (15): 16. Rollout Plan, 17. Backend Tests, 18. Admin Manager Tests, Admin Controlled Mobile Dashboard Tasks, Goal, Goal, Goal, Goal (+7 more)
 
 ### Community 74 - "Community 74"
-Cohesion: 0.17
-Nodes (10): OrdersApi, LoadingSkeleton(), SkeletonCard(), SkeletonRow(), styles, FILTER_CHIPS, MOCK_ORDERS, OrdersScreen() (+2 more)
+Cohesion: 0.24
+Nodes (6): OrdersApi, FILTER_CHIPS, MOCK_ORDERS, OrdersScreen(), STATUS_CODE_LABELS, styles
 
 ### Community 75 - "Community 75"
 Cohesion: 0.04
@@ -476,7 +475,7 @@ Nodes (12): { hashPassword, comparePassword, signCustomerToken }, login(), me(),
 
 ### Community 87 - "Community 87"
 Cohesion: 0.17
-Nodes (7): AuditApi, CategoriesApi, CombosApi, CustomersApi, HealthApi, MobileDashboardApi, OffersApi
+Nodes (7): AuditApi, CategoriesApi, CombosApi, CustomersApi, MobileDashboardApi, OffersApi, ReportsApi
 
 ### Community 88 - "Community 88"
 Cohesion: 0.22
@@ -699,8 +698,8 @@ Cohesion: 0.17
 Nodes (3): styles, styles, styles
 
 ### Community 148 - "Community 148"
-Cohesion: 0.60
-Nodes (3): Chip(), ChipRow(), styles
+Cohesion: 0.50
+Nodes (4): 19. Frontend Tests, Goal, Subtasks, Testing checklist
 
 ### Community 149 - "Community 149"
 Cohesion: 0.20
@@ -778,10 +777,6 @@ Nodes (5): Category Is Product Metadata And Dashboard Navigation, Combo Is A Pro
 Cohesion: 0.50
 Nodes (4): 14. Admin Manager Tests, Goal, Subtasks, Testing checklist
 
-### Community 172 - "Community 172"
-Cohesion: 0.50
-Nodes (4): 17. Backend Tests, Goal, Subtasks, Testing checklist
-
 ## Knowledge Gaps
 - **1191 isolated node(s):** `install-dbs.sh script`, `id`, `name`, `resources`, `name` (+1186 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -790,7 +785,7 @@ Nodes (4): 17. Backend Tests, Goal, Subtasks, Testing checklist
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `colors` connect `Community 30` to `Community 102`, `Community 74`, `Community 43`, `Community 45`, `Community 15`, `Community 17`, `Community 147`, `Community 148`, `Community 150`, `Community 89`, `Community 59`?**
+- **Why does `colors` connect `Community 30` to `Community 102`, `Community 74`, `Community 43`, `Community 45`, `Community 15`, `Community 17`, `Community 147`, `Community 150`, `Community 89`, `Community 59`?**
   _High betweenness centrality (0.008) - this node is a cross-community bridge._
 - **Why does `pool` connect `Community 70` to `Community 64`, `Community 65`, `Community 66`, `Community 35`, `Community 100`, `Community 103`, `Community 142`, `Community 82`, `Community 54`, `Community 86`, `Community 88`, `Community 56`, `Community 27`?**
   _High betweenness centrality (0.008) - this node is a cross-community bridge._

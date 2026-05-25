@@ -499,6 +499,54 @@ const migrate = async () => {
     }
     console.log('Default dashboard sections and items ready.');
 
+    // Notification Batches Table (for Admin broadcasts)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS notification_batches (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        target VARCHAR(50) NOT NULL,
+        recipient_count INT NOT NULL DEFAULT 0,
+        created_by_admin_id INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL
+      );
+    `);
+    console.log('Notification batches table ready.');
+
+    // Notifications Table (per-user rows)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        source_type VARCHAR(50),
+        source_id INT,
+        event_key VARCHAR(100),
+        batch_id INT,
+        action_type VARCHAR(50),
+        action_payload JSON,
+        read_at TIMESTAMP NULL DEFAULT NULL,
+        seen_at TIMESTAMP NULL DEFAULT NULL,
+        created_by_admin_id INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (batch_id) REFERENCES notification_batches(id) ON DELETE SET NULL,
+        INDEX idx_notifications_user_created (user_id, created_at),
+        INDEX idx_notifications_user_read (user_id, read_at),
+        INDEX idx_notifications_source (source_type, source_id),
+        INDEX idx_notifications_batch (batch_id),
+        INDEX idx_notifications_deleted (deleted_at),
+        UNIQUE KEY uniq_notification_event (user_id, source_type, source_id, event_key)
+      );
+    `);
+    console.log('Notifications table ready.');
+
     console.log('Migration and seeding completed successfully!');
   } catch (error) {
     console.error('Migration failed:', error);

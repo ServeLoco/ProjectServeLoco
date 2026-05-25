@@ -140,15 +140,6 @@ export default function CategoriesScreen() {
       {/* Header */}
       <AppHeader
         title="Categories"
-        cartCount={cartItemCount}
-        onCartPress={handleCartPress}
-        rightActions={[
-          {
-            icon: <AppIcon name="search" size={20} color={colors.textPrimary} />,
-            onPress: handleSearchPress,
-            label: 'Search',
-          }
-        ]}
       />
 
       <View style={styles.content}>
@@ -163,6 +154,20 @@ export default function CategoriesScreen() {
             }}
           />
         </View>
+
+        {/* Search Bar (Fake Input) */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.searchBar}
+          onPress={handleSearchPress}
+          accessibilityRole="search"
+          accessibilityLabel="Search products"
+        >
+          <AppIcon name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+          <Text style={styles.searchText}>
+            Search items, food, snacks...
+          </Text>
+        </TouchableOpacity>
 
         {/* Subcategory Chips */}
         <View>
@@ -296,6 +301,28 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
+  },
+  searchBar: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.bgSurface,
+    height: 50,
+    borderRadius: radius.xxl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
+  },
+  searchIcon: {
+    marginRight: spacing.sm,
+  },
+  searchText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontSize: 14,
   },
   chipsScroll: {
     paddingHorizontal: spacing.lg,
