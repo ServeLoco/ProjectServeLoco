@@ -1,6 +1,7 @@
 const config = require('../config/env');
 const { signAdminToken } = require('../utils/auth');
 const { pool } = require('../db/mysql');
+const notificationService = require('../utils/notificationService');
 
 const queryRows = async (sql, params) => {
   const result = await pool.query(sql, params);
@@ -355,11 +356,12 @@ const updateOrderStatus = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Valid status required. One of: ${validStatuses.join(', ')}` });
   }
 
-  const [orderRows] = await pool.query('SELECT status FROM orders WHERE id = ?', [id]);
+  const [orderRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
   if (orderRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
   const currentStatus = orderRows[0].status;
+  const orderDetails = orderRows[0];
 
   // Terminal states cannot be changed
   if (currentStatus === 'Delivered' || currentStatus === 'Cancelled') {
@@ -377,8 +379,25 @@ const updateOrderStatus = async (req, res) => {
 
   await pool.query('UPDATE orders SET status = ?, cancel_reason = ? WHERE id = ?', [status, cancel_reason || null, id]);
   const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+  const updatedOrder = updatedRows[0];
 
-  res.status(200).json({ message: 'Order status updated successfully', order: updatedRows[0] });
+  if (currentStatus !== status) {
+    let eventName = '';
+    if (status === 'Preparing') eventName = 'status_preparing';
+    else if (status === 'Out for Delivery') eventName = 'status_out_for_delivery';
+    else if (status === 'Delivered') eventName = 'status_delivered';
+    else if (status === 'Cancelled') eventName = 'status_cancelled';
+
+    if (eventName) {
+      notificationService.createOrderNotification({
+        userId: updatedOrder.customer_id,
+        order: updatedOrder,
+        event: eventName
+      });
+    }
+  }
+
+  res.status(200).json({ message: 'Order status updated successfully', order: updatedOrder });
 };
 
 const updateOrderPayment = async (req, res) => {
@@ -392,11 +411,13 @@ const updateOrderPayment = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Valid payment status is required' });
   }
 
-  const [orderRows] = await pool.query('SELECT status FROM orders WHERE id = ?', [id]);
+  const [orderRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
   if (orderRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
+  const currentPaymentStatus = orderRows[0].payment_status;
   const currentStatus = orderRows[0].status;
+  const orderDetails = orderRows[0];
 
   if (currentStatus === 'Canceled' || currentStatus === 'Cancelled') {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot update payment for a canceled order' });
@@ -404,8 +425,24 @@ const updateOrderPayment = async (req, res) => {
 
   await pool.query('UPDATE orders SET payment_status = ? WHERE id = ?', [finalStatus, id]);
   const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+  const updatedOrder = updatedRows[0];
 
-  res.status(200).json({ message: 'Order payment status updated successfully', order: updatedRows[0] });
+  if (currentPaymentStatus !== finalStatus) {
+    let eventName = '';
+    if (finalStatus === 'Paid') eventName = 'payment_paid';
+    else if (finalStatus === 'Failed') eventName = 'payment_failed';
+    else if (finalStatus === 'Refunded') eventName = 'payment_refunded';
+
+    if (eventName) {
+      notificationService.createOrderNotification({
+        userId: updatedOrder.customer_id,
+        order: updatedOrder,
+        event: eventName
+      });
+    }
+  }
+
+  res.status(200).json({ message: 'Order payment status updated successfully', order: updatedOrder });
 };
 
 module.exports = {

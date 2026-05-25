@@ -4,85 +4,400 @@
   "graph": {},
   "nodes": [
     {
+      "label": "app.js",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L1",
+      "id": "backend_v1_src_app_js",
+      "community": 48,
+      "norm_label": "app.js"
+    },
+    {
+      "label": "express",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L1",
+      "id": "src_app_express",
+      "community": 48,
+      "norm_label": "express"
+    },
+    {
+      "label": "path",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L2",
+      "id": "src_app_path",
+      "community": 48,
+      "norm_label": "path"
+    },
+    {
+      "label": "cors",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L3",
+      "id": "src_app_cors",
+      "community": 48,
+      "norm_label": "cors"
+    },
+    {
+      "label": "helmet",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L4",
+      "id": "src_app_helmet",
+      "community": 48,
+      "norm_label": "helmet"
+    },
+    {
+      "label": "morgan",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L5",
+      "id": "src_app_morgan",
+      "community": 48,
+      "norm_label": "morgan"
+    },
+    {
+      "label": "config",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L6",
+      "id": "src_app_config",
+      "community": 48,
+      "norm_label": "config"
+    },
+    {
+      "label": "db",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L7",
+      "id": "src_app_db",
+      "community": 48,
+      "norm_label": "db"
+    },
+    {
+      "label": "{ errorHandler, notFoundHandler }",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L8",
+      "id": "src_app_errorhandler_notfoundhandler",
+      "community": 48,
+      "norm_label": "{ errorhandler, notfoundhandler }"
+    },
+    {
+      "label": "authRoutes",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L10",
+      "id": "src_app_authroutes",
+      "community": 48,
+      "norm_label": "authroutes"
+    },
+    {
+      "label": "adminRoutes",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L11",
+      "id": "src_app_adminroutes",
+      "community": 48,
+      "norm_label": "adminroutes"
+    },
+    {
+      "label": "imageRoutes",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L12",
+      "id": "src_app_imageroutes",
+      "community": 48,
+      "norm_label": "imageroutes"
+    },
+    {
+      "label": "categoryRoutes",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L13",
+      "id": "src_app_categoryroutes",
+      "community": 48,
+      "norm_label": "categoryroutes"
+    },
+    {
+      "label": "productRoutes",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L14",
+      "id": "src_app_productroutes",
+      "community": 48,
+      "norm_label": "productroutes"
+    },
+    {
+      "label": "orderRoutes",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L15",
+      "id": "src_app_orderroutes",
+      "community": 48,
+      "norm_label": "orderroutes"
+    },
+    {
+      "label": "cartRoutes",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L16",
+      "id": "src_app_cartroutes",
+      "community": 48,
+      "norm_label": "cartroutes"
+    },
+    {
+      "label": "settingsRoutes",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L17",
+      "id": "src_app_settingsroutes",
+      "community": 48,
+      "norm_label": "settingsroutes"
+    },
+    {
+      "label": "offerRoutes",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L18",
+      "id": "src_app_offerroutes",
+      "community": 48,
+      "norm_label": "offerroutes"
+    },
+    {
+      "label": "dashboardRoutes",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L19",
+      "id": "src_app_dashboardroutes",
+      "community": 48,
+      "norm_label": "dashboardroutes"
+    },
+    {
+      "label": "notificationRoutes",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L20",
+      "id": "src_app_notificationroutes",
+      "community": 48,
+      "norm_label": "notificationroutes"
+    },
+    {
+      "label": "app",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L22",
+      "id": "src_app_app",
+      "community": 48,
+      "norm_label": "app"
+    },
+    {
+      "label": "notificationController.js",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L1",
+      "id": "backend_v1_src_controllers_notificationcontroller_js",
+      "community": 187,
+      "norm_label": "notificationcontroller.js"
+    },
+    {
+      "label": "{ pool }",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L1",
+      "id": "controllers_notificationcontroller_pool",
+      "community": 187,
+      "norm_label": "{ pool }"
+    },
+    {
+      "label": "notificationService",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L2",
+      "id": "controllers_notificationcontroller_notificationservice",
+      "community": 187,
+      "norm_label": "notificationservice"
+    },
+    {
+      "label": "getNotifications()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L4",
+      "id": "controllers_notificationcontroller_getnotifications",
+      "community": 187,
+      "norm_label": "getnotifications()"
+    },
+    {
+      "label": "getUnreadCount()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L60",
+      "id": "controllers_notificationcontroller_getunreadcount",
+      "community": 187,
+      "norm_label": "getunreadcount()"
+    },
+    {
+      "label": "markAllRead()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L66",
+      "id": "controllers_notificationcontroller_markallread",
+      "community": 187,
+      "norm_label": "markallread()"
+    },
+    {
+      "label": "markRead()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L72",
+      "id": "controllers_notificationcontroller_markread",
+      "community": 187,
+      "norm_label": "markread()"
+    },
+    {
+      "label": "deleteNotification()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L92",
+      "id": "controllers_notificationcontroller_deletenotification",
+      "community": 187,
+      "norm_label": "deletenotification()"
+    },
+    {
+      "label": "notificationRoutes.js",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L1",
+      "id": "backend_v1_src_routes_notificationroutes_js",
+      "community": 187,
+      "norm_label": "notificationroutes.js"
+    },
+    {
+      "label": "express",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L1",
+      "id": "routes_notificationroutes_express",
+      "community": 187,
+      "norm_label": "express"
+    },
+    {
+      "label": "router",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L2",
+      "id": "routes_notificationroutes_router",
+      "community": 187,
+      "norm_label": "router"
+    },
+    {
+      "label": "asyncHandler",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L3",
+      "id": "routes_notificationroutes_asynchandler",
+      "community": 187,
+      "norm_label": "asynchandler"
+    },
+    {
+      "label": "{ requireCustomer }",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L4",
+      "id": "routes_notificationroutes_requirecustomer",
+      "community": 187,
+      "norm_label": "{ requirecustomer }"
+    },
+    {
+      "label": "{\n  getNotifications,\n  getUnreadCount,\n  markAllRead,\n  markRead,\n  deleteNotification\n}",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "id": "routes_notificationroutes_getnotifications_getunreadcount_markallread_markread_deletenotification",
+      "community": 187,
+      "norm_label": "{\n  getnotifications,\n  getunreadcount,\n  markallread,\n  markread,\n  deletenotification\n}"
+    },
+    {
       "label": "notificationService.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L1",
-      "id": "backend_v1_src_utils_notificationservice_js",
       "community": 65,
-      "norm_label": "notificationservice.js"
+      "norm_label": "notificationservice.js",
+      "id": "backend_v1_src_utils_notificationservice_js"
     },
     {
       "label": "{ pool }",
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L1",
-      "id": "utils_notificationservice_pool",
       "community": 65,
-      "norm_label": "{ pool }"
+      "norm_label": "{ pool }",
+      "id": "utils_notificationservice_pool"
     },
     {
       "label": "createNotification()",
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L7",
-      "id": "utils_notificationservice_createnotification",
       "community": 65,
-      "norm_label": "createnotification()"
+      "norm_label": "createnotification()",
+      "id": "utils_notificationservice_createnotification"
     },
     {
       "label": "createManyNotifications()",
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L30",
-      "id": "utils_notificationservice_createmanynotifications",
       "community": 65,
-      "norm_label": "createmanynotifications()"
+      "norm_label": "createmanynotifications()",
+      "id": "utils_notificationservice_createmanynotifications"
     },
     {
       "label": "createOrderNotification()",
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L52",
-      "id": "utils_notificationservice_createordernotification",
       "community": 65,
-      "norm_label": "createordernotification()"
+      "norm_label": "createordernotification()",
+      "id": "utils_notificationservice_createordernotification"
     },
     {
       "label": "createBroadcastNotification()",
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L135",
-      "id": "utils_notificationservice_createbroadcastnotification",
       "community": 65,
-      "norm_label": "createbroadcastnotification()"
+      "norm_label": "createbroadcastnotification()",
+      "id": "utils_notificationservice_createbroadcastnotification"
     },
     {
       "label": "getUnreadCount()",
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L162",
-      "id": "utils_notificationservice_getunreadcount",
       "community": 65,
-      "norm_label": "getunreadcount()"
+      "norm_label": "getunreadcount()",
+      "id": "utils_notificationservice_getunreadcount"
     },
     {
       "label": "markAllRead()",
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L170",
-      "id": "utils_notificationservice_markallread",
       "community": 65,
-      "norm_label": "markallread()"
+      "norm_label": "markallread()",
+      "id": "utils_notificationservice_markallread"
     },
     {
       "label": "softDeleteNotification()",
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L178",
-      "id": "utils_notificationservice_softdeletenotification",
       "community": 65,
-      "norm_label": "softdeletenotification()"
+      "norm_label": "softdeletenotification()",
+      "id": "utils_notificationservice_softdeletenotification"
     },
     {
       "label": "migrate.js",
@@ -1465,7 +1780,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/main.jsx",
       "source_location": "L1",
-      "community": 49,
+      "community": 190,
       "norm_label": "main.jsx",
       "id": "adminmanager_v1_src_main_jsx"
     },
@@ -1474,7 +1789,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/App.jsx",
       "source_location": "L1",
-      "community": 49,
+      "community": 190,
       "norm_label": "app.jsx",
       "id": "adminmanager_v1_src_app_jsx"
     },
@@ -1483,7 +1798,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/App.jsx",
       "source_location": "L22",
-      "community": 49,
+      "community": 190,
       "norm_label": "app()",
       "id": "adminmanager_v1_src_app_jsx_src_app_app"
     },
@@ -1546,7 +1861,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L14",
-      "community": 15,
+      "community": 145,
       "norm_label": "authapi",
       "id": "api_index_authapi"
     },
@@ -1555,7 +1870,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L19",
-      "community": 43,
+      "community": 49,
       "norm_label": "dashboardapi",
       "id": "api_index_dashboardapi"
     },
@@ -1582,7 +1897,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L48",
-      "community": 62,
+      "community": 87,
       "norm_label": "combosapi",
       "id": "api_index_combosapi"
     },
@@ -1591,7 +1906,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L59",
-      "community": 62,
+      "community": 87,
       "norm_label": "categoriesapi",
       "id": "api_index_categoriesapi"
     },
@@ -1600,7 +1915,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L66",
-      "community": 62,
+      "community": 87,
       "norm_label": "offersapi",
       "id": "api_index_offersapi"
     },
@@ -1636,7 +1951,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L91",
-      "community": 87,
+      "community": 190,
       "norm_label": "reportsapi",
       "id": "api_index_reportsapi"
     },
@@ -1663,7 +1978,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L105",
-      "community": 62,
+      "community": 87,
       "norm_label": "mobiledashboardapi",
       "id": "api_index_mobiledashboardapi"
     },
@@ -1717,7 +2032,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/components/AuthProvider.jsx",
       "source_location": "L7",
-      "community": 49,
+      "community": 92,
       "norm_label": "authprovider()",
       "id": "components_authprovider_authprovider"
     },
@@ -1870,7 +2185,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Reports.jsx",
       "source_location": "L1",
-      "community": 87,
+      "community": 190,
       "norm_label": "reports.jsx",
       "id": "adminmanager_v1_src_pages_reports_jsx"
     },
@@ -1879,7 +2194,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Reports.jsx",
       "source_location": "L5",
-      "community": 87,
+      "community": 190,
       "norm_label": "reports()",
       "id": "pages_reports_reports"
     },
@@ -2014,7 +2329,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Audit.jsx",
       "source_location": "L1",
-      "community": 49,
+      "community": 190,
       "norm_label": "audit.jsx",
       "id": "adminmanager_v1_src_pages_audit_jsx"
     },
@@ -2023,7 +2338,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Audit.jsx",
       "source_location": "L3",
-      "community": 49,
+      "community": 190,
       "norm_label": "audit()",
       "id": "pages_audit_audit"
     },
@@ -2122,7 +2437,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
       "source_location": "L1",
-      "community": 62,
+      "community": 87,
       "norm_label": "mobiledashboard.jsx",
       "id": "adminmanager_v1_src_pages_mobiledashboard_jsx"
     },
@@ -2131,7 +2446,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
       "source_location": "L8",
-      "community": 62,
+      "community": 87,
       "norm_label": "mobiledashboard()",
       "id": "pages_mobiledashboard_mobiledashboard"
     },
@@ -2923,7 +3238,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/App.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 15,
       "norm_label": "app.js",
       "id": "frontend_v1_app_js"
     },
@@ -3121,7 +3436,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/__tests__/App.test.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 15,
       "norm_label": "app.test.js",
       "id": "frontend_v1_tests_app_test_js"
     },
@@ -3436,7 +3751,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 43,
       "norm_label": "usecartstore.js",
       "id": "frontend_v1_src_stores_usecartstore_js"
     },
@@ -3454,7 +3769,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 43,
       "norm_label": "index.js",
       "id": "frontend_v1_src_stores_index_js"
     },
@@ -3463,7 +3778,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useAuthStore.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 43,
       "norm_label": "useauthstore.js",
       "id": "frontend_v1_src_stores_useauthstore_js"
     },
@@ -3472,7 +3787,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useAuthStore.js",
       "source_location": "L9",
-      "community": 15,
+      "community": 145,
       "norm_label": "useauthstore",
       "id": "stores_useauthstore_useauthstore"
     },
@@ -3481,7 +3796,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useSettingsStore.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 43,
       "norm_label": "usesettingsstore.js",
       "id": "frontend_v1_src_stores_usesettingsstore_js"
     },
@@ -3643,7 +3958,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 145,
       "norm_label": "profilescreen.js",
       "id": "frontend_v1_src_screens_customer_profilescreen_profilescreen_js"
     },
@@ -3652,7 +3967,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L22",
-      "community": 15,
+      "community": 145,
       "norm_label": "profilescreen()",
       "id": "profilescreen_profilescreen_profilescreen"
     },
@@ -3661,7 +3976,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L168",
-      "community": 15,
+      "community": 145,
       "norm_label": "menuoption()",
       "id": "profilescreen_profilescreen_menuoption"
     },
@@ -3670,7 +3985,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L197",
-      "community": 15,
+      "community": 145,
       "norm_label": "styles",
       "id": "profilescreen_profilescreen_styles"
     },
@@ -3895,7 +4210,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 145,
       "norm_label": "editprofilescreen.js",
       "id": "frontend_v1_src_screens_customer_editprofilescreen_editprofilescreen_js"
     },
@@ -3904,7 +4219,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L21",
-      "community": 15,
+      "community": 145,
       "norm_label": "editprofilescreen()",
       "id": "editprofilescreen_editprofilescreen_editprofilescreen"
     },
@@ -3913,7 +4228,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L180",
-      "community": 15,
+      "community": 145,
       "norm_label": "styles",
       "id": "editprofilescreen_editprofilescreen_styles"
     },
@@ -4003,7 +4318,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/AuthScreen/AuthScreen.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 145,
       "norm_label": "authscreen.js",
       "id": "frontend_v1_src_screens_customer_authscreen_authscreen_js"
     },
@@ -4012,7 +4327,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/AuthScreen/AuthScreen.js",
       "source_location": "L33",
-      "community": 15,
+      "community": 145,
       "norm_label": "authscreen()",
       "id": "authscreen_authscreen_authscreen"
     },
@@ -4021,7 +4336,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/AuthScreen/AuthScreen.js",
       "source_location": "L324",
-      "community": 15,
+      "community": 145,
       "norm_label": "styles",
       "id": "authscreen_authscreen_styles"
     },
@@ -4201,7 +4516,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/authApi.js",
       "source_location": "L3",
-      "community": 15,
+      "community": 145,
       "norm_label": "authapi",
       "id": "api_authapi_authapi"
     },
@@ -4507,7 +4822,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/store/index.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 43,
       "norm_label": "index.js",
       "id": "frontend_v1_src_store_index_js"
     },
@@ -4561,7 +4876,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 15,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textbutton_index_js"
     },
@@ -4570,7 +4885,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 15,
       "norm_label": "textbutton.js",
       "id": "frontend_v1_src_components_textbutton_textbutton_js"
     },
@@ -4579,7 +4894,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
-      "community": 147,
+      "community": 15,
       "norm_label": "textbutton()",
       "id": "textbutton_textbutton_textbutton"
     },
@@ -4588,7 +4903,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
-      "community": 147,
+      "community": 15,
       "norm_label": "styles",
       "id": "textbutton_textbutton_styles"
     },
@@ -4867,7 +5182,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/BillSummary/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 147,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_billsummary_index_js"
     },
@@ -4912,7 +5227,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 15,
       "norm_label": "appscreen.js",
       "id": "frontend_v1_src_components_appscreen_appscreen_js"
     },
@@ -4921,7 +5236,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L19",
-      "community": 147,
+      "community": 15,
       "norm_label": "appscreen()",
       "id": "appscreen_appscreen_appscreen"
     },
@@ -4930,7 +5245,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L55",
-      "community": 147,
+      "community": 15,
       "norm_label": "styles",
       "id": "appscreen_appscreen_styles"
     },
@@ -4939,7 +5254,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/index.js",
       "source_location": "L1",
-      "community": 147,
+      "community": 15,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appscreen_index_js"
     },
@@ -5056,7 +5371,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedStickyMiniCart/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 147,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedstickyminicart_index_js"
     },
@@ -5065,7 +5380,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedStickyMiniCart/AnimatedStickyMiniCart.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 147,
       "norm_label": "animatedstickyminicart.js",
       "id": "frontend_v1_src_components_animatedstickyminicart_animatedstickyminicart_js"
     },
@@ -5614,7 +5929,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 145,
       "norm_label": "layout.js",
       "id": "frontend_v1_src_theme_layout_js"
     },
@@ -5623,7 +5938,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L7",
-      "community": 43,
+      "community": 145,
       "norm_label": "layout",
       "id": "theme_layout_layout"
     },
@@ -5659,7 +5974,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 17,
       "norm_label": "spacing.js",
       "id": "frontend_v1_src_theme_spacing_js"
     },
@@ -5668,7 +5983,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L6",
-      "community": 30,
+      "community": 17,
       "norm_label": "spacing",
       "id": "theme_spacing_spacing"
     },
@@ -5722,7 +6037,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
-      "community": 15,
+      "community": 30,
       "norm_label": "typography",
       "id": "theme_typography_typography"
     },
@@ -5740,7 +6055,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 15,
       "norm_label": "shadows.js",
       "id": "frontend_v1_src_theme_shadows_js"
     },
@@ -5749,7 +6064,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L11",
-      "community": 30,
+      "community": 15,
       "norm_label": "makeshadow()",
       "id": "theme_shadows_makeshadow"
     },
@@ -5758,7 +6073,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L23",
-      "community": 17,
+      "community": 145,
       "norm_label": "shadows",
       "id": "theme_shadows_shadows"
     },
@@ -5767,7 +6082,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 15,
       "norm_label": "colors.js",
       "id": "frontend_v1_src_theme_colors_js"
     },
@@ -5776,7 +6091,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L10",
-      "community": 30,
+      "community": 15,
       "norm_label": "palette",
       "id": "theme_colors_palette"
     },
@@ -6694,7 +7009,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L1",
-      "community": 67,
+      "community": 189,
       "norm_label": "image.test.js",
       "id": "backend_v1_tests_image_test_js"
     },
@@ -6703,7 +7018,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L1",
-      "community": 67,
+      "community": 189,
       "norm_label": "request",
       "id": "tests_image_test_request"
     },
@@ -6712,7 +7027,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L2",
-      "community": 67,
+      "community": 189,
       "norm_label": "express",
       "id": "tests_image_test_express"
     },
@@ -6721,7 +7036,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L3",
-      "community": 67,
+      "community": 189,
       "norm_label": "imageroutes",
       "id": "tests_image_test_imageroutes"
     },
@@ -6730,7 +7045,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L4",
-      "community": 67,
+      "community": 189,
       "norm_label": "{ getdb }",
       "id": "tests_image_test_getdb"
     },
@@ -6739,7 +7054,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L5",
-      "community": 67,
+      "community": 189,
       "norm_label": "jwt",
       "id": "tests_image_test_jwt"
     },
@@ -6748,7 +7063,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L11",
-      "community": 67,
+      "community": 189,
       "norm_label": "mockinsertone",
       "id": "tests_image_test_mockinsertone"
     },
@@ -6757,7 +7072,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L18",
-      "community": 67,
+      "community": 189,
       "norm_label": "app",
       "id": "tests_image_test_app"
     },
@@ -6766,7 +7081,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L22",
-      "community": 67,
+      "community": 189,
       "norm_label": "token",
       "id": "tests_image_test_token"
     },
@@ -7230,191 +7545,11 @@
       "id": "tests_remaining_test_customertoken"
     },
     {
-      "label": "app.js",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L1",
-      "community": 48,
-      "norm_label": "app.js",
-      "id": "backend_v1_src_app_js"
-    },
-    {
-      "label": "express",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L1",
-      "community": 48,
-      "norm_label": "express",
-      "id": "src_app_express"
-    },
-    {
-      "label": "path",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L2",
-      "community": 48,
-      "norm_label": "path",
-      "id": "src_app_path"
-    },
-    {
-      "label": "cors",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L3",
-      "community": 48,
-      "norm_label": "cors",
-      "id": "src_app_cors"
-    },
-    {
-      "label": "helmet",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L4",
-      "community": 48,
-      "norm_label": "helmet",
-      "id": "src_app_helmet"
-    },
-    {
-      "label": "morgan",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L5",
-      "community": 48,
-      "norm_label": "morgan",
-      "id": "src_app_morgan"
-    },
-    {
-      "label": "config",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L6",
-      "community": 48,
-      "norm_label": "config",
-      "id": "src_app_config"
-    },
-    {
-      "label": "db",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L7",
-      "community": 48,
-      "norm_label": "db",
-      "id": "src_app_db"
-    },
-    {
-      "label": "{ errorHandler, notFoundHandler }",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L8",
-      "community": 48,
-      "norm_label": "{ errorhandler, notfoundhandler }",
-      "id": "src_app_errorhandler_notfoundhandler"
-    },
-    {
-      "label": "authRoutes",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L10",
-      "community": 48,
-      "norm_label": "authroutes",
-      "id": "src_app_authroutes"
-    },
-    {
-      "label": "adminRoutes",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L11",
-      "community": 48,
-      "norm_label": "adminroutes",
-      "id": "src_app_adminroutes"
-    },
-    {
-      "label": "imageRoutes",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L12",
-      "community": 48,
-      "norm_label": "imageroutes",
-      "id": "src_app_imageroutes"
-    },
-    {
-      "label": "categoryRoutes",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L13",
-      "community": 48,
-      "norm_label": "categoryroutes",
-      "id": "src_app_categoryroutes"
-    },
-    {
-      "label": "productRoutes",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L14",
-      "community": 48,
-      "norm_label": "productroutes",
-      "id": "src_app_productroutes"
-    },
-    {
-      "label": "orderRoutes",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L15",
-      "community": 48,
-      "norm_label": "orderroutes",
-      "id": "src_app_orderroutes"
-    },
-    {
-      "label": "cartRoutes",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L16",
-      "community": 48,
-      "norm_label": "cartroutes",
-      "id": "src_app_cartroutes"
-    },
-    {
-      "label": "settingsRoutes",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L17",
-      "community": 48,
-      "norm_label": "settingsroutes",
-      "id": "src_app_settingsroutes"
-    },
-    {
-      "label": "offerRoutes",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L18",
-      "community": 48,
-      "norm_label": "offerroutes",
-      "id": "src_app_offerroutes"
-    },
-    {
-      "label": "dashboardRoutes",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L19",
-      "community": 48,
-      "norm_label": "dashboardroutes",
-      "id": "src_app_dashboardroutes"
-    },
-    {
-      "label": "app",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L21",
-      "community": 48,
-      "norm_label": "app",
-      "id": "backend_v1_src_app_js_src_app_app"
-    },
-    {
       "label": "server.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L1",
-      "community": 48,
+      "community": 192,
       "norm_label": "server.js",
       "id": "backend_v1_src_server_js"
     },
@@ -7423,7 +7558,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L1",
-      "community": 48,
+      "community": 192,
       "norm_label": "app",
       "id": "src_server_app"
     },
@@ -7432,7 +7567,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L2",
-      "community": 48,
+      "community": 192,
       "norm_label": "config",
       "id": "src_server_config"
     },
@@ -7441,7 +7576,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L3",
-      "community": 48,
+      "community": 192,
       "norm_label": "db",
       "id": "src_server_db"
     },
@@ -7450,7 +7585,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L9",
-      "community": 48,
+      "community": 192,
       "norm_label": "startserver()",
       "id": "src_server_startserver"
     },
@@ -7459,7 +7594,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L25",
-      "community": 48,
+      "community": 192,
       "norm_label": "shutdown()",
       "id": "src_server_shutdown"
     },
@@ -7468,7 +7603,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 188,
       "norm_label": "seed_demo.js",
       "id": "backend_v1_src_db_seed_demo_js"
     },
@@ -7477,7 +7612,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L2",
-      "community": 149,
+      "community": 188,
       "norm_label": "{ pool }",
       "id": "db_seed_demo_pool"
     },
@@ -7486,7 +7621,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L3",
-      "community": 149,
+      "community": 188,
       "norm_label": "{ getdb, connect }",
       "id": "db_seed_demo_getdb_connect"
     },
@@ -7495,7 +7630,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L4",
-      "community": 149,
+      "community": 188,
       "norm_label": "{ objectid }",
       "id": "db_seed_demo_objectid"
     },
@@ -7504,7 +7639,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L5",
-      "community": 149,
+      "community": 188,
       "norm_label": "bcrypt",
       "id": "db_seed_demo_bcrypt"
     },
@@ -7513,7 +7648,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L7",
-      "community": 149,
+      "community": 188,
       "norm_label": "seeddemodata()",
       "id": "db_seed_demo_seeddemodata"
     },
@@ -7567,7 +7702,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 188,
       "norm_label": "mongodb.js",
       "id": "backend_v1_src_db_mongodb_js"
     },
@@ -7576,7 +7711,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 188,
       "norm_label": "{ mongoclient }",
       "id": "db_mongodb_mongoclient"
     },
@@ -7585,7 +7720,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L2",
-      "community": 149,
+      "community": 188,
       "norm_label": "config",
       "id": "db_mongodb_config"
     },
@@ -7594,7 +7729,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L7",
-      "community": 149,
+      "community": 188,
       "norm_label": "connect()",
       "id": "db_mongodb_connect"
     },
@@ -7612,7 +7747,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L29",
-      "community": 149,
+      "community": 188,
       "norm_label": "close()",
       "id": "db_mongodb_close"
     },
@@ -7621,7 +7756,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L38",
-      "community": 149,
+      "community": 188,
       "norm_label": "checkconnection()",
       "id": "db_mongodb_checkconnection"
     },
@@ -7630,7 +7765,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L1",
-      "community": 48,
+      "community": 191,
       "norm_label": "index.js",
       "id": "backend_v1_src_db_index_js"
     },
@@ -7639,7 +7774,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L1",
-      "community": 48,
+      "community": 191,
       "norm_label": "mysqldb",
       "id": "db_index_mysqldb"
     },
@@ -7648,7 +7783,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L2",
-      "community": 48,
+      "community": 191,
       "norm_label": "mongodb",
       "id": "db_index_mongodb"
     },
@@ -7657,7 +7792,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L4",
-      "community": 48,
+      "community": 191,
       "norm_label": "initdb()",
       "id": "db_index_initdb"
     },
@@ -7666,7 +7801,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L14",
-      "community": 48,
+      "community": 191,
       "norm_label": "closedb()",
       "id": "db_index_closedb"
     },
@@ -7675,7 +7810,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/index.js",
       "source_location": "L21",
-      "community": 48,
+      "community": 191,
       "norm_label": "checkhealth()",
       "id": "db_index_checkhealth"
     },
@@ -8674,7 +8809,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/errorHandler.js",
       "source_location": "L1",
-      "community": 48,
+      "community": 194,
       "norm_label": "errorhandler.js",
       "id": "backend_v1_src_middleware_errorhandler_js"
     },
@@ -8683,7 +8818,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/errorHandler.js",
       "source_location": "L1",
-      "community": 48,
+      "community": 194,
       "norm_label": "config",
       "id": "middleware_errorhandler_config"
     },
@@ -8692,7 +8827,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/errorHandler.js",
       "source_location": "L3",
-      "community": 48,
+      "community": 194,
       "norm_label": "errorhandler()",
       "id": "middleware_errorhandler_errorhandler"
     },
@@ -8701,7 +8836,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/errorHandler.js",
       "source_location": "L39",
-      "community": 48,
+      "community": 194,
       "norm_label": "notfoundhandler()",
       "id": "middleware_errorhandler_notfoundhandler"
     },
@@ -16000,7 +16135,7 @@
       "file_type": "document",
       "source_file": "plans/frontnew.md",
       "source_location": "L590",
-      "community": 85,
+      "community": 193,
       "norm_label": "16. final verification",
       "id": "plans_frontnew_16_final_verification"
     },
@@ -16009,7 +16144,7 @@
       "file_type": "document",
       "source_file": "plans/frontnew.md",
       "source_location": "L592",
-      "community": 85,
+      "community": 193,
       "norm_label": "goal",
       "id": "plans_frontnew_goal_592"
     },
@@ -16018,7 +16153,7 @@
       "file_type": "document",
       "source_file": "plans/frontnew.md",
       "source_location": "L595",
-      "community": 85,
+      "community": 193,
       "norm_label": "commands/checks",
       "id": "plans_frontnew_commands_checks"
     },
@@ -16027,7 +16162,7 @@
       "file_type": "document",
       "source_file": "plans/frontnew.md",
       "source_location": "L601",
-      "community": 85,
+      "community": 193,
       "norm_label": "manual flow checklist",
       "id": "plans_frontnew_manual_flow_checklist"
     },
@@ -16036,7 +16171,7 @@
       "file_type": "document",
       "source_file": "plans/frontnew.md",
       "source_location": "L616",
-      "community": 85,
+      "community": 193,
       "norm_label": "acceptance criteria",
       "id": "plans_frontnew_acceptance_criteria"
     },
@@ -17197,7 +17332,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L568",
-      "community": 145,
+      "community": 73,
       "norm_label": "13. backend tests",
       "id": "plans_admindashboardtask_13_backend_tests"
     },
@@ -17206,7 +17341,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L570",
-      "community": 145,
+      "community": 73,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_570"
     },
@@ -17215,7 +17350,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L573",
-      "community": 145,
+      "community": 73,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_573"
     },
@@ -17224,7 +17359,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L584",
-      "community": 145,
+      "community": 73,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_584"
     },
@@ -17233,7 +17368,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L591",
-      "community": 73,
+      "community": 195,
       "norm_label": "14. admin manager tests",
       "id": "plans_admindashboardtask_14_admin_manager_tests"
     },
@@ -17242,7 +17377,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L593",
-      "community": 73,
+      "community": 195,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_593"
     },
@@ -17251,7 +17386,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L596",
-      "community": 73,
+      "community": 195,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_596"
     },
@@ -17260,7 +17395,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L607",
-      "community": 73,
+      "community": 195,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_607"
     },
@@ -17377,7 +17512,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useAdminAuthStore.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 43,
       "norm_label": "useadminauthstore.js",
       "id": "frontend_v1_src_stores_useadminauthstore_js"
     },
@@ -17539,7 +17674,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 46,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminorderdetailscreen_index_js"
     },
@@ -18246,15 +18381,6 @@
       "id": "adminmetriccard_adminmetriccard_styles"
     },
     {
-      "label": "app",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L20",
-      "community": 48,
-      "norm_label": "app",
-      "id": "src_app_app"
-    },
-    {
       "label": "{ uploadImage, deleteImage }",
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/imageRoutes.js",
@@ -18619,7 +18745,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/seed_demo.js",
       "source_location": "L3",
-      "community": 149,
+      "community": 188,
       "norm_label": "{ getdb }",
       "id": "db_seed_demo_getdb"
     },
@@ -18718,7 +18844,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 145,
       "norm_label": "profilescreen.js",
       "id": "frontend_v1_src_screens_profilescreen_profilescreen_js"
     },
@@ -18763,7 +18889,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 46,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminorderdetailscreen_index_js"
     },
@@ -18808,7 +18934,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 145,
       "norm_label": "editprofilescreen.js",
       "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js"
     },
@@ -18862,7 +18988,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 46,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminproductsscreen_index_js"
     },
@@ -18916,7 +19042,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/index.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_index_js"
     },
@@ -18925,7 +19051,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductFormScreen/index.js",
       "source_location": "L1",
-      "community": 46,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_adminproductformscreen_index_js"
     },
@@ -18979,7 +19105,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 145,
       "norm_label": "authscreen.js",
       "id": "frontend_v1_src_screens_authscreen_authscreen_js"
     },
@@ -19033,7 +19159,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/store/index.js",
       "source_location": "L2",
-      "community": 15,
+      "community": 43,
       "norm_label": "storesplaceholder",
       "id": "store_index_storesplaceholder"
     },
@@ -20246,15 +20372,610 @@
   ],
   "links": [
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_express"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_path"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_cors"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_helmet"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_morgan"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_config"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_db"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "middleware_errorhandler_errorhandler"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "middleware_errorhandler_notfoundhandler"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_errorhandler_notfoundhandler"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_authroutes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_adminroutes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_imageroutes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_categoryroutes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_productroutes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_orderroutes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_cartroutes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_settingsroutes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_offerroutes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_dashboardroutes"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_routes_notificationroutes_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_notificationroutes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "src_app_app"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_config_env_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_db_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_middleware_errorhandler_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_routes_authroutes_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_routes_adminroutes_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_routes_imageroutes_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_routes_categoryroutes_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_routes_productroutes_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_routes_orderroutes_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_routes_cartroutes_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_routes_settingsroutes_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_routes_offerroutes_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/app.js",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_app_js",
+      "target": "backend_v1_src_routes_dashboardroutes_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/server.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_server_js",
+      "target": "backend_v1_src_app_js"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "backend_v1_src_controllers_notificationcontroller_js",
+      "target": "db_mysql_pool",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "backend_v1_src_controllers_notificationcontroller_js",
+      "target": "controllers_notificationcontroller_pool",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "backend_v1_src_controllers_notificationcontroller_js",
+      "target": "controllers_notificationcontroller_notificationservice",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "backend_v1_src_controllers_notificationcontroller_js",
+      "target": "controllers_notificationcontroller_getnotifications",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "backend_v1_src_controllers_notificationcontroller_js",
+      "target": "controllers_notificationcontroller_getunreadcount",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "backend_v1_src_controllers_notificationcontroller_js",
+      "target": "controllers_notificationcontroller_markallread",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "backend_v1_src_controllers_notificationcontroller_js",
+      "target": "controllers_notificationcontroller_markread",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L92",
+      "weight": 1.0,
+      "source": "backend_v1_src_controllers_notificationcontroller_js",
+      "target": "controllers_notificationcontroller_deletenotification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "backend_v1_src_controllers_notificationcontroller_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/notificationController.js",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "controllers_notificationcontroller_getnotifications",
+      "target": "controllers_notificationcontroller_getunreadcount",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "controllers_notificationcontroller_getnotifications",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "controllers_notificationcontroller_getunreadcount",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "controllers_notificationcontroller_markallread",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "controllers_notificationcontroller_markread",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "controllers_notificationcontroller_deletenotification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "routes_notificationroutes_express",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "routes_notificationroutes_router",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "routes_notificationroutes_asynchandler",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "routes_notificationroutes_requirecustomer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/notificationRoutes.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "backend_v1_src_routes_notificationroutes_js",
+      "target": "routes_notificationroutes_getnotifications_getunreadcount_markallread_markread_deletenotification",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "db_mysql_pool",
-      "confidence_score": 1.0
+      "target": "db_mysql_pool"
     },
     {
       "relation": "contains",
@@ -20262,9 +20983,9 @@
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_pool",
-      "confidence_score": 1.0
+      "target": "utils_notificationservice_pool"
     },
     {
       "relation": "contains",
@@ -20272,9 +20993,9 @@
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_createnotification",
-      "confidence_score": 1.0
+      "target": "utils_notificationservice_createnotification"
     },
     {
       "relation": "contains",
@@ -20282,9 +21003,9 @@
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L30",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_createmanynotifications",
-      "confidence_score": 1.0
+      "target": "utils_notificationservice_createmanynotifications"
     },
     {
       "relation": "contains",
@@ -20292,9 +21013,9 @@
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L52",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_createordernotification",
-      "confidence_score": 1.0
+      "target": "utils_notificationservice_createordernotification"
     },
     {
       "relation": "contains",
@@ -20302,9 +21023,9 @@
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L135",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_createbroadcastnotification",
-      "confidence_score": 1.0
+      "target": "utils_notificationservice_createbroadcastnotification"
     },
     {
       "relation": "contains",
@@ -20312,9 +21033,9 @@
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L162",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_getunreadcount",
-      "confidence_score": 1.0
+      "target": "utils_notificationservice_getunreadcount"
     },
     {
       "relation": "contains",
@@ -20322,9 +21043,9 @@
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L170",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_markallread",
-      "confidence_score": 1.0
+      "target": "utils_notificationservice_markallread"
     },
     {
       "relation": "contains",
@@ -20332,9 +21053,9 @@
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L178",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "backend_v1_src_utils_notificationservice_js",
-      "target": "utils_notificationservice_softdeletenotification",
-      "confidence_score": 1.0
+      "target": "utils_notificationservice_softdeletenotification"
     },
     {
       "relation": "calls",
@@ -20343,9 +21064,9 @@
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L153",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "utils_notificationservice_createbroadcastnotification",
-      "target": "utils_notificationservice_createmanynotifications",
-      "confidence_score": 1.0
+      "target": "utils_notificationservice_createmanynotifications"
     },
     {
       "relation": "contains",
@@ -41084,382 +41805,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_express"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_path"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_cors"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_helmet"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_morgan"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_config_env_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_config"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_db_index_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_db"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_middleware_errorhandler_js"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "middleware_errorhandler_errorhandler"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "middleware_errorhandler_notfoundhandler"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_errorhandler_notfoundhandler"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_routes_authroutes_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_authroutes"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L9",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_routes_adminroutes_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L9",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_adminroutes"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_routes_imageroutes_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_imageroutes"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_routes_categoryroutes_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_categoryroutes"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_routes_productroutes_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_productroutes"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_routes_orderroutes_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_orderroutes"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_routes_cartroutes_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_cartroutes"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_routes_settingsroutes_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_settingsroutes"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_routes_offerroutes_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_offerroutes"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_routes_dashboardroutes_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_dashboardroutes"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L20",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "backend_v1_src_app_js_src_app_app"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/server.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_server_js",
-      "target": "backend_v1_src_app_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/app.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_app_js",
-      "target": "src_app_app"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "Backend-V1/src/server.js",
       "source_location": "L1",
       "weight": 1.0,
@@ -59402,5 +59747,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "100d1f4bc0b4e24787372dc6386aa8040b830fea"
+  "built_at_commit": "ba80b78a46ee49079fd238d619a428fbe5a2d913"
 }

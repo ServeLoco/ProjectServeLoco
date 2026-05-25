@@ -1,5 +1,6 @@
 const { pool } = require('../db/mysql');
 const { calculateDeliveryPricing } = require('../utils/deliveryPricing');
+const notificationService = require('../utils/notificationService');
 const { calculateThresholdDeliveryCharge } = require('../utils/thresholdDelivery');
 
 const generateOrderNumber = async (connection) => {
@@ -181,6 +182,13 @@ const createOrder = async (req, res) => {
       }))
     };
 
+    // Fire notification (non-blocking)
+    notificationService.createOrderNotification({
+      userId,
+      order,
+      event: 'order_placed'
+    });
+
     res.status(201).json({
       message: 'Order placed successfully',
       orderId,
@@ -250,10 +258,17 @@ const cancelOrder = async (req, res) => {
 
   await pool.query(
     'UPDATE orders SET status = "Cancelled", cancel_reason = ? WHERE id = ?',
-    [reason || null, id]
+    [reason || 'Cancelled by customer', id]
   );
 
-  res.status(200).json({ message: 'Order cancelled successfully' });
+  // Fire notification (non-blocking)
+  notificationService.createOrderNotification({
+    userId,
+    order,
+    event: 'status_cancelled'
+  });
+
+  res.status(200).json({ success: true, message: 'Order cancelled successfully' });
 };
 
 module.exports = {
