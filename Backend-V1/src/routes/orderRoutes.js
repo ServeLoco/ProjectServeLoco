@@ -4,6 +4,15 @@ const asyncHandler = require('../utils/asyncHandler');
 const { createOrder, getOrders, getOrderById, cancelOrder } = require('../controllers/orderController');
 const { requireCustomer } = require('../middleware/authMiddleware');
 const { validate, isEnum, isNumericAmount, validateCoordinates } = require('../validators');
+const { body, validationResult } = require('express-validator');
+
+const validateExpress = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', errors: errors.array() });
+  }
+  next();
+};
 
 const createOrderSchema = (req) => {
   const errors = {};
@@ -51,7 +60,15 @@ const createOrderSchema = (req) => {
   return { errors, data };
 };
 
-router.post('/', requireCustomer, validate(createOrderSchema), asyncHandler(createOrder));
+const expressValidatorChecks = [
+  body('customer_id').optional().isInt().withMessage('customer_id must be an integer'),
+  body('items').isArray({ min: 1 }).withMessage('items must be a non-empty array'),
+  body('items.*.product_id').notEmpty().withMessage('product_id is required'),
+  body('items.*.quantity').isInt({ min: 1 }).withMessage('quantity must be at least 1'),
+  body('total').optional().isNumeric().withMessage('total must be numeric')
+];
+
+router.post('/', requireCustomer, expressValidatorChecks, validateExpress, validate(createOrderSchema), asyncHandler(createOrder));
 router.get('/', requireCustomer, asyncHandler(getOrders));
 router.get('/:id', requireCustomer, asyncHandler(getOrderById));
 router.patch('/:id/cancel', requireCustomer, asyncHandler(cancelOrder));

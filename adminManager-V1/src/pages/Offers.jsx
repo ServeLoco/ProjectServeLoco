@@ -117,6 +117,7 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
   });
   
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -142,7 +143,7 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
         image_url: image.imageUrl || image.image_url || image.url || '',
       }));
     } catch (err) {
-      alert('Image upload failed: ' + err.message);
+      setFormError('Image upload failed: ' + err.message);
     } finally {
       setUploadingImage(false);
     }
@@ -151,6 +152,7 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setFormError(null);
       setSaving(true);
       const payload = {
         ...formData,
@@ -164,7 +166,7 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
       }
       onSave();
     } catch (err) {
-      alert('Failed to save offer: ' + (err.response?.data?.message || err.message));
+      setFormError('Failed to save offer: ' + (err.response?.data?.message || err.message));
       setSaving(false);
     }
   };
@@ -172,11 +174,12 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
   const handleDelete = async () => {
     if (!window.confirm('Delete this offer permanently?')) return;
     try {
+      setFormError(null);
       setSaving(true);
       await OffersApi.delete(offer.id);
       onSave();
     } catch (err) {
-      alert('Delete failed: ' + (err.response?.data?.message || err.message));
+      setFormError('Delete failed: ' + (err.response?.data?.message || err.message));
       setSaving(false);
     }
   };
@@ -191,6 +194,7 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
           </div>
           
           <div className="drawer-body">
+            {formError && <div className="error-container" style={{ marginBottom: '1rem' }}>{formError}</div>}
             <div className="form-group">
               <label className="form-label">Offer Title</label>
               <input required type="text" name="title" className="form-input" value={formData.title} onChange={handleChange} />

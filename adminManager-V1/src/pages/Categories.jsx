@@ -149,6 +149,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
   });
   
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -188,7 +189,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
         image_url: image.imageUrl || image.image_url || image.url || '',
       }));
     } catch (err) {
-      alert('Image upload failed: ' + err.message);
+      setFormError('Image upload failed: ' + err.message);
     } finally {
       setUploadingImage(false);
     }
@@ -197,6 +198,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setFormError(null);
       setSaving(true);
       const payload = {
         ...formData,
@@ -213,7 +215,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
       }
       onSave();
     } catch (err) {
-      alert('Failed to save category: ' + (err.response?.data?.message || err.message));
+      setFormError('Failed to save category: ' + (err.response?.data?.message || err.message));
       setSaving(false);
     }
   };
@@ -221,11 +223,12 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
   const handleDelete = async () => {
     if (!window.confirm('Delete this category? This will fail if products are still assigned to it.')) return;
     try {
+      setFormError(null);
       setSaving(true);
       await CategoriesApi.delete(category.id);
       onSave();
     } catch (err) {
-      alert('Delete failed (likely products exist): ' + (err.response?.data?.message || err.message));
+      setFormError('Delete failed (likely products exist): ' + (err.response?.data?.message || err.message));
       setSaving(false);
     }
   };
@@ -240,6 +243,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
           </div>
           
           <div className="drawer-body">
+            {formError && <div className="error-container" style={{ marginBottom: '1rem' }}>{formError}</div>}
             <div className="form-group">
               <label className="form-label">Category Name</label>
               <input required type="text" name="name" className="form-input" value={formData.name} onChange={handleChange} />
