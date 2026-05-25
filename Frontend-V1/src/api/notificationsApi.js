@@ -1,4 +1,4 @@
-import apiClient from './client';
+import { apiClient } from './httpClient';
 import { mapNotification } from '../utils/apiMappers';
 
 export const list = async (params = {}) => {
