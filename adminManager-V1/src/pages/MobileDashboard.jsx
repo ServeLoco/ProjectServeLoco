@@ -3,14 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { MobileDashboardApi, ProductsApi, CategoriesApi, OffersApi } from '../api';
 import './MobileDashboard.css';
 
-const readList = (res, key) => {
-  const candidates = [
-    res?.[key],
-    res?.data?.[key],
-    res?.data,
-  ];
-  return candidates.find(Array.isArray) || [];
-};
+import { readList } from '../utils/apiResponse';
 
 export default function MobileDashboard() {
   const [sections, setSections] = useState([]);

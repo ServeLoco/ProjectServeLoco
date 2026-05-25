@@ -111,11 +111,11 @@ const getProducts = async (req, res) => {
   const finalCategoryId = categoryId || category_id;
   const finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
 
-  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order
+  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order
     FROM products p LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.available = 1 AND p.deleted = 0`;
   
-  const comboQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, 1 as is_combo, p.featured, p.original_price, p.discount_label, NULL as category_id, NULL as category_name, 'all' as category_type, 999 as cat_display_order
+  const comboQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, 1 as is_combo, p.featured, p.original_price, p.discount_label, NULL as category_id, NULL as category_name, 'all' as category_type, 999 as cat_display_order, p.display_order as item_display_order
     FROM combos p
     WHERE p.available = 1 AND p.deleted = 0`;
 
@@ -140,7 +140,7 @@ const getProducts = async (req, res) => {
     finalQuery = `(${buildSubQuery(productQuery, false)}) UNION (${buildSubQuery(comboQuery, true)})`;
   }
 
-  finalQuery += ' ORDER BY cat_display_order ASC, id ASC';
+  finalQuery += ' ORDER BY cat_display_order ASC, item_display_order ASC, id ASC';
   if (limit && Number.isInteger(Number(limit)) && Number(limit) > 0) {
     finalQuery += ' LIMIT ?';
     finalParams.push(Number(limit));
@@ -291,7 +291,7 @@ const getAdminProducts = async (req, res) => {
     params.push(featured === 'true' || featured === '1' ? 1 : 0);
   }
 
-  query += ' ORDER BY p.id DESC';
+  query += ' ORDER BY p.display_order ASC, p.id DESC';
 
   const [rows] = await pool.query(query, params);
 

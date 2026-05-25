@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { OrdersApi } from '../api';
+import { readList } from '../utils/apiResponse';
 import './Orders.css';
 
 export default function Orders() {
@@ -29,7 +30,7 @@ export default function Orders() {
       Object.keys(params).forEach(k => !params[k] && delete params[k]);
 
       const res = await OrdersApi.list(params);
-      setOrders(res.data);
+      setOrders(readList(res, ['orders']));
       if (res.pagination) {
         setPagination(res.pagination);
       }
@@ -106,7 +107,7 @@ export default function Orders() {
       Object.keys(params).forEach(k => !params[k] && delete params[k]);
       
       const res = await OrdersApi.list(params);
-      const allFilteredOrders = res.data || [];
+      const allFilteredOrders = readList(res, ['orders']);
       
       if (allFilteredOrders.length === 0) {
         alert('No orders found to export');

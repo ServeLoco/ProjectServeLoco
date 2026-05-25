@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { OffersApi, ImagesApi } from '../api';
+import { readList } from '../utils/apiResponse';
 import './Offers.css';
 
 export default function Offers() {
@@ -18,7 +19,7 @@ export default function Offers() {
     try {
       setLoading(true);
       const res = await OffersApi.list();
-      setOffers(res.data || []);
+      setOffers(readList(res, ['offers']));
     } catch (err) {
       setError(err.message || 'Failed to fetch offers');
     } finally {

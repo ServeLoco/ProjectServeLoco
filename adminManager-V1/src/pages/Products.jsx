@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ProductsApi, CategoriesApi, ImagesApi } from '../api';
+import { readList } from '../utils/apiResponse';
 import './Products.css';
 
 export default function Products() {
@@ -42,7 +43,7 @@ export default function Products() {
     }
   };
 
-  const readProducts = (res) => res?.products || res?.data?.products || res?.data || [];
+  const readProducts = (res) => readList(res, ['products']);
 
   const fetchProducts = async (page = 1) => {
     try {

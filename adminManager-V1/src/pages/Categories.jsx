@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CategoriesApi, ImagesApi } from '../api';
+import { readList } from '../utils/apiResponse';
 import './Categories.css';
 
 export default function Categories() {
@@ -19,7 +20,7 @@ export default function Categories() {
     try {
       setLoading(true);
       const res = await CategoriesApi.list();
-      setCategories(res.data || []);
+      setCategories(readList(res, ['categories']));
     } catch (err) {
       setError(err.message || 'Failed to fetch categories');
     } finally {

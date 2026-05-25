@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ProductsApi, CombosApi, ImagesApi } from '../api';
+import { readList } from '../utils/apiResponse';
 import './Products.css';
 
 export default function Combos() {
@@ -31,7 +32,7 @@ export default function Combos() {
     fetchProducts(1);
   }, [filters]);
 
-  const readProducts = (res) => res?.products || res?.data?.products || res?.data || [];
+  const readProducts = (res) => readList(res, ['products', 'combos']);
 
   const fetchComboProducts = async () => {
     try {
