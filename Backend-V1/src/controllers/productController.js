@@ -175,6 +175,15 @@ const getProductById = async (req, res) => {
 const createProduct = async (req, res) => {
   // Normal products require category. Combos are bundles and do not require category.
   const { name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label, combo_items } = req.validatedData;
+  
+  const finalDisplayOrder = display_order !== undefined ? display_order : 0;
+  if (finalDisplayOrder > 0) {
+    const [existing] = await pool.query('SELECT name FROM products WHERE category_id = ? AND display_order = ? AND deleted = 0 LIMIT 1', [category_id, finalDisplayOrder]);
+    if (existing.length > 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${existing[0].name} in this category.` });
+    }
+  }
+
   const [result] = await pool.query(
     'INSERT INTO products (name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
@@ -182,7 +191,7 @@ const createProduct = async (req, res) => {
       available !== undefined ? available : true,
       is_combo !== undefined ? is_combo : false,
       featured !== undefined ? featured : false,
-      display_order !== undefined ? display_order : 0,
+      finalDisplayOrder,
       original_price || null,
       discount_label || null
     ]
@@ -217,13 +226,21 @@ const updateProduct = async (req, res) => {
     }
   }
 
+  const finalDisplayOrder = display_order !== undefined ? display_order : 0;
+  if (finalDisplayOrder > 0) {
+    const [orderExisting] = await pool.query('SELECT name FROM products WHERE category_id = ? AND display_order = ? AND id != ? AND deleted = 0 LIMIT 1', [category_id, finalDisplayOrder, id]);
+    if (orderExisting.length > 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${orderExisting[0].name} in this category.` });
+    }
+  }
+
   await pool.query(
     'UPDATE products SET name = ?, price = ?, category_id = ?, unit = ?, description = ?, image_id = ?, available = ?, is_combo = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ? WHERE id = ?',
     [
       name, price, category_id, unit, description, image_id, available,
       is_combo !== undefined ? is_combo : false,
       featured !== undefined ? featured : false,
-      display_order !== undefined ? display_order : 0,
+      finalDisplayOrder,
       original_price || null,
       discount_label || null,
       id

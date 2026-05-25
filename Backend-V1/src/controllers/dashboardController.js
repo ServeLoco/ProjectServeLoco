@@ -714,6 +714,17 @@ const createAdminSection = async (req, res) => {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Section slug "${slug}" already exists.` });
     }
 
+    const finalDisplayOrder = display_order !== undefined ? display_order : 0;
+    if (finalDisplayOrder > 0) {
+      const [orderExisting] = await pool.query(
+        'SELECT title FROM dashboard_sections WHERE store_type = ? AND display_order = ? AND deleted_at IS NULL LIMIT 1',
+        [store_type || 'all', finalDisplayOrder]
+      );
+      if (orderExisting.length > 0) {
+        return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by "${orderExisting[0].title}".` });
+      }
+    }
+
     const [result] = await pool.query(
       `INSERT INTO dashboard_sections (
         title, slug, section_type, store_type, active, display_order, 
@@ -722,7 +733,7 @@ const createAdminSection = async (req, res) => {
       [
         title, slug, section_type, store_type || 'all', 
         active !== undefined ? active : 1, 
-        display_order !== undefined ? display_order : 0,
+        finalDisplayOrder,
         maxVisibleItems,
         show_see_all !== undefined ? show_see_all : 1,
         linked_category_id || null,
@@ -774,6 +785,18 @@ const updateAdminSection = async (req, res) => {
       );
       if (existingSlug.length > 0) {
         return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Section slug "${slug}" already exists.` });
+      }
+    }
+
+    const finalDisplayOrder = display_order !== undefined ? display_order : 0;
+    if (finalDisplayOrder > 0) {
+      const targetStoreType = store_type !== undefined ? store_type : existingSection.store_type;
+      const [orderExisting] = await pool.query(
+        'SELECT title FROM dashboard_sections WHERE store_type = ? AND display_order = ? AND id != ? AND deleted_at IS NULL LIMIT 1',
+        [targetStoreType, finalDisplayOrder, id]
+      );
+      if (orderExisting.length > 0) {
+        return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by "${orderExisting[0].title}".` });
       }
     }
 
@@ -885,13 +908,24 @@ const addAdminSectionItem = async (req, res) => {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'This item is already assigned to this section.' });
     }
 
+    const finalDisplayOrder = display_order !== undefined ? display_order : 0;
+    if (finalDisplayOrder > 0) {
+      const [orderExisting] = await pool.query(
+        'SELECT id FROM dashboard_section_items WHERE section_id = ? AND display_order = ? AND deleted_at IS NULL LIMIT 1',
+        [id, finalDisplayOrder]
+      );
+      if (orderExisting.length > 0) {
+        return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used in this section.` });
+      }
+    }
+
     const [result] = await pool.query(
       `INSERT INTO dashboard_section_items (
         section_id, item_type, item_id, display_order, active, starts_at, ends_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         id, item_type, item_id, 
-        display_order !== undefined ? display_order : 0, 
+        finalDisplayOrder, 
         active !== undefined ? active : 1,
         starts_at || null,
         ends_at || null
@@ -927,12 +961,23 @@ const updateAdminSectionItem = async (req, res) => {
 
     const existingItem = items[0];
 
+    const finalDisplayOrder = display_order !== undefined ? display_order : existingItem.display_order;
+    if (finalDisplayOrder > 0) {
+      const [orderExisting] = await pool.query(
+        'SELECT id FROM dashboard_section_items WHERE section_id = ? AND display_order = ? AND id != ? AND deleted_at IS NULL LIMIT 1',
+        [id, finalDisplayOrder, itemId]
+      );
+      if (orderExisting.length > 0) {
+        return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used in this section.` });
+      }
+    }
+
     await pool.query(
       `UPDATE dashboard_section_items SET
         display_order = ?, active = ?, starts_at = ?, ends_at = ?
        WHERE id = ?`,
       [
-        display_order !== undefined ? display_order : existingItem.display_order,
+        finalDisplayOrder,
         active !== undefined ? active : existingItem.active,
         starts_at !== undefined ? starts_at : existingItem.starts_at,
         ends_at !== undefined ? ends_at : existingItem.ends_at,

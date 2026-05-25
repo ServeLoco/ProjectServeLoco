@@ -80,6 +80,14 @@ const createCategory = async (req, res) => {
   const { name, type, image_id, active } = req.validatedData;
   const slug = req.validatedData.slug || slugify(name);
   const displayOrder = req.validatedData.display_order ?? 0;
+
+  if (displayOrder > 0) {
+    const [existing] = await pool.query('SELECT name FROM categories WHERE type = ? AND display_order = ? AND deleted = 0 LIMIT 1', [type, displayOrder]);
+    if (existing.length > 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${displayOrder} is already used by ${existing[0].name} in ${type}.` });
+    }
+  }
+
   const [result] = await pool.query(
     'INSERT INTO categories (name, slug, type, image_id, active, display_order) VALUES (?, ?, ?, ?, ?, ?)',
     [name, slug, type, image_id, active !== undefined ? active : true, displayOrder]
@@ -92,6 +100,13 @@ const updateCategory = async (req, res) => {
   const { name, type, image_id, active } = req.validatedData;
   const slug = req.validatedData.slug || slugify(name);
   const displayOrder = req.validatedData.display_order ?? 0;
+
+  if (displayOrder > 0) {
+    const [existing] = await pool.query('SELECT name FROM categories WHERE type = ? AND display_order = ? AND id != ? AND deleted = 0 LIMIT 1', [type, displayOrder, id]);
+    if (existing.length > 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${displayOrder} is already used by ${existing[0].name} in ${type}.` });
+    }
+  }
 
   await pool.query(
     'UPDATE categories SET name = ?, slug = ?, type = ?, image_id = ?, active = ?, display_order = ? WHERE id = ?',

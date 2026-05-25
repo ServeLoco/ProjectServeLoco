@@ -4,589 +4,670 @@
   "graph": {},
   "nodes": [
     {
+      "label": "CategoriesScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L1",
+      "id": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "community": 43,
+      "norm_label": "categoriesscreen.js"
+    },
+    {
+      "label": "DEFAULT_CHIPS",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L34",
+      "id": "categoriesscreen_categoriesscreen_default_chips",
+      "community": 43,
+      "norm_label": "default_chips"
+    },
+    {
+      "label": "CategoriesScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L36",
+      "id": "categoriesscreen_categoriesscreen_categoriesscreen",
+      "community": 43,
+      "norm_label": "categoriesscreen()"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L274",
+      "id": "categoriesscreen_categoriesscreen_styles",
+      "community": 43,
+      "norm_label": "styles"
+    },
+    {
+      "label": "ProductListScreen.js",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L1",
+      "id": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "community": 43,
+      "norm_label": "productlistscreen.js"
+    },
+    {
+      "label": "CATEGORY_CHIPS",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L37",
+      "id": "productlistscreen_productlistscreen_category_chips",
+      "community": 43,
+      "norm_label": "category_chips"
+    },
+    {
+      "label": "SORT_OPTIONS",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L38",
+      "id": "productlistscreen_productlistscreen_sort_options",
+      "community": 43,
+      "norm_label": "sort_options"
+    },
+    {
+      "label": "ProductListScreen()",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L40",
+      "id": "productlistscreen_productlistscreen_productlistscreen",
+      "community": 43,
+      "norm_label": "productlistscreen()"
+    },
+    {
+      "label": "styles",
+      "file_type": "code",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L426",
+      "id": "productlistscreen_productlistscreen_styles",
+      "community": 43,
+      "norm_label": "styles"
+    },
+    {
       "label": "cartController.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/cartController.js",
       "source_location": "L1",
-      "id": "backend_v1_src_controllers_cartcontroller_js",
       "community": 70,
-      "norm_label": "cartcontroller.js"
+      "norm_label": "cartcontroller.js",
+      "id": "backend_v1_src_controllers_cartcontroller_js"
     },
     {
       "label": "{ pool }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/cartController.js",
       "source_location": "L1",
-      "id": "controllers_cartcontroller_pool",
       "community": 70,
-      "norm_label": "{ pool }"
+      "norm_label": "{ pool }",
+      "id": "controllers_cartcontroller_pool"
     },
     {
       "label": "calculateCart()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/cartController.js",
       "source_location": "L3",
-      "id": "controllers_cartcontroller_calculatecart",
       "community": 54,
-      "norm_label": "calculatecart()"
+      "norm_label": "calculatecart()",
+      "id": "controllers_cartcontroller_calculatecart"
     },
     {
       "label": "dashboardController.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L1",
-      "id": "backend_v1_src_controllers_dashboardcontroller_js",
       "community": 64,
-      "norm_label": "dashboardcontroller.js"
+      "norm_label": "dashboardcontroller.js",
+      "id": "backend_v1_src_controllers_dashboardcontroller_js"
     },
     {
       "label": "{ pool }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L1",
-      "id": "controllers_dashboardcontroller_pool",
       "community": 64,
-      "norm_label": "{ pool }"
+      "norm_label": "{ pool }",
+      "id": "controllers_dashboardcontroller_pool"
     },
     {
       "label": "{ getDb }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L2",
-      "id": "controllers_dashboardcontroller_getdb",
       "community": 64,
-      "norm_label": "{ getdb }"
+      "norm_label": "{ getdb }",
+      "id": "controllers_dashboardcontroller_getdb"
     },
     {
       "label": "{ ObjectId }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L3",
-      "id": "controllers_dashboardcontroller_objectid",
       "community": 64,
-      "norm_label": "{ objectid }"
+      "norm_label": "{ objectid }",
+      "id": "controllers_dashboardcontroller_objectid"
     },
     {
       "label": "SECTION_TYPES",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L5",
-      "id": "controllers_dashboardcontroller_section_types",
       "community": 64,
-      "norm_label": "section_types"
+      "norm_label": "section_types",
+      "id": "controllers_dashboardcontroller_section_types"
     },
     {
       "label": "STORE_TYPES",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L6",
-      "id": "controllers_dashboardcontroller_store_types",
       "community": 64,
-      "norm_label": "store_types"
+      "norm_label": "store_types",
+      "id": "controllers_dashboardcontroller_store_types"
     },
     {
       "label": "SECTION_ITEM_TYPES",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L7",
-      "id": "controllers_dashboardcontroller_section_item_types",
       "community": 64,
-      "norm_label": "section_item_types"
+      "norm_label": "section_item_types",
+      "id": "controllers_dashboardcontroller_section_item_types"
     },
     {
       "label": "getExpectedStoreType()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L14",
-      "id": "controllers_dashboardcontroller_getexpectedstoretype",
       "community": 64,
-      "norm_label": "getexpectedstoretype()"
+      "norm_label": "getexpectedstoretype()",
+      "id": "controllers_dashboardcontroller_getexpectedstoretype"
     },
     {
       "label": "isInvalidDateValue()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L19",
-      "id": "controllers_dashboardcontroller_isinvaliddatevalue",
       "community": 64,
-      "norm_label": "isinvaliddatevalue()"
+      "norm_label": "isinvaliddatevalue()",
+      "id": "controllers_dashboardcontroller_isinvaliddatevalue"
     },
     {
       "label": "validateVisibilityWindow()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L21",
-      "id": "controllers_dashboardcontroller_validatevisibilitywindow",
       "community": 64,
-      "norm_label": "validatevisibilitywindow()"
+      "norm_label": "validatevisibilitywindow()",
+      "id": "controllers_dashboardcontroller_validatevisibilitywindow"
     },
     {
       "label": "asPositiveInteger()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L31",
-      "id": "controllers_dashboardcontroller_aspositiveinteger",
       "community": 64,
-      "norm_label": "aspositiveinteger()"
+      "norm_label": "aspositiveinteger()",
+      "id": "controllers_dashboardcontroller_aspositiveinteger"
     },
     {
       "label": "validateSectionPayload()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L37",
-      "id": "controllers_dashboardcontroller_validatesectionpayload",
       "community": 64,
-      "norm_label": "validatesectionpayload()"
+      "norm_label": "validatesectionpayload()",
+      "id": "controllers_dashboardcontroller_validatesectionpayload"
     },
     {
       "label": "getLinkedItemInfo()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L56",
-      "id": "controllers_dashboardcontroller_getlinkediteminfo",
       "community": 64,
-      "norm_label": "getlinkediteminfo()"
+      "norm_label": "getlinkediteminfo()",
+      "id": "controllers_dashboardcontroller_getlinkediteminfo"
     },
     {
       "label": "resolveImageUrls()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L105",
-      "id": "controllers_dashboardcontroller_resolveimageurls",
       "community": 64,
-      "norm_label": "resolveimageurls()"
+      "norm_label": "resolveimageurls()",
+      "id": "controllers_dashboardcontroller_resolveimageurls"
     },
     {
       "label": "getComboItemsByComboIds()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L126",
-      "id": "controllers_dashboardcontroller_getcomboitemsbycomboids",
       "community": 64,
-      "norm_label": "getcomboitemsbycomboids()"
+      "norm_label": "getcomboitemsbycomboids()",
+      "id": "controllers_dashboardcontroller_getcomboitemsbycomboids"
     },
     {
       "label": "attachComboItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L174",
-      "id": "controllers_dashboardcontroller_attachcomboitems",
       "community": 64,
-      "norm_label": "attachcomboitems()"
+      "norm_label": "attachcomboitems()",
+      "id": "controllers_dashboardcontroller_attachcomboitems"
     },
     {
       "label": "mapCategoryRows()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L186",
-      "id": "controllers_dashboardcontroller_mapcategoryrows",
       "community": 64,
-      "norm_label": "mapcategoryrows()"
+      "norm_label": "mapcategoryrows()",
+      "id": "controllers_dashboardcontroller_mapcategoryrows"
     },
     {
       "label": "mapProductRows()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L198",
-      "id": "controllers_dashboardcontroller_mapproductrows",
       "community": 64,
-      "norm_label": "mapproductrows()"
+      "norm_label": "mapproductrows()",
+      "id": "controllers_dashboardcontroller_mapproductrows"
     },
     {
       "label": "getDefaultCategoryItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L219",
-      "id": "controllers_dashboardcontroller_getdefaultcategoryitems",
       "community": 64,
-      "norm_label": "getdefaultcategoryitems()"
+      "norm_label": "getdefaultcategoryitems()",
+      "id": "controllers_dashboardcontroller_getdefaultcategoryitems"
     },
     {
       "label": "getDefaultComboItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L240",
-      "id": "controllers_dashboardcontroller_getdefaultcomboitems",
       "community": 64,
-      "norm_label": "getdefaultcomboitems()"
+      "norm_label": "getdefaultcomboitems()",
+      "id": "controllers_dashboardcontroller_getdefaultcomboitems"
     },
     {
       "label": "getDashboard()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L261",
-      "id": "controllers_dashboardcontroller_getdashboard",
       "community": 64,
-      "norm_label": "getdashboard()"
+      "norm_label": "getdashboard()",
+      "id": "controllers_dashboardcontroller_getdashboard"
     },
     {
       "label": "getSectionItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L448",
-      "id": "controllers_dashboardcontroller_getsectionitems",
       "community": 64,
-      "norm_label": "getsectionitems()"
+      "norm_label": "getsectionitems()",
+      "id": "controllers_dashboardcontroller_getsectionitems"
     },
     {
       "label": "getAdminSections()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L624",
-      "id": "controllers_dashboardcontroller_getadminsections",
       "community": 64,
-      "norm_label": "getadminsections()"
+      "norm_label": "getadminsections()",
+      "id": "controllers_dashboardcontroller_getadminsections"
     },
     {
       "label": "getAdminSectionById()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L638",
-      "id": "controllers_dashboardcontroller_getadminsectionbyid",
       "community": 64,
-      "norm_label": "getadminsectionbyid()"
+      "norm_label": "getadminsectionbyid()",
+      "id": "controllers_dashboardcontroller_getadminsectionbyid"
     },
     {
       "label": "createAdminSection()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L699",
-      "id": "controllers_dashboardcontroller_createadminsection",
       "community": 64,
-      "norm_label": "createadminsection()"
+      "norm_label": "createadminsection()",
+      "id": "controllers_dashboardcontroller_createadminsection"
     },
     {
       "label": "updateAdminSection()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L744",
-      "id": "controllers_dashboardcontroller_updateadminsection",
       "community": 64,
-      "norm_label": "updateadminsection()"
+      "norm_label": "updateadminsection()",
+      "id": "controllers_dashboardcontroller_updateadminsection"
     },
     {
       "label": "deleteAdminSection()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L814",
-      "id": "controllers_dashboardcontroller_deleteadminsection",
       "community": 64,
-      "norm_label": "deleteadminsection()"
+      "norm_label": "deleteadminsection()",
+      "id": "controllers_dashboardcontroller_deleteadminsection"
     },
     {
       "label": "addAdminSectionItem()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L838",
-      "id": "controllers_dashboardcontroller_addadminsectionitem",
       "community": 64,
-      "norm_label": "addadminsectionitem()"
+      "norm_label": "addadminsectionitem()",
+      "id": "controllers_dashboardcontroller_addadminsectionitem"
     },
     {
       "label": "updateAdminSectionItem()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L910",
-      "id": "controllers_dashboardcontroller_updateadminsectionitem",
       "community": 64,
-      "norm_label": "updateadminsectionitem()"
+      "norm_label": "updateadminsectionitem()",
+      "id": "controllers_dashboardcontroller_updateadminsectionitem"
     },
     {
       "label": "deleteAdminSectionItem()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L952",
-      "id": "controllers_dashboardcontroller_deleteadminsectionitem",
       "community": 64,
-      "norm_label": "deleteadminsectionitem()"
+      "norm_label": "deleteadminsectionitem()",
+      "id": "controllers_dashboardcontroller_deleteadminsectionitem"
     },
     {
       "label": "reorderAdminSections()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L976",
-      "id": "controllers_dashboardcontroller_reorderadminsections",
       "community": 64,
-      "norm_label": "reorderadminsections()"
+      "norm_label": "reorderadminsections()",
+      "id": "controllers_dashboardcontroller_reorderadminsections"
     },
     {
       "label": "reorderAdminSectionItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L1006",
-      "id": "controllers_dashboardcontroller_reorderadminsectionitems",
       "community": 64,
-      "norm_label": "reorderadminsectionitems()"
+      "norm_label": "reorderadminsectionitems()",
+      "id": "controllers_dashboardcontroller_reorderadminsectionitems"
     },
     {
       "label": "orderController.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L1",
-      "id": "backend_v1_src_controllers_ordercontroller_js",
       "community": 54,
-      "norm_label": "ordercontroller.js"
+      "norm_label": "ordercontroller.js",
+      "id": "backend_v1_src_controllers_ordercontroller_js"
     },
     {
       "label": "{ pool }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L1",
-      "id": "controllers_ordercontroller_pool",
       "community": 54,
-      "norm_label": "{ pool }"
+      "norm_label": "{ pool }",
+      "id": "controllers_ordercontroller_pool"
     },
     {
       "label": "{ calculateDeliveryPricing }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L2",
-      "id": "controllers_ordercontroller_calculatedeliverypricing",
       "community": 54,
-      "norm_label": "{ calculatedeliverypricing }"
+      "norm_label": "{ calculatedeliverypricing }",
+      "id": "controllers_ordercontroller_calculatedeliverypricing"
     },
     {
       "label": "generateOrderNumber()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L4",
-      "id": "controllers_ordercontroller_generateordernumber",
       "community": 54,
-      "norm_label": "generateordernumber()"
+      "norm_label": "generateordernumber()",
+      "id": "controllers_ordercontroller_generateordernumber"
     },
     {
       "label": "createOrder()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L21",
-      "id": "controllers_ordercontroller_createorder",
       "community": 54,
-      "norm_label": "createorder()"
+      "norm_label": "createorder()",
+      "id": "controllers_ordercontroller_createorder"
     },
     {
       "label": "getOrders()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L207",
-      "id": "controllers_ordercontroller_getorders",
       "community": 54,
-      "norm_label": "getorders()"
+      "norm_label": "getorders()",
+      "id": "controllers_ordercontroller_getorders"
     },
     {
       "label": "getOrderById()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L217",
-      "id": "controllers_ordercontroller_getorderbyid",
       "community": 54,
-      "norm_label": "getorderbyid()"
+      "norm_label": "getorderbyid()",
+      "id": "controllers_ordercontroller_getorderbyid"
     },
     {
       "label": "cancelOrder()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/orderController.js",
       "source_location": "L241",
-      "id": "controllers_ordercontroller_cancelorder",
       "community": 54,
-      "norm_label": "cancelorder()"
+      "norm_label": "cancelorder()",
+      "id": "controllers_ordercontroller_cancelorder"
     },
     {
       "label": "productController.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L1",
-      "id": "backend_v1_src_controllers_productcontroller_js",
       "community": 35,
-      "norm_label": "productcontroller.js"
+      "norm_label": "productcontroller.js",
+      "id": "backend_v1_src_controllers_productcontroller_js"
     },
     {
       "label": "{ pool }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L1",
-      "id": "controllers_productcontroller_pool",
       "community": 35,
-      "norm_label": "{ pool }"
+      "norm_label": "{ pool }",
+      "id": "controllers_productcontroller_pool"
     },
     {
       "label": "{ getDb }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L2",
-      "id": "controllers_productcontroller_getdb",
       "community": 35,
-      "norm_label": "{ getdb }"
+      "norm_label": "{ getdb }",
+      "id": "controllers_productcontroller_getdb"
     },
     {
       "label": "{ ObjectId }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L3",
-      "id": "controllers_productcontroller_objectid",
       "community": 35,
-      "norm_label": "{ objectid }"
+      "norm_label": "{ objectid }",
+      "id": "controllers_productcontroller_objectid"
     },
     {
       "label": "path",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L4",
-      "id": "controllers_productcontroller_path",
       "community": 35,
-      "norm_label": "path"
+      "norm_label": "path",
+      "id": "controllers_productcontroller_path"
     },
     {
       "label": "fs",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L5",
-      "id": "controllers_productcontroller_fs",
       "community": 35,
-      "norm_label": "fs"
+      "norm_label": "fs",
+      "id": "controllers_productcontroller_fs"
     },
     {
       "label": "config",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L6",
-      "id": "controllers_productcontroller_config",
       "community": 35,
-      "norm_label": "config"
+      "norm_label": "config",
+      "id": "controllers_productcontroller_config"
     },
     {
       "label": "resolveImageUrls()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L8",
-      "id": "controllers_productcontroller_resolveimageurls",
       "community": 35,
-      "norm_label": "resolveimageurls()"
+      "norm_label": "resolveimageurls()",
+      "id": "controllers_productcontroller_resolveimageurls"
     },
     {
       "label": "getComboItemsByComboIds()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L28",
-      "id": "controllers_productcontroller_getcomboitemsbycomboids",
       "community": 35,
-      "norm_label": "getcomboitemsbycomboids()"
+      "norm_label": "getcomboitemsbycomboids()",
+      "id": "controllers_productcontroller_getcomboitemsbycomboids"
     },
     {
       "label": "attachComboItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L75",
-      "id": "controllers_productcontroller_attachcomboitems",
       "community": 35,
-      "norm_label": "attachcomboitems()"
+      "norm_label": "attachcomboitems()",
+      "id": "controllers_productcontroller_attachcomboitems"
     },
     {
       "label": "saveComboItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L87",
-      "id": "controllers_productcontroller_savecomboitems",
       "community": 35,
-      "norm_label": "savecomboitems()"
+      "norm_label": "savecomboitems()",
+      "id": "controllers_productcontroller_savecomboitems"
     },
     {
       "label": "getProducts()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L109",
-      "id": "controllers_productcontroller_getproducts",
       "community": 35,
-      "norm_label": "getproducts()"
+      "norm_label": "getproducts()",
+      "id": "controllers_productcontroller_getproducts"
     },
     {
       "label": "getProductById()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L157",
-      "id": "controllers_productcontroller_getproductbyid",
       "community": 35,
-      "norm_label": "getproductbyid()"
+      "norm_label": "getproductbyid()",
+      "id": "controllers_productcontroller_getproductbyid"
     },
     {
       "label": "createProduct()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L175",
-      "id": "controllers_productcontroller_createproduct",
       "community": 35,
-      "norm_label": "createproduct()"
+      "norm_label": "createproduct()",
+      "id": "controllers_productcontroller_createproduct"
     },
     {
       "label": "updateProduct()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L196",
-      "id": "controllers_productcontroller_updateproduct",
       "community": 35,
-      "norm_label": "updateproduct()"
+      "norm_label": "updateproduct()",
+      "id": "controllers_productcontroller_updateproduct"
     },
     {
       "label": "getAdminProducts()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L240",
-      "id": "controllers_productcontroller_getadminproducts",
       "community": 35,
-      "norm_label": "getadminproducts()"
+      "norm_label": "getadminproducts()",
+      "id": "controllers_productcontroller_getadminproducts"
     },
     {
       "label": "getAdminProductById()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L286",
-      "id": "controllers_productcontroller_getadminproductbyid",
       "community": 35,
-      "norm_label": "getadminproductbyid()"
+      "norm_label": "getadminproductbyid()",
+      "id": "controllers_productcontroller_getadminproductbyid"
     },
     {
       "label": "deleteProduct()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L304",
-      "id": "controllers_productcontroller_deleteproduct",
       "community": 35,
-      "norm_label": "deleteproduct()"
+      "norm_label": "deleteproduct()",
+      "id": "controllers_productcontroller_deleteproduct"
     },
     {
       "label": "updateProductAvailability()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L315",
-      "id": "controllers_productcontroller_updateproductavailability",
       "community": 35,
-      "norm_label": "updateproductavailability()"
+      "norm_label": "updateproductavailability()",
+      "id": "controllers_productcontroller_updateproductavailability"
     },
     {
       "label": "updateProductImage()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/productController.js",
       "source_location": "L329",
-      "id": "controllers_productcontroller_updateproductimage",
       "community": 35,
-      "norm_label": "updateproductimage()"
+      "norm_label": "updateproductimage()",
+      "id": "controllers_productcontroller_updateproductimage"
     },
     {
       "label": "useCartStore.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L1",
-      "id": "frontend_v1_src_stores_usecartstore_js",
       "community": 43,
-      "norm_label": "usecartstore.js"
+      "norm_label": "usecartstore.js",
+      "id": "frontend_v1_src_stores_usecartstore_js"
     },
     {
       "label": "useCartStore",
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L9",
-      "id": "stores_usecartstore_usecartstore",
       "community": 43,
-      "norm_label": "usecartstore"
+      "norm_label": "usecartstore",
+      "id": "stores_usecartstore_usecartstore"
     },
     {
       "label": "comboController.js",
@@ -917,7 +998,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/adminRoutes.js",
       "source_location": "L47",
-      "community": 27,
+      "community": 47,
       "norm_label": "paginationschema()",
       "id": "routes_adminroutes_paginationschema"
     },
@@ -1025,7 +1106,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L19",
-      "community": 87,
+      "community": 49,
       "norm_label": "dashboardapi",
       "id": "api_index_dashboardapi"
     },
@@ -1034,7 +1115,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L23",
-      "community": 49,
+      "community": 87,
       "norm_label": "ordersapi",
       "id": "api_index_ordersapi"
     },
@@ -1088,7 +1169,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L80",
-      "community": 87,
+      "community": 49,
       "norm_label": "settingsapi",
       "id": "api_index_settingsapi"
     },
@@ -1690,7 +1771,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Settings.jsx",
       "source_location": "L1",
-      "community": 87,
+      "community": 49,
       "norm_label": "settings.jsx",
       "id": "adminmanager_v1_src_pages_settings_jsx"
     },
@@ -1699,7 +1780,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Settings.jsx",
       "source_location": "L5",
-      "community": 87,
+      "community": 49,
       "norm_label": "settings()",
       "id": "pages_settings_settings"
     },
@@ -1834,7 +1915,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Orders.jsx",
       "source_location": "L1",
-      "community": 49,
+      "community": 87,
       "norm_label": "orders.jsx",
       "id": "adminmanager_v1_src_pages_orders_jsx"
     },
@@ -1843,7 +1924,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Orders.jsx",
       "source_location": "L5",
-      "community": 49,
+      "community": 87,
       "norm_label": "orders()",
       "id": "pages_orders_orders"
     },
@@ -1870,7 +1951,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Dashboard.jsx",
       "source_location": "L1",
-      "community": 87,
+      "community": 49,
       "norm_label": "dashboard.jsx",
       "id": "adminmanager_v1_src_pages_dashboard_jsx"
     },
@@ -1879,7 +1960,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Dashboard.jsx",
       "source_location": "L6",
-      "community": 87,
+      "community": 49,
       "norm_label": "dashboard()",
       "id": "pages_dashboard_dashboard"
     },
@@ -3405,42 +3486,6 @@
       "id": "productdetailscreen_productdetailscreen_styles"
     },
     {
-      "label": "CategoriesScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L1",
-      "community": 43,
-      "norm_label": "categoriesscreen.js",
-      "id": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js"
-    },
-    {
-      "label": "DEFAULT_CHIPS",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L34",
-      "community": 43,
-      "norm_label": "default_chips",
-      "id": "categoriesscreen_categoriesscreen_default_chips"
-    },
-    {
-      "label": "CategoriesScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L36",
-      "community": 43,
-      "norm_label": "categoriesscreen()",
-      "id": "categoriesscreen_categoriesscreen_categoriesscreen"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L270",
-      "community": 43,
-      "norm_label": "styles",
-      "id": "categoriesscreen_categoriesscreen_styles"
-    },
-    {
       "label": "index.js",
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/index.js",
@@ -3835,51 +3880,6 @@
       "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_customer_productlistscreen_index_js"
-    },
-    {
-      "label": "ProductListScreen.js",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L1",
-      "community": 43,
-      "norm_label": "productlistscreen.js",
-      "id": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js"
-    },
-    {
-      "label": "CATEGORY_CHIPS",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L37",
-      "community": 43,
-      "norm_label": "category_chips",
-      "id": "productlistscreen_productlistscreen_category_chips"
-    },
-    {
-      "label": "SORT_OPTIONS",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L38",
-      "community": 43,
-      "norm_label": "sort_options",
-      "id": "productlistscreen_productlistscreen_sort_options"
-    },
-    {
-      "label": "ProductListScreen()",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L40",
-      "community": 43,
-      "norm_label": "productlistscreen()",
-      "id": "productlistscreen_productlistscreen_productlistscreen"
-    },
-    {
-      "label": "styles",
-      "file_type": "code",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L419",
-      "community": 43,
-      "norm_label": "styles",
-      "id": "productlistscreen_productlistscreen_styles"
     },
     {
       "label": "dashboardApi.js",
@@ -6532,7 +6532,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L1",
-      "community": 70,
+      "community": 33,
       "norm_label": "roleprotection.test.js",
       "id": "backend_v1_tests_roleprotection_test_js"
     },
@@ -6541,7 +6541,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L1",
-      "community": 70,
+      "community": 33,
       "norm_label": "request",
       "id": "tests_roleprotection_test_request"
     },
@@ -6550,7 +6550,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L2",
-      "community": 70,
+      "community": 33,
       "norm_label": "express",
       "id": "tests_roleprotection_test_express"
     },
@@ -6559,7 +6559,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L3",
-      "community": 70,
+      "community": 33,
       "norm_label": "authroutes",
       "id": "tests_roleprotection_test_authroutes"
     },
@@ -6568,7 +6568,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L4",
-      "community": 70,
+      "community": 33,
       "norm_label": "adminroutes",
       "id": "tests_roleprotection_test_adminroutes"
     },
@@ -6577,7 +6577,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L5",
-      "community": 70,
+      "community": 33,
       "norm_label": "{ pool }",
       "id": "tests_roleprotection_test_pool"
     },
@@ -6586,7 +6586,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L6",
-      "community": 70,
+      "community": 33,
       "norm_label": "jwt",
       "id": "tests_roleprotection_test_jwt"
     },
@@ -6595,7 +6595,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L14",
-      "community": 70,
+      "community": 33,
       "norm_label": "app",
       "id": "tests_roleprotection_test_app"
     },
@@ -6604,7 +6604,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L19",
-      "community": 70,
+      "community": 33,
       "norm_label": "customertoken",
       "id": "tests_roleprotection_test_customertoken"
     },
@@ -6613,7 +6613,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/roleProtection.test.js",
       "source_location": "L20",
-      "community": 70,
+      "community": 33,
       "norm_label": "admintoken",
       "id": "tests_roleprotection_test_admintoken"
     },
@@ -6901,7 +6901,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L1",
-      "community": 33,
+      "community": 70,
       "norm_label": "remaining.test.js",
       "id": "backend_v1_tests_remaining_test_js"
     },
@@ -6910,7 +6910,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L1",
-      "community": 33,
+      "community": 70,
       "norm_label": "request",
       "id": "tests_remaining_test_request"
     },
@@ -6919,7 +6919,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L2",
-      "community": 33,
+      "community": 70,
       "norm_label": "express",
       "id": "tests_remaining_test_express"
     },
@@ -6928,7 +6928,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L3",
-      "community": 33,
+      "community": 70,
       "norm_label": "adminroutes",
       "id": "tests_remaining_test_adminroutes"
     },
@@ -6937,7 +6937,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L4",
-      "community": 33,
+      "community": 70,
       "norm_label": "orderroutes",
       "id": "tests_remaining_test_orderroutes"
     },
@@ -6946,7 +6946,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L5",
-      "community": 33,
+      "community": 70,
       "norm_label": "{ pool }",
       "id": "tests_remaining_test_pool"
     },
@@ -6955,7 +6955,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L6",
-      "community": 33,
+      "community": 70,
       "norm_label": "jwt",
       "id": "tests_remaining_test_jwt"
     },
@@ -6964,7 +6964,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L15",
-      "community": 33,
+      "community": 70,
       "norm_label": "app",
       "id": "tests_remaining_test_app"
     },
@@ -6973,7 +6973,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L20",
-      "community": 33,
+      "community": 70,
       "norm_label": "admintoken",
       "id": "tests_remaining_test_admintoken"
     },
@@ -6982,7 +6982,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/remaining.test.js",
       "source_location": "L21",
-      "community": 33,
+      "community": 70,
       "norm_label": "customertoken",
       "id": "tests_remaining_test_customertoken"
     },
@@ -7477,7 +7477,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L1",
-      "community": 54,
+      "community": 47,
       "norm_label": "index.js",
       "id": "backend_v1_src_validators_index_js"
     },
@@ -7495,7 +7495,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L4",
-      "community": 54,
+      "community": 47,
       "norm_label": "isnumericamount()",
       "id": "validators_index_isnumericamount"
     },
@@ -7549,7 +7549,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L23",
-      "community": 27,
+      "community": 47,
       "norm_label": "validatepagination()",
       "id": "validators_index_validatepagination"
     },
@@ -11806,7 +11806,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L773",
-      "community": 152,
+      "community": 74,
       "norm_label": "17. backend tests",
       "id": "plans_admindashboardtask_17_backend_tests"
     },
@@ -11815,7 +11815,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L775",
-      "community": 152,
+      "community": 74,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_775"
     },
@@ -11824,7 +11824,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L778",
-      "community": 152,
+      "community": 74,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_778"
     },
@@ -11833,7 +11833,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L793",
-      "community": 152,
+      "community": 74,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_793"
     },
@@ -15937,7 +15937,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L591",
-      "community": 74,
+      "community": 152,
       "norm_label": "14. admin manager tests",
       "id": "plans_admindashboardtask_14_admin_manager_tests"
     },
@@ -15946,7 +15946,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L593",
-      "community": 74,
+      "community": 152,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_593"
     },
@@ -15955,7 +15955,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L596",
-      "community": 74,
+      "community": 152,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_596"
     },
@@ -15964,7 +15964,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L607",
-      "community": 74,
+      "community": 152,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_607"
     },
@@ -18971,6 +18971,575 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "api_index_productsapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L32",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "categoriesscreen_categoriesscreen_default_chips"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L34",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "categoriesscreen_categoriesscreen_categoriesscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L250",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "categoriesscreen_categoriesscreen_styles"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "stores_usecartstore_usecartstore"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "frontend_v1_src_stores_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "frontend_v1_src_components_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "frontend_v1_src_theme_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "frontend_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L26",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "frontend_v1_src_utils_index_js"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_index_js",
+      "target": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "theme_colors_colors"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "theme_typography_typography"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "theme_spacing_spacing"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "theme_borders_radius"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "api_productsapi_productsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L26",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "utils_apimappers_asarray"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L26",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
+      "target": "utils_apimappers_normalizecategory"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L32",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
+      "target": "categoriesscreen_categoriesscreen_default_chips"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "categoriesscreen_categoriesscreen_categoriesscreen",
+      "target": "stores_usecartstore_usecartstore"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
+      "target": "categoriesscreen_categoriesscreen_categoriesscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
+      "target": "categoriesscreen_categoriesscreen_styles"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L28",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "api_index_productsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "api_index_dashboardapi"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L37",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_category_chips"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L38",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_sort_options"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L40",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_productlistscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L351",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_styles"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L28",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "stores_usecartstore_usecartstore"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L28",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "frontend_v1_src_stores_index_js"
+    },
+    {
+      "relation": "re_exports",
+      "context": "export",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/index.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_index_js",
+      "target": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "frontend_v1_src_components_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "frontend_v1_src_theme_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L29",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "frontend_v1_src_hooks_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "frontend_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "frontend_v1_src_utils_index_js"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "loadingskeleton_loadingskeleton_skeletonrow"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "theme_colors_colors"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "theme_typography_typography"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "theme_spacing_spacing"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "theme_borders_radius"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L29",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "hooks_useauthgate_useauthgate"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "api_productsapi_productsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "api_dashboardapi_dashboardapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "utils_apimappers_asarray"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "utils_apimappers_normalizeproduct"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
+      "target": "theme_shadows_shadows"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L43",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_category_chips"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L44",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_sort_options"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "productlistscreen_productlistscreen_productlistscreen",
+      "target": "stores_usecartstore_usecartstore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "productlistscreen_productlistscreen_productlistscreen",
+      "target": "hooks_useauthgate_useauthgate"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_productlistscreen"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
+      "target": "productlistscreen_productlistscreen_styles"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "Backend-V1/src/controllers/cartController.js",
       "source_location": "L1",
       "weight": 1.0,
@@ -20693,17 +21262,6 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L24",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "stores_usecartstore_usecartstore"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/customer/HomeScreen/HomeScreen.js",
       "source_location": "L24",
       "weight": 1.0,
@@ -20734,17 +21292,6 @@
       "target": "stores_usecartstore_usecartstore"
     },
     {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L28",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "stores_usecartstore_usecartstore"
-    },
-    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -20753,17 +21300,6 @@
       "source_location": "L45",
       "weight": 1.0,
       "source": "productdetailscreen_productdetailscreen_productdetailscreen",
-      "target": "stores_usecartstore_usecartstore"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L44",
-      "weight": 1.0,
-      "source": "categoriesscreen_categoriesscreen_categoriesscreen",
       "target": "stores_usecartstore_usecartstore"
     },
     {
@@ -20797,17 +21333,6 @@
       "source_location": "L33",
       "weight": 1.0,
       "source": "cartscreen_cartscreen_cartscreen",
-      "target": "stores_usecartstore_usecartstore"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L59",
-      "weight": 1.0,
-      "source": "productlistscreen_productlistscreen_productlistscreen",
       "target": "stores_usecartstore_usecartstore"
     },
     {
@@ -22660,17 +23185,6 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L30",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "api_index_dashboardapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "adminManager-V1/src/pages/Orders.jsx",
       "source_location": "L2",
       "weight": 1.0,
@@ -22753,28 +23267,6 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_customer_productdetailscreen_productdetailscreen_js",
-      "target": "api_index_productsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "api_index_productsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L28",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
       "target": "api_index_productsapi"
     },
     {
@@ -25956,17 +26448,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L24",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "frontend_v1_src_stores_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L20",
       "weight": 1.0,
@@ -26038,17 +26519,6 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_customer_authscreen_authscreen_js",
-      "target": "frontend_v1_src_stores_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L28",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
       "target": "frontend_v1_src_stores_index_js"
     },
     {
@@ -27898,198 +28368,6 @@
       "target": "productdetailscreen_productdetailscreen_styles"
     },
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "frontend_v1_src_components_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L23",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "frontend_v1_src_theme_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "frontend_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L26",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "frontend_v1_src_utils_index_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L32",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "categoriesscreen_categoriesscreen_default_chips"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L34",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "categoriesscreen_categoriesscreen_categoriesscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L250",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "categoriesscreen_categoriesscreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_index_js",
-      "target": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L23",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "theme_colors_colors"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L23",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "theme_typography_typography"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L23",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "theme_spacing_spacing"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L23",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "theme_borders_radius"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "api_productsapi_productsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L26",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "utils_apimappers_asarray"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L26",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js",
-      "target": "utils_apimappers_normalizecategory"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L32",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
-      "target": "categoriesscreen_categoriesscreen_default_chips"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
-      "target": "categoriesscreen_categoriesscreen_categoriesscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js",
-      "target": "categoriesscreen_categoriesscreen_styles"
-    },
-    {
       "relation": "re_exports",
       "context": "export",
       "confidence": "EXTRACTED",
@@ -29864,284 +30142,6 @@
       "confidence_score": 1.0,
       "source": "frontend_v1_src_screens_authscreen_authscreen_js",
       "target": "authscreen_authscreen_styles"
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/index.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_index_js",
-      "target": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "frontend_v1_src_components_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L27",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "frontend_v1_src_theme_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L29",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "frontend_v1_src_hooks_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L30",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "frontend_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L31",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "frontend_v1_src_utils_index_js"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L37",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_category_chips"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L38",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_sort_options"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L40",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_productlistscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L351",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_styles"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "loadingskeleton_loadingskeleton_skeletonrow"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L27",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "theme_colors_colors"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L27",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "theme_typography_typography"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L27",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "theme_spacing_spacing"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L27",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "theme_borders_radius"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L29",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "hooks_useauthgate_useauthgate"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L30",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "api_productsapi_productsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L30",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "api_dashboardapi_dashboardapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L31",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "utils_apimappers_asarray"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L31",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "utils_apimappers_normalizeproduct"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/customer/ProductListScreen/ProductListScreen.js",
-      "source_location": "L27",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_customer_productlistscreen_productlistscreen_js",
-      "target": "theme_shadows_shadows"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L43",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_category_chips"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L44",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_sort_options"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L51",
-      "weight": 1.0,
-      "source": "productlistscreen_productlistscreen_productlistscreen",
-      "target": "hooks_useauthgate_useauthgate"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_productlistscreen"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Frontend-V1/src/screens/ProductListScreen/ProductListScreen.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "frontend_v1_src_screens_productlistscreen_productlistscreen_js",
-      "target": "productlistscreen_productlistscreen_styles"
     },
     {
       "relation": "imports_from",
@@ -56204,5 +56204,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "8b8cd1ce9c8117258974728e6e218fd27e70ad81"
+  "built_at_commit": "9cb440e9656942cee6da1520844669b60c361041"
 }

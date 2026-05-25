@@ -207,7 +207,7 @@ const createOrder = async (req, res) => {
 const getOrders = async (req, res) => {
   const userId = req.user.id;
   const [rows] = await pool.query(
-    'SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC',
+    'SELECT o.*, (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) as item_count FROM orders o WHERE o.customer_id = ? ORDER BY o.created_at DESC',
     [userId]
   );
   const orders = rows.map(o => ({ ...o, canCancel: o.status === 'Pending' }));

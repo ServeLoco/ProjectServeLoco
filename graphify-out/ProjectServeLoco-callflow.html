@@ -60,7 +60,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 <div class="container">
 
 <h1>ProjectServeLoco — Complete Call Flow &amp; Architecture Documentation</h1>
-<p class="subtitle">Generated from graphify knowledge graph: 2106 nodes, 3555 edges, 171 communities. Commit: 8b8cd1c</p>
+<p class="subtitle">Generated from graphify knowledge graph: 2106 nodes, 3555 edges, 171 communities. Commit: 9cb440e</p>
 
 <div class="nav">
     <a href="#overview">Architecture Overview</a>
@@ -94,19 +94,19 @@ flowchart LR
     class BUILD_GRAPH_321CBB04 module;
     ANALYSIS_CLUSTERING_C79796DA("Analysis &amp; Clustering<br/><small>98 nodes</small>")
     class ANALYSIS_CLUSTERING_C79796DA module;
-    CLI_SKILLS_9964CBB8("CLI &amp; Skill Installers<br/><small>30 nodes</small>")
+    CLI_SKILLS_9964CBB8("CLI &amp; Skill Installers<br/><small>27 nodes</small>")
     class CLI_SKILLS_9964CBB8 module;
     INGEST_CACHE_UPDATE_FF457338("Ingestion &amp; Updates<br/><small>36 nodes</small>")
     class INGEST_CACHE_UPDATE_FF457338 module;
-    SERVE_API_35EC8E86("Serving API<br/><small>450 nodes</small>")
+    SERVE_API_35EC8E86("Serving API<br/><small>453 nodes</small>")
     class SERVE_API_35EC8E86 module;
-    TESTS_FIXTURES_B84B1DCC("Tests &amp; Fixtures<br/><small>236 nodes</small>")
+    TESTS_FIXTURES_B84B1DCC("Tests &amp; Fixtures<br/><small>234 nodes</small>")
     class TESTS_FIXTURES_B84B1DCC module;
     COMMUNITY_148_56BF65DD("Community 148<br/><small>68 nodes</small>")
     class COMMUNITY_148_56BF65DD module;
     COMMUNITY_45_E4978FE7("Community 45<br/><small>43 nodes</small>")
     class COMMUNITY_45_E4978FE7 module;
-    COMMUNITY_27_99AD9ED4("Community 27<br/><small>40 nodes</small>")
+    COMMUNITY_27_99AD9ED4("Community 27<br/><small>38 nodes</small>")
     class COMMUNITY_27_99AD9ED4 module;
     COMMUNITY_64_0821645F("Community 64<br/><small>37 nodes</small>")
     class COMMUNITY_64_0821645F module;
@@ -116,20 +116,20 @@ flowchart LR
     class COMMUNITY_86_4511885B module;
     COMMUNITY_13_E329587C("Community 13<br/><small>27 nodes</small>")
     class COMMUNITY_13_E329587C module;
-    OTHER_D0941E68("Other<br/><small>825 nodes</small>")
+    OTHER_D0941E68("Other<br/><small>829 nodes</small>")
     class OTHER_D0941E68 module;
-    TESTS_FIXTURES_B84B1DCC -->|imports x73| OTHER_D0941E68
+    TESTS_FIXTURES_B84B1DCC -->|imports x68| OTHER_D0941E68
     OTHER_D0941E68 -->|imports x67| SERVE_API_35EC8E86
     OTHER_D0941E68 -->|imports x65| COMMUNITY_148_56BF65DD
-    SERVE_API_35EC8E86 -->|imports x54| OTHER_D0941E68
-    TESTS_FIXTURES_B84B1DCC -->|imports x46| SERVE_API_35EC8E86
+    SERVE_API_35EC8E86 -->|imports x52| OTHER_D0941E68
+    TESTS_FIXTURES_B84B1DCC -->|imports x47| SERVE_API_35EC8E86
     COMMUNITY_148_56BF65DD -->|imports x39| OTHER_D0941E68
     COMMUNITY_148_56BF65DD -->|imports x38| SERVE_API_35EC8E86
-    SERVE_API_35EC8E86 -->|imports x33| TESTS_FIXTURES_B84B1DCC
-    OTHER_D0941E68 -->|imports x30| TESTS_FIXTURES_B84B1DCC
+    SERVE_API_35EC8E86 -->|imports x35| TESTS_FIXTURES_B84B1DCC
+    OTHER_D0941E68 -->|imports x35| TESTS_FIXTURES_B84B1DCC
     COMMUNITY_45_E4978FE7 -->|imports x22| COMMUNITY_148_56BF65DD
+    COMMUNITY_27_99AD9ED4 -->|imports x21| OTHER_D0941E68
     SERVE_API_35EC8E86 -->|imports x21| COMMUNITY_148_56BF65DD
-    COMMUNITY_148_56BF65DD -->|imports x20| TESTS_FIXTURES_B84B1DCC
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -146,7 +146,7 @@ flowchart LR
     <h4>Architecture Layers</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
-      <tr><td>Extraction Pipeline</td><td>7</td><td><code>23, 25</code></td></tr><tr><td>Graph Build</td><td>147</td><td><code>34, 2, 79, 84, 58, 78, 83, 22, 4, 24, 36, 37</code></td></tr><tr><td>Analysis &amp; Clustering</td><td>98</td><td><code>35, 48, 67, 100, 82</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>30</td><td><code>6, 87, 95, 77</code></td></tr><tr><td>Ingestion &amp; Updates</td><td>36</td><td><code>29</code></td></tr><tr><td>Serving API</td><td>450</td><td><code>28, 14, 75, 20, 31, 19, 15, 21, 66, 49, 111, 62, 145, 151, 93, 104</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>236</td><td><code>70, 43, 54, 59, 103, 68, 74, 88, 33, 118, 165</code></td></tr><tr><td>Community 148</td><td>68</td><td><code>148</code></td></tr><tr><td>Community 45</td><td>43</td><td><code>45</code></td></tr><tr><td>Community 27</td><td>40</td><td><code>27</code></td></tr><tr><td>Community 64</td><td>37</td><td><code>64</code></td></tr><tr><td>Community 30</td><td>33</td><td><code>30</code></td></tr><tr><td>Community 86</td><td>29</td><td><code>86</code></td></tr><tr><td>Community 13</td><td>27</td><td><code>13</code></td></tr><tr><td>Other</td><td>825</td><td><code>17, 46, 73, 154, 8, 89, 56, 0, 115, 47, 92, 81, 1, 65, 7, 72, 134, 135, 60, 132, 133, 136, 137, 85, 12, 138, 139, 150, 50, 140, 18, 144, 153, 16, 5, 57, 101, 105, 116, 117, 169, 3, 61, 90, 99, 106, 107, 108, 109, 110, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 141, 143, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 166, 167, 44, 63, 102, 112, 146, 147, 149, 168, 113, 114, 142, 152, 170, 26, 51, 52, 69, 71, 76, 94, 53, 10, 11, 32, 55, 9, 38, 39, 40, 41, 42, 80, 91, 96, 97, 98</code></td></tr>
+      <tr><td>Extraction Pipeline</td><td>7</td><td><code>23, 25</code></td></tr><tr><td>Graph Build</td><td>147</td><td><code>34, 2, 79, 84, 58, 78, 83, 22, 4, 24, 36, 37</code></td></tr><tr><td>Analysis &amp; Clustering</td><td>98</td><td><code>35, 48, 67, 100, 82</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>27</td><td><code>6, 87, 95, 77</code></td></tr><tr><td>Ingestion &amp; Updates</td><td>36</td><td><code>29</code></td></tr><tr><td>Serving API</td><td>453</td><td><code>28, 14, 75, 20, 31, 19, 15, 21, 66, 49, 111, 62, 145, 151, 93, 104</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>234</td><td><code>70, 43, 54, 59, 103, 68, 74, 88, 33, 118, 165</code></td></tr><tr><td>Community 148</td><td>68</td><td><code>148</code></td></tr><tr><td>Community 45</td><td>43</td><td><code>45</code></td></tr><tr><td>Community 27</td><td>38</td><td><code>27</code></td></tr><tr><td>Community 64</td><td>37</td><td><code>64</code></td></tr><tr><td>Community 30</td><td>33</td><td><code>30</code></td></tr><tr><td>Community 86</td><td>29</td><td><code>86</code></td></tr><tr><td>Community 13</td><td>27</td><td><code>13</code></td></tr><tr><td>Other</td><td>829</td><td><code>17, 46, 73, 47, 154, 8, 89, 56, 0, 115, 92, 81, 1, 65, 7, 72, 134, 135, 60, 132, 133, 136, 137, 85, 12, 138, 139, 150, 50, 140, 18, 144, 153, 16, 5, 57, 101, 105, 116, 117, 169, 3, 61, 90, 99, 106, 107, 108, 109, 110, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 141, 143, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 166, 167, 44, 63, 102, 112, 146, 147, 149, 168, 113, 114, 142, 152, 170, 26, 51, 52, 69, 71, 76, 94, 53, 10, 11, 32, 55, 9, 38, 39, 40, 41, 42, 80, 91, 96, 97, 98</code></td></tr>
     </table>
   </div>
   <div class="card">
@@ -999,12 +999,19 @@ flowchart LR
 
 <!-- ====== 5. CLI & Skill Installers ====== -->
 <h2 id="cli-skills">5. CLI &amp; Skill Installers</h2>
-<p>CLI &amp; Skill Installers groups implementation around mainplanmd, adminmanager, appjsx, pages, mostly in mainPLAN.md, src/api/index.js, adminManager-V1/src/App.jsx. This section covers 30 nodes and 27 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>CLI &amp; Skill Installers groups implementation around mainplanmd, adminmanager, appjsx, admin, mostly in mainPLAN.md, adminManager-V1/src/App.jsx, src/pages/Orders.jsx. This section covers 27 nodes and 23 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: CLI &amp; Skill Installers (30 nodes, 27 edges)
+    %% Section: CLI &amp; Skill Installers (27 nodes, 23 edges)
+    subgraph cli_skills_mainPLAN_md_2c255cd8["mainPLAN.md"]
+        projectserveloco_mainplan_acceptance_criteria_a69f6de7("Acceptance Criteria<br/><small>mainPLAN.md</small>")
+        projectserveloco_mainplan_admin_dashboard_requir_05f8ac04("Admin Dashboard Requirements<br/><small>mainPLAN.md</small>")
+        projectserveloco_mainplan_goal_117df657("Goal<br/><small>mainPLAN.md</small>")
+        projectserveloco_mainplan_immediate_next_steps_4d709024("Immediate Next Steps<br/><small>mainPLAN.md</small>")
+        projectserveloco_mainplan_included_4ae907d2("Included<br/><small>mainPLAN.md</small>")
+    end
     subgraph cli_skills_adminManager_V1_src_App_jsx_a5dbec97["adminManager-V1/src/App.jsx"]
         adminmanager_v1_src_app_jsx_2471ea96("App.jsx")
         adminmanager_v1_src_app_jsx_src_app_app_481f65bc("App()<br/><small>adminManager-V1/src/App.jsx</small>")
@@ -1013,58 +1020,44 @@ flowchart LR
         install_dbs_sh_458a43f6("install-dbs.sh")
         home_linux_documents_projectserveloco_install_db_8e03d265("install-dbs.sh script<br/><small>install-dbs.sh</small>")
     end
-    subgraph cli_skills_mainPLAN_md_2c255cd8["mainPLAN.md"]
-        projectserveloco_mainplan_acceptance_criteria_a69f6de7("Acceptance Criteria<br/><small>mainPLAN.md</small>")
-        projectserveloco_mainplan_admin_dashboard_requir_05f8ac04("Admin Dashboard Requirements<br/><small>mainPLAN.md</small>")
-    end
-    subgraph cli_skills_src_api_index_js_4b18ddde["src/api/index.js"]
-        api_index_settingsapi_d1c6cc40("SettingsApi<br/><small>src/api/index.js</small>")
-        api_index_dashboardapi_3ebcb09b("DashboardApi<br/><small>src/api/index.js</small>")
-    end
     subgraph cli_skills_src_pages_Audit_jsx_f875d9b8["src/pages/Audit.jsx"]
         adminmanager_v1_src_pages_audit_jsx_51d0d80b("Audit.jsx")
         pages_audit_audit_270cdfd3("Audit()<br/><small>src/pages/Audit.jsx</small>")
     end
-    subgraph cli_skills_src_pages_Dashboard_jsx_1955a460["src/pages/Dashboard.jsx"]
-        adminmanager_v1_src_pages_dashboard_jsx_5b387809("Dashboard.jsx")
-        pages_dashboard_dashboard_73148950("Dashboard()<br/><small>src/pages/Dashboard.jsx</small>")
-    end
-    subgraph cli_skills_src_pages_Settings_jsx_23db0551["src/pages/Settings.jsx"]
-        adminmanager_v1_src_pages_settings_jsx_3fd5cb09("Settings.jsx")
-        pages_settings_settings_9c44556a("Settings()<br/><small>src/pages/Settings.jsx</small>")
+    subgraph cli_skills_src_pages_Orders_jsx_267ac048["src/pages/Orders.jsx"]
+        adminmanager_v1_src_pages_orders_jsx_13a5383e("Orders.jsx")
+        pages_orders_orders_f7b9e2cd("Orders()<br/><small>src/pages/Orders.jsx</small>")
     end
     subgraph cli_skills_temp_admin_src_App_jsx_58779365["temp-admin/src/App.jsx"]
         temp_admin_src_app_jsx_db0ce3a1("App.jsx")
         temp_admin_src_app_jsx_src_app_app_12b1f7b5("App()<br/><small>temp-admin/src/App.jsx</small>")
     end
     adminmanager_v1_src_main_jsx_ad3b411b("main.jsx")
+    api_index_ordersapi_e8081a5f("OrdersApi<br/><small>src/api/index.js</small>")
     temp_admin_src_main_jsx_3aad3292("main.jsx")
-    api_index_dashboardapi_3ebcb09b -->|imports| adminmanager_v1_src_pages_dashboard_jsx_5b387809
-    api_index_settingsapi_d1c6cc40 -->|imports| adminmanager_v1_src_pages_settings_jsx_3fd5cb09
-    api_index_settingsapi_d1c6cc40 -->|imports| adminmanager_v1_src_pages_dashboard_jsx_5b387809
+    api_index_ordersapi_e8081a5f -->|imports| adminmanager_v1_src_pages_orders_jsx_13a5383e
     adminmanager_v1_src_main_jsx_ad3b411b -->|imports| adminmanager_v1_src_app_jsx_2471ea96
-    adminmanager_v1_src_app_jsx_2471ea96 -->|imports| adminmanager_v1_src_pages_dashboard_jsx_5b387809
-    adminmanager_v1_src_app_jsx_2471ea96 -->|imports| adminmanager_v1_src_pages_settings_jsx_3fd5cb09
+    adminmanager_v1_src_app_jsx_2471ea96 -->|imports| adminmanager_v1_src_pages_orders_jsx_13a5383e
     adminmanager_v1_src_app_jsx_2471ea96 -->|imports| adminmanager_v1_src_pages_audit_jsx_51d0d80b
     temp_admin_src_main_jsx_3aad3292 -->|imports| temp_admin_src_app_jsx_db0ce3a1
-    %% Omitted for readability: 12 nodes, 0 edges
+    %% Omitted for readability: 9 nodes, 0 edges
+    class projectserveloco_mainplan_acceptance_criteria_a69f6de7 concept;
+    class projectserveloco_mainplan_admin_dashboard_requir_05f8ac04 concept;
+    class projectserveloco_mainplan_goal_117df657 concept;
+    class projectserveloco_mainplan_immediate_next_steps_4d709024 concept;
+    class projectserveloco_mainplan_included_4ae907d2 concept;
     class adminmanager_v1_src_app_jsx_2471ea96 ui;
     class adminmanager_v1_src_app_jsx_src_app_app_481f65bc ui;
     class install_dbs_sh_458a43f6 function;
     class home_linux_documents_projectserveloco_install_db_8e03d265 function;
-    class projectserveloco_mainplan_acceptance_criteria_a69f6de7 concept;
-    class projectserveloco_mainplan_admin_dashboard_requir_05f8ac04 concept;
-    class api_index_settingsapi_d1c6cc40 api;
-    class api_index_dashboardapi_3ebcb09b api;
     class adminmanager_v1_src_pages_audit_jsx_51d0d80b ui;
     class pages_audit_audit_270cdfd3 ui;
-    class adminmanager_v1_src_pages_dashboard_jsx_5b387809 ui;
-    class pages_dashboard_dashboard_73148950 ui;
-    class adminmanager_v1_src_pages_settings_jsx_3fd5cb09 ui;
-    class pages_settings_settings_9c44556a ui;
+    class adminmanager_v1_src_pages_orders_jsx_13a5383e ui;
+    class pages_orders_orders_f7b9e2cd ui;
     class temp_admin_src_app_jsx_db0ce3a1 ui;
     class temp_admin_src_app_jsx_src_app_app_12b1f7b5 ui;
     class adminmanager_v1_src_main_jsx_ad3b411b ui;
+    class api_index_ordersapi_e8081a5f api;
     class temp_admin_src_main_jsx_3aad3292 ui;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
@@ -1201,22 +1194,14 @@ flowchart LR
 </tr>
 <tr>
   <td>15</td>
-  <td><code>DashboardApi</code><br><small style="color:var(--muted)">src/api/index.js</small></td>
+  <td><code>OrdersApi</code><br><small style="color:var(--muted)">src/api/index.js</small></td>
   <td><span class="tag tag-endpoint">API</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>Dashboard.jsx</code><br><small style="color:var(--muted)">src/pages/Dashboard.jsx</small></td>
-  <td>DashboardApi node in src/api/index.js.</td>
+  <td><code>Orders.jsx</code><br><small style="color:var(--muted)">src/pages/Orders.jsx</small></td>
+  <td>OrdersApi node in src/api/index.js.</td>
 </tr>
 <tr>
   <td>16</td>
-  <td><code>SettingsApi</code><br><small style="color:var(--muted)">src/api/index.js</small></td>
-  <td><span class="tag tag-endpoint">API</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>Dashboard.jsx</code><br><small style="color:var(--muted)">src/pages/Dashboard.jsx</small><br><code>Settings.jsx</code><br><small style="color:var(--muted)">src/pages/Settings.jsx</small></td>
-  <td>SettingsApi node in src/api/index.js.</td>
-</tr>
-<tr>
-  <td>17</td>
   <td><code>main.jsx</code><br><small style="color:var(--muted)">adminManager-V1/src/main.jsx</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
@@ -1224,15 +1209,15 @@ flowchart LR
   <td>main.jsx node in adminManager-V1/src/main.jsx.</td>
 </tr>
 <tr>
-  <td>18</td>
+  <td>17</td>
   <td><code>App.jsx</code><br><small style="color:var(--muted)">adminManager-V1/src/App.jsx</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td><code>main.jsx</code><br><small style="color:var(--muted)">adminManager-V1/src/main.jsx</small></td>
-  <td><code>Audit.jsx</code><br><small style="color:var(--muted)">src/pages/Audit.jsx</small><br><code>Dashboard.jsx</code><br><small style="color:var(--muted)">src/pages/Dashboard.jsx</small><br><code>Settings.jsx</code><br><small style="color:var(--muted)">src/pages/Settings.jsx</small></td>
+  <td><code>Audit.jsx</code><br><small style="color:var(--muted)">src/pages/Audit.jsx</small><br><code>Orders.jsx</code><br><small style="color:var(--muted)">src/pages/Orders.jsx</small></td>
   <td>App.jsx node in adminManager-V1/src/App.jsx.</td>
 </tr>
 <tr>
-  <td>19</td>
+  <td>18</td>
   <td><code>App()</code><br><small style="color:var(--muted)">adminManager-V1/src/App.jsx</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
@@ -1240,23 +1225,23 @@ flowchart LR
   <td>App() node in adminManager-V1/src/App.jsx.</td>
 </tr>
 <tr>
-  <td>20</td>
-  <td><code>Settings.jsx</code><br><small style="color:var(--muted)">src/pages/Settings.jsx</small></td>
+  <td>19</td>
+  <td><code>Orders.jsx</code><br><small style="color:var(--muted)">src/pages/Orders.jsx</small></td>
   <td><span class="tag tag-hook">UI</span></td>
-  <td><code>App.jsx</code><br><small style="color:var(--muted)">adminManager-V1/src/App.jsx</small><br><code>SettingsApi</code><br><small style="color:var(--muted)">src/api/index.js</small></td>
+  <td><code>App.jsx</code><br><small style="color:var(--muted)">adminManager-V1/src/App.jsx</small><br><code>OrdersApi</code><br><small style="color:var(--muted)">src/api/index.js</small></td>
   <td>No direct outbound edge</td>
-  <td>Settings.jsx node in src/pages/Settings.jsx.</td>
+  <td>Orders.jsx node in src/pages/Orders.jsx.</td>
 </tr>
 <tr>
-  <td>21</td>
-  <td><code>Settings()</code><br><small style="color:var(--muted)">src/pages/Settings.jsx</small></td>
+  <td>20</td>
+  <td><code>Orders()</code><br><small style="color:var(--muted)">src/pages/Orders.jsx</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>Settings() node in src/pages/Settings.jsx.</td>
+  <td>Orders() node in src/pages/Orders.jsx.</td>
 </tr>
 <tr>
-  <td>22</td>
+  <td>21</td>
   <td><code>Audit.jsx</code><br><small style="color:var(--muted)">src/pages/Audit.jsx</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td><code>App.jsx</code><br><small style="color:var(--muted)">adminManager-V1/src/App.jsx</small></td>
@@ -1264,7 +1249,7 @@ flowchart LR
   <td>Audit.jsx node in src/pages/Audit.jsx.</td>
 </tr>
 <tr>
-  <td>23</td>
+  <td>22</td>
   <td><code>Audit()</code><br><small style="color:var(--muted)">src/pages/Audit.jsx</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
@@ -1272,23 +1257,7 @@ flowchart LR
   <td>Audit() node in src/pages/Audit.jsx.</td>
 </tr>
 <tr>
-  <td>24</td>
-  <td><code>Dashboard.jsx</code><br><small style="color:var(--muted)">src/pages/Dashboard.jsx</small></td>
-  <td><span class="tag tag-hook">UI</span></td>
-  <td><code>App.jsx</code><br><small style="color:var(--muted)">adminManager-V1/src/App.jsx</small><br><code>DashboardApi</code><br><small style="color:var(--muted)">src/api/index.js</small><br><code>SettingsApi</code><br><small style="color:var(--muted)">src/api/index.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>Dashboard.jsx node in src/pages/Dashboard.jsx.</td>
-</tr>
-<tr>
-  <td>25</td>
-  <td><code>Dashboard()</code><br><small style="color:var(--muted)">src/pages/Dashboard.jsx</small></td>
-  <td><span class="tag tag-hook">UI</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Dashboard() node in src/pages/Dashboard.jsx.</td>
-</tr>
-<tr>
-  <td>26</td>
+  <td>23</td>
   <td><code>main.jsx</code><br><small style="color:var(--muted)">temp-admin/src/main.jsx</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
@@ -1296,7 +1265,7 @@ flowchart LR
   <td>main.jsx node in temp-admin/src/main.jsx.</td>
 </tr>
 <tr>
-  <td>27</td>
+  <td>24</td>
   <td><code>App.jsx</code><br><small style="color:var(--muted)">temp-admin/src/App.jsx</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td><code>main.jsx</code><br><small style="color:var(--muted)">temp-admin/src/main.jsx</small></td>
@@ -1304,7 +1273,7 @@ flowchart LR
   <td>App.jsx node in temp-admin/src/App.jsx.</td>
 </tr>
 <tr>
-  <td>28</td>
+  <td>25</td>
   <td><code>App()</code><br><small style="color:var(--muted)">temp-admin/src/App.jsx</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td>External entry / no inbound edge</td>
@@ -1312,7 +1281,7 @@ flowchart LR
   <td>App() node in temp-admin/src/App.jsx.</td>
 </tr>
 <tr>
-  <td>29</td>
+  <td>26</td>
   <td><code>install-dbs.sh</code><br><small style="color:var(--muted)">install-dbs.sh</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1320,7 +1289,7 @@ flowchart LR
   <td>install-dbs.sh node in install-dbs.sh.</td>
 </tr>
 <tr>
-  <td>30</td>
+  <td>27</td>
   <td><code>install-dbs.sh script</code><br><small style="color:var(--muted)">install-dbs.sh</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1336,17 +1305,17 @@ flowchart LR
       <tr><th>File</th><th>Coverage</th></tr>
       <tr><td><code>mainPLAN.md</code></td><td>14 nodes</td></tr>
 <tr><td><code>adminManager-V1/src/App.jsx</code></td><td>2 nodes</td></tr>
-<tr><td><code>src/api/index.js</code></td><td>2 nodes</td></tr>
 <tr><td><code>src/pages/Audit.jsx</code></td><td>2 nodes</td></tr>
-<tr><td><code>src/pages/Dashboard.jsx</code></td><td>2 nodes</td></tr>
-<tr><td><code>src/pages/Settings.jsx</code></td><td>2 nodes</td></tr>
+<tr><td><code>src/pages/Orders.jsx</code></td><td>2 nodes</td></tr>
 <tr><td><code>install-dbs.sh</code></td><td>2 nodes</td></tr>
 <tr><td><code>temp-admin/src/App.jsx</code></td><td>2 nodes</td></tr>
+<tr><td><code>src/api/index.js</code></td><td>1 nodes</td></tr>
+<tr><td><code>adminManager-V1/src/main.jsx</code></td><td>1 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x19, imports x5, imports x3. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x18, imports x4, imports x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -1693,12 +1662,12 @@ flowchart LR
 
 <!-- ====== 7. Serving API ====== -->
 <h2 id="serve-api">7. Serving API</h2>
-<p>Serving API groups implementation around frontend, adminmanager, backend, api, mostly in mainPLAN.md, adminManager-V1/task.md, Frontend-V1/Tasks.md. This section covers 450 nodes and 634 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Serving API groups implementation around frontend, adminmanager, backend, api, mostly in mainPLAN.md, adminManager-V1/task.md, Frontend-V1/Tasks.md. This section covers 453 nodes and 639 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Serving API (450 nodes, 634 edges)
+    %% Section: Serving API (453 nodes, 639 edges)
     subgraph serve_api_Frontend_V1_App_js_3f193bf7["Frontend-V1/App.js"]
         frontend_v1_app_js_794cb919("App.js")
         frontend_v1_app_app_3fe36d59("App()<br/><small>Frontend-V1/App.js</small>")
@@ -1740,7 +1709,7 @@ flowchart LR
     frontend_v1_app_js_794cb919 -->|imports| stores_useauthstore_useauthstore_d6c96056
     frontend_v1_app_js_794cb919 -->|imports| api_sessiontokens_setadmintokenprovider_532d5b71
     frontend_v1_app_js_794cb919 -->|imports| utils_noemojicheck_assertnoemoji_765ccd3a
-    %% Omitted for readability: 432 nodes, 0 edges
+    %% Omitted for readability: 435 nodes, 0 edges
     class frontend_v1_app_js_794cb919 klass;
     class frontend_v1_app_app_3fe36d59 function;
     class frontend_v1_src_api_httpclient_js_e07a3d77 entry;
@@ -2034,89 +2003,93 @@ flowchart LR
 <tr><td><code>Backend-V1/tasks.md</code></td><td>35 nodes</td></tr>
 <tr><td><code>Backend-V1/API.md</code></td><td>24 nodes</td></tr>
 <tr><td><code>Frontend-V1/app.json</code></td><td>17 nodes</td></tr>
-<tr><td><code>plans/admindashboardtask.md</code></td><td>14 nodes</td></tr>
+<tr><td><code>src/api/index.js</code></td><td>14 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x392, imports x110, imports x59, re exports x43. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x394, imports x112, imports x60, re exports x43. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
 
 <!-- ====== 8. Tests & Fixtures ====== -->
 <h2 id="tests-fixtures">8. Tests &amp; Fixtures</h2>
-<p>Tests &amp; Fixtures groups implementation around backend, tests, frontend, screens, mostly in Backend-V1/API_TEST_REPORT.md, plans/admindashboardtask.md, src/utils/apiMappers.js. This section covers 236 nodes and 378 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Tests &amp; Fixtures groups implementation around backend, tests, frontend, screens, mostly in Backend-V1/API_TEST_REPORT.md, plans/admindashboardtask.md, src/utils/apiMappers.js. This section covers 234 nodes and 371 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Tests &amp; Fixtures (236 nodes, 378 edges)
+    %% Section: Tests &amp; Fixtures (234 nodes, 371 edges)
     subgraph tests_fixtures_src_utils_apiMappers_js_4450ec26["src/utils/apiMappers.js"]
         utils_apimappers_pickfirst_3ef89ccd("pickFirst()<br/><small>src/utils/apiMappers.js</small>")
         utils_apimappers_asarray_71892444("asArray()<br/><small>src/utils/apiMappers.js</small>")
         utils_apimappers_numberorzero_e3747933("numberOrZero()<br/><small>src/utils/apiMappers.js</small>")
         utils_apimappers_getdiscountlabel_ab6f3599("getDiscountLabel()<br/><small>src/utils/apiMappers.js</small>")
         utils_apimappers_normalizeproduct_0890ed83("normalizeProduct()<br/><small>src/utils/apiMappers.js</small>")
-        utils_apimappers_normalizecategory_9a05e3c7("normalizeCategory()<br/><small>src/utils/apiMappers.js</small>")
     end
     subgraph tests_fixtures_customer_HomeScreen_HomeScreen_js_96a07c85["customer/HomeScreen/HomeScreen.js"]
         frontend_v1_src_screens_customer_homescreen_home_da3571c9("HomeScreen.js")
         homescreen_homescreen_homescreen_d8a7f1b5("HomeScreen()<br/><small>customer/HomeScreen/HomeScreen.js</small>")
         homescreen_homescreen_getshortaddress_7bd5e9c7("getShortAddress()<br/><small>customer/HomeScreen/HomeScreen.js</small>")
     end
+    subgraph tests_fixtures_customer_CategoriesScreen_Categor_b59b8467["customer/CategoriesScreen/CategoriesScreen.js"]
+        frontend_v1_src_screens_customer_categoriesscree_b1f83745("CategoriesScreen.js")
+        categoriesscreen_categoriesscreen_categoriesscre_97beb5ed("CategoriesScreen()<br/><small>customer/CategoriesScreen/CategoriesScreen.js</small>")
+    end
+    subgraph tests_fixtures_customer_ProductListScreen_Produc_91c65a2e["customer/ProductListScreen/ProductListScreen.js"]
+        frontend_v1_src_screens_customer_productlistscre_469e8ecf("ProductListScreen.js")
+        productlistscreen_productlistscreen_productlists_516fa867("ProductListScreen()<br/><small>customer/ProductListScreen/ProductListScreen.js</small>")
+    end
     subgraph tests_fixtures_src_controllers_orderController_j_8bb5c338["src/controllers/orderController.js"]
         controllers_ordercontroller_generateordernumber_4e2fbd09("generateOrderNumber()<br/><small>src/controllers/orderController.js</small>")
         controllers_ordercontroller_createorder_742842b8("createOrder()<br/><small>src/controllers/orderController.js</small>")
     end
-    categoriesscreen_categoriesscreen_categoriesscre_97beb5ed("CategoriesScreen()<br/><small>customer/CategoriesScreen/CategoriesScreen.js</small>")
     productdetailscreen_productdetailscreen_productd_d97b0e27("ProductDetailScreen()<br/><small>customer/ProductDetailScreen/ProductDetailScreen.js</small>")
-    productlistscreen_productlistscreen_productlists_516fa867("ProductListScreen()<br/><small>customer/ProductListScreen/ProductListScreen.js</small>")
     hooks_useauthgate_useauthgate_56d0109d("useAuthGate()<br/><small>src/hooks/useAuthGate.js</small>")
-    frontend_v1_src_stores_index_js_473d9cc7("index.js")
     stores_usecartstore_usecartstore_338c8206("useCartStore<br/><small>src/stores/useCartStore.js</small>")
     utils_deliverypricing_calculatedeliverypricing_e8e1a539("calculateDeliveryPricing()<br/><small>src/utils/deliveryPricing.js</small>")
+    categoriesscreen_categoriesscreen_categoriesscre_97beb5ed -->|calls| stores_usecartstore_usecartstore_338c8206
+    productlistscreen_productlistscreen_productlists_516fa867 -->|calls| stores_usecartstore_usecartstore_338c8206
+    productlistscreen_productlistscreen_productlists_516fa867 -->|calls| hooks_useauthgate_useauthgate_56d0109d
     controllers_ordercontroller_generateordernumber_4e2fbd09 -->|calls| controllers_ordercontroller_createorder_742842b8
     controllers_ordercontroller_createorder_742842b8 -->|calls| utils_deliverypricing_calculatedeliverypricing_e8e1a539
     stores_usecartstore_usecartstore_338c8206 -->|calls| productdetailscreen_productdetailscreen_productd_d97b0e27
-    stores_usecartstore_usecartstore_338c8206 -->|calls| categoriesscreen_categoriesscreen_categoriesscre_97beb5ed
     stores_usecartstore_usecartstore_338c8206 -->|calls| homescreen_homescreen_homescreen_d8a7f1b5
-    stores_usecartstore_usecartstore_338c8206 -->|calls| productlistscreen_productlistscreen_productlists_516fa867
     productdetailscreen_productdetailscreen_productd_d97b0e27 -->|calls| hooks_useauthgate_useauthgate_56d0109d
     homescreen_homescreen_homescreen_d8a7f1b5 -->|calls| hooks_useauthgate_useauthgate_56d0109d
     homescreen_homescreen_homescreen_d8a7f1b5 -->|calls| homescreen_homescreen_getshortaddress_7bd5e9c7
-    productlistscreen_productlistscreen_productlists_516fa867 -->|calls| hooks_useauthgate_useauthgate_56d0109d
     utils_apimappers_pickfirst_3ef89ccd -->|calls| utils_apimappers_getdiscountlabel_ab6f3599
     utils_apimappers_pickfirst_3ef89ccd -->|calls| utils_apimappers_normalizeproduct_0890ed83
-    utils_apimappers_pickfirst_3ef89ccd -->|calls| utils_apimappers_normalizecategory_9a05e3c7
     utils_apimappers_asarray_71892444 -->|calls| utils_apimappers_normalizeproduct_0890ed83
-    utils_apimappers_asarray_71892444 -->|calls| utils_apimappers_normalizecategory_9a05e3c7
     utils_apimappers_numberorzero_e3747933 -->|calls| utils_apimappers_normalizeproduct_0890ed83
-    utils_apimappers_numberorzero_e3747933 -->|calls| utils_apimappers_normalizecategory_9a05e3c7
     utils_apimappers_getdiscountlabel_ab6f3599 -->|calls| utils_apimappers_normalizeproduct_0890ed83
+    frontend_v1_src_screens_customer_categoriesscree_b1f83745 -->|imports| stores_usecartstore_usecartstore_338c8206
+    frontend_v1_src_screens_customer_categoriesscree_b1f83745 -->|imports| utils_apimappers_asarray_71892444
+    frontend_v1_src_screens_customer_productlistscre_469e8ecf -->|imports| stores_usecartstore_usecartstore_338c8206
+    frontend_v1_src_screens_customer_productlistscre_469e8ecf -->|imports| hooks_useauthgate_useauthgate_56d0109d
+    frontend_v1_src_screens_customer_productlistscre_469e8ecf -->|imports| utils_apimappers_asarray_71892444
+    frontend_v1_src_screens_customer_productlistscre_469e8ecf -->|imports| utils_apimappers_normalizeproduct_0890ed83
     stores_usecartstore_usecartstore_338c8206 -->|imports| frontend_v1_src_screens_customer_homescreen_home_da3571c9
-    frontend_v1_src_stores_index_js_473d9cc7 -->|imports| frontend_v1_src_screens_customer_homescreen_home_da3571c9
     frontend_v1_src_screens_customer_homescreen_home_da3571c9 -->|imports| hooks_useauthgate_useauthgate_56d0109d
-    frontend_v1_src_screens_customer_homescreen_home_da3571c9 -->|imports| utils_apimappers_normalizecategory_9a05e3c7
     frontend_v1_src_screens_customer_homescreen_home_da3571c9 -->|imports| utils_apimappers_normalizeproduct_0890ed83
-    frontend_v1_src_screens_customer_homescreen_home_da3571c9 -->|imports| utils_apimappers_asarray_71892444
-    %% Omitted for readability: 218 nodes, 0 edges
+    %% Omitted for readability: 216 nodes, 1 edges
     class utils_apimappers_pickfirst_3ef89ccd function;
     class utils_apimappers_asarray_71892444 function;
     class utils_apimappers_numberorzero_e3747933 function;
     class utils_apimappers_getdiscountlabel_ab6f3599 function;
     class utils_apimappers_normalizeproduct_0890ed83 function;
-    class utils_apimappers_normalizecategory_9a05e3c7 function;
     class frontend_v1_src_screens_customer_homescreen_home_da3571c9 klass;
     class homescreen_homescreen_homescreen_d8a7f1b5 function;
     class homescreen_homescreen_getshortaddress_7bd5e9c7 function;
+    class frontend_v1_src_screens_customer_categoriesscree_b1f83745 klass;
+    class categoriesscreen_categoriesscreen_categoriesscre_97beb5ed function;
+    class frontend_v1_src_screens_customer_productlistscre_469e8ecf klass;
+    class productlistscreen_productlistscreen_productlists_516fa867 function;
     class controllers_ordercontroller_generateordernumber_4e2fbd09 function;
     class controllers_ordercontroller_createorder_742842b8 function;
-    class categoriesscreen_categoriesscreen_categoriesscre_97beb5ed function;
     class productdetailscreen_productdetailscreen_productd_d97b0e27 function;
-    class productlistscreen_productlistscreen_productlists_516fa867 function;
     class hooks_useauthgate_useauthgate_56d0109d ui;
-    class frontend_v1_src_stores_index_js_473d9cc7 module;
     class stores_usecartstore_usecartstore_338c8206 ui;
     class utils_deliverypricing_calculatedeliverypricing_e8e1a539 function;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
@@ -2294,7 +2267,7 @@ flowchart LR
 </tr>
 <tr>
   <td>20</td>
-  <td><code>roleProtection.test.js</code><br><small style="color:var(--muted)">Backend-V1/tests/roleProtection.test.js</small></td>
+  <td><code>adminAuth.test.js</code><br><small style="color:var(--muted)">Backend-V1/tests/adminAuth.test.js</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
   <td><code>mysql.js</code><br><small style="color:var(--muted)">src/db/mysql.js</small><br><code>pool</code><br><small style="color:var(--muted)">src/db/mysql.js</small></td>
@@ -2302,83 +2275,83 @@ flowchart LR
 </tr>
 <tr>
   <td>21</td>
-  <td><code>request</code><br><small style="color:var(--muted)">Backend-V1/tests/roleProtection.test.js</small></td>
+  <td><code>request</code><br><small style="color:var(--muted)">Backend-V1/tests/adminAuth.test.js</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>request node in Backend-V1/tests/roleProtection.test.js.</td>
+  <td>request node in Backend-V1/tests/adminAuth.test.js.</td>
 </tr>
 <tr>
   <td>22</td>
-  <td><code>express</code><br><small style="color:var(--muted)">Backend-V1/tests/roleProtection.test.js</small></td>
+  <td><code>express</code><br><small style="color:var(--muted)">Backend-V1/tests/adminAuth.test.js</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>express node in Backend-V1/tests/roleProtection.test.js.</td>
+  <td>express node in Backend-V1/tests/adminAuth.test.js.</td>
 </tr>
 <tr>
   <td>23</td>
-  <td><code>authRoutes</code><br><small style="color:var(--muted)">Backend-V1/tests/roleProtection.test.js</small></td>
+  <td><code>adminRoutes</code><br><small style="color:var(--muted)">Backend-V1/tests/adminAuth.test.js</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>authRoutes node in Backend-V1/tests/roleProtection.test.js.</td>
+  <td>adminRoutes node in Backend-V1/tests/adminAuth.test.js.</td>
 </tr>
 <tr>
   <td>24</td>
-  <td><code>adminRoutes</code><br><small style="color:var(--muted)">Backend-V1/tests/roleProtection.test.js</small></td>
+  <td><code>{ pool }</code><br><small style="color:var(--muted)">Backend-V1/tests/adminAuth.test.js</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>adminRoutes node in Backend-V1/tests/roleProtection.test.js.</td>
+  <td>{ pool } node in Backend-V1/tests/adminAuth.test.js.</td>
 </tr>
 <tr>
   <td>25</td>
-  <td><code>{ pool }</code><br><small style="color:var(--muted)">Backend-V1/tests/roleProtection.test.js</small></td>
+  <td><code>jwt</code><br><small style="color:var(--muted)">Backend-V1/tests/adminAuth.test.js</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>{ pool } node in Backend-V1/tests/roleProtection.test.js.</td>
+  <td>jwt node in Backend-V1/tests/adminAuth.test.js.</td>
 </tr>
 <tr>
   <td>26</td>
-  <td><code>jwt</code><br><small style="color:var(--muted)">Backend-V1/tests/roleProtection.test.js</small></td>
+  <td><code>app</code><br><small style="color:var(--muted)">Backend-V1/tests/adminAuth.test.js</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>jwt node in Backend-V1/tests/roleProtection.test.js.</td>
+  <td>app node in Backend-V1/tests/adminAuth.test.js.</td>
 </tr>
 <tr>
   <td>27</td>
-  <td><code>app</code><br><small style="color:var(--muted)">Backend-V1/tests/roleProtection.test.js</small></td>
-  <td><span class="tag tag-func">Test</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>app node in Backend-V1/tests/roleProtection.test.js.</td>
-</tr>
-<tr>
-  <td>28</td>
-  <td><code>customerToken</code><br><small style="color:var(--muted)">Backend-V1/tests/roleProtection.test.js</small></td>
-  <td><span class="tag tag-func">Test</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>customerToken node in Backend-V1/tests/roleProtection.test.js.</td>
-</tr>
-<tr>
-  <td>29</td>
-  <td><code>adminToken</code><br><small style="color:var(--muted)">Backend-V1/tests/roleProtection.test.js</small></td>
-  <td><span class="tag tag-func">Test</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>adminToken node in Backend-V1/tests/roleProtection.test.js.</td>
-</tr>
-<tr>
-  <td>30</td>
-  <td><code>adminAuth.test.js</code><br><small style="color:var(--muted)">Backend-V1/tests/adminAuth.test.js</small></td>
+  <td><code>auth.test.js</code><br><small style="color:var(--muted)">Backend-V1/tests/auth.test.js</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
   <td><code>mysql.js</code><br><small style="color:var(--muted)">src/db/mysql.js</small><br><code>pool</code><br><small style="color:var(--muted)">src/db/mysql.js</small></td>
   <td>Verifies imports, entry points, or version behavior.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>request</code><br><small style="color:var(--muted)">Backend-V1/tests/auth.test.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>request node in Backend-V1/tests/auth.test.js.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>express</code><br><small style="color:var(--muted)">Backend-V1/tests/auth.test.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>express node in Backend-V1/tests/auth.test.js.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>authRoutes</code><br><small style="color:var(--muted)">Backend-V1/tests/auth.test.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>authRoutes node in Backend-V1/tests/auth.test.js.</td>
 </tr>
 </table>
 
@@ -2399,7 +2372,7 @@ flowchart LR
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x213, imports x80, calls x44, imports x34. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x209, imports x79, calls x43, imports x33. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -2525,7 +2498,7 @@ flowchart LR
   <td><code>TextInputField.js</code><br><small style="color:var(--muted)">components/TextInputField/TextInputField.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>borderWidth</code><br><small style="color:var(--muted)">src/theme/borders.js</small><br><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small><br><code>index.js</code><br><small style="color:var(--muted)">components/AppIcon/index.js</small><br>+2 more</td>
+  <td><code>borderWidth</code><br><small style="color:var(--muted)">src/theme/borders.js</small><br><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small><br>+2 more</td>
   <td>TextInputField.js node in components/TextInputField/TextInputField.js.</td>
 </tr>
 <tr>
@@ -2693,7 +2666,7 @@ flowchart LR
   <td><code>IconButton.js</code><br><small style="color:var(--muted)">components/IconButton/IconButton.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small><br><code>index.js</code><br><small style="color:var(--muted)">components/AppIcon/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small><br>+1 more</td>
+  <td><code>colors</code><br><small style="color:var(--muted)">src/theme/colors.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/theme/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">components/AppIcon/index.js</small><br>+1 more</td>
   <td>IconButton.js node in components/IconButton/IconButton.js.</td>
 </tr>
 <tr>
@@ -3001,7 +2974,7 @@ flowchart LR
   <td><code>AnimatedStickyMiniCart.js</code><br><small style="color:var(--muted)">components/AnimatedStickyMiniCart/AnimatedStickyMiniCart.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>easing</code><br><small style="color:var(--muted)">src/theme/motion.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/utils/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">components/StickyMiniCart/index.js</small><br>+1 more</td>
+  <td><code>easing</code><br><small style="color:var(--muted)">src/theme/motion.js</small><br><code>index.js</code><br><small style="color:var(--muted)">components/StickyMiniCart/index.js</small><br><code>index.js</code><br><small style="color:var(--muted)">src/utils/index.js</small><br>+1 more</td>
   <td>AnimatedStickyMiniCart.js node in components/AnimatedStickyMiniCart/AnimatedStickyMiniCart.js.</td>
 </tr>
 <tr>
@@ -3126,12 +3099,12 @@ flowchart LR
 
 <!-- ====== 11. Community 27 ====== -->
 <h2 id="community-27">11. Community 27</h2>
-<p>Community 27 groups implementation around backend, admincontrollerjs, controllers, adminroutesjs, mostly in src/controllers/adminController.js, src/routes/adminRoutes.js, src/validators/index.js. This section covers 40 nodes and 57 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Community 27 groups implementation around backend, admincontrollerjs, controllers, adminroutesjs, mostly in src/controllers/adminController.js, src/routes/adminRoutes.js, src/utils/auth.js. This section covers 38 nodes and 54 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Community 27 (40 nodes, 57 edges)
+    %% Section: Community 27 (38 nodes, 54 edges)
     subgraph community_27_src_controllers_adminController_js_25992bef["src/controllers/adminController.js"]
         controllers_admincontroller_queryrows_844cac01("queryRows()<br/><small>src/controllers/adminController.js</small>")
         backend_v1_src_controllers_admincontroller_js_39fffd40("adminController.js")
@@ -3147,14 +3120,11 @@ flowchart LR
         controllers_admincontroller_getcustomersreport_839a796c("getCustomersReport()<br/><small>src/controllers/adminController.js</small>")
         controllers_admincontroller_getadminorders_bf118dc9("getAdminOrders()<br/><small>src/controllers/adminController.js</small>")
         controllers_admincontroller_getadminorderbyid_5494b018("getAdminOrderById()<br/><small>src/controllers/adminController.js</small>")
+        controllers_admincontroller_updateorderstatus_d670fe48("updateOrderStatus()<br/><small>src/controllers/adminController.js</small>")
+        controllers_admincontroller_updateorderpayment_478058ca("updateOrderPayment()<br/><small>src/controllers/adminController.js</small>")
     end
-    subgraph community_27_src_routes_adminRoutes_js_064a5098["src/routes/adminRoutes.js"]
-        backend_v1_src_routes_adminroutes_js_1a7a7a4d("adminRoutes.js")
-        routes_adminroutes_paginationschema_cc95eedd("paginationSchema()<br/><small>src/routes/adminRoutes.js</small>")
-    end
+    backend_v1_src_routes_adminroutes_js_1a7a7a4d("adminRoutes.js")
     utils_auth_signadmintoken_4bf195d6("signAdminToken()<br/><small>src/utils/auth.js</small>")
-    validators_index_validatepagination_60eae771("validatePagination()<br/><small>src/validators/index.js</small>")
-    routes_adminroutes_paginationschema_cc95eedd -->|calls| validators_index_validatepagination_60eae771
     controllers_admincontroller_queryrows_844cac01 -->|calls| controllers_admincontroller_getdashboard_c2b4f90e
     controllers_admincontroller_login_3b6c7227 -->|calls| utils_auth_signadmintoken_4bf195d6
     backend_v1_src_routes_adminroutes_js_1a7a7a4d -->|imports| controllers_admincontroller_login_3b6c7227
@@ -3169,10 +3139,11 @@ flowchart LR
     backend_v1_src_routes_adminroutes_js_1a7a7a4d -->|imports| controllers_admincontroller_getcustomersreport_839a796c
     backend_v1_src_routes_adminroutes_js_1a7a7a4d -->|imports| controllers_admincontroller_getadminorders_bf118dc9
     backend_v1_src_routes_adminroutes_js_1a7a7a4d -->|imports| controllers_admincontroller_getadminorderbyid_5494b018
-    backend_v1_src_routes_adminroutes_js_1a7a7a4d -->|imports| validators_index_validatepagination_60eae771
+    backend_v1_src_routes_adminroutes_js_1a7a7a4d -->|imports| controllers_admincontroller_updateorderstatus_d670fe48
+    backend_v1_src_routes_adminroutes_js_1a7a7a4d -->|imports| controllers_admincontroller_updateorderpayment_478058ca
     backend_v1_src_routes_adminroutes_js_1a7a7a4d -->|imports| backend_v1_src_controllers_admincontroller_js_39fffd40
     backend_v1_src_controllers_admincontroller_js_39fffd40 -->|imports| utils_auth_signadmintoken_4bf195d6
-    %% Omitted for readability: 22 nodes, 0 edges
+    %% Omitted for readability: 20 nodes, 0 edges
     class controllers_admincontroller_queryrows_844cac01 function;
     class backend_v1_src_controllers_admincontroller_js_39fffd40 module;
     class controllers_admincontroller_login_3b6c7227 function;
@@ -3187,10 +3158,10 @@ flowchart LR
     class controllers_admincontroller_getcustomersreport_839a796c function;
     class controllers_admincontroller_getadminorders_bf118dc9 function;
     class controllers_admincontroller_getadminorderbyid_5494b018 function;
+    class controllers_admincontroller_updateorderstatus_d670fe48 function;
+    class controllers_admincontroller_updateorderpayment_478058ca function;
     class backend_v1_src_routes_adminroutes_js_1a7a7a4d api;
-    class routes_adminroutes_paginationschema_cc95eedd function;
     class utils_auth_signadmintoken_4bf195d6 function;
-    class validators_index_validatepagination_60eae771 function;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -3217,7 +3188,7 @@ flowchart LR
   <td><code>adminRoutes.js</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
   <td><span class="tag tag-endpoint">API</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>adminController.js</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small><br><code>getAdminCustomerById()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small><br><code>getAdminCustomers()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small><br>+14 more</td>
+  <td><code>adminController.js</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small><br><code>getAdminCustomerById()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small><br><code>getAdminCustomers()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small><br>+13 more</td>
   <td>adminRoutes.js node in src/routes/adminRoutes.js.</td>
 </tr>
 <tr>
@@ -3356,14 +3327,6 @@ flowchart LR
 </tr>
 <tr>
   <td>16</td>
-  <td><code>paginationSchema()</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>validatePagination()</code><br><small style="color:var(--muted)">src/validators/index.js</small></td>
-  <td>paginationSchema() node in src/routes/adminRoutes.js.</td>
-</tr>
-<tr>
-  <td>17</td>
   <td><code>comboSchema()</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -3371,7 +3334,7 @@ flowchart LR
   <td>comboSchema() node in src/routes/adminRoutes.js.</td>
 </tr>
 <tr>
-  <td>18</td>
+  <td>17</td>
   <td><code>comboAvailabilitySchema()</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -3379,15 +3342,7 @@ flowchart LR
   <td>comboAvailabilitySchema() node in src/routes/adminRoutes.js.</td>
 </tr>
 <tr>
-  <td>19</td>
-  <td><code>validatePagination()</code><br><small style="color:var(--muted)">src/validators/index.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>adminRoutes.js</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small><br><code>paginationSchema()</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>validatePagination() node in src/validators/index.js.</td>
-</tr>
-<tr>
-  <td>20</td>
+  <td>18</td>
   <td><code>adminController.js</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td><code>adminRoutes.js</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
@@ -3395,7 +3350,7 @@ flowchart LR
   <td>adminController.js node in src/controllers/adminController.js.</td>
 </tr>
 <tr>
-  <td>21</td>
+  <td>19</td>
   <td><code>config</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -3403,7 +3358,7 @@ flowchart LR
   <td>Reads, resolves, or persists project configuration.</td>
 </tr>
 <tr>
-  <td>22</td>
+  <td>20</td>
   <td><code>{ signAdminToken }</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -3411,7 +3366,7 @@ flowchart LR
   <td>{ signAdminToken } node in src/controllers/adminController.js.</td>
 </tr>
 <tr>
-  <td>23</td>
+  <td>21</td>
   <td><code>{ pool }</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -3419,7 +3374,7 @@ flowchart LR
   <td>{ pool } node in src/controllers/adminController.js.</td>
 </tr>
 <tr>
-  <td>24</td>
+  <td>22</td>
   <td><code>queryRows()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -3427,7 +3382,7 @@ flowchart LR
   <td>queryRows() node in src/controllers/adminController.js.</td>
 </tr>
 <tr>
-  <td>25</td>
+  <td>23</td>
   <td><code>login()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>adminRoutes.js</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
@@ -3435,7 +3390,7 @@ flowchart LR
   <td>login() node in src/controllers/adminController.js.</td>
 </tr>
 <tr>
-  <td>26</td>
+  <td>24</td>
   <td><code>me()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>adminRoutes.js</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
@@ -3443,7 +3398,7 @@ flowchart LR
   <td>me() node in src/controllers/adminController.js.</td>
 </tr>
 <tr>
-  <td>27</td>
+  <td>25</td>
   <td><code>getAdminCustomers()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>adminRoutes.js</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
@@ -3451,7 +3406,7 @@ flowchart LR
   <td>getAdminCustomers() node in src/controllers/adminController.js.</td>
 </tr>
 <tr>
-  <td>28</td>
+  <td>26</td>
   <td><code>setBlockStatus()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>adminRoutes.js</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
@@ -3459,7 +3414,7 @@ flowchart LR
   <td>setBlockStatus() node in src/controllers/adminController.js.</td>
 </tr>
 <tr>
-  <td>29</td>
+  <td>27</td>
   <td><code>setTrustStatus()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>adminRoutes.js</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
@@ -3467,12 +3422,28 @@ flowchart LR
   <td>setTrustStatus() node in src/controllers/adminController.js.</td>
 </tr>
 <tr>
-  <td>30</td>
+  <td>28</td>
   <td><code>getDashboard()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>adminRoutes.js</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small><br><code>queryRows()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
   <td>No direct outbound edge</td>
   <td>getDashboard() node in src/controllers/adminController.js.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>getSalesReport()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>adminRoutes.js</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>getSalesReport() node in src/controllers/adminController.js.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>getAdminCustomerById()</code><br><small style="color:var(--muted)">src/controllers/adminController.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>adminRoutes.js</code><br><small style="color:var(--muted)">src/routes/adminRoutes.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>getAdminCustomerById() node in src/controllers/adminController.js.</td>
 </tr>
 </table>
 
@@ -3482,14 +3453,13 @@ flowchart LR
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
       <tr><td><code>src/controllers/adminController.js</code></td><td>20 nodes</td></tr>
-<tr><td><code>src/routes/adminRoutes.js</code></td><td>18 nodes</td></tr>
+<tr><td><code>src/routes/adminRoutes.js</code></td><td>17 nodes</td></tr>
 <tr><td><code>src/utils/auth.js</code></td><td>1 nodes</td></tr>
-<tr><td><code>src/validators/index.js</code></td><td>1 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x36, imports x17, calls x3, imports x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x35, imports x16, calls x2, imports x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -3931,7 +3901,7 @@ flowchart LR
   <td><code>motionConfig</code><br><small style="color:var(--muted)">src/theme/motion.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>AdminCustomersScreen.js</code><br><small style="color:var(--muted)">screens/AdminCustomersScreen/AdminCustomersScreen.js</small><br><code>AdminCustomersScreen.js</code><br><small style="color:var(--muted)">admin/AdminCustomersScreen/AdminCustomersScreen.js</small><br><code>AdminSettingsScreen.js</code><br><small style="color:var(--muted)">screens/AdminSettingsScreen/AdminSettingsScreen.js</small><br>+1 more</td>
+  <td><code>AdminCustomersScreen.js</code><br><small style="color:var(--muted)">admin/AdminCustomersScreen/AdminCustomersScreen.js</small><br><code>AdminCustomersScreen.js</code><br><small style="color:var(--muted)">screens/AdminCustomersScreen/AdminCustomersScreen.js</small><br><code>AdminSettingsScreen.js</code><br><small style="color:var(--muted)">screens/AdminSettingsScreen/AdminSettingsScreen.js</small><br>+1 more</td>
   <td>Reads, resolves, or persists project configuration.</td>
 </tr>
 <tr>
@@ -4865,38 +4835,38 @@ flowchart LR
 
 <!-- ====== 16. Other ====== -->
 <h2 id="other">16. Other</h2>
-<p>Other groups implementation around plans, frontend, backend, admindashboardtaskmd, mostly in plans/admindashboardtask.md, plans/frontnew.md, plans/bugstask.md. This section covers 825 nodes and 894 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Other groups implementation around plans, frontend, backend, admindashboardtaskmd, mostly in plans/admindashboardtask.md, plans/frontnew.md, plans/bugstask.md. This section covers 829 nodes and 904 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Other (825 nodes, 894 edges)
+    %% Section: Other (829 nodes, 904 edges)
     subgraph other_src_routes_adminRoutes_js_98d22706["src/routes/adminRoutes.js"]
         routes_adminroutes_productschema_3146c4c4("productSchema()<br/><small>src/routes/adminRoutes.js</small>")
         routes_adminroutes_loginschema_55ac4e4d("loginSchema()<br/><small>src/routes/adminRoutes.js</small>")
+        routes_adminroutes_paginationschema_cc95eedd("paginationSchema()<br/><small>src/routes/adminRoutes.js</small>")
         routes_adminroutes_blockschema_0c7fef77("blockSchema()<br/><small>src/routes/adminRoutes.js</small>")
         routes_adminroutes_trustschema_66a880fe("trustSchema()<br/><small>src/routes/adminRoutes.js</small>")
         routes_adminroutes_categoryschema_74b35ef1("categorySchema()<br/><small>src/routes/adminRoutes.js</small>")
         routes_adminroutes_productavailabilityschema_bf03ec0f("productAvailabilitySchema()<br/><small>src/routes/adminRoutes.js</small>")
-        routes_adminroutes_productimageschema_dbc788dd("productImageSchema()<br/><small>src/routes/adminRoutes.js</small>")
     end
     subgraph other_src_validators_index_js_6d5d9ae4["src/validators/index.js"]
         validators_index_isstring_12f3abc6("isString()<br/><small>src/validators/index.js</small>")
         validators_index_normalizefield_92252e16("normalizeField()<br/><small>src/validators/index.js</small>")
+        validators_index_validatepagination_60eae771("validatePagination()<br/><small>src/validators/index.js</small>")
         validators_index_isboolean_6a20e046("isBoolean()<br/><small>src/validators/index.js</small>")
         validators_index_isid_8eff3aa6("isId()<br/><small>src/validators/index.js</small>")
-    end
-    subgraph other_src_routes_ProtectedRoute_jsx_82d61f7d["src/routes/ProtectedRoute.jsx"]
-        adminmanager_v1_src_routes_protectedroute_jsx_16ac92b4("ProtectedRoute.jsx")
-        routes_protectedroute_protectedroute_d27bf912("ProtectedRoute()<br/><small>src/routes/ProtectedRoute.jsx</small>")
+        validators_index_isnumericamount_11de0c55("isNumericAmount()<br/><small>src/validators/index.js</small>")
     end
     frontend_v1_src_components_categorycard_category_c75a2954("CategoryCard.js")
     frontend_v1_src_screens_customer_checkoutscreen_5d04aed8("CheckoutScreen.js")
-    components_authprovider_useauth_573401a2("useAuth()<br/><small>src/components/AuthProvider.jsx</small>")
     frontend_v1_src_components_index_js_0007df21("index.js")
+    adminmanager_v1_src_routes_protectedroute_jsx_16ac92b4("ProtectedRoute.jsx")
     stores_usesettingsstore_usesettingsstore_b9250153("useSettingsStore<br/><small>src/stores/useSettingsStore.js</small>")
     routes_adminroutes_loginschema_55ac4e4d -->|calls| validators_index_isstring_12f3abc6
     routes_adminroutes_loginschema_55ac4e4d -->|calls| validators_index_normalizefield_92252e16
+    routes_adminroutes_paginationschema_cc95eedd -->|calls| validators_index_validatepagination_60eae771
+    routes_adminroutes_paginationschema_cc95eedd -->|calls| validators_index_normalizefield_92252e16
     routes_adminroutes_blockschema_0c7fef77 -->|calls| validators_index_isboolean_6a20e046
     routes_adminroutes_blockschema_0c7fef77 -->|calls| validators_index_isid_8eff3aa6
     routes_adminroutes_blockschema_0c7fef77 -->|calls| validators_index_normalizefield_92252e16
@@ -4907,36 +4877,33 @@ flowchart LR
     routes_adminroutes_categoryschema_74b35ef1 -->|calls| validators_index_isboolean_6a20e046
     routes_adminroutes_categoryschema_74b35ef1 -->|calls| validators_index_normalizefield_92252e16
     routes_adminroutes_productschema_3146c4c4 -->|calls| validators_index_isstring_12f3abc6
+    routes_adminroutes_productschema_3146c4c4 -->|calls| validators_index_isnumericamount_11de0c55
     routes_adminroutes_productschema_3146c4c4 -->|calls| validators_index_isboolean_6a20e046
     routes_adminroutes_productschema_3146c4c4 -->|calls| validators_index_isid_8eff3aa6
     routes_adminroutes_productschema_3146c4c4 -->|calls| validators_index_normalizefield_92252e16
     routes_adminroutes_productavailabilityschema_bf03ec0f -->|calls| validators_index_isboolean_6a20e046
     routes_adminroutes_productavailabilityschema_bf03ec0f -->|calls| validators_index_isid_8eff3aa6
     routes_adminroutes_productavailabilityschema_bf03ec0f -->|calls| validators_index_normalizefield_92252e16
-    routes_adminroutes_productimageschema_dbc788dd -->|calls| validators_index_isstring_12f3abc6
-    routes_adminroutes_productimageschema_dbc788dd -->|calls| validators_index_isid_8eff3aa6
-    routes_adminroutes_productimageschema_dbc788dd -->|calls| validators_index_normalizefield_92252e16
-    routes_protectedroute_protectedroute_d27bf912 -->|calls| components_authprovider_useauth_573401a2
-    adminmanager_v1_src_routes_protectedroute_jsx_16ac92b4 -->|imports| components_authprovider_useauth_573401a2
     stores_usesettingsstore_usesettingsstore_b9250153 -->|imports| frontend_v1_src_screens_customer_checkoutscreen_5d04aed8
-    %% Omitted for readability: 807 nodes, 1 edges
+    frontend_v1_src_screens_customer_checkoutscreen_5d04aed8 -->|imports| frontend_v1_src_components_index_js_0007df21
+    %% Omitted for readability: 811 nodes, 0 edges
     class routes_adminroutes_productschema_3146c4c4 function;
     class routes_adminroutes_loginschema_55ac4e4d function;
+    class routes_adminroutes_paginationschema_cc95eedd function;
     class routes_adminroutes_blockschema_0c7fef77 function;
     class routes_adminroutes_trustschema_66a880fe function;
     class routes_adminroutes_categoryschema_74b35ef1 function;
     class routes_adminroutes_productavailabilityschema_bf03ec0f function;
-    class routes_adminroutes_productimageschema_dbc788dd function;
     class validators_index_isstring_12f3abc6 function;
     class validators_index_normalizefield_92252e16 function;
+    class validators_index_validatepagination_60eae771 function;
     class validators_index_isboolean_6a20e046 function;
     class validators_index_isid_8eff3aa6 function;
-    class adminmanager_v1_src_routes_protectedroute_jsx_16ac92b4 api;
-    class routes_protectedroute_protectedroute_d27bf912 api;
+    class validators_index_isnumericamount_11de0c55 function;
     class frontend_v1_src_components_categorycard_category_c75a2954 klass;
     class frontend_v1_src_screens_customer_checkoutscreen_5d04aed8 klass;
-    class components_authprovider_useauth_573401a2 ui;
     class frontend_v1_src_components_index_js_0007df21 module;
+    class adminmanager_v1_src_routes_protectedroute_jsx_16ac92b4 api;
     class stores_usesettingsstore_usesettingsstore_b9250153 ui;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
@@ -5218,7 +5185,7 @@ flowchart LR
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x699, imports x53, re exports x52, calls x42. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x706, imports x53, re exports x52, calls x45. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -5248,7 +5215,7 @@ flowchart LR
 
 <div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
   <p>ProjectServeLoco — Architecture Documentation</p>
-  <p>Generated: 2026-05-25 05:38 UTC · graphify callflow-html</p>
+  <p>Generated: 2026-05-25 05:39 UTC · graphify callflow-html</p>
 </div>
 
 </div><!-- .container -->

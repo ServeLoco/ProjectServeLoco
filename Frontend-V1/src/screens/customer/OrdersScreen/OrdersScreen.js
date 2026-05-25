@@ -28,7 +28,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const FILTER_CHIPS = ['All', 'Pending', 'Preparing', 'Delivered', 'Cancelled'];
+const FILTER_CHIPS = ['All', 'Pending', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
 export default function OrdersScreen() {
   const navigation = useNavigation();
@@ -38,6 +38,7 @@ export default function OrdersScreen() {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [cancellingId, setCancellingId] = useState(null);
 
   // Animations
@@ -62,7 +63,10 @@ export default function OrdersScreen() {
 
       setOrders(filtered);
       })
-      .catch(() => setIsError(true))
+      .catch((err) => {
+        setIsError(true);
+        setErrorMessage(err?.response?.data?.message || err?.message || 'There was a problem fetching your order history.');
+      })
       .finally(() => setIsLoading(false));
   };
 
@@ -142,6 +146,7 @@ export default function OrdersScreen() {
       case 'Cancelled': return colors.error;
       case 'Pending':
       case 'Preparing': return colors.primary;
+      case 'Out for Delivery': return colors.warning || '#F59E0B';
       default: return colors.textSecondary;
     }
   };
@@ -208,7 +213,11 @@ export default function OrdersScreen() {
     <View style={styles.emptyState}>
       <AppIcon name="orders" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
       <Text style={styles.emptyTitle}>No orders found</Text>
-      <Text style={styles.emptyDesc}>You haven't placed any orders yet. Start exploring our delicious menu!</Text>
+      <Text style={styles.emptyDesc}>
+        {activeFilter === 'All' 
+          ? "You haven't placed any orders yet. Start exploring our delicious menu!"
+          : `You don't have any ${activeFilter.toLowerCase()} orders.`}
+      </Text>
       <Button 
         label="Start Shopping" 
         onPress={() => navigation.navigate('Home')} 
@@ -220,7 +229,7 @@ export default function OrdersScreen() {
     <View style={styles.emptyState}>
       <AppIcon name="close" size={48} color={colors.error} style={styles.emptyEmoji} />
       <Text style={styles.emptyTitle}>Could not load orders</Text>
-      <Text style={styles.emptyDesc}>There was a problem fetching your order history.</Text>
+      <Text style={styles.emptyDesc}>{errorMessage}</Text>
       <Button label="Retry" onPress={() => fetchOrders()} />
     </View>
   );

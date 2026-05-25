@@ -161,13 +161,22 @@ const getAdminComboById = async (req, res) => {
 
 const createCombo = async (req, res) => {
   const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items } = req.validatedData;
+  const finalDisplayOrder = display_order !== undefined ? display_order : 0;
+
+  if (finalDisplayOrder > 0) {
+    const [existing] = await pool.query('SELECT name FROM combos WHERE display_order = ? AND deleted = 0 LIMIT 1', [finalDisplayOrder]);
+    if (existing.length > 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${existing[0].name}.` });
+    }
+  }
+
   const [result] = await pool.query(
     'INSERT INTO combos (name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       name, price, unit, description, image_id, 
       available !== undefined ? available : true,
       featured !== undefined ? featured : false,
-      display_order !== undefined ? display_order : 0,
+      finalDisplayOrder,
       original_price || null,
       discount_label || null
     ]
@@ -198,12 +207,20 @@ const updateCombo = async (req, res) => {
     }
   }
 
+  const finalDisplayOrder = display_order !== undefined ? display_order : 0;
+  if (finalDisplayOrder > 0) {
+    const [orderExisting] = await pool.query('SELECT name FROM combos WHERE display_order = ? AND id != ? AND deleted = 0 LIMIT 1', [finalDisplayOrder, id]);
+    if (orderExisting.length > 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${orderExisting[0].name}.` });
+    }
+  }
+
   await pool.query(
     'UPDATE combos SET name = ?, price = ?, unit = ?, description = ?, image_id = ?, available = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ? WHERE id = ?',
     [
       name, price, unit, description, image_id, available,
       featured !== undefined ? featured : false,
-      display_order !== undefined ? display_order : 0,
+      finalDisplayOrder,
       original_price || null,
       discount_label || null,
       id
