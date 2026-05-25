@@ -46,6 +46,8 @@ const getSettings = async (req, res) => {
       shop_longitude: null,
       delivery_radius_km: 8.00,
       delivery_cost_per_km: 0.00,
+      below_threshold_delivery_charge: 20.00,
+      free_delivery_above_minimum_active: 1,
       free_delivery_offer_active: 0
     };
   }
@@ -69,6 +71,7 @@ const updateSettings = async (req, res) => {
     'free_delivery_above', 'night_charge', 'night_charge_start', 'night_charge_end',
     'whatsapp_number', 'upi_id', 'upi_qr_image_id', 'delivery_time_message',
     'shop_latitude', 'shop_longitude', 'delivery_radius_km', 'delivery_cost_per_km',
+    'below_threshold_delivery_charge', 'free_delivery_above_minimum_active',
     'free_delivery_offer_active'
   ];
 
@@ -101,6 +104,12 @@ const updateSettings = async (req, res) => {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Delivery cost per km cannot be negative' });
     }
   }
+  if (body.below_threshold_delivery_charge !== undefined && body.below_threshold_delivery_charge !== null && body.below_threshold_delivery_charge !== '') {
+    const charge = Number(body.below_threshold_delivery_charge);
+    if (isNaN(charge) || charge < 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Below-threshold delivery charge cannot be negative' });
+    }
+  }
 
   const updates = [];
   const params = [];
@@ -109,9 +118,15 @@ const updateSettings = async (req, res) => {
     if (body[field] !== undefined) {
       updates.push(`${field} = ?`);
       let val = body[field];
-      if (['shop_open', 'delivery_available', 'free_delivery_offer_active'].includes(field)) {
-        val = (val === true || val === 'true' || val === 1) ? 1 : 0;
-      } else if (['shop_latitude', 'shop_longitude', 'delivery_radius_km', 'delivery_cost_per_km'].includes(field)) {
+      if (['shop_open', 'delivery_available', 'free_delivery_offer_active', 'free_delivery_above_minimum_active'].includes(field)) {
+        val = (val === true || val === 'true' || val === 1 || val === '1') ? 1 : 0;
+      } else if ([
+        'shop_latitude',
+        'shop_longitude',
+        'delivery_radius_km',
+        'delivery_cost_per_km',
+        'below_threshold_delivery_charge'
+      ].includes(field)) {
         val = (val === null || val === '') ? null : Number(val);
       }
       params.push(val);

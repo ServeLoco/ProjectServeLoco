@@ -24,8 +24,8 @@ describe('Cart and Order Tests', () => {
     jest.clearAllMocks();
   });
 
-  it('should calculate cart totals', async () => {
-    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, free_delivery_above: 500, night_charge: 0 }]]); // settings
+  it('should apply ₹20 delivery when cart subtotal is below the free delivery threshold', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, minimum_order_amount: 300, delivery_charge: 10, free_delivery_above: 500, night_charge: 0 }]]); // settings
     pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1 }]]); // product query
 
     const res = await request(app)
@@ -36,14 +36,15 @@ describe('Cart and Order Tests', () => {
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.subtotal).toEqual(200);
-    expect(res.body.deliveryCharge).toEqual(10);
-    expect(res.body.total).toEqual(210);
+    expect(res.body.deliveryCharge).toEqual(20);
+    expect(res.body.total).toEqual(220);
     expect(res.body.valid).toEqual(true);
   });
 
-  it('should calculate distance delivery for cart when coordinates are present', async () => {
+  it('should make delivery free when cart subtotal reaches the free delivery threshold', async () => {
     pool.query.mockResolvedValueOnce([[{
       shop_open: 1,
+      minimum_order_amount: 149,
       delivery_charge: 10,
       free_delivery_above: 500,
       night_charge: 0,
@@ -68,12 +69,73 @@ describe('Cart and Order Tests', () => {
     expect(res.body.deliveryDistanceKm).toBeGreaterThan(0);
     expect(res.body.deliveryWithinRange).toBe(true);
     expect(res.body.requiresLocation).toBe(false);
-    expect(res.body.deliveryCharge).toBeCloseTo(res.body.deliveryDistanceKm * 10, 2);
+    expect(res.body.deliveryCharge).toBe(0);
+    expect(res.body.deliveryMessage).toBe('Free delivery unlocked!');
+  });
+
+  it('should use admin configured below-threshold charge', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      minimum_order_amount: 300,
+      below_threshold_delivery_charge: 35,
+      delivery_charge: 10,
+      night_charge: 0,
+      shop_latitude: 12.9716,
+      shop_longitude: 77.5946,
+      delivery_radius_km: 8,
+      delivery_cost_per_km: 10,
+      free_delivery_offer_active: 0,
+      free_delivery_above_minimum_active: 1
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .send({
+        latitude: 12.9716,
+        longitude: 77.6046,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.subtotal).toEqual(200);
+    expect(res.body.deliveryCharge).toEqual(35);
+  });
+
+  it('should apply standard delivery charge above threshold when admin disables free threshold delivery', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      minimum_order_amount: 149,
+      below_threshold_delivery_charge: 35,
+      delivery_charge: 12,
+      night_charge: 0,
+      shop_latitude: 12.9716,
+      shop_longitude: 77.5946,
+      delivery_radius_km: 8,
+      delivery_cost_per_km: 10,
+      free_delivery_offer_active: 0,
+      free_delivery_above_minimum_active: 0
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .send({
+        latitude: 12.9716,
+        longitude: 77.6046,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.subtotal).toEqual(200);
+    expect(res.body.deliveryCharge).toEqual(12);
+    expect(res.body.deliveryMessage).toBe('Standard delivery charge ₹12 applied.');
   });
 
   it('should return out-of-range cart status without blocking calculation response', async () => {
     pool.query.mockResolvedValueOnce([[{
       shop_open: 1,
+      minimum_order_amount: 149,
       delivery_charge: 10,
       free_delivery_above: 500,
       night_charge: 0,
@@ -103,6 +165,7 @@ describe('Cart and Order Tests', () => {
   it('should make cart delivery free when free delivery offer is active', async () => {
     pool.query.mockResolvedValueOnce([[{
       shop_open: 1,
+      minimum_order_amount: 149,
       delivery_charge: 10,
       free_delivery_above: 500,
       night_charge: 0,
@@ -143,6 +206,7 @@ describe('Cart and Order Tests', () => {
       .mockResolvedValueOnce([[{
         shop_open: 1,
         delivery_available: 1,
+        minimum_order_amount: 149,
         delivery_charge: 10,
         free_delivery_above: 500,
         night_charge: 0,
@@ -180,6 +244,7 @@ describe('Cart and Order Tests', () => {
     const settings = {
       shop_open: 1,
       delivery_available: 1,
+      minimum_order_amount: 300,
       delivery_charge: 10,
       free_delivery_above: 500,
       night_charge: 0,
@@ -231,6 +296,7 @@ describe('Cart and Order Tests', () => {
 
     expect(orderRes.statusCode).toEqual(201);
     expect(orderRes.body.order.deliveryCharge).toBeCloseTo(cartRes.body.deliveryCharge, 2);
+    expect(orderRes.body.order.deliveryCharge).toEqual(20);
     expect(orderRes.body.order.deliveryDistanceKm).toBeCloseTo(cartRes.body.deliveryDistanceKm, 4);
   });
 

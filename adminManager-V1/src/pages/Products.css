@@ -1,6 +1,6 @@
 .products-container {
-  padding: 2rem;
-  max-width: 1400px;
+  padding: 0;
+  max-width: 1480px;
   margin: 0 auto;
   animation: fadeIn 0.4s ease-out;
   position: relative;
@@ -9,24 +9,26 @@
 .products-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .products-title {
-  font-size: 1.8rem;
-  font-weight: 700;
+  font-size: clamp(1.45rem, 2vw, 1.9rem);
+  line-height: 1.1;
+  font-weight: 850;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .btn-primary {
-  background: var(--primary-color);
-  color: white;
-  border: none;
+  color: #06110b;
+  border: 1px solid rgba(34, 201, 130, 0.55);
+  background: linear-gradient(180deg, #45e19d, var(--primary-color));
   padding: 0.6rem 1.25rem;
   border-radius: var(--radius-md);
-  font-weight: 600;
+  font-weight: 800;
   font-size: 0.95rem;
   transition: var(--transition-fast);
   display: flex;
@@ -35,13 +37,13 @@
 }
 
 .btn-primary:hover {
-  background: var(--primary-hover);
+  background: linear-gradient(180deg, #58eba9, var(--primary-hover));
   transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 18px 38px rgba(31, 181, 116, 0.28), inset 0 1px rgba(255, 255, 255, 0.5);
 }
 
 .btn-secondary {
-  background: var(--surface-color);
+  background: rgba(15, 23, 42, 0.84);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
   padding: 0.6rem 1.25rem;
@@ -52,26 +54,28 @@
 }
 
 .btn-secondary:hover {
-  background: var(--bg-color);
-  border-color: var(--text-secondary);
+  background: rgba(30, 41, 59, 0.92);
+  border-color: var(--border-strong);
 }
 
 /* Filter Bar */
 .filter-bar {
   background: var(--surface-color);
-  padding: 1rem 1.5rem;
+  padding: 1rem;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
-  margin-bottom: 2rem;
-  display: flex;
+  margin-bottom: 1.25rem;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) repeat(3, minmax(170px, 220px));
   gap: 1rem;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: end;
 }
 
 .filter-input, .filter-select {
-  padding: 0.6rem 1rem;
+  width: 100%;
+  height: 42px;
+  padding: 0 0.9rem;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   font-size: 0.9rem;
@@ -83,17 +87,38 @@
 
 .filter-input:focus, .filter-select:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+  box-shadow: var(--focus-ring);
 }
 
 .filter-search {
-  flex: 1;
   min-width: 250px;
+}
+
+@media (max-width: 1100px) {
+  .filter-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-search {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  .products-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filter-bar {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Bulk Actions Toolbar */
 .bulk-actions-bar {
-  background: rgba(79, 70, 229, 0.1);
+  background: rgba(31, 181, 116, 0.12);
   border: 1px solid var(--primary-color);
   padding: 1rem 1.5rem;
   border-radius: var(--radius-lg);
@@ -143,7 +168,7 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(248, 250, 252, 0.5);
+  background: rgba(7, 10, 18, 0.62);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -154,11 +179,11 @@
 }
 
 .products-table tbody tr:hover {
-  background-color: rgba(248, 250, 252, 0.8);
+  background-color: var(--surface-hover);
 }
 
 .products-table tbody tr.selected {
-  background-color: rgba(79, 70, 229, 0.05);
+  background-color: rgba(31, 181, 116, 0.1);
 }
 
 .product-thumbnail {
@@ -315,7 +340,7 @@
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+  box-shadow: var(--focus-ring);
 }
 
 .checkbox-label {
@@ -340,7 +365,7 @@
 
 .image-upload-zone:hover {
   border-color: var(--primary-color);
-  background: rgba(79, 70, 229, 0.05);
+  background: rgba(31, 181, 116, 0.08);
 }
 
 .image-preview {

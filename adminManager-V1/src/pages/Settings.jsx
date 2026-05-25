@@ -2,28 +2,32 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SettingsApi, ImagesApi } from '../api';
 import './Settings.css';
 
+const DEFAULT_SETTINGS = {
+  shop_open: false,
+  delivery_available: false,
+  minimum_order_amount: 0,
+  delivery_charge: 0,
+  free_delivery_above: 0,
+  night_charge: 0,
+  night_charge_start: '',
+  night_charge_end: '',
+  delivery_time_message: '',
+  whatsapp_number: '',
+  support_phone: '',
+  upi_id: '',
+  upi_qr_image_id: '',
+  upi_qr_image_url: '',
+  shop_latitude: '',
+  shop_longitude: '',
+  delivery_radius_km: 8,
+  delivery_cost_per_km: 0,
+  below_threshold_delivery_charge: 20,
+  free_delivery_above_minimum_active: true,
+  free_delivery_offer_active: false
+};
+
 export default function Settings() {
-  const [settings, setSettings] = useState({
-    shop_open: false,
-    delivery_available: false,
-    minimum_order_amount: 0,
-    delivery_charge: 0,
-    free_delivery_above: 0,
-    night_charge: 0,
-    night_charge_start: '',
-    night_charge_end: '',
-    delivery_time_message: '',
-    whatsapp_number: '',
-    support_phone: '',
-    upi_id: '',
-    upi_qr_image_id: '',
-    upi_qr_image_url: '',
-    shop_latitude: '',
-    shop_longitude: '',
-    delivery_radius_km: 8,
-    delivery_cost_per_km: 0,
-    free_delivery_offer_active: false
-  });
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,7 +43,7 @@ export default function Settings() {
       setLoading(true);
       const res = await SettingsApi.get();
       if (res.data) {
-        setSettings(res.data);
+        setSettings({ ...DEFAULT_SETTINGS, ...res.data });
       }
     } catch (err) {
       alert('Failed to fetch settings: ' + err.message);
@@ -94,6 +98,8 @@ export default function Settings() {
         shop_longitude: nullableNumber(settings.shop_longitude),
         delivery_radius_km: Number(settings.delivery_radius_km),
         delivery_cost_per_km: Number(settings.delivery_cost_per_km),
+        below_threshold_delivery_charge: Number(settings.below_threshold_delivery_charge),
+        free_delivery_above_minimum_active: Boolean(settings.free_delivery_above_minimum_active),
         free_delivery_offer_active: Boolean(settings.free_delivery_offer_active),
         upi_qr_image_id: settings.upi_qr_image_id,
       };
@@ -163,8 +169,33 @@ export default function Settings() {
             <input type="number" min="0" step="1" name="delivery_charge" className="settings-input" value={settings.delivery_charge} onChange={handleChange} />
           </div>
           <div className="settings-form-group">
-            <label className="settings-label">Free Delivery Threshold (₹)</label>
-            <input type="number" min="0" step="1" name="free_delivery_above" className="settings-input" placeholder="0 to disable" value={settings.free_delivery_above || ''} onChange={handleChange} />
+            <label className="settings-label">Below Threshold Delivery Charge (₹)</label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              name="below_threshold_delivery_charge"
+              className="settings-input"
+              value={settings.below_threshold_delivery_charge ?? 20}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="toggle-switch-wrapper full-width">
+            <div style={{ flex: 1 }}>
+              <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Free Delivery After Minimum Order</strong>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                When enabled, orders at or above the minimum order amount get free delivery. When disabled, standard delivery charge applies.
+              </span>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                name="free_delivery_above_minimum_active"
+                checked={Boolean(settings.free_delivery_above_minimum_active)}
+                onChange={handleChange}
+              />
+              <span className="toggle-slider"></span>
+            </label>
           </div>
           <div className="settings-form-group">
             <label className="settings-label">Night Delivery Surcharge (₹)</label>

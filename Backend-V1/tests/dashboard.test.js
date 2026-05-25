@@ -119,10 +119,7 @@ describe('Dashboard Public and Admin API Tests', () => {
         { section_type: 'combo_block' }
       ]]);
 
-      // No explicit dashboard_section_items linked.
-      pool.query.mockResolvedValueOnce([[]]);
-
-      // Fallback to active categories.
+      // Category grid is derived directly from active categories.
       pool.query.mockResolvedValueOnce([[
         {
           id: 5,

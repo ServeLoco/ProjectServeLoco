@@ -182,6 +182,7 @@ const migrate = async () => {
       SELECT combo_product_id, product_id, quantity, display_order, created_at
       FROM product_combo_items
     `);
+    await connection.query('UPDATE products SET deleted = 1 WHERE is_combo = 1');
     console.log('Combo data migration completed.');
 
     // Orders Table
@@ -226,6 +227,7 @@ const migrate = async () => {
         id INT AUTO_INCREMENT PRIMARY KEY,
         order_id INT NOT NULL,
         product_id INT NOT NULL,
+        item_type VARCHAR(50) DEFAULT 'product',
         product_name VARCHAR(255) NOT NULL,
         quantity INT NOT NULL,
         unit_price DECIMAL(10, 2) NOT NULL,
@@ -233,6 +235,18 @@ const migrate = async () => {
         FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
       );
     `);
+    await ensureColumn('order_items', 'item_type', 'item_type VARCHAR(50) DEFAULT "product" AFTER product_id');
+    const [orderItemProductFks] = await connection.query(`
+      SELECT CONSTRAINT_NAME
+      FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'order_items'
+        AND COLUMN_NAME = 'product_id'
+        AND REFERENCED_TABLE_NAME = 'products'
+    `, [config.MYSQL_DATABASE]);
+    for (const fk of orderItemProductFks) {
+      await connection.query(`ALTER TABLE order_items DROP FOREIGN KEY ${fk.CONSTRAINT_NAME}`);
+    }
     console.log('Order Items table ready.');
 
     // Settings Table
@@ -255,6 +269,8 @@ const migrate = async () => {
         shop_longitude DECIMAL(11, 8) DEFAULT NULL,
         delivery_radius_km DECIMAL(10, 2) DEFAULT 8.00,
         delivery_cost_per_km DECIMAL(10, 2) DEFAULT 0.00,
+        below_threshold_delivery_charge DECIMAL(10, 2) DEFAULT 20.00,
+        free_delivery_above_minimum_active BOOLEAN DEFAULT TRUE,
         free_delivery_offer_active BOOLEAN DEFAULT FALSE,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
@@ -264,7 +280,9 @@ const migrate = async () => {
     await ensureColumn('settings', 'shop_longitude', 'shop_longitude DECIMAL(11, 8) DEFAULT NULL AFTER shop_latitude');
     await ensureColumn('settings', 'delivery_radius_km', 'delivery_radius_km DECIMAL(10, 2) DEFAULT 8.00 AFTER shop_longitude');
     await ensureColumn('settings', 'delivery_cost_per_km', 'delivery_cost_per_km DECIMAL(10, 2) DEFAULT 0.00 AFTER delivery_radius_km');
-    await ensureColumn('settings', 'free_delivery_offer_active', 'free_delivery_offer_active BOOLEAN DEFAULT FALSE AFTER delivery_cost_per_km');
+    await ensureColumn('settings', 'below_threshold_delivery_charge', 'below_threshold_delivery_charge DECIMAL(10, 2) DEFAULT 20.00 AFTER delivery_cost_per_km');
+    await ensureColumn('settings', 'free_delivery_above_minimum_active', 'free_delivery_above_minimum_active BOOLEAN DEFAULT TRUE AFTER below_threshold_delivery_charge');
+    await ensureColumn('settings', 'free_delivery_offer_active', 'free_delivery_offer_active BOOLEAN DEFAULT FALSE AFTER free_delivery_above_minimum_active');
     console.log('Settings table ready.');
 
     // Offers Table
@@ -467,7 +485,7 @@ const migrate = async () => {
       showSeeAll: true
     });
 
-    const [activeCombos] = await connection.query('SELECT id FROM products WHERE is_combo = 1 AND available = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
+    const [activeCombos] = await connection.query('SELECT id FROM combos WHERE available = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
     let comboOrder = 0;
     for (const combo of activeCombos) {
       await connection.query(`

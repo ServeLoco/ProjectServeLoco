@@ -205,7 +205,6 @@ const mapProductRows = (rows) => rows.map(r => ({
   imageUrl: r.imageUrl || r.image_url,
   image_id: r.image_id,
   available: r.available,
-  isCombo: r.is_combo,
   featured: r.featured,
   originalPrice: r.original_price,
   discountLabel: r.discount_label,
@@ -310,28 +309,7 @@ const getDashboard = async (req, res) => {
           active: r.active
         }));
       } else if (section.section_type === 'category_grid') {
-        const [rows] = await pool.query(
-          `SELECT dsi.id as section_item_id, dsi.display_order, c.* 
-           FROM dashboard_section_items dsi
-           JOIN categories c ON c.id = dsi.item_id
-           WHERE dsi.section_id = ? AND dsi.item_type = 'category' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-             AND c.active = 1 AND c.deleted = 0
-             AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
-             AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
-           ORDER BY dsi.display_order ASC, dsi.id ASC`,
-          [section.id]
-        );
-        await resolveImageUrls(rows);
-
-        let filteredRows = rows;
-        if (expectedStoreType) {
-          filteredRows = rows.filter(r => r.type === expectedStoreType);
-        }
-
-        items = mapCategoryRows(filteredRows);
-        if (items.length === 0 && section.slug === 'categories-grid') {
-          items = await getDefaultCategoryItems(expectedStoreType, section.max_visible_items || 8);
-        }
+        items = await getDefaultCategoryItems(expectedStoreType, section.max_visible_items || 8);
       } else if (section.section_type === 'product_block') {
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type
@@ -495,33 +473,18 @@ const getSectionItems = async (req, res) => {
       }));
     } else if (section.section_type === 'category_grid') {
       const categoryTypeFilter = expectedStoreType ? 'AND c.type = ?' : '';
-      const params = expectedStoreType ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
+      const params = expectedStoreType ? [expectedStoreType, limitNumber, offset] : [limitNumber, offset];
       const [rows] = await pool.query(
-        `SELECT dsi.id as section_item_id, dsi.display_order, c.* 
-         FROM dashboard_section_items dsi
-         JOIN categories c ON c.id = dsi.item_id
-         WHERE dsi.section_id = ? AND dsi.item_type = 'category' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-           AND c.active = 1 AND c.deleted = 0
+        `SELECT c.*
+         FROM categories c
+         WHERE c.active = 1 AND c.deleted = 0
            ${categoryTypeFilter}
-           AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
-           AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
-         ORDER BY dsi.display_order ASC, dsi.id ASC
+         ORDER BY c.display_order ASC, c.id ASC
          LIMIT ? OFFSET ?`,
         params
       );
       await resolveImageUrls(rows);
-
-      items = rows.map(r => ({
-        id: r.id,
-        sectionItemId: r.section_item_id,
-        name: r.name,
-        slug: r.slug,
-        type: r.type,
-        imageUrl: r.imageUrl || r.image_url,
-        image_id: r.image_id,
-        active: r.active,
-        displayOrder: r.display_order
-      }));
+      items = mapCategoryRows(rows);
     } else if (section.section_type === 'product_block') {
       const productStoreFilter = expectedStoreType ? 'AND cat.type = ?' : '';
       const params = expectedStoreType ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];

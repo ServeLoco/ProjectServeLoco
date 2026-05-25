@@ -84,10 +84,36 @@ const attachComboItems = async (combos = []) => {
   });
 };
 
+const createValidationError = (message) => {
+  const error = new Error(message);
+  error.statusCode = 400;
+  error.code = 'VALIDATION_ERROR';
+  return error;
+};
+
 const saveComboItems = async (comboId, comboItems, connection = pool) => {
   if (!Array.isArray(comboItems)) return;
 
   await connection.query('DELETE FROM combo_items WHERE combo_id = ?', [comboId]);
+
+  const rows = await validateComboItems(comboItems);
+
+  if (rows.length === 0) return;
+
+  await connection.query(
+    `INSERT INTO combo_items (combo_id, product_id, quantity, display_order)
+     VALUES ?`,
+    [rows.map(item => [comboId, item.product_id, item.quantity, item.display_order])]
+  );
+};
+
+const validateComboItems = async (comboItems, { required = true } = {}) => {
+  if (!Array.isArray(comboItems)) {
+    if (required) {
+      throw createValidationError('Please add at least one product to the combo.');
+    }
+    return [];
+  }
 
   const rows = comboItems
     .map((item, index) => ({
@@ -97,13 +123,35 @@ const saveComboItems = async (comboId, comboItems, connection = pool) => {
     }))
     .filter(item => item.product_id && item.quantity > 0);
 
-  if (rows.length === 0) return;
+  if (rows.length === 0) {
+    throw createValidationError('Please add at least one product to the combo.');
+  }
 
-  await connection.query(
-    `INSERT INTO combo_items (combo_id, product_id, quantity, display_order)
-     VALUES ?`,
-    [rows.map(item => [comboId, item.product_id, item.quantity, item.display_order])]
+  const seen = new Set();
+  for (const row of rows) {
+    if (seen.has(row.product_id)) {
+      throw createValidationError('This product is already in the combo. Increase quantity instead.');
+    }
+    seen.add(row.product_id);
+  }
+
+  const [products] = await pool.query(
+    'SELECT id, name, is_combo, deleted FROM products WHERE id IN (?)',
+    [rows.map(row => row.product_id)]
   );
+  const productById = new Map(products.map(product => [Number(product.id), product]));
+
+  for (const row of rows) {
+    const product = productById.get(row.product_id);
+    if (!product || product.deleted) {
+      throw createValidationError(`Product ID ${row.product_id} is unavailable or does not exist.`);
+    }
+    if (product.is_combo) {
+      throw createValidationError(`Combo cannot include another combo: ${product.name}.`);
+    }
+  }
+
+  return rows;
 };
 
 const getAdminCombos = async (req, res) => {
@@ -158,6 +206,7 @@ const getAdminComboById = async (req, res) => {
 const createCombo = async (req, res) => {
   const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items } = req.validatedData;
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
+  const validatedComboItems = await validateComboItems(combo_items);
 
   if (finalDisplayOrder > 0) {
     const [existing] = await pool.query('SELECT name FROM combos WHERE display_order = ? AND deleted = 0 LIMIT 1', [finalDisplayOrder]);
@@ -177,13 +226,14 @@ const createCombo = async (req, res) => {
       discount_label || null
     ]
   );
-  await saveComboItems(result.insertId, combo_items);
+  await saveComboItems(result.insertId, validatedComboItems);
   res.status(201).json({ message: 'Combo created', id: result.insertId });
 };
 
 const updateCombo = async (req, res) => {
   const { id } = req.params;
   const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items } = req.validatedData;
+  const validatedComboItems = await validateComboItems(combo_items, { required: combo_items !== undefined });
 
   const [existing] = await pool.query('SELECT image_id FROM combos WHERE id = ?', [id]);
   if (existing.length > 0 && existing[0].image_id && existing[0].image_id !== image_id) {
@@ -222,7 +272,9 @@ const updateCombo = async (req, res) => {
       id
     ]
   );
-  await saveComboItems(id, combo_items);
+  if (combo_items !== undefined) {
+    await saveComboItems(id, validatedComboItems);
+  }
   res.status(200).json({ message: 'Combo updated' });
 };
 

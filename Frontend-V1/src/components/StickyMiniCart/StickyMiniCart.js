@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
 import PressableScale from '../PressableScale';
+import AppIcon from '../AppIcon';
 
 /**
  * StickyMiniCart
@@ -86,15 +87,25 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
       >
         {/* Left: item count badge */}
         <Animated.View style={[styles.badge, { transform: [{ scale: badgeScale }] }]}>
+          <AppIcon name="shoppingBag" size={14} color="#FFFFFF" />
           <Text style={styles.badgeText}>{itemCount}</Text>
         </Animated.View>
 
-        <Text style={styles.label} numberOfLines={1}>
-          {itemCount} item{itemCount !== 1 ? 's' : ''} added
-        </Text>
+        {/* Center: label text */}
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>View Cart</Text>
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {itemCount} item{itemCount !== 1 ? 's' : ''} added
+          </Text>
+        </View>
 
         {/* Right: estimated total */}
-        <Text style={styles.total}>Rs. {cartTotal.toFixed(0)}  &gt;</Text>
+        <View style={styles.rightContainer}>
+          <Text style={styles.total}>₹{cartTotal.toFixed(0)}</Text>
+          <View style={styles.arrowIconWrapper}>
+            <AppIcon name="chevronRight" size={14} color="#FFFFFF" />
+          </View>
+        </View>
       </PressableScale>
     </Animated.View>
   );
@@ -103,52 +114,73 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: layout.bottomNavHeight + 28,
+    bottom: layout.bottomNavHeight + 20,
     left: layout.stickyCartMarginH,
     right: layout.stickyCartMarginH,
     zIndex: 999,
-    elevation: 24,
     ...shadows.xl,
   },
   bar: {
-    backgroundColor: colors.success,
-    borderRadius: radius.pill,
-    minHeight: layout.stickyCartHeight,
+    backgroundColor: colors.success || '#1FB574', // Vibrant success green instead of black
+    borderRadius: radius.lg,
+    minHeight: 62,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.36)',
-    borderBottomWidth: 4,
-    borderBottomColor: colors.successDark,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.24)',
   },
   badge: {
-    backgroundColor: colors.textInverse,
+    backgroundColor: 'rgba(255,255,255,0.2)', // Semi-transparent glass capsule badge
     borderRadius: radius.pill,
-    minWidth: 42,
-    height: 42,
+    height: 32,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
     marginRight: spacing.sm,
+    gap: 4,
   },
   badgeText: {
-    ...typography.labelLarge,
-    color: colors.successDark,
+    ...typography.label,
+    color: '#FFFFFF',
     fontWeight: '800',
   },
-  label: {
-    ...typography.labelLarge,
-    color: colors.successText,
+  textContainer: {
     flex: 1,
+    justifyContent: 'center',
+  },
+  title: {
+    ...typography.labelLarge,
+    color: '#FFFFFF',
     fontWeight: '800',
+    fontSize: 14,
+  },
+  subtitle: {
+    ...typography.labelSmall,
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 11,
+    marginTop: 1,
+  },
+  rightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   total: {
     ...typography.labelLarge,
-    color: colors.successText,
+    color: '#FFFFFF',
     fontWeight: '900',
-    marginLeft: spacing.sm,
+    fontSize: 15,
+  },
+  arrowIconWrapper: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)', // Matching semi-transparent circle
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

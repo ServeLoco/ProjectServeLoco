@@ -2,7 +2,7 @@
 
 .dashboard-workspace {
   display: flex;
-  gap: 2rem;
+  gap: 1rem;
   height: calc(100vh - 100px);
   min-height: 500px;
   color: var(--text-primary);
@@ -25,8 +25,8 @@
 .panel-header {
   padding: 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, rgba(31, 181, 116, 0.24), rgba(56, 130, 246, 0.14));
+  color: var(--text-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -39,9 +39,9 @@
 }
 
 .btn-add-section {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(31, 181, 116, 0.18);
+  color: var(--text-primary);
+  border: 1px solid rgba(31, 181, 116, 0.32);
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
   font-weight: 500;
@@ -51,7 +51,7 @@
 }
 
 .btn-add-section:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(31, 181, 116, 0.26);
   transform: translateY(-1px);
 }
 
@@ -81,12 +81,12 @@
 .section-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
-  border-color: #cbd5e1;
+  border-color: var(--border-strong);
 }
 
 .section-card.selected {
   border-color: var(--primary-color);
-  background: rgba(79, 70, 229, 0.03);
+  background: rgba(31, 181, 116, 0.1);
   box-shadow: 0 0 0 1px var(--primary-color), var(--shadow-md);
 }
 
@@ -97,7 +97,7 @@
 }
 
 .btn-order-arrow {
-  background: #f1f5f9;
+  background: rgba(7, 10, 18, 0.62);
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
   border-radius: 4px;
@@ -154,12 +154,12 @@
 }
 
 .badge-type {
-  background: #f1f5f9;
+  background: rgba(148, 163, 184, 0.14);
   color: var(--text-secondary);
 }
 
 .badge-store {
-  background: rgba(79, 70, 229, 0.1);
+  background: rgba(31, 181, 116, 0.12);
   color: var(--primary-color);
 }
 
@@ -200,7 +200,7 @@
 .empty-state-icon {
   font-size: 3rem;
   margin-bottom: 1rem;
-  color: #cbd5e1;
+  color: var(--text-muted);
 }
 
 .detail-header-bar {
@@ -209,7 +209,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fafaf9;
+  background: rgba(7, 10, 18, 0.38);
 }
 
 .detail-title {
@@ -232,7 +232,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  background: #f8fafc;
+  background: rgba(7, 10, 18, 0.5);
   padding: 1.25rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
@@ -280,8 +280,8 @@
 }
 
 .item-row:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
+  border-color: var(--border-strong);
+  background: rgba(31, 181, 116, 0.07);
 }
 
 .item-thumbnail {
@@ -290,7 +290,7 @@
   object-fit: cover;
   border-radius: 6px;
   border: 1px solid var(--border-color);
-  background: #f1f5f9;
+  background: rgba(7, 10, 18, 0.7);
 }
 
 .item-details {
@@ -335,7 +335,7 @@
 
 /* Add Items Picker Area */
 .add-items-picker {
-  background: #fff;
+  background: rgba(7, 10, 18, 0.5);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 1.25rem;
@@ -357,7 +357,7 @@
   gap: 0.5rem;
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  background: #fafafa;
+  background: rgba(7, 10, 18, 0.42);
 }
 
 .picker-result-row {
@@ -365,7 +365,7 @@
   align-items: center;
   gap: 1rem;
   padding: 0.625rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .picker-result-row:last-child {
@@ -408,7 +408,7 @@
 .modal-header {
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  background: linear-gradient(135deg, rgba(31, 181, 116, 0.88), rgba(59, 130, 246, 0.72));
   color: #fff;
   display: flex;
   justify-content: space-between;
@@ -436,5 +436,5 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  background: #f8fafc;
+  background: rgba(7, 10, 18, 0.5);
 }

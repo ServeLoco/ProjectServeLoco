@@ -1,44 +1,76 @@
 .admin-sidebar {
   width: 260px;
-  background-color: #0f172a; /* Slate 900 */
-  color: #f8fafc;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  border-right: 1px solid #1e293b;
-  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(7, 10, 18, 0.98)),
+    var(--surface-strong);
+  border-right: 1px solid var(--border-color);
+  box-shadow: 14px 0 50px rgba(0, 0, 0, 0.26);
+  position: relative;
+  z-index: 2;
+}
+
+.admin-sidebar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(31, 181, 116, 0.1), transparent 34%);
+  opacity: 0.75;
 }
 
 .sidebar-header {
-  padding: 1.5rem 1.25rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-  border-bottom: 1px solid #1e293b;
+  padding: 1.25rem;
+  min-height: 76px;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.8rem;
+  position: relative;
+  z-index: 1;
 }
 
 .sidebar-logo {
-  background: var(--primary-color);
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #06110b;
+  background: linear-gradient(180deg, #54efaa, var(--primary-color));
+  font-size: 1rem;
+  font-weight: 900;
+  box-shadow: 0 16px 28px rgba(31, 181, 116, 0.25), inset 0 1px rgba(255, 255, 255, 0.46);
+}
+
+.sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.sidebar-brand-name {
+  font-size: 1rem;
   font-weight: 800;
-  font-size: 1.1rem;
-  color: white;
-  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+  letter-spacing: 0;
+}
+
+.sidebar-brand-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 600;
 }
 
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem 0.75rem;
+  padding: 1rem 0.75rem 1.25rem;
+  position: relative;
+  z-index: 1;
 }
 
 .sidebar-list {
@@ -47,44 +79,61 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.22rem;
 }
 
 .sidebar-item-link {
   display: flex;
   align-items: center;
-  padding: 0.75rem 1rem;
-  color: #94a3b8; /* Slate 400 */
-  font-weight: 500;
-  font-size: 0.925rem;
-  border-radius: 8px;
+  min-height: 42px;
+  padding: 0.68rem 0.78rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  border-radius: 12px;
   text-decoration: none;
   transition: all var(--transition-fast);
 }
 
 .sidebar-item-link:hover {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.04);
-  transform: translateX(4px);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .sidebar-item-link.active {
-  color: #ffffff;
-  background-color: var(--primary-color);
-  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -2px rgba(79, 70, 229, 0.2);
-  font-weight: 600;
+  color: #ecfdf5;
+  background: linear-gradient(90deg, rgba(31, 181, 116, 0.28), rgba(31, 181, 116, 0.1));
+  border-color: rgba(31, 181, 116, 0.36);
+  box-shadow: inset 3px 0 0 var(--primary-color), 0 12px 26px rgba(31, 181, 116, 0.12);
 }
 
-/* Custom scrollbar for sidebar */
-.sidebar-nav::-webkit-scrollbar {
-  width: 4px;
-}
+@media (max-width: 980px) {
+  .admin-sidebar {
+    width: 100%;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-color);
+  }
 
-.sidebar-nav::-webkit-scrollbar-thumb {
-  background-color: #1e293b;
-  border-radius: 2px;
-}
+  .sidebar-header {
+    min-height: 66px;
+    padding: 0.85rem 1rem;
+  }
 
-.sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background-color: #334155;
+  .sidebar-nav {
+    padding: 0.55rem 0.75rem 0.85rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .sidebar-list {
+    flex-direction: row;
+    min-width: max-content;
+  }
+
+  .sidebar-item-link {
+    white-space: nowrap;
+  }
 }

@@ -63,6 +63,10 @@ export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
   
+  // Notification animations
+  const bellRotation = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  
   // Staggered entry for cards
   const staggerCatAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
   const staggerComboAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
@@ -111,6 +115,54 @@ export default function HomeScreen() {
     };
   }, [currentApiStoreType, fadeAnim, setSettings, slideAnim, staggerCatAnims, staggerComboAnims]);
 
+  useEffect(() => {
+    // 1. Badge pulse/glow loop animation (1.0 to 2.0 scale)
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 2.0,
+          duration: 1600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1.0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulseLoop.start();
+
+    // 2. Bell shake animation to grab user attention periodically
+    const shake = Animated.sequence([
+      Animated.timing(bellRotation, { toValue: 1, duration: 80, useNativeDriver: true }),
+      Animated.timing(bellRotation, { toValue: -1, duration: 80, useNativeDriver: true }),
+      Animated.timing(bellRotation, { toValue: 1, duration: 80, useNativeDriver: true }),
+      Animated.timing(bellRotation, { toValue: -1, duration: 80, useNativeDriver: true }),
+      Animated.timing(bellRotation, { toValue: 1, duration: 80, useNativeDriver: true }),
+      Animated.timing(bellRotation, { toValue: -1, duration: 80, useNativeDriver: true }),
+      Animated.timing(bellRotation, { toValue: 0, duration: 120, useNativeDriver: true }),
+    ]);
+
+    // Shake immediately on load
+    shake.start();
+
+    // Loop shake every 7 seconds
+    const interval = setInterval(() => {
+      shake.start();
+    }, 7000);
+
+    return () => {
+      pulseLoop.stop();
+      clearInterval(interval);
+    };
+  }, [pulseAnim, bellRotation]);
+
+  const spin = bellRotation.interpolate({
+    inputRange: [-1, 1],
+    outputRange: ['-12deg', '12deg'],
+  });
+
   const handleSearchPress = () => {
     navigation.navigate('ProductList', { mode: 'search' });
   };
@@ -120,7 +172,7 @@ export default function HomeScreen() {
   };
 
   const getQty = (productId) => {
-    const item = items.find(i => i.product.id === productId);
+    const item = items.find(i => i.product.id === productId && (i.type || 'product') !== 'combo');
     return item ? item.quantity : 0;
   };
 
@@ -184,13 +236,27 @@ export default function HomeScreen() {
           />
         </View>
         <TouchableOpacity
-          activeOpacity={0.75}
+          activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Notifications"
           onPress={() => navigation.navigate('Notifications')}
           style={styles.headerIconButton}
         >
-          <AppIcon name="notification" size={22} color={colors.textPrimary} />
+          <Animated.View style={{ transform: [{ rotate: spin }] }}>
+            <AppIcon name="notification" size={22} color={colors.textPrimary} />
+          </Animated.View>
+          <Animated.View 
+            style={[
+              styles.notificationBadgeGlow,
+              {
+                transform: [{ scale: pulseAnim }],
+                opacity: pulseAnim.interpolate({
+                  inputRange: [1, 2],
+                  outputRange: [0.6, 0],
+                }),
+              }
+            ]} 
+          />
           <View style={styles.notificationBadge} />
         </TouchableOpacity>
       </View>
@@ -450,21 +516,32 @@ const styles = StyleSheet.create({
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.md,
+    borderRadius: 22,
     backgroundColor: colors.bgSurface,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
-    ...shadows.xs,
+    ...shadows.sm,
     position: 'relative',
   },
   notificationBadge: {
     position: 'absolute',
-    top: 10,
-    right: 12,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.error,
+    top: 9,
+    right: 10,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.badgeBg || '#FF7A3A',
+    borderWidth: 1.5,
+    borderColor: colors.bgSurface,
+  },
+  notificationBadgeGlow: {
+    position: 'absolute',
+    top: 9,
+    right: 10,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.badgeBg || '#FF7A3A',
   },
   cartBadge: {
     position: 'absolute',

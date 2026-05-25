@@ -1,6 +1,6 @@
 .orders-container {
-  padding: 2rem;
-  max-width: 1400px;
+  padding: 0;
+  max-width: 1480px;
   margin: 0 auto;
   animation: fadeIn 0.4s ease-out;
   position: relative;
@@ -9,38 +9,42 @@
 .orders-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .orders-title {
-  font-size: 1.8rem;
-  font-weight: 700;
+  font-size: clamp(1.45rem, 2vw, 1.9rem);
+  line-height: 1.1;
+  font-weight: 850;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 /* Filter Bar */
 .filter-bar {
   background: var(--surface-color);
-  padding: 1rem 1.5rem;
+  padding: 1rem;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
 .filter-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) repeat(3, minmax(150px, 190px));
   gap: 1rem;
-  flex-wrap: wrap;
   align-items: center;
 }
 
 .filter-input, .filter-select {
+  width: 100%;
+  min-height: 42px;
   padding: 0.6rem 1rem;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -53,12 +57,11 @@
 
 .filter-input:focus, .filter-select:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+  box-shadow: var(--focus-ring);
 }
 
 .filter-search {
-  flex: 1;
-  min-width: 200px;
+  min-width: 0;
 }
 
 .filter-chips {
@@ -116,7 +119,7 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(248, 250, 252, 0.5);
+  background: rgba(7, 10, 18, 0.62);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -128,7 +131,7 @@
 }
 
 .orders-table tbody tr:hover {
-  background-color: rgba(248, 250, 252, 0.8);
+  background-color: var(--surface-hover);
 }
 
 .order-id {
@@ -156,8 +159,29 @@
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: var(--bg-color);
-  border-color: var(--text-secondary);
+  background: rgba(30, 41, 59, 0.92);
+  border-color: var(--border-strong);
+}
+
+@media (max-width: 1180px) {
+  .filter-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-search {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 680px) {
+  .orders-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filter-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pagination-btn:disabled {
@@ -224,7 +248,7 @@
 }
 
 .detail-section {
-  background: var(--bg-color);
+  background: rgba(7, 10, 18, 0.62);
   padding: 1.25rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
@@ -270,9 +294,9 @@
 }
 
 .btn-map {
-  background: var(--primary-color);
-  color: white;
-  border: none;
+  background: linear-gradient(180deg, #45e19d, var(--primary-color));
+  color: #06110b;
+  border: 1px solid rgba(34, 201, 130, 0.55);
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
   font-weight: 500;
@@ -296,6 +320,8 @@
   border-radius: var(--radius-md);
   font-size: 0.95rem;
   width: 100%;
+  color: var(--text-primary);
+  background: rgba(7, 10, 18, 0.66);
 }
 
 .item-row {
@@ -319,19 +345,20 @@
 }
 
 .btn-export {
-  background: var(--primary-color);
-  color: white;
-  border: none;
+  background: linear-gradient(180deg, #45e19d, var(--primary-color));
+  color: #06110b;
+  border: 1px solid rgba(34, 201, 130, 0.55);
   padding: 0.6rem 1.2rem;
   border-radius: var(--radius-md);
-  font-weight: 600;
+  font-weight: 800;
   font-size: 0.9rem;
   cursor: pointer;
   transition: var(--transition-fast);
 }
 
 .btn-export:hover:not(:disabled) {
-  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 18px 38px rgba(31, 181, 116, 0.28), inset 0 1px rgba(255, 255, 255, 0.5);
 }
 
 .btn-export:disabled {
@@ -364,5 +391,12 @@
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+  min-width: 0;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
 }
 
+.date-filters .filter-input {
+  flex: 1;
+  min-width: 130px;
+}

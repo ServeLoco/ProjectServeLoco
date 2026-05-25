@@ -7,7 +7,8 @@ const jwt = require('jsonwebtoken');
 
 jest.mock('../src/db/mysql', () => ({
   pool: {
-    query: jest.fn()
+    query: jest.fn(),
+    escape: jest.fn(value => `'${value}'`)
   }
 }));
 
@@ -68,5 +69,18 @@ describe('Product and Category Tests', () => {
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.data.products).toHaveLength(1);
+  });
+
+  it('should not include combos in default product/category lists', async () => {
+    pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Chips', is_combo: 0 }]]);
+    pool.query.mockResolvedValueOnce([[]]);
+
+    const res = await request(app).get('/api/products?categoryId=1');
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.products).toHaveLength(1);
+    expect(pool.query.mock.calls[0][0]).toContain('p.is_combo = 0');
+    expect(pool.query.mock.calls[0][0]).not.toContain('UNION');
+    expect(pool.query.mock.calls[0][0]).not.toContain('FROM combos');
   });
 });

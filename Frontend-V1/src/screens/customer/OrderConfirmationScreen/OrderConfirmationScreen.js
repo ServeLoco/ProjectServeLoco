@@ -4,12 +4,11 @@ import {
   Text,
   StyleSheet,
   Animated,
-  TouchableOpacity,
   BackHandler,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { AppScreen, Button } from '../../../components';
-import { colors, typography, spacing, radius } from '../../../theme';
+import { AppScreen, AppIcon, PressableScale } from '../../../components';
+import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { normalizeOrder } from '../../../utils';
 
 export default function OrderConfirmationScreen() {
@@ -29,10 +28,15 @@ export default function OrderConfirmationScreen() {
   const detailsSlide = useRef(new Animated.Value(20)).current;
   const btnSlide = useRef(new Animated.Value(40)).current;
 
+  const ringScale1 = useRef(new Animated.Value(1)).current;
+  const ringOpacity1 = useRef(new Animated.Value(0)).current;
+  const ringScale2 = useRef(new Animated.Value(1)).current;
+  const ringOpacity2 = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     // Prevent back navigation to checkout
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      navigation.navigate('Home');
+      navigation.navigate('MainTabs', { screen: 'Home' });
       return true;
     });
 
@@ -53,6 +57,50 @@ export default function OrderConfirmationScreen() {
     return () => backHandler.remove();
   }, [iconScale, iconOpacity, detailsFade, detailsSlide, btnSlide, navigation]);
 
+  useEffect(() => {
+    const runRing1 = () => {
+      ringScale1.setValue(1);
+      ringOpacity1.setValue(0.5);
+      Animated.parallel([
+        Animated.timing(ringScale1, {
+          toValue: 1.8,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(ringOpacity1, {
+          toValue: 0,
+          duration: 1800,
+          useNativeDriver: true,
+        })
+      ]).start(() => runRing1());
+    };
+
+    const runRing2 = () => {
+      ringScale2.setValue(1);
+      ringOpacity2.setValue(0.5);
+      Animated.parallel([
+        Animated.timing(ringScale2, {
+          toValue: 1.8,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(ringOpacity2, {
+          toValue: 0,
+          duration: 1800,
+          useNativeDriver: true,
+          })
+      ]).start(() => runRing2());
+    };
+
+    const t1 = setTimeout(() => runRing1(), 600);
+    const t2 = setTimeout(() => runRing2(), 1500);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [ringScale1, ringOpacity1, ringScale2, ringOpacity2]);
+
   const handleViewOrder = () => {
     if (orderId) {
       navigation.navigate('OrderDetail', { orderId });
@@ -60,7 +108,7 @@ export default function OrderConfirmationScreen() {
   };
 
   const handleContinueShopping = () => {
-    navigation.navigate('Home');
+    navigation.navigate('MainTabs', { screen: 'Home' });
   };
 
   return (
@@ -68,16 +116,18 @@ export default function OrderConfirmationScreen() {
       <View style={styles.content}>
         
         {/* Success Icon */}
-        <Animated.View 
-          style={[
-            styles.iconWrapper, 
-            { opacity: iconOpacity, transform: [{ scale: iconScale }] }
-          ]}
-        >
-          <View style={styles.iconCircle}>
-            <Text style={styles.iconText}>Done</Text>
-          </View>
-        </Animated.View>
+        <View style={styles.iconWrapper}>
+          <Animated.View style={[styles.rippleRing, { opacity: ringOpacity1, transform: [{ scale: ringScale1 }] }]} />
+          <Animated.View style={[styles.rippleRing, { opacity: ringOpacity2, transform: [{ scale: ringScale2 }] }]} />
+          <Animated.View 
+            style={[
+              styles.iconCircle, 
+              { opacity: iconOpacity, transform: [{ scale: iconScale }] }
+            ]}
+          >
+            <AppIcon name="check" size={42} color={colors.success} strokeWidth={3} />
+          </Animated.View>
+        </View>
 
         {/* Order Details */}
         <Animated.View 
@@ -97,7 +147,7 @@ export default function OrderConfirmationScreen() {
             <View style={styles.divider} />
             <View style={styles.row}>
               <Text style={styles.label}>Total Amount</Text>
-              <Text style={styles.value}>Rs. {total} ({paymentMethod})</Text>
+              <Text style={styles.value}>₹{total} ({paymentMethod})</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.col}>
@@ -113,19 +163,29 @@ export default function OrderConfirmationScreen() {
 
         {/* Actions */}
         <Animated.View style={[styles.actions, { transform: [{ translateY: btnSlide }] }]}>
-          <Button 
-            label="View Order" 
-            onPress={handleViewOrder} 
+          <PressableScale
+            onPress={handleViewOrder}
             disabled={!orderId}
-            style={styles.primaryBtn} 
-          />
-          <TouchableOpacity 
-            activeOpacity={0.7} 
+            style={[
+              styles.customViewBtn,
+              !orderId && styles.customViewBtnDisabled
+            ]}
+            scaleTo={0.96}
+            accessibilityRole="button"
+            accessibilityLabel="View Order"
+          >
+            <Text style={styles.viewBtnText}>View Order Details</Text>
+          </PressableScale>
+          
+          <PressableScale
             onPress={handleContinueShopping}
             style={styles.secondaryBtn}
+            scaleTo={0.96}
+            accessibilityRole="button"
+            accessibilityLabel="Continue Shopping"
           >
             <Text style={styles.secondaryBtnText}>Continue Shopping</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </Animated.View>
 
       </View>
@@ -145,21 +205,29 @@ const styles = StyleSheet.create({
   },
   iconWrapper: {
     alignItems: 'center',
-    marginBottom: spacing.xxl,
+    justifyContent: 'center',
+    height: 140,
+    marginBottom: spacing.xl,
   },
   iconCircle: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: colors.success + '1A', // transparent success green
+    backgroundColor: colors.bgSurface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.success + '40',
+    borderColor: colors.success,
+    ...shadows.sm,
   },
-  iconText: {
-    fontSize: 48,
-    lineHeight: 56, // to center emoji vertically better on some androids
+  rippleRing: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: colors.success,
+    backgroundColor: colors.successLight,
   },
   detailsWrapper: {
     alignItems: 'center',
@@ -179,10 +247,11 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     backgroundColor: colors.bgSurface,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.lg,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
+    ...shadows.sm,
   },
   row: {
     flexDirection: 'row',
@@ -215,8 +284,22 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl, // safe area padding
     gap: spacing.md,
   },
-  primaryBtn: {
-    width: '100%',
+  customViewBtn: {
+    height: 52,
+    backgroundColor: colors.success,
+    borderRadius: radius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.sm,
+  },
+  customViewBtnDisabled: {
+    backgroundColor: colors.bgDisabled,
+  },
+  viewBtnText: {
+    ...typography.buttonLarge,
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
   },
   secondaryBtn: {
     width: '100%',
@@ -225,7 +308,7 @@ const styles = StyleSheet.create({
   },
   secondaryBtnText: {
     ...typography.labelLarge,
-    color: colors.primary,
-    fontWeight: '600',
+    color: colors.success,
+    fontWeight: '700',
   },
 });

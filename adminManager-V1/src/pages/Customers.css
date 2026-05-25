@@ -1,32 +1,43 @@
 .customers-container {
-  padding: 2rem;
-  max-width: 1400px;
+  padding: 0;
+  max-width: 1480px;
   margin: 0 auto;
   animation: fadeIn 0.4s ease-out;
 }
 
 .customers-header {
-  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .customers-title {
-  font-size: 1.8rem;
-  font-weight: 700;
+  font-size: clamp(1.45rem, 2vw, 1.9rem);
+  line-height: 1.1;
+  font-weight: 850;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .filter-bar {
   background: var(--surface-color);
-  padding: 1rem 1.5rem;
+  padding: 1rem;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
-  margin-bottom: 2rem;
-  display: flex;
+  margin-bottom: 1.25rem;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) repeat(2, minmax(170px, 220px));
   gap: 1rem;
-  flex-wrap: wrap;
   align-items: center;
+}
+
+.filter-bar .filter-input,
+.filter-bar .filter-select {
+  width: 100%;
+  min-height: 42px;
 }
 
 .customers-table-wrapper {
@@ -56,7 +67,7 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(248, 250, 252, 0.5);
+  background: rgba(7, 10, 18, 0.62);
   position: sticky;
   top: 0;
 }
@@ -67,7 +78,7 @@
 }
 
 .customers-table tbody tr:hover {
-  background-color: rgba(248, 250, 252, 0.8);
+  background-color: var(--surface-hover);
 }
 
 .customer-name {
@@ -164,6 +175,16 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   margin-bottom: 1rem;
+}
+
+@media (max-width: 900px) {
+  .filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-search {
+    min-width: 0 !important;
+  }
 }
 
 @keyframes fadeIn {

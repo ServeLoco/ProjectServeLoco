@@ -1,22 +1,24 @@
 .settings-container {
-  padding: 2rem;
-  max-width: 900px;
+  padding: 0;
+  max-width: 1120px;
   margin: 0 auto;
   animation: fadeIn 0.4s ease-out;
 }
 
 .settings-header {
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
 .settings-title {
-  font-size: 1.8rem;
-  font-weight: 700;
+  font-size: clamp(1.45rem, 2vw, 1.9rem);
+  line-height: 1.1;
+  font-weight: 850;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .settings-section {
@@ -24,23 +26,23 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
-  padding: 2rem;
-  margin-bottom: 2rem;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
 }
 
 .settings-section-title {
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .settings-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .settings-form-group {
@@ -73,7 +75,7 @@
 
 .settings-input:focus, .settings-select:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+  box-shadow: var(--focus-ring);
 }
 
 .toggle-switch-wrapper {
@@ -81,7 +83,7 @@
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: var(--bg-color);
+  background: rgba(7, 10, 18, 0.62);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
 }
@@ -118,7 +120,7 @@
   width: 20px;
   left: 4px;
   bottom: 4px;
-  background-color: white;
+  background-color: #f8fafc;
   transition: .4s;
   border-radius: 50%;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -143,7 +145,7 @@ input:checked + .toggle-slider:before {
 .settings-footer {
   display: flex;
   justify-content: flex-end;
-  margin-top: 2rem;
+  margin-top: 1rem;
 }
 
 @media (max-width: 768px) {

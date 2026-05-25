@@ -27,6 +27,8 @@ export default function ProductDetailScreen() {
   const { requireAuth } = useAuthGate();
   
   const productId = route.params?.id || route.params?.productId;
+  const productType = route.params?.type || route.params?.itemType;
+  const routeProduct = route.params?.product;
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,7 +62,7 @@ export default function ProductDetailScreen() {
     setIsLoading(true);
     setLoadError('');
 
-    productsApi.getProduct(productId)
+    productsApi.getProduct(productId, productType ? { type: productType } : undefined)
       .then(response => {
         if (!isMounted) return;
         const data = response?.product || response?.data || response;
@@ -85,6 +87,13 @@ export default function ProductDetailScreen() {
       })
       .catch(error => {
         if (!isMounted) return;
+        if (routeProduct) {
+          const normalized = normalizeProduct(routeProduct);
+          setProduct(normalized);
+          setRelatedProducts(normalized.relatedProducts || []);
+          setIsLoading(false);
+          return;
+        }
         setLoadError(error.message || 'Failed to load product');
         setIsLoading(false);
       });
@@ -92,10 +101,10 @@ export default function ProductDetailScreen() {
     return () => {
       isMounted = false;
     };
-  }, [bottomBarSlide, detailsFade, detailsSlide, imgFade, productId, staggerRelatedAnims]);
+  }, [bottomBarSlide, detailsFade, detailsSlide, imgFade, productId, productType, routeProduct, staggerRelatedAnims]);
 
   const getQty = (id) => {
-    const item = items.find(i => i.product.id === id);
+    const item = items.find(i => i.product.id === id && (i.type || 'product') !== 'combo');
     return item ? item.quantity : 0;
   };
 

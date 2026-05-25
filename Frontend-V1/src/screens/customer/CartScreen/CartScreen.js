@@ -18,6 +18,7 @@ import {
   ProductImage,
   QuantityStepper,
   Button,
+  PressableScale,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useCartStore, useSettingsStore } from '../../../stores';
@@ -41,6 +42,7 @@ export default function CartScreen() {
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const listOpacity = useRef(new Animated.Value(1)).current;
+  const arrowAnim = useRef(new Animated.Value(0)).current;
   const validItems = useMemo(
     () => items.filter(item => item?.product?.id),
     [items],
@@ -49,6 +51,29 @@ export default function CartScreen() {
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, [fadeAnim]);
+
+  useEffect(() => {
+    // 1. Pulse chevron arrow animation loop
+    const arrowLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(arrowAnim, {
+          toValue: 5,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+        Animated.timing(arrowAnim, {
+          toValue: 0,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    arrowLoop.start();
+
+    return () => {
+      arrowLoop.stop();
+    };
+  }, [arrowAnim]);
 
   const calculateBill = async () => {
     if (validItems.length === 0) {
@@ -69,6 +94,8 @@ export default function CartScreen() {
         items: validItems.map(item => ({
           productId: item.product.id,
           quantity: item.quantity,
+          type: item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product'),
+          isCombo: (item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product')) === 'combo',
         })),
       };
       const calculatedBill = normalizeCartCalculation(await cartApi.calculate(payload));
@@ -88,9 +115,9 @@ export default function CartScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, validItems]);
 
-  const handleRemove = (id) => {
+  const handleRemove = (id, type = 'product') => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    removeItem(id);
+    removeItem(id, type);
   };
 
   const handleClear = () => {
@@ -109,7 +136,7 @@ export default function CartScreen() {
       <Text style={styles.emptyDesc}>Looks like you haven't added anything to your cart yet.</Text>
       <Button 
         label="Start Shopping" 
-        onPress={() => navigation.navigate('Home')}
+        onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
         style={styles.emptyBtn}
       />
     </Animated.View>
@@ -119,8 +146,7 @@ export default function CartScreen() {
     validItems.length === 0 ||
     isCalculating || 
     calcError || 
-    shopStatus === 'closed' || 
-    (bill && bill.subtotal < (bill.minimumOrder || minimumOrder || 0));
+    shopStatus === 'closed';
   const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
 
   return (
@@ -130,9 +156,15 @@ export default function CartScreen() {
         onBack={() => navigation.goBack()}
         rightActions={validItems.length > 0 ? [
           {
-            icon: <Text style={styles.clearText}>Clear</Text>,
+            icon: (
+              <>
+                <AppIcon name="delete" size={12} color={colors.error} />
+                <Text style={styles.clearText}>Clear</Text>
+              </>
+            ),
             onPress: handleClear,
-            label: 'Clear Cart'
+            label: 'Clear Cart',
+            style: styles.clearHeaderBtn,
           }
         ] : []}
       />
@@ -144,8 +176,10 @@ export default function CartScreen() {
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {/* Cart Items */}
             <Animated.View style={[styles.itemsList, { opacity: fadeAnim }]}>
-              {validItems.map((item) => (
-                <View key={item.product.id} style={styles.cartRow}>
+              {validItems.map((item) => {
+                const itemType = item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');
+                return (
+                <View key={`${itemType}-${item.product.id}`} style={styles.cartRow}>
                   <ProductImage
                     uri={item.product.imageUri || item.product.imageUrl}
                     width={64}
@@ -157,7 +191,7 @@ export default function CartScreen() {
                   <View style={styles.rowDetails}>
                     <Text style={styles.rowName} numberOfLines={1}>{item.product.name}</Text>
                     <Text style={styles.rowUnit}>{item.product.unit}</Text>
-                    <Text style={styles.rowPrice}>Rs. {item.product.price}</Text>
+                    <Text style={styles.rowPrice}>₹{item.product.price}</Text>
                     
                     {!item.product.available && (
                       <Text style={styles.unavailableWarning}>Currently unavailable</Text>
@@ -168,22 +202,25 @@ export default function CartScreen() {
                     <QuantityStepper
                       compact
                       quantity={item.quantity}
-                      onIncrement={() => updateQuantity(item.product.id, item.quantity + 1)}
+                      onIncrement={() => updateQuantity(item.product.id, item.quantity + 1, itemType)}
                       onDecrement={() => {
-                        if (item.quantity <= 1) handleRemove(item.product.id);
-                        else updateQuantity(item.product.id, item.quantity - 1);
+                        if (item.quantity <= 1) handleRemove(item.product.id, itemType);
+                        else updateQuantity(item.product.id, item.quantity - 1, itemType);
                       }}
                     />
                   </View>
 
                   <TouchableOpacity 
                     style={styles.removeBtn}
-                    onPress={() => handleRemove(item.product.id)}
+                    onPress={() => handleRemove(item.product.id, itemType)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Remove item"
                   >
-                    <Text style={styles.removeIcon}>×</Text>
+                    <AppIcon name="delete" size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
-              ))}
+                );
+              })}
             </Animated.View>
 
             {/* Bill Summary */}
@@ -201,27 +238,27 @@ export default function CartScreen() {
                 <View style={styles.billDetails}>
                   <View style={styles.billRow}>
                     <Text style={styles.billLabel}>Item Total</Text>
-                    <Text style={styles.billValue}>Rs. {bill.subtotal}</Text>
+                    <Text style={styles.billValue}>₹{bill.subtotal}</Text>
                   </View>
                   
                   <View style={styles.billRow}>
                     <Text style={styles.billLabel}>Delivery Charge</Text>
-                    <Text style={styles.billValue}>
-                      {bill.deliveryCharge > 0 ? `Rs. ${bill.deliveryCharge}` : 'FREE'}
+                    <Text style={[styles.billValue, bill.deliveryCharge === 0 && styles.freeDeliveryText]}>
+                      {bill.deliveryCharge > 0 ? `₹${bill.deliveryCharge}` : 'FREE'}
                     </Text>
                   </View>
 
                   {bill.nightCharge > 0 && (
                     <View style={styles.billRow}>
                       <Text style={styles.billLabel}>Night Charge (post 11 PM)</Text>
-                      <Text style={styles.billValue}>Rs. {bill.nightCharge}</Text>
+                      <Text style={styles.billValue}>₹{bill.nightCharge}</Text>
                     </View>
                   )}
 
                   {bill.discount > 0 && (
                     <View style={styles.billRow}>
                       <Text style={[styles.billLabel, styles.discountText]}>Discount Applied</Text>
-                      <Text style={[styles.billValue, styles.discountText]}>- Rs. {bill.discount}</Text>
+                      <Text style={[styles.billValue, styles.discountText]}>- ₹{bill.discount}</Text>
                     </View>
                   )}
 
@@ -229,16 +266,17 @@ export default function CartScreen() {
                   
                   <View style={styles.billRow}>
                     <Text style={styles.grandTotalLabel}>Grand Total</Text>
-                    <Text style={styles.grandTotalValue}>Rs. {bill.grandTotal}</Text>
+                    <Text style={styles.grandTotalValue}>₹{bill.grandTotal}</Text>
                   </View>
                 </View>
               ) : null}
 
-              {/* Minimum Order Warning */}
-              {bill && bill.subtotal < requiredMinimum && (
+              {/* Free Delivery Threshold Note */}
+              {bill && requiredMinimum > 0 && bill.subtotal < requiredMinimum && (
                 <View style={styles.warningBox}>
+                  <AppIcon name="box" size={16} color={colors.saffron || '#FF7A3A'} style={styles.warningIcon} />
                   <Text style={styles.warningText}>
-                    Add items worth Rs. {requiredMinimum - bill.subtotal} more to checkout.
+                    Add items worth <Text style={styles.warningHighlight}>₹{(requiredMinimum - bill.subtotal).toFixed(0)}</Text> more for <Text style={styles.warningHighlight}>Free Delivery</Text> (₹{bill.deliveryCharge} delivery fee currently applied).
                   </Text>
                 </View>
               )}
@@ -248,15 +286,30 @@ export default function CartScreen() {
           {/* Bottom Action Bar */}
           <View style={styles.bottomBar}>
             {shopStatus === 'closed' ? (
-              <Button label="Shop is Closed" disabled style={styles.checkoutBtn} />
+              <View style={[styles.customCheckoutBtn, styles.customCheckoutBtnDisabled]}>
+                <Text style={styles.checkoutBtnTextDisabled}>Shop is Closed</Text>
+              </View>
             ) : (
-              <Button 
-                label={bill ? `Proceed to Pay (Rs. ${bill.grandTotal})` : 'Checkout'} 
-                variant="success"
+              <PressableScale
                 onPress={handleCheckout}
                 disabled={isCheckoutDisabled}
-                style={styles.checkoutBtn}
-              />
+                style={[
+                  styles.customCheckoutBtn,
+                  isCheckoutDisabled && styles.customCheckoutBtnDisabled
+                ]}
+                scaleTo={0.96}
+                accessibilityRole="button"
+                accessibilityLabel={bill ? `Proceed to Pay, ₹${bill.grandTotal}` : 'Checkout'}
+              >
+                <View style={styles.checkoutBtnContent}>
+                  <Text style={styles.checkoutBtnText}>
+                    {bill ? `Proceed to Pay (₹${bill.grandTotal})` : 'Checkout'}
+                  </Text>
+                  <Animated.View style={[styles.checkoutBtnArrow, { transform: [{ translateX: arrowAnim }] }]}>
+                    <AppIcon name="chevronRight" size={16} color="#FFFFFF" />
+                  </Animated.View>
+                </View>
+              </PressableScale>
             )}
           </View>
         </View>
@@ -270,10 +323,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bgApp,
   },
+  clearHeaderBtn: {
+    width: 'auto',
+    height: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF0F0',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    gap: 4,
+  },
   clearText: {
-    ...typography.label,
-    color: colors.primary,
-    fontWeight: '600',
+    ...typography.labelSmall,
+    color: colors.error,
+    fontWeight: '700',
+    fontSize: 11,
   },
   emptyState: {
     flex: 1,
@@ -314,17 +380,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     backgroundColor: colors.bgSurface,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     marginBottom: spacing.sm,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
-    ...shadows.xs,
+    ...shadows.sm,
   },
   rowImg: {
-    width: 60,
-    height: 60,
+    width: 64,
+    height: 64,
     borderRadius: radius.md,
-    backgroundColor: colors.bgDisabled,
+    backgroundColor: '#F5F6F8',
     marginRight: spacing.md,
   },
   rowDetails: {
@@ -334,7 +400,8 @@ const styles = StyleSheet.create({
   rowName: {
     ...typography.labelLarge,
     color: colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 14,
     marginBottom: 2,
   },
   rowUnit: {
@@ -345,7 +412,8 @@ const styles = StyleSheet.create({
   rowPrice: {
     ...typography.label,
     color: colors.textPrimary,
-    fontWeight: '700',
+    fontWeight: '800',
+    fontSize: 13,
   },
   unavailableWarning: {
     ...typography.caption,
@@ -359,15 +427,17 @@ const styles = StyleSheet.create({
   removeBtn: {
     marginLeft: spacing.md,
     padding: spacing.xs,
-  },
-  removeIcon: {
-    fontSize: 24,
-    color: colors.textTertiary,
-    lineHeight: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   billSection: {
     backgroundColor: colors.bgSurface,
     padding: spacing.lg,
+    borderRadius: radius.lg,
+    marginTop: spacing.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    ...shadows.sm,
   },
   billTitle: {
     ...typography.h3,
@@ -425,26 +495,73 @@ const styles = StyleSheet.create({
   },
   warningBox: {
     marginTop: spacing.md,
-    backgroundColor: colors.primary + '1A',
-    padding: spacing.md,
+    backgroundColor: colors.saffronLight || '#FFF2EB',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.saffron || '#FF7A3A',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  warningIcon: {
+    marginRight: 2,
   },
   warningText: {
-    ...typography.caption,
-    color: colors.primary,
-    textAlign: 'center',
-    fontWeight: '600',
+    ...typography.labelSmall,
+    color: colors.saffronDark || '#E05A1A',
+    flex: 1,
+    lineHeight: 16,
+  },
+  warningHighlight: {
+    fontWeight: '800',
+    color: colors.saffronDark || '#E05A1A',
+  },
+  freeDeliveryText: {
+    color: colors.success,
+    fontWeight: '700',
   },
   bottomBar: {
     backgroundColor: colors.bgSurface,
-    borderTopWidth: 1,
+    borderTopWidth: 1.5,
     borderTopColor: colors.border,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     paddingBottom: spacing.xxl,
-    ...shadows.xl,
+    ...shadows.lg,
   },
-  checkoutBtn: {
-    width: '100%',
+  customCheckoutBtn: {
+    height: 52,
+    backgroundColor: colors.success || '#1FB574',
+    borderRadius: radius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.sm,
+  },
+  customCheckoutBtnDisabled: {
+    backgroundColor: colors.bgDisabled || '#DFE2E6',
+  },
+  checkoutBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  checkoutBtnText: {
+    ...typography.buttonLarge,
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  checkoutBtnTextDisabled: {
+    ...typography.buttonLarge,
+    color: colors.textDisabled,
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  checkoutBtnArrow: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

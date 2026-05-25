@@ -43,7 +43,7 @@ const getCategories = async (req, res) => {
     SELECT c.*, (
       SELECT COUNT(*)
       FROM products p
-      WHERE p.category_id = c.id AND p.deleted = 0
+      WHERE p.category_id = c.id AND p.deleted = 0 AND p.is_combo = 0
     ) as product_count
     FROM categories c
     WHERE c.active = 1 AND c.deleted = 0
@@ -66,7 +66,7 @@ const getAdminCategories = async (req, res) => {
     SELECT c.*, (
       SELECT COUNT(*)
       FROM products p
-      WHERE p.category_id = c.id AND p.deleted = 0
+      WHERE p.category_id = c.id AND p.deleted = 0 AND p.is_combo = 0
     ) as product_count
     FROM categories c
     WHERE c.deleted = 0

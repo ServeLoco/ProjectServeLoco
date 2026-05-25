@@ -1,6 +1,6 @@
 .dashboard-container {
-  padding: 2rem;
-  max-width: 1400px;
+  padding: 0;
+  max-width: 1480px;
   margin: 0 auto;
   animation: fadeIn 0.4s ease-out;
 }
@@ -8,15 +8,17 @@
 .dashboard-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .dashboard-title {
-  font-size: 1.8rem;
-  font-weight: 700;
+  font-size: clamp(1.45rem, 2vw, 1.9rem);
+  line-height: 1.1;
+  font-weight: 850;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .shop-status-card {
@@ -69,15 +71,15 @@
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .metric-card {
   background: var(--surface-color);
   border-radius: var(--radius-lg);
-  padding: 1.5rem;
+  padding: 1.15rem;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
   transition: var(--transition-normal);
@@ -87,7 +89,7 @@
 }
 
 .metric-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   border-color: var(--primary-color);
 }
@@ -103,7 +105,7 @@
   margin-bottom: 0.5rem;
 }
 
-.icon-sales { background: rgba(79, 70, 229, 0.1); color: var(--primary-color); }
+.icon-sales { background: rgba(31, 181, 116, 0.12); color: var(--primary-color); }
 .icon-orders { background: rgba(16, 185, 129, 0.1); color: var(--success-color); }
 .icon-pending { background: rgba(245, 158, 11, 0.1); color: var(--warning-color); }
 .icon-payments { background: rgba(239, 68, 68, 0.1); color: var(--danger-color); }
@@ -125,7 +127,7 @@
 .dashboard-content-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 @media (max-width: 1024px) {
@@ -175,7 +177,7 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(248, 250, 252, 0.5);
+  background: rgba(7, 10, 18, 0.62);
 }
 
 .latest-orders-table tbody tr {
@@ -183,7 +185,7 @@
 }
 
 .latest-orders-table tbody tr:hover {
-  background-color: rgba(248, 250, 252, 0.8);
+  background-color: var(--surface-hover);
 }
 
 .order-number {
@@ -250,7 +252,7 @@
 .product-qty {
   font-weight: 700;
   color: var(--primary-color);
-  background: rgba(79, 70, 229, 0.1);
+  background: rgba(31, 181, 116, 0.12);
   padding: 0.25rem 0.75rem;
   border-radius: var(--radius-md);
   font-size: 0.85rem;
@@ -285,7 +287,7 @@
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(79, 70, 229, 0.2);
+  border: 3px solid rgba(31, 181, 116, 0.18);
   border-radius: 50%;
   border-top-color: var(--primary-color);
   animation: spin 1s linear infinite;

@@ -1,11 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
-  Animated,
   TouchableOpacity,
   LayoutAnimation,
   Platform,
@@ -82,9 +81,6 @@ export default function ProductListScreen() {
     [items]
   );
 
-  // Filter crossfade animation
-  const listOpacity = useRef(new Animated.Value(1)).current;
-
   const fetchProducts = async () => {
     setIsLoading(true);
     setIsError(false);
@@ -110,10 +106,14 @@ export default function ProductListScreen() {
           search: searchQuery || undefined,
           available: showAvailableOnly ? true : undefined,
           offerId: offerId || undefined,
+          isCombo: mode === 'combos',
           featured: mode === 'combos' ? true : undefined,
           sort: sortBy,
         });
         filtered = asArray(response, ['products']).map(normalizeProduct);
+        if (mode !== 'combos') {
+          filtered = filtered.filter(p => !(p.isCombo || p.is_combo || p.comboItems?.length));
+        }
 
         // Offer Filter
         if (offerId) {
@@ -147,12 +147,6 @@ export default function ProductListScreen() {
         filtered.sort((a, b) => b.price - a.price);
       } // Popular keeps default order
 
-      // Animate list update (Crossfade)
-      Animated.sequence([
-        Animated.timing(listOpacity, { toValue: 0.5, duration: 100, useNativeDriver: true }),
-        Animated.timing(listOpacity, { toValue: 1, duration: 200, useNativeDriver: true })
-      ]).start();
-
       setProducts(filtered);
     } catch (err) {
       setIsError(true);
@@ -179,7 +173,7 @@ export default function ProductListScreen() {
 
   // Callbacks
   const getQty = (productId) => {
-    const item = items.find(i => i.product.id === productId);
+    const item = items.find(i => i.product.id === productId && (i.type || 'product') !== 'combo');
     return item ? item.quantity : 0;
   };
 
@@ -218,70 +212,36 @@ export default function ProductListScreen() {
   };
 
   const handleProductPress = (product) => {
-    navigation.navigate('ProductDetail', { id: product.id });
+    const isCombo = product.isCombo || product.is_combo || product.comboItems?.length;
+    navigation.navigate('ProductDetail', {
+      id: product.id,
+      type: isCombo ? 'combo' : 'product',
+      product,
+    });
   };
 
   // Renders
-  const FadeInItem = ({ children, index }) => {
-    const anim = useRef(new Animated.Value(0)).current;
-    
-    useEffect(() => {
-      Animated.timing(anim, {
-        toValue: 1,
-        duration: 400,
-        delay: index * 100, // Stagger based on index
-        useNativeDriver: true,
-      }).start();
-    }, [anim, index]);
-
-    return (
-      <Animated.View
-        style={{
-          opacity: anim,
-          transform: [{
-            translateY: anim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [20, 0]
-            })
-          }],
-          width: '100%',
-        }}
-      >
-        {children}
-      </Animated.View>
-    );
-  };
-
-  const renderItem = ({ item, index }) => (
-    <Animated.View
-      style={{
-        opacity: listOpacity,
-        width: cardWidth,
-      }}
-    >
-      <FadeInItem index={index}>
-        <View style={styles.productWrap}>
-          <TouchableOpacity activeOpacity={0.9} onPress={() => handleProductPress(item)}>
-            <ProductCard
-              name={item.name}
-              price={item.price}
-              originalPrice={item.originalPrice}
-              discountLabel={item.discountLabel}
-              unit={item.unit}
-              isCombo={item.isCombo}
-              comboItems={item.comboItems}
-              imageUri={item.imageUri}
-              quantity={item.isCombo || item.is_combo || item.comboItems?.length ? getComboQuantity(item) : getQty(item.id)}
-              onAdd={() => handleAddToCart(item)}
-              onIncrement={() => handleIncrement(item)}
-              onDecrement={() => handleDecrement(item)}
-              disabled={!item.available}
-              style={{ width: '100%' }}
-            />
-          </TouchableOpacity>
-        </View>
-      </FadeInItem>
-    </Animated.View>
+  const renderItem = ({ item }) => (
+    <View style={[styles.productWrap, { width: cardWidth }]}>
+      <TouchableOpacity activeOpacity={0.9} onPress={() => handleProductPress(item)}>
+        <ProductCard
+          name={item.name}
+          price={item.price}
+          originalPrice={item.originalPrice}
+          discountLabel={item.discountLabel}
+          unit={item.unit}
+          isCombo={item.isCombo}
+          comboItems={item.comboItems}
+          imageUri={item.imageUri}
+          quantity={item.isCombo || item.is_combo || item.comboItems?.length ? getComboQuantity(item) : getQty(item.id)}
+          onAdd={() => handleAddToCart(item)}
+          onIncrement={() => handleIncrement(item)}
+          onDecrement={() => handleDecrement(item)}
+          disabled={!item.available}
+          style={{ width: '100%' }}
+        />
+      </TouchableOpacity>
+    </View>
   );
 
   const renderSkeleton = () => (

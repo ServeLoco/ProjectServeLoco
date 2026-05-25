@@ -9,7 +9,6 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
-  useWindowDimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -17,12 +16,13 @@ import {
   AppHeader,
   AppIcon,
   SegmentedControl,
-  CategoryCard,
   StickyMiniCart,
   Button,
   LoadingSkeleton,
+  PressableScale,
+  ProductImage,
 } from '../../../components';
-import { colors, typography, spacing, radius } from '../../../theme';
+import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useCartStore } from '../../../stores';
 import { productsApi } from '../../../api';
 import { asArray, normalizeCategory } from '../../../utils';
@@ -35,7 +35,6 @@ const DEFAULT_CHIPS = ['All', 'Bestsellers', 'New Arrivals', 'Offers'];
 
 export default function CategoriesScreen() {
   const navigation = useNavigation();
-  const { width: windowWidth } = useWindowDimensions();
   const items = useCartStore(state => state.items);
   const cartItemCount = useMemo(
     () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
@@ -123,16 +122,14 @@ export default function CategoriesScreen() {
     setActiveChip(chip);
   };
 
-  const gridGap = spacing.sm;
-  const gridWidth = windowWidth - (spacing.lg * 2);
-  const categoryCardWidth = Math.floor((gridWidth - (gridGap * 3)) / 4);
-  const categoryImageSize = Math.max(38, categoryCardWidth - spacing.sm);
-
-  const renderSkeletonGrid = () => (
-        <View style={styles.grid}>
-          {[1, 2, 3, 4, 5, 6].map((k) => (
-        <View key={k} style={[styles.gridItem, { width: categoryCardWidth }]}>
-          <LoadingSkeleton style={{ height: 140, borderRadius: radius.md }} />
+  const renderSkeletonList = () => (
+    <View style={styles.list}>
+      {[1, 2, 3, 4, 5, 6].map((k) => (
+        <View key={k} style={styles.skeletonListItem}>
+          <LoadingSkeleton style={styles.skeletonListImage} />
+          <View style={styles.skeletonListTextWrapper}>
+            <LoadingSkeleton style={styles.skeletonListLine} />
+          </View>
         </View>
       ))}
     </View>
@@ -192,10 +189,10 @@ export default function CategoriesScreen() {
           </ScrollView>
         </View>
 
-        {/* Grid / Empty State */}
+        {/* List / Empty State */}
         <View style={styles.listContainer}>
           {isLoading ? (
-            renderSkeletonGrid()
+            renderSkeletonList()
           ) : isError ? (
             <View style={styles.emptyState}>
               <AppIcon name="close" size={48} color={colors.error} style={styles.emptyEmoji} />
@@ -214,13 +211,12 @@ export default function CategoriesScreen() {
               style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
             >
               {displayCategories.length > 0 ? (
-                <View style={styles.grid}>
+                <View style={styles.list}>
                   {displayCategories.map((cat, idx) => (
                     <Animated.View
                       key={cat.id}
                       style={[
-                        styles.gridItem,
-                        { width: categoryCardWidth },
+                        styles.listItem,
                         {
                           opacity: staggerAnims[idx] || 1,
                           transform: [{
@@ -232,15 +228,32 @@ export default function CategoriesScreen() {
                         }
                       ]}
                     >
-                      <CategoryCard
-                        name={cat.name}
-                        count={cat.count}
-                        imageUri={cat.imageUri}
-                        imageWidth={categoryImageSize}
-                        imageHeight={Math.max(36, categoryImageSize * 0.66)}
-                        style={{ width: categoryCardWidth }}
+                      <PressableScale
                         onPress={() => handleCategoryPress(cat)}
-                      />
+                        style={styles.categoryListRow}
+                        scaleTo={0.97}
+                        accessibilityRole="button"
+                        accessibilityLabel={cat.name}
+                      >
+                        <View style={styles.listImageWrapper}>
+                          <ProductImage
+                            uri={cat.imageUri}
+                            width="100%"
+                            height="100%"
+                            borderRadius={radius.sm}
+                            resizeMode="contain"
+                          />
+                        </View>
+                        <View style={styles.listTextContainer}>
+                          <Text style={styles.categoryListRowName}>{cat.name}</Text>
+                          {cat.count !== undefined && (
+                            <Text style={styles.categoryListRowCount}>{cat.count} items</Text>
+                          )}
+                        </View>
+                        <View style={styles.chevronWrapper}>
+                          <AppIcon name="chevronRight" size={18} color={colors.textSecondary} />
+                        </View>
+                      </PressableScale>
                     </Animated.View>
                   ))}
                 </View>
@@ -317,15 +330,77 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.xxxl * 2, // Space for sticky cart
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 0,
-    paddingTop: spacing.md,
+  list: {
+    paddingTop: spacing.sm,
   },
-  gridItem: {
-    marginBottom: spacing.md,
+  listItem: {
+    marginBottom: spacing.xs,
+  },
+  categoryListRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.bgSurface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  listImageWrapper: {
+    width: 52,
+    height: 52,
+    backgroundColor: '#F5F6F8',
+    borderRadius: radius.md,
+    padding: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  listTextContainer: {
+    flex: 1,
+    marginLeft: spacing.md,
+    justifyContent: 'center',
+  },
+  categoryListRowName: {
+    ...typography.labelLarge,
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  categoryListRowCount: {
+    ...typography.labelSmall,
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  chevronWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: spacing.sm,
+  },
+  skeletonListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.bgSurface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  skeletonListImage: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.md,
+  },
+  skeletonListTextWrapper: {
+    flex: 1,
+    marginLeft: spacing.md,
+    justifyContent: 'center',
+  },
+  skeletonListLine: {
+    height: 16,
+    width: '60%',
+    borderRadius: radius.xs,
   },
   emptyState: {
     flex: 1,

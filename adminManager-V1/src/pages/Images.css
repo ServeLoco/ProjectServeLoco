@@ -1,6 +1,6 @@
 .images-container {
-  padding: 2rem;
-  max-width: 1400px;
+  padding: 0;
+  max-width: 1480px;
   margin: 0 auto;
   animation: fadeIn 0.4s ease-out;
 }
@@ -8,36 +8,38 @@
 .images-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .images-title {
-  font-size: 1.8rem;
-  font-weight: 700;
+  font-size: clamp(1.45rem, 2vw, 1.9rem);
+  line-height: 1.1;
+  font-weight: 850;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .image-upload-area {
-  border: 2px dashed var(--primary-color);
-  background: rgba(79, 70, 229, 0.05);
+  border: 1px dashed rgba(31, 181, 116, 0.55);
+  background: rgba(15, 23, 42, 0.68);
   border-radius: var(--radius-lg);
-  padding: 3rem;
+  padding: 2rem;
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
   cursor: pointer;
   transition: var(--transition-fast);
 }
 
 .image-upload-area:hover {
-  background: rgba(79, 70, 229, 0.1);
+  background: rgba(31, 181, 116, 0.08);
 }
 
 .images-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .image-card {

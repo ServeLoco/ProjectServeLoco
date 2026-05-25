@@ -20,6 +20,7 @@ import {
   AppIcon,
   TextInputField,
   Button,
+  PressableScale,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../../stores';
@@ -41,15 +42,6 @@ export default function CheckoutScreen() {
   const shopStatus = useSettingsStore(state => state.shopStatus);
   const minimumOrder = useSettingsStore(state => state.minimumOrder);
   const userProfile = useAuthStore(state => state.profile);
-  const checkoutItems = useMemo(() => items.map(item => ({
-    productId: item.product.id,
-    quantity: item.quantity,
-  })), [items]);
-  const calculationPayload = useMemo(() => ({
-    items: checkoutItems,
-    latitude: coordinates?.lat,
-    longitude: coordinates?.lng,
-  }), [checkoutItems, coordinates]);
 
   // Form State
   const [address, setAddress] = useState(userProfile?.address || '');
@@ -64,12 +56,28 @@ export default function CheckoutScreen() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [bill, setBill] = useState(null);
   const [calcError, setCalcError] = useState(null);
+  const checkoutItems = useMemo(() => items.map(item => {
+    const type = item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');
+    return {
+      productId: item.product.id,
+      quantity: item.quantity,
+      type,
+      isCombo: type === 'combo',
+    };
+  }), [items]);
+  const calculationPayload = useMemo(() => ({
+    items: checkoutItems,
+    latitude: coordinates?.lat,
+    longitude: coordinates?.lng,
+  }), [checkoutItems, coordinates]);
 
   // Animations
   const deliverySlide = useRef(new Animated.Value(20)).current;
   const paymentSlide = useRef(new Animated.Value(20)).current;
   const summarySlide = useRef(new Animated.Value(20)).current;
   const btnScale = useRef(new Animated.Value(1)).current;
+  const arrowAnim = useRef(new Animated.Value(0)).current;
+  const gpsPulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     // Staggered entrance
@@ -79,6 +87,56 @@ export default function CheckoutScreen() {
       Animated.timing(summarySlide, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
   }, [deliverySlide, paymentSlide, summarySlide]);
+
+  useEffect(() => {
+    const arrowLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(arrowAnim, {
+          toValue: 5,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+        Animated.timing(arrowAnim, {
+          toValue: 0,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    arrowLoop.start();
+    return () => {
+      arrowLoop.stop();
+    };
+  }, [arrowAnim]);
+
+  useEffect(() => {
+    let gpsLoop;
+    if (gpsStatus === 'success') {
+      gpsPulse.setValue(1);
+      gpsLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(gpsPulse, {
+            toValue: 1.15,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(gpsPulse, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      gpsLoop.start();
+    } else {
+      gpsPulse.setValue(1);
+    }
+    return () => {
+      if (gpsLoop) {
+        gpsLoop.stop();
+      }
+    };
+  }, [gpsStatus, gpsPulse]);
 
   useEffect(() => {
     let isActive = true;
@@ -198,8 +256,6 @@ export default function CheckoutScreen() {
 
     try {
       const verifiedBill = normalizeCartCalculation(await cartApi.calculate(calculationPayload));
-      const verifiedMinimum = verifiedBill.minimumOrder || minimumOrder || 0;
-
       setBill(verifiedBill);
 
       if (verifiedBill.requiresLocation) {
@@ -209,11 +265,6 @@ export default function CheckoutScreen() {
 
       if (!verifiedBill.deliveryWithinRange) {
         setSubmitError(verifiedBill.deliveryMessage || 'Delivery is not available at this location.');
-        return;
-      }
-
-      if (verifiedMinimum && verifiedBill.subtotal < verifiedMinimum) {
-        setSubmitError(`Minimum order is Rs. ${verifiedMinimum}. Add items worth Rs. ${verifiedMinimum - verifiedBill.subtotal} more.`);
         return;
       }
 
@@ -254,7 +305,7 @@ export default function CheckoutScreen() {
   const isBelowMinimum = Boolean(bill && requiredMinimum && bill.subtotal < requiredMinimum);
   const hasPinnedLocation = Boolean(coordinates);
   const hasInvalidDelivery = Boolean(bill && (bill.requiresLocation || !bill.deliveryWithinRange));
-  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || isBelowMinimum || !hasPinnedLocation || hasInvalidDelivery;
+  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || !hasPinnedLocation || hasInvalidDelivery;
   const placeOrderLabel = isSubmitting
     ? 'Processing...'
     : !hasPinnedLocation
@@ -265,9 +316,7 @@ export default function CheckoutScreen() {
     ? `Place Order • Rs. ${bill.grandTotal}`
     : isCalculating
     ? 'Calculating total...'
-    : 'Place Order';
-
-  return (
+    : 'Place Order';  return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
       <AppHeader
         title="Checkout"
@@ -308,7 +357,9 @@ export default function CheckoutScreen() {
               </View>
             ) : (
               <View style={styles.gpsSuccess}>
-                <AppIcon name="location" size={24} color={colors.success} style={styles.gpsSuccessIcon} />
+                <Animated.View style={[styles.gpsSuccessIconFrame, { transform: [{ scale: gpsPulse }] }]}>
+                  <AppIcon name="location" size={22} color={colors.success} />
+                </Animated.View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.gpsSuccessText}>Location Pinned</Text>
                   <Text style={styles.gpsCoords}>
@@ -322,7 +373,10 @@ export default function CheckoutScreen() {
             )}
 
             {gpsStatus === 'error' && (
-              <Text style={styles.gpsErrorText}>{gpsError || 'Failed to get location. Please try again.'}</Text>
+              <View style={styles.gpsErrorContainer}>
+                <AppIcon name="delete" size={16} color={colors.error} style={{ marginRight: spacing.sm }} />
+                <Text style={styles.gpsErrorText}>{gpsError || 'Failed to get location. Please try again.'}</Text>
+              </View>
             )}
           </View>
         </Animated.View>
@@ -332,33 +386,33 @@ export default function CheckoutScreen() {
           <Text style={styles.sectionTitle}>Payment Method</Text>
           
           <View style={styles.paymentOptions}>
-            <TouchableOpacity 
-              activeOpacity={0.8}
+            <PressableScale 
               style={[styles.paymentBox, paymentMethod === 'Cash' && styles.paymentBoxActive]}
               onPress={() => setPaymentMethod('Cash')}
+              scaleTo={0.96}
             >
               <AppIcon
                 name="rupee"
                 size={28}
-                color={paymentMethod === 'Cash' ? colors.primary : colors.textSecondary}
+                color={paymentMethod === 'Cash' ? colors.success : colors.textSecondary}
                 style={styles.paymentIcon}
               />
               <Text style={[styles.paymentText, paymentMethod === 'Cash' && styles.paymentTextActive]}>Cash on Delivery</Text>
-            </TouchableOpacity>
+            </PressableScale>
 
-            <TouchableOpacity 
-              activeOpacity={0.8}
+            <PressableScale 
               style={[styles.paymentBox, paymentMethod === 'UPI' && styles.paymentBoxActive]}
               onPress={() => setPaymentMethod('UPI')}
+              scaleTo={0.96}
             >
               <AppIcon
                 name="creditCard"
                 size={28}
-                color={paymentMethod === 'UPI' ? colors.primary : colors.textSecondary}
+                color={paymentMethod === 'UPI' ? colors.success : colors.textSecondary}
                 style={styles.paymentIcon}
               />
               <Text style={[styles.paymentText, paymentMethod === 'UPI' && styles.paymentTextActive]}>UPI / Online</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
           
           <Text style={styles.paymentPendingNote}>
@@ -379,11 +433,11 @@ export default function CheckoutScreen() {
               <>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Items ({items.length})</Text>
-                  <Text style={styles.summaryValue}>Rs. {bill.subtotal}</Text>
+                  <Text style={styles.summaryValue}>₹{bill.subtotal}</Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Delivery</Text>
-                  <Text style={styles.summaryValue}>{bill.deliveryCharge === 0 ? 'FREE' : `Rs. ${bill.deliveryCharge}`}</Text>
+                  <Text style={styles.summaryValue}>{bill.deliveryCharge === 0 ? 'FREE' : `₹${bill.deliveryCharge}`}</Text>
                 </View>
                 {bill.deliveryDistanceKm !== null && bill.deliveryDistanceKm !== undefined && (
                   <View style={styles.summaryRow}>
@@ -403,24 +457,27 @@ export default function CheckoutScreen() {
                 {bill.nightCharge > 0 && (
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Night Charge</Text>
-                    <Text style={styles.summaryValue}>Rs. {bill.nightCharge}</Text>
+                    <Text style={styles.summaryValue}>₹{bill.nightCharge}</Text>
                   </View>
                 )}
                 {bill.discount > 0 && (
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Discount</Text>
-                    <Text style={styles.summaryValue}>- Rs. {bill.discount}</Text>
+                    <Text style={styles.summaryValue}>- ₹{bill.discount}</Text>
                   </View>
                 )}
                 <View style={styles.divider} />
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryTotalLabel}>Total to Pay</Text>
-                  <Text style={styles.summaryTotalValue}>Rs. {bill.grandTotal}</Text>
+                  <Text style={styles.summaryTotalValue}>₹{bill.grandTotal}</Text>
                 </View>
                 {isBelowMinimum && (
-                  <Text style={styles.minimumOrderText}>
-                    Add items worth Rs. {requiredMinimum - bill.subtotal} more to place this order.
-                  </Text>
+                  <View style={styles.warningBox}>
+                    <AppIcon name="box" size={16} color={colors.saffron || '#FF7A3A'} style={styles.warningIcon} />
+                    <Text style={styles.warningText}>
+                      Add items worth <Text style={styles.warningHighlight}>₹{(requiredMinimum - bill.subtotal).toFixed(0)}</Text> more for <Text style={styles.warningHighlight}>Free Delivery</Text> (₹{bill.deliveryCharge} delivery fee currently applied).
+                    </Text>
+                  </View>
                 )}
               </>
             ) : (
@@ -432,6 +489,7 @@ export default function CheckoutScreen() {
         {/* Global Error Banner */}
         {submitError && (
           <View style={styles.errorBanner}>
+            <AppIcon name="delete" size={16} color={colors.error} style={{ marginRight: spacing.sm }} />
             <Text style={styles.errorBannerText}>{submitError}</Text>
           </View>
         )}
@@ -440,16 +498,43 @@ export default function CheckoutScreen() {
 
       {/* Bottom Action Bar */}
       <View style={styles.bottomBar}>
-        <Animated.View style={{ transform: [{ scale: btnScale }] }}>
-          <Button 
-            label={placeOrderLabel}
-            variant="success"
+        {isPlaceOrderDisabled && !isSubmitting && !isCalculating ? (
+          <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
+            <Text style={styles.placeOrderBtnTextDisabled}>{placeOrderLabel}</Text>
+          </View>
+        ) : (
+          <PressableScale
             onPress={handlePlaceOrder}
             disabled={isPlaceOrderDisabled}
-            loading={isSubmitting}
-            style={styles.placeOrderBtn}
-          />
-        </Animated.View>
+            style={[
+              styles.customPlaceOrderBtn,
+              isPlaceOrderDisabled && styles.customPlaceOrderBtnDisabled
+            ]}
+            scaleTo={0.96}
+            accessibilityRole="button"
+            accessibilityLabel={bill ? `Place Order, ₹${bill.grandTotal}` : 'Place Order'}
+          >
+            <View style={styles.placeOrderBtnContent}>
+              {isSubmitting || isCalculating ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : null}
+              <Text style={styles.placeOrderBtnText}>
+                {isSubmitting
+                  ? 'Processing...'
+                  : isCalculating
+                  ? 'Calculating total...'
+                  : bill
+                  ? `Place Order • ₹${bill.grandTotal}`
+                  : 'Place Order'}
+              </Text>
+              {!isSubmitting && !isCalculating && bill && (
+                <Animated.View style={[styles.placeOrderBtnArrow, { transform: [{ translateX: arrowAnim }] }]}>
+                  <AppIcon name="chevronRight" size={16} color="#FFFFFF" />
+                </Animated.View>
+              )}
+            </View>
+          </PressableScale>
+        )}
         <TouchableOpacity 
           style={styles.backToCartBtn}
           onPress={() => navigation.goBack()}
@@ -469,12 +554,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgApp,
   },
   scrollContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
     paddingBottom: spacing.xxxl,
   },
   section: {
     backgroundColor: colors.bgSurface,
     padding: spacing.lg,
     marginBottom: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    ...shadows.sm,
   },
   sectionTitle: {
     ...typography.h3,
@@ -503,14 +594,20 @@ const styles = StyleSheet.create({
   gpsSuccess: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.success + '1A',
+    backgroundColor: colors.successLight,
     padding: spacing.md,
     borderRadius: radius.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.success + '40',
   },
-  gpsSuccessIcon: {
+  gpsSuccessIconFrame: {
     marginRight: spacing.sm,
+    width: 32,
+    height: 32,
+    borderRadius: radius.pill,
+    backgroundColor: colors.success + '1A',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   gpsSuccessText: {
     ...typography.labelLarge,
@@ -532,10 +629,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  gpsErrorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.errorLight,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.error + '40',
+    marginTop: spacing.sm,
+  },
   gpsErrorText: {
     ...typography.caption,
     color: colors.error,
-    marginTop: spacing.sm,
+    flex: 1,
   },
   paymentOptions: {
     flexDirection: 'row',
@@ -547,13 +654,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.md,
     borderRadius: radius.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.bgApp,
   },
   paymentBoxActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + '0D',
+    borderColor: colors.success,
+    backgroundColor: colors.successLight,
   },
   paymentIcon: {
     marginBottom: spacing.xs,
@@ -563,8 +670,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   paymentTextActive: {
-    color: colors.primary,
-    fontWeight: '600',
+    color: colors.success,
+    fontWeight: '700',
   },
   paymentPendingNote: {
     ...typography.caption,
@@ -628,17 +735,46 @@ const styles = StyleSheet.create({
     ...typography.h3,
     color: colors.textPrimary,
   },
-  errorBanner: {
-    margin: spacing.lg,
-    padding: spacing.md,
-    backgroundColor: colors.error + '1A',
+  warningBox: {
+    marginTop: spacing.md,
+    backgroundColor: colors.saffronLight || '#FFF2EB',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.error,
+    borderWidth: 1,
+    borderColor: colors.saffron || '#FF7A3A',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  warningIcon: {
+    marginRight: 2,
+  },
+  warningText: {
+    ...typography.labelSmall,
+    color: colors.saffronDark || '#E05A1A',
+    flex: 1,
+    lineHeight: 16,
+  },
+  warningHighlight: {
+    fontWeight: '800',
+    color: colors.saffronDark || '#E05A1A',
+  },
+  errorBanner: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.errorLight,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.error + '40',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   errorBannerText: {
     ...typography.body,
     color: colors.error,
+    flex: 1,
   },
   bottomBar: {
     backgroundColor: colors.bgSurface,
@@ -649,12 +785,43 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     ...shadows.xl,
   },
-  placeOrderBtn: {
-    marginBottom: spacing.md,
+  customPlaceOrderBtn: {
+    height: 52,
+    backgroundColor: colors.success || '#1FB574',
+    borderRadius: radius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.sm,
+  },
+  customPlaceOrderBtnDisabled: {
+    backgroundColor: colors.bgDisabled || '#DFE2E6',
+  },
+  placeOrderBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  placeOrderBtnText: {
+    ...typography.buttonLarge,
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  placeOrderBtnTextDisabled: {
+    ...typography.buttonLarge,
+    color: colors.textDisabled,
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  placeOrderBtnArrow: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backToCartBtn: {
     alignItems: 'center',
     paddingVertical: spacing.xs,
+    marginTop: spacing.md,
   },
   backToCartText: {
     ...typography.label,

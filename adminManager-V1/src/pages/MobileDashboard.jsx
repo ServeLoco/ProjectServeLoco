@@ -1,6 +1,6 @@
 // MobileDashboard.jsx
 import React, { useState, useEffect } from 'react';
-import { MobileDashboardApi, ProductsApi, CategoriesApi, OffersApi } from '../api';
+import { MobileDashboardApi, ProductsApi, CategoriesApi, OffersApi, CombosApi } from '../api';
 import './MobileDashboard.css';
 
 import { readList } from '../utils/apiResponse';
@@ -112,8 +112,8 @@ export default function MobileDashboard() {
         setCandidates(readList(res, 'products'));
       } else if (sectionType === 'combo_block') {
         // Load only combos
-        const res = await ProductsApi.list({ limit: 100, is_combo: '1', available: '1' });
-        setCandidates(readList(res, 'products'));
+        const res = await CombosApi.list({ limit: 100, available: '1' });
+        setCandidates(readList(res, ['products', 'combos']));
       }
     } catch (err) {
       console.error('Failed to load candidate items', err);

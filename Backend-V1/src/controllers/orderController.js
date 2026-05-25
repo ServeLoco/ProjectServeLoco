@@ -1,5 +1,6 @@
 const { pool } = require('../db/mysql');
 const { calculateDeliveryPricing } = require('../utils/deliveryPricing');
+const { calculateThresholdDeliveryCharge } = require('../utils/thresholdDelivery');
 
 const generateOrderNumber = async (connection) => {
   const date = new Date();
@@ -72,11 +73,6 @@ const createOrder = async (req, res) => {
       });
     }
 
-    const minimumOrder = Number(settings.minimum_order_amount) || 0;
-    if (subtotal < minimumOrder) {
-      throw new Error(`Minimum order amount is ₹${settings.minimum_order_amount}`);
-    }
-
     // Calculate delivery pricing based on distance
     const pricing = calculateDeliveryPricing({
       customerLat: latitude,
@@ -88,13 +84,8 @@ const createOrder = async (req, res) => {
       throw new Error(pricing.message);
     }
 
-    let deliveryCharge = pricing.charge;
-    const freeDeliveryAbove = settings.free_delivery_above === null || settings.free_delivery_above === undefined
-      ? null
-      : Number(settings.free_delivery_above);
-    if (freeDeliveryAbove !== null && subtotal >= freeDeliveryAbove) {
-      deliveryCharge = 0;
-    }
+    const thresholdDelivery = calculateThresholdDeliveryCharge({ subtotal, settings });
+    const deliveryCharge = thresholdDelivery.charge;
 
     let nightCharge = 0;
     if (settings.night_charge && parseFloat(settings.night_charge) > 0 &&

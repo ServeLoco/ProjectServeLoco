@@ -220,7 +220,7 @@ export default function OrdersScreen() {
       </Text>
       <Button 
         label="Start Shopping" 
-        onPress={() => navigation.navigate('Home')} 
+        onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })} 
       />
     </View>
   );

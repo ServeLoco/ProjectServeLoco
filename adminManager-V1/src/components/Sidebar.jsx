@@ -23,7 +23,10 @@ export default function Sidebar() {
     <aside className="admin-sidebar">
       <div className="sidebar-header">
         <div className="sidebar-logo">SL</div>
-        <span>ServeLoco Admin</span>
+        <div className="sidebar-brand-text">
+          <span className="sidebar-brand-name">ServeLoco Admin</span>
+          <span className="sidebar-brand-subtitle">Operations Control</span>
+        </div>
       </div>
       <nav className="sidebar-nav">
         <ul className="sidebar-list">

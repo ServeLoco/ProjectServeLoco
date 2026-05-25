@@ -1,4 +1,5 @@
 const { pool } = require('../db/mysql');
+const { calculateThresholdDeliveryCharge } = require('../utils/thresholdDelivery');
 
 const calculateCart = async (req, res) => {
   const { items } = req.body;
@@ -66,19 +67,16 @@ const calculateCart = async (req, res) => {
   let requiresLocation = false;
   let freeDeliveryOfferActive = false;
   let deliveryMessage = '';
+  const minimumOrder = Number(settings.minimum_order_amount) || 0;
 
   if (customerLat === undefined || customerLat === null || customerLat === '' ||
       customerLng === undefined || customerLng === null || customerLng === '') {
     requiresLocation = true;
     deliveryMessage = 'Customer GPS location is required.';
-    // Fallback: apply flat rate delivery charge
-    deliveryCharge = Number(settings.delivery_charge) || 0;
-    const freeDeliveryAbove = settings.free_delivery_above === null || settings.free_delivery_above === undefined
-      ? null
-      : Number(settings.free_delivery_above);
-    if (freeDeliveryAbove !== null && subtotal >= freeDeliveryAbove) {
-      deliveryCharge = 0;
-    }
+    const thresholdDelivery = calculateThresholdDeliveryCharge({ subtotal, settings });
+    deliveryCharge = thresholdDelivery.charge;
+    freeDeliveryOfferActive = thresholdDelivery.freeDeliveryOfferActive;
+    deliveryMessage = thresholdDelivery.message;
   } else {
     // If coordinates are present
     const pricing = calculateDeliveryPricing({ customerLat, customerLng, settings });
@@ -89,16 +87,10 @@ const calculateCart = async (req, res) => {
     requiresLocation = pricing.requiresLocation || false;
 
     if (pricing.allowed) {
-      deliveryCharge = pricing.charge;
-      // Also apply free_delivery_above threshold fallback if configured
-      const freeDeliveryAbove = settings.free_delivery_above === null || settings.free_delivery_above === undefined
-        ? null
-        : Number(settings.free_delivery_above);
-      if (freeDeliveryAbove !== null && subtotal >= freeDeliveryAbove) {
-        deliveryCharge = 0;
-        freeDeliveryOfferActive = true;
-        deliveryMessage = 'Free delivery threshold reached!';
-      }
+      const thresholdDelivery = calculateThresholdDeliveryCharge({ subtotal, settings });
+      deliveryCharge = thresholdDelivery.charge;
+      freeDeliveryOfferActive = thresholdDelivery.freeDeliveryOfferActive;
+      deliveryMessage = thresholdDelivery.message;
     } else {
       deliveryCharge = 0;
     }
@@ -128,7 +120,6 @@ const calculateCart = async (req, res) => {
   let discount = 0; // if offers apply, could be calculated here
 
   const grandTotal = subtotal + deliveryCharge + nightCharge - discount;
-  const minimumOrder = Number(settings.minimum_order_amount) || 0;
 
   const calculation = {
     subtotal,
@@ -139,11 +130,9 @@ const calculateCart = async (req, res) => {
     total: grandTotal,
     minimumOrder,
     items: processedItems,
-    isValid: subtotal >= minimumOrder && deliveryWithinRange,
-    valid: subtotal >= minimumOrder && deliveryWithinRange,
-    message: subtotal < minimumOrder 
-      ? `Minimum order is ₹${minimumOrder}` 
-      : (!deliveryWithinRange ? deliveryMessage : ''),
+    isValid: deliveryWithinRange,
+    valid: deliveryWithinRange,
+    message: !deliveryWithinRange ? deliveryMessage : '',
     
     // Location delivery details
     deliveryDistanceKm: deliveryDistanceKm !== null ? Number(deliveryDistanceKm.toFixed(4)) : null,

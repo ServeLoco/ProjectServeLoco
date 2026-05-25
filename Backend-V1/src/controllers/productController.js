@@ -31,10 +31,10 @@ const getComboItemsByComboIds = async (comboIds = []) => {
 
   const [rows] = await pool.query(
     `SELECT
-      pci.combo_product_id,
-      pci.product_id,
-      pci.quantity,
-      pci.display_order,
+      ci.combo_id as combo_product_id,
+      ci.product_id,
+      ci.quantity,
+      ci.display_order,
       p.id,
       p.name,
       p.price,
@@ -49,11 +49,11 @@ const getComboItemsByComboIds = async (comboIds = []) => {
       p.category_id,
       c.name as category_name,
       c.type as category_type
-    FROM product_combo_items pci
-    JOIN products p ON p.id = pci.product_id
+    FROM combo_items ci
+    JOIN products p ON p.id = ci.product_id
     LEFT JOIN categories c ON p.category_id = c.id
-    WHERE pci.combo_product_id IN (?) AND p.deleted = 0
-    ORDER BY pci.combo_product_id ASC, pci.display_order ASC, pci.id ASC`,
+    WHERE ci.combo_id IN (?) AND p.deleted = 0
+    ORDER BY ci.combo_id ASC, ci.display_order ASC, ci.id ASC`,
     [ids]
   );
 
@@ -84,36 +84,19 @@ const attachComboItems = async (products = []) => {
   });
 };
 
-const saveComboItems = async (comboProductId, comboItems, connection = pool) => {
-  if (!Array.isArray(comboItems)) return;
-
-  await connection.query('DELETE FROM product_combo_items WHERE combo_product_id = ?', [comboProductId]);
-
-  const rows = comboItems
-    .map((item, index) => ({
-      product_id: Number(item.product_id || item.productId || item.id),
-      quantity: Number(item.quantity || item.qty || 1),
-      display_order: Number(item.display_order || item.displayOrder || index),
-    }))
-    .filter(item => item.product_id && item.product_id !== Number(comboProductId) && item.quantity > 0);
-
-  if (rows.length === 0) return;
-
-  await connection.query(
-    `INSERT INTO product_combo_items (combo_product_id, product_id, quantity, display_order)
-     VALUES ?`,
-    [rows.map(item => [comboProductId, item.product_id, item.quantity, item.display_order])]
-  );
-};
-
 const getProducts = async (req, res) => {
   const { categoryId, category_id, search, type, isCombo, is_combo, featured, limit } = req.query;
   const finalCategoryId = categoryId || category_id;
-  const finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
+  let finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
+
+  // If filtering by category/categoryType/categoryId and isCombo isn't explicitly set, default to false (exclude combos)
+  if (finalIsCombo === undefined && (finalCategoryId || type)) {
+    finalIsCombo = 'false';
+  }
 
   const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order
     FROM products p LEFT JOIN categories c ON p.category_id = c.id
-    WHERE p.available = 1 AND p.deleted = 0`;
+    WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0`;
   
   const comboQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, 1 as is_combo, p.featured, p.original_price, p.discount_label, NULL as category_id, NULL as category_name, 'all' as category_type, 999 as cat_display_order, p.display_order as item_display_order
     FROM combos p
@@ -136,8 +119,9 @@ const getProducts = async (req, res) => {
   } else if (finalIsCombo === false || finalIsCombo === '0' || finalIsCombo === 'false') {
     finalQuery = buildSubQuery(productQuery, false);
   } else {
-    // If not specified, return both (e.g. for search)
-    finalQuery = `(${buildSubQuery(productQuery, false)}) UNION (${buildSubQuery(comboQuery, true)})`;
+    // Public product lists default to real products only. Combos are shown through
+    // dashboard combo sections or when explicitly requested with isCombo=true.
+    finalQuery = buildSubQuery(productQuery, false);
   }
 
   finalQuery += ' ORDER BY cat_display_order ASC, item_display_order ASC, id ASC';
@@ -156,12 +140,36 @@ const getProducts = async (req, res) => {
 
 const getProductById = async (req, res) => {
   const { id } = req.params;
+  const requestedCombo = req.query.type === 'combo' || req.query.isCombo === 'true' || req.query.is_combo === '1';
+
+  const loadCombo = async () => {
+    const [comboRows] = await pool.query(
+      "SELECT p.*, 1 as is_combo, NULL as category_name, 'all' as category_type FROM combos p WHERE p.id = ? AND p.deleted = 0",
+      [id]
+    );
+    if (comboRows.length === 0) return null;
+    const combo = comboRows[0];
+    await resolveImageUrls([combo]);
+    await attachComboItems([combo]);
+    return combo;
+  };
+
+  if (requestedCombo) {
+    const combo = await loadCombo();
+    if (!combo) {
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Combo not found' });
+    }
+    return res.status(200).json({ data: combo });
+  }
+
   const [rows] = await pool.query(
-    'SELECT p.*, c.name as category_name, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?',
+    'SELECT p.*, c.name as category_name, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ? AND p.deleted = 0',
     [id]
   );
 
   if (rows.length === 0) {
+    const combo = await loadCombo();
+    if (combo) return res.status(200).json({ data: combo });
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
@@ -174,7 +182,7 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
   // Normal products require category. Combos are bundles and do not require category.
-  const { name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label, combo_items } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label } = req.validatedData;
   
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
   if (finalDisplayOrder > 0) {
@@ -189,23 +197,20 @@ const createProduct = async (req, res) => {
     [
       name, price, category_id, unit, description, image_id, 
       available !== undefined ? available : true,
-      is_combo !== undefined ? is_combo : false,
+      false,
       featured !== undefined ? featured : false,
       finalDisplayOrder,
       original_price || null,
       discount_label || null
     ]
   );
-  if (is_combo) {
-    await saveComboItems(result.insertId, combo_items);
-  }
   res.status(201).json({ message: 'Product created', id: result.insertId });
 };
 
 const updateProduct = async (req, res) => {
   // Normal products require category. Combos are bundles and do not require category.
   const { id } = req.params;
-  const { name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label, combo_items } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label } = req.validatedData;
 
   // Check if image_id changed, delete old image from MongoDB and disk
   const [existing] = await pool.query('SELECT image_id FROM products WHERE id = ?', [id]);
@@ -238,7 +243,7 @@ const updateProduct = async (req, res) => {
     'UPDATE products SET name = ?, price = ?, category_id = ?, unit = ?, description = ?, image_id = ?, available = ?, is_combo = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ? WHERE id = ?',
     [
       name, price, category_id, unit, description, image_id, available,
-      is_combo !== undefined ? is_combo : false,
+      false,
       featured !== undefined ? featured : false,
       finalDisplayOrder,
       original_price || null,
@@ -246,11 +251,7 @@ const updateProduct = async (req, res) => {
       id
     ]
   );
-  if (is_combo) {
-    await saveComboItems(id, combo_items);
-  } else if (combo_items !== undefined) {
-    await pool.query('DELETE FROM product_combo_items WHERE combo_product_id = ?', [id]);
-  }
+  await pool.query('DELETE FROM product_combo_items WHERE combo_product_id = ?', [id]);
   res.status(200).json({ message: 'Product updated' });
 };
 

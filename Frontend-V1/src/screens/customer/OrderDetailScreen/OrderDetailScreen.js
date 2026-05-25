@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   Animated,
-  TouchableOpacity,
   Modal,
   Linking,
   ActivityIndicator,
@@ -16,6 +15,7 @@ import {
   AppHeader,
   AppIcon,
   Button,
+  PressableScale,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useSettingsStore } from '../../../stores';
@@ -123,7 +123,7 @@ export default function OrderDetailScreen() {
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
-      <AppHeader title={order.id} onBack={() => navigation.goBack()} />
+      <AppHeader title="Track Order" onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
@@ -141,8 +141,8 @@ export default function OrderDetailScreen() {
                 const stepIndex = STATUS_STEPS.findIndex(s => s.id === order.status);
                 const isCompleted = index <= stepIndex;
                 const isActive = index === stepIndex;
-
-                return (
+ 
+                 return (
                   <TimelineStep 
                     key={step.id} 
                     label={step.label} 
@@ -169,7 +169,7 @@ export default function OrderDetailScreen() {
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemUnit}>{item.unit}</Text>
               </View>
-              <Text style={styles.itemPrice}>Rs. {item.price * item.quantity}</Text>
+              <Text style={styles.itemPrice}>₹{item.price * item.quantity}</Text>
             </View>
           ))}
         </View>
@@ -181,9 +181,16 @@ export default function OrderDetailScreen() {
           <View style={styles.infoGroup}>
             <Text style={styles.infoLabel}>Address</Text>
             <Text style={styles.infoValue}>{order.address}</Text>
-            <TouchableOpacity disabled={!order.mapUrl} onPress={() => order.mapUrl && Linking.openURL(order.mapUrl)}>
-              <Text style={styles.mapLink}>View on Map</Text>
-            </TouchableOpacity>
+            {order.mapUrl && (
+              <PressableScale
+                onPress={() => Linking.openURL(order.mapUrl)}
+                style={styles.mapBtn}
+                scaleTo={0.96}
+              >
+                <AppIcon name="navigation" size={14} color={colors.success} />
+                <Text style={styles.mapBtnText}>View on Map</Text>
+              </PressableScale>
+            )}
           </View>
           
           <View style={styles.infoGroup}>
@@ -205,51 +212,62 @@ export default function OrderDetailScreen() {
           
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Subtotal</Text>
-            <Text style={styles.billValue}>Rs. {order.bill.subtotal}</Text>
+            <Text style={styles.billValue}>₹{order.bill.subtotal}</Text>
           </View>
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Delivery Charge</Text>
-            <Text style={styles.billValue}>Rs. {order.bill.delivery}</Text>
+            <Text style={styles.billValue}>₹{order.bill.delivery}</Text>
           </View>
           {order.bill.discount > 0 && (
             <View style={styles.billRow}>
               <Text style={[styles.billLabel, { color: colors.success }]}>Discount</Text>
-              <Text style={[styles.billValue, { color: colors.success }]}>- Rs. {order.bill.discount}</Text>
+              <Text style={[styles.billValue, { color: colors.success }]}>- ₹{order.bill.discount}</Text>
             </View>
           )}
           <View style={styles.divider} />
           <View style={styles.billRow}>
             <Text style={styles.grandTotalLabel}>Grand Total</Text>
-            <Text style={styles.grandTotalValue}>Rs. {order.bill.grandTotal}</Text>
+            <Text style={styles.grandTotalValue}>₹{order.bill.grandTotal}</Text>
           </View>
         </View>
 
       </ScrollView>
 
       {/* Action Buttons */}
-      <View style={styles.bottomBar}>
-        {order.canCancel && (
-          <Button 
-            label="Cancel Order" 
-            variant="outline" 
-            onPress={openModal} 
-            style={styles.actionBtn} 
-          />
-        )}
-        {supportPhone && (
-          <Button 
-            label="Contact Store" 
-            variant="outline" 
-            onPress={handleContact} 
-            style={styles.actionBtn} 
-          />
-        )}
-        <Button 
-          label="Continue Shopping" 
-          onPress={() => navigation.navigate('Home')} 
-          style={styles.primaryActionBtn} 
-        />
-      </View>
+      {(order.canCancel || supportPhone) && (
+        <View style={styles.bottomBar}>
+          <View style={styles.actionButtonsRow}>
+            {order.canCancel && (
+              <View style={styles.btnWrapper}>
+                <PressableScale 
+                  onPress={openModal} 
+                  style={[styles.bottomBtn, styles.cancelBtn]}
+                  scaleTo={0.96}
+                >
+                  <View style={styles.btnContent}>
+                    <AppIcon name="close" size={16} color={colors.error} />
+                    <Text style={styles.cancelBtnText}>Cancel Order</Text>
+                  </View>
+                </PressableScale>
+              </View>
+            )}
+            {supportPhone && (
+              <View style={styles.btnWrapper}>
+                <PressableScale 
+                  onPress={handleContact} 
+                  style={[styles.bottomBtn, styles.outlineBtn]}
+                  scaleTo={0.96}
+                >
+                  <View style={styles.btnContent}>
+                    <AppIcon name="phone" size={16} color={colors.success} />
+                    <Text style={styles.outlineBtnText}>Contact Store</Text>
+                  </View>
+                </PressableScale>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
 
       {/* Cancel Modal */}
       <Modal visible={showCancelModal} transparent animationType="none" onRequestClose={closeModal}>
@@ -286,6 +304,7 @@ export default function OrderDetailScreen() {
 
 function TimelineStep({ label, isCompleted, isActive, isLast, index }) {
   const anim = useRef(new Animated.Value(0)).current;
+  const activePulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.timing(anim, {
@@ -296,17 +315,55 @@ function TimelineStep({ label, isCompleted, isActive, isLast, index }) {
     }).start();
   }, [anim, index]);
 
-  const color = isCompleted ? colors.primary : colors.border;
+  useEffect(() => {
+    let pulseLoop;
+    if (isActive) {
+      activePulse.setValue(1);
+      pulseLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(activePulse, {
+            toValue: 1.6,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(activePulse, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseLoop.start();
+    }
+    return () => {
+      if (pulseLoop) {
+        pulseLoop.stop();
+      }
+    };
+  }, [isActive, activePulse]);
+
+  const color = isCompleted ? colors.success : colors.border;
   const dotScale = isCompleted ? 1.2 : 1;
 
   return (
     <Animated.View style={[styles.stepRow, { opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
       <View style={styles.stepIndicator}>
         <View style={[styles.stepDot, { backgroundColor: color, transform: [{ scale: dotScale }] }]} />
-        {!isLast && <View style={[styles.stepLine, { backgroundColor: isCompleted && !isActive ? colors.primary : colors.border }]} />}
+        {isActive && (
+          <Animated.View 
+            style={[
+              styles.activeAura, 
+              { 
+                transform: [{ scale: activePulse }], 
+                opacity: activePulse.interpolate({ inputRange: [1, 1.6], outputRange: [0.6, 0] }) 
+              }
+            ]} 
+          />
+        )}
+        {!isLast && <View style={[styles.stepLine, { backgroundColor: isCompleted && !isActive ? colors.success : colors.border }]} />}
       </View>
       <View style={styles.stepContent}>
-        <Text style={[styles.stepLabel, { color: isCompleted ? colors.textPrimary : colors.textTertiary, fontWeight: isActive ? '700' : '400' }]}>
+        <Text style={[styles.stepLabel, { color: isCompleted ? colors.textPrimary : colors.textTertiary, fontWeight: isActive ? '700' : '500' }]}>
           {label}
         </Text>
       </View>
@@ -325,12 +382,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scrollContent: {
-    paddingBottom: spacing.xxl,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxxl,
   },
   section: {
     backgroundColor: colors.bgSurface,
     padding: spacing.lg,
     marginBottom: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    ...shadows.sm,
   },
   sectionTitle: {
     ...typography.h3,
@@ -352,7 +415,15 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    zIndex: 2,
+    zIndex: 3,
+  },
+  activeAura: {
+    position: 'absolute',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.success + '40',
+    zIndex: 1,
   },
   stepLine: {
     width: 2,
@@ -393,20 +464,20 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   itemQtyBox: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.sm,
-    backgroundColor: colors.bgApp,
+    width: 34,
+    height: 34,
+    borderRadius: radius.md,
+    backgroundColor: colors.successLight,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.success + '40',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
   },
   itemQty: {
     ...typography.label,
-    color: colors.primary,
-    fontWeight: '700',
+    color: colors.success,
+    fontWeight: '800',
   },
   itemDetails: {
     flex: 1,
@@ -439,11 +510,23 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     lineHeight: 22,
   },
-  mapLink: {
-    ...typography.label,
-    color: colors.primary,
-    fontWeight: '600',
-    marginTop: spacing.xs,
+  mapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: colors.successLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.success + '30',
+    marginTop: spacing.sm,
+    gap: spacing.xs,
+  },
+  mapBtnText: {
+    ...typography.labelSmall,
+    color: colors.success,
+    fontWeight: '700',
   },
   billRow: {
     flexDirection: 'row',
@@ -473,17 +556,52 @@ const styles = StyleSheet.create({
   },
   bottomBar: {
     backgroundColor: colors.bgSurface,
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: spacing.lg,
-    borderTopWidth: 1,
+    borderTopWidth: 1.5,
     borderTopColor: colors.border,
-    gap: spacing.sm,
   },
-  actionBtn: {
-    marginBottom: spacing.xs,
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
   },
-  primaryActionBtn: {
-    marginTop: spacing.xs,
+  btnWrapper: {
+    flex: 1,
+  },
+  bottomBtn: {
+    width: '100%',
+    height: 52,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+  },
+  btnContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  cancelBtn: {
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FFF0F0',
+  },
+  cancelBtnText: {
+    ...typography.button,
+    color: colors.error,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  outlineBtn: {
+    borderColor: colors.success + '40',
+    backgroundColor: colors.successLight,
+  },
+  outlineBtnText: {
+    ...typography.button,
+    color: colors.success,
+    fontWeight: '700',
+    fontSize: 13,
   },
   modalOverlay: {
     flex: 1,
