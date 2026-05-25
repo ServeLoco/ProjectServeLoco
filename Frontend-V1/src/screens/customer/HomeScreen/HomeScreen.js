@@ -24,7 +24,7 @@ import {
 import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { useCartStore, useSettingsStore } from '../../../stores';
 import { useAuthGate } from '../../../hooks';
-import { dashboardApi, settingsApi } from '../../../api';
+import { dashboardApi, settingsApi, notificationsApi } from '../../../api';
 import { normalizeCategory, normalizeProduct, normalizeSettings } from '../../../utils';
 import { appLogo } from '../../../assets';
 
@@ -49,6 +49,7 @@ export default function HomeScreen() {
   const [storeType, setStoreType] = useState('Packed Items');
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardSections, setDashboardSections] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const currentApiStoreType = storeType === 'Fast Food' ? 'fast_food' : 'packed';
   const cartItemCount = useMemo(
     () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
@@ -77,7 +78,8 @@ export default function HomeScreen() {
       Promise.allSettled([
         dashboardApi.getDashboard({ storeType: currentApiStoreType }),
         settingsApi.getSettings(),
-      ]).then(([dashboardResult, settingsResult]) => {
+        notificationsApi.getUnreadCount().catch(() => 0),
+      ]).then(([dashboardResult, settingsResult, notificationsResult]) => {
         if (!isMounted) return;
 
         if (dashboardResult.status === 'fulfilled') {
@@ -88,6 +90,10 @@ export default function HomeScreen() {
         if (settingsResult.status === 'fulfilled') {
           const nextSettings = normalizeSettings(settingsResult.value);
           setSettings(nextSettings);
+        }
+
+        if (notificationsResult.status === 'fulfilled') {
+          setUnreadCount(notificationsResult.value || 0);
         }
 
         setIsLoading(false);
@@ -246,19 +252,27 @@ export default function HomeScreen() {
           <Animated.View style={{ transform: [{ rotate: spin }] }}>
             <AppIcon name="notification" size={22} color={colors.textPrimary} />
           </Animated.View>
-          <Animated.View 
-            style={[
-              styles.notificationBadgeGlow,
-              {
-                transform: [{ scale: pulseAnim }],
-                opacity: pulseAnim.interpolate({
-                  inputRange: [1, 2],
-                  outputRange: [0.6, 0],
-                }),
-              }
-            ]} 
-          />
-          <View style={styles.notificationBadge} />
+          {unreadCount > 0 && (
+            <>
+              <Animated.View 
+                style={[
+                  styles.notificationBadgeGlow,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                    opacity: pulseAnim.interpolate({
+                      inputRange: [1, 2],
+                      outputRange: [0.6, 0],
+                    }),
+                  }
+                ]} 
+              />
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Text>
+              </View>
+            </>
+          )}
         </TouchableOpacity>
       </View>
       
@@ -529,22 +543,31 @@ const styles = StyleSheet.create({
   },
   notificationBadge: {
     position: 'absolute',
-    top: 9,
-    right: 10,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    top: -6,
+    right: -6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: radius.pill,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.badgeBg || '#FF7A3A',
     borderWidth: 1.5,
     borderColor: colors.bgSurface,
   },
+  notificationBadgeText: {
+    ...typography.caption,
+    color: colors.badgeText || '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
   notificationBadgeGlow: {
     position: 'absolute',
-    top: 9,
-    right: 10,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    top: -6,
+    right: -6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: colors.badgeBg || '#FF7A3A',
   },
   cartBadge: {
