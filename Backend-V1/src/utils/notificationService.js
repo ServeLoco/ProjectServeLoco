@@ -60,42 +60,42 @@ const createOrderNotification = async ({ userId, order, event, connection = pool
   switch (event) {
     case 'order_placed':
       title = 'Order placed';
-      body = \`Your order #\${orderNumber} has been placed successfully.\`;
+      body = `Your order #${orderNumber} has been placed successfully.`;
       type = 'order';
       break;
     case 'status_preparing':
       title = 'Order accepted';
-      body = \`Your order #\${orderNumber} is being prepared.\`;
+      body = `Your order #${orderNumber} is being prepared.`;
       type = 'info';
       break;
     case 'status_out_for_delivery':
       title = 'Out for delivery';
-      body = \`Your order #\${orderNumber} is on the way.\`;
+      body = `Your order #${orderNumber} is on the way.`;
       type = 'warning';
       break;
     case 'status_delivered':
       title = 'Order delivered';
-      body = \`Your order #\${orderNumber} has been delivered.\`;
+      body = `Your order #${orderNumber} has been delivered.`;
       type = 'success';
       break;
     case 'status_cancelled':
       title = 'Order cancelled';
-      body = \`Your order #\${orderNumber} was cancelled.\`;
+      body = `Your order #${orderNumber} was cancelled.`;
       type = 'warning';
       break;
     case 'payment_paid':
       title = 'Payment received';
-      body = \`Payment for order #\${orderNumber} has been marked paid.\`;
+      body = `Payment for order #${orderNumber} has been marked paid.`;
       type = 'success';
       break;
     case 'payment_failed':
       title = 'Payment failed';
-      body = \`Payment for order #\${orderNumber} failed. Please contact support.\`;
+      body = `Payment for order #${orderNumber} failed. Please contact support.`;
       type = 'warning';
       break;
     case 'payment_refunded':
       title = 'Payment refunded';
-      body = \`Payment for order #\${orderNumber} has been refunded.\`;
+      body = `Payment for order #${orderNumber} has been refunded.`;
       type = 'info';
       break;
     default:

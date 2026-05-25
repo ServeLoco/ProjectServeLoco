@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
-const { requireCustomer } = require('../middleware/auth');
+const { requireCustomer } = require('../middleware/authMiddleware');
 const {
   getNotifications,
   getUnreadCount,
