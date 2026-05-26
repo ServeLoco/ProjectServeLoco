@@ -169,6 +169,7 @@ describe('Dashboard Public and Admin API Tests', () => {
           slug: 'daily-essentials',
           section_type: 'product_block',
           store_type: 'packed',
+          store_type: 'packed',
           active: 1,
           max_visible_items: 6,
           show_see_all: 1
@@ -187,7 +188,8 @@ describe('Dashboard Public and Admin API Tests', () => {
         .send({
           title: 'Daily Essentials',
           slug: 'daily-essentials',
-          section_type: 'product_block'
+          section_type: 'product_block',
+          store_type: 'packed'
         });
 
       expect(res.statusCode).toEqual(400);
@@ -197,7 +199,7 @@ describe('Dashboard Public and Admin API Tests', () => {
     it('should update section properties with version verification', async () => {
       // Mock get section
       pool.query.mockResolvedValueOnce([[
-        { id: 1, title: 'Old Title', version: 5 }
+        { id: 1, title: 'Old Title', slug: 'old-title', store_type: 'packed', version: 5 }
       ]]);
       // Mock update section
       pool.query.mockResolvedValueOnce([{}]);
@@ -217,7 +219,7 @@ describe('Dashboard Public and Admin API Tests', () => {
     it('should reject updating section properties on version conflict', async () => {
       // Mock get section
       pool.query.mockResolvedValueOnce([[
-        { id: 1, title: 'Old Title', version: 5 }
+        { id: 1, title: 'Old Title', slug: 'old-title', store_type: 'packed', version: 5 }
       ]]);
 
       const res = await request(app)
@@ -248,11 +250,11 @@ describe('Dashboard Public and Admin API Tests', () => {
     it('should add item to section after validation', async () => {
       // Mock get section
       pool.query.mockResolvedValueOnce([[
-        { id: 1, section_type: 'product_block' }
+        { id: 1, section_type: 'product_block', store_type: 'packed' }
       ]]);
       // Mock product validation (exists, not combo)
       pool.query.mockResolvedValueOnce([[
-        { id: 50, is_combo: 0 }
+        { id: 50, is_combo: 0, type: 'packed' }
       ]]);
       // Mock duplicate check (returns none)
       pool.query.mockResolvedValueOnce([[]]);
@@ -277,11 +279,11 @@ describe('Dashboard Public and Admin API Tests', () => {
     it('should reject duplicate item in same section', async () => {
       // Mock get section
       pool.query.mockResolvedValueOnce([[
-        { id: 1, section_type: 'product_block' }
+        { id: 1, section_type: 'product_block', store_type: 'packed' }
       ]]);
       // Mock product validation
       pool.query.mockResolvedValueOnce([[
-        { id: 50, is_combo: 0 }
+        { id: 50, is_combo: 0, type: 'packed' }
       ]]);
       // Mock duplicate check (finds duplicate)
       pool.query.mockResolvedValueOnce([[{ id: 500 }]]);

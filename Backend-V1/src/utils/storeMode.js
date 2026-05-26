@@ -37,7 +37,7 @@ const normalizeStoreType = (value, options = {}) => {
       throw new Error('store_type "all" is not allowed in this context');
 
     default:
-      throw new Error(\`Invalid store_type: \${value}\`);
+      throw new Error(`Invalid store_type: ${value}`);
   }
 };
 

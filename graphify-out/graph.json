@@ -4,319 +4,355 @@
   "graph": {},
   "nodes": [
     {
+      "label": "migrate_modes.js",
+      "file_type": "code",
+      "source_file": "scripts/migrate_modes.js",
+      "source_location": "L1",
+      "id": "scripts_migrate_modes_js",
+      "community": 210,
+      "norm_label": "migrate_modes.js"
+    },
+    {
+      "label": "{ pool }",
+      "file_type": "code",
+      "source_file": "scripts/migrate_modes.js",
+      "source_location": "L1",
+      "id": "scripts_migrate_modes_pool",
+      "community": 210,
+      "norm_label": "{ pool }"
+    },
+    {
+      "label": "fs",
+      "file_type": "code",
+      "source_file": "scripts/migrate_modes.js",
+      "source_location": "L2",
+      "id": "scripts_migrate_modes_fs",
+      "community": 210,
+      "norm_label": "fs"
+    },
+    {
+      "label": "migrate()",
+      "file_type": "code",
+      "source_file": "scripts/migrate_modes.js",
+      "source_location": "L4",
+      "id": "scripts_migrate_modes_migrate",
+      "community": 210,
+      "norm_label": "migrate()"
+    },
+    {
       "label": "dashboardController.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L1",
-      "id": "backend_v1_src_controllers_dashboardcontroller_js",
       "community": 64,
-      "norm_label": "dashboardcontroller.js"
+      "norm_label": "dashboardcontroller.js",
+      "id": "backend_v1_src_controllers_dashboardcontroller_js"
     },
     {
       "label": "{ pool }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L1",
-      "id": "controllers_dashboardcontroller_pool",
       "community": 64,
-      "norm_label": "{ pool }"
+      "norm_label": "{ pool }",
+      "id": "controllers_dashboardcontroller_pool"
     },
     {
       "label": "{ getDb }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L2",
-      "id": "controllers_dashboardcontroller_getdb",
       "community": 64,
-      "norm_label": "{ getdb }"
+      "norm_label": "{ getdb }",
+      "id": "controllers_dashboardcontroller_getdb"
     },
     {
       "label": "{ ObjectId }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L3",
-      "id": "controllers_dashboardcontroller_objectid",
       "community": 64,
-      "norm_label": "{ objectid }"
+      "norm_label": "{ objectid }",
+      "id": "controllers_dashboardcontroller_objectid"
     },
     {
       "label": "{ normalizeStoreType }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L4",
-      "id": "controllers_dashboardcontroller_normalizestoretype",
       "community": 64,
-      "norm_label": "{ normalizestoretype }"
+      "norm_label": "{ normalizestoretype }",
+      "id": "controllers_dashboardcontroller_normalizestoretype"
     },
     {
       "label": "SECTION_TYPES",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L6",
-      "id": "controllers_dashboardcontroller_section_types",
       "community": 64,
-      "norm_label": "section_types"
+      "norm_label": "section_types",
+      "id": "controllers_dashboardcontroller_section_types"
     },
     {
       "label": "STORE_TYPES",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L7",
-      "id": "controllers_dashboardcontroller_store_types",
       "community": 64,
-      "norm_label": "store_types"
+      "norm_label": "store_types",
+      "id": "controllers_dashboardcontroller_store_types"
     },
     {
       "label": "SECTION_ITEM_TYPES",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L8",
-      "id": "controllers_dashboardcontroller_section_item_types",
       "community": 64,
-      "norm_label": "section_item_types"
+      "norm_label": "section_item_types",
+      "id": "controllers_dashboardcontroller_section_item_types"
     },
     {
       "label": "getExpectedStoreType()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L15",
-      "id": "controllers_dashboardcontroller_getexpectedstoretype",
       "community": 64,
-      "norm_label": "getexpectedstoretype()"
+      "norm_label": "getexpectedstoretype()",
+      "id": "controllers_dashboardcontroller_getexpectedstoretype"
     },
     {
       "label": "isInvalidDateValue()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L20",
-      "id": "controllers_dashboardcontroller_isinvaliddatevalue",
       "community": 64,
-      "norm_label": "isinvaliddatevalue()"
+      "norm_label": "isinvaliddatevalue()",
+      "id": "controllers_dashboardcontroller_isinvaliddatevalue"
     },
     {
       "label": "validateVisibilityWindow()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L22",
-      "id": "controllers_dashboardcontroller_validatevisibilitywindow",
       "community": 64,
-      "norm_label": "validatevisibilitywindow()"
+      "norm_label": "validatevisibilitywindow()",
+      "id": "controllers_dashboardcontroller_validatevisibilitywindow"
     },
     {
       "label": "asPositiveInteger()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L32",
-      "id": "controllers_dashboardcontroller_aspositiveinteger",
       "community": 64,
-      "norm_label": "aspositiveinteger()"
+      "norm_label": "aspositiveinteger()",
+      "id": "controllers_dashboardcontroller_aspositiveinteger"
     },
     {
       "label": "validateSectionPayload()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L38",
-      "id": "controllers_dashboardcontroller_validatesectionpayload",
       "community": 64,
-      "norm_label": "validatesectionpayload()"
+      "norm_label": "validatesectionpayload()",
+      "id": "controllers_dashboardcontroller_validatesectionpayload"
     },
     {
       "label": "getLinkedItemInfo()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L57",
-      "id": "controllers_dashboardcontroller_getlinkediteminfo",
       "community": 64,
-      "norm_label": "getlinkediteminfo()"
+      "norm_label": "getlinkediteminfo()",
+      "id": "controllers_dashboardcontroller_getlinkediteminfo"
     },
     {
       "label": "resolveImageUrls()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L106",
-      "id": "controllers_dashboardcontroller_resolveimageurls",
       "community": 64,
-      "norm_label": "resolveimageurls()"
+      "norm_label": "resolveimageurls()",
+      "id": "controllers_dashboardcontroller_resolveimageurls"
     },
     {
       "label": "getComboItemsByComboIds()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L127",
-      "id": "controllers_dashboardcontroller_getcomboitemsbycomboids",
       "community": 64,
-      "norm_label": "getcomboitemsbycomboids()"
+      "norm_label": "getcomboitemsbycomboids()",
+      "id": "controllers_dashboardcontroller_getcomboitemsbycomboids"
     },
     {
       "label": "attachComboItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L175",
-      "id": "controllers_dashboardcontroller_attachcomboitems",
       "community": 64,
-      "norm_label": "attachcomboitems()"
+      "norm_label": "attachcomboitems()",
+      "id": "controllers_dashboardcontroller_attachcomboitems"
     },
     {
       "label": "mapCategoryRows()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L187",
-      "id": "controllers_dashboardcontroller_mapcategoryrows",
       "community": 64,
-      "norm_label": "mapcategoryrows()"
+      "norm_label": "mapcategoryrows()",
+      "id": "controllers_dashboardcontroller_mapcategoryrows"
     },
     {
       "label": "mapProductRows()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L199",
-      "id": "controllers_dashboardcontroller_mapproductrows",
       "community": 64,
-      "norm_label": "mapproductrows()"
+      "norm_label": "mapproductrows()",
+      "id": "controllers_dashboardcontroller_mapproductrows"
     },
     {
       "label": "getDefaultCategoryItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L219",
-      "id": "controllers_dashboardcontroller_getdefaultcategoryitems",
       "community": 64,
-      "norm_label": "getdefaultcategoryitems()"
+      "norm_label": "getdefaultcategoryitems()",
+      "id": "controllers_dashboardcontroller_getdefaultcategoryitems"
     },
     {
       "label": "getDefaultComboItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L240",
-      "id": "controllers_dashboardcontroller_getdefaultcomboitems",
       "community": 64,
-      "norm_label": "getdefaultcomboitems()"
+      "norm_label": "getdefaultcomboitems()",
+      "id": "controllers_dashboardcontroller_getdefaultcomboitems"
     },
     {
       "label": "getDashboard()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L266",
-      "id": "controllers_dashboardcontroller_getdashboard",
       "community": 64,
-      "norm_label": "getdashboard()"
+      "norm_label": "getdashboard()",
+      "id": "controllers_dashboardcontroller_getdashboard"
     },
     {
       "label": "getSectionItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L438",
-      "id": "controllers_dashboardcontroller_getsectionitems",
       "community": 64,
-      "norm_label": "getsectionitems()"
+      "norm_label": "getsectionitems()",
+      "id": "controllers_dashboardcontroller_getsectionitems"
     },
     {
       "label": "getAdminSections()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L610",
-      "id": "controllers_dashboardcontroller_getadminsections",
       "community": 64,
-      "norm_label": "getadminsections()"
+      "norm_label": "getadminsections()",
+      "id": "controllers_dashboardcontroller_getadminsections"
     },
     {
       "label": "getAdminSectionById()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L630",
-      "id": "controllers_dashboardcontroller_getadminsectionbyid",
       "community": 64,
-      "norm_label": "getadminsectionbyid()"
+      "norm_label": "getadminsectionbyid()",
+      "id": "controllers_dashboardcontroller_getadminsectionbyid"
     },
     {
       "label": "createAdminSection()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L691",
-      "id": "controllers_dashboardcontroller_createadminsection",
       "community": 64,
-      "norm_label": "createadminsection()"
+      "norm_label": "createadminsection()",
+      "id": "controllers_dashboardcontroller_createadminsection"
     },
     {
       "label": "updateAdminSection()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L752",
-      "id": "controllers_dashboardcontroller_updateadminsection",
       "community": 64,
-      "norm_label": "updateadminsection()"
+      "norm_label": "updateadminsection()",
+      "id": "controllers_dashboardcontroller_updateadminsection"
     },
     {
       "label": "deleteAdminSection()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L839",
-      "id": "controllers_dashboardcontroller_deleteadminsection",
       "community": 64,
-      "norm_label": "deleteadminsection()"
+      "norm_label": "deleteadminsection()",
+      "id": "controllers_dashboardcontroller_deleteadminsection"
     },
     {
       "label": "addAdminSectionItem()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L863",
-      "id": "controllers_dashboardcontroller_addadminsectionitem",
       "community": 64,
-      "norm_label": "addadminsectionitem()"
+      "norm_label": "addadminsectionitem()",
+      "id": "controllers_dashboardcontroller_addadminsectionitem"
     },
     {
       "label": "updateAdminSectionItem()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L946",
-      "id": "controllers_dashboardcontroller_updateadminsectionitem",
       "community": 64,
-      "norm_label": "updateadminsectionitem()"
+      "norm_label": "updateadminsectionitem()",
+      "id": "controllers_dashboardcontroller_updateadminsectionitem"
     },
     {
       "label": "deleteAdminSectionItem()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L999",
-      "id": "controllers_dashboardcontroller_deleteadminsectionitem",
       "community": 64,
-      "norm_label": "deleteadminsectionitem()"
+      "norm_label": "deleteadminsectionitem()",
+      "id": "controllers_dashboardcontroller_deleteadminsectionitem"
     },
     {
       "label": "reorderAdminSections()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L1023",
-      "id": "controllers_dashboardcontroller_reorderadminsections",
       "community": 64,
-      "norm_label": "reorderadminsections()"
+      "norm_label": "reorderadminsections()",
+      "id": "controllers_dashboardcontroller_reorderadminsections"
     },
     {
       "label": "reorderAdminSectionItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L1053",
-      "id": "controllers_dashboardcontroller_reorderadminsectionitems",
       "community": 64,
-      "norm_label": "reorderadminsectionitems()"
+      "norm_label": "reorderadminsectionitems()",
+      "id": "controllers_dashboardcontroller_reorderadminsectionitems"
     },
     {
       "label": "MobileDashboard.jsx",
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
       "source_location": "L1",
-      "id": "adminmanager_v1_src_pages_mobiledashboard_jsx",
       "community": 62,
-      "norm_label": "mobiledashboard.jsx"
+      "norm_label": "mobiledashboard.jsx",
+      "id": "adminmanager_v1_src_pages_mobiledashboard_jsx"
     },
     {
       "label": "MobileDashboard()",
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/MobileDashboard.jsx",
       "source_location": "L8",
-      "id": "pages_mobiledashboard_mobiledashboard",
       "community": 62,
-      "norm_label": "mobiledashboard()"
+      "norm_label": "mobiledashboard()",
+      "id": "pages_mobiledashboard_mobiledashboard"
     },
     {
       "label": "Offers.jsx",
@@ -2770,7 +2806,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L14",
-      "community": 30,
+      "community": 17,
       "norm_label": "authapi",
       "id": "api_index_authapi"
     },
@@ -2788,7 +2824,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L23",
-      "community": 62,
+      "community": 13,
       "norm_label": "ordersapi",
       "id": "api_index_ordersapi"
     },
@@ -2860,7 +2896,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L91",
-      "community": 49,
+      "community": 87,
       "norm_label": "reportsapi",
       "id": "api_index_reportsapi"
     },
@@ -2950,7 +2986,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/components/AuthProvider.jsx",
       "source_location": "L7",
-      "community": 92,
+      "community": 49,
       "norm_label": "authprovider()",
       "id": "components_authprovider_authprovider"
     },
@@ -3103,7 +3139,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Reports.jsx",
       "source_location": "L1",
-      "community": 49,
+      "community": 87,
       "norm_label": "reports.jsx",
       "id": "adminmanager_v1_src_pages_reports_jsx"
     },
@@ -3112,7 +3148,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Reports.jsx",
       "source_location": "L5",
-      "community": 49,
+      "community": 87,
       "norm_label": "reports()",
       "id": "pages_reports_reports"
     },
@@ -4084,7 +4120,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/App.js",
       "source_location": "L9",
-      "community": 28,
+      "community": 208,
       "norm_label": "app()",
       "id": "frontend_v1_app_app"
     },
@@ -4462,7 +4498,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 149,
       "norm_label": "customernavigator.js",
       "id": "frontend_v1_src_navigation_customernavigator_js"
     },
@@ -4471,7 +4507,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L25",
-      "community": 17,
+      "community": 149,
       "norm_label": "tab",
       "id": "navigation_customernavigator_tab"
     },
@@ -4480,7 +4516,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L26",
-      "community": 17,
+      "community": 149,
       "norm_label": "stack",
       "id": "navigation_customernavigator_stack"
     },
@@ -4489,7 +4525,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L28",
-      "community": 17,
+      "community": 149,
       "norm_label": "animatedtabicon()",
       "id": "navigation_customernavigator_animatedtabicon"
     },
@@ -4498,7 +4534,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L72",
-      "community": 17,
+      "community": 149,
       "norm_label": "customerbottomtabs()",
       "id": "navigation_customernavigator_customerbottomtabs"
     },
@@ -4507,7 +4543,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L128",
-      "community": 17,
+      "community": 149,
       "norm_label": "styles",
       "id": "navigation_customernavigator_styles"
     },
@@ -4516,7 +4552,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/navigation/CustomerNavigator.js",
       "source_location": "L158",
-      "community": 17,
+      "community": 149,
       "norm_label": "customernavigator()",
       "id": "navigation_customernavigator_customernavigator"
     },
@@ -4588,7 +4624,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useCartStore.js",
       "source_location": "L1",
-      "community": 43,
+      "community": 17,
       "norm_label": "usecartstore.js",
       "id": "frontend_v1_src_stores_usecartstore_js"
     },
@@ -4705,7 +4741,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrderConfirmationScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_customer_orderconfirmationscreen_index_js"
     },
@@ -4777,7 +4813,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L1",
-      "community": 43,
+      "community": 102,
       "norm_label": "categoriesscreen.js",
       "id": "frontend_v1_src_screens_customer_categoriesscreen_categoriesscreen_js"
     },
@@ -4786,7 +4822,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L34",
-      "community": 43,
+      "community": 102,
       "norm_label": "default_chips",
       "id": "categoriesscreen_categoriesscreen_default_chips"
     },
@@ -4795,7 +4831,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L36",
-      "community": 43,
+      "community": 102,
       "norm_label": "categoriesscreen()",
       "id": "categoriesscreen_categoriesscreen_categoriesscreen"
     },
@@ -4804,7 +4840,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L292",
-      "community": 43,
+      "community": 102,
       "norm_label": "styles",
       "id": "categoriesscreen_categoriesscreen_styles"
     },
@@ -4822,7 +4858,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_customer_profilescreen_index_js"
     },
@@ -4831,7 +4867,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 17,
       "norm_label": "profilescreen.js",
       "id": "frontend_v1_src_screens_customer_profilescreen_profilescreen_js"
     },
@@ -4840,7 +4876,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L22",
-      "community": 30,
+      "community": 17,
       "norm_label": "profilescreen()",
       "id": "profilescreen_profilescreen_profilescreen"
     },
@@ -4849,7 +4885,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L168",
-      "community": 30,
+      "community": 17,
       "norm_label": "menuoption()",
       "id": "profilescreen_profilescreen_menuoption"
     },
@@ -4858,7 +4894,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L197",
-      "community": 30,
+      "community": 17,
       "norm_label": "styles",
       "id": "profilescreen_profilescreen_styles"
     },
@@ -4867,7 +4903,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_customer_orderdetailscreen_index_js"
     },
@@ -4984,7 +5020,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrdersScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 65,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_customer_ordersscreen_index_js"
     },
@@ -4993,7 +5029,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/NotificationsScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_customer_notificationsscreen_index_js"
     },
@@ -5056,7 +5092,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/HomeScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 43,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_customer_homescreen_index_js"
     },
@@ -5065,7 +5101,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_customer_editprofilescreen_index_js"
     },
@@ -5074,7 +5110,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 17,
       "norm_label": "editprofilescreen.js",
       "id": "frontend_v1_src_screens_customer_editprofilescreen_editprofilescreen_js"
     },
@@ -5083,7 +5119,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L21",
-      "community": 30,
+      "community": 17,
       "norm_label": "editprofilescreen()",
       "id": "editprofilescreen_editprofilescreen_editprofilescreen"
     },
@@ -5092,7 +5128,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L180",
-      "community": 30,
+      "community": 17,
       "norm_label": "styles",
       "id": "editprofilescreen_editprofilescreen_styles"
     },
@@ -5146,7 +5182,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/CartScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_customer_cartscreen_index_js"
     },
@@ -5209,7 +5245,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/AuthScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_customer_authscreen_index_js"
     },
@@ -5308,7 +5344,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/config.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 206,
       "norm_label": "config.js",
       "id": "frontend_v1_src_api_config_js"
     },
@@ -5317,7 +5353,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/config.js",
       "source_location": "L3",
-      "community": 28,
+      "community": 206,
       "norm_label": "normalizebaseurl()",
       "id": "api_config_normalizebaseurl"
     },
@@ -5326,7 +5362,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/config.js",
       "source_location": "L7",
-      "community": 28,
+      "community": 206,
       "norm_label": "getdevserverhost()",
       "id": "api_config_getdevserverhost"
     },
@@ -5335,7 +5371,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/config.js",
       "source_location": "L23",
-      "community": 28,
+      "community": 206,
       "norm_label": "resolvedefaultapibaseurl()",
       "id": "api_config_resolvedefaultapibaseurl"
     },
@@ -5344,7 +5380,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/config.js",
       "source_location": "L45",
-      "community": 28,
+      "community": 206,
       "norm_label": "default_api_base_url",
       "id": "api_config_default_api_base_url"
     },
@@ -5353,7 +5389,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/config.js",
       "source_location": "L48",
-      "community": 28,
+      "community": 206,
       "norm_label": "getapibaseurl()",
       "id": "api_config_getapibaseurl"
     },
@@ -5362,7 +5398,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/config.js",
       "source_location": "L52",
-      "community": 28,
+      "community": 206,
       "norm_label": "setapibaseurl()",
       "id": "api_config_setapibaseurl"
     },
@@ -5380,7 +5416,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/authApi.js",
       "source_location": "L3",
-      "community": 30,
+      "community": 17,
       "norm_label": "authapi",
       "id": "api_authapi_authapi"
     },
@@ -5389,7 +5425,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/httpClient.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 196,
       "norm_label": "httpclient.js",
       "id": "frontend_v1_src_api_httpclient_js"
     },
@@ -5398,7 +5434,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/httpClient.js",
       "source_location": "L7",
-      "community": 28,
+      "community": 196,
       "norm_label": "isformdata()",
       "id": "api_httpclient_isformdata"
     },
@@ -5407,7 +5443,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/httpClient.js",
       "source_location": "L11",
-      "community": 28,
+      "community": 196,
       "norm_label": "parseresponse()",
       "id": "api_httpclient_parseresponse"
     },
@@ -5416,7 +5452,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/httpClient.js",
       "source_location": "L24",
-      "community": 28,
+      "community": 196,
       "norm_label": "buildheaders()",
       "id": "api_httpclient_buildheaders"
     },
@@ -5425,7 +5461,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/httpClient.js",
       "source_location": "L43",
-      "community": 28,
+      "community": 196,
       "norm_label": "buildbody()",
       "id": "api_httpclient_buildbody"
     },
@@ -5434,7 +5470,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/httpClient.js",
       "source_location": "L48",
-      "community": 28,
+      "community": 196,
       "norm_label": "createtimeoutsignal()",
       "id": "api_httpclient_createtimeoutsignal"
     },
@@ -5443,7 +5479,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/httpClient.js",
       "source_location": "L70",
-      "community": 28,
+      "community": 196,
       "norm_label": "request()",
       "id": "api_httpclient_request"
     },
@@ -5461,7 +5497,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 207,
       "norm_label": "notificationsapi.js",
       "id": "frontend_v1_src_api_notificationsapi_js"
     },
@@ -5470,7 +5506,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L4",
-      "community": 28,
+      "community": 207,
       "norm_label": "list()",
       "id": "api_notificationsapi_list"
     },
@@ -5479,7 +5515,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L19",
-      "community": 28,
+      "community": 207,
       "norm_label": "getunreadcount()",
       "id": "api_notificationsapi_getunreadcount"
     },
@@ -5488,7 +5524,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L24",
-      "community": 28,
+      "community": 207,
       "norm_label": "markallread()",
       "id": "api_notificationsapi_markallread"
     },
@@ -5497,7 +5533,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L28",
-      "community": 28,
+      "community": 207,
       "norm_label": "markread()",
       "id": "api_notificationsapi_markread"
     },
@@ -5506,7 +5542,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/notificationsApi.js",
       "source_location": "L32",
-      "community": 28,
+      "community": 207,
       "norm_label": "deletenotification()",
       "id": "api_notificationsapi_deletenotification"
     },
@@ -5542,7 +5578,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/apiError.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 196,
       "norm_label": "apierror.js",
       "id": "frontend_v1_src_api_apierror_js"
     },
@@ -5551,7 +5587,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/apiError.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 196,
       "norm_label": "apierror",
       "id": "api_apierror_apierror"
     },
@@ -5560,7 +5596,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/apiError.js",
       "source_location": "L2",
-      "community": 28,
+      "community": 196,
       "norm_label": ".constructor()",
       "id": "api_apierror_apierror_constructor"
     },
@@ -5569,7 +5605,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/apiError.js",
       "source_location": "L15",
-      "community": 28,
+      "community": 196,
       "norm_label": "geterrormessage()",
       "id": "api_apierror_geterrormessage"
     },
@@ -5578,7 +5614,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/sessionTokens.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 196,
       "norm_label": "sessiontokens.js",
       "id": "frontend_v1_src_api_sessiontokens_js"
     },
@@ -5587,7 +5623,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/sessionTokens.js",
       "source_location": "L3",
-      "community": 28,
+      "community": 208,
       "norm_label": "setcustomertokenprovider()",
       "id": "api_sessiontokens_setcustomertokenprovider"
     },
@@ -5596,7 +5632,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/sessionTokens.js",
       "source_location": "L7",
-      "community": 28,
+      "community": 196,
       "norm_label": "resolvetoken()",
       "id": "api_sessiontokens_resolvetoken"
     },
@@ -5605,7 +5641,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/sessionTokens.js",
       "source_location": "L13",
-      "community": 28,
+      "community": 196,
       "norm_label": "getcustomertoken()",
       "id": "api_sessiontokens_getcustomertoken"
     },
@@ -5614,7 +5650,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/sessionTokens.js",
       "source_location": "L17",
-      "community": 28,
+      "community": 196,
       "norm_label": "cleartokenproviders()",
       "id": "api_sessiontokens_cleartokenproviders"
     },
@@ -5749,7 +5785,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_index_js"
     },
@@ -5794,7 +5830,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 102,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textbutton_index_js"
     },
@@ -5803,7 +5839,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 102,
       "norm_label": "textbutton.js",
       "id": "frontend_v1_src_components_textbutton_textbutton_js"
     },
@@ -5812,7 +5848,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
-      "community": 30,
+      "community": 102,
       "norm_label": "textbutton()",
       "id": "textbutton_textbutton_textbutton"
     },
@@ -5821,7 +5857,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
-      "community": 30,
+      "community": 102,
       "norm_label": "styles",
       "id": "textbutton_textbutton_styles"
     },
@@ -5875,7 +5911,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedFadeSlide/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedfadeslide_index_js"
     },
@@ -5929,7 +5965,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextInputField/TextInputField.js",
       "source_location": "L1",
-      "community": 196,
+      "community": 30,
       "norm_label": "textinputfield.js",
       "id": "frontend_v1_src_components_textinputfield_textinputfield_js"
     },
@@ -5938,7 +5974,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextInputField/TextInputField.js",
       "source_location": "L36",
-      "community": 196,
+      "community": 30,
       "norm_label": "textinputfield()",
       "id": "textinputfield_textinputfield_textinputfield"
     },
@@ -5947,7 +5983,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextInputField/TextInputField.js",
       "source_location": "L139",
-      "community": 196,
+      "community": 30,
       "norm_label": "styles",
       "id": "textinputfield_textinputfield_styles"
     },
@@ -5956,7 +5992,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextInputField/index.js",
       "source_location": "L1",
-      "community": 196,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textinputfield_index_js"
     },
@@ -6100,7 +6136,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/BillSummary/index.js",
       "source_location": "L1",
-      "community": 196,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_billsummary_index_js"
     },
@@ -6109,7 +6145,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/BillSummary/BillSummary.js",
       "source_location": "L1",
-      "community": 196,
+      "community": 30,
       "norm_label": "billsummary.js",
       "id": "frontend_v1_src_components_billsummary_billsummary_js"
     },
@@ -6118,7 +6154,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/BillSummary/BillSummary.js",
       "source_location": "L18",
-      "community": 196,
+      "community": 30,
       "norm_label": "billsummary()",
       "id": "billsummary_billsummary_billsummary"
     },
@@ -6127,7 +6163,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/BillSummary/BillSummary.js",
       "source_location": "L60",
-      "community": 196,
+      "community": 30,
       "norm_label": "billrow()",
       "id": "billsummary_billsummary_billrow"
     },
@@ -6136,7 +6172,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/BillSummary/BillSummary.js",
       "source_location": "L81",
-      "community": 196,
+      "community": 30,
       "norm_label": "styles",
       "id": "billsummary_billsummary_styles"
     },
@@ -6181,7 +6217,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/index.js",
       "source_location": "L1",
-      "community": 196,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_ordercard_index_js"
     },
@@ -6190,7 +6226,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L1",
-      "community": 196,
+      "community": 30,
       "norm_label": "ordercard.js",
       "id": "frontend_v1_src_components_ordercard_ordercard_js"
     },
@@ -6199,7 +6235,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
-      "community": 196,
+      "community": 30,
       "norm_label": "ordercard()",
       "id": "ordercard_ordercard_ordercard"
     },
@@ -6208,7 +6244,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L92",
-      "community": 196,
+      "community": 30,
       "norm_label": "styles",
       "id": "ordercard_ordercard_styles"
     },
@@ -6253,7 +6289,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedcartbadge_index_js"
     },
@@ -6262,7 +6298,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "animatedcartbadge.js",
       "id": "frontend_v1_src_components_animatedcartbadge_animatedcartbadge_js"
     },
@@ -6280,7 +6316,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L30",
-      "community": 30,
+      "community": 45,
       "norm_label": "styles",
       "id": "animatedcartbadge_animatedcartbadge_styles"
     },
@@ -6316,7 +6352,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 45,
       "norm_label": "stickyminicart.js",
       "id": "frontend_v1_src_components_stickyminicart_stickyminicart_js"
     },
@@ -6325,7 +6361,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L18",
-      "community": 60,
+      "community": 45,
       "norm_label": "stickyminicart()",
       "id": "stickyminicart_stickyminicart_stickyminicart"
     },
@@ -6334,7 +6370,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L117",
-      "community": 60,
+      "community": 45,
       "norm_label": "styles",
       "id": "stickyminicart_stickyminicart_styles"
     },
@@ -6343,7 +6379,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_stickyminicart_index_js"
     },
@@ -6352,7 +6388,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "iconbutton.js",
       "id": "frontend_v1_src_components_iconbutton_iconbutton_js"
     },
@@ -6361,7 +6397,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L22",
-      "community": 60,
+      "community": 30,
       "norm_label": "iconbutton()",
       "id": "iconbutton_iconbutton_iconbutton"
     },
@@ -6370,7 +6406,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L68",
-      "community": 60,
+      "community": 30,
       "norm_label": "styles",
       "id": "iconbutton_iconbutton_styles"
     },
@@ -6379,7 +6415,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_iconbutton_index_js"
     },
@@ -6424,7 +6460,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Button/Button.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 102,
       "norm_label": "button.js",
       "id": "frontend_v1_src_components_button_button_js"
     },
@@ -6433,7 +6469,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Button/Button.js",
       "source_location": "L29",
-      "community": 60,
+      "community": 102,
       "norm_label": "button()",
       "id": "button_button_button"
     },
@@ -6442,7 +6478,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Button/Button.js",
       "source_location": "L85",
-      "community": 60,
+      "community": 102,
       "norm_label": "styles",
       "id": "button_button_styles"
     },
@@ -6451,7 +6487,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/Button/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_button_index_js"
     },
@@ -6496,7 +6532,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 30,
       "norm_label": "staggeredlist.js",
       "id": "frontend_v1_src_components_staggeredlist_staggeredlist_js"
     },
@@ -6505,7 +6541,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/StaggeredList.js",
       "source_location": "L6",
-      "community": 45,
+      "community": 30,
       "norm_label": "staggeredlist()",
       "id": "staggeredlist_staggeredlist_staggeredlist"
     },
@@ -6514,7 +6550,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StaggeredList/index.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_staggeredlist_index_js"
     },
@@ -6559,7 +6595,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appicon_index_js"
     },
@@ -6568,7 +6604,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "appicon.js",
       "id": "frontend_v1_src_components_appicon_appicon_js"
     },
@@ -6577,7 +6613,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L38",
-      "community": 60,
+      "community": 30,
       "norm_label": "icons",
       "id": "appicon_appicon_icons"
     },
@@ -6586,7 +6622,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L75",
-      "community": 60,
+      "community": 30,
       "norm_label": "appicon()",
       "id": "appicon_appicon_appicon"
     },
@@ -6631,7 +6667,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "appheader.js",
       "id": "frontend_v1_src_components_appheader_appheader_js"
     },
@@ -6640,7 +6676,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L26",
-      "community": 60,
+      "community": 30,
       "norm_label": "appheader()",
       "id": "appheader_appheader_appheader"
     },
@@ -6649,7 +6685,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L126",
-      "community": 60,
+      "community": 30,
       "norm_label": "styles",
       "id": "appheader_appheader_styles"
     },
@@ -6658,7 +6694,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appheader_index_js"
     },
@@ -6667,7 +6703,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ErrorState/ErrorState.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "errorstate.js",
       "id": "frontend_v1_src_components_errorstate_errorstate_js"
     },
@@ -6676,7 +6712,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ErrorState/ErrorState.js",
       "source_location": "L17",
-      "community": 60,
+      "community": 30,
       "norm_label": "errorstate()",
       "id": "errorstate_errorstate_errorstate"
     },
@@ -6685,7 +6721,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ErrorState/ErrorState.js",
       "source_location": "L39",
-      "community": 60,
+      "community": 30,
       "norm_label": "styles",
       "id": "errorstate_errorstate_styles"
     },
@@ -6694,7 +6730,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ErrorState/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_errorstate_index_js"
     },
@@ -6703,7 +6739,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "animatedsegmentedcontrol.js",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_animatedsegmentedcontrol_js"
     },
@@ -6721,7 +6757,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L66",
-      "community": 30,
+      "community": 45,
       "norm_label": "styles",
       "id": "animatedsegmentedcontrol_animatedsegmentedcontrol_styles"
     },
@@ -6730,7 +6766,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_index_js"
     },
@@ -6739,7 +6775,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/EmptyState/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_emptystate_index_js"
     },
@@ -6748,7 +6784,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/EmptyState/EmptyState.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "emptystate.js",
       "id": "frontend_v1_src_components_emptystate_emptystate_js"
     },
@@ -6757,7 +6793,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/EmptyState/EmptyState.js",
       "source_location": "L18",
-      "community": 60,
+      "community": 30,
       "norm_label": "emptystate()",
       "id": "emptystate_emptystate_emptystate"
     },
@@ -6766,7 +6802,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/EmptyState/EmptyState.js",
       "source_location": "L40",
-      "community": 60,
+      "community": 30,
       "norm_label": "styles",
       "id": "emptystate_emptystate_styles"
     },
@@ -6775,7 +6811,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/PressableScale/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_pressablescale_index_js"
     },
@@ -6847,7 +6883,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 102,
       "norm_label": "layout.js",
       "id": "frontend_v1_src_theme_layout_js"
     },
@@ -6856,7 +6892,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/layout.js",
       "source_location": "L7",
-      "community": 13,
+      "community": 102,
       "norm_label": "layout",
       "id": "theme_layout_layout"
     },
@@ -6865,7 +6901,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/borders.js",
       "source_location": "L1",
-      "community": 196,
+      "community": 30,
       "norm_label": "borders.js",
       "id": "frontend_v1_src_theme_borders_js"
     },
@@ -6874,7 +6910,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/borders.js",
       "source_location": "L10",
-      "community": 196,
+      "community": 30,
       "norm_label": "radius",
       "id": "theme_borders_radius"
     },
@@ -6883,7 +6919,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/borders.js",
       "source_location": "L24",
-      "community": 196,
+      "community": 30,
       "norm_label": "borderwidth",
       "id": "theme_borders_borderwidth"
     },
@@ -6892,7 +6928,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 17,
       "norm_label": "spacing.js",
       "id": "frontend_v1_src_theme_spacing_js"
     },
@@ -6901,7 +6937,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L6",
-      "community": 30,
+      "community": 17,
       "norm_label": "spacing",
       "id": "theme_spacing_spacing"
     },
@@ -6910,7 +6946,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "typography.js",
       "id": "frontend_v1_src_theme_typography_js"
     },
@@ -6919,7 +6955,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L11",
-      "community": 30,
+      "community": 45,
       "norm_label": "fontfamily",
       "id": "theme_typography_fontfamily"
     },
@@ -6928,7 +6964,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L32",
-      "community": 30,
+      "community": 45,
       "norm_label": "fontweights",
       "id": "theme_typography_fontweights"
     },
@@ -6937,7 +6973,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L40",
-      "community": 30,
+      "community": 45,
       "norm_label": "fontsizes",
       "id": "theme_typography_fontsizes"
     },
@@ -6946,7 +6982,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L53",
-      "community": 30,
+      "community": 45,
       "norm_label": "lineheights",
       "id": "theme_typography_lineheights"
     },
@@ -6955,7 +6991,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
-      "community": 30,
+      "community": 102,
       "norm_label": "typography",
       "id": "theme_typography_typography"
     },
@@ -6964,7 +7000,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_theme_index_js"
     },
@@ -6991,7 +7027,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/shadows.js",
       "source_location": "L23",
-      "community": 102,
+      "community": 17,
       "norm_label": "shadows",
       "id": "theme_shadows_shadows"
     },
@@ -7054,7 +7090,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/motion.js",
       "source_location": "L33",
-      "community": 45,
+      "community": 60,
       "norm_label": "motionconfig",
       "id": "theme_motion_motionconfig"
     },
@@ -7216,7 +7252,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 208,
       "norm_label": "noemojicheck.js",
       "id": "frontend_v1_src_utils_noemojicheck_js"
     },
@@ -7225,7 +7261,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L6",
-      "community": 28,
+      "community": 208,
       "norm_label": "hasemoji()",
       "id": "utils_noemojicheck_hasemoji"
     },
@@ -7234,7 +7270,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L18",
-      "community": 28,
+      "community": 208,
       "norm_label": "stripemojis()",
       "id": "utils_noemojicheck_stripemojis"
     },
@@ -7243,7 +7279,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/noEmojiCheck.js",
       "source_location": "L29",
-      "community": 28,
+      "community": 208,
       "norm_label": "assertnoemoji()",
       "id": "utils_noemojicheck_assertnoemoji"
     },
@@ -7252,7 +7288,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/index.js",
       "source_location": "L1",
-      "community": 17,
+      "community": 45,
       "norm_label": "index.js",
       "id": "frontend_v1_src_utils_index_js"
     },
@@ -7684,7 +7720,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L1",
-      "community": 186,
+      "community": 205,
       "norm_label": "settingsoffers.test.js",
       "id": "backend_v1_tests_settingsoffers_test_js"
     },
@@ -7693,7 +7729,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L1",
-      "community": 186,
+      "community": 205,
       "norm_label": "request",
       "id": "tests_settingsoffers_test_request"
     },
@@ -7702,7 +7738,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L2",
-      "community": 186,
+      "community": 205,
       "norm_label": "express",
       "id": "tests_settingsoffers_test_express"
     },
@@ -7711,7 +7747,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L3",
-      "community": 186,
+      "community": 205,
       "norm_label": "adminroutes",
       "id": "tests_settingsoffers_test_adminroutes"
     },
@@ -7720,7 +7756,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L4",
-      "community": 186,
+      "community": 205,
       "norm_label": "{ pool }",
       "id": "tests_settingsoffers_test_pool"
     },
@@ -7729,7 +7765,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L5",
-      "community": 186,
+      "community": 205,
       "norm_label": "jwt",
       "id": "tests_settingsoffers_test_jwt"
     },
@@ -7738,7 +7774,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L13",
-      "community": 186,
+      "community": 205,
       "norm_label": "app",
       "id": "tests_settingsoffers_test_app"
     },
@@ -7747,7 +7783,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/settingsOffers.test.js",
       "source_location": "L17",
-      "community": 186,
+      "community": 205,
       "norm_label": "admintoken",
       "id": "tests_settingsoffers_test_admintoken"
     },
@@ -7936,7 +7972,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L1",
-      "community": 188,
+      "community": 203,
       "norm_label": "image.test.js",
       "id": "backend_v1_tests_image_test_js"
     },
@@ -7945,7 +7981,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L1",
-      "community": 188,
+      "community": 203,
       "norm_label": "request",
       "id": "tests_image_test_request"
     },
@@ -7954,7 +7990,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L2",
-      "community": 188,
+      "community": 203,
       "norm_label": "express",
       "id": "tests_image_test_express"
     },
@@ -7963,7 +7999,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L3",
-      "community": 188,
+      "community": 203,
       "norm_label": "imageroutes",
       "id": "tests_image_test_imageroutes"
     },
@@ -7972,7 +8008,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L4",
-      "community": 188,
+      "community": 203,
       "norm_label": "{ getdb }",
       "id": "tests_image_test_getdb"
     },
@@ -7981,7 +8017,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L5",
-      "community": 188,
+      "community": 203,
       "norm_label": "jwt",
       "id": "tests_image_test_jwt"
     },
@@ -7990,7 +8026,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L11",
-      "community": 188,
+      "community": 203,
       "norm_label": "mockinsertone",
       "id": "tests_image_test_mockinsertone"
     },
@@ -7999,7 +8035,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L18",
-      "community": 188,
+      "community": 203,
       "norm_label": "app",
       "id": "tests_image_test_app"
     },
@@ -8008,7 +8044,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L22",
-      "community": 188,
+      "community": 203,
       "norm_label": "token",
       "id": "tests_image_test_token"
     },
@@ -8107,7 +8143,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/notifications.test.js",
       "source_location": "L1",
-      "community": 186,
+      "community": 86,
       "norm_label": "notifications.test.js",
       "id": "backend_v1_tests_notifications_test_js"
     },
@@ -8116,7 +8152,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/notifications.test.js",
       "source_location": "L1",
-      "community": 186,
+      "community": 86,
       "norm_label": "request",
       "id": "tests_notifications_test_request"
     },
@@ -8125,7 +8161,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/notifications.test.js",
       "source_location": "L2",
-      "community": 186,
+      "community": 86,
       "norm_label": "app",
       "id": "tests_notifications_test_app"
     },
@@ -8134,7 +8170,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/notifications.test.js",
       "source_location": "L3",
-      "community": 186,
+      "community": 86,
       "norm_label": "{ pool }",
       "id": "tests_notifications_test_pool"
     },
@@ -8143,7 +8179,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/notifications.test.js",
       "source_location": "L4",
-      "community": 186,
+      "community": 86,
       "norm_label": "{ signcustomertoken, signadmintoken }",
       "id": "tests_notifications_test_signcustomertoken_signadmintoken"
     },
@@ -8359,7 +8395,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L1",
-      "community": 186,
+      "community": 204,
       "norm_label": "auth.test.js",
       "id": "backend_v1_tests_auth_test_js"
     },
@@ -8368,7 +8404,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L1",
-      "community": 186,
+      "community": 204,
       "norm_label": "request",
       "id": "tests_auth_test_request"
     },
@@ -8377,7 +8413,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L2",
-      "community": 186,
+      "community": 204,
       "norm_label": "express",
       "id": "tests_auth_test_express"
     },
@@ -8386,7 +8422,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L3",
-      "community": 186,
+      "community": 204,
       "norm_label": "authroutes",
       "id": "tests_auth_test_authroutes"
     },
@@ -8395,7 +8431,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L4",
-      "community": 186,
+      "community": 204,
       "norm_label": "{ pool }",
       "id": "tests_auth_test_pool"
     },
@@ -8404,7 +8440,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L5",
-      "community": 186,
+      "community": 204,
       "norm_label": "bcrypt",
       "id": "tests_auth_test_bcrypt"
     },
@@ -8413,7 +8449,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L6",
-      "community": 186,
+      "community": 204,
       "norm_label": "jwt",
       "id": "tests_auth_test_jwt"
     },
@@ -8422,7 +8458,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/auth.test.js",
       "source_location": "L14",
-      "community": 186,
+      "community": 204,
       "norm_label": "app",
       "id": "tests_auth_test_app"
     },
@@ -8845,7 +8881,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mysql.js",
       "source_location": "L4",
-      "community": 186,
+      "community": 210,
       "norm_label": "pool",
       "id": "db_mysql_pool"
     },
@@ -8899,7 +8935,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L22",
-      "community": 67,
+      "community": 188,
       "norm_label": "getdb()",
       "id": "db_mongodb_getdb"
     },
@@ -9061,7 +9097,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L14",
-      "community": 15,
+      "community": 47,
       "norm_label": "isenum()",
       "id": "validators_index_isenum"
     },
@@ -9088,7 +9124,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/validators/index.js",
       "source_location": "L21",
-      "community": 15,
+      "community": 54,
       "norm_label": "validatecoordinates()",
       "id": "validators_index_validatecoordinates"
     },
@@ -9457,7 +9493,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 183,
       "norm_label": "orderroutes.js",
       "id": "backend_v1_src_routes_orderroutes_js"
     },
@@ -9466,7 +9502,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L1",
-      "community": 15,
+      "community": 183,
       "norm_label": "express",
       "id": "routes_orderroutes_express"
     },
@@ -9475,7 +9511,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L2",
-      "community": 15,
+      "community": 183,
       "norm_label": "router",
       "id": "routes_orderroutes_router"
     },
@@ -9484,7 +9520,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L3",
-      "community": 15,
+      "community": 183,
       "norm_label": "asynchandler",
       "id": "routes_orderroutes_asynchandler"
     },
@@ -9493,7 +9529,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L4",
-      "community": 15,
+      "community": 183,
       "norm_label": "{ createorder, getorders, getorderbyid, cancelorder }",
       "id": "routes_orderroutes_createorder_getorders_getorderbyid_cancelorder"
     },
@@ -9502,7 +9538,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L5",
-      "community": 15,
+      "community": 183,
       "norm_label": "{ requirecustomer }",
       "id": "routes_orderroutes_requirecustomer"
     },
@@ -9511,7 +9547,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L6",
-      "community": 15,
+      "community": 183,
       "norm_label": "{ validate, isenum, ispositiveinteger, validatecoordinates }",
       "id": "routes_orderroutes_validate_isenum_ispositiveinteger_validatecoordinates"
     },
@@ -9520,7 +9556,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L7",
-      "community": 15,
+      "community": 183,
       "norm_label": "{ body, validationresult }",
       "id": "routes_orderroutes_body_validationresult"
     },
@@ -9529,7 +9565,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L9",
-      "community": 15,
+      "community": 183,
       "norm_label": "validateexpress()",
       "id": "routes_orderroutes_validateexpress"
     },
@@ -9538,7 +9574,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L21",
-      "community": 15,
+      "community": 47,
       "norm_label": "createorderschema()",
       "id": "routes_orderroutes_createorderschema"
     },
@@ -9547,7 +9583,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L69",
-      "community": 15,
+      "community": 183,
       "norm_label": "expressvalidatorchecks",
       "id": "routes_orderroutes_expressvalidatorchecks"
     },
@@ -9844,7 +9880,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L1",
-      "community": 67,
+      "community": 188,
       "norm_label": "auditmiddleware.js",
       "id": "backend_v1_src_middleware_auditmiddleware_js"
     },
@@ -9853,7 +9889,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L1",
-      "community": 67,
+      "community": 188,
       "norm_label": "{ getdb }",
       "id": "middleware_auditmiddleware_getdb"
     },
@@ -9862,7 +9898,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L3",
-      "community": 67,
+      "community": 188,
       "norm_label": "logauditerror()",
       "id": "middleware_auditmiddleware_logauditerror"
     },
@@ -9871,7 +9907,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L9",
-      "community": 67,
+      "community": 188,
       "norm_label": "auditlog()",
       "id": "middleware_auditmiddleware_auditlog"
     },
@@ -10096,7 +10132,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L1",
-      "community": 67,
+      "community": 188,
       "norm_label": "imagecontroller.js",
       "id": "backend_v1_src_controllers_imagecontroller_js"
     },
@@ -10105,7 +10141,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L1",
-      "community": 67,
+      "community": 188,
       "norm_label": "path",
       "id": "controllers_imagecontroller_path"
     },
@@ -10114,7 +10150,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L2",
-      "community": 67,
+      "community": 188,
       "norm_label": "fs",
       "id": "controllers_imagecontroller_fs"
     },
@@ -10123,7 +10159,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L3",
-      "community": 67,
+      "community": 188,
       "norm_label": "{ objectid }",
       "id": "controllers_imagecontroller_objectid"
     },
@@ -10132,7 +10168,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L4",
-      "community": 67,
+      "community": 188,
       "norm_label": "{ getdb }",
       "id": "controllers_imagecontroller_getdb"
     },
@@ -10141,7 +10177,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L5",
-      "community": 67,
+      "community": 188,
       "norm_label": "config",
       "id": "controllers_imagecontroller_config"
     },
@@ -10150,7 +10186,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L7",
-      "community": 67,
+      "community": 188,
       "norm_label": "uploadimage()",
       "id": "controllers_imagecontroller_uploadimage"
     },
@@ -10159,7 +10195,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L55",
-      "community": 67,
+      "community": 188,
       "norm_label": "deleteimage()",
       "id": "controllers_imagecontroller_deleteimage"
     },
@@ -10168,7 +10204,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L82",
-      "community": 67,
+      "community": 188,
       "norm_label": "getimages()",
       "id": "controllers_imagecontroller_getimages"
     },
@@ -10708,7 +10744,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L1",
-      "community": 187,
+      "community": 197,
       "norm_label": "notificationservice.js",
       "id": "backend_v1_src_utils_notificationservice_js"
     },
@@ -10717,7 +10753,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L1",
-      "community": 187,
+      "community": 197,
       "norm_label": "{ pool }",
       "id": "utils_notificationservice_pool"
     },
@@ -10726,7 +10762,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L7",
-      "community": 187,
+      "community": 197,
       "norm_label": "createnotification()",
       "id": "utils_notificationservice_createnotification"
     },
@@ -10735,7 +10771,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L30",
-      "community": 187,
+      "community": 197,
       "norm_label": "createmanynotifications()",
       "id": "utils_notificationservice_createmanynotifications"
     },
@@ -10744,7 +10780,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L52",
-      "community": 187,
+      "community": 197,
       "norm_label": "createordernotification()",
       "id": "utils_notificationservice_createordernotification"
     },
@@ -10753,7 +10789,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L119",
-      "community": 187,
+      "community": 197,
       "norm_label": "createnotificationbatch()",
       "id": "utils_notificationservice_createnotificationbatch"
     },
@@ -10762,7 +10798,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L135",
-      "community": 187,
+      "community": 197,
       "norm_label": "createbroadcastnotification()",
       "id": "utils_notificationservice_createbroadcastnotification"
     },
@@ -10771,7 +10807,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L162",
-      "community": 187,
+      "community": 197,
       "norm_label": "getunreadcount()",
       "id": "utils_notificationservice_getunreadcount"
     },
@@ -10780,7 +10816,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L170",
-      "community": 187,
+      "community": 197,
       "norm_label": "markallread()",
       "id": "utils_notificationservice_markallread"
     },
@@ -10789,7 +10825,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/utils/notificationService.js",
       "source_location": "L178",
-      "community": 187,
+      "community": 197,
       "norm_label": "softdeletenotification()",
       "id": "utils_notificationservice_softdeletenotification"
     },
@@ -13489,7 +13525,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L644",
-      "community": 73,
+      "community": 209,
       "norm_label": "13. edge cases and data integrity",
       "id": "plans_admindashboardtask_13_edge_cases_and_data_integrity"
     },
@@ -13498,7 +13534,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L646",
-      "community": 73,
+      "community": 209,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_646"
     },
@@ -13507,7 +13543,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L649",
-      "community": 73,
+      "community": 209,
       "norm_label": "cases to handle",
       "id": "plans_admindashboardtask_cases_to_handle"
     },
@@ -13516,7 +13552,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L661",
-      "community": 73,
+      "community": 209,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_661"
     },
@@ -13525,7 +13561,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L675",
-      "community": 73,
+      "community": 209,
       "norm_label": "things to avoid",
       "id": "plans_admindashboardtask_things_to_avoid_675"
     },
@@ -13534,7 +13570,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L681",
-      "community": 73,
+      "community": 209,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_681"
     },
@@ -13633,7 +13669,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L746",
-      "community": 197,
+      "community": 73,
       "norm_label": "16. rollout plan",
       "id": "plans_admindashboardtask_16_rollout_plan"
     },
@@ -13642,7 +13678,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L748",
-      "community": 197,
+      "community": 73,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_748"
     },
@@ -13651,7 +13687,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L751",
-      "community": 197,
+      "community": 73,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_751"
     },
@@ -13660,7 +13696,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L760",
-      "community": 197,
+      "community": 73,
       "norm_label": "things to avoid",
       "id": "plans_admindashboardtask_things_to_avoid_760"
     },
@@ -13669,7 +13705,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L765",
-      "community": 197,
+      "community": 73,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_765"
     },
@@ -13714,7 +13750,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L800",
-      "community": 73,
+      "community": 212,
       "norm_label": "18. admin manager tests",
       "id": "plans_admindashboardtask_18_admin_manager_tests"
     },
@@ -13723,7 +13759,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L802",
-      "community": 73,
+      "community": 212,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_802"
     },
@@ -13732,7 +13768,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L805",
-      "community": 73,
+      "community": 212,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_805"
     },
@@ -13741,7 +13777,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L819",
-      "community": 73,
+      "community": 212,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_819"
     },
@@ -13750,7 +13786,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L826",
-      "community": 73,
+      "community": 213,
       "norm_label": "19. frontend tests",
       "id": "plans_admindashboardtask_19_frontend_tests"
     },
@@ -13759,7 +13795,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L828",
-      "community": 73,
+      "community": 213,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_828"
     },
@@ -13768,7 +13804,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L831",
-      "community": 73,
+      "community": 213,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_831"
     },
@@ -13777,7 +13813,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L845",
-      "community": 73,
+      "community": 213,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_845"
     },
@@ -17602,7 +17638,7 @@
       "file_type": "document",
       "source_file": "plans/frontnew.md",
       "source_location": "L590",
-      "community": 85,
+      "community": 211,
       "norm_label": "16. final verification",
       "id": "plans_frontnew_16_final_verification"
     },
@@ -17611,7 +17647,7 @@
       "file_type": "document",
       "source_file": "plans/frontnew.md",
       "source_location": "L592",
-      "community": 85,
+      "community": 211,
       "norm_label": "goal",
       "id": "plans_frontnew_goal_592"
     },
@@ -17620,7 +17656,7 @@
       "file_type": "document",
       "source_file": "plans/frontnew.md",
       "source_location": "L595",
-      "community": 85,
+      "community": 211,
       "norm_label": "commands/checks",
       "id": "plans_frontnew_commands_checks"
     },
@@ -17629,7 +17665,7 @@
       "file_type": "document",
       "source_file": "plans/frontnew.md",
       "source_location": "L601",
-      "community": 85,
+      "community": 211,
       "norm_label": "manual flow checklist",
       "id": "plans_frontnew_manual_flow_checklist"
     },
@@ -17638,7 +17674,7 @@
       "file_type": "document",
       "source_file": "plans/frontnew.md",
       "source_location": "L616",
-      "community": 85,
+      "community": 211,
       "norm_label": "acceptance criteria",
       "id": "plans_frontnew_acceptance_criteria"
     },
@@ -18340,7 +18376,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L296",
-      "community": 28,
+      "community": 207,
       "norm_label": "mapnotification",
       "id": "utils_apimappers_mapnotification"
     },
@@ -18349,7 +18385,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/routes/orderRoutes.js",
       "source_location": "L6",
-      "community": 15,
+      "community": 183,
       "norm_label": "{ validate, isenum, isnumericamount, validatecoordinates }",
       "id": "routes_orderroutes_validate_isenum_isnumericamount_validatecoordinates"
     },
@@ -18358,7 +18394,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/App.jsx",
       "source_location": "L23",
-      "community": 48,
+      "community": 49,
       "norm_label": "app()",
       "id": "src_app_app"
     },
@@ -18817,7 +18853,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L568",
-      "community": 150,
+      "community": 73,
       "norm_label": "13. backend tests",
       "id": "plans_admindashboardtask_13_backend_tests"
     },
@@ -18826,7 +18862,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L570",
-      "community": 150,
+      "community": 73,
       "norm_label": "goal",
       "id": "plans_admindashboardtask_goal_570"
     },
@@ -18835,7 +18871,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L573",
-      "community": 150,
+      "community": 73,
       "norm_label": "subtasks",
       "id": "plans_admindashboardtask_subtasks_573"
     },
@@ -18844,7 +18880,7 @@
       "file_type": "document",
       "source_file": "plans/admindashboardtask.md",
       "source_location": "L584",
-      "community": 150,
+      "community": 73,
       "norm_label": "testing checklist",
       "id": "plans_admindashboardtask_testing_checklist_584"
     },
@@ -18952,7 +18988,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L5",
-      "community": 196,
+      "community": 30,
       "norm_label": "status_colors",
       "id": "ordercard_ordercard_status_colors"
     },
@@ -18961,7 +18997,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/OrderCard/OrderCard.js",
       "source_location": "L13",
-      "community": 196,
+      "community": 30,
       "norm_label": "payment_colors",
       "id": "ordercard_ordercard_payment_colors"
     },
@@ -19024,7 +19060,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 60,
       "norm_label": "admincustomersscreen.js",
       "id": "frontend_v1_src_screens_admin_admincustomersscreen_admincustomersscreen_js"
     },
@@ -19033,7 +19069,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L35",
-      "community": 45,
+      "community": 60,
       "norm_label": "pickfirst()",
       "id": "admincustomersscreen_admincustomersscreen_pickfirst"
     },
@@ -19042,7 +19078,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L39",
-      "community": 45,
+      "community": 60,
       "norm_label": "asboolean()",
       "id": "admincustomersscreen_admincustomersscreen_asboolean"
     },
@@ -19051,7 +19087,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L49",
-      "community": 45,
+      "community": 60,
       "norm_label": "getcustomersfromresponse()",
       "id": "admincustomersscreen_admincustomersscreen_getcustomersfromresponse"
     },
@@ -19060,7 +19096,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L59",
-      "community": 45,
+      "community": 60,
       "norm_label": "normalizecustomer()",
       "id": "admincustomersscreen_admincustomersscreen_normalizecustomer"
     },
@@ -19069,7 +19105,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L93",
-      "community": 45,
+      "community": 60,
       "norm_label": "formatshortaddress()",
       "id": "admincustomersscreen_admincustomersscreen_formatshortaddress"
     },
@@ -19078,7 +19114,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L106",
-      "community": 45,
+      "community": 60,
       "norm_label": "getactionerror()",
       "id": "admincustomersscreen_admincustomersscreen_getactionerror"
     },
@@ -19087,7 +19123,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L110",
-      "community": 45,
+      "community": 60,
       "norm_label": "admincustomersscreen()",
       "id": "admincustomersscreen_admincustomersscreen_admincustomersscreen"
     },
@@ -19096,7 +19132,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L363",
-      "community": 45,
+      "community": 60,
       "norm_label": "customerskeletonlist()",
       "id": "admincustomersscreen_admincustomersscreen_customerskeletonlist"
     },
@@ -19105,7 +19141,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L374",
-      "community": 45,
+      "community": 60,
       "norm_label": "customercard()",
       "id": "admincustomersscreen_admincustomersscreen_customercard"
     },
@@ -19114,7 +19150,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L465",
-      "community": 45,
+      "community": 60,
       "norm_label": "statuspill()",
       "id": "admincustomersscreen_admincustomersscreen_statuspill"
     },
@@ -19123,7 +19159,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L484",
-      "community": 45,
+      "community": 60,
       "norm_label": "togglerow()",
       "id": "admincustomersscreen_admincustomersscreen_togglerow"
     },
@@ -19132,7 +19168,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L505",
-      "community": 45,
+      "community": 60,
       "norm_label": "blockcustomermodal()",
       "id": "admincustomersscreen_admincustomersscreen_blockcustomermodal"
     },
@@ -19141,7 +19177,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L545",
-      "community": 45,
+      "community": 60,
       "norm_label": "styles",
       "id": "admincustomersscreen_admincustomersscreen_styles"
     },
@@ -19159,7 +19195,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 102,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminorderdetailscreen_index_js"
     },
@@ -19168,7 +19204,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 102,
       "norm_label": "adminorderdetailscreen.js",
       "id": "frontend_v1_src_screens_admin_adminorderdetailscreen_adminorderdetailscreen_js"
     },
@@ -19177,7 +19213,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L20",
-      "community": 30,
+      "community": 102,
       "norm_label": "order_statuses",
       "id": "adminorderdetailscreen_adminorderdetailscreen_order_statuses"
     },
@@ -19186,7 +19222,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L21",
-      "community": 30,
+      "community": 102,
       "norm_label": "payment_statuses",
       "id": "adminorderdetailscreen_adminorderdetailscreen_payment_statuses"
     },
@@ -19195,7 +19231,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L23",
-      "community": 30,
+      "community": 102,
       "norm_label": "adminorderdetailscreen()",
       "id": "adminorderdetailscreen_adminorderdetailscreen_adminorderdetailscreen"
     },
@@ -19204,7 +19240,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L257",
-      "community": 30,
+      "community": 102,
       "norm_label": "styles",
       "id": "adminorderdetailscreen_adminorderdetailscreen_styles"
     },
@@ -19258,7 +19294,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 59,
       "norm_label": "adminproductsscreen.js",
       "id": "frontend_v1_src_screens_admin_adminproductsscreen_adminproductsscreen_js"
     },
@@ -19267,7 +19303,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L26",
-      "community": 102,
+      "community": 59,
       "norm_label": "availability",
       "id": "adminproductsscreen_adminproductsscreen_availability"
     },
@@ -19276,7 +19312,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L28",
-      "community": 102,
+      "community": 59,
       "norm_label": "adminproductsscreen()",
       "id": "adminproductsscreen_adminproductsscreen_adminproductsscreen"
     },
@@ -19285,7 +19321,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L403",
-      "community": 102,
+      "community": 59,
       "norm_label": "adminproductcard()",
       "id": "adminproductsscreen_adminproductsscreen_adminproductcard"
     },
@@ -19294,7 +19330,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L458",
-      "community": 102,
+      "community": 59,
       "norm_label": "styles",
       "id": "adminproductsscreen_adminproductsscreen_styles"
     },
@@ -19303,7 +19339,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductsScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 59,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminproductsscreen_index_js"
     },
@@ -19339,7 +19375,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminLoginScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminloginscreen_index_js"
     },
@@ -19348,7 +19384,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 150,
       "norm_label": "adminsettingsscreen.js",
       "id": "frontend_v1_src_screens_admin_adminsettingsscreen_adminsettingsscreen_js"
     },
@@ -19357,7 +19393,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L33",
-      "community": 28,
+      "community": 150,
       "norm_label": "default_form",
       "id": "adminsettingsscreen_adminsettingsscreen_default_form"
     },
@@ -19366,7 +19402,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L46",
-      "community": 28,
+      "community": 150,
       "norm_label": "numeric_fields",
       "id": "adminsettingsscreen_adminsettingsscreen_numeric_fields"
     },
@@ -19375,7 +19411,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L52",
-      "community": 28,
+      "community": 150,
       "norm_label": "pickfirst()",
       "id": "adminsettingsscreen_adminsettingsscreen_pickfirst"
     },
@@ -19384,7 +19420,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L56",
-      "community": 28,
+      "community": 150,
       "norm_label": "asboolean()",
       "id": "adminsettingsscreen_adminsettingsscreen_asboolean"
     },
@@ -19393,7 +19429,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L67",
-      "community": 28,
+      "community": 150,
       "norm_label": "astext()",
       "id": "adminsettingsscreen_adminsettingsscreen_astext"
     },
@@ -19402,7 +19438,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L72",
-      "community": 28,
+      "community": 150,
       "norm_label": "getpayloaddata()",
       "id": "adminsettingsscreen_adminsettingsscreen_getpayloaddata"
     },
@@ -19411,7 +19447,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L76",
-      "community": 28,
+      "community": 150,
       "norm_label": "getofferdata()",
       "id": "adminsettingsscreen_adminsettingsscreen_getofferdata"
     },
@@ -19420,7 +19456,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L92",
-      "community": 28,
+      "community": 150,
       "norm_label": "normalizesettings()",
       "id": "adminsettingsscreen_adminsettingsscreen_normalizesettings"
     },
@@ -19429,7 +19465,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L125",
-      "community": 28,
+      "community": 150,
       "norm_label": "buildsettingspayload()",
       "id": "adminsettingsscreen_adminsettingsscreen_buildsettingspayload"
     },
@@ -19438,7 +19474,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L136",
-      "community": 28,
+      "community": 150,
       "norm_label": "buildofferpayload()",
       "id": "adminsettingsscreen_adminsettingsscreen_buildofferpayload"
     },
@@ -19447,7 +19483,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L144",
-      "community": 28,
+      "community": 150,
       "norm_label": "geterrormessage()",
       "id": "adminsettingsscreen_adminsettingsscreen_geterrormessage"
     },
@@ -19456,7 +19492,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L148",
-      "community": 28,
+      "community": 150,
       "norm_label": "adminsettingsscreen()",
       "id": "adminsettingsscreen_adminsettingsscreen_adminsettingsscreen"
     },
@@ -19465,7 +19501,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L559",
-      "community": 28,
+      "community": 150,
       "norm_label": "statusbanner()",
       "id": "adminsettingsscreen_adminsettingsscreen_statusbanner"
     },
@@ -19474,7 +19510,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L580",
-      "community": 28,
+      "community": 150,
       "norm_label": "styles",
       "id": "adminsettingsscreen_adminsettingsscreen_styles"
     },
@@ -19492,7 +19528,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminProductFormScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 59,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_admin_adminproductformscreen_index_js"
     },
@@ -19681,7 +19717,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminSettingsApi.js",
       "source_location": "L3",
-      "community": 28,
+      "community": 150,
       "norm_label": "adminsettingsapi",
       "id": "api_adminsettingsapi_adminsettingsapi"
     },
@@ -19717,7 +19753,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminOrdersApi.js",
       "source_location": "L4",
-      "community": 28,
+      "community": 102,
       "norm_label": "adminordersapi",
       "id": "api_adminordersapi_adminordersapi"
     },
@@ -19753,7 +19789,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminProductsApi.js",
       "source_location": "L3",
-      "community": 102,
+      "community": 59,
       "norm_label": "adminproductsapi",
       "id": "api_adminproductsapi_adminproductsapi"
     },
@@ -19771,7 +19807,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/adminCustomersApi.js",
       "source_location": "L4",
-      "community": 45,
+      "community": 60,
       "norm_label": "admincustomersapi",
       "id": "api_admincustomersapi_admincustomersapi"
     },
@@ -19780,7 +19816,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/sessionTokens.js",
       "source_location": "L8",
-      "community": 28,
+      "community": 208,
       "norm_label": "setadmintokenprovider()",
       "id": "api_sessiontokens_setadmintokenprovider"
     },
@@ -19789,7 +19825,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/sessionTokens.js",
       "source_location": "L22",
-      "community": 28,
+      "community": 196,
       "norm_label": "getadmintoken()",
       "id": "api_sessiontokens_getadmintoken"
     },
@@ -19834,7 +19870,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 102,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_adminmetriccard_index_js"
     },
@@ -19843,7 +19879,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 102,
       "norm_label": "adminmetriccard.js",
       "id": "frontend_v1_src_components_adminmetriccard_adminmetriccard_js"
     },
@@ -19852,7 +19888,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L16",
-      "community": 30,
+      "community": 102,
       "norm_label": "adminmetriccard()",
       "id": "adminmetriccard_adminmetriccard_adminmetriccard"
     },
@@ -19861,7 +19897,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AdminMetricCard/AdminMetricCard.js",
       "source_location": "L37",
-      "community": 30,
+      "community": 102,
       "norm_label": "styles",
       "id": "adminmetriccard_adminmetriccard_styles"
     },
@@ -20248,7 +20284,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminCustomersScreen/AdminCustomersScreen.js",
       "source_location": "L1",
-      "community": 45,
+      "community": 60,
       "norm_label": "admincustomersscreen.js",
       "id": "frontend_v1_src_screens_admincustomersscreen_admincustomersscreen_js"
     },
@@ -20266,7 +20302,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_orderconfirmationscreen_index_js"
     },
@@ -20302,7 +20338,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L1",
-      "community": 43,
+      "community": 102,
       "norm_label": "categoriesscreen.js",
       "id": "frontend_v1_src_screens_categoriesscreen_categoriesscreen_js"
     },
@@ -20320,7 +20356,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_profilescreen_index_js"
     },
@@ -20329,7 +20365,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 17,
       "norm_label": "profilescreen.js",
       "id": "frontend_v1_src_screens_profilescreen_profilescreen_js"
     },
@@ -20338,7 +20374,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderDetailScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_orderdetailscreen_index_js"
     },
@@ -20365,7 +20401,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrdersScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 65,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_ordersscreen_index_js"
     },
@@ -20383,7 +20419,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 102,
       "norm_label": "adminorderdetailscreen.js",
       "id": "frontend_v1_src_screens_adminorderdetailscreen_adminorderdetailscreen_js"
     },
@@ -20401,7 +20437,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/HomeScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 43,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_homescreen_index_js"
     },
@@ -20410,7 +20446,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_editprofilescreen_index_js"
     },
@@ -20419,7 +20455,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 17,
       "norm_label": "editprofilescreen.js",
       "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js"
     },
@@ -20464,7 +20500,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 59,
       "norm_label": "adminproductsscreen.js",
       "id": "frontend_v1_src_screens_adminproductsscreen_adminproductsscreen_js"
     },
@@ -20500,7 +20536,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CartScreen/index.js",
       "source_location": "L1",
-      "community": 149,
+      "community": 13,
       "norm_label": "index.js",
       "id": "frontend_v1_src_screens_cartscreen_index_js"
     },
@@ -20518,7 +20554,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminSettingsScreen/AdminSettingsScreen.js",
       "source_location": "L1",
-      "community": 28,
+      "community": 150,
       "norm_label": "adminsettingsscreen.js",
       "id": "frontend_v1_src_screens_adminsettingsscreen_adminsettingsscreen_js"
     },
@@ -20671,7 +20707,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L19",
-      "community": 30,
+      "community": 102,
       "norm_label": "fetchadminorderdetails()",
       "id": "adminorderdetailscreen_adminorderdetailscreen_fetchadminorderdetails"
     },
@@ -20689,7 +20725,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L28",
-      "community": 102,
+      "community": 59,
       "norm_label": "initialmockproducts",
       "id": "adminproductsscreen_adminproductsscreen_initialmockproducts"
     },
@@ -20698,7 +20734,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminProductsScreen/AdminProductsScreen.js",
       "source_location": "L36",
-      "community": 102,
+      "community": 59,
       "norm_label": "categories",
       "id": "adminproductsscreen_adminproductsscreen_categories"
     },
@@ -20743,7 +20779,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L31",
-      "community": 43,
+      "community": 102,
       "norm_label": "mock_categories",
       "id": "categoriesscreen_categoriesscreen_mock_categories"
     },
@@ -20752,7 +20788,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/CategoriesScreen/CategoriesScreen.js",
       "source_location": "L40",
-      "community": 43,
+      "community": 102,
       "norm_label": "mock_chips",
       "id": "categoriesscreen_categoriesscreen_mock_chips"
     },
@@ -20788,7 +20824,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/index.js",
       "source_location": "L2",
-      "community": 30,
+      "community": 45,
       "norm_label": "themeplaceholder",
       "id": "theme_index_themeplaceholder"
     },
@@ -21847,6 +21883,47 @@
     }
   ],
   "links": [
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migrate_modes.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "scripts_migrate_modes_js",
+      "target": "db_mysql_pool",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migrate_modes.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "scripts_migrate_modes_js",
+      "target": "scripts_migrate_modes_pool",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migrate_modes.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "scripts_migrate_modes_js",
+      "target": "scripts_migrate_modes_fs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/migrate_modes.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "scripts_migrate_modes_js",
+      "target": "scripts_migrate_modes_migrate",
+      "confidence_score": 1.0
+    },
     {
       "relation": "imports",
       "context": "import",
@@ -63738,5 +63815,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "734f7af4bec0f16c8ec038e79bbbea273e1a739c"
+  "built_at_commit": "b4a234d0e49074d97800e91d61c3455bdd816683"
 }
