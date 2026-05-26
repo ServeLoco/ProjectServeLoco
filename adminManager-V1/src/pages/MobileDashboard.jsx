@@ -44,6 +44,7 @@ export default function MobileDashboard() {
 
   useEffect(() => {
     fetchSections();
+    setNewSectionForm(prev => ({ ...prev, store_type: storeType }));
   }, [storeType]);
 
   useEffect(() => {
@@ -366,15 +367,15 @@ export default function MobileDashboard() {
   return (
     <div className="dashboard-workspace">
       {/* Left Panel: Section Selector */}
-      <div className="dashboard-manager-container">
-      <header className="dashboard-header">
-        <h1 className="dashboard-title">Mobile App Layout</h1>
-        <button className="btn-primary" onClick={openModal}>
-          + Add Section
-        </button>
-      </header>
+      <aside className="sections-panel">
+        <header className="panel-header">
+          <h2 className="panel-title">Layout Sections</h2>
+          <button className="btn-add-section" onClick={() => setIsModalOpen(true)}>
+            + Add Section
+          </button>
+        </header>
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem', marginBottom: '1rem' }}>
         <button 
           className={`btn-secondary ${storeType === 'packed' ? 'active' : ''}`}
           style={storeType === 'packed' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
@@ -443,7 +444,7 @@ export default function MobileDashboard() {
             ))
           )}
         </div>
-      </div>
+      </aside>
 
       {/* Right Panel: Selected Section Details & Workspace */}
       <section className="detail-panel">
