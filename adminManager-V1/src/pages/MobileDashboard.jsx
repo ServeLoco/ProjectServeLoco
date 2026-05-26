@@ -8,6 +8,7 @@ import { readList } from '../utils/apiResponse';
 export default function MobileDashboard() {
   const [sections, setSections] = useState([]);
   const [selectedSection, setSelectedSection] = useState(null);
+  const [storeType, setStoreType] = useState('packed');
   
   // Loading states
   const [loadingSections, setLoadingSections] = useState(false);
@@ -22,7 +23,7 @@ export default function MobileDashboard() {
     title: '',
     slug: '',
     section_type: 'product_block',
-    store_type: 'all',
+    store_type: storeType,
     active: 1,
     display_order: 0,
     max_visible_items: 6,
@@ -43,7 +44,7 @@ export default function MobileDashboard() {
 
   useEffect(() => {
     fetchSections();
-  }, []);
+  }, [storeType]);
 
   useEffect(() => {
     if (selectedSection) {
@@ -58,7 +59,7 @@ export default function MobileDashboard() {
     try {
       setLoadingSections(true);
       setError(null);
-      const res = await MobileDashboardApi.listSections();
+      const res = await MobileDashboardApi.listSections({ store_type: storeType });
       setSections(res.data || []);
     } catch (err) {
       setError(err.message || 'Failed to fetch dashboard sections');
@@ -101,18 +102,18 @@ export default function MobileDashboard() {
     try {
       setLoadingCandidates(true);
       if (sectionType === 'offer_banner') {
-        const res = await OffersApi.list();
+        const res = await OffersApi.list({ store_type: storeType });
         setCandidates(readList(res, 'offers'));
       } else if (sectionType === 'category_grid') {
-        const res = await CategoriesApi.list();
+        const res = await CategoriesApi.list({ type: storeType });
         setCandidates(readList(res, 'categories'));
       } else if (sectionType === 'product_block') {
         // Load only non-combos
-        const res = await ProductsApi.list({ limit: 100, is_combo: '0', available: '1' });
+        const res = await ProductsApi.list({ limit: 100, is_combo: '0', available: '1', type: storeType });
         setCandidates(readList(res, 'products'));
       } else if (sectionType === 'combo_block') {
         // Load only combos
-        const res = await CombosApi.list({ limit: 100, available: '1' });
+        const res = await CombosApi.list({ limit: 100, available: '1', store_type: storeType });
         setCandidates(readList(res, ['products', 'combos']));
       }
     } catch (err) {
@@ -183,7 +184,7 @@ export default function MobileDashboard() {
         title: '',
         slug: '',
         section_type: 'product_block',
-        store_type: 'all',
+        store_type: storeType,
         active: 1,
         display_order: 0,
         max_visible_items: 6,
@@ -365,13 +366,38 @@ export default function MobileDashboard() {
   return (
     <div className="dashboard-workspace">
       {/* Left Panel: Section Selector */}
-      <aside className="sections-panel">
-        <header className="panel-header">
-          <h2 className="panel-title">Layout Sections</h2>
-          <button className="btn-add-section" onClick={() => setIsModalOpen(true)}>
-            + Add Section
-          </button>
-        </header>
+      <div className="dashboard-manager-container">
+      <header className="dashboard-header">
+        <h1 className="dashboard-title">Mobile App Layout</h1>
+        <button className="btn-primary" onClick={openModal}>
+          + Add Section
+        </button>
+      </header>
+
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+        <button 
+          className={`btn-secondary ${storeType === 'packed' ? 'active' : ''}`}
+          style={storeType === 'packed' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+          onClick={() => {
+            setStoreType('packed');
+            setSelectedSection(null);
+            setEditForm(null);
+          }}
+        >
+          Packed Items Layout
+        </button>
+        <button 
+          className={`btn-secondary ${storeType === 'fast_food' ? 'active' : ''}`}
+          style={storeType === 'fast_food' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+          onClick={() => {
+            setStoreType('fast_food');
+            setSelectedSection(null);
+            setEditForm(null);
+          }}
+        >
+          Fast Food Layout
+        </button>
+      </div>
 
         <div className="sections-list-container">
           {loadingSections && sections.length === 0 ? (
@@ -476,7 +502,6 @@ export default function MobileDashboard() {
                       value={editForm.store_type} 
                       onChange={handleEditFormChange}
                     >
-                      <option value="all">All Shop Items</option>
                       <option value="packed">Packed Items Only</option>
                       <option value="fast_food">Fast Food Only</option>
                     </select>
@@ -570,6 +595,7 @@ export default function MobileDashboard() {
                             <div className="item-subtitle-meta">
                               {item.item_type} • ID: {item.item_id}
                               {details.price && ` • ₹${details.price}`}
+                              {(details.store_type || details.type) && ` • ${(details.store_type || details.type) === 'fast_food' ? 'Fast Food' : 'Packed'}`}
                             </div>
                           </div>
                           <div className="item-action-controls">
@@ -637,7 +663,7 @@ export default function MobileDashboard() {
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div className="item-title-name">{name}</div>
                               <div className="item-subtitle-meta">
-                                ID: {cand.id} {cand.price && `• ₹${cand.price}`} {cand.type && `• ${cand.type}`}
+                                ID: {cand.id} {cand.price && `• ₹${cand.price}`} {cand.store_type && `• ${cand.store_type === 'fast_food' ? 'Fast Food' : 'Packed'}`} {cand.type && `• ${cand.type === 'fast_food' ? 'Fast Food' : 'Packed'}`}
                               </div>
                             </div>
                             <button 
@@ -725,7 +751,6 @@ export default function MobileDashboard() {
                     value={newSectionForm.store_type} 
                     onChange={handleModalFormChange}
                   >
-                    <option value="all">All Shop Items</option>
                     <option value="packed">Packed Items Only</option>
                     <option value="fast_food">Fast Food Only</option>
                   </select>

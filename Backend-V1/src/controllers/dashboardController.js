@@ -608,10 +608,16 @@ const getSectionItems = async (req, res) => {
  * Admin: GET /api/admin/dashboard-sections
  */
 const getAdminSections = async (req, res) => {
+  const { store_type } = req.query;
   try {
-    const [rows] = await pool.query(
-      'SELECT * FROM dashboard_sections WHERE deleted_at IS NULL ORDER BY display_order ASC, id ASC'
-    );
+    let query = 'SELECT * FROM dashboard_sections WHERE deleted_at IS NULL';
+    const params = [];
+    if (store_type) {
+      query += ' AND store_type = ?';
+      params.push(store_type);
+    }
+    query += ' ORDER BY display_order ASC, id ASC';
+    const [rows] = await pool.query(query, params);
     res.status(200).json({ data: rows });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
