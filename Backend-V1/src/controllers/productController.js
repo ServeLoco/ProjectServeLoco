@@ -86,8 +86,11 @@ const attachComboItems = async (products = []) => {
 };
 
 const getProducts = async (req, res) => {
-  const { categoryId, category_id, search, type, isCombo, is_combo, featured, limit } = req.query;
-  const normalizedType = type ? normalizeStoreType(type, { allowAll: true }) : null;
+  const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit } = req.query;
+  const requestedType = type || storeType || store_type;
+  const normalizedType = requestedType && requestedType !== 'all'
+    ? normalizeStoreType(requestedType, { allowAll: false })
+    : 'packed';
   const finalCategoryId = categoryId || category_id;
   let finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
 

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ImagesApi } from '../api';
+import { normalizeImageUrl } from '../utils/imageUrl';
 import './Images.css';
 
 export default function Images() {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadMessage, setUploadMessage] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -34,10 +36,12 @@ export default function Images() {
 
     try {
       setUploading(true);
+      setUploadMessage(null);
       await ImagesApi.upload(data);
-      fetchImages(); // Refresh the gallery
+      setUploadMessage({ type: 'success', text: 'Image uploaded successfully.' });
+      fetchImages();
     } catch (err) {
-      alert('Upload failed: ' + err.message);
+      setUploadMessage({ type: 'error', text: 'Upload failed: ' + err.message });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -55,7 +59,7 @@ export default function Images() {
   };
 
   const handleCopyUrl = (url) => {
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(normalizeImageUrl(url));
     alert('Image URL copied to clipboard!');
   };
 
@@ -78,6 +82,9 @@ export default function Images() {
         <h3 style={{ color: 'var(--primary-color)', marginBottom: '0.5rem' }}>{uploading ? 'Uploading...' : 'Click to Upload New Image'}</h3>
         <p style={{ color: 'var(--text-secondary)' }}>Supported formats: JPG, PNG, WebP. Max size: 5MB.</p>
       </div>
+      {uploadMessage && (
+        <p className={`upload-message ${uploadMessage.type}`} style={{ marginBottom: '1rem' }}>{uploadMessage.text}</p>
+      )}
 
       {error && <div className="error-container" style={{ marginBottom: '2rem' }}>{error}</div>}
 
@@ -95,7 +102,7 @@ export default function Images() {
                 {img.in_use ? 'IN USE' : 'UNUSED'}
               </div>
               <div className="image-preview-wrapper">
-                <img src={img.url} alt={img.filename} loading="lazy" />
+                <img src={normalizeImageUrl(img.url)} alt={img.filename} loading="lazy" />
               </div>
               <div className="image-details">
                 <div className="image-filename" title={img.filename}>{img.filename}</div>

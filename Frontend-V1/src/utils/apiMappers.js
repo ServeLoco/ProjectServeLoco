@@ -1,5 +1,37 @@
+import { getApiBaseUrl } from '../api/config';
+
+const LOCAL_IMAGE_HOSTS = new Set(['10.0.2.2', 'localhost', '127.0.0.1']);
+
 function pickFirst(...values) {
   return values.find(value => value !== undefined && value !== null && value !== '');
+}
+
+function getApiOrigin() {
+  try {
+    return new URL(getApiBaseUrl()).origin;
+  } catch {
+    return '';
+  }
+}
+
+function normalizeImageUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+
+  if (url.startsWith('/')) {
+    const origin = getApiOrigin();
+    return origin ? `${origin}${url}` : url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    if (LOCAL_IMAGE_HOSTS.has(parsed.hostname)) {
+      const origin = getApiOrigin();
+      return origin ? `${origin}${parsed.pathname}${parsed.search}` : url;
+    }
+    return url;
+  } catch {
+    return url;
+  }
 }
 
 function asArray(payload, keys = []) {
@@ -69,6 +101,7 @@ function normalizeProduct(item = {}) {
   const id = String(pickFirst(item.id, item._id, item.productId, item.product_id, item.slug));
   const isCombo = asBoolean(pickFirst(item.isCombo, item.is_combo), false);
   const comboItems = getComboItems(item);
+  const imageUrl = normalizeImageUrl(pickFirst(item.imageUrl, item.image_url, item.image, item.url, null));
 
   return {
     ...item,
@@ -81,8 +114,8 @@ function normalizeProduct(item = {}) {
     category: pickFirst(item.category, item.categoryName, item.category_name, ''),
     categoryId: pickFirst(item.categoryId, item.category_id, null),
     available: asBoolean(pickFirst(item.available, item.isAvailable, item.is_available, item.inStock), true),
-    imageUrl: pickFirst(item.imageUrl, item.image_url, item.image, item.url, null),
-    imageUri: pickFirst(item.imageUrl, item.image_url, item.image, item.url, null),
+    imageUrl,
+    imageUri: imageUrl,
     description: pickFirst(item.description, item.shortDescription, item.short_description, ''),
     isCombo,
     is_combo: isCombo,
@@ -94,6 +127,7 @@ function normalizeProduct(item = {}) {
 
 function normalizeCategory(item = {}) {
   const id = String(pickFirst(item.id, item._id, item.categoryId, item.category_id, item.name));
+  const imageUrl = normalizeImageUrl(pickFirst(item.imageUrl, item.image_url, item.image, null));
 
   return {
     ...item,
@@ -101,8 +135,8 @@ function normalizeCategory(item = {}) {
     name: pickFirst(item.name, item.categoryName, item.category_name, 'Category'),
     count: pickFirst(item.count, item.productCount, item.product_count, item.productsCount, 0),
     productCount: pickFirst(item.count, item.productCount, item.product_count, item.productsCount, 0),
-    imageUrl: pickFirst(item.imageUrl, item.image_url, item.image, null),
-    imageUri: pickFirst(item.imageUrl, item.image_url, item.image, null),
+    imageUrl,
+    imageUri: imageUrl,
     type: pickFirst(item.type, item.storeType, item.store_type, ''),
     displayOrder: numberOrZero(pickFirst(item.displayOrder, item.display_order, item.order, 0)),
     subcategories: asArray(item.subcategories || item.children || item.chips, ['subcategories']),
@@ -119,6 +153,9 @@ function normalizeSettings(payload = {}) {
     deliveryCharge: numberOrZero(pickFirst(settings.deliveryCharge, settings.delivery_charge)),
     nightCharge: numberOrZero(pickFirst(settings.nightCharge, settings.night_charge)),
     supportPhone: pickFirst(settings.supportPhone, settings.support_phone, settings.whatsapp_number, null),
+    upiId: pickFirst(settings.upiId, settings.upi_id, null),
+    upiQrImageId: pickFirst(settings.upiQrImageId, settings.upi_qr_image_id, null),
+    upiQrImageUrl: normalizeImageUrl(pickFirst(settings.upiQrImageUrl, settings.upi_qr_image_url, settings.upiQrUrl, settings.upi_qr_url, null)),
     activeOffer,
   };
 }
@@ -301,6 +338,7 @@ export {
   normalizeCartCalculation,
   normalizeCategory,
   normalizeDashboard,
+  normalizeImageUrl,
   normalizeOrder,
   normalizeProduct,
   normalizeSession,

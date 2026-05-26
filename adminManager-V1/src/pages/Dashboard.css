@@ -203,6 +203,7 @@
 }
 
 .status-badge.pending { background: rgba(245, 158, 11, 0.1); color: var(--warning-color); }
+.status-badge.accepted { background: rgba(20, 184, 166, 0.1); color: #14b8a6; }
 .status-badge.preparing { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
 .status-badge.out-for-delivery { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
 .status-badge.delivered { background: rgba(16, 185, 129, 0.1); color: var(--success-color); }

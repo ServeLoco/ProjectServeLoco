@@ -4,6 +4,7 @@ import { MobileDashboardApi, ProductsApi, CategoriesApi, OffersApi, CombosApi } 
 import './MobileDashboard.css';
 
 import { readList } from '../utils/apiResponse';
+import { normalizeImageUrl } from '../utils/imageUrl';
 
 export default function MobileDashboard() {
   const [sections, setSections] = useState([]);
@@ -587,7 +588,7 @@ export default function MobileDashboard() {
                     selectedSection.items?.map((item, idx) => {
                       const details = item.details || {};
                       const name = details.name || details.title || `Item #${item.item_id}`;
-                      const img = details.imageUrl || details.image_url || 'https://via.placeholder.com/40';
+                      const img = normalizeImageUrl(details.imageUrl || details.image_url) || 'https://via.placeholder.com/40';
                       return (
                         <div key={item.id} className="item-row">
                           <img src={img} alt={name} className="item-thumbnail" />
@@ -657,7 +658,7 @@ export default function MobileDashboard() {
                       })
                       .map(cand => {
                         const name = cand.name || cand.title || 'Unnamed';
-                        const img = cand.imageUrl || cand.image_url || 'https://via.placeholder.com/40';
+                        const img = normalizeImageUrl(cand.imageUrl || cand.image_url) || 'https://via.placeholder.com/40';
                         return (
                           <div key={cand.id} className="picker-result-row">
                             <img src={img} alt={name} className="item-thumbnail" />

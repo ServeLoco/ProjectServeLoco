@@ -3,6 +3,13 @@ import { DashboardApi, SettingsApi } from '../api';
 import { Link } from 'react-router-dom';
 import './Dashboard.css';
 
+const ORDER_STATUS_LABELS = {
+  Pending: 'Order Placed',
+  Accepted: 'Accepted',
+  Preparing: 'Preparing/Packing',
+};
+const getOrderStatusLabel = (status) => ORDER_STATUS_LABELS[status] || status || 'Unknown';
+
 export default function Dashboard() {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -128,7 +135,7 @@ export default function Dashboard() {
                     <td style={{ fontWeight: 600 }}>₹{order.total}</td>
                     <td>
                       <span className={`status-badge ${order.status.toLowerCase().replace(/ /g, '-')}`}>
-                        {order.status}
+                        {getOrderStatusLabel(order.status)}
                       </span>
                     </td>
                   </tr>

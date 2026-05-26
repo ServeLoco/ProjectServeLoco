@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { OffersApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
+import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import './Offers.css';
 
 export default function Offers() {
@@ -90,7 +91,7 @@ export default function Offers() {
         <section className="offers-grid">
           {offers.map(o => (
             <div key={o.id} className="offer-card">
-              <img src={o.imageUrl || o.image_url || 'https://via.placeholder.com/400x200?text=No+Image'} alt={o.title} className="offer-image" />
+              <img src={normalizeImageUrl(o.imageUrl || o.image_url) || 'https://via.placeholder.com/400x200?text=No+Image'} alt={o.title} className="offer-image" />
               <div className="offer-content">
                 <h3 className="offer-title">{o.title}</h3>
                 <p className="offer-description">{o.description}</p>
@@ -139,6 +140,7 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
@@ -155,17 +157,20 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
 
     try {
       setUploadingImage(true);
+      setUploadMessage(null);
       const res = await ImagesApi.upload(data);
-      const image = res.image || res.data || res;
+      const image = getUploadedImage(res);
       setFormData(prev => ({
         ...prev,
-        image_id: image.id || image._id || image.image_id || '',
-        image_url: image.imageUrl || image.image_url || image.url || '',
+        image_id: image.id,
+        image_url: image.url,
       }));
+      setUploadMessage({ type: 'success', text: 'Image uploaded. Save the offer to apply it.' });
     } catch (err) {
-      setFormError('Image upload failed: ' + err.message);
+      setUploadMessage({ type: 'error', text: 'Image upload failed: ' + err.message });
     } finally {
       setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -235,11 +240,14 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
 
             <div className="form-group">
               <label className="form-label">Offer Image / Banner</label>
-              {(formData.image_url || formData.imageUrl) && <img src={formData.image_url || formData.imageUrl} alt="Preview" className="image-preview" />}
+              {(formData.image_url || formData.imageUrl) && <img src={normalizeImageUrl(formData.image_url || formData.imageUrl)} alt="Preview" className="image-preview" />}
               <div className="image-upload-zone" onClick={() => fileInputRef.current?.click()}>
                 <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
                 {uploadingImage ? 'Uploading...' : 'Click to Upload Image'}
               </div>
+              {uploadMessage && (
+                <p className={`upload-message ${uploadMessage.type}`}>{uploadMessage.text}</p>
+              )}
             </div>
 
             <div className="form-group" style={{ marginTop: '1rem' }}>

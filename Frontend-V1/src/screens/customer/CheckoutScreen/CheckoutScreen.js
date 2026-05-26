@@ -7,6 +7,7 @@ import {
   Animated,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
   Linking,
   LayoutAnimation,
   Platform,
@@ -19,13 +20,12 @@ import {
   AppHeader,
   AppIcon,
   TextInputField,
-  Button,
   PressableScale,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../../stores';
-import { cartApi, ordersApi } from '../../../api';
-import { normalizeCartCalculation } from '../../../utils';
+import { cartApi, ordersApi, settingsApi, imagesApi } from '../../../api';
+import { normalizeCartCalculation, normalizeImageUrl, normalizeSettings } from '../../../utils';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -41,6 +41,10 @@ export default function CheckoutScreen() {
   const { items, clearCart } = useCartStore();
   const shopStatus = useSettingsStore(state => state.shopStatus);
   const minimumOrder = useSettingsStore(state => state.minimumOrder);
+  const upiId = useSettingsStore(state => state.upiId);
+  const upiQrImageId = useSettingsStore(state => state.upiQrImageId);
+  const upiQrImageUrl = useSettingsStore(state => state.upiQrImageUrl);
+  const setSettings = useSettingsStore(state => state.setSettings);
   const userProfile = useAuthStore(state => state.profile);
 
   // Form State
@@ -87,6 +91,42 @@ export default function CheckoutScreen() {
       Animated.timing(summarySlide, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
   }, [deliverySlide, paymentSlide, summarySlide]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    settingsApi.getSettings()
+      .then(response => {
+        if (isActive) {
+          setSettings(normalizeSettings(response));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isActive = false;
+    };
+  }, [setSettings]);
+
+  useEffect(() => {
+    if (upiQrImageUrl || !upiQrImageId) return undefined;
+
+    let isActive = true;
+
+    imagesApi.getImage(upiQrImageId)
+      .then(response => {
+        const image = response?.data || response?.image || response;
+        const imageUrl = normalizeImageUrl(image?.imageUrl || image?.image_url || image?.url);
+        if (isActive && imageUrl) {
+          setSettings({ upiQrImageUrl: imageUrl });
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isActive = false;
+    };
+  }, [setSettings, upiQrImageId, upiQrImageUrl]);
 
   useEffect(() => {
     const arrowLoop = Animated.loop(
@@ -306,9 +346,13 @@ export default function CheckoutScreen() {
   const totalQuantity = items.reduce((total, item) => total + (Number(item.quantity) || 0), 0);
   const hasPinnedLocation = Boolean(coordinates);
   const hasInvalidDelivery = Boolean(bill && (bill.requiresLocation || !bill.deliveryWithinRange));
-  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || !hasPinnedLocation || hasInvalidDelivery;
+  const isPinLocationDisabled = isSubmitting || gpsStatus === 'loading' || items.length === 0 || !address.trim();
+  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || hasInvalidDelivery;
+  const isPrimaryActionDisabled = hasPinnedLocation ? isPlaceOrderDisabled : isPinLocationDisabled;
   const placeOrderLabel = isSubmitting
     ? 'Processing...'
+    : gpsStatus === 'loading'
+    ? 'Pinning Location...'
     : !hasPinnedLocation
     ? 'Pin Location to Continue'
     : hasInvalidDelivery
@@ -344,13 +388,11 @@ export default function CheckoutScreen() {
           />
 
           <View style={styles.gpsContainer}>
-            {gpsStatus === 'idle' || gpsStatus === 'error' ? (
-              <Button 
-                label={gpsStatus === 'error' ? "Retry GPS Location" : "Use Current Location"}
-                variant="outline"
-                onPress={handleRequestGPS}
-                style={styles.gpsBtn}
-              />
+            {gpsStatus === 'idle' ? (
+              <View style={styles.gpsHintBox}>
+                <AppIcon name="location" size={18} color={colors.textSecondary} />
+                <Text style={styles.gpsHintText}>Tap the bottom button to pin your delivery location.</Text>
+              </View>
             ) : gpsStatus === 'loading' ? (
               <View style={styles.gpsLoading}>
                 <ActivityIndicator size="small" color={colors.primary} />
@@ -417,8 +459,57 @@ export default function CheckoutScreen() {
           </View>
           
           <Text style={styles.paymentPendingNote}>
-            {paymentMethod === 'UPI' ? 'You will be redirected to UPI app after placing the order.' : 'Pay cash to the delivery executive.'}
+            {paymentMethod === 'UPI' ? 'Scan and pay before or after placing the order.' : 'Pay cash to the delivery executive.'}
           </Text>
+
+          {paymentMethod === 'UPI' && (
+            <View style={styles.upiPanel}>
+              <View style={styles.upiPanelHeader}>
+                <View style={styles.upiIconFrame}>
+                  <AppIcon name="creditCard" size={18} color={colors.success} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.upiTitle}>Pay here</Text>
+                  <Text style={styles.upiSubtitle}>Scan this QR and keep the payment screenshot ready.</Text>
+                </View>
+              </View>
+
+              <View style={styles.upiAmountCard}>
+                <Text style={styles.upiAmountLabel}>Amount to pay</Text>
+                <Text style={styles.upiAmountValue}>{bill ? `₹${bill.grandTotal}` : 'Calculating...'}</Text>
+              </View>
+
+              <View style={styles.upiQrWrap}>
+                <View style={styles.qrShell}>
+                  {upiQrImageUrl ? (
+                    <Image
+                      source={{ uri: upiQrImageUrl }}
+                      style={styles.qrImage}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <View style={styles.qrPlaceholder}>
+                      <AppIcon name="image" size={30} color={colors.textTertiary} />
+                      <Text style={styles.qrPlaceholderText}>QR not available</Text>
+                    </View>
+                  )}
+                </View>
+                {upiId ? (
+                  <View style={styles.upiIdPill}>
+                    <Text style={styles.upiIdLabel}>UPI ID</Text>
+                    <Text style={styles.upiIdValue}>{upiId}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.screenshotNote}>
+                <AppIcon name="check" size={16} color={colors.success} />
+                <Text style={styles.screenshotNoteText}>
+                  You can show the payment screenshot at the time of delivery.
+                </Text>
+              </View>
+            </View>
+          )}
         </Animated.View>
 
         {/* Order Summary */}
@@ -501,43 +592,31 @@ export default function CheckoutScreen() {
 
       {/* Bottom Action Bar */}
       <View style={styles.bottomBar}>
-        {isPlaceOrderDisabled && !isSubmitting && !isCalculating ? (
-          <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
-            <Text style={styles.placeOrderBtnTextDisabled}>{placeOrderLabel}</Text>
+        <PressableScale
+          onPress={hasPinnedLocation ? handlePlaceOrder : handleRequestGPS}
+          disabled={isPrimaryActionDisabled}
+          style={[
+            styles.customPlaceOrderBtn,
+            isPrimaryActionDisabled && styles.customPlaceOrderBtnDisabled
+          ]}
+          scaleTo={0.96}
+          accessibilityRole="button"
+          accessibilityLabel={hasPinnedLocation && bill ? `Place Order, ₹${bill.grandTotal}` : 'Pin Location to Continue'}
+        >
+          <View style={styles.placeOrderBtnContent}>
+            {isSubmitting || isCalculating || gpsStatus === 'loading' ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : null}
+            <Text style={isPrimaryActionDisabled ? styles.placeOrderBtnTextDisabled : styles.placeOrderBtnText}>
+              {placeOrderLabel}
+            </Text>
+            {!isSubmitting && !isCalculating && gpsStatus !== 'loading' && (
+              <Animated.View style={[styles.placeOrderBtnArrow, { transform: [{ translateX: arrowAnim }] }]}>
+                <AppIcon name={hasPinnedLocation ? 'chevronRight' : 'location'} size={16} color={isPrimaryActionDisabled ? colors.textDisabled : '#FFFFFF'} />
+              </Animated.View>
+            )}
           </View>
-        ) : (
-          <PressableScale
-            onPress={handlePlaceOrder}
-            disabled={isPlaceOrderDisabled}
-            style={[
-              styles.customPlaceOrderBtn,
-              isPlaceOrderDisabled && styles.customPlaceOrderBtnDisabled
-            ]}
-            scaleTo={0.96}
-            accessibilityRole="button"
-            accessibilityLabel={bill ? `Place Order, ₹${bill.grandTotal}` : 'Place Order'}
-          >
-            <View style={styles.placeOrderBtnContent}>
-              {isSubmitting || isCalculating ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : null}
-              <Text style={styles.placeOrderBtnText}>
-                {isSubmitting
-                  ? 'Processing...'
-                  : isCalculating
-                  ? 'Calculating total...'
-                  : bill
-                  ? `Place Order • ₹${bill.grandTotal}`
-                  : 'Place Order'}
-              </Text>
-              {!isSubmitting && !isCalculating && bill && (
-                <Animated.View style={[styles.placeOrderBtnArrow, { transform: [{ translateX: arrowAnim }] }]}>
-                  <AppIcon name="chevronRight" size={16} color="#FFFFFF" />
-                </Animated.View>
-              )}
-            </View>
-          </PressableScale>
-        )}
+        </PressableScale>
         <TouchableOpacity 
           style={styles.backToCartBtn}
           onPress={() => navigation.goBack()}
@@ -581,8 +660,20 @@ const styles = StyleSheet.create({
   gpsContainer: {
     marginTop: spacing.sm,
   },
-  gpsBtn: {
-    alignSelf: 'flex-start',
+  gpsHintBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.bgApp,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  gpsHintText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    flex: 1,
   },
   gpsLoading: {
     flexDirection: 'row',
@@ -680,6 +771,135 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textTertiary,
     fontStyle: 'italic',
+  },
+  upiPanel: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.infoLight,
+    borderWidth: 1.5,
+    borderColor: colors.info + '22',
+    ...shadows.sm,
+  },
+  upiPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  upiIconFrame: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.pill,
+    backgroundColor: colors.successLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.success + '33',
+  },
+  upiTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+    fontWeight: '800',
+  },
+  upiSubtitle: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  upiAmountCard: {
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    ...shadows.sm,
+  },
+  upiQrWrap: {
+    alignItems: 'center',
+  },
+  qrShell: {
+    width: 190,
+    height: 190,
+    borderRadius: radius.xl,
+    padding: spacing.xs,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    ...shadows.sm,
+  },
+  qrImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: radius.lg,
+  },
+  qrPlaceholder: {
+    flex: 1,
+    borderRadius: radius.lg,
+    backgroundColor: colors.bgInput,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.sm,
+  },
+  qrPlaceholderText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+    textAlign: 'center',
+  },
+  upiAmountLabel: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  upiAmountValue: {
+    ...typography.h2,
+    color: colors.success,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  upiIdPill: {
+    width: '100%',
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.success + '24',
+    alignItems: 'center',
+  },
+  upiIdLabel: {
+    ...typography.caption,
+    color: colors.textTertiary,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  upiIdValue: {
+    ...typography.label,
+    color: colors.textPrimary,
+    fontWeight: '800',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  screenshotNote: {
+    marginTop: spacing.md,
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.successLight,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  screenshotNoteText: {
+    ...typography.caption,
+    color: colors.successDark,
+    flex: 1,
+    fontWeight: '700',
   },
   summaryBox: {
     backgroundColor: colors.bgApp,

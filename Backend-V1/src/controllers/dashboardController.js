@@ -13,7 +13,7 @@ const SECTION_ITEM_TYPES = {
 };
 
 const getExpectedStoreType = (storeType) => {
-  if (!storeType || storeType === 'all') return null;
+  if (!storeType || storeType === 'all') return 'packed';
   return normalizeStoreType(storeType, { fallback: null, allowAll: true });
 };
 
@@ -216,7 +216,7 @@ const mapProductRows = (rows) => rows.map(r => ({
   isCombo: r.is_combo || r.isCombo || false
 }));
 
-const getDefaultCategoryItems = async (expectedStoreType, limit = 8) => {
+const getDefaultCategoryItems = async (expectedStoreType, limit = 8, offset = 0) => {
   const params = [];
   let query = `
     SELECT c.*, c.display_order
@@ -229,15 +229,15 @@ const getDefaultCategoryItems = async (expectedStoreType, limit = 8) => {
     params.push(expectedStoreType);
   }
 
-  query += ' ORDER BY c.display_order ASC, c.id ASC LIMIT ?';
-  params.push(limit);
+  query += ' ORDER BY c.display_order ASC, c.id ASC LIMIT ? OFFSET ?';
+  params.push(limit, offset);
 
   const [rows] = await pool.query(query, params);
   await resolveImageUrls(rows);
   return mapCategoryRows(rows);
 };
 
-const getDefaultComboItems = async (expectedStoreType, limit = 6) => {
+const getDefaultComboItems = async (expectedStoreType, limit = 6, offset = 0) => {
   const params = [];
   let query = `
     SELECT p.*, 1 as is_combo, p.store_type as category_type
@@ -250,8 +250,8 @@ const getDefaultComboItems = async (expectedStoreType, limit = 6) => {
     params.push(expectedStoreType);
   }
 
-  query += ' ORDER BY p.display_order ASC, p.id ASC LIMIT ?';
-  params.push(limit);
+  query += ' ORDER BY p.display_order ASC, p.id ASC LIMIT ? OFFSET ?';
+  params.push(limit, offset);
 
   const [rows] = await pool.query(query, params);
   await resolveImageUrls(rows);
@@ -265,7 +265,7 @@ const getDefaultComboItems = async (expectedStoreType, limit = 6) => {
  */
 const getDashboard = async (req, res) => {
   // Dashboard category grid is derived from categories.
-  const { storeType = 'all' } = req.query;
+  const { storeType = 'packed' } = req.query;
   const expectedStoreType = getExpectedStoreType(storeType);
 
   try {
@@ -278,15 +278,14 @@ const getDashboard = async (req, res) => {
     const params = [];
 
     if (expectedStoreType) {
-      query += ' AND (store_type = ? OR store_type = "all")';
+      query += ' AND store_type = ?';
       params.push(expectedStoreType);
     }
 
     query += ' ORDER BY display_order ASC, id ASC';
 
     const [sections] = await pool.query(query, params);
-    const [configuredRows] = await pool.query('SELECT DISTINCT section_type FROM dashboard_sections');
-    const configuredTypes = new Set(configuredRows.map(row => row.section_type));
+    const configuredTypes = new Set(sections.map(row => row.section_type));
     const resultSections = [];
 
     for (const section of sections) {
@@ -366,7 +365,9 @@ const getDashboard = async (req, res) => {
         }
       }
 
-      const maxVisible = section.max_visible_items || 6;
+      const maxVisible = section.section_type === 'offer_banner'
+        ? Math.max(Number(section.max_visible_items || 0), items.length)
+        : section.max_visible_items || 6;
       const visibleItems = items.slice(0, maxVisible);
 
       // Hide empty sections by default
@@ -393,7 +394,7 @@ const getDashboard = async (req, res) => {
           title: 'Shop by Category',
           slug: 'categories-grid',
           sectionType: 'category_grid',
-          storeType: 'all',
+          storeType: expectedStoreType || 'packed',
           displayOrder: 1,
           maxVisibleItems: 8,
           showSeeAll: false,
@@ -410,7 +411,7 @@ const getDashboard = async (req, res) => {
           title: 'Popular Combos',
           slug: 'popular-combos',
           sectionType: 'combo_block',
-          storeType: 'all',
+          storeType: expectedStoreType || 'packed',
           displayOrder: 2,
           maxVisibleItems: 6,
           showSeeAll: true,
@@ -437,7 +438,7 @@ const getDashboard = async (req, res) => {
  */
 const getSectionItems = async (req, res) => {
   const { slug } = req.params;
-  const { storeType = 'all', page = 1, limit = 50 } = req.query;
+  const { storeType = 'packed', page = 1, limit = 50 } = req.query;
   const expectedStoreType = getExpectedStoreType(storeType);
   const pageNumber = Math.max(1, Number(page) || 1);
   const limitNumber = Math.min(100, Math.max(1, Number(limit) || 50));
@@ -452,12 +453,44 @@ const getSectionItems = async (req, res) => {
     `;
     const sectionParams = [slug];
     if (expectedStoreType) {
-      sectionQuery += ' AND (store_type = ? OR store_type = "all")';
+      sectionQuery += ' AND store_type = ?';
       sectionParams.push(expectedStoreType);
     }
     sectionQuery += ' ORDER BY id DESC LIMIT 1';
 
     const [sections] = await pool.query(sectionQuery, sectionParams);
+
+    if (sections.length === 0 && slug === 'popular-combos') {
+      const items = await getDefaultComboItems(expectedStoreType, limitNumber, offset);
+      return res.status(200).json({
+        data: {
+          section: {
+            id: 'default-popular-combos',
+            title: 'Popular Combos',
+            slug: 'popular-combos',
+            sectionType: 'combo_block',
+            storeType: expectedStoreType || 'packed'
+          },
+          items
+        }
+      });
+    }
+
+    if (sections.length === 0 && slug === 'categories-grid') {
+      const items = await getDefaultCategoryItems(expectedStoreType, limitNumber, offset);
+      return res.status(200).json({
+        data: {
+          section: {
+            id: 'default-categories-grid',
+            title: 'Shop by Category',
+            slug: 'categories-grid',
+            sectionType: 'category_grid',
+            storeType: expectedStoreType || 'packed'
+          },
+          items
+        }
+      });
+    }
 
     if (sections.length === 0) {
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Dashboard section not found' });

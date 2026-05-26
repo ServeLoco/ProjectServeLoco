@@ -10,6 +10,7 @@ import {
   Platform,
   UIManager,
   ScrollView,
+  RefreshControl,
   useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -69,6 +70,7 @@ export default function ProductListScreen() {
   const [sortBy, setSortBy] = useState('Popular');
   
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isError, setIsError] = useState(false);
   const [products, setProducts] = useState([]);
   const cartItemCount = useMemo(
@@ -80,8 +82,12 @@ export default function ProductListScreen() {
     [items]
   );
 
-  const fetchProducts = async () => {
-    setIsLoading(true);
+  const fetchProducts = async (refresh = false) => {
+    if (refresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
     setIsError(false);
 
     try {
@@ -153,14 +159,19 @@ export default function ProductListScreen() {
       setIsError(true);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchProducts(true);
   };
 
   // Initial fetch and dependency fetch
   useEffect(() => {
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCategory, showAvailableOnly, sortBy, offerId]);
+  }, [activeCategory, showAvailableOnly, sortBy, offerId, sectionSlug, sectionStoreType, mode, route.params?.categoryId]);
 
   // Debounced Search
   useEffect(() => {
@@ -346,6 +357,16 @@ export default function ProductListScreen() {
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.flatListContent}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={colors.primary}
+                colors={[colors.primary, colors.success, colors.saffron]}
+                title="Refreshing ServeLoco"
+                titleColor={colors.textSecondary}
+              />
+            }
           />
         )}
       </View>

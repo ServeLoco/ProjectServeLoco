@@ -2,6 +2,7 @@ const { pool } = require('../db/mysql');
 const { getDb } = require('../db/mongodb');
 const { ObjectId } = require('mongodb');
 const { normalizeStoreType } = require('../utils/storeMode');
+const config = require('../config/env');
 
 const hasValue = (value) => value !== undefined && value !== null && value !== '';
 const validateNonNegativeNumber = (value, message) => {
@@ -11,6 +12,32 @@ const validateNonNegativeNumber = (value, message) => {
     return { code: 'VALIDATION_ERROR', message };
   }
   return null;
+};
+
+const attachSettingsImageUrls = async (settings) => {
+  if (!settings) return settings;
+
+  settings.upi_qr_image_url = null;
+  settings.upiQrImageUrl = null;
+
+  const imageId = settings.upi_qr_image_id;
+  if (!imageId || !ObjectId.isValid(imageId)) {
+    return settings;
+  }
+
+  const db = getDb();
+  const image = await db.collection('images').findOne({ _id: new ObjectId(imageId) });
+  const imageUrl = image?.url ||
+    image?.imageUrl ||
+    image?.image_url ||
+    (image?.filename ? `${config.PUBLIC_BASE_URL}${config.STATIC_UPLOAD_PATH}/${image.filename}` : null);
+
+  if (imageUrl) {
+    settings.upi_qr_image_url = imageUrl;
+    settings.upiQrImageUrl = imageUrl;
+  }
+
+  return settings;
 };
 
 const attachOfferImageUrls = async (offers) => {
@@ -59,24 +86,26 @@ const getSettings = async (req, res) => {
       delivery_cost_per_km: 0.00,
       below_threshold_delivery_charge: 20.00,
       free_delivery_above_minimum_active: 1,
-      free_delivery_offer_active: 0
+      free_delivery_offer_active: 0,
+      upi_qr_image_id: null
     };
   }
+  await attachSettingsImageUrls(settings);
   res.status(200).json({ data: settings });
 };
 
 const getActiveOffer = async (req, res) => {
   const { store_type, storeType } = req.query;
-  const finalStoreType = store_type || storeType;
+  const finalStoreType = store_type || storeType || 'packed';
   let query = 'SELECT * FROM offers WHERE active = 1 AND deleted = 0';
   const params = [];
 
   if (finalStoreType) {
-    const normalizedStoreType = normalizeStoreType(finalStoreType, { allowAll: true });
-    if (normalizedStoreType !== 'all') {
-      query += ' AND store_type = ?';
-      params.push(normalizedStoreType);
-    }
+    const normalizedStoreType = finalStoreType === 'all'
+      ? 'packed'
+      : normalizeStoreType(finalStoreType, { allowAll: false });
+    query += ' AND store_type = ?';
+    params.push(normalizedStoreType);
   }
 
   query += ' ORDER BY id DESC LIMIT 1';
@@ -182,8 +211,9 @@ const updateSettings = async (req, res) => {
 
   await pool.query(`UPDATE settings SET ${updates.join(', ')} WHERE id = ?`, [...params, settingsId]);
   const [updatedRows] = await pool.query('SELECT * FROM settings LIMIT 1');
+  const updatedSettings = await attachSettingsImageUrls(updatedRows[0]);
 
-  res.status(200).json({ message: 'Settings updated successfully', data: updatedRows[0] });
+  res.status(200).json({ message: 'Settings updated successfully', data: updatedSettings });
 };
 
 const createOffer = async (req, res) => {

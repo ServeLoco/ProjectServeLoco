@@ -66,7 +66,7 @@ function AnimatedTabIcon({ name, focused }) {
 
 /**
  * CustomerBottomTabs
- * Main tabs for customer (Home, Categories, Orders, Profile).
+ * Main tabs for customer (Home, Orders, Profile).
  * Cart is specifically excluded from tabs.
  */
 function CustomerBottomTabs() {
@@ -79,8 +79,8 @@ function CustomerBottomTabs() {
         tabBarStyle: {
           position: 'absolute',
           bottom: 16,
-          left: 40,
-          right: 40,
+          left: 72,
+          right: 72,
           borderRadius: 30,
           backgroundColor: colors.bgSurface,
           height: 64,
@@ -105,11 +105,6 @@ function CustomerBottomTabs() {
         name="Home"
         component={HomeScreen}
         options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon name="home" focused={focused} /> }}
-      />
-      <Tab.Screen
-        name="Categories"
-        component={CategoriesScreen}
-        options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon name="box" focused={focused} /> }}
       />
       <Tab.Screen
         name="Orders"
@@ -180,6 +175,7 @@ export default function CustomerNavigator() {
           <Stack.Screen name="MainTabs" component={CustomerBottomTabs} />
           
           {/* Product Flow */}
+          <Stack.Screen name="Categories" component={CategoriesScreen} />
           <Stack.Screen name="ProductList" component={ProductListScreen} />
           <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
           

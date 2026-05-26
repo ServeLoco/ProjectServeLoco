@@ -106,7 +106,7 @@ async function seedDemoData() {
     const demoChipsId = demoChipsRows[0].id;
 
     // 5. Orders in various states — include all required NOT NULL columns
-    const states = ['Pending', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
+    const states = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
     for (let i = 0; i < states.length; i++) {
       const orderNumber = `SL-DEMO-${1000 + i}`;

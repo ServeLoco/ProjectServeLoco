@@ -63,9 +63,14 @@ const createOrderNotification = async ({ userId, order, event, connection = pool
       body = `Your order #${orderNumber} has been placed successfully.`;
       type = 'order';
       break;
-    case 'status_preparing':
+    case 'status_accepted':
       title = 'Order accepted';
-      body = `Your order #${orderNumber} is being prepared.`;
+      body = `Your order #${orderNumber} has been accepted by the shop.`;
+      type = 'info';
+      break;
+    case 'status_preparing':
+      title = 'Preparing your order';
+      body = `Your order #${orderNumber} is being prepared and packed.`;
       type = 'info';
       break;
     case 'status_out_for_delivery':

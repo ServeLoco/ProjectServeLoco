@@ -207,7 +207,7 @@ const migrate = async () => {
         total DECIMAL(10, 2) NOT NULL,
         payment_method ENUM('Cash', 'UPI') DEFAULT 'Cash',
         payment_status ENUM('Pending', 'Paid', 'Failed', 'Refunded') DEFAULT 'Pending',
-        status ENUM('Pending', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled') DEFAULT 'Pending',
+        status ENUM('Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled') DEFAULT 'Pending',
         note TEXT,
         cancel_reason TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -217,6 +217,10 @@ const migrate = async () => {
         INDEX idx_status (status),
         INDEX idx_created_at (created_at)
       );
+    `);
+    await connection.query(`
+      ALTER TABLE orders
+      MODIFY COLUMN status ENUM('Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled') DEFAULT 'Pending'
     `);
     await ensureColumn('orders', 'delivery_distance_km', 'delivery_distance_km DECIMAL(10, 4) DEFAULT NULL AFTER longitude');
     await ensureColumn('orders', 'delivery_radius_km_snapshot', 'delivery_radius_km_snapshot DECIMAL(10, 2) DEFAULT NULL AFTER delivery_distance_km');

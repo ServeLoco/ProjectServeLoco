@@ -40,14 +40,13 @@ describe('Dashboard Public and Admin API Tests', () => {
 
   describe('Public API: GET /api/dashboard', () => {
     it('should return dynamic dashboard sections', async () => {
-      // Mock sections retrieval
       pool.query.mockResolvedValueOnce([[
         {
           id: 1,
           title: 'Popular Combos',
           slug: 'popular-combos',
           section_type: 'combo_block',
-          store_type: 'all',
+          store_type: 'fast_food',
           active: 1,
           display_order: 0,
           max_visible_items: 6,
@@ -55,13 +54,6 @@ describe('Dashboard Public and Admin API Tests', () => {
         }
       ]]);
 
-      // Mock configured section types lookup
-      pool.query.mockResolvedValueOnce([[
-        { section_type: 'category_grid' },
-        { section_type: 'combo_block' }
-      ]]);
-
-      // Mock section items retrieval
       pool.query.mockResolvedValueOnce([[
         {
           id: 10,
@@ -75,7 +67,6 @@ describe('Dashboard Public and Admin API Tests', () => {
         }
       ]]);
 
-      // Mock getComboItemsByComboIds query
       pool.query.mockResolvedValueOnce([[
         {
           combo_product_id: 10,
@@ -89,6 +80,9 @@ describe('Dashboard Public and Admin API Tests', () => {
           is_combo: 0
         }
       ]]);
+
+      // No category fallback rows for this focused combo test.
+      pool.query.mockResolvedValueOnce([[]]);
 
       const res = await request(app).get('/api/dashboard?storeType=fast_food');
 
@@ -106,7 +100,7 @@ describe('Dashboard Public and Admin API Tests', () => {
           title: 'Shop by Category',
           slug: 'categories-grid',
           section_type: 'category_grid',
-          store_type: 'all',
+          store_type: 'packed',
           active: 1,
           display_order: 1,
           max_visible_items: 8,
@@ -114,12 +108,6 @@ describe('Dashboard Public and Admin API Tests', () => {
         }
       ]]);
 
-      pool.query.mockResolvedValueOnce([[
-        { section_type: 'category_grid' },
-        { section_type: 'combo_block' }
-      ]]);
-
-      // Category grid is derived directly from active categories.
       pool.query.mockResolvedValueOnce([[
         {
           id: 5,
@@ -130,6 +118,9 @@ describe('Dashboard Public and Admin API Tests', () => {
           display_order: 2
         }
       ]]);
+
+      // No combo fallback rows for this focused category test.
+      pool.query.mockResolvedValueOnce([[]]);
 
       const res = await request(app).get('/api/dashboard?storeType=packed');
 
@@ -168,7 +159,6 @@ describe('Dashboard Public and Admin API Tests', () => {
           title: 'Daily Essentials',
           slug: 'daily-essentials',
           section_type: 'product_block',
-          store_type: 'packed',
           store_type: 'packed',
           active: 1,
           max_visible_items: 6,

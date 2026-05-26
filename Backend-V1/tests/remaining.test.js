@@ -50,17 +50,17 @@ describe('Order Cancellation and Admin Action Tests', () => {
 
   it('should update admin order status', async () => {
     pool.query
-      .mockResolvedValueOnce([[{ id: 1001, status: 'Pending' }]]) // check existing
+      .mockResolvedValueOnce([[{ id: 1001, status: 'Pending', customer_id: 1 }]]) // check existing
       .mockResolvedValueOnce([{}]) // update
-      .mockResolvedValueOnce([[{ id: 1001, status: 'Preparing' }]]); // return updated
+      .mockResolvedValueOnce([[{ id: 1001, status: 'Accepted', customer_id: 1 }]]); // return updated
 
     const res = await request(app)
       .patch('/api/admin/orders/1001/status')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ status: 'Preparing' });
+      .send({ status: 'Accepted' });
 
     expect(res.statusCode).toEqual(200);
-    expect(res.body.order.status).toEqual('Preparing');
+    expect(res.body.order.status).toEqual('Accepted');
   });
 
   it('should block a customer', async () => {

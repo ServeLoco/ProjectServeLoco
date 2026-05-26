@@ -8,6 +8,7 @@ import {
   Modal,
   Linking,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
@@ -23,11 +24,17 @@ import { ordersApi } from '../../../api';
 import { normalizeOrder } from '../../../utils';
 
 const STATUS_STEPS = [
-  { id: 'Received', label: 'Order Received' },
-  { id: 'Preparing', label: 'Preparing' },
-  { id: 'OutForDelivery', label: 'Out for Delivery' },
+  { id: 'Pending', label: 'Order Placed' },
+  { id: 'Accepted', label: 'Order Accepted' },
+  { id: 'Preparing', label: 'Preparing/Packing' },
+  { id: 'Out for Delivery', label: 'Out for Delivery' },
   { id: 'Delivered', label: 'Delivered' }
 ];
+
+const normalizeTimelineStatus = (status) => {
+  if (status === 'OutForDelivery' || status === 'Out_For_Delivery') return 'Out for Delivery';
+  return status || 'Pending';
+};
 
 export default function OrderDetailScreen() {
   const navigation = useNavigation();
@@ -37,6 +44,7 @@ export default function OrderDetailScreen() {
 
   const [order, setOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
 
   // Modal State
@@ -47,16 +55,27 @@ export default function OrderDetailScreen() {
   const modalOpacity = useRef(new Animated.Value(0)).current;
   const modalScale = useRef(new Animated.Value(0.8)).current;
 
-  useEffect(() => {
-    setIsLoading(true);
+  const loadOrder = React.useCallback((refresh = false) => {
+    if (refresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
     setLoadError('');
     ordersApi.getOrder(orderId)
       .then(response => {
         setOrder(normalizeOrder(response?.order || response?.data || response));
       })
       .catch(error => setLoadError(error.message || 'Failed to load order'))
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      });
   }, [orderId]);
+
+  useEffect(() => {
+    loadOrder();
+  }, [loadOrder]);
 
   const openModal = () => {
     setShowCancelModal(true);
@@ -125,7 +144,20 @@ export default function OrderDetailScreen() {
     <AppScreen style={styles.container} safeAreaBottom={false}>
       <AppHeader title="Track Order" onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => loadOrder(true)}
+            tintColor={colors.primary}
+            colors={[colors.primary, colors.success, colors.saffron]}
+            title="Refreshing ServeLoco"
+            titleColor={colors.textSecondary}
+          />
+        }
+      >
         
         {/* Status Timeline */}
         <View style={styles.section}>
@@ -138,7 +170,7 @@ export default function OrderDetailScreen() {
           ) : (
             <View style={styles.timeline}>
               {STATUS_STEPS.map((step, index) => {
-                const stepIndex = STATUS_STEPS.findIndex(s => s.id === order.status);
+                const stepIndex = STATUS_STEPS.findIndex(s => s.id === normalizeTimelineStatus(order.status));
                 const isCompleted = index <= stepIndex;
                 const isActive = index === stepIndex;
  
@@ -195,7 +227,12 @@ export default function OrderDetailScreen() {
           
           <View style={styles.infoGroup}>
             <Text style={styles.infoLabel}>Payment Method</Text>
-            <Text style={styles.infoValue}>{order.paymentMethod} • <Text style={{ color: order.paymentStatus === 'Paid' ? colors.success : colors.warning }}>{order.paymentStatus}</Text></Text>
+            <Text style={styles.infoValue}>
+              {order.paymentMethod} •{' '}
+              <Text style={{ color: order.paymentStatus === 'Paid' ? colors.success : colors.warning }}>
+                {order.paymentMethod === 'UPI' && order.paymentStatus === 'Pending' ? 'Checking' : order.paymentStatus}
+              </Text>
+            </Text>
           </View>
 
           {order.deliveryDistanceKm !== null && order.deliveryDistanceKm !== undefined ? (

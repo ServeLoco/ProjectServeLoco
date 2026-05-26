@@ -93,12 +93,12 @@ const createValidationError = (message) => {
   return error;
 };
 
-const saveComboItems = async (comboId, comboItems, connection = pool) => {
+const saveComboItems = async (comboId, comboItems, connection = pool, comboStoreType = null) => {
   if (!Array.isArray(comboItems)) return;
 
   await connection.query('DELETE FROM combo_items WHERE combo_id = ?', [comboId]);
 
-  const rows = await validateComboItems(comboItems, null);
+  const rows = await validateComboItems(comboItems, comboStoreType);
 
   if (rows.length === 0) return;
 
@@ -244,18 +244,33 @@ const createCombo = async (req, res) => {
       store_type
     ]
   );
-  await saveComboItems(result.insertId, validatedComboItems);
+  await saveComboItems(result.insertId, validatedComboItems, pool, store_type);
   res.status(201).json({ message: 'Combo created', id: result.insertId });
 };
 
 const updateCombo = async (req, res) => {
   const { id } = req.params;
   const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items, store_type } = req.validatedData;
-  const validatedComboItems = await validateComboItems(combo_items, store_type, { required: combo_items !== undefined });
 
-  const [existing] = await pool.query('SELECT image_id FROM combos WHERE id = ?', [id]);
-  if (existing.length > 0 && existing[0].image_id && existing[0].image_id !== image_id) {
-    const oldImageId = existing[0].image_id;
+  const [existing] = await pool.query('SELECT image_id, store_type FROM combos WHERE id = ? AND deleted = 0', [id]);
+  if (existing.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Combo not found' });
+  }
+
+  const existingCombo = existing[0];
+  const targetStoreType = store_type || existingCombo.store_type;
+  const validatedComboItems = await validateComboItems(combo_items, targetStoreType, { required: combo_items !== undefined });
+
+  if (combo_items === undefined && targetStoreType !== existingCombo.store_type) {
+    const [existingItems] = await pool.query(
+      'SELECT product_id, quantity, display_order FROM combo_items WHERE combo_id = ? ORDER BY display_order ASC, id ASC',
+      [id]
+    );
+    await validateComboItems(existingItems, targetStoreType, { required: existingItems.length > 0 });
+  }
+
+  if (existingCombo.image_id && existingCombo.image_id !== image_id) {
+    const oldImageId = existingCombo.image_id;
     if (ObjectId.isValid(oldImageId)) {
       const db = getDb();
       const image = await db.collection('images').findOne({ _id: new ObjectId(oldImageId) });
@@ -273,9 +288,9 @@ const updateCombo = async (req, res) => {
 
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
   if (finalDisplayOrder > 0) {
-    const [existing] = await pool.query('SELECT name FROM combos WHERE display_order = ? AND store_type = ? AND id != ? AND deleted = 0 LIMIT 1', [finalDisplayOrder, store_type, id]);
-    if (existing.length > 0) {
-      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${existing[0].name} in this mode.` });
+    const [orderExisting] = await pool.query('SELECT name FROM combos WHERE display_order = ? AND store_type = ? AND id != ? AND deleted = 0 LIMIT 1', [finalDisplayOrder, targetStoreType, id]);
+    if (orderExisting.length > 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${orderExisting[0].name} in this mode.` });
     }
   }
 
@@ -288,12 +303,12 @@ const updateCombo = async (req, res) => {
       finalDisplayOrder,
       original_price || null,
       discount_label || null,
-      store_type,
+      targetStoreType,
       id
     ]
   );
   if (combo_items !== undefined) {
-    await saveComboItems(id, validatedComboItems);
+    await saveComboItems(id, validatedComboItems, pool, targetStoreType);
   }
   res.status(200).json({ message: 'Combo updated' });
 };

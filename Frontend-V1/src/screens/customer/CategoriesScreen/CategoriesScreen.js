@@ -9,8 +9,9 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  RefreshControl,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
@@ -35,6 +36,7 @@ const DEFAULT_CHIPS = ['All', 'Bestsellers', 'New Arrivals', 'Offers'];
 
 export default function CategoriesScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const items = useCartStore(state => state.items);
   const cartItemCount = useMemo(
     () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
@@ -46,7 +48,9 @@ export default function CategoriesScreen() {
   );
   
   const [isLoading, setIsLoading] = useState(true);
-  const [storeType, setStoreType] = useState('Packed Items');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const initialStoreType = route.params?.storeType === 'fast_food' ? 'Fast Food' : 'Packed Items';
+  const [storeType, setStoreType] = useState(initialStoreType);
   const [activeChip, setActiveChip] = useState('All');
   const [categories, setCategories] = useState([]);
   const [chips, setChips] = useState(DEFAULT_CHIPS);
@@ -69,7 +73,9 @@ export default function CategoriesScreen() {
   const staggerAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
 
   useEffect(() => {
-    setIsLoading(true);
+    if (!isRefreshing) {
+      setIsLoading(true);
+    }
     setIsError(false);
     fadeAnim.setValue(0);
     slideAnim.setValue(20);
@@ -92,6 +98,7 @@ export default function CategoriesScreen() {
       .catch(() => setIsError(true))
       .finally(() => {
       setIsLoading(false);
+      setIsRefreshing(false);
       
       Animated.parallel([
         Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
@@ -104,6 +111,11 @@ export default function CategoriesScreen() {
       });
 
   }, [storeType, reloadToken, fadeAnim, slideAnim, staggerAnims]);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setReloadToken(value => value + 1);
+  };
 
   const handleSearchPress = () => {
     navigation.navigate('ProductList', { mode: 'search', storeType: normalizedStoreType });
@@ -214,6 +226,16 @@ export default function CategoriesScreen() {
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
               style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefreshing}
+                  onRefresh={handleRefresh}
+                  tintColor={colors.primary}
+                  colors={[colors.primary, colors.success, colors.saffron]}
+                  title="Refreshing ServeLoco"
+                  titleColor={colors.textSecondary}
+                />
+              }
             >
               {displayCategories.length > 0 ? (
                 <View style={styles.list}>

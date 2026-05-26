@@ -3,6 +3,20 @@ import { OrdersApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import './Orders.css';
 
+const ORDER_STATUS_OPTIONS = [
+  { value: 'Pending', label: 'Order Placed' },
+  { value: 'Accepted', label: 'Order Accepted' },
+  { value: 'Preparing', label: 'Preparing/Packing' },
+  { value: 'Out for Delivery', label: 'Out for Delivery' },
+  { value: 'Delivered', label: 'Delivered' },
+  { value: 'Cancelled', label: 'Cancelled' },
+];
+const ORDER_STATUS_LABELS = ORDER_STATUS_OPTIONS.reduce((acc, item) => {
+  acc[item.value] = item.label;
+  return acc;
+}, {});
+const getOrderStatusLabel = (status) => ORDER_STATUS_LABELS[status] || status || 'Unknown';
+
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
@@ -70,7 +84,7 @@ export default function Orders() {
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
-    if (!window.confirm(`Change order status to ${newStatus}?`)) return;
+    if (!window.confirm(`Change order status to ${getOrderStatusLabel(newStatus)}?`)) return;
 
     try {
       setUpdating(true);
@@ -280,11 +294,9 @@ export default function Orders() {
           />
           <select name="status" className="filter-select" value={filters.status} onChange={handleFilterChange}>
             <option value="">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Preparing">Preparing</option>
-            <option value="Out for Delivery">Out for Delivery</option>
-            <option value="Delivered">Delivered</option>
-            <option value="Cancelled">Cancelled</option>
+            {ORDER_STATUS_OPTIONS.map(status => (
+              <option key={status.value} value={status.value}>{status.label}</option>
+            ))}
           </select>
           <select name="paymentStatus" className="filter-select" value={filters.paymentStatus} onChange={handleFilterChange}>
             <option value="">All Payment Status</option>
@@ -319,8 +331,9 @@ export default function Orders() {
         </div>
         <div className="filter-chips">
           <span className={`filter-chip ${!filters.status ? 'active' : ''}`} onClick={() => handleQuickFilter('')}>All</span>
-          <span className={`filter-chip ${filters.status === 'Pending' ? 'active' : ''}`} onClick={() => handleQuickFilter('Pending')}>Pending</span>
-          <span className={`filter-chip ${filters.status === 'Preparing' ? 'active' : ''}`} onClick={() => handleQuickFilter('Preparing')}>Preparing</span>
+          <span className={`filter-chip ${filters.status === 'Pending' ? 'active' : ''}`} onClick={() => handleQuickFilter('Pending')}>Order Placed</span>
+          <span className={`filter-chip ${filters.status === 'Accepted' ? 'active' : ''}`} onClick={() => handleQuickFilter('Accepted')}>Accepted</span>
+          <span className={`filter-chip ${filters.status === 'Preparing' ? 'active' : ''}`} onClick={() => handleQuickFilter('Preparing')}>Preparing/Packing</span>
           <span className={`filter-chip ${filters.status === 'Out for Delivery' ? 'active' : ''}`} onClick={() => handleQuickFilter('Out for Delivery')}>Out for Delivery</span>
         </div>
       </section>
@@ -356,7 +369,7 @@ export default function Orders() {
                   <td style={{ fontWeight: 600 }}>₹{order.total}</td>
                   <td>
                     <span className={`status-badge ${order.status.toLowerCase().replace(/ /g, '-')}`}>
-                      {order.status}
+                      {getOrderStatusLabel(order.status)}
                     </span>
                   </td>
                   <td>{order.payment_status} ({order.payment_method})</td>
@@ -451,11 +464,9 @@ export default function Orders() {
                     onChange={handleStatusChange}
                     disabled={updating || isTerminalState(selectedOrder.status)}
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="Preparing">Preparing</option>
-                    <option value="Out for Delivery">Out for Delivery</option>
-                    <option value="Delivered">Delivered</option>
-                    <option value="Cancelled">Cancelled</option>
+                    {ORDER_STATUS_OPTIONS.map(status => (
+                      <option key={status.value} value={status.value}>{status.label}</option>
+                    ))}
                   </select>
                 </div>
 

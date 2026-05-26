@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ProductsApi, CategoriesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
+import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import './Products.css';
 
 export default function Products() {
@@ -231,7 +232,7 @@ export default function Products() {
                   </td>
                   <td>
                     <div className="product-info">
-                      <img src={p.imageUrl || p.image_url || 'https://via.placeholder.com/48'} alt={p.name} className="product-thumbnail" />
+                      <img src={normalizeImageUrl(p.imageUrl || p.image_url) || 'https://via.placeholder.com/48'} alt={p.name} className="product-thumbnail" />
                       <div className="product-details">
                         <span className="product-name">{p.name}</span>
                         <span className="product-unit">{p.unit || '1 plate'} {p.featured ? '• Featured' : ''}</span>
@@ -286,6 +287,7 @@ export default function Products() {
         <ProductFormDrawer 
           product={editingProduct} 
           categories={categories}
+          currentMode={filters.type}
           onClose={closeDrawer} 
           onSave={() => { closeDrawer(); fetchProducts(pagination.page); }}
         />
@@ -295,8 +297,10 @@ export default function Products() {
 }
 
 // Separate Component for the Drawer
-function ProductFormDrawer({ product, categories, onClose, onSave }) {
+function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }) {
   const isEdit = !!product;
+  const initialMode = product?.category_type || categories.find(c => String(c.id) === String(product?.category_id))?.type || currentMode || 'packed';
+  const [productMode, setProductMode] = useState(initialMode);
   const [formData, setFormData] = useState(product || {
     name: '',
     description: '',
@@ -314,6 +318,7 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
   
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
@@ -322,6 +327,18 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const handleModeChange = (e) => {
+    const nextMode = e.target.value;
+    setProductMode(nextMode);
+    setFormData(prev => {
+      const selectedCategory = categories.find(c => String(c.id) === String(prev.category_id));
+      return {
+        ...prev,
+        category_id: selectedCategory?.type === nextMode ? prev.category_id : '',
+      };
+    });
   };
 
   const handleImageUpload = async (e) => {
@@ -333,17 +350,20 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
 
     try {
       setUploadingImage(true);
+      setUploadMessage(null);
       const res = await ImagesApi.upload(data);
-      const image = res.image || res.data || res;
+      const image = getUploadedImage(res);
       setFormData(prev => ({
         ...prev,
-        image_id: image.id || image._id || image.image_id || '',
-        image_url: image.imageUrl || image.image_url || image.url || '',
+        image_id: image.id,
+        image_url: image.url,
       }));
+      setUploadMessage({ type: 'success', text: 'Image uploaded. Save the product to apply it.' });
     } catch (err) {
-      alert('Image upload failed: ' + err.message);
+      setUploadMessage({ type: 'error', text: 'Image upload failed: ' + err.message });
     } finally {
       setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -375,6 +395,18 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
         image_id: formData.image_id,
       };
 
+      const selectedCat = categories.find(c => c.id.toString() === formData.category_id.toString());
+      if (!selectedCat) {
+        alert('Please select a category for this product.');
+        setSaving(false);
+        return;
+      }
+      if (selectedCat.type !== productMode) {
+        alert('Selected category does not match the chosen product mode.');
+        setSaving(false);
+        return;
+      }
+
       if (isEdit) {
         if (product.category_id && formData.category_id && product.category_id.toString() !== formData.category_id.toString()) {
           const oldCat = categories.find(c => c.id.toString() === product.category_id.toString());
@@ -391,13 +423,6 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
           await ProductsApi.attachImage(product.id, formData.image_id);
         }
       } else {
-        const selectedCat = categories.find(c => c.id.toString() === formData.category_id.toString());
-        if (selectedCat && selectedCat.type !== filters.type) {
-          if (!window.confirm(`Warning: This product will be saved in ${selectedCat.type === 'fast_food' ? 'Fast Food' : 'Packed Items'}, which is different from your current view (${filters.type === 'fast_food' ? 'Fast Food' : 'Packed Items'}). Continue?`)) {
-            setSaving(false);
-            return;
-          }
-        }
         const created = await ProductsApi.create(payload);
         const productId = created.id || created.product?.id || created.data?.id;
         if (productId && formData.image_id) {
@@ -451,19 +476,29 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
 
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Unit (e.g., 1 Plate)</label>
-                <input type="text" name="unit" className="form-input" value={formData.unit || ''} onChange={handleChange} />
+                <label className="form-label">Product Mode</label>
+                <select required name="product_mode" className="form-select" value={productMode} onChange={handleModeChange}>
+                  <option value="packed">Packed Items</option>
+                  <option value="fast_food">Fast Food</option>
+                </select>
               </div>
               <div className="form-group">
                 <label className="form-label">Category</label>
                 <select required name="category_id" className="form-select" value={formData.category_id} onChange={handleChange}>
-                  <option value="">Select Category</option>
-                  {categories.map(c => (
+                  <option value="">Select {productMode === 'fast_food' ? 'Fast Food' : 'Packed Items'} Category</option>
+                  {categories.filter(c => c.type === productMode).map(c => (
                     <option key={c.id} value={c.id}>
                       {c.name} ({c.type === 'fast_food' ? 'Fast Food' : 'Packed Items'})
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Unit (e.g., 1 Plate)</label>
+                <input type="text" name="unit" className="form-input" value={formData.unit || ''} onChange={handleChange} />
               </div>
             </div>
 
@@ -474,11 +509,14 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
 
             <div className="form-group">
               <label className="form-label">Product Image</label>
-              {(formData.image_url || formData.imageUrl) && <img src={formData.image_url || formData.imageUrl} alt="Preview" className="image-preview" />}
+              {(formData.image_url || formData.imageUrl) && <img src={normalizeImageUrl(formData.image_url || formData.imageUrl)} alt="Preview" className="image-preview" />}
               <div className="image-upload-zone" onClick={() => fileInputRef.current?.click()}>
                 <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
                 {uploadingImage ? 'Uploading...' : 'Click to Upload Image'}
               </div>
+              {uploadMessage && (
+                <p className={`upload-message ${uploadMessage.type}`}>{uploadMessage.text}</p>
+              )}
             </div>
 
             <div className="form-row">

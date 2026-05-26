@@ -57,14 +57,14 @@ export const CombosApi = {
 };
 
 export const CategoriesApi = {
-  list: () => apiClient('/admin/categories', { method: 'GET' }),
+  list: (params) => apiClient(withQuery('/admin/categories', params), { method: 'GET' }),
   create: (data) => apiClient('/admin/categories', { method: 'POST', body: data }),
   update: (id, data) => apiClient(`/admin/categories/${id}`, { method: 'PUT', body: data }),
   delete: (id) => apiClient(`/admin/categories/${id}`, { method: 'DELETE' }),
 };
 
 export const OffersApi = {
-  list: () => apiClient('/admin/offers', { method: 'GET' }),
+  list: (params) => apiClient(withQuery('/admin/offers', params), { method: 'GET' }),
   create: (data) => apiClient('/admin/offers', { method: 'POST', body: data }),
   update: (id, data) => apiClient(`/admin/offers/${id}`, { method: 'PATCH', body: data }),
   delete: (id) => apiClient(`/admin/offers/${id}`, { method: 'DELETE' }),

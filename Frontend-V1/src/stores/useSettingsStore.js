@@ -13,6 +13,9 @@ export const useSettingsStore = create(
       minimumOrder: 0,
       deliveryCharge: 0,
       nightCharge: 0,
+      upiId: null,
+      upiQrImageId: null,
+      upiQrImageUrl: null,
       activeOffer: null, // { title, description, code }
       
       setSettings: (settings) => 

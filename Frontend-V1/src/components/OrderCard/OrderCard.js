@@ -14,10 +14,16 @@ function OrderCard({ order = {}, onViewDetails, onCancel, cancellable = false, s
 
   const statusColors = {
     Pending:            { bg: colors.warningLight, text: colors.warning },
+    Accepted:           { bg: colors.infoLight, text: colors.info },
     Preparing:          { bg: colors.infoLight, text: colors.info },
     'Out for Delivery': { bg: colors.saffronLight, text: colors.saffron },
     Delivered:          { bg: colors.successLight, text: colors.success },
     Cancelled:          { bg: colors.errorLight, text: colors.error },
+  };
+  const statusLabels = {
+    Pending: 'Order Placed',
+    Accepted: 'Accepted',
+    Preparing: 'Preparing/Packing',
   };
 
   const paymentColors = {
@@ -44,7 +50,7 @@ function OrderCard({ order = {}, onViewDetails, onCancel, cancellable = false, s
         </View>
         <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
           <Text style={[styles.statusText, { color: statusColor.text }]}>
-            {status}
+            {statusLabels[status] || status}
           </Text>
         </View>
       </View>

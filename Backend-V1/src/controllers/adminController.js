@@ -351,7 +351,7 @@ const updateOrderStatus = async (req, res) => {
   // Normalize spelling to match DB ENUM
   if (status === 'Canceled') status = 'Cancelled';
 
-  const validStatuses = ['Pending', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
+  const validStatuses = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
   if (!status || !validStatuses.includes(status)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Valid status required. One of: ${validStatuses.join(', ')}` });
   }
@@ -369,7 +369,7 @@ const updateOrderStatus = async (req, res) => {
   }
 
   // Enforce forward-only progression
-  const statusOrder = ['Pending', 'Preparing', 'Out for Delivery', 'Delivered'];
+  const statusOrder = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered'];
   const currentIdx = statusOrder.indexOf(currentStatus);
   const newIdx = statusOrder.indexOf(status);
   // Allow Cancelled from any non-terminal state, otherwise enforce progression
@@ -383,7 +383,8 @@ const updateOrderStatus = async (req, res) => {
 
   if (currentStatus !== status) {
     let eventName = '';
-    if (status === 'Preparing') eventName = 'status_preparing';
+    if (status === 'Accepted') eventName = 'status_accepted';
+    else if (status === 'Preparing') eventName = 'status_preparing';
     else if (status === 'Out for Delivery') eventName = 'status_out_for_delivery';
     else if (status === 'Delivered') eventName = 'status_delivered';
     else if (status === 'Cancelled') eventName = 'status_cancelled';

@@ -7,7 +7,7 @@ import {
   BackHandler,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { AppScreen, AppIcon, PressableScale } from '../../../components';
+import { AppScreen, AppIcon } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { normalizeOrder } from '../../../utils';
 
@@ -32,11 +32,11 @@ export default function OrderConfirmationScreen() {
   const ringOpacity1 = useRef(new Animated.Value(0)).current;
   const ringScale2 = useRef(new Animated.Value(1)).current;
   const ringOpacity2 = useRef(new Animated.Value(0)).current;
+  const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Prevent back navigation to checkout
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      navigation.navigate('MainTabs', { screen: 'Home' });
       return true;
     });
 
@@ -56,6 +56,24 @@ export default function OrderConfirmationScreen() {
 
     return () => backHandler.remove();
   }, [iconScale, iconOpacity, detailsFade, detailsSlide, btnSlide, navigation]);
+
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: 3000,
+      useNativeDriver: false,
+    }).start();
+
+    const redirectTimer = setTimeout(() => {
+      if (orderId) {
+        navigation.replace('OrderDetail', { orderId });
+      } else {
+        navigation.replace('MainTabs', { screen: 'Orders' });
+      }
+    }, 3000);
+
+    return () => clearTimeout(redirectTimer);
+  }, [navigation, orderId, progress]);
 
   useEffect(() => {
     const runRing1 = () => {
@@ -101,15 +119,10 @@ export default function OrderConfirmationScreen() {
     };
   }, [ringScale1, ringOpacity1, ringScale2, ringOpacity2]);
 
-  const handleViewOrder = () => {
-    if (orderId) {
-      navigation.navigate('OrderDetail', { orderId });
-    }
-  };
-
-  const handleContinueShopping = () => {
-    navigation.navigate('MainTabs', { screen: 'Home' });
-  };
+  const progressWidth = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
@@ -161,31 +174,11 @@ export default function OrderConfirmationScreen() {
         
         <View style={{ flex: 1 }} />
 
-        {/* Actions */}
-        <Animated.View style={[styles.actions, { transform: [{ translateY: btnSlide }] }]}>
-          <PressableScale
-            onPress={handleViewOrder}
-            disabled={!orderId}
-            style={[
-              styles.customViewBtn,
-              !orderId && styles.customViewBtnDisabled
-            ]}
-            scaleTo={0.96}
-            accessibilityRole="button"
-            accessibilityLabel="View Order"
-          >
-            <Text style={styles.viewBtnText}>View Order Details</Text>
-          </PressableScale>
-          
-          <PressableScale
-            onPress={handleContinueShopping}
-            style={styles.secondaryBtn}
-            scaleTo={0.96}
-            accessibilityRole="button"
-            accessibilityLabel="Continue Shopping"
-          >
-            <Text style={styles.secondaryBtnText}>Continue Shopping</Text>
-          </PressableScale>
+        <Animated.View style={[styles.redirectBox, { transform: [{ translateY: btnSlide }] }]}>
+          <Text style={styles.redirectText}>Opening order details...</Text>
+          <View style={styles.progressTrack}>
+            <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
+          </View>
         </Animated.View>
 
       </View>
@@ -280,35 +273,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     marginVertical: spacing.md,
   },
-  actions: {
-    paddingBottom: spacing.xxxl, // safe area padding
+  redirectBox: {
+    paddingBottom: spacing.xxxl,
+    alignItems: 'center',
     gap: spacing.md,
   },
-  customViewBtn: {
-    height: 52,
-    backgroundColor: colors.success,
-    borderRadius: radius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  customViewBtnDisabled: {
-    backgroundColor: colors.bgDisabled,
-  },
-  viewBtnText: {
-    ...typography.buttonLarge,
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  secondaryBtn: {
-    width: '100%',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  secondaryBtnText: {
-    ...typography.labelLarge,
-    color: colors.success,
+  redirectText: {
+    ...typography.label,
+    color: colors.textSecondary,
     fontWeight: '700',
+  },
+  progressTrack: {
+    width: '100%',
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgInput,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: radius.pill,
+    backgroundColor: colors.success,
   },
 });

@@ -8,6 +8,8 @@ import {
   Animated,
   useWindowDimensions,
   Image,
+  ImageBackground,
+  RefreshControl,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import {
@@ -48,6 +50,7 @@ export default function HomeScreen() {
   
   const [storeType, setStoreType] = useState('Packed Items');
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [dashboardSections, setDashboardSections] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const currentApiStoreType = storeType === 'Fast Food' ? 'fast_food' : 'packed';
@@ -72,54 +75,73 @@ export default function HomeScreen() {
   const staggerCatAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
   const staggerComboAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
 
-  useEffect(() => {
+  const loadHomeData = React.useCallback((refresh = false) => {
     let isMounted = true;
-    const loadTimer = setTimeout(() => {
-      Promise.allSettled([
-        dashboardApi.getDashboard({ storeType: currentApiStoreType }),
-        settingsApi.getSettings(),
-        notificationsApi.getUnreadCount().catch(() => 0),
-      ]).then(([dashboardResult, settingsResult, notificationsResult]) => {
-        if (!isMounted) return;
+    if (refresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
 
-        if (dashboardResult.status === 'fulfilled') {
-          const sectionsData = dashboardResult.value?.data?.sections || [];
-          setDashboardSections(sectionsData);
-        }
+    Promise.allSettled([
+      dashboardApi.getDashboard({ storeType: currentApiStoreType }),
+      settingsApi.getSettings(),
+      notificationsApi.getUnreadCount().catch(() => 0),
+    ]).then(([dashboardResult, settingsResult, notificationsResult]) => {
+      if (!isMounted) return;
 
-        if (settingsResult.status === 'fulfilled') {
-          const nextSettings = normalizeSettings(settingsResult.value);
-          setSettings(nextSettings);
-        }
+      if (dashboardResult.status === 'fulfilled') {
+        const sectionsData = dashboardResult.value?.data?.sections || [];
+        setDashboardSections(sectionsData);
+      }
 
-        if (notificationsResult.status === 'fulfilled') {
-          setUnreadCount(notificationsResult.value || 0);
-        }
+      if (settingsResult.status === 'fulfilled') {
+        const nextSettings = normalizeSettings(settingsResult.value);
+        setSettings(nextSettings);
+      }
 
+      if (notificationsResult.status === 'fulfilled') {
+        setUnreadCount(notificationsResult.value || 0);
+      }
+
+      setIsLoading(false);
+      setIsRefreshing(false);
+
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+
+        Animated.stagger(100, staggerCatAnims.map(anim =>
+          Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 6 })
+        )),
+
+        Animated.stagger(150, staggerComboAnims.map(anim =>
+          Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 6 })
+        )),
+      ]).start();
+    }).catch(() => {
+      if (isMounted) {
         setIsLoading(false);
-
-        Animated.parallel([
-          Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
-
-          Animated.stagger(100, staggerCatAnims.map(anim =>
-            Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 6 })
-          )),
-
-          Animated.stagger(150, staggerComboAnims.map(anim =>
-            Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 6 })
-          )),
-        ]).start();
-      }).catch(() => {
-        if (isMounted) setIsLoading(false);
-      });
-    }, 0);
+        setIsRefreshing(false);
+      }
+    });
 
     return () => {
       isMounted = false;
-      clearTimeout(loadTimer);
     };
   }, [currentApiStoreType, fadeAnim, setSettings, slideAnim, staggerCatAnims, staggerComboAnims]);
+
+  useEffect(() => {
+    let cleanupLoad;
+    const loadTimer = setTimeout(() => {
+      cleanupLoad = loadHomeData(false);
+    }, 0);
+
+    return () => {
+      clearTimeout(loadTimer);
+      cleanupLoad?.();
+    };
+  }, [loadHomeData]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -236,7 +258,6 @@ export default function HomeScreen() {
   const categoryGap = spacing.sm;
   const categoryGridWidth = windowWidth - (spacing.md * 2);
   const categoryCardWidth = Math.floor((categoryGridWidth - (categoryGap * 3)) / 4);
-  const categoryImageSize = Math.max(42, categoryCardWidth - spacing.sm);
 
   const comboGap = spacing.sm;
   const comboGridWidth = windowWidth - (spacing.md * 2);
@@ -295,7 +316,19 @@ export default function HomeScreen() {
       )}
 
       {isLoading ? (
-        <ScrollView style={styles.skeletonContainer}>
+        <ScrollView
+          style={styles.skeletonContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => loadHomeData(true)}
+              tintColor={colors.primary}
+              colors={[colors.primary, colors.success, colors.saffron]}
+              title="Refreshing ServeLoco"
+              titleColor={colors.textSecondary}
+            />
+          }
+        >
            <LoadingSkeleton style={{ height: 48, borderRadius: radius.md, marginBottom: spacing.lg }} />
            <LoadingSkeleton style={{ height: 120, borderRadius: radius.lg, marginBottom: spacing.xl }} />
            
@@ -323,6 +356,16 @@ export default function HomeScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => loadHomeData(true)}
+              tintColor={colors.primary}
+              colors={[colors.primary, colors.success, colors.saffron]}
+              title="Refreshing ServeLoco"
+              titleColor={colors.textSecondary}
+            />
+          }
         >
           {/* Store Type Toggle */}
           <View style={styles.toggleContainer}>
@@ -357,36 +400,47 @@ export default function HomeScreen() {
           {dashboardSections.map(section => {
             if (section.sectionType === 'offer_banner') {
               return (
-                <View key={section.id} style={styles.section}>
-                  {section.items.map((offer) => (
-                    <View key={offer.id} style={styles.offerBanner}>
-                      <View style={styles.offerContent}>
-                        <Text style={styles.offerTitle}>
-                          {offer.title || 'Special Offer'}
-                        </Text>
-                        <Text style={styles.offerDesc}>
-                          {offer.description || 'Special discount for you'}
-                        </Text>
-                        <Button
-                          label="Shop Offer"
-                          variant="highlight"
-                          size="small"
-                          onPress={() => navigation.navigate('ProductList', { offerId: offer.id, offerTitle: offer.title, storeType: currentApiStoreType })}
-                          style={styles.offerBtn}
-                        />
-                      </View>
-                    </View>
-                  ))}
-                </View>
+                <OfferBannerCarousel
+                  key={section.id}
+                  offers={section.items}
+                  windowWidth={windowWidth}
+                  onOfferPress={(offer) => navigation.navigate('ProductList', {
+                    offerId: offer.id,
+                    offerTitle: offer.title,
+                    storeType: currentApiStoreType,
+                  })}
+                />
               );
             }
 
             if (section.sectionType === 'category_grid') {
               const normalizedItems = section.items.map(normalizeCategory);
+              const visibleItems = normalizedItems.slice(0, 4);
+              const shouldShowSeeAll = section.showSeeAll || normalizedItems.length > visibleItems.length;
               return (
                 <View key={section.id} style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionHeaderTop}>
+                      <View style={styles.titleRow}>
+                        <View style={styles.headerIndicator} />
+                        <Text style={styles.sectionTitlePremium}>{section.title || 'Shop by Category'}</Text>
+                      </View>
+                      {shouldShowSeeAll && (
+                        <TouchableOpacity
+                          style={styles.seeMoreBtn}
+                          onPress={() => navigation.navigate('Categories', { storeType: currentApiStoreType })}
+                          activeOpacity={0.7}
+                          accessibilityRole="button"
+                          accessibilityLabel="See all categories"
+                        >
+                          <Text style={styles.seeMoreText}>See All</Text>
+                          <AppIcon name="chevronRight" size={10} color={colors.saffronDark} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
                   <View style={styles.categoryGrid}>
-                    {normalizedItems.map((cat, idx) => (
+                    {visibleItems.map((cat, idx) => (
                       <Animated.View 
                         key={cat.id} 
                         style={{ 
@@ -404,8 +458,7 @@ export default function HomeScreen() {
                           name={cat.name}
                           count={cat.count}
                           imageUri={cat.imageUri}
-                          imageWidth={categoryImageSize}
-                          imageHeight={Math.max(54, categoryImageSize * 0.85)}
+                          imageHeight={62}
                           style={[styles.categoryCard, { width: categoryCardWidth }]}
                           onPress={() => handleCategoryPress(cat)}
                         />
@@ -506,6 +559,149 @@ export default function HomeScreen() {
         onPress={handleCartPress}
       />
     </AppScreen>
+  );
+}
+
+function OfferBannerCarousel({ offers = [], windowWidth, onOfferPress }) {
+  const listRef = useRef(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const [activeIndex, setActiveIndex] = useState(0);
+  const bannerWidth = windowWidth - (spacing.md * 2);
+  const visibleOffers = offers.filter(Boolean);
+
+  useEffect(() => {
+    if (visibleOffers.length <= 1) return undefined;
+
+    const interval = setInterval(() => {
+      setActiveIndex(currentIndex => {
+        const nextIndex = (currentIndex + 1) % visibleOffers.length;
+        listRef.current?.scrollToIndex({
+          index: nextIndex,
+          animated: true,
+        });
+        return nextIndex;
+      });
+    }, 3800);
+
+    return () => clearInterval(interval);
+  }, [visibleOffers.length]);
+
+  if (visibleOffers.length === 0) return null;
+
+  const handleMomentumEnd = (event) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const nextIndex = Math.round(offsetX / bannerWidth);
+    setActiveIndex(Math.max(0, Math.min(nextIndex, visibleOffers.length - 1)));
+  };
+
+  return (
+    <View style={styles.offerCarouselSection}>
+      <Animated.FlatList
+        ref={listRef}
+        data={visibleOffers}
+        keyExtractor={(offer, index) => String(offer.id || index)}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        bounces={false}
+        snapToInterval={bannerWidth}
+        decelerationRate="fast"
+        onMomentumScrollEnd={handleMomentumEnd}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+        getItemLayout={(_, index) => ({
+          length: bannerWidth,
+          offset: bannerWidth * index,
+          index,
+        })}
+        renderItem={({ item: offer }) => {
+          const imageUri = offer.imageUrl || offer.image_url || offer.imageUri;
+          const BannerSurface = imageUri ? ImageBackground : View;
+          const bannerSurfaceProps = imageUri
+            ? {
+                source: { uri: imageUri },
+                imageStyle: styles.offerBannerImageRadius,
+                resizeMode: 'cover',
+              }
+            : {};
+
+          return (
+            <View style={{ width: bannerWidth }}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => onOfferPress(offer)}
+                style={styles.offerBannerTouch}
+              >
+                <BannerSurface
+                  {...bannerSurfaceProps}
+                  style={[
+                    styles.offerBanner,
+                    { width: bannerWidth },
+                    imageUri && styles.offerBannerWithImage,
+                  ]}
+                >
+                  {imageUri && <View style={styles.offerImageOverlay} />}
+                  <View style={styles.offerContent}>
+                    <Text style={styles.offerEyebrow}>Limited offer</Text>
+                    <Text style={styles.offerTitle} numberOfLines={2}>
+                      {offer.title || 'Special Offer'}
+                    </Text>
+                    <Text style={styles.offerDesc} numberOfLines={2}>
+                      {offer.description || 'Special discount for you'}
+                    </Text>
+                    <Button
+                      label="Shop Offer"
+                      variant="highlight"
+                      size="small"
+                      onPress={() => onOfferPress(offer)}
+                      style={styles.offerBtn}
+                    />
+                  </View>
+                </BannerSurface>
+              </TouchableOpacity>
+            </View>
+          );
+        }}
+      />
+
+      {visibleOffers.length > 1 && (
+        <View style={styles.offerDots}>
+          {visibleOffers.map((offer, index) => {
+            const inputRange = [
+              (index - 1) * bannerWidth,
+              index * bannerWidth,
+              (index + 1) * bannerWidth,
+            ];
+            const dotWidth = scrollX.interpolate({
+              inputRange,
+              outputRange: [7, 20, 7],
+              extrapolate: 'clamp',
+            });
+            const opacity = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.35, 1, 0.35],
+              extrapolate: 'clamp',
+            });
+
+            return (
+              <Animated.View
+                key={offer.id || index}
+                style={[
+                  styles.offerDot,
+                  {
+                    width: dotWidth,
+                    opacity: activeIndex === index ? 1 : opacity,
+                  },
+                ]}
+              />
+            );
+          })}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -644,9 +840,14 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
   },
-  offerBanner: {
-    marginHorizontal: spacing.md,
+  offerCarouselSection: {
     marginTop: spacing.md,
+  },
+  offerBannerTouch: {
+    marginHorizontal: spacing.md,
+    borderRadius: radius.lg,
+  },
+  offerBanner: {
     backgroundColor: colors.saffron,
     borderRadius: radius.lg,
     padding: spacing.md,
@@ -654,9 +855,33 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderWidth: 1,
     borderColor: colors.saffronDark,
+    minHeight: 150,
+    justifyContent: 'center',
+    ...shadows.card,
+  },
+  offerBannerWithImage: {
+    backgroundColor: colors.saffronDark,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  offerBannerImageRadius: {
+    borderRadius: radius.lg,
+  },
+  offerImageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(14,17,22,0.28)',
   },
   offerContent: {
     zIndex: 1,
+    maxWidth: '72%',
+  },
+  offerEyebrow: {
+    ...typography.caption,
+    color: colors.textInverse,
+    opacity: 0.88,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0,
+    marginBottom: 5,
   },
   offerTitle: {
     ...typography.h3,
@@ -672,6 +897,19 @@ const styles = StyleSheet.create({
   offerBtn: {
     alignSelf: 'flex-start',
     backgroundColor: colors.bgSurface,
+  },
+  offerDots: {
+    marginTop: spacing.sm,
+    minHeight: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  offerDot: {
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: colors.saffronDark,
   },
   section: {
     marginTop: spacing.md,

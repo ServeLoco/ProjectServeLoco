@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Animated,
   Linking,
+  RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -25,19 +26,26 @@ export default function ProfileScreen() {
   const profile = useAuthStore(state => state.profile);
   const setProfile = useAuthStore(state => state.setProfile);
   const supportPhone = useSettingsStore(state => state.supportPhone);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const cardFade = useRef(new Animated.Value(0)).current;
   const cardSlide = useRef(new Animated.Value(10)).current;
   const listAnim1 = useRef(new Animated.Value(0)).current;
   const listAnim2 = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
+  const loadProfile = React.useCallback((refresh = false) => {
+    if (refresh) setIsRefreshing(true);
     authApi.getMe()
       .then(response => {
         const nextProfile = response?.user || response?.profile || response?.data || response;
         setProfile(nextProfile);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setIsRefreshing(false));
+  }, [setProfile]);
+
+  useEffect(() => {
+    loadProfile();
 
     Animated.stagger(100, [
       Animated.parallel([
@@ -47,7 +55,7 @@ export default function ProfileScreen() {
       Animated.timing(listAnim1, { toValue: 1, duration: 300, useNativeDriver: true }),
       Animated.timing(listAnim2, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
-  }, [setProfile]);
+  }, [loadProfile]);
 
   const handleHelpSupport = () => {
     if (supportPhone) {
@@ -59,7 +67,20 @@ export default function ProfileScreen() {
     <AppScreen style={styles.container} safeAreaBottom={false}>
       <AppHeader title="Profile" />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => loadProfile(true)}
+            tintColor={colors.primary}
+            colors={[colors.primary, colors.success, colors.saffron]}
+            title="Refreshing ServeLoco"
+            titleColor={colors.textSecondary}
+          />
+        }
+      >
 
         {/* Profile Card */}
         <Animated.View style={[styles.profileCard, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>

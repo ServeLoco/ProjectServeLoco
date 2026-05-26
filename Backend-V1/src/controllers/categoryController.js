@@ -38,7 +38,7 @@ const attachImageUrls = async (rows) => {
 
 const getCategories = async (req, res) => {
   const type = req.query.type || req.query.storeType || req.query.store_type;
-  const normalizedType = type ? normalizeStoreType(type, { allowAll: true }) : null;
+  const normalizedType = type && type !== 'all' ? normalizeStoreType(type, { allowAll: false }) : 'packed';
   const params = [];
   let query = `
     SELECT c.*, (
@@ -63,7 +63,10 @@ const getCategories = async (req, res) => {
 };
 
 const getAdminCategories = async (req, res) => {
-  const [rows] = await pool.query(`
+  const type = req.query.type || req.query.storeType || req.query.store_type;
+  const normalizedType = type ? normalizeStoreType(type, { allowAll: true }) : null;
+  const params = [];
+  let query = `
     SELECT c.*, (
       SELECT COUNT(*)
       FROM products p
@@ -71,8 +74,16 @@ const getAdminCategories = async (req, res) => {
     ) as product_count
     FROM categories c
     WHERE c.deleted = 0
-    ORDER BY c.display_order ASC, c.id ASC
-  `);
+  `;
+
+  if (normalizedType && normalizedType !== 'all') {
+    query += ' AND c.type = ?';
+    params.push(normalizedType);
+  }
+
+  query += ' ORDER BY c.display_order ASC, c.id ASC';
+
+  const [rows] = await pool.query(query, params);
   await attachImageUrls(rows);
   res.status(200).json({ data: rows });
 };

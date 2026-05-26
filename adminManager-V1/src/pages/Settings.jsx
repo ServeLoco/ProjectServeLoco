@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SettingsApi, ImagesApi } from '../api';
+import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import './Settings.css';
 
 const DEFAULT_SETTINGS = {
@@ -32,6 +33,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -69,17 +71,20 @@ export default function Settings() {
 
     try {
       setUploadingImage(true);
+      setUploadMessage(null);
       const res = await ImagesApi.upload(data);
-      const image = res.image || res.data || res;
+      const image = getUploadedImage(res);
       setSettings(prev => ({
         ...prev,
-        upi_qr_image_id: image.id || image._id || image.image_id || '',
-        upi_qr_image_url: image.imageUrl || image.image_url || image.url || '',
+        upi_qr_image_id: image.id,
+        upi_qr_image_url: image.url,
       }));
+      setUploadMessage({ type: 'success', text: 'QR image uploaded. Save settings to apply it.' });
     } catch (err) {
-      alert('QR image upload failed: ' + err.message);
+      setUploadMessage({ type: 'error', text: 'QR image upload failed: ' + err.message });
     } finally {
       setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -136,7 +141,10 @@ export default function Settings() {
         free_delivery_offer_active: Boolean(settings.free_delivery_offer_active),
         upi_qr_image_id: settings.upi_qr_image_id,
       };
-      await SettingsApi.update(payload);
+      const response = await SettingsApi.update(payload);
+      if (response.data) {
+        setSettings({ ...DEFAULT_SETTINGS, ...response.data });
+      }
       alert('Settings saved successfully!');
     } catch (err) {
       alert('Failed to save settings: ' + err.message);
@@ -342,7 +350,7 @@ export default function Settings() {
 
           <div className="settings-form-group full-width">
             <label className="settings-label">UPI QR Code Image</label>
-            {settings.upi_qr_image_url && <img src={settings.upi_qr_image_url} alt="UPI QR" className="qr-preview" />}
+            {settings.upi_qr_image_url && <img src={normalizeImageUrl(settings.upi_qr_image_url)} alt="UPI QR" className="qr-preview" />}
             <div 
               style={{ border: '2px dashed var(--border-color)', padding: '2rem', textAlign: 'center', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--bg-color)' }}
               onClick={() => fileInputRef.current?.click()}
@@ -350,6 +358,9 @@ export default function Settings() {
               <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
               {uploadingImage ? 'Uploading...' : 'Click to Upload new QR Code'}
             </div>
+            {uploadMessage && (
+              <p className={`upload-message ${uploadMessage.type}`}>{uploadMessage.text}</p>
+            )}
           </div>
         </div>
       </section>
