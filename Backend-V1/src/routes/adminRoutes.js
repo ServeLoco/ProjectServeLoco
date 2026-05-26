@@ -192,7 +192,8 @@ const comboSchema = (req) => {
       product_id: item.productId || item.product_id || item.id,
       quantity: item.quantity || item.qty || 1,
       display_order: item.displayOrder || item.display_order || index,
-    })) : undefined
+    })) : undefined,
+    store_type: normalizeField(req, 'storeType', 'store_type'),
   };
   const errors = {};
   if (!isString(data.name)) errors.name = 'Name is required';
@@ -208,6 +209,9 @@ const comboSchema = (req) => {
   }
   
   if (data.available !== undefined && !isBoolean(data.available)) errors.available = 'Available must be boolean';
+  if (!data.store_type || !['packed', 'fast_food'].includes(data.store_type)) {
+    errors.store_type = 'Store type is required and must be either packed or fast_food';
+  }
   if (data.featured !== undefined && !isBoolean(data.featured)) errors.featured = 'featured must be boolean';
   if (data.combo_items !== undefined) {
     for (let i = 0; i < data.combo_items.length; i++) {

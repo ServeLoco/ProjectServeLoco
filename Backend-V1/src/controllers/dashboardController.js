@@ -1,6 +1,7 @@
 const { pool } = require('../db/mysql');
 const { getDb } = require('../db/mongodb');
 const { ObjectId } = require('mongodb');
+const { normalizeStoreType } = require('../utils/storeMode');
 
 const SECTION_TYPES = ['offer_banner', 'category_grid', 'product_block', 'combo_block'];
 const STORE_TYPES = ['packed', 'fast_food', 'all'];
@@ -13,7 +14,7 @@ const SECTION_ITEM_TYPES = {
 
 const getExpectedStoreType = (storeType) => {
   if (!storeType || storeType === 'all') return null;
-  return storeType === 'Fast Food' ? 'fast_food' : storeType === 'Packed Items' ? 'packed' : storeType;
+  return normalizeStoreType(storeType, { fallback: null, allowAll: true });
 };
 
 const isInvalidDateValue = (value) => value && Number.isNaN(new Date(value).getTime());
@@ -77,7 +78,7 @@ const getLinkedItemInfo = async (itemType, itemId) => {
 
   if (itemType === 'combo') {
     const [rows] = await pool.query(
-      `SELECT p.id, p.available,
+      `SELECT p.id, p.available, p.store_type,
         (SELECT COUNT(*) FROM combo_items ci
          JOIN products child ON child.id = ci.product_id
          WHERE ci.combo_id = p.id AND child.deleted = 0 AND child.available = 1) as child_count
@@ -88,14 +89,14 @@ const getLinkedItemInfo = async (itemType, itemId) => {
     if (rows.length === 0) return { error: 'Combo product does not exist' };
     if (rows[0].available !== undefined && !rows[0].available) return { error: 'Only available combos can be added to dashboard blocks.' };
     if (Number(rows[0].child_count) === 0) return { error: 'Combo must include at least one available product.' };
-    return { storeType: 'all' };
+    return { storeType: rows[0].store_type };
   }
 
   if (itemType === 'offer') {
-    const [rows] = await pool.query('SELECT id, active FROM offers WHERE id = ? AND deleted = 0', [itemId]);
+    const [rows] = await pool.query('SELECT id, active, store_type FROM offers WHERE id = ? AND deleted = 0', [itemId]);
     if (rows.length === 0) return { error: 'Offer does not exist' };
     if (rows[0].active !== undefined && !rows[0].active) return { error: 'Only active offers can be added to dashboard banners.' };
-    return { storeType: 'all' };
+    return { storeType: rows[0].store_type };
   }
 
   return { error: 'Invalid item type' };
@@ -239,10 +240,15 @@ const getDefaultCategoryItems = async (expectedStoreType, limit = 8) => {
 const getDefaultComboItems = async (expectedStoreType, limit = 6) => {
   const params = [];
   let query = `
-    SELECT p.*, 1 as is_combo, 'all' as category_type
+    SELECT p.*, 1 as is_combo, p.store_type as category_type
     FROM combos p
     WHERE p.available = 1 AND p.deleted = 0
   `;
+
+  if (expectedStoreType) {
+    query += ' AND p.store_type = ?';
+    params.push(expectedStoreType);
+  }
 
   query += ' ORDER BY p.display_order ASC, p.id ASC LIMIT ?';
   params.push(limit);
@@ -287,16 +293,19 @@ const getDashboard = async (req, res) => {
       let items = [];
 
       if (section.section_type === 'offer_banner') {
+        const offerStoreFilter = expectedStoreType ? 'AND o.store_type = ?' : '';
+        const params = expectedStoreType ? [section.id, expectedStoreType] : [section.id];
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, o.* 
            FROM dashboard_section_items dsi
            JOIN offers o ON o.id = dsi.item_id
            WHERE dsi.section_id = ? AND dsi.item_type = 'offer' AND dsi.active = 1 AND dsi.deleted_at IS NULL
              AND o.active = 1 AND o.deleted = 0
+             ${offerStoreFilter}
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
-          [section.id]
+          params
         );
         await resolveImageUrls(rows);
         items = rows.map(r => ({
@@ -333,16 +342,19 @@ const getDashboard = async (req, res) => {
 
         items = mapProductRows(filteredRows);
       } else if (section.section_type === 'combo_block') {
+        const comboStoreFilter = expectedStoreType ? 'AND p.store_type = ?' : '';
+        const params = expectedStoreType ? [section.id, expectedStoreType] : [section.id];
         const [rows] = await pool.query(
-          `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, 'all' as category_type
+          `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, p.store_type as category_type
            FROM dashboard_section_items dsi
            JOIN combos p ON p.id = dsi.item_id
            WHERE dsi.section_id = ? AND dsi.item_type = 'combo' AND dsi.active = 1 AND dsi.deleted_at IS NULL
              AND p.available = 1 AND p.deleted = 0
+             ${comboStoreFilter}
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
-          [section.id]
+          params
         );
         await resolveImageUrls(rows);
         await attachComboItems(rows);
@@ -449,17 +461,20 @@ const getSectionItems = async (req, res) => {
     let items = [];
 
     if (section.section_type === 'offer_banner') {
+      const offerStoreFilter = expectedStoreType ? 'AND o.store_type = ?' : '';
+      const params = expectedStoreType ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, o.* 
          FROM dashboard_section_items dsi
          JOIN offers o ON o.id = dsi.item_id
          WHERE dsi.section_id = ? AND dsi.item_type = 'offer' AND dsi.active = 1 AND dsi.deleted_at IS NULL
            AND o.active = 1 AND o.deleted = 0
+           ${offerStoreFilter}
            AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
            AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
          ORDER BY dsi.display_order ASC, dsi.id ASC
          LIMIT ? OFFSET ?`,
-        [section.id, Number(limit), Number(offset)]
+        params
       );
       await resolveImageUrls(rows);
       items = rows.map(r => ({
@@ -525,13 +540,15 @@ const getSectionItems = async (req, res) => {
         comboItems: r.combo_items || []
       }));
     } else if (section.section_type === 'combo_block') {
-      const params = [section.id, limitNumber, offset];
+      const comboStoreFilter = expectedStoreType ? 'AND p.store_type = ?' : '';
+      const params = expectedStoreType ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
       const [rows] = await pool.query(
-        `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, 'all' as category_type
+        `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, p.store_type as category_type
          FROM dashboard_section_items dsi
          JOIN combos p ON p.id = dsi.item_id
          WHERE dsi.section_id = ? AND dsi.item_type = 'combo' AND dsi.active = 1 AND dsi.deleted_at IS NULL
            AND p.available = 1 AND p.deleted = 0
+           ${comboStoreFilter}
            AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
            AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
          ORDER BY dsi.display_order ASC, dsi.id ASC
@@ -662,6 +679,10 @@ const getAdminSectionById = async (req, res) => {
 const createAdminSection = async (req, res) => {
   const { title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at } = req.body;
 
+  if (store_type === 'all' || !store_type) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be explicitly packed or fast_food for new sections.' });
+  }
+
   const validationError = validateSectionPayload(req.body);
   if (validationError) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: validationError });
@@ -681,7 +702,7 @@ const createAdminSection = async (req, res) => {
     if (finalDisplayOrder > 0) {
       const [orderExisting] = await pool.query(
         'SELECT title FROM dashboard_sections WHERE store_type = ? AND display_order = ? AND deleted_at IS NULL LIMIT 1',
-        [store_type || 'all', finalDisplayOrder]
+        [store_type, finalDisplayOrder]
       );
       if (orderExisting.length > 0) {
         return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by "${orderExisting[0].title}".` });
@@ -694,7 +715,7 @@ const createAdminSection = async (req, res) => {
         max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
       [
-        title, slug, section_type, store_type || 'all', 
+        title, slug, section_type, store_type, 
         active !== undefined ? active : 1, 
         finalDisplayOrder,
         maxVisibleItems,
@@ -717,7 +738,11 @@ const createAdminSection = async (req, res) => {
  */
 const updateAdminSection = async (req, res) => {
   const { id } = req.params;
-  const { title, slug, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version } = req.body;
+  const { title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version } = req.body;
+
+  if (store_type === 'all') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be explicitly packed or fast_food. "all" is no longer allowed.' });
+  }
 
   const validationError = validateSectionPayload(req.body, { partial: true });
   if (validationError) {
@@ -856,7 +881,7 @@ const addAdminSectionItem = async (req, res) => {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: itemInfo.error });
     }
 
-    if (section.store_type !== 'all' && itemInfo.storeType && itemInfo.storeType !== 'all' && itemInfo.storeType !== section.store_type) {
+    if (section.store_type !== 'all' && itemInfo.storeType && itemInfo.storeType !== section.store_type) {
       return res.status(400).json({
         code: 'VALIDATION_ERROR',
         message: `This item belongs to "${itemInfo.storeType}" and cannot be added to a "${section.store_type}" section.`

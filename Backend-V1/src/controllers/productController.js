@@ -1,6 +1,7 @@
 const { pool } = require('../db/mysql');
 const { getDb } = require('../db/mongodb');
 const { ObjectId } = require('mongodb');
+const { normalizeStoreType } = require('../utils/storeMode');
 const path = require('path');
 const fs = require('fs');
 const config = require('../config/env');
@@ -86,6 +87,7 @@ const attachComboItems = async (products = []) => {
 
 const getProducts = async (req, res) => {
   const { categoryId, category_id, search, type, isCombo, is_combo, featured, limit } = req.query;
+  const normalizedType = type ? normalizeStoreType(type, { allowAll: true }) : null;
   const finalCategoryId = categoryId || category_id;
   let finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
 
@@ -98,7 +100,7 @@ const getProducts = async (req, res) => {
     FROM products p LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0`;
   
-  const comboQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, 1 as is_combo, p.featured, p.original_price, p.discount_label, NULL as category_id, NULL as category_name, 'all' as category_type, 999 as cat_display_order, p.display_order as item_display_order
+  const comboQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, 1 as is_combo, p.featured, p.original_price, p.discount_label, NULL as category_id, NULL as category_name, p.store_type as category_type, 999 as cat_display_order, p.display_order as item_display_order
     FROM combos p
     WHERE p.available = 1 AND p.deleted = 0`;
 
@@ -108,7 +110,8 @@ const getProducts = async (req, res) => {
   const buildSubQuery = (baseQuery, isComboType) => {
     let q = baseQuery;
     if (finalCategoryId && !isComboType) q += ` AND p.category_id = ${pool.escape(finalCategoryId)}`;
-    if (type && !isComboType) q += ` AND c.type = ${pool.escape(type)}`;
+    if (normalizedType && !isComboType) q += ` AND c.type = ${pool.escape(normalizedType)}`;
+    if (normalizedType && isComboType) q += ` AND p.store_type = ${pool.escape(normalizedType)}`;
     if (search) q += ` AND p.name LIKE ${pool.escape('%' + search + '%')}`;
     if (featured !== undefined) q += ` AND p.featured = ${featured === 'true' || featured === '1' ? 1 : 0}`;
     return q;
@@ -144,7 +147,7 @@ const getProductById = async (req, res) => {
 
   const loadCombo = async () => {
     const [comboRows] = await pool.query(
-      "SELECT p.*, 1 as is_combo, NULL as category_name, 'all' as category_type FROM combos p WHERE p.id = ? AND p.deleted = 0",
+      "SELECT p.*, 1 as is_combo, NULL as category_name, p.store_type as category_type FROM combos p WHERE p.id = ? AND p.deleted = 0",
       [id]
     );
     if (comboRows.length === 0) return null;

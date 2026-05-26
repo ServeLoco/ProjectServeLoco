@@ -145,10 +145,13 @@ const migrate = async () => {
         display_order INT NOT NULL DEFAULT 0,
         discount_label VARCHAR(50),
         deleted BOOLEAN DEFAULT FALSE,
+        store_type ENUM('packed', 'fast_food') NOT NULL DEFAULT 'packed',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_combo_store_type (store_type)
       );
     `);
+    await ensureColumn('combos', 'store_type', 'store_type ENUM("packed", "fast_food") NOT NULL DEFAULT "packed" AFTER deleted');
     console.log('Combos table ready.');
 
     // Combo Items Table
@@ -294,12 +297,15 @@ const migrate = async () => {
         image_id VARCHAR(255),
         active BOOLEAN DEFAULT FALSE,
         deleted BOOLEAN DEFAULT FALSE,
+        store_type ENUM('packed', 'fast_food') NOT NULL DEFAULT 'packed',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_active (active)
+        INDEX idx_active (active),
+        INDEX idx_offer_store_type (store_type)
       );
     `);
     await ensureColumn('offers', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER active');
+    await ensureColumn('offers', 'store_type', 'store_type ENUM("packed", "fast_food") NOT NULL DEFAULT "packed" AFTER deleted');
     console.log('Offers table ready.');
 
     // Dashboard Sections Table

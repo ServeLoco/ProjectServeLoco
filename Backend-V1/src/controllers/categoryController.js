@@ -1,6 +1,7 @@
 const { pool } = require('../db/mysql');
 const { getDb } = require('../db/mongodb');
 const { ObjectId } = require('mongodb');
+const { normalizeStoreType } = require('../utils/storeMode');
 
 function slugify(value) {
   return String(value || '')
@@ -37,7 +38,7 @@ const attachImageUrls = async (rows) => {
 
 const getCategories = async (req, res) => {
   const type = req.query.type || req.query.storeType || req.query.store_type;
-  const normalizedType = type === 'Fast Food' ? 'fast_food' : type === 'Packed Items' ? 'packed' : type;
+  const normalizedType = type ? normalizeStoreType(type, { allowAll: true }) : null;
   const params = [];
   let query = `
     SELECT c.*, (

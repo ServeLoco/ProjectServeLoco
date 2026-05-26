@@ -1,6 +1,7 @@
 const { pool } = require('../db/mysql');
 const { getDb } = require('../db/mongodb');
 const { ObjectId } = require('mongodb');
+const { normalizeStoreType } = require('../utils/storeMode');
 
 const hasValue = (value) => value !== undefined && value !== null && value !== '';
 const validateNonNegativeNumber = (value, message) => {
@@ -65,7 +66,21 @@ const getSettings = async (req, res) => {
 };
 
 const getActiveOffer = async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM offers WHERE active = 1 AND deleted = 0 ORDER BY id DESC LIMIT 1');
+  const { store_type, storeType } = req.query;
+  const finalStoreType = store_type || storeType;
+  let query = 'SELECT * FROM offers WHERE active = 1 AND deleted = 0';
+  const params = [];
+
+  if (finalStoreType) {
+    const normalizedStoreType = normalizeStoreType(finalStoreType, { allowAll: true });
+    if (normalizedStoreType !== 'all') {
+      query += ' AND store_type = ?';
+      params.push(normalizedStoreType);
+    }
+  }
+
+  query += ' ORDER BY id DESC LIMIT 1';
+  const [rows] = await pool.query(query, params);
   
   if (rows.length === 0) {
     return res.status(200).json({ data: null });
@@ -172,8 +187,9 @@ const updateSettings = async (req, res) => {
 };
 
 const createOffer = async (req, res) => {
-  const { title, description, active, image_id, imageId } = req.body;
+  const { title, description, active, image_id, imageId, store_type, storeType } = req.body;
   const finalImageId = image_id || imageId || null;
+  const finalStoreType = normalizeStoreType(store_type || storeType);
 
   if (!title) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Title is required' });
@@ -182,8 +198,8 @@ const createOffer = async (req, res) => {
   const isActive = (active === true || active === 'true' || active === 1) ? 1 : 0;
 
   const [result] = await pool.query(
-    'INSERT INTO offers (title, description, active, image_id) VALUES (?, ?, ?, ?)',
-    [title, description || '', isActive, finalImageId]
+    'INSERT INTO offers (title, description, active, image_id, store_type) VALUES (?, ?, ?, ?, ?)',
+    [title, description || '', isActive, finalImageId, finalStoreType]
   );
 
   res.status(201).json({ message: 'Offer created', id: result.insertId });
@@ -217,6 +233,12 @@ const updateOffer = async (req, res) => {
     params.push(finalImageId);
   }
 
+  const finalStoreTypeInput = req.body.store_type || req.body.storeType;
+  if (finalStoreTypeInput !== undefined) {
+    updates.push('store_type = ?');
+    params.push(normalizeStoreType(finalStoreTypeInput));
+  }
+
   if (updates.length === 0) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No valid fields provided' });
   }
@@ -228,7 +250,21 @@ const updateOffer = async (req, res) => {
 };
 
 const getAdminOffers = async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM offers WHERE deleted = 0 ORDER BY id DESC');
+  const { store_type, storeType } = req.query;
+  const finalStoreType = store_type || storeType;
+  let query = 'SELECT * FROM offers WHERE deleted = 0';
+  const params = [];
+
+  if (finalStoreType) {
+    const normalizedStoreType = normalizeStoreType(finalStoreType, { allowAll: true });
+    if (normalizedStoreType !== 'all') {
+      query += ' AND store_type = ?';
+      params.push(normalizedStoreType);
+    }
+  }
+
+  query += ' ORDER BY id DESC';
+  const [rows] = await pool.query(query, params);
   await attachOfferImageUrls(rows);
   res.status(200).json({ data: rows });
 };

@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const config = require('../config/env');
 const { isPositiveInteger } = require('../validators');
+const { normalizeStoreType } = require('../utils/storeMode');
 
 const resolveImageUrls = async (rows) => {
   const imageIds = rows
@@ -97,7 +98,7 @@ const saveComboItems = async (comboId, comboItems, connection = pool) => {
 
   await connection.query('DELETE FROM combo_items WHERE combo_id = ?', [comboId]);
 
-  const rows = await validateComboItems(comboItems);
+  const rows = await validateComboItems(comboItems, null);
 
   if (rows.length === 0) return;
 
@@ -108,7 +109,7 @@ const saveComboItems = async (comboId, comboItems, connection = pool) => {
   );
 };
 
-const validateComboItems = async (comboItems, { required = true } = {}) => {
+const validateComboItems = async (comboItems, comboStoreType, { required = true } = {}) => {
   if (!Array.isArray(comboItems)) {
     if (required) {
       throw createValidationError('Please add at least one product to the combo.');
@@ -140,7 +141,7 @@ const validateComboItems = async (comboItems, { required = true } = {}) => {
   }
 
   const [products] = await pool.query(
-    'SELECT id, name, is_combo, deleted FROM products WHERE id IN (?)',
+    'SELECT p.id, p.name, p.is_combo, p.deleted, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id IN (?)',
     [rows.map(row => row.product_id)]
   );
   const productById = new Map(products.map(product => [Number(product.id), product]));
@@ -153,15 +154,27 @@ const validateComboItems = async (comboItems, { required = true } = {}) => {
     if (product.is_combo) {
       throw createValidationError(`Combo cannot include another combo: ${product.name}.`);
     }
+    if (comboStoreType && product.category_type !== comboStoreType) {
+      throw createValidationError(`Cannot add ${product.name} (mode: ${product.category_type}) to a combo with mode: ${comboStoreType}.`);
+    }
   }
 
   return rows;
 };
 
 const getAdminCombos = async (req, res) => {
-  const { search, available, featured } = req.query;
+  const { search, available, featured, store_type, storeType } = req.query;
+  const finalStoreType = store_type || storeType;
   let query = "SELECT * FROM combos WHERE deleted = 0";
   const params = [];
+
+  if (finalStoreType) {
+    const normalizedStoreType = normalizeStoreType(finalStoreType, { allowAll: true });
+    if (normalizedStoreType !== 'all') {
+      query += ' AND store_type = ?';
+      params.push(normalizedStoreType);
+    }
+  }
 
   if (search) {
     query += ' AND name LIKE ?';
@@ -208,26 +221,27 @@ const getAdminComboById = async (req, res) => {
 };
 
 const createCombo = async (req, res) => {
-  const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items } = req.validatedData;
+  const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items, store_type } = req.validatedData;
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
-  const validatedComboItems = await validateComboItems(combo_items);
+  const validatedComboItems = await validateComboItems(combo_items, store_type);
 
   if (finalDisplayOrder > 0) {
-    const [existing] = await pool.query('SELECT name FROM combos WHERE display_order = ? AND deleted = 0 LIMIT 1', [finalDisplayOrder]);
+    const [existing] = await pool.query('SELECT name FROM combos WHERE display_order = ? AND store_type = ? AND deleted = 0 LIMIT 1', [finalDisplayOrder, store_type]);
     if (existing.length > 0) {
-      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${existing[0].name}.` });
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${existing[0].name} in this mode.` });
     }
   }
 
   const [result] = await pool.query(
-    'INSERT INTO combos (name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO combos (name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, store_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       name, price, unit, description, image_id, 
       available !== undefined ? available : true,
       featured !== undefined ? featured : false,
       finalDisplayOrder,
       original_price || null,
-      discount_label || null
+      discount_label || null,
+      store_type
     ]
   );
   await saveComboItems(result.insertId, validatedComboItems);
@@ -236,8 +250,8 @@ const createCombo = async (req, res) => {
 
 const updateCombo = async (req, res) => {
   const { id } = req.params;
-  const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items } = req.validatedData;
-  const validatedComboItems = await validateComboItems(combo_items, { required: combo_items !== undefined });
+  const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items, store_type } = req.validatedData;
+  const validatedComboItems = await validateComboItems(combo_items, store_type, { required: combo_items !== undefined });
 
   const [existing] = await pool.query('SELECT image_id FROM combos WHERE id = ?', [id]);
   if (existing.length > 0 && existing[0].image_id && existing[0].image_id !== image_id) {
@@ -259,20 +273,22 @@ const updateCombo = async (req, res) => {
 
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
   if (finalDisplayOrder > 0) {
-    const [orderExisting] = await pool.query('SELECT name FROM combos WHERE display_order = ? AND id != ? AND deleted = 0 LIMIT 1', [finalDisplayOrder, id]);
-    if (orderExisting.length > 0) {
-      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${orderExisting[0].name}.` });
+    const [existing] = await pool.query('SELECT name FROM combos WHERE display_order = ? AND store_type = ? AND id != ? AND deleted = 0 LIMIT 1', [finalDisplayOrder, store_type, id]);
+    if (existing.length > 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${existing[0].name} in this mode.` });
     }
   }
 
   await pool.query(
-    'UPDATE combos SET name = ?, price = ?, unit = ?, description = ?, image_id = ?, available = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ? WHERE id = ?',
+    'UPDATE combos SET name = ?, price = ?, unit = ?, description = ?, image_id = ?, available = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ?, store_type = ? WHERE id = ?',
     [
-      name, price, unit, description, image_id, available,
+      name, price, unit, description, image_id, 
+      available !== undefined ? available : true,
       featured !== undefined ? featured : false,
       finalDisplayOrder,
       original_price || null,
       discount_label || null,
+      store_type,
       id
     ]
   );
