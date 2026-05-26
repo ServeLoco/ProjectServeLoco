@@ -328,7 +328,7 @@ const migrate = async () => {
         deleted_at TIMESTAMP NULL DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE KEY unique_active_slug (slug, deleted_at),
+        UNIQUE KEY idx_section_store_slug (store_type, slug, deleted_at),
         INDEX idx_active (active),
         INDEX idx_display_order (display_order),
         INDEX idx_store_type (store_type)
@@ -339,6 +339,12 @@ const migrate = async () => {
     await ensureColumn('dashboard_sections', 'version', 'version INT NOT NULL DEFAULT 1 AFTER ends_at');
     await ensureColumn('dashboard_sections', 'deleted_at', 'deleted_at TIMESTAMP NULL DEFAULT NULL AFTER version');
     console.log('Dashboard sections table ready.');
+    try {
+      await connection.query('ALTER TABLE dashboard_sections DROP INDEX unique_active_slug');
+      await connection.query('ALTER TABLE dashboard_sections ADD UNIQUE KEY idx_section_store_slug (store_type, slug, deleted_at)');
+    } catch (e) {
+      // Ignored if already dropped/added
+    }
 
     // Dashboard Section Items Table
     await connection.query(`

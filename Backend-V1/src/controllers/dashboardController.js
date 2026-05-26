@@ -444,14 +444,20 @@ const getSectionItems = async (req, res) => {
   const offset = (pageNumber - 1) * limitNumber;
 
   try {
-    const [sections] = await pool.query(
-      `SELECT * FROM dashboard_sections 
-       WHERE slug = ? AND active = 1 AND deleted_at IS NULL
-         AND (starts_at IS NULL OR starts_at <= NOW())
-         AND (ends_at IS NULL OR ends_at >= NOW())
-       LIMIT 1`,
-      [slug]
-    );
+    let sectionQuery = `
+      SELECT * FROM dashboard_sections 
+      WHERE slug = ? AND active = 1 AND deleted_at IS NULL
+        AND (starts_at IS NULL OR starts_at <= NOW())
+        AND (ends_at IS NULL OR ends_at >= NOW())
+    `;
+    const sectionParams = [slug];
+    if (expectedStoreType) {
+      sectionQuery += ' AND (store_type = ? OR store_type = "all")';
+      sectionParams.push(expectedStoreType);
+    }
+    sectionQuery += ' ORDER BY id DESC LIMIT 1';
+
+    const [sections] = await pool.query(sectionQuery, sectionParams);
 
     if (sections.length === 0) {
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Dashboard section not found' });
@@ -690,12 +696,13 @@ const createAdminSection = async (req, res) => {
   const maxVisibleItems = asPositiveInteger(max_visible_items, 6);
 
   try {
+    const targetStoreType = store_type || 'all';
     const [existing] = await pool.query(
-      'SELECT id FROM dashboard_sections WHERE slug = ? AND deleted_at IS NULL LIMIT 1',
-      [slug]
+      'SELECT id FROM dashboard_sections WHERE slug = ? AND store_type = ? AND deleted_at IS NULL LIMIT 1',
+      [slug, targetStoreType]
     );
     if (existing.length > 0) {
-      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Section slug "${slug}" already exists.` });
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Section slug "${slug}" already exists for this store mode.` });
     }
 
     const finalDisplayOrder = display_order !== undefined ? display_order : 0;
@@ -766,13 +773,14 @@ const updateAdminSection = async (req, res) => {
       });
     }
 
-    if (slug && slug !== existingSection.slug) {
+    const targetStoreType = store_type !== undefined ? store_type : existingSection.store_type;
+    if (slug && (slug !== existingSection.slug || targetStoreType !== existingSection.store_type)) {
       const [existingSlug] = await pool.query(
-        'SELECT id FROM dashboard_sections WHERE slug = ? AND deleted_at IS NULL LIMIT 1',
-        [slug]
+        'SELECT id FROM dashboard_sections WHERE slug = ? AND store_type = ? AND deleted_at IS NULL AND id != ? LIMIT 1',
+        [slug, targetStoreType, id]
       );
       if (existingSlug.length > 0) {
-        return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Section slug "${slug}" already exists.` });
+        return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Section slug "${slug}" already exists for this store mode.` });
       }
     }
 
