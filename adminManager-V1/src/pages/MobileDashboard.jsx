@@ -443,7 +443,7 @@ export default function MobileDashboard() {
             ))
           )}
         </div>
-      </aside>
+      </div>
 
       {/* Right Panel: Selected Section Details & Workspace */}
       <section className="detail-panel">
