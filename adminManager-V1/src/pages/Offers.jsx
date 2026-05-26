@@ -10,15 +10,16 @@ export default function Offers() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState(null);
+  const [storeType, setStoreType] = useState('packed');
 
   useEffect(() => {
     fetchOffers();
-  }, []);
+  }, [storeType]);
 
   const fetchOffers = async () => {
     try {
       setLoading(true);
-      const res = await OffersApi.list();
+      const res = await OffersApi.list({ store_type: storeType });
       setOffers(readList(res, ['offers']));
     } catch (err) {
       setError(err.message || 'Failed to fetch offers');
@@ -60,6 +61,23 @@ export default function Offers() {
         </button>
       </header>
 
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+        <button 
+          className={`btn-secondary ${storeType === 'packed' ? 'active' : ''}`}
+          style={storeType === 'packed' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+          onClick={() => setStoreType('packed')}
+        >
+          Packed Items
+        </button>
+        <button 
+          className={`btn-secondary ${storeType === 'fast_food' ? 'active' : ''}`}
+          style={storeType === 'fast_food' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+          onClick={() => setStoreType('fast_food')}
+        >
+          Fast Food
+        </button>
+      </div>
+
       {error && <div className="error-container" style={{ marginBottom: '2rem' }}>{error}</div>}
 
       {loading && offers.length === 0 ? (
@@ -98,6 +116,7 @@ export default function Offers() {
       {drawerOpen && (
         <OfferFormDrawer 
           offer={editingOffer} 
+          currentMode={storeType}
           onClose={closeDrawer} 
           onSave={() => { closeDrawer(); fetchOffers(); }}
         />
@@ -106,14 +125,15 @@ export default function Offers() {
   );
 }
 
-function OfferFormDrawer({ offer, onClose, onSave }) {
+function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
   const isEdit = !!offer;
   const [formData, setFormData] = useState(offer || {
     title: '',
     description: '',
     image_id: '',
     image_url: '',
-    active: false
+    active: false,
+    store_type: offer?.store_type || currentMode || 'packed'
   });
   
   const [saving, setSaving] = useState(false);
@@ -201,6 +221,14 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
             </div>
 
             <div className="form-group">
+              <label className="form-label">Offer Mode</label>
+              <select required name="store_type" className="form-select" value={formData.store_type} onChange={handleChange}>
+                <option value="packed">Packed Items</option>
+                <option value="fast_food">Fast Food</option>
+              </select>
+            </div>
+
+            <div className="form-group">
               <label className="form-label">Description (Optional)</label>
               <textarea name="description" className="form-textarea" value={formData.description || ''} onChange={handleChange} />
             </div>
@@ -220,7 +248,7 @@ function OfferFormDrawer({ offer, onClose, onSave }) {
                 Activate this offer
               </label>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                Note: The app may only display one active offer at a time. Activating this will replace the currently displayed offer.
+                Note: The app may only display one active offer per mode at a time. Activating this will replace the currently displayed offer for {formData.store_type === 'fast_food' ? 'Fast Food' : 'Packed Items'}.
               </p>
             </div>
           </div>
