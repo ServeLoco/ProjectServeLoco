@@ -16,7 +16,8 @@ export default function Products() {
     category_id: '',
     available: '',
     featured: '',
-    is_combo: '0' // Default to normal products
+    is_combo: '0', // Default to normal products
+    type: 'packed'
   });
 
   const [selectedIds, setSelectedIds] = useState([]);
@@ -142,6 +143,23 @@ export default function Products() {
         </button>
       </header>
 
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+        <button 
+          className={`btn-secondary ${filters.type === 'packed' ? 'active' : ''}`}
+          style={filters.type === 'packed' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+          onClick={() => setFilters(prev => ({ ...prev, type: 'packed', category_id: '' }))}
+        >
+          Packed Items
+        </button>
+        <button 
+          className={`btn-secondary ${filters.type === 'fast_food' ? 'active' : ''}`}
+          style={filters.type === 'fast_food' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+          onClick={() => setFilters(prev => ({ ...prev, type: 'fast_food', category_id: '' }))}
+        >
+          Fast Food
+        </button>
+      </div>
+
       <section className="filter-bar">
         <input
           type="text"
@@ -153,7 +171,7 @@ export default function Products() {
         />
         <select name="category_id" className="filter-select" value={filters.category_id} onChange={handleFilterChange}>
           <option value="">All Categories</option>
-          {categories.map(c => (
+          {categories.filter(c => c.type === filters.type && !c.deleted).map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
@@ -358,11 +376,28 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
       };
 
       if (isEdit) {
+        if (product.category_id && formData.category_id && product.category_id.toString() !== formData.category_id.toString()) {
+          const oldCat = categories.find(c => c.id.toString() === product.category_id.toString());
+          const newCat = categories.find(c => c.id.toString() === formData.category_id.toString());
+          if (oldCat && newCat && oldCat.type !== newCat.type) {
+            if (!window.confirm(`Warning: You are moving this product from ${oldCat.type === 'fast_food' ? 'Fast Food' : 'Packed Items'} to ${newCat.type === 'fast_food' ? 'Fast Food' : 'Packed Items'}. Are you sure?`)) {
+              setSaving(false);
+              return;
+            }
+          }
+        }
         await ProductsApi.update(product.id, payload);
         if (formData.image_id && formData.image_id !== product.image_id) {
           await ProductsApi.attachImage(product.id, formData.image_id);
         }
       } else {
+        const selectedCat = categories.find(c => c.id.toString() === formData.category_id.toString());
+        if (selectedCat && selectedCat.type !== filters.type) {
+          if (!window.confirm(`Warning: This product will be saved in ${selectedCat.type === 'fast_food' ? 'Fast Food' : 'Packed Items'}, which is different from your current view (${filters.type === 'fast_food' ? 'Fast Food' : 'Packed Items'}). Continue?`)) {
+            setSaving(false);
+            return;
+          }
+        }
         const created = await ProductsApi.create(payload);
         const productId = created.id || created.product?.id || created.data?.id;
         if (productId && formData.image_id) {
@@ -423,7 +458,11 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
                 <label className="form-label">Category</label>
                 <select required name="category_id" className="form-select" value={formData.category_id} onChange={handleChange}>
                   <option value="">Select Category</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.type === 'fast_food' ? 'Fast Food' : 'Packed Items'})
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

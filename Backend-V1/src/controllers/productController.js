@@ -259,11 +259,13 @@ const updateProduct = async (req, res) => {
 };
 
 const getAdminProducts = async (req, res) => {
-  const { categoryId, category_id, search, available, isCombo, is_combo, featured } = req.query;
+  const { categoryId, category_id, search, available, isCombo, is_combo, featured, type } = req.query;
   const finalCategoryId = categoryId || category_id;
   const finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
+  const normalizedType = type ? normalizeStoreType(type, { allowAll: true }) : null;
+
   let query = `
-    SELECT p.*, c.name as category_name 
+    SELECT p.*, c.name as category_name, c.type as category_type 
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id 
     WHERE p.deleted = 0
@@ -278,6 +280,11 @@ const getAdminProducts = async (req, res) => {
   if (search) {
     query += ' AND p.name LIKE ?';
     params.push(`%${search}%`);
+  }
+
+  if (normalizedType && normalizedType !== 'all') {
+    query += ' AND c.type = ?';
+    params.push(normalizedType);
   }
 
   if (available !== undefined) {
