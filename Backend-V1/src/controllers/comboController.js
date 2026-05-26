@@ -4,6 +4,7 @@ const { ObjectId } = require('mongodb');
 const path = require('path');
 const fs = require('fs');
 const config = require('../config/env');
+const { isPositiveInteger } = require('../validators');
 
 const resolveImageUrls = async (rows) => {
   const imageIds = rows
@@ -121,7 +122,7 @@ const validateComboItems = async (comboItems, { required = true } = {}) => {
       quantity: Number(item.quantity || item.qty || 1),
       display_order: Number(item.display_order || item.displayOrder || index),
     }))
-    .filter(item => item.product_id && item.quantity > 0);
+    .filter(item => item.product_id);
 
   if (rows.length === 0) {
     throw createValidationError('Please add at least one product to the combo.');
@@ -129,6 +130,9 @@ const validateComboItems = async (comboItems, { required = true } = {}) => {
 
   const seen = new Set();
   for (const row of rows) {
+    if (!isPositiveInteger(row.quantity)) {
+      throw createValidationError('Combo item quantity must be a whole number between 1 and 999.');
+    }
     if (seen.has(row.product_id)) {
       throw createValidationError('This product is already in the combo. Increase quantity instead.');
     }

@@ -2,6 +2,16 @@ const { pool } = require('../db/mysql');
 const { getDb } = require('../db/mongodb');
 const { ObjectId } = require('mongodb');
 
+const hasValue = (value) => value !== undefined && value !== null && value !== '';
+const validateNonNegativeNumber = (value, message) => {
+  if (!hasValue(value)) return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return { code: 'VALIDATION_ERROR', message };
+  }
+  return null;
+};
+
 const attachOfferImageUrls = async (offers) => {
   const rows = Array.isArray(offers) ? offers : [offers].filter(Boolean);
   const imageIds = rows
@@ -77,37 +87,44 @@ const updateSettings = async (req, res) => {
 
   const body = req.body;
 
+  const moneyFields = [
+    ['minimum_order_amount', 'Minimum order amount cannot be negative'],
+    ['delivery_charge', 'Standard delivery charge cannot be negative'],
+    ['free_delivery_above', 'Free delivery above amount cannot be negative'],
+    ['night_charge', 'Night delivery surcharge cannot be negative'],
+    ['below_threshold_delivery_charge', 'Below-threshold delivery charge cannot be negative']
+  ];
+
+  for (const [field, message] of moneyFields) {
+    const error = validateNonNegativeNumber(body[field], message);
+    if (error) return res.status(400).json(error);
+  }
+
   // Validate coordinates when provided
-  if (body.shop_latitude !== undefined && body.shop_latitude !== null && body.shop_latitude !== '') {
+  if (hasValue(body.shop_latitude)) {
     const lat = Number(body.shop_latitude);
-    if (isNaN(lat) || lat < -90 || lat > 90) {
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Latitude must be between -90 and 90' });
     }
   }
-  if (body.shop_longitude !== undefined && body.shop_longitude !== null && body.shop_longitude !== '') {
+  if (hasValue(body.shop_longitude)) {
     const lng = Number(body.shop_longitude);
-    if (isNaN(lng) || lng < -180 || lng > 180) {
+    if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Longitude must be between -180 and 180' });
     }
   }
 
   // Prevent negative values for delivery radius and per-km cost
-  if (body.delivery_radius_km !== undefined && body.delivery_radius_km !== null && body.delivery_radius_km !== '') {
+  if (hasValue(body.delivery_radius_km)) {
     const radius = Number(body.delivery_radius_km);
-    if (isNaN(radius) || radius < 0) {
+    if (!Number.isFinite(radius) || radius < 0) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Delivery radius cannot be negative' });
     }
   }
-  if (body.delivery_cost_per_km !== undefined && body.delivery_cost_per_km !== null && body.delivery_cost_per_km !== '') {
+  if (hasValue(body.delivery_cost_per_km)) {
     const cost = Number(body.delivery_cost_per_km);
-    if (isNaN(cost) || cost < 0) {
+    if (!Number.isFinite(cost) || cost < 0) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Delivery cost per km cannot be negative' });
-    }
-  }
-  if (body.below_threshold_delivery_charge !== undefined && body.below_threshold_delivery_charge !== null && body.below_threshold_delivery_charge !== '') {
-    const charge = Number(body.below_threshold_delivery_charge);
-    if (isNaN(charge) || charge < 0) {
-      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Below-threshold delivery charge cannot be negative' });
     }
   }
 
@@ -121,6 +138,10 @@ const updateSettings = async (req, res) => {
       if (['shop_open', 'delivery_available', 'free_delivery_offer_active', 'free_delivery_above_minimum_active'].includes(field)) {
         val = (val === true || val === 'true' || val === 1 || val === '1') ? 1 : 0;
       } else if ([
+        'minimum_order_amount',
+        'delivery_charge',
+        'free_delivery_above',
+        'night_charge',
         'shop_latitude',
         'shop_longitude',
         'delivery_radius_km',

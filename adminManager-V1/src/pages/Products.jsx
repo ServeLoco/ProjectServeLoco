@@ -333,11 +333,25 @@ function ProductFormDrawer({ product, categories, onClose, onSave }) {
     e.preventDefault();
     try {
       setSaving(true);
+      const price = Number(formData.price);
+      const originalPrice = formData.original_price ? Number(formData.original_price) : null;
+
+      if (!Number.isFinite(price) || price < 0) {
+        alert('Product price must be a valid non-negative number.');
+        setSaving(false);
+        return;
+      }
+      if (originalPrice !== null && (!Number.isFinite(originalPrice) || originalPrice < price)) {
+        alert('Original price must be a valid amount and cannot be lower than selling price.');
+        setSaving(false);
+        return;
+      }
+
       // Convert number strings
       const payload = {
         ...formData,
-        price: Number(formData.price),
-        original_price: formData.original_price ? Number(formData.original_price) : null,
+        price,
+        original_price: originalPrice,
         display_order: Number(formData.display_order) || 0,
         imageId: formData.image_id,
         image_id: formData.image_id,

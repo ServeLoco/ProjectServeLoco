@@ -303,6 +303,7 @@ export default function CheckoutScreen() {
 
   const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
   const isBelowMinimum = Boolean(bill && requiredMinimum && bill.subtotal < requiredMinimum);
+  const totalQuantity = items.reduce((total, item) => total + (Number(item.quantity) || 0), 0);
   const hasPinnedLocation = Boolean(coordinates);
   const hasInvalidDelivery = Boolean(bill && (bill.requiresLocation || !bill.deliveryWithinRange));
   const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || !hasPinnedLocation || hasInvalidDelivery;
@@ -432,7 +433,7 @@ export default function CheckoutScreen() {
             ) : bill ? (
               <>
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Items ({items.length})</Text>
+                  <Text style={styles.summaryLabel}>Items ({totalQuantity})</Text>
                   <Text style={styles.summaryValue}>₹{bill.subtotal}</Text>
                 </View>
                 <View style={styles.summaryRow}>
@@ -475,7 +476,9 @@ export default function CheckoutScreen() {
                   <View style={styles.warningBox}>
                     <AppIcon name="box" size={16} color={colors.saffron || '#FF7A3A'} style={styles.warningIcon} />
                     <Text style={styles.warningText}>
-                      Add items worth <Text style={styles.warningHighlight}>₹{(requiredMinimum - bill.subtotal).toFixed(0)}</Text> more for <Text style={styles.warningHighlight}>Free Delivery</Text> (₹{bill.deliveryCharge} delivery fee currently applied).
+                      Add items worth <Text style={styles.warningHighlight}>₹{(requiredMinimum - bill.subtotal).toFixed(0)}</Text> more
+                      {bill.freeAboveThresholdActive ? <Text> for <Text style={styles.warningHighlight}>Free Delivery</Text></Text> : null}
+                      <Text> (₹{bill.deliveryCharge} delivery fee currently applied).</Text>
                     </Text>
                   </View>
                 )}

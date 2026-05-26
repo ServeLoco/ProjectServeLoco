@@ -3,7 +3,7 @@ const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
 const { createOrder, getOrders, getOrderById, cancelOrder } = require('../controllers/orderController');
 const { requireCustomer } = require('../middleware/authMiddleware');
-const { validate, isEnum, isNumericAmount, validateCoordinates } = require('../validators');
+const { validate, isEnum, isPositiveInteger, validateCoordinates } = require('../validators');
 const { body, validationResult } = require('express-validator');
 
 const validateExpress = (req, res, next) => {
@@ -55,8 +55,10 @@ const createOrderSchema = (req) => {
     for (let i = 0; i < data.items.length; i++) {
       const item = data.items[i];
       if (!item.product_id) errors.items = `Item ${i + 1}: product_id is missing`;
-      if (!isNumericAmount(item.quantity) || Number(item.quantity) <= 0) {
-        errors.items = `Item ${i + 1}: valid quantity is required`;
+      if (!isPositiveInteger(item.quantity)) {
+        errors.items = `Item ${i + 1}: quantity must be a whole number between 1 and 999`;
+      } else {
+        item.quantity = Number(item.quantity);
       }
     }
   }

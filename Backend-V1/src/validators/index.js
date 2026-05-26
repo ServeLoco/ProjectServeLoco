@@ -2,8 +2,13 @@
 
 const isString = (val) => typeof val === 'string' && val.trim().length > 0;
 const isNumericAmount = (val) => {
+  if (val === undefined || val === null || val === '') return false;
   const num = Number(val);
-  return !isNaN(num) && num >= 0;
+  return Number.isFinite(num) && num >= 0;
+};
+const isPositiveInteger = (val, max = 999) => {
+  const num = Number(val);
+  return Number.isInteger(num) && num > 0 && num <= max;
 };
 const isBoolean = (val) => typeof val === 'boolean' || val === 'true' || val === 'false' || val === 1 || val === 0;
 const isEnum = (val, allowedValues) => allowedValues.includes(val);
@@ -57,6 +62,7 @@ const validate = (schemaFn) => {
 module.exports = {
   isString,
   isNumericAmount,
+  isPositiveInteger,
   isBoolean,
   isEnum,
   isId,

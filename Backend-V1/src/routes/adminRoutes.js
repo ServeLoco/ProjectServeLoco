@@ -18,7 +18,7 @@ const {
 } = require('../controllers/dashboardController');
 const { requireAdmin } = require('../middleware/authMiddleware');
 const { auditLog } = require('../middleware/auditMiddleware');
-const { validate, isString, isId, isBoolean, isNumericAmount, validatePagination, normalizeField } = require('../validators');
+const { validate, isString, isId, isBoolean, isNumericAmount, isPositiveInteger, validatePagination, normalizeField } = require('../validators');
 const asyncHandler = require('../utils/asyncHandler');
 const rateLimit = require('express-rate-limit');
 
@@ -132,6 +132,15 @@ const productSchema = (req) => {
   if (!isString(data.name)) errors.name = 'Name is required';
   if (!isNumericAmount(data.price)) errors.price = 'Valid price is required';
   if (!isId(data.category_id)) errors.category_id = 'Category ID is required';
+  if (data.original_price !== undefined && data.original_price !== null && data.original_price !== '') {
+    if (!isNumericAmount(data.original_price)) {
+      errors.original_price = 'Original price must be a valid amount';
+    } else if (isNumericAmount(data.price) && Number(data.original_price) < Number(data.price)) {
+      errors.original_price = 'Original price cannot be lower than selling price';
+    } else {
+      data.original_price = Number(data.original_price);
+    }
+  }
   
   if (data.available !== undefined && !isBoolean(data.available)) errors.available = 'Available must be boolean';
   if (data.is_combo !== undefined && !isBoolean(data.is_combo)) errors.is_combo = 'is_combo must be boolean';
@@ -140,8 +149,8 @@ const productSchema = (req) => {
     for (let i = 0; i < data.combo_items.length; i++) {
       const item = data.combo_items[i];
       if (!isId(item.product_id)) errors.combo_items = `Combo item ${i + 1}: valid product is required`;
-      if (!Number.isInteger(Number(item.quantity)) || Number(item.quantity) <= 0) {
-        errors.combo_items = `Combo item ${i + 1}: quantity must be at least 1`;
+      if (!isPositiveInteger(item.quantity)) {
+        errors.combo_items = `Combo item ${i + 1}: quantity must be a whole number between 1 and 999`;
       }
       item.quantity = Number(item.quantity) || 1;
       item.display_order = Number(item.display_order) || i;
@@ -159,6 +168,9 @@ const productSchema = (req) => {
   }
   if (data.display_order !== undefined) {
     data.display_order = Number(data.display_order) || 0;
+  }
+  if (isNumericAmount(data.price)) {
+    data.price = Number(data.price);
   }
   return { errors, data };
 };
@@ -185,6 +197,15 @@ const comboSchema = (req) => {
   const errors = {};
   if (!isString(data.name)) errors.name = 'Name is required';
   if (!isNumericAmount(data.price)) errors.price = 'Valid price is required';
+  if (data.original_price !== undefined && data.original_price !== null && data.original_price !== '') {
+    if (!isNumericAmount(data.original_price)) {
+      errors.original_price = 'Original price must be a valid amount';
+    } else if (isNumericAmount(data.price) && Number(data.original_price) < Number(data.price)) {
+      errors.original_price = 'Original price cannot be lower than selling price';
+    } else {
+      data.original_price = Number(data.original_price);
+    }
+  }
   
   if (data.available !== undefined && !isBoolean(data.available)) errors.available = 'Available must be boolean';
   if (data.featured !== undefined && !isBoolean(data.featured)) errors.featured = 'featured must be boolean';
@@ -192,8 +213,8 @@ const comboSchema = (req) => {
     for (let i = 0; i < data.combo_items.length; i++) {
       const item = data.combo_items[i];
       if (!isId(item.product_id)) errors.combo_items = `Combo item ${i + 1}: valid product is required`;
-      if (!Number.isInteger(Number(item.quantity)) || Number(item.quantity) <= 0) {
-        errors.combo_items = `Combo item ${i + 1}: quantity must be at least 1`;
+      if (!isPositiveInteger(item.quantity)) {
+        errors.combo_items = `Combo item ${i + 1}: quantity must be a whole number between 1 and 999`;
       }
       item.quantity = Number(item.quantity) || 1;
       item.display_order = Number(item.display_order) || i;
@@ -208,6 +229,9 @@ const comboSchema = (req) => {
   }
   if (data.display_order !== undefined) {
     data.display_order = Number(data.display_order) || 0;
+  }
+  if (isNumericAmount(data.price)) {
+    data.price = Number(data.price);
   }
   return { errors, data };
 };

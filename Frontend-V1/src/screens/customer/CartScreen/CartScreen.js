@@ -276,7 +276,9 @@ export default function CartScreen() {
                 <View style={styles.warningBox}>
                   <AppIcon name="box" size={16} color={colors.saffron || '#FF7A3A'} style={styles.warningIcon} />
                   <Text style={styles.warningText}>
-                    Add items worth <Text style={styles.warningHighlight}>₹{(requiredMinimum - bill.subtotal).toFixed(0)}</Text> more for <Text style={styles.warningHighlight}>Free Delivery</Text> (₹{bill.deliveryCharge} delivery fee currently applied).
+                    Add items worth <Text style={styles.warningHighlight}>₹{(requiredMinimum - bill.subtotal).toFixed(0)}</Text> more
+                    {bill.freeAboveThresholdActive ? <Text> for <Text style={styles.warningHighlight}>Free Delivery</Text></Text> : null}
+                    <Text> (₹{bill.deliveryCharge} delivery fee currently applied).</Text>
                   </Text>
                 </View>
               )}

@@ -365,8 +365,14 @@ function ProductFormDrawer({ product, products, onClose, onSave }) {
       alert('Please add at least one product to the combo.');
       return;
     }
-    if (Number(formData.price) <= 0) {
+    const price = Number(formData.price);
+    const originalPrice = formData.original_price ? Number(formData.original_price) : null;
+    if (!Number.isFinite(price) || price <= 0) {
       alert('Combo price must be positive.');
+      return;
+    }
+    if (originalPrice !== null && (!Number.isFinite(originalPrice) || originalPrice < price)) {
+      alert('Original price must be a valid amount and cannot be lower than selling price.');
       return;
     }
 
@@ -375,8 +381,8 @@ function ProductFormDrawer({ product, products, onClose, onSave }) {
       // Convert number strings
       const payload = {
         ...formData,
-        price: Number(formData.price),
-        original_price: formData.original_price ? Number(formData.original_price) : null,
+        price,
+        original_price: originalPrice,
         display_order: Number(formData.display_order) || 0,
         combo_items: comboItems
           .filter(item => item.product_id)

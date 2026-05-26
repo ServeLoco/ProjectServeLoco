@@ -2,6 +2,7 @@ const { pool } = require('../db/mysql');
 const { calculateDeliveryPricing } = require('../utils/deliveryPricing');
 const notificationService = require('../utils/notificationService');
 const { calculateThresholdDeliveryCharge } = require('../utils/thresholdDelivery');
+const { roundMoney, toMoney } = require('../utils/money');
 
 const generateOrderNumber = async (connection) => {
   const date = new Date();
@@ -59,9 +60,9 @@ const createOrder = async (req, res) => {
       if (prodRows.length === 0) throw new Error(`${isCombo ? 'Combo' : 'Product'} ID ${productId} is unavailable or does not exist`);
       
       const product = prodRows[0];
-      const quantity = parseInt(item.quantity, 10);
-      const unitPrice = parseFloat(product.price);
-      const lineTotal = unitPrice * quantity;
+      const quantity = Number(item.quantity);
+      const unitPrice = toMoney(product.price);
+      const lineTotal = roundMoney(unitPrice * quantity);
       
       subtotal += lineTotal;
       orderItems.push({
@@ -86,7 +87,7 @@ const createOrder = async (req, res) => {
     }
 
     const thresholdDelivery = calculateThresholdDeliveryCharge({ subtotal, settings });
-    const deliveryCharge = thresholdDelivery.charge;
+    const deliveryCharge = roundMoney(thresholdDelivery.charge);
 
     let nightCharge = 0;
     if (settings.night_charge && parseFloat(settings.night_charge) > 0 &&
@@ -104,10 +105,11 @@ const createOrder = async (req, res) => {
       const isNight = startMin > endMin
         ? (nowMinutes >= startMin || nowMinutes <= endMin)
         : (nowMinutes >= startMin && nowMinutes <= endMin);
-      if (isNight) nightCharge = parseFloat(settings.night_charge);
+      if (isNight) nightCharge = toMoney(settings.night_charge);
     }
 
-    const total = subtotal + deliveryCharge + nightCharge;
+    subtotal = roundMoney(subtotal);
+    const total = roundMoney(subtotal + deliveryCharge + nightCharge);
     const orderNumber = await generateOrderNumber(connection);
 
     const finalAddress = address || user.address;

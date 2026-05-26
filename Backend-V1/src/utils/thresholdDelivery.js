@@ -1,4 +1,5 @@
 const BELOW_THRESHOLD_DELIVERY_CHARGE = 20;
+const { roundMoney } = require('./money');
 
 const isEnabled = (value, fallback = false) => {
   if (value === undefined || value === null || value === '') return fallback;
@@ -17,7 +18,7 @@ const getFreeDeliveryThreshold = (settings = {}) => {
 
 const calculateThresholdDeliveryCharge = ({ subtotal, settings = {} }) => {
   const threshold = getFreeDeliveryThreshold(settings);
-  const total = Number(subtotal) || 0;
+  const total = roundMoney(subtotal);
   const freeDeliveryOfferActive = isEnabled(settings.free_delivery_offer_active);
   const freeAboveThresholdActive = isEnabled(settings.free_delivery_above_minimum_active, true);
   const belowThresholdCharge = getNonNegativeAmount(
@@ -38,7 +39,7 @@ const calculateThresholdDeliveryCharge = ({ subtotal, settings = {} }) => {
   }
 
   if (threshold <= 0 || total >= threshold) {
-    const charge = freeAboveThresholdActive ? 0 : standardDeliveryCharge;
+    const charge = freeAboveThresholdActive ? 0 : roundMoney(standardDeliveryCharge);
     return {
       charge,
       threshold,
@@ -52,11 +53,11 @@ const calculateThresholdDeliveryCharge = ({ subtotal, settings = {} }) => {
   }
 
   return {
-    charge: belowThresholdCharge,
+      charge: roundMoney(belowThresholdCharge),
     threshold,
     belowThreshold: threshold > 0 && total < threshold,
     message: threshold > 0
-      ? `Add ₹${Math.max(0, threshold - total)} more${freeAboveThresholdActive ? ' for free delivery' : ''}. ₹${belowThresholdCharge} delivery applied.`
+      ? `Add ₹${roundMoney(Math.max(0, threshold - total))} more${freeAboveThresholdActive ? ' for free delivery' : ''}. ₹${roundMoney(belowThresholdCharge)} delivery applied.`
       : `₹${belowThresholdCharge} delivery applied.`,
     freeDeliveryOfferActive: false,
     freeAboveThresholdActive,

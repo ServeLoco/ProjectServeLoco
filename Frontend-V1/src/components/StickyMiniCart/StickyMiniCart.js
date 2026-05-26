@@ -17,6 +17,9 @@ import AppIcon from '../AppIcon';
  */
 function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = true, style }) {
   const cartTotal = Number(total ?? totalAmount ?? 0);
+  const displayTotal = Number.isFinite(cartTotal)
+    ? (Number.isInteger(cartTotal) ? cartTotal.toFixed(0) : cartTotal.toFixed(2))
+    : '0';
   const isVisible = visible && itemCount > 0;
   const [shouldRender, setShouldRender] = useState(isVisible);
   const progress = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
@@ -101,7 +104,7 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
 
         {/* Right: estimated total */}
         <View style={styles.rightContainer}>
-          <Text style={styles.total}>₹{cartTotal.toFixed(0)}</Text>
+          <Text style={styles.total}>₹{displayTotal}</Text>
           <View style={styles.arrowIconWrapper}>
             <AppIcon name="chevronRight" size={14} color="#FFFFFF" />
           </View>

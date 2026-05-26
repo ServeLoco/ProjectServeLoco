@@ -139,6 +139,7 @@ function normalizeCartCalculation(payload = {}) {
     deliveryWithinRange: asBoolean(pickFirst(bill.deliveryWithinRange, bill.delivery_within_range), true),
     requiresLocation: asBoolean(pickFirst(bill.requiresLocation, bill.requires_location), false),
     freeDeliveryOfferActive: asBoolean(pickFirst(bill.freeDeliveryOfferActive, bill.free_delivery_offer_active), false),
+    freeAboveThresholdActive: asBoolean(pickFirst(bill.freeAboveThresholdActive, bill.free_delivery_above_minimum_active), true),
     deliveryMessage: pickFirst(bill.deliveryMessage, bill.delivery_message, bill.message, ''),
   };
 }

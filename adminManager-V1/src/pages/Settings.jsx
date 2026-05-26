@@ -87,6 +87,39 @@ export default function Settings() {
     try {
       setSaving(true);
       const nullableNumber = (value) => (value === '' || value === null || value === undefined ? null : Number(value));
+      const nonNegativeFields = [
+        ['minimum_order_amount', 'Minimum order amount'],
+        ['delivery_charge', 'Standard delivery charge'],
+        ['free_delivery_above', 'Free delivery above amount'],
+        ['night_charge', 'Night delivery surcharge'],
+        ['delivery_radius_km', 'Delivery radius'],
+        ['delivery_cost_per_km', 'Delivery cost per km'],
+        ['below_threshold_delivery_charge', 'Below-threshold delivery charge'],
+      ];
+
+      for (const [field, label] of nonNegativeFields) {
+        const value = settings[field];
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric) || numeric < 0) {
+          alert(`${label} must be a valid non-negative number.`);
+          setSaving(false);
+          return;
+        }
+      }
+
+      const latitude = nullableNumber(settings.shop_latitude);
+      const longitude = nullableNumber(settings.shop_longitude);
+      if (latitude !== null && (latitude < -90 || latitude > 90)) {
+        alert('Shop latitude must be between -90 and 90.');
+        setSaving(false);
+        return;
+      }
+      if (longitude !== null && (longitude < -180 || longitude > 180)) {
+        alert('Shop longitude must be between -180 and 180.');
+        setSaving(false);
+        return;
+      }
+
       // Ensure numeric fields are numbers
       const payload = {
         ...settings,
@@ -94,8 +127,8 @@ export default function Settings() {
         delivery_charge: Number(settings.delivery_charge),
         free_delivery_above: Number(settings.free_delivery_above),
         night_charge: Number(settings.night_charge),
-        shop_latitude: nullableNumber(settings.shop_latitude),
-        shop_longitude: nullableNumber(settings.shop_longitude),
+        shop_latitude: latitude,
+        shop_longitude: longitude,
         delivery_radius_km: Number(settings.delivery_radius_km),
         delivery_cost_per_km: Number(settings.delivery_cost_per_km),
         below_threshold_delivery_charge: Number(settings.below_threshold_delivery_charge),
@@ -284,7 +317,7 @@ export default function Settings() {
           </div>
           <div className="settings-form-group full-width">
             <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6 }}>
-              Customers must pin GPS location at checkout. Backend allows orders only inside the radius and calculates delivery as exact distance multiplied by cost per km.
+              Customers must pin GPS location at checkout. Backend allows orders only inside the radius; the final delivery charge follows the pricing rules above.
             </p>
           </div>
         </div>
