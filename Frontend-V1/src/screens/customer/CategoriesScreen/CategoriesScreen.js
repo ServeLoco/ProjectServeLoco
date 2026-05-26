@@ -106,11 +106,11 @@ export default function CategoriesScreen() {
   }, [storeType, reloadToken, fadeAnim, slideAnim, staggerAnims]);
 
   const handleSearchPress = () => {
-    navigation.navigate('ProductList', { mode: 'search' });
+    navigation.navigate('ProductList', { mode: 'search', storeType: normalizedStoreType });
   };
 
   const handleCategoryPress = (category) => {
-    navigation.navigate('ProductList', { categoryId: category.id, categoryName: category.name });
+    navigation.navigate('ProductList', { categoryId: category.id, categoryName: category.name, storeType: normalizedStoreType });
   };
 
   const handleCartPress = () => {

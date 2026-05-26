@@ -182,11 +182,11 @@ export default function HomeScreen() {
   });
 
   const handleSearchPress = () => {
-    navigation.navigate('ProductList', { mode: 'search' });
+    navigation.navigate('ProductList', { mode: 'search', storeType: currentApiStoreType });
   };
 
   const handleCategoryPress = (category) => {
-    navigation.navigate('ProductList', { categoryId: category.id, categoryName: category.name });
+    navigation.navigate('ProductList', { categoryId: category.id, categoryName: category.name, storeType: currentApiStoreType });
   };
 
   const getQty = (productId) => {
@@ -365,7 +365,7 @@ export default function HomeScreen() {
                           label="Shop Offer"
                           variant="highlight"
                           size="small"
-                          onPress={() => navigation.navigate('ProductList', { offerId: offer.id, offerTitle: offer.title })}
+                          onPress={() => navigation.navigate('ProductList', { offerId: offer.id, offerTitle: offer.title, storeType: currentApiStoreType })}
                           style={styles.offerBtn}
                         />
                       </View>

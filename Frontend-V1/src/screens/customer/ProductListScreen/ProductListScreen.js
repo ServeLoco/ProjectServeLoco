@@ -33,7 +33,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const CATEGORY_CHIPS = ['All', 'Groceries', 'Daily Essentials', 'Cold Drinks', 'Snacks', 'Fast Food', 'Desserts'];
 const SORT_OPTIONS = ['Popular', 'Price Low to High', 'Price High to Low'];
 
 export default function ProductListScreen() {
@@ -109,6 +108,8 @@ export default function ProductListScreen() {
           isCombo: mode === 'combos',
           featured: mode === 'combos' ? true : undefined,
           sort: sortBy,
+          type: sectionStoreType !== 'all' ? sectionStoreType : undefined,
+          storeType: sectionStoreType !== 'all' ? sectionStoreType : undefined,
         });
         filtered = asArray(response, ['products']).map(normalizeProduct);
         if (mode !== 'combos') {
@@ -312,31 +313,6 @@ export default function ProductListScreen() {
           </View>
         )}
 
-        {!sectionSlug && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-            {CATEGORY_CHIPS.map(chip => (
-              <TouchableOpacity
-                key={chip}
-                style={[styles.chip, activeCategory === chip && styles.chipActive]}
-                onPress={() => {
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                  setActiveCategory(chip);
-                }}
-              >
-                <Text style={[styles.chipText, activeCategory === chip && styles.chipTextActive]}>{chip}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[styles.chip, showAvailableOnly && styles.chipActive]}
-              onPress={() => {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setShowAvailableOnly(!showAvailableOnly);
-              }}
-            >
-              <Text style={[styles.chipText, showAvailableOnly && styles.chipTextActive]}>Available Only</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        )}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
           {SORT_OPTIONS.map(opt => (
