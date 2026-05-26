@@ -329,7 +329,13 @@ export default function HomeScreen() {
             <SegmentedControl
               options={['Packed Items', 'Fast Food']}
               selectedOption={storeType}
-              onSelect={setStoreType}
+              onSelect={(val) => {
+                if (val !== storeType) {
+                  setDashboardSections([]);
+                  setIsLoading(true);
+                  setStoreType(val);
+                }
+              }}
             />
           </View>
 
