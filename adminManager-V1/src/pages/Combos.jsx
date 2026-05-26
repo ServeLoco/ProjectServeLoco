@@ -14,7 +14,8 @@ export default function Combos() {
   const [filters, setFilters] = useState({
     search: '',
     available: '',
-    featured: ''
+    featured: '',
+    store_type: 'packed',
   });
 
   const [selectedIds, setSelectedIds] = useState([]);
@@ -36,6 +37,7 @@ export default function Combos() {
 
   const fetchComboProducts = async () => {
     try {
+      // Fetch all products since combo form might need to validate cross-mode logic, or we filter in UI
       const res = await ProductsApi.list({ is_combo: '0', available: '1' });
       setComboProducts(readProducts(res));
     } catch (err) {
@@ -139,6 +141,23 @@ export default function Combos() {
           + New Combo
         </button>
       </header>
+
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+        <button 
+          className={`btn-secondary ${filters.store_type === 'packed' ? 'active' : ''}`}
+          style={filters.store_type === 'packed' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+          onClick={() => setFilters(prev => ({ ...prev, store_type: 'packed' }))}
+        >
+          Packed Items
+        </button>
+        <button 
+          className={`btn-secondary ${filters.store_type === 'fast_food' ? 'active' : ''}`}
+          style={filters.store_type === 'fast_food' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+          onClick={() => setFilters(prev => ({ ...prev, store_type: 'fast_food' }))}
+        >
+          Fast Food
+        </button>
+      </div>
 
       <section className="filter-bar">
         <input
@@ -264,6 +283,7 @@ export default function Combos() {
         <ProductFormDrawer 
           product={editingProduct} 
           products={comboProducts}
+          currentMode={filters.store_type}
           onClose={closeDrawer} 
           onSave={() => { closeDrawer(); fetchProducts(pagination.page); }}
         />
@@ -273,7 +293,7 @@ export default function Combos() {
 }
 
 // Separate Component for the Drawer
-function ProductFormDrawer({ product, products, onClose, onSave }) {
+function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) {
   const isEdit = !!product;
   const [formData, setFormData] = useState(product || {
     name: '',
@@ -286,7 +306,8 @@ function ProductFormDrawer({ product, products, onClose, onSave }) {
     featured: false,
     discount_label: '',
     image_id: '',
-    image_url: ''
+    image_url: '',
+    store_type: product?.store_type || currentMode || 'packed',
   });
   const [comboItems, setComboItems] = useState(
     (product?.combo_items || product?.comboItems || []).map((item, index) => ({
@@ -404,6 +425,12 @@ function ProductFormDrawer({ product, products, onClose, onSave }) {
       };
 
       if (isEdit) {
+        if (product.store_type && formData.store_type && product.store_type !== formData.store_type) {
+          if (!window.confirm(`Warning: You are moving this combo from ${product.store_type} to ${formData.store_type}. Some member products might become invalid. Are you sure?`)) {
+            setSaving(false);
+            return;
+          }
+        }
         await CombosApi.update(product.id, payload);
       } else {
         await CombosApi.create(payload);
@@ -437,9 +464,18 @@ function ProductFormDrawer({ product, products, onClose, onSave }) {
           </div>
           
           <div className="drawer-body">
-            <div className="form-group">
-              <label className="form-label">Combo Name</label>
-              <input required type="text" name="name" className="form-input" value={formData.name} onChange={handleChange} />
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Combo Name</label>
+                <input required type="text" name="name" className="form-input" value={formData.name} onChange={handleChange} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Combo Mode</label>
+                <select required name="store_type" className="form-select" value={formData.store_type} onChange={handleChange}>
+                  <option value="packed">Packed Items</option>
+                  <option value="fast_food">Fast Food</option>
+                </select>
+              </div>
             </div>
 
             <div className="form-row">
@@ -505,7 +541,7 @@ function ProductFormDrawer({ product, products, onClose, onSave }) {
                       onChange={(e) => updateComboItem(index, 'product_id', e.target.value)}
                     >
                       <option value="">Select product</option>
-                      {products.map(p => (
+                      {products.filter(p => p.category_type === formData.store_type).map(p => (
                         <option key={p.id} value={p.id}>{p.name}</option>
                       ))}
                     </select>

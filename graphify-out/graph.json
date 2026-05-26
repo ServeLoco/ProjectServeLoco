@@ -4,337 +4,544 @@
   "graph": {},
   "nodes": [
     {
+      "label": "productController.js",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L1",
+      "id": "backend_v1_src_controllers_productcontroller_js",
+      "community": 35,
+      "norm_label": "productcontroller.js"
+    },
+    {
+      "label": "{ pool }",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L1",
+      "id": "controllers_productcontroller_pool",
+      "community": 35,
+      "norm_label": "{ pool }"
+    },
+    {
+      "label": "{ getDb }",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L2",
+      "id": "controllers_productcontroller_getdb",
+      "community": 35,
+      "norm_label": "{ getdb }"
+    },
+    {
+      "label": "{ ObjectId }",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L3",
+      "id": "controllers_productcontroller_objectid",
+      "community": 35,
+      "norm_label": "{ objectid }"
+    },
+    {
+      "label": "{ normalizeStoreType }",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L4",
+      "id": "controllers_productcontroller_normalizestoretype",
+      "community": 35,
+      "norm_label": "{ normalizestoretype }"
+    },
+    {
+      "label": "path",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L5",
+      "id": "controllers_productcontroller_path",
+      "community": 35,
+      "norm_label": "path"
+    },
+    {
+      "label": "fs",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L6",
+      "id": "controllers_productcontroller_fs",
+      "community": 35,
+      "norm_label": "fs"
+    },
+    {
+      "label": "config",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L7",
+      "id": "controllers_productcontroller_config",
+      "community": 35,
+      "norm_label": "config"
+    },
+    {
+      "label": "resolveImageUrls()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L9",
+      "id": "controllers_productcontroller_resolveimageurls",
+      "community": 35,
+      "norm_label": "resolveimageurls()"
+    },
+    {
+      "label": "getComboItemsByComboIds()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L29",
+      "id": "controllers_productcontroller_getcomboitemsbycomboids",
+      "community": 35,
+      "norm_label": "getcomboitemsbycomboids()"
+    },
+    {
+      "label": "attachComboItems()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L76",
+      "id": "controllers_productcontroller_attachcomboitems",
+      "community": 35,
+      "norm_label": "attachcomboitems()"
+    },
+    {
+      "label": "getProducts()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L88",
+      "id": "controllers_productcontroller_getproducts",
+      "community": 35,
+      "norm_label": "getproducts()"
+    },
+    {
+      "label": "getProductById()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L144",
+      "id": "controllers_productcontroller_getproductbyid",
+      "community": 35,
+      "norm_label": "getproductbyid()"
+    },
+    {
+      "label": "createProduct()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L186",
+      "id": "controllers_productcontroller_createproduct",
+      "community": 35,
+      "norm_label": "createproduct()"
+    },
+    {
+      "label": "updateProduct()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L213",
+      "id": "controllers_productcontroller_updateproduct",
+      "community": 35,
+      "norm_label": "updateproduct()"
+    },
+    {
+      "label": "getAdminProducts()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L261",
+      "id": "controllers_productcontroller_getadminproducts",
+      "community": 35,
+      "norm_label": "getadminproducts()"
+    },
+    {
+      "label": "getAdminProductById()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L314",
+      "id": "controllers_productcontroller_getadminproductbyid",
+      "community": 35,
+      "norm_label": "getadminproductbyid()"
+    },
+    {
+      "label": "deleteProduct()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L332",
+      "id": "controllers_productcontroller_deleteproduct",
+      "community": 35,
+      "norm_label": "deleteproduct()"
+    },
+    {
+      "label": "updateProductAvailability()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L343",
+      "id": "controllers_productcontroller_updateproductavailability",
+      "community": 35,
+      "norm_label": "updateproductavailability()"
+    },
+    {
+      "label": "updateProductImage()",
+      "file_type": "code",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L357",
+      "id": "controllers_productcontroller_updateproductimage",
+      "community": 35,
+      "norm_label": "updateproductimage()"
+    },
+    {
+      "label": "Products.jsx",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L1",
+      "id": "adminmanager_v1_src_pages_products_jsx",
+      "community": 62,
+      "norm_label": "products.jsx"
+    },
+    {
+      "label": "Products()",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L6",
+      "id": "pages_products_products",
+      "community": 62,
+      "norm_label": "products()"
+    },
+    {
+      "label": "ProductFormDrawer()",
+      "file_type": "code",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L298",
+      "id": "pages_products_productformdrawer",
+      "community": 62,
+      "norm_label": "productformdrawer()"
+    },
+    {
       "label": "dashboardController.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L1",
-      "id": "backend_v1_src_controllers_dashboardcontroller_js",
       "community": 64,
-      "norm_label": "dashboardcontroller.js"
+      "norm_label": "dashboardcontroller.js",
+      "id": "backend_v1_src_controllers_dashboardcontroller_js"
     },
     {
       "label": "{ pool }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L1",
-      "id": "controllers_dashboardcontroller_pool",
       "community": 64,
-      "norm_label": "{ pool }"
+      "norm_label": "{ pool }",
+      "id": "controllers_dashboardcontroller_pool"
     },
     {
       "label": "{ getDb }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L2",
-      "id": "controllers_dashboardcontroller_getdb",
       "community": 64,
-      "norm_label": "{ getdb }"
+      "norm_label": "{ getdb }",
+      "id": "controllers_dashboardcontroller_getdb"
     },
     {
       "label": "{ ObjectId }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L3",
-      "id": "controllers_dashboardcontroller_objectid",
       "community": 64,
-      "norm_label": "{ objectid }"
+      "norm_label": "{ objectid }",
+      "id": "controllers_dashboardcontroller_objectid"
     },
     {
       "label": "{ normalizeStoreType }",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L4",
-      "id": "controllers_dashboardcontroller_normalizestoretype",
       "community": 64,
-      "norm_label": "{ normalizestoretype }"
+      "norm_label": "{ normalizestoretype }",
+      "id": "controllers_dashboardcontroller_normalizestoretype"
     },
     {
       "label": "SECTION_TYPES",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L6",
-      "id": "controllers_dashboardcontroller_section_types",
       "community": 64,
-      "norm_label": "section_types"
+      "norm_label": "section_types",
+      "id": "controllers_dashboardcontroller_section_types"
     },
     {
       "label": "STORE_TYPES",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L7",
-      "id": "controllers_dashboardcontroller_store_types",
       "community": 64,
-      "norm_label": "store_types"
+      "norm_label": "store_types",
+      "id": "controllers_dashboardcontroller_store_types"
     },
     {
       "label": "SECTION_ITEM_TYPES",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L8",
-      "id": "controllers_dashboardcontroller_section_item_types",
       "community": 64,
-      "norm_label": "section_item_types"
+      "norm_label": "section_item_types",
+      "id": "controllers_dashboardcontroller_section_item_types"
     },
     {
       "label": "getExpectedStoreType()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L15",
-      "id": "controllers_dashboardcontroller_getexpectedstoretype",
       "community": 64,
-      "norm_label": "getexpectedstoretype()"
+      "norm_label": "getexpectedstoretype()",
+      "id": "controllers_dashboardcontroller_getexpectedstoretype"
     },
     {
       "label": "isInvalidDateValue()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L20",
-      "id": "controllers_dashboardcontroller_isinvaliddatevalue",
       "community": 64,
-      "norm_label": "isinvaliddatevalue()"
+      "norm_label": "isinvaliddatevalue()",
+      "id": "controllers_dashboardcontroller_isinvaliddatevalue"
     },
     {
       "label": "validateVisibilityWindow()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L22",
-      "id": "controllers_dashboardcontroller_validatevisibilitywindow",
       "community": 64,
-      "norm_label": "validatevisibilitywindow()"
+      "norm_label": "validatevisibilitywindow()",
+      "id": "controllers_dashboardcontroller_validatevisibilitywindow"
     },
     {
       "label": "asPositiveInteger()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L32",
-      "id": "controllers_dashboardcontroller_aspositiveinteger",
       "community": 64,
-      "norm_label": "aspositiveinteger()"
+      "norm_label": "aspositiveinteger()",
+      "id": "controllers_dashboardcontroller_aspositiveinteger"
     },
     {
       "label": "validateSectionPayload()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L38",
-      "id": "controllers_dashboardcontroller_validatesectionpayload",
       "community": 64,
-      "norm_label": "validatesectionpayload()"
+      "norm_label": "validatesectionpayload()",
+      "id": "controllers_dashboardcontroller_validatesectionpayload"
     },
     {
       "label": "getLinkedItemInfo()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L57",
-      "id": "controllers_dashboardcontroller_getlinkediteminfo",
       "community": 64,
-      "norm_label": "getlinkediteminfo()"
+      "norm_label": "getlinkediteminfo()",
+      "id": "controllers_dashboardcontroller_getlinkediteminfo"
     },
     {
       "label": "resolveImageUrls()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L106",
-      "id": "controllers_dashboardcontroller_resolveimageurls",
       "community": 64,
-      "norm_label": "resolveimageurls()"
+      "norm_label": "resolveimageurls()",
+      "id": "controllers_dashboardcontroller_resolveimageurls"
     },
     {
       "label": "getComboItemsByComboIds()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L127",
-      "id": "controllers_dashboardcontroller_getcomboitemsbycomboids",
       "community": 64,
-      "norm_label": "getcomboitemsbycomboids()"
+      "norm_label": "getcomboitemsbycomboids()",
+      "id": "controllers_dashboardcontroller_getcomboitemsbycomboids"
     },
     {
       "label": "attachComboItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L175",
-      "id": "controllers_dashboardcontroller_attachcomboitems",
       "community": 64,
-      "norm_label": "attachcomboitems()"
+      "norm_label": "attachcomboitems()",
+      "id": "controllers_dashboardcontroller_attachcomboitems"
     },
     {
       "label": "mapCategoryRows()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L187",
-      "id": "controllers_dashboardcontroller_mapcategoryrows",
       "community": 64,
-      "norm_label": "mapcategoryrows()"
+      "norm_label": "mapcategoryrows()",
+      "id": "controllers_dashboardcontroller_mapcategoryrows"
     },
     {
       "label": "mapProductRows()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L199",
-      "id": "controllers_dashboardcontroller_mapproductrows",
       "community": 64,
-      "norm_label": "mapproductrows()"
+      "norm_label": "mapproductrows()",
+      "id": "controllers_dashboardcontroller_mapproductrows"
     },
     {
       "label": "getDefaultCategoryItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L219",
-      "id": "controllers_dashboardcontroller_getdefaultcategoryitems",
       "community": 64,
-      "norm_label": "getdefaultcategoryitems()"
+      "norm_label": "getdefaultcategoryitems()",
+      "id": "controllers_dashboardcontroller_getdefaultcategoryitems"
     },
     {
       "label": "getDefaultComboItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L240",
-      "id": "controllers_dashboardcontroller_getdefaultcomboitems",
       "community": 64,
-      "norm_label": "getdefaultcomboitems()"
+      "norm_label": "getdefaultcomboitems()",
+      "id": "controllers_dashboardcontroller_getdefaultcomboitems"
     },
     {
       "label": "getDashboard()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L266",
-      "id": "controllers_dashboardcontroller_getdashboard",
       "community": 64,
-      "norm_label": "getdashboard()"
+      "norm_label": "getdashboard()",
+      "id": "controllers_dashboardcontroller_getdashboard"
     },
     {
       "label": "getSectionItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L438",
-      "id": "controllers_dashboardcontroller_getsectionitems",
       "community": 64,
-      "norm_label": "getsectionitems()"
+      "norm_label": "getsectionitems()",
+      "id": "controllers_dashboardcontroller_getsectionitems"
     },
     {
       "label": "getAdminSections()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L610",
-      "id": "controllers_dashboardcontroller_getadminsections",
       "community": 64,
-      "norm_label": "getadminsections()"
+      "norm_label": "getadminsections()",
+      "id": "controllers_dashboardcontroller_getadminsections"
     },
     {
       "label": "getAdminSectionById()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L624",
-      "id": "controllers_dashboardcontroller_getadminsectionbyid",
       "community": 64,
-      "norm_label": "getadminsectionbyid()"
+      "norm_label": "getadminsectionbyid()",
+      "id": "controllers_dashboardcontroller_getadminsectionbyid"
     },
     {
       "label": "createAdminSection()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L685",
-      "id": "controllers_dashboardcontroller_createadminsection",
       "community": 64,
-      "norm_label": "createadminsection()"
+      "norm_label": "createadminsection()",
+      "id": "controllers_dashboardcontroller_createadminsection"
     },
     {
       "label": "updateAdminSection()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L746",
-      "id": "controllers_dashboardcontroller_updateadminsection",
       "community": 64,
-      "norm_label": "updateadminsection()"
+      "norm_label": "updateadminsection()",
+      "id": "controllers_dashboardcontroller_updateadminsection"
     },
     {
       "label": "deleteAdminSection()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L833",
-      "id": "controllers_dashboardcontroller_deleteadminsection",
       "community": 64,
-      "norm_label": "deleteadminsection()"
+      "norm_label": "deleteadminsection()",
+      "id": "controllers_dashboardcontroller_deleteadminsection"
     },
     {
       "label": "addAdminSectionItem()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L857",
-      "id": "controllers_dashboardcontroller_addadminsectionitem",
       "community": 64,
-      "norm_label": "addadminsectionitem()"
+      "norm_label": "addadminsectionitem()",
+      "id": "controllers_dashboardcontroller_addadminsectionitem"
     },
     {
       "label": "updateAdminSectionItem()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L940",
-      "id": "controllers_dashboardcontroller_updateadminsectionitem",
       "community": 64,
-      "norm_label": "updateadminsectionitem()"
+      "norm_label": "updateadminsectionitem()",
+      "id": "controllers_dashboardcontroller_updateadminsectionitem"
     },
     {
       "label": "deleteAdminSectionItem()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L993",
-      "id": "controllers_dashboardcontroller_deleteadminsectionitem",
       "community": 64,
-      "norm_label": "deleteadminsectionitem()"
+      "norm_label": "deleteadminsectionitem()",
+      "id": "controllers_dashboardcontroller_deleteadminsectionitem"
     },
     {
       "label": "reorderAdminSections()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L1017",
-      "id": "controllers_dashboardcontroller_reorderadminsections",
       "community": 64,
-      "norm_label": "reorderadminsections()"
+      "norm_label": "reorderadminsections()",
+      "id": "controllers_dashboardcontroller_reorderadminsections"
     },
     {
       "label": "reorderAdminSectionItems()",
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/dashboardController.js",
       "source_location": "L1047",
-      "id": "controllers_dashboardcontroller_reorderadminsectionitems",
       "community": 64,
-      "norm_label": "reorderadminsectionitems()"
+      "norm_label": "reorderadminsectionitems()",
+      "id": "controllers_dashboardcontroller_reorderadminsectionitems"
     },
     {
       "label": "migrate.js",
       "file_type": "code",
       "source_file": "Backend-V1/src/db/migrate.js",
       "source_location": "L1",
-      "id": "backend_v1_src_db_migrate_js",
       "community": 81,
-      "norm_label": "migrate.js"
+      "norm_label": "migrate.js",
+      "id": "backend_v1_src_db_migrate_js"
     },
     {
       "label": "mysql",
       "file_type": "code",
       "source_file": "Backend-V1/src/db/migrate.js",
       "source_location": "L2",
-      "id": "db_migrate_mysql",
       "community": 81,
-      "norm_label": "mysql"
+      "norm_label": "mysql",
+      "id": "db_migrate_mysql"
     },
     {
       "label": "config",
       "file_type": "code",
       "source_file": "Backend-V1/src/db/migrate.js",
       "source_location": "L3",
-      "id": "db_migrate_config",
       "community": 81,
-      "norm_label": "config"
+      "norm_label": "config",
+      "id": "db_migrate_config"
     },
     {
       "label": "migrate()",
       "file_type": "code",
       "source_file": "Backend-V1/src/db/migrate.js",
       "source_location": "L5",
-      "id": "db_migrate_migrate",
       "community": 81,
-      "norm_label": "migrate()"
+      "norm_label": "migrate()",
+      "id": "db_migrate_migrate"
     },
     {
       "label": "categoryController.js",
@@ -632,186 +839,6 @@
       "community": 100,
       "norm_label": "updatecomboavailability()",
       "id": "controllers_combocontroller_updatecomboavailability"
-    },
-    {
-      "label": "productController.js",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L1",
-      "community": 35,
-      "norm_label": "productcontroller.js",
-      "id": "backend_v1_src_controllers_productcontroller_js"
-    },
-    {
-      "label": "{ pool }",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L1",
-      "community": 35,
-      "norm_label": "{ pool }",
-      "id": "controllers_productcontroller_pool"
-    },
-    {
-      "label": "{ getDb }",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L2",
-      "community": 35,
-      "norm_label": "{ getdb }",
-      "id": "controllers_productcontroller_getdb"
-    },
-    {
-      "label": "{ ObjectId }",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L3",
-      "community": 35,
-      "norm_label": "{ objectid }",
-      "id": "controllers_productcontroller_objectid"
-    },
-    {
-      "label": "{ normalizeStoreType }",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L4",
-      "community": 35,
-      "norm_label": "{ normalizestoretype }",
-      "id": "controllers_productcontroller_normalizestoretype"
-    },
-    {
-      "label": "path",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L5",
-      "community": 35,
-      "norm_label": "path",
-      "id": "controllers_productcontroller_path"
-    },
-    {
-      "label": "fs",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L6",
-      "community": 35,
-      "norm_label": "fs",
-      "id": "controllers_productcontroller_fs"
-    },
-    {
-      "label": "config",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L7",
-      "community": 35,
-      "norm_label": "config",
-      "id": "controllers_productcontroller_config"
-    },
-    {
-      "label": "resolveImageUrls()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L9",
-      "community": 35,
-      "norm_label": "resolveimageurls()",
-      "id": "controllers_productcontroller_resolveimageurls"
-    },
-    {
-      "label": "getComboItemsByComboIds()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L29",
-      "community": 35,
-      "norm_label": "getcomboitemsbycomboids()",
-      "id": "controllers_productcontroller_getcomboitemsbycomboids"
-    },
-    {
-      "label": "attachComboItems()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L76",
-      "community": 35,
-      "norm_label": "attachcomboitems()",
-      "id": "controllers_productcontroller_attachcomboitems"
-    },
-    {
-      "label": "getProducts()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L88",
-      "community": 35,
-      "norm_label": "getproducts()",
-      "id": "controllers_productcontroller_getproducts"
-    },
-    {
-      "label": "getProductById()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L144",
-      "community": 35,
-      "norm_label": "getproductbyid()",
-      "id": "controllers_productcontroller_getproductbyid"
-    },
-    {
-      "label": "createProduct()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L186",
-      "community": 35,
-      "norm_label": "createproduct()",
-      "id": "controllers_productcontroller_createproduct"
-    },
-    {
-      "label": "updateProduct()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L213",
-      "community": 35,
-      "norm_label": "updateproduct()",
-      "id": "controllers_productcontroller_updateproduct"
-    },
-    {
-      "label": "getAdminProducts()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L261",
-      "community": 35,
-      "norm_label": "getadminproducts()",
-      "id": "controllers_productcontroller_getadminproducts"
-    },
-    {
-      "label": "getAdminProductById()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L307",
-      "community": 35,
-      "norm_label": "getadminproductbyid()",
-      "id": "controllers_productcontroller_getadminproductbyid"
-    },
-    {
-      "label": "deleteProduct()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L325",
-      "community": 35,
-      "norm_label": "deleteproduct()",
-      "id": "controllers_productcontroller_deleteproduct"
-    },
-    {
-      "label": "updateProductAvailability()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L336",
-      "community": 35,
-      "norm_label": "updateproductavailability()",
-      "id": "controllers_productcontroller_updateproductavailability"
-    },
-    {
-      "label": "updateProductImage()",
-      "file_type": "code",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L350",
-      "community": 35,
-      "norm_label": "updateproductimage()",
-      "id": "controllers_productcontroller_updateproductimage"
     },
     {
       "label": "settingsController.js",
@@ -2671,7 +2698,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L14",
-      "community": 102,
+      "community": 30,
       "norm_label": "authapi",
       "id": "api_index_authapi"
     },
@@ -2770,7 +2797,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L97",
-      "community": 87,
+      "community": 49,
       "norm_label": "healthapi",
       "id": "api_index_healthapi"
     },
@@ -2797,7 +2824,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/api/index.js",
       "source_location": "L118",
-      "community": 49,
+      "community": 87,
       "norm_label": "notificationsapi",
       "id": "api_index_notificationsapi"
     },
@@ -2959,7 +2986,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Health.jsx",
       "source_location": "L1",
-      "community": 87,
+      "community": 49,
       "norm_label": "health.jsx",
       "id": "adminmanager_v1_src_pages_health_jsx"
     },
@@ -2968,7 +2995,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Health.jsx",
       "source_location": "L5",
-      "community": 87,
+      "community": 49,
       "norm_label": "health()",
       "id": "pages_health_health"
     },
@@ -3018,38 +3045,11 @@
       "id": "pages_reports_reports"
     },
     {
-      "label": "Products.jsx",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L1",
-      "community": 62,
-      "norm_label": "products.jsx",
-      "id": "adminmanager_v1_src_pages_products_jsx"
-    },
-    {
-      "label": "Products()",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L6",
-      "community": 62,
-      "norm_label": "products()",
-      "id": "pages_products_products"
-    },
-    {
-      "label": "ProductFormDrawer()",
-      "file_type": "code",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L280",
-      "community": 62,
-      "norm_label": "productformdrawer()",
-      "id": "pages_products_productformdrawer"
-    },
-    {
       "label": "Notifications.jsx",
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Notifications.jsx",
       "source_location": "L1",
-      "community": 49,
+      "community": 87,
       "norm_label": "notifications.jsx",
       "id": "adminmanager_v1_src_pages_notifications_jsx"
     },
@@ -3058,7 +3058,7 @@
       "file_type": "code",
       "source_file": "adminManager-V1/src/pages/Notifications.jsx",
       "source_location": "L5",
-      "community": 49,
+      "community": 87,
       "norm_label": "notifications()",
       "id": "pages_notifications_notifications"
     },
@@ -4624,7 +4624,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/stores/useAuthStore.js",
       "source_location": "L9",
-      "community": 102,
+      "community": 17,
       "norm_label": "useauthstore",
       "id": "stores_useauthstore_useauthstore"
     },
@@ -4651,7 +4651,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/appLogo.js",
       "source_location": "L1",
-      "community": 201,
+      "community": 43,
       "norm_label": "applogo.js",
       "id": "frontend_v1_src_assets_applogo_js"
     },
@@ -4660,7 +4660,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/appLogo.js",
       "source_location": "L1",
-      "community": 201,
+      "community": 43,
       "norm_label": "applogo",
       "id": "assets_applogo_applogo"
     },
@@ -4669,7 +4669,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/index.js",
       "source_location": "L1",
-      "community": 201,
+      "community": 43,
       "norm_label": "index.js",
       "id": "frontend_v1_src_assets_index_js"
     },
@@ -4678,7 +4678,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/fallbackImages.js",
       "source_location": "L1",
-      "community": 201,
+      "community": 43,
       "norm_label": "fallbackimages.js",
       "id": "frontend_v1_src_assets_fallbackimages_js"
     },
@@ -4714,7 +4714,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "orderconfirmationscreen.js",
       "id": "frontend_v1_src_screens_customer_orderconfirmationscreen_orderconfirmationscreen_js"
     },
@@ -4723,7 +4723,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L14",
-      "community": 60,
+      "community": 30,
       "norm_label": "orderconfirmationscreen()",
       "id": "orderconfirmationscreen_orderconfirmationscreen_orderconfirmationscreen"
     },
@@ -4732,7 +4732,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L196",
-      "community": 60,
+      "community": 30,
       "norm_label": "styles",
       "id": "orderconfirmationscreen_orderconfirmationscreen_styles"
     },
@@ -4831,7 +4831,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 30,
       "norm_label": "profilescreen.js",
       "id": "frontend_v1_src_screens_customer_profilescreen_profilescreen_js"
     },
@@ -4840,7 +4840,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L22",
-      "community": 102,
+      "community": 30,
       "norm_label": "profilescreen()",
       "id": "profilescreen_profilescreen_profilescreen"
     },
@@ -4849,7 +4849,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L168",
-      "community": 102,
+      "community": 30,
       "norm_label": "menuoption()",
       "id": "profilescreen_profilescreen_menuoption"
     },
@@ -4858,7 +4858,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/ProfileScreen/ProfileScreen.js",
       "source_location": "L197",
-      "community": 102,
+      "community": 30,
       "norm_label": "styles",
       "id": "profilescreen_profilescreen_styles"
     },
@@ -5002,7 +5002,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/NotificationsScreen/NotificationsScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 17,
       "norm_label": "notificationsscreen.js",
       "id": "frontend_v1_src_screens_customer_notificationsscreen_notificationsscreen_js"
     },
@@ -5011,7 +5011,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/NotificationsScreen/NotificationsScreen.js",
       "source_location": "L8",
-      "community": 102,
+      "community": 17,
       "norm_label": "notificationsscreen()",
       "id": "notificationsscreen_notificationsscreen_notificationsscreen"
     },
@@ -5020,7 +5020,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/NotificationsScreen/NotificationsScreen.js",
       "source_location": "L133",
-      "community": 102,
+      "community": 17,
       "norm_label": "styles",
       "id": "notificationsscreen_notificationsscreen_styles"
     },
@@ -5074,7 +5074,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 30,
       "norm_label": "editprofilescreen.js",
       "id": "frontend_v1_src_screens_customer_editprofilescreen_editprofilescreen_js"
     },
@@ -5083,7 +5083,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L21",
-      "community": 102,
+      "community": 30,
       "norm_label": "editprofilescreen()",
       "id": "editprofilescreen_editprofilescreen_editprofilescreen"
     },
@@ -5092,7 +5092,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L180",
-      "community": 102,
+      "community": 30,
       "norm_label": "styles",
       "id": "editprofilescreen_editprofilescreen_styles"
     },
@@ -5182,7 +5182,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/AuthScreen/AuthScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 17,
       "norm_label": "authscreen.js",
       "id": "frontend_v1_src_screens_customer_authscreen_authscreen_js"
     },
@@ -5191,7 +5191,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/AuthScreen/AuthScreen.js",
       "source_location": "L33",
-      "community": 102,
+      "community": 17,
       "norm_label": "authscreen()",
       "id": "authscreen_authscreen_authscreen"
     },
@@ -5200,7 +5200,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/customer/AuthScreen/AuthScreen.js",
       "source_location": "L324",
-      "community": 102,
+      "community": 17,
       "norm_label": "styles",
       "id": "authscreen_authscreen_styles"
     },
@@ -5380,7 +5380,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/api/authApi.js",
       "source_location": "L3",
-      "community": 102,
+      "community": 30,
       "norm_label": "authapi",
       "id": "api_authapi_authapi"
     },
@@ -5758,7 +5758,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/CategoryCard/index.js",
       "source_location": "L1",
-      "community": 201,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_categorycard_index_js"
     },
@@ -5767,7 +5767,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/CategoryCard/CategoryCard.js",
       "source_location": "L1",
-      "community": 201,
+      "community": 30,
       "norm_label": "categorycard.js",
       "id": "frontend_v1_src_components_categorycard_categorycard_js"
     },
@@ -5776,7 +5776,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/CategoryCard/CategoryCard.js",
       "source_location": "L16",
-      "community": 201,
+      "community": 30,
       "norm_label": "categorycard()",
       "id": "categorycard_categorycard_categorycard"
     },
@@ -5785,7 +5785,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/CategoryCard/CategoryCard.js",
       "source_location": "L53",
-      "community": 201,
+      "community": 30,
       "norm_label": "styles",
       "id": "categorycard_categorycard_styles"
     },
@@ -5794,7 +5794,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/index.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_textbutton_index_js"
     },
@@ -5803,7 +5803,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L1",
-      "community": 13,
+      "community": 30,
       "norm_label": "textbutton.js",
       "id": "frontend_v1_src_components_textbutton_textbutton_js"
     },
@@ -5812,7 +5812,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L20",
-      "community": 13,
+      "community": 30,
       "norm_label": "textbutton()",
       "id": "textbutton_textbutton_textbutton"
     },
@@ -5821,7 +5821,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/TextButton/TextButton.js",
       "source_location": "L64",
-      "community": 13,
+      "community": 30,
       "norm_label": "styles",
       "id": "textbutton_textbutton_styles"
     },
@@ -5884,7 +5884,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/ProductImage.js",
       "source_location": "L1",
-      "community": 201,
+      "community": 30,
       "norm_label": "productimage.js",
       "id": "frontend_v1_src_components_productimage_productimage_js"
     },
@@ -5893,7 +5893,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/ProductImage.js",
       "source_location": "L6",
-      "community": 201,
+      "community": 30,
       "norm_label": "fallback_source",
       "id": "productimage_productimage_fallback_source"
     },
@@ -5902,7 +5902,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/ProductImage.js",
       "source_location": "L21",
-      "community": 201,
+      "community": 30,
       "norm_label": "productimage()",
       "id": "productimage_productimage_productimage"
     },
@@ -5911,7 +5911,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/ProductImage.js",
       "source_location": "L66",
-      "community": 201,
+      "community": 30,
       "norm_label": "styles",
       "id": "productimage_productimage_styles"
     },
@@ -5920,7 +5920,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ProductImage/index.js",
       "source_location": "L1",
-      "community": 201,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_productimage_index_js"
     },
@@ -6145,7 +6145,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 60,
       "norm_label": "appscreen.js",
       "id": "frontend_v1_src_components_appscreen_appscreen_js"
     },
@@ -6154,7 +6154,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L19",
-      "community": 30,
+      "community": 60,
       "norm_label": "appscreen()",
       "id": "appscreen_appscreen_appscreen"
     },
@@ -6163,7 +6163,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/AppScreen.js",
       "source_location": "L55",
-      "community": 30,
+      "community": 60,
       "norm_label": "styles",
       "id": "appscreen_appscreen_styles"
     },
@@ -6172,7 +6172,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppScreen/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 60,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appscreen_index_js"
     },
@@ -6217,7 +6217,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_confirmmodal_index_js"
     },
@@ -6226,7 +6226,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "confirmmodal.js",
       "id": "frontend_v1_src_components_confirmmodal_confirmmodal_js"
     },
@@ -6235,7 +6235,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L27",
-      "community": 60,
+      "community": 30,
       "norm_label": "confirmmodal()",
       "id": "confirmmodal_confirmmodal_confirmmodal"
     },
@@ -6244,7 +6244,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/ConfirmModal/ConfirmModal.js",
       "source_location": "L93",
-      "community": 60,
+      "community": 30,
       "norm_label": "styles",
       "id": "confirmmodal_confirmmodal_styles"
     },
@@ -6253,7 +6253,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedcartbadge_index_js"
     },
@@ -6262,7 +6262,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 30,
       "norm_label": "animatedcartbadge.js",
       "id": "frontend_v1_src_components_animatedcartbadge_animatedcartbadge_js"
     },
@@ -6280,7 +6280,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedCartBadge/AnimatedCartBadge.js",
       "source_location": "L30",
-      "community": 102,
+      "community": 30,
       "norm_label": "styles",
       "id": "animatedcartbadge_animatedcartbadge_styles"
     },
@@ -6316,7 +6316,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 60,
       "norm_label": "stickyminicart.js",
       "id": "frontend_v1_src_components_stickyminicart_stickyminicart_js"
     },
@@ -6325,7 +6325,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L18",
-      "community": 30,
+      "community": 60,
       "norm_label": "stickyminicart()",
       "id": "stickyminicart_stickyminicart_stickyminicart"
     },
@@ -6334,7 +6334,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/StickyMiniCart.js",
       "source_location": "L117",
-      "community": 30,
+      "community": 60,
       "norm_label": "styles",
       "id": "stickyminicart_stickyminicart_styles"
     },
@@ -6343,7 +6343,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/StickyMiniCart/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 60,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_stickyminicart_index_js"
     },
@@ -6352,7 +6352,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 60,
       "norm_label": "iconbutton.js",
       "id": "frontend_v1_src_components_iconbutton_iconbutton_js"
     },
@@ -6361,7 +6361,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L22",
-      "community": 30,
+      "community": 60,
       "norm_label": "iconbutton()",
       "id": "iconbutton_iconbutton_iconbutton"
     },
@@ -6370,7 +6370,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/IconButton.js",
       "source_location": "L68",
-      "community": 30,
+      "community": 60,
       "norm_label": "styles",
       "id": "iconbutton_iconbutton_styles"
     },
@@ -6379,7 +6379,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/IconButton/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 60,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_iconbutton_index_js"
     },
@@ -6460,7 +6460,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/index.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_segmentedcontrol_index_js"
     },
@@ -6469,7 +6469,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "segmentedcontrol.js",
       "id": "frontend_v1_src_components_segmentedcontrol_segmentedcontrol_js"
     },
@@ -6478,7 +6478,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L19",
-      "community": 60,
+      "community": 30,
       "norm_label": "segmentedcontrol()",
       "id": "segmentedcontrol_segmentedcontrol_segmentedcontrol"
     },
@@ -6487,7 +6487,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/SegmentedControl/SegmentedControl.js",
       "source_location": "L99",
-      "community": 60,
+      "community": 30,
       "norm_label": "styles",
       "id": "segmentedcontrol_segmentedcontrol_styles"
     },
@@ -6559,7 +6559,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 60,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appicon_index_js"
     },
@@ -6568,7 +6568,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 60,
       "norm_label": "appicon.js",
       "id": "frontend_v1_src_components_appicon_appicon_js"
     },
@@ -6577,7 +6577,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L38",
-      "community": 30,
+      "community": 60,
       "norm_label": "icons",
       "id": "appicon_appicon_icons"
     },
@@ -6586,7 +6586,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppIcon/AppIcon.js",
       "source_location": "L75",
-      "community": 30,
+      "community": 60,
       "norm_label": "appicon()",
       "id": "appicon_appicon_appicon"
     },
@@ -6631,7 +6631,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 60,
       "norm_label": "appheader.js",
       "id": "frontend_v1_src_components_appheader_appheader_js"
     },
@@ -6640,7 +6640,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L26",
-      "community": 30,
+      "community": 60,
       "norm_label": "appheader()",
       "id": "appheader_appheader_appheader"
     },
@@ -6649,7 +6649,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/AppHeader.js",
       "source_location": "L126",
-      "community": 30,
+      "community": 60,
       "norm_label": "styles",
       "id": "appheader_appheader_styles"
     },
@@ -6658,7 +6658,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AppHeader/index.js",
       "source_location": "L1",
-      "community": 30,
+      "community": 60,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_appheader_index_js"
     },
@@ -6703,7 +6703,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 30,
       "norm_label": "animatedsegmentedcontrol.js",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_animatedsegmentedcontrol_js"
     },
@@ -6721,7 +6721,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/AnimatedSegmentedControl.js",
       "source_location": "L66",
-      "community": 102,
+      "community": 30,
       "norm_label": "styles",
       "id": "animatedsegmentedcontrol_animatedsegmentedcontrol_styles"
     },
@@ -6730,7 +6730,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/components/AnimatedSegmentedControl/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 30,
       "norm_label": "index.js",
       "id": "frontend_v1_src_components_animatedsegmentedcontrol_index_js"
     },
@@ -6901,7 +6901,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/spacing.js",
       "source_location": "L6",
-      "community": 60,
+      "community": 30,
       "norm_label": "spacing",
       "id": "theme_spacing_spacing"
     },
@@ -6955,7 +6955,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/typography.js",
       "source_location": "L60",
-      "community": 102,
+      "community": 30,
       "norm_label": "typography",
       "id": "theme_typography_typography"
     },
@@ -7018,7 +7018,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/theme/colors.js",
       "source_location": "L69",
-      "community": 102,
+      "community": 30,
       "norm_label": "colors",
       "id": "theme_colors_colors"
     },
@@ -7162,7 +7162,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/apiMappers.js",
       "source_location": "L147",
-      "community": 102,
+      "community": 17,
       "norm_label": "normalizesession()",
       "id": "utils_apimappers_normalizesession"
     },
@@ -7252,7 +7252,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/utils/index.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 17,
       "norm_label": "index.js",
       "id": "frontend_v1_src_utils_index_js"
     },
@@ -7936,7 +7936,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L1",
-      "community": 202,
+      "community": 188,
       "norm_label": "image.test.js",
       "id": "backend_v1_tests_image_test_js"
     },
@@ -7945,7 +7945,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L1",
-      "community": 202,
+      "community": 188,
       "norm_label": "request",
       "id": "tests_image_test_request"
     },
@@ -7954,7 +7954,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L2",
-      "community": 202,
+      "community": 188,
       "norm_label": "express",
       "id": "tests_image_test_express"
     },
@@ -7963,7 +7963,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L3",
-      "community": 202,
+      "community": 188,
       "norm_label": "imageroutes",
       "id": "tests_image_test_imageroutes"
     },
@@ -7972,7 +7972,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L4",
-      "community": 202,
+      "community": 188,
       "norm_label": "{ getdb }",
       "id": "tests_image_test_getdb"
     },
@@ -7981,7 +7981,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L5",
-      "community": 202,
+      "community": 188,
       "norm_label": "jwt",
       "id": "tests_image_test_jwt"
     },
@@ -7990,7 +7990,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L11",
-      "community": 202,
+      "community": 188,
       "norm_label": "mockinsertone",
       "id": "tests_image_test_mockinsertone"
     },
@@ -7999,7 +7999,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L18",
-      "community": 202,
+      "community": 188,
       "norm_label": "app",
       "id": "tests_image_test_app"
     },
@@ -8008,7 +8008,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/tests/image.test.js",
       "source_location": "L22",
-      "community": 202,
+      "community": 188,
       "norm_label": "token",
       "id": "tests_image_test_token"
     },
@@ -8899,7 +8899,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/db/mongodb.js",
       "source_location": "L22",
-      "community": 188,
+      "community": 67,
       "norm_label": "getdb()",
       "id": "db_mongodb_getdb"
     },
@@ -9844,7 +9844,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L1",
-      "community": 188,
+      "community": 67,
       "norm_label": "auditmiddleware.js",
       "id": "backend_v1_src_middleware_auditmiddleware_js"
     },
@@ -9853,7 +9853,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L1",
-      "community": 188,
+      "community": 67,
       "norm_label": "{ getdb }",
       "id": "middleware_auditmiddleware_getdb"
     },
@@ -9862,7 +9862,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L3",
-      "community": 188,
+      "community": 67,
       "norm_label": "logauditerror()",
       "id": "middleware_auditmiddleware_logauditerror"
     },
@@ -9871,7 +9871,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/middleware/auditMiddleware.js",
       "source_location": "L9",
-      "community": 188,
+      "community": 67,
       "norm_label": "auditlog()",
       "id": "middleware_auditmiddleware_auditlog"
     },
@@ -10096,7 +10096,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L1",
-      "community": 188,
+      "community": 67,
       "norm_label": "imagecontroller.js",
       "id": "backend_v1_src_controllers_imagecontroller_js"
     },
@@ -10105,7 +10105,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L1",
-      "community": 188,
+      "community": 67,
       "norm_label": "path",
       "id": "controllers_imagecontroller_path"
     },
@@ -10114,7 +10114,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L2",
-      "community": 188,
+      "community": 67,
       "norm_label": "fs",
       "id": "controllers_imagecontroller_fs"
     },
@@ -10123,7 +10123,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L3",
-      "community": 188,
+      "community": 67,
       "norm_label": "{ objectid }",
       "id": "controllers_imagecontroller_objectid"
     },
@@ -10132,7 +10132,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L4",
-      "community": 188,
+      "community": 67,
       "norm_label": "{ getdb }",
       "id": "controllers_imagecontroller_getdb"
     },
@@ -10141,7 +10141,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L5",
-      "community": 188,
+      "community": 67,
       "norm_label": "config",
       "id": "controllers_imagecontroller_config"
     },
@@ -10150,7 +10150,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L7",
-      "community": 188,
+      "community": 67,
       "norm_label": "uploadimage()",
       "id": "controllers_imagecontroller_uploadimage"
     },
@@ -10159,7 +10159,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L55",
-      "community": 188,
+      "community": 67,
       "norm_label": "deleteimage()",
       "id": "controllers_imagecontroller_deleteimage"
     },
@@ -10168,7 +10168,7 @@
       "file_type": "code",
       "source_file": "Backend-V1/src/controllers/imageController.js",
       "source_location": "L82",
-      "community": 188,
+      "community": 67,
       "norm_label": "getimages()",
       "id": "controllers_imagecontroller_getimages"
     },
@@ -19168,7 +19168,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "adminorderdetailscreen.js",
       "id": "frontend_v1_src_screens_admin_adminorderdetailscreen_adminorderdetailscreen_js"
     },
@@ -19177,7 +19177,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L20",
-      "community": 60,
+      "community": 30,
       "norm_label": "order_statuses",
       "id": "adminorderdetailscreen_adminorderdetailscreen_order_statuses"
     },
@@ -19186,7 +19186,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L21",
-      "community": 60,
+      "community": 30,
       "norm_label": "payment_statuses",
       "id": "adminorderdetailscreen_adminorderdetailscreen_payment_statuses"
     },
@@ -19195,7 +19195,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L23",
-      "community": 60,
+      "community": 30,
       "norm_label": "adminorderdetailscreen()",
       "id": "adminorderdetailscreen_adminorderdetailscreen_adminorderdetailscreen"
     },
@@ -19204,7 +19204,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L257",
-      "community": 60,
+      "community": 30,
       "norm_label": "styles",
       "id": "adminorderdetailscreen_adminorderdetailscreen_styles"
     },
@@ -19312,7 +19312,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminLoginScreen/AdminLoginScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 17,
       "norm_label": "adminloginscreen.js",
       "id": "frontend_v1_src_screens_admin_adminloginscreen_adminloginscreen_js"
     },
@@ -19321,7 +19321,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminLoginScreen/AdminLoginScreen.js",
       "source_location": "L17",
-      "community": 102,
+      "community": 17,
       "norm_label": "adminloginscreen()",
       "id": "adminloginscreen_adminloginscreen_adminloginscreen"
     },
@@ -19330,7 +19330,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/admin/AdminLoginScreen/AdminLoginScreen.js",
       "source_location": "L171",
-      "community": 102,
+      "community": 17,
       "norm_label": "styles",
       "id": "adminloginscreen_adminloginscreen_styles"
     },
@@ -20239,7 +20239,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/assets/index.js",
       "source_location": "L2",
-      "community": 201,
+      "community": 43,
       "norm_label": "assetsplaceholder",
       "id": "assets_index_assetsplaceholder"
     },
@@ -20275,7 +20275,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/OrderConfirmationScreen/OrderConfirmationScreen.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "orderconfirmationscreen.js",
       "id": "frontend_v1_src_screens_orderconfirmationscreen_orderconfirmationscreen_js"
     },
@@ -20329,7 +20329,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/ProfileScreen/ProfileScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 30,
       "norm_label": "profilescreen.js",
       "id": "frontend_v1_src_screens_profilescreen_profilescreen_js"
     },
@@ -20383,7 +20383,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L1",
-      "community": 60,
+      "community": 30,
       "norm_label": "adminorderdetailscreen.js",
       "id": "frontend_v1_src_screens_adminorderdetailscreen_adminorderdetailscreen_js"
     },
@@ -20419,7 +20419,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/EditProfileScreen/EditProfileScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 30,
       "norm_label": "editprofilescreen.js",
       "id": "frontend_v1_src_screens_editprofilescreen_editprofilescreen_js"
     },
@@ -20482,7 +20482,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminLoginScreen/AdminLoginScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 17,
       "norm_label": "adminloginscreen.js",
       "id": "frontend_v1_src_screens_adminloginscreen_adminloginscreen_js"
     },
@@ -20590,7 +20590,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AuthScreen/AuthScreen.js",
       "source_location": "L1",
-      "community": 102,
+      "community": 17,
       "norm_label": "authscreen.js",
       "id": "frontend_v1_src_screens_authscreen_authscreen_js"
     },
@@ -20671,7 +20671,7 @@
       "file_type": "code",
       "source_file": "Frontend-V1/src/screens/AdminOrderDetailScreen/AdminOrderDetailScreen.js",
       "source_location": "L19",
-      "community": 60,
+      "community": 30,
       "norm_label": "fetchadminorderdetails()",
       "id": "adminorderdetailscreen_adminorderdetailscreen_fetchadminorderdetails"
     },
@@ -21847,6 +21847,689 @@
     }
   ],
   "links": [
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "db_mysql_pool"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_pool"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "db_mongodb_getdb"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_getdb"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_objectid"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "utils_storemode_normalizestoretype"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_normalizestoretype"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_path"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_fs"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_config"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_resolveimageurls"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L28",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_getcomboitemsbycomboids"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L75",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_attachcomboitems"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_getproducts"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L29",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_getproductbyid"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L40",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_createproduct"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L49",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_updateproduct"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L79",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_getadminproducts"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L127",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_getadminproductbyid"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L143",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_deleteproduct"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L181",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_updateproductavailability"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L196",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "controllers_productcontroller_updateproductimage"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "backend_v1_src_utils_storemode_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/adminRoutes.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_adminroutes_js",
+      "target": "backend_v1_src_controllers_productcontroller_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "backend_v1_src_db_mysql_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "backend_v1_src_db_mongodb_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/productRoutes.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_productroutes_js",
+      "target": "backend_v1_src_controllers_productcontroller_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_controllers_productcontroller_js",
+      "target": "backend_v1_src_config_env_js"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L60",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_productcontroller_getcomboitemsbycomboids",
+      "target": "controllers_productcontroller_resolveimageurls"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L150",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_productcontroller_getproducts",
+      "target": "controllers_productcontroller_resolveimageurls"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L168",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_productcontroller_getproductbyid",
+      "target": "controllers_productcontroller_resolveimageurls"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L278",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_productcontroller_getadminproducts",
+      "target": "controllers_productcontroller_resolveimageurls"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L298",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_productcontroller_getadminproductbyid",
+      "target": "controllers_productcontroller_resolveimageurls"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "controllers_productcontroller_resolveimageurls",
+      "target": "db_mongodb_getdb"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L77",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_productcontroller_attachcomboitems",
+      "target": "controllers_productcontroller_getcomboitemsbycomboids"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L151",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_productcontroller_getproducts",
+      "target": "controllers_productcontroller_attachcomboitems"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L169",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_productcontroller_getproductbyid",
+      "target": "controllers_productcontroller_attachcomboitems"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L279",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_productcontroller_getadminproducts",
+      "target": "controllers_productcontroller_attachcomboitems"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L299",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "controllers_productcontroller_getadminproductbyid",
+      "target": "controllers_productcontroller_attachcomboitems"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L90",
+      "weight": 1.0,
+      "source": "controllers_productcontroller_getproducts",
+      "target": "utils_storemode_normalizestoretype"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "controllers_productcontroller_getproducts",
+      "target": "db_mongodb_getdb"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/productRoutes.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_productroutes_js",
+      "target": "controllers_productcontroller_getproducts"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "controllers_productcontroller_getproductbyid",
+      "target": "db_mongodb_getdb"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/productRoutes.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_productroutes_js",
+      "target": "controllers_productcontroller_getproductbyid"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/adminRoutes.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_adminroutes_js",
+      "target": "controllers_productcontroller_createproduct"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/adminRoutes.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_adminroutes_js",
+      "target": "controllers_productcontroller_updateproduct"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L88",
+      "weight": 1.0,
+      "source": "controllers_productcontroller_updateproduct",
+      "target": "db_mongodb_getdb"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/adminRoutes.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_adminroutes_js",
+      "target": "controllers_productcontroller_getadminproducts"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L139",
+      "weight": 1.0,
+      "source": "controllers_productcontroller_getadminproducts",
+      "target": "db_mongodb_getdb"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/adminRoutes.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_adminroutes_js",
+      "target": "controllers_productcontroller_getadminproductbyid"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/adminRoutes.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_adminroutes_js",
+      "target": "controllers_productcontroller_deleteproduct"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L194",
+      "weight": 1.0,
+      "source": "controllers_productcontroller_deleteproduct",
+      "target": "db_mongodb_getdb"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/adminRoutes.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_adminroutes_js",
+      "target": "controllers_productcontroller_updateproductavailability"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "Backend-V1/src/routes/adminRoutes.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "backend_v1_src_routes_adminroutes_js",
+      "target": "controllers_productcontroller_updateproductimage"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "Backend-V1/src/controllers/productController.js",
+      "source_location": "L243",
+      "weight": 1.0,
+      "source": "controllers_productcontroller_updateproductimage",
+      "target": "db_mongodb_getdb"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_products_jsx",
+      "target": "api_index_productsapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_products_jsx",
+      "target": "api_index_categoriesapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_products_jsx",
+      "target": "api_index_imagesapi"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_products_jsx",
+      "target": "utils_apiresponse_readlist"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_products_jsx",
+      "target": "pages_products_products"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L281",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_products_jsx",
+      "target": "pages_products_productformdrawer"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/App.jsx",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_app_jsx",
+      "target": "adminmanager_v1_src_pages_products_jsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_products_jsx",
+      "target": "adminmanager_v1_src_api_index_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "adminManager-V1/src/pages/Products.jsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "adminmanager_v1_src_pages_products_jsx",
+      "target": "adminmanager_v1_src_utils_apiresponse_js"
+    },
     {
       "relation": "imports",
       "context": "import",
@@ -23650,592 +24333,6 @@
       "confidence_score": 1.0,
       "source": "backend_v1_src_routes_adminroutes_js",
       "target": "controllers_combocontroller_updatecomboavailability"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "db_mysql_pool"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_pool"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "db_mongodb_getdb"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_getdb"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_objectid"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "backend_v1_src_utils_storemode_js"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "utils_storemode_normalizestoretype"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_normalizestoretype"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_path"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_fs"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_config"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_resolveimageurls"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L28",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_getcomboitemsbycomboids"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L75",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_attachcomboitems"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_getproducts"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L29",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_getproductbyid"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L40",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_createproduct"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L49",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_updateproduct"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L79",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_getadminproducts"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L127",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_getadminproductbyid"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L143",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_deleteproduct"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L181",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_updateproductavailability"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L196",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "controllers_productcontroller_updateproductimage"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/adminRoutes.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "backend_v1_src_controllers_productcontroller_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "backend_v1_src_db_mysql_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "backend_v1_src_db_mongodb_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/productRoutes.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_productroutes_js",
-      "target": "backend_v1_src_controllers_productcontroller_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_controllers_productcontroller_js",
-      "target": "backend_v1_src_config_env_js"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L60",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "controllers_productcontroller_getcomboitemsbycomboids",
-      "target": "controllers_productcontroller_resolveimageurls"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L150",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "controllers_productcontroller_getproducts",
-      "target": "controllers_productcontroller_resolveimageurls"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L168",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "controllers_productcontroller_getproductbyid",
-      "target": "controllers_productcontroller_resolveimageurls"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L278",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "controllers_productcontroller_getadminproducts",
-      "target": "controllers_productcontroller_resolveimageurls"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L298",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "controllers_productcontroller_getadminproductbyid",
-      "target": "controllers_productcontroller_resolveimageurls"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L16",
-      "weight": 1.0,
-      "source": "controllers_productcontroller_resolveimageurls",
-      "target": "db_mongodb_getdb"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L77",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "controllers_productcontroller_attachcomboitems",
-      "target": "controllers_productcontroller_getcomboitemsbycomboids"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L151",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "controllers_productcontroller_getproducts",
-      "target": "controllers_productcontroller_attachcomboitems"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L169",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "controllers_productcontroller_getproductbyid",
-      "target": "controllers_productcontroller_attachcomboitems"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L279",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "controllers_productcontroller_getadminproducts",
-      "target": "controllers_productcontroller_attachcomboitems"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L299",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "controllers_productcontroller_getadminproductbyid",
-      "target": "controllers_productcontroller_attachcomboitems"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L90",
-      "weight": 1.0,
-      "source": "controllers_productcontroller_getproducts",
-      "target": "utils_storemode_normalizestoretype"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L35",
-      "weight": 1.0,
-      "source": "controllers_productcontroller_getproducts",
-      "target": "db_mongodb_getdb"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/productRoutes.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_productroutes_js",
-      "target": "controllers_productcontroller_getproducts"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L62",
-      "weight": 1.0,
-      "source": "controllers_productcontroller_getproductbyid",
-      "target": "db_mongodb_getdb"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/productRoutes.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_productroutes_js",
-      "target": "controllers_productcontroller_getproductbyid"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/adminRoutes.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "controllers_productcontroller_createproduct"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/adminRoutes.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "controllers_productcontroller_updateproduct"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L88",
-      "weight": 1.0,
-      "source": "controllers_productcontroller_updateproduct",
-      "target": "db_mongodb_getdb"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/adminRoutes.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "controllers_productcontroller_getadminproducts"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L139",
-      "weight": 1.0,
-      "source": "controllers_productcontroller_getadminproducts",
-      "target": "db_mongodb_getdb"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/adminRoutes.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "controllers_productcontroller_getadminproductbyid"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/adminRoutes.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "controllers_productcontroller_deleteproduct"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L194",
-      "weight": 1.0,
-      "source": "controllers_productcontroller_deleteproduct",
-      "target": "db_mongodb_getdb"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/adminRoutes.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "controllers_productcontroller_updateproductavailability"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "Backend-V1/src/routes/adminRoutes.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "backend_v1_src_routes_adminroutes_js",
-      "target": "controllers_productcontroller_updateproductimage"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "Backend-V1/src/controllers/productController.js",
-      "source_location": "L243",
-      "weight": 1.0,
-      "source": "controllers_productcontroller_updateproductimage",
-      "target": "db_mongodb_getdb"
     },
     {
       "relation": "imports",
@@ -27343,17 +27440,6 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "adminManager-V1/src/App.jsx",
-      "source_location": "L10",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_app_jsx",
-      "target": "adminmanager_v1_src_pages_products_jsx"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/App.jsx",
       "source_location": "L11",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -27828,17 +27914,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_products_jsx",
-      "target": "adminmanager_v1_src_api_index_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "adminManager-V1/src/pages/Notifications.jsx",
       "source_location": "L2",
       "weight": 1.0,
@@ -28070,17 +28145,6 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_products_jsx",
-      "target": "api_index_productsapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "adminManager-V1/src/pages/Combos.jsx",
       "source_location": "L2",
       "weight": 1.0,
@@ -28164,17 +28228,6 @@
       "confidence_score": 1.0,
       "source": "adminmanager_v1_src_pages_mobiledashboard_jsx",
       "target": "api_index_combosapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_products_jsx",
-      "target": "api_index_categoriesapi"
     },
     {
       "relation": "imports",
@@ -28295,17 +28348,6 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "adminmanager_v1_src_pages_settings_jsx",
-      "target": "api_index_imagesapi"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_products_jsx",
       "target": "api_index_imagesapi"
     },
     {
@@ -28731,48 +28773,6 @@
       "confidence_score": 1.0,
       "source": "adminmanager_v1_src_pages_reports_jsx",
       "target": "pages_reports_reports"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_products_jsx",
-      "target": "adminmanager_v1_src_utils_apiresponse_js"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_products_jsx",
-      "target": "utils_apiresponse_readlist"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_products_jsx",
-      "target": "pages_products_products"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "adminManager-V1/src/pages/Products.jsx",
-      "source_location": "L281",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "adminmanager_v1_src_pages_products_jsx",
-      "target": "pages_products_productformdrawer"
     },
     {
       "relation": "contains",
@@ -63738,5 +63738,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "598ba60c2d3045d86b911f8a3f6261b1ae17456d"
+  "built_at_commit": "a98574f2a22bb474360d7f73914baea676565905"
 }
