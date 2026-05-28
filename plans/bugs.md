@@ -408,10 +408,10 @@ Combo sales can be mixed into product reports or mislabeled. If a combo and prod
 Reports should include item type or split product and combo performance.
 
 ### Checklist
-- [ ] Include `oi.item_type` in top-products queries and grouping.
-- [ ] Decide UI label: "Top Items" or separate "Top Products" and "Top Combos".
-- [ ] Update admin dashboard and Reports rendering.
-- [ ] Add report tests with one product and one combo.
+- [x] Include `oi.item_type` in top-products queries and grouping.
+- [x] Decide UI label: "Top Items" or separate "Top Products" and "Top Combos". (Chose Top Items with Combo badge).
+- [x] Update admin dashboard and Reports rendering.
+- [x] Add report tests with one product and one combo.
 
 ---
 

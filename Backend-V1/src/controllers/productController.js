@@ -5,6 +5,7 @@ const { normalizeStoreType } = require('../utils/storeMode');
 const path = require('path');
 const fs = require('fs');
 const config = require('../config/env');
+const { validatePagination } = require('../validators');
 
 const resolveImageUrls = async (rows) => {
   const imageIds = rows
@@ -260,56 +261,76 @@ const updateProduct = async (req, res) => {
 };
 
 const getAdminProducts = async (req, res) => {
-  const { categoryId, category_id, search, available, isCombo, is_combo, featured, type } = req.query;
+  const { categoryId, category_id, search, available, isCombo, is_combo, featured, type, page, limit } = req.query;
   const finalCategoryId = categoryId || category_id;
   const finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
   const normalizedType = type ? normalizeStoreType(type, { allowAll: true }) : null;
+  const pagination = validatePagination(page, limit);
 
-  let query = `
-    SELECT p.*, c.name as category_name, c.type as category_type 
-    FROM products p 
-    LEFT JOIN categories c ON p.category_id = c.id 
-    WHERE p.deleted = 0
-  `;
+  let whereClause = 'WHERE p.deleted = 0';
   const params = [];
 
   if (finalCategoryId) {
-    query += ' AND p.category_id = ?';
+    whereClause += ' AND p.category_id = ?';
     params.push(finalCategoryId);
   }
 
   if (search) {
-    query += ' AND p.name LIKE ?';
+    whereClause += ' AND p.name LIKE ?';
     params.push(`%${search}%`);
   }
 
   if (normalizedType && normalizedType !== 'all') {
-    query += ' AND c.type = ?';
+    whereClause += ' AND c.type = ?';
     params.push(normalizedType);
   }
 
   if (available !== undefined) {
-    query += ' AND p.available = ?';
+    whereClause += ' AND p.available = ?';
     params.push(available === 'true' || available === '1' ? 1 : 0);
   }
 
   if (finalIsCombo !== undefined) {
-    query += ' AND p.is_combo = ?';
+    whereClause += ' AND p.is_combo = ?';
     params.push(finalIsCombo === 'true' || finalIsCombo === '1' ? 1 : 0);
   }
 
   if (featured !== undefined) {
-    query += ' AND p.featured = ?';
+    whereClause += ' AND p.featured = ?';
     params.push(featured === 'true' || featured === '1' ? 1 : 0);
   }
 
-  query += ' ORDER BY p.display_order ASC, p.id DESC';
+  const [countRows] = await pool.query(
+    `SELECT COUNT(*) as total FROM products p LEFT JOIN categories c ON p.category_id = c.id ${whereClause}`,
+    params
+  );
+  const total = countRows[0].total;
+  const totalPages = Math.ceil(total / pagination.limit);
+
+  const query = `
+    SELECT p.*, c.name as category_name, c.type as category_type 
+    FROM products p 
+    LEFT JOIN categories c ON p.category_id = c.id 
+    ${whereClause}
+    ORDER BY p.display_order ASC, p.id DESC
+    LIMIT ? OFFSET ?
+  `;
+  
+  params.push(pagination.limit, (pagination.page - 1) * pagination.limit);
 
   const [rows] = await pool.query(query, params);
 
   await resolveImageUrls(rows);
-  // attachComboItems is handled differently for admin routes, but getAdminProducts only fetches regular products anyway
-  res.status(200).json({ data: { products: rows }, products: rows });
+  res.status(200).json({ 
+    data: { products: rows }, 
+    products: rows,
+    pagination: {
+      page: pagination.page,
+      limit: pagination.limit,
+      total,
+      totalPages
+    }
+  });
 };
 
 const getAdminProductById = async (req, res) => {

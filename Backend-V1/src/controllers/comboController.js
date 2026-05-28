@@ -4,6 +4,7 @@ const { ObjectId } = require('mongodb');
 const path = require('path');
 const fs = require('fs');
 const config = require('../config/env');
+const { validatePagination } = require('../validators');
 const { isPositiveInteger } = require('../validators');
 const { normalizeStoreType } = require('../utils/storeMode');
 
@@ -166,42 +167,64 @@ const validateComboItems = async (comboItems, comboStoreType, { required = true 
 };
 
 const getAdminCombos = async (req, res) => {
-  const { search, available, featured, store_type, storeType } = req.query;
+  const { search, available, featured, store_type, storeType, page, limit } = req.query;
   const finalStoreType = store_type || storeType;
-  let query = "SELECT * FROM combos WHERE deleted = 0";
+  const pagination = validatePagination(page, limit);
+
+  let whereClause = "WHERE deleted = 0";
   const params = [];
 
   if (finalStoreType) {
     const normalizedStoreType = normalizeStoreType(finalStoreType, { allowAll: true });
     if (normalizedStoreType !== 'all') {
-      query += ' AND store_type = ?';
+      whereClause += ' AND store_type = ?';
       params.push(normalizedStoreType);
     }
   }
 
   if (search) {
-    query += ' AND name LIKE ?';
+    whereClause += ' AND name LIKE ?';
     params.push(`%${search}%`);
   }
 
   if (available !== undefined) {
-    query += ' AND available = ?';
+    whereClause += ' AND available = ?';
     params.push(available === 'true' || available === '1' ? 1 : 0);
   }
 
   if (featured !== undefined) {
-    query += ' AND featured = ?';
+    whereClause += ' AND featured = ?';
     params.push(featured === 'true' || featured === '1' ? 1 : 0);
   }
 
-  query += ' ORDER BY display_order ASC, id DESC';
+  const [countRows] = await pool.query(`SELECT COUNT(*) as total FROM combos ${whereClause}`, params);
+  const total = countRows[0].total;
+  const totalPages = Math.ceil(total / pagination.limit);
+
+  const query = `
+    SELECT * FROM combos 
+    ${whereClause} 
+    ORDER BY display_order ASC, id DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  params.push(pagination.limit, (pagination.page - 1) * pagination.limit);
 
   const [rows] = await pool.query(query, params);
 
   await resolveImageUrls(rows);
   await attachComboItems(rows);
 
-  res.status(200).json({ data: { products: rows }, products: rows });
+  res.status(200).json({ 
+    data: { products: rows }, 
+    products: rows,
+    pagination: {
+      page: pagination.page,
+      limit: pagination.limit,
+      total,
+      totalPages
+    }
+  });
 };
 
 const getAdminComboById = async (req, res) => {
