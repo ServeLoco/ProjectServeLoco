@@ -154,11 +154,12 @@ const getActiveOffer = async (req, res) => {
 const updateSettings = async (req, res) => {
   const fields = [
     'shop_open', 'delivery_available', 'minimum_order_amount', 'delivery_charge',
-    'free_delivery_above', 'night_charge', 'night_charge_start', 'night_charge_end',
+    'night_charge', 'night_charge_start', 'night_charge_end',
     'whatsapp_number', 'support_phone', 'upi_id', 'upi_qr_image_id', 'delivery_time_message',
-    'shop_latitude', 'shop_longitude', 'delivery_radius_km', 'delivery_cost_per_km',
     'below_threshold_delivery_charge', 'free_delivery_above_minimum_active',
     'free_delivery_offer_active'
+    // DEPRECATED (no longer used): free_delivery_above, shop_latitude, shop_longitude,
+    // delivery_radius_km, delivery_cost_per_km
   ];
 
   const body = req.body;
@@ -166,7 +167,6 @@ const updateSettings = async (req, res) => {
   const moneyFields = [
     ['minimum_order_amount', 'Minimum order amount cannot be negative'],
     ['delivery_charge', 'Standard delivery charge cannot be negative'],
-    ['free_delivery_above', 'Free delivery above amount cannot be negative'],
     ['night_charge', 'Night delivery surcharge cannot be negative'],
     ['below_threshold_delivery_charge', 'Below-threshold delivery charge cannot be negative']
   ];
@@ -216,13 +216,10 @@ const updateSettings = async (req, res) => {
       } else if ([
         'minimum_order_amount',
         'delivery_charge',
-        'free_delivery_above',
         'night_charge',
-        'shop_latitude',
-        'shop_longitude',
-        'delivery_radius_km',
-        'delivery_cost_per_km',
         'below_threshold_delivery_charge'
+        // DEPRECATED: free_delivery_above, shop_latitude, shop_longitude,
+        // delivery_radius_km, delivery_cost_per_km — no longer stored
       ].includes(field)) {
         val = (val === null || val === '') ? null : Number(val);
       }
