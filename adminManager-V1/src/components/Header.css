@@ -1,9 +1,9 @@
 .admin-header {
   height: 70px;
   padding: 0 1.5rem;
-  background: rgba(7, 10, 18, 0.74);
+  background: #ffffff;
   border-bottom: 1px solid var(--border-color);
-  backdrop-filter: blur(18px);
+  backdrop-filter: none;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -33,7 +33,7 @@
   padding: 0.35rem 0.78rem 0.35rem 0.4rem;
   border: 1px solid var(--border-color);
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.8);
+  background: #ffffff;
 }
 
 .user-avatar {
@@ -43,8 +43,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  color: #06110b;
-  background: linear-gradient(180deg, #54efaa, var(--primary-color));
+  color: #ffffff;
+  background: var(--primary-color);
   font-size: 0.82rem;
   font-weight: 900;
 }
@@ -70,23 +70,23 @@
 
 .btn-header-action.refresh {
   color: var(--text-primary);
-  background: rgba(15, 23, 42, 0.86);
+  background: #ffffff;
   border: 1px solid var(--border-color);
 }
 
 .btn-header-action.refresh:hover {
-  background: rgba(30, 41, 59, 0.94);
+  background: #f8fafc;
   border-color: var(--border-strong);
 }
 
 .btn-header-action.logout {
-  color: #fff;
-  background: rgba(239, 68, 68, 0.16);
-  border: 1px solid rgba(239, 68, 68, 0.38);
+  color: var(--danger-color);
+  background: #ffffff;
+  border: 1px solid #fecaca;
 }
 
 .btn-header-action.logout:hover {
-  background: rgba(239, 68, 68, 0.24);
+  background: #fef2f2;
 }
 
 @media (max-width: 720px) {

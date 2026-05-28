@@ -3,6 +3,19 @@ const { signAdminToken } = require('../utils/auth');
 const { pool } = require('../db/mysql');
 const notificationService = require('../utils/notificationService');
 
+const ORDER_STATUS_VALUES = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
+let orderStatusEnumReady = false;
+
+const ensureOrderStatusEnum = async () => {
+  if (orderStatusEnumReady) return;
+
+  await pool.query(`
+    ALTER TABLE orders
+    MODIFY COLUMN status ENUM('Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled') DEFAULT 'Pending'
+  `);
+  orderStatusEnumReady = true;
+};
+
 const queryRows = async (sql, params) => {
   const result = await pool.query(sql, params);
   return Array.isArray(result) ? result[0] || [] : [];
@@ -312,7 +325,7 @@ const getAdminOrders = async (req, res) => {
   const total = countRows[0].total;
 
   // Sorting and Pagination
-  query += ` ORDER BY (status = 'Pending') DESC, created_at DESC LIMIT ? OFFSET ?`;
+  query += ` ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`;
   const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
   params.push(parseInt(limit, 10), offset);
 
@@ -351,7 +364,7 @@ const updateOrderStatus = async (req, res) => {
   // Normalize spelling to match DB ENUM
   if (status === 'Canceled') status = 'Cancelled';
 
-  const validStatuses = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
+  const validStatuses = ORDER_STATUS_VALUES;
   if (!status || !validStatuses.includes(status)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Valid status required. One of: ${validStatuses.join(', ')}` });
   }
@@ -369,7 +382,7 @@ const updateOrderStatus = async (req, res) => {
   }
 
   // Enforce forward-only progression
-  const statusOrder = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered'];
+  const statusOrder = ORDER_STATUS_VALUES.filter(value => value !== 'Cancelled');
   const currentIdx = statusOrder.indexOf(currentStatus);
   const newIdx = statusOrder.indexOf(status);
   // Allow Cancelled from any non-terminal state, otherwise enforce progression
@@ -377,6 +390,7 @@ const updateOrderStatus = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Cannot move order from '${currentStatus}' back to '${status}'` });
   }
 
+  await ensureOrderStatusEnum();
   await pool.query('UPDATE orders SET status = ?, cancel_reason = ? WHERE id = ?', [status, cancel_reason || null, id]);
   const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
   const updatedOrder = updatedRows[0];

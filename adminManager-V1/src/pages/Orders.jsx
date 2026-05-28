@@ -16,6 +16,37 @@ const ORDER_STATUS_LABELS = ORDER_STATUS_OPTIONS.reduce((acc, item) => {
   return acc;
 }, {});
 const getOrderStatusLabel = (status) => ORDER_STATUS_LABELS[status] || status || 'Unknown';
+const formatMoney = (value) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric.toFixed(2) : '0.00';
+};
+const escapeHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+const EMPTY_FILTERS = {
+  status: '',
+  paymentStatus: '',
+  paymentMethod: '',
+  search: '',
+  dateFrom: '',
+  dateTo: '',
+};
+const formatDateTime = (value) => {
+  if (!value) return 'Not captured';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+const statusClassName = (status) => String(status || 'unknown').toLowerCase().replace(/\s+/g, '-');
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -23,14 +54,7 @@ export default function Orders() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const [filters, setFilters] = useState({
-    status: '',
-    paymentStatus: '',
-    paymentMethod: '',
-    search: '',
-    dateFrom: '',
-    dateTo: '',
-  });
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [updating, setUpdating] = useState(false);
@@ -67,6 +91,8 @@ export default function Orders() {
   const handleQuickFilter = (status) => {
     setFilters(prev => ({ ...prev, status }));
   };
+
+  const clearFilters = () => setFilters(EMPTY_FILTERS);
 
   const handleRowClick = async (id) => {
     try {
@@ -179,20 +205,19 @@ export default function Orders() {
 
   const handlePrintInvoice = () => {
     if (!selectedOrder) return;
-    const printWindow = window.open('', '_blank');
     const itemsHtml = (selectedOrder.items || []).map(item => `
       <tr>
-        <td>${item.product_name}</td>
-        <td style="text-align: center;">${item.quantity}</td>
-        <td style="text-align: right;">₹${item.unit_price}</td>
-        <td style="text-align: right;">₹${item.line_total}</td>
+        <td>${escapeHtml(item.product_name)}</td>
+        <td style="text-align: center;">${escapeHtml(item.quantity)}</td>
+        <td style="text-align: right;">Rs. ${formatMoney(item.unit_price)}</td>
+        <td style="text-align: right;">Rs. ${formatMoney(item.line_total)}</td>
       </tr>
     `).join('');
 
-    printWindow.document.write(`
+    const invoiceHtml = `
       <html>
       <head>
-        <title>Invoice - #${selectedOrder.order_number}</title>
+        <title>Invoice - #${escapeHtml(selectedOrder.order_number)}</title>
         <style>
           body { font-family: system-ui, sans-serif; padding: 20px; color: #333; }
           .header { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
@@ -217,16 +242,16 @@ export default function Orders() {
           </div>
           <div style="text-align: right;">
              <div style="font-weight: bold; font-size: 18px;">INVOICE</div>
-             <div>Order #${selectedOrder.order_number}</div>
+             <div>Order #${escapeHtml(selectedOrder.order_number)}</div>
              <div>Date: ${new Date(selectedOrder.created_at).toLocaleString()}</div>
           </div>
         </div>
         <div class="details">
           <strong>Customer Details:</strong><br/>
-          Name: ${selectedOrder.customer_name}<br/>
-          Phone: ${selectedOrder.phone}<br/>
-          Address: ${selectedOrder.address}<br/>
-          ${selectedOrder.note ? `Note: ${selectedOrder.note}` : ''}
+          Name: ${escapeHtml(selectedOrder.customer_name)}<br/>
+          Phone: ${escapeHtml(selectedOrder.phone)}<br/>
+          Address: ${escapeHtml(selectedOrder.address)}<br/>
+          ${selectedOrder.note ? `Note: ${escapeHtml(selectedOrder.note)}` : ''}
         </div>
         <table>
           <thead>
@@ -242,24 +267,49 @@ export default function Orders() {
           </tbody>
         </table>
         <div class="totals">
-          <div>Subtotal: ₹${selectedOrder.subtotal}</div>
-          <div>Delivery Charge: ₹${selectedOrder.delivery_charge}</div>
-          ${selectedOrder.night_charge > 0 ? `<div>Night Charge: ₹${selectedOrder.night_charge}</div>` : ''}
-          <div style="margin-top: 10px;"><strong>Grand Total: ₹${selectedOrder.total}</strong></div>
+          <div>Subtotal: Rs. ${formatMoney(selectedOrder.subtotal)}</div>
+          <div>Delivery Charge: Rs. ${formatMoney(selectedOrder.delivery_charge)}</div>
+          ${selectedOrder.night_charge > 0 ? `<div>Night Charge: Rs. ${formatMoney(selectedOrder.night_charge)}</div>` : ''}
+          <div style="margin-top: 10px;"><strong>Grand Total: Rs. ${formatMoney(selectedOrder.total)}</strong></div>
         </div>
         <div style="margin-top: 40px; text-align: center; color: #888; font-size: 12px;">
           Thank you for shopping with ServeLoco!
         </div>
-        <script>
-          window.onload = function() {
-            window.print();
-            window.close();
-          }
-        </script>
       </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
+
+    const previousFrame = document.getElementById('invoice-print-frame');
+    if (previousFrame) previousFrame.remove();
+
+    const printFrame = document.createElement('iframe');
+    printFrame.id = 'invoice-print-frame';
+    printFrame.title = 'Invoice print frame';
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = '0';
+    document.body.appendChild(printFrame);
+
+    const frameWindow = printFrame.contentWindow;
+    const frameDocument = frameWindow?.document;
+    if (!frameWindow || !frameDocument) {
+      alert('Unable to open print preview. Please try again.');
+      printFrame.remove();
+      return;
+    }
+
+    frameDocument.open();
+    frameDocument.write(invoiceHtml);
+    frameDocument.close();
+
+    setTimeout(() => {
+      frameWindow.focus();
+      frameWindow.print();
+      setTimeout(() => printFrame.remove(), 1000);
+    }, 150);
   };
 
   const isTerminalState = (status) => ['Delivered', 'Cancelled'].includes(status);
@@ -268,19 +318,50 @@ export default function Orders() {
     return Number.isFinite(numeric) ? `${numeric.toFixed(2)} km` : 'Not captured';
   };
   const isFreeDeliverySnapshot = (value) => value === true || value === 1 || value === '1' || value === 'true';
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const totalOrders = pagination.total || orders.length;
+  const visibleTotal = orders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+  const liveOrderCount = orders.filter(order => !['Delivered', 'Cancelled'].includes(order.status)).length;
 
   return (
     <div className="orders-container">
       <header className="orders-header">
-        <h1 className="orders-title">Orders Management</h1>
-        <button 
-          className="btn-export" 
-          onClick={handleExportCSV} 
-          disabled={loading || orders.length === 0}
-        >
-          Export CSV
-        </button>
+        <div>
+          <h1 className="orders-title">Orders Management</h1>
+          <p className="orders-subtitle">Newest orders are shown first. Open any row to update status, payment, invoice, or delivery details.</p>
+        </div>
+        <div className="orders-header-actions">
+          <button className="btn-secondary" onClick={() => fetchOrders(pagination.page)} disabled={loading}>
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button 
+            className="btn-export" 
+            onClick={handleExportCSV} 
+            disabled={loading || orders.length === 0}
+          >
+            Export CSV
+          </button>
+        </div>
       </header>
+
+      <section className="orders-summary-grid" aria-label="Orders summary">
+        <div className="orders-summary-card">
+          <span className="summary-label">Total Matching</span>
+          <strong>{totalOrders}</strong>
+        </div>
+        <div className="orders-summary-card">
+          <span className="summary-label">Live Orders</span>
+          <strong>{liveOrderCount}</strong>
+        </div>
+        <div className="orders-summary-card">
+          <span className="summary-label">Visible Value</span>
+          <strong>₹{formatMoney(visibleTotal)}</strong>
+        </div>
+        <div className="orders-summary-card">
+          <span className="summary-label">Sort</span>
+          <strong>Recent first</strong>
+        </div>
+      </section>
 
       <section className="filter-bar">
         <div className="filter-row">
@@ -327,6 +408,11 @@ export default function Orders() {
               value={filters.dateTo}
               onChange={handleFilterChange}
             />
+            {activeFilterCount > 0 && (
+              <button type="button" className="btn-reset-filters" onClick={clearFilters}>
+                Clear filters ({activeFilterCount})
+              </button>
+            )}
           </div>
         </div>
         <div className="filter-chips">
@@ -335,12 +421,15 @@ export default function Orders() {
           <span className={`filter-chip ${filters.status === 'Accepted' ? 'active' : ''}`} onClick={() => handleQuickFilter('Accepted')}>Accepted</span>
           <span className={`filter-chip ${filters.status === 'Preparing' ? 'active' : ''}`} onClick={() => handleQuickFilter('Preparing')}>Preparing/Packing</span>
           <span className={`filter-chip ${filters.status === 'Out for Delivery' ? 'active' : ''}`} onClick={() => handleQuickFilter('Out for Delivery')}>Out for Delivery</span>
+          <span className={`filter-chip ${filters.status === 'Delivered' ? 'active' : ''}`} onClick={() => handleQuickFilter('Delivered')}>Delivered</span>
+          <span className={`filter-chip ${filters.status === 'Cancelled' ? 'active' : ''}`} onClick={() => handleQuickFilter('Cancelled')}>Cancelled</span>
         </div>
       </section>
 
       {error && <div className="error-container" style={{ margin: '0 0 2rem 0' }}>{error}</div>}
 
       <section className="orders-table-wrapper">
+        {loading && orders.length > 0 && <div className="table-refresh-bar">Refreshing latest orders...</div>}
         <table className="orders-table">
           <thead>
             <tr>
@@ -360,19 +449,25 @@ export default function Orders() {
             ) : (
               orders.map(order => (
                 <tr key={order.id} onClick={() => handleRowClick(order.id)}>
-                  <td className="order-id">#{order.order_number}</td>
-                  <td>{new Date(order.created_at).toLocaleString()}</td>
-                  <td>
-                    {order.customer_name}<br/>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{order.phone}</span>
+                  <td className="order-id">
+                    #{order.order_number}
+                    <span className="row-hint">Open details</span>
                   </td>
-                  <td style={{ fontWeight: 600 }}>₹{order.total}</td>
+                  <td className="date-cell">{formatDateTime(order.created_at)}</td>
                   <td>
-                    <span className={`status-badge ${order.status.toLowerCase().replace(/ /g, '-')}`}>
+                    <span className="customer-name">{order.customer_name}</span>
+                    <span className="customer-phone">{order.phone}</span>
+                  </td>
+                  <td className="amount-cell">₹{formatMoney(order.total)}</td>
+                  <td>
+                    <span className={`status-badge ${statusClassName(order.status)}`}>
                       {getOrderStatusLabel(order.status)}
                     </span>
                   </td>
-                  <td>{order.payment_status} ({order.payment_method})</td>
+                  <td>
+                    <span className={`payment-pill ${statusClassName(order.payment_status)}`}>{order.payment_status}</span>
+                    <span className="payment-method">{order.payment_method}</span>
+                  </td>
                 </tr>
               ))
             )}
@@ -404,7 +499,13 @@ export default function Orders() {
         <div className="drawer-overlay" onClick={closeDrawer}>
           <div className="drawer-content" onClick={e => e.stopPropagation()}>
             <div className="drawer-header">
-              <h3 className="drawer-title">Order #{selectedOrder.order_number}</h3>
+              <div>
+                <h3 className="drawer-title">Order #{selectedOrder.order_number}</h3>
+                <p className="drawer-subtitle">{formatDateTime(selectedOrder.created_at)} • ₹{formatMoney(selectedOrder.total)}</p>
+              </div>
+              <span className={`status-badge ${statusClassName(selectedOrder.status)}`}>
+                {getOrderStatusLabel(selectedOrder.status)}
+              </span>
               <button className="drawer-close" onClick={closeDrawer}>&times;</button>
             </div>
             

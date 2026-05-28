@@ -9,28 +9,28 @@ export const list = async (params = {}) => {
   const query = qs.toString();
   const endpoint = query ? `/notifications?${query}` : '/notifications';
   
-  const res = await apiClient(endpoint, { method: 'GET' });
+  const res = await apiClient.get(endpoint, { auth: 'customer' });
   return {
     ...res,
-    data: (res.data || []).map(mapNotification)
+    data: (res?.data || []).map(mapNotification)
   };
 };
 
 export const getUnreadCount = async () => {
-  const res = await apiClient('/notifications/unread-count', { method: 'GET' });
-  return res.unreadCount || 0;
+  const res = await apiClient.get('/notifications/unread-count', { auth: 'customer' });
+  return res?.unreadCount || 0;
 };
 
 export const markAllRead = async () => {
-  return apiClient('/notifications/read-all', { method: 'PATCH' });
+  return apiClient.patch('/notifications/read-all', null, { auth: 'customer' });
 };
 
 export const markRead = async (id) => {
-  return apiClient(`/notifications/${id}/read`, { method: 'PATCH' });
+  return apiClient.patch(`/notifications/${id}/read`, null, { auth: 'customer' });
 };
 
 export const deleteNotification = async (id) => {
-  return apiClient(`/notifications/${id}`, { method: 'DELETE' });
+  return apiClient.delete(`/notifications/${id}`, { auth: 'customer' });
 };
 
 export default {

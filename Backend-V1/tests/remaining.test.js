@@ -51,6 +51,7 @@ describe('Order Cancellation and Admin Action Tests', () => {
   it('should update admin order status', async () => {
     pool.query
       .mockResolvedValueOnce([[{ id: 1001, status: 'Pending', customer_id: 1 }]]) // check existing
+      .mockResolvedValueOnce([{}]) // ensure status enum accepts Accepted
       .mockResolvedValueOnce([{}]) // update
       .mockResolvedValueOnce([[{ id: 1001, status: 'Accepted', customer_id: 1 }]]); // return updated
 

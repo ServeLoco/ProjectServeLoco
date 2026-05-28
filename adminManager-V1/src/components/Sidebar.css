@@ -4,22 +4,15 @@
   display: flex;
   flex-direction: column;
   color: var(--text-primary);
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(7, 10, 18, 0.98)),
-    var(--surface-strong);
+  background: #ffffff;
   border-right: 1px solid var(--border-color);
-  box-shadow: 14px 0 50px rgba(0, 0, 0, 0.26);
+  box-shadow: none;
   position: relative;
   z-index: 2;
 }
 
 .admin-sidebar::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(90deg, rgba(31, 181, 116, 0.1), transparent 34%);
-  opacity: 0.75;
+  display: none;
 }
 
 .sidebar-header {
@@ -40,11 +33,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #06110b;
-  background: linear-gradient(180deg, #54efaa, var(--primary-color));
+  color: #ffffff;
+  background: var(--primary-color);
   font-size: 1rem;
   font-weight: 900;
-  box-shadow: 0 16px 28px rgba(31, 181, 116, 0.25), inset 0 1px rgba(255, 255, 255, 0.46);
+  box-shadow: none;
 }
 
 .sidebar-brand-text {
@@ -98,15 +91,15 @@
 
 .sidebar-item-link:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.045);
-  border-color: rgba(255, 255, 255, 0.06);
+  background: #f8fafc;
+  border-color: var(--border-color);
 }
 
 .sidebar-item-link.active {
-  color: #ecfdf5;
-  background: linear-gradient(90deg, rgba(31, 181, 116, 0.28), rgba(31, 181, 116, 0.1));
-  border-color: rgba(31, 181, 116, 0.36);
-  box-shadow: inset 3px 0 0 var(--primary-color), 0 12px 26px rgba(31, 181, 116, 0.12);
+  color: var(--primary-color);
+  background: var(--primary-soft);
+  border-color: #bbf7d0;
+  box-shadow: inset 3px 0 0 var(--primary-color);
 }
 
 @media (max-width: 980px) {
