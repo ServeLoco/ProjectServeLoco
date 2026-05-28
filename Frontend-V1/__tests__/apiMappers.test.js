@@ -43,3 +43,11 @@ describe('api mappers', () => {
     expect(result.freeDeliveryOfferSnapshot).toBe(true);
   });
 });
+
+  it('normalizes profile whatsapp field correctly', () => {
+    const { normalizeProfile } = require('../src/utils/apiMappers');
+    expect(normalizeProfile({ whatsapp_number: '123' }).whatsapp).toBe('123');
+    expect(normalizeProfile({ whatsappNumber: '456' }).whatsapp).toBe('456');
+    expect(normalizeProfile({ whatsapp: '789' }).whatsapp).toBe('789');
+    expect(normalizeProfile({ whatsapp_number: '123' }).whatsapp_number).toBe('123'); // retains original
+  });

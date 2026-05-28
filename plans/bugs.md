@@ -364,10 +364,10 @@ Direct API calls, stale links, or route params can load a combo when a product w
 Product detail should require explicit type when querying the combo table, or use globally unique IDs.
 
 ### Checklist
-- [ ] Remove implicit combo fallback from `GET /products/:id` unless a backward compatibility test requires it.
-- [ ] Ensure all mobile navigations pass `type: 'product'` or `type: 'combo'`.
-- [ ] Consider separate `/combos/:id` public endpoint.
-- [ ] Add backend tests for product ID missing but combo ID existing.
+- [x] Remove implicit combo fallback from `GET /products/:id` unless a backward compatibility test requires it.
+- [x] Ensure all mobile navigations pass `type: 'product'` or `type: 'combo'`. (Already verified).
+- [x] Consider separate `/combos/:id` public endpoint. (Skipped, using ?type=combo).
+- [x] Add backend tests for product ID missing but combo ID existing.
 
 ---
 

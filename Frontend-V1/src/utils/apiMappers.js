@@ -181,13 +181,26 @@ function normalizeCartCalculation(payload = {}) {
   };
 }
 
+function normalizeProfile(user = {}) {
+  if (!user) return user;
+  return {
+    ...user,
+    id: String(pickFirst(user.id, user._id, user.userId, user.user_id)),
+    name: pickFirst(user.name, user.fullName, user.full_name, 'User'),
+    phone: pickFirst(user.phone, user.phoneNumber, user.phone_number, ''),
+    whatsapp: pickFirst(user.whatsapp, user.whatsappNumber, user.whatsapp_number, ''),
+    address: pickFirst(user.address, user.deliveryAddress, user.delivery_address, ''),
+    email: pickFirst(user.email, user.emailAddress, user.email_address, ''),
+  };
+}
+
 function normalizeSession(payload = {}) {
   const data = payload?.data || payload;
   const user = data.user || data.customer || data.profile || data;
 
   return {
     token: pickFirst(data.token, data.jwt, data.accessToken, data.access_token),
-    user,
+    user: normalizeProfile(user),
   };
 }
 
@@ -341,6 +354,7 @@ export {
   normalizeImageUrl,
   normalizeOrder,
   normalizeProduct,
+  normalizeProfile,
   normalizeSession,
   normalizeSettings,
   normalizeNotification,

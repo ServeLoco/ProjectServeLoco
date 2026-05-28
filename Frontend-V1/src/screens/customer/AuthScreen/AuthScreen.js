@@ -111,7 +111,7 @@ export default function AuthScreen() {
     setIsLoading(true);
 
     try {
-      const session = normalizeSession(await authApi.login({ phone, password }));
+      const session = await authApi.login({ phone, password });
       if (!session.token) {
         throw new Error('Login response did not include a session token');
       }
@@ -139,7 +139,7 @@ export default function AuthScreen() {
     setIsLoading(true);
 
     try {
-      const session = normalizeSession(await authApi.signup({
+      const session = await authApi.signup({
         name,
         fullName: name,
         phone,

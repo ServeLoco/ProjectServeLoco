@@ -80,8 +80,11 @@ const updateProfile = async (req, res) => {
     [name, address, whatsapp_number, userId]
   );
 
+  const [rows] = await pool.query('SELECT id, name, email, phone_number, whatsapp_number, address, role FROM users WHERE id = ?', [userId]);
+
   res.status(200).json({
-    message: 'Profile updated successfully'
+    message: 'Profile updated successfully',
+    user: rows[0]
   });
 };
 
