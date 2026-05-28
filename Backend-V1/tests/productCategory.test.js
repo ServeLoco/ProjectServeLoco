@@ -83,4 +83,22 @@ describe('Product and Category Tests', () => {
     expect(pool.query.mock.calls[0][0]).not.toContain('UNION');
     expect(pool.query.mock.calls[0][0]).not.toContain('FROM combos');
   });
+
+  it('should reject creating a combo with zero or negative item quantities', async () => {
+    const res = await request(app)
+      .post('/api/admin/combos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Bad Combo',
+        price: 100,
+        storeType: 'packed',
+        available: true,
+        comboItems: [
+          { productId: 1, quantity: 0 }
+        ]
+      });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.details.combo_items).toContain('quantity must be a whole number');
+  });
 });

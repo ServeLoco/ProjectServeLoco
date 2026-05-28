@@ -124,14 +124,14 @@ Admin analytics can show wrong totals, zero orders, empty payment breakdowns, an
 Reports must honor the selected period and return the fields the UI renders.
 
 ### Checklist
-- [ ] Update `getSalesReport` to accept `period=today|week|month|all`.
-- [ ] Return `total_revenue`, `total_orders`, `status_breakdown`, `payment_breakdown`, and `payment_status`.
-- [ ] Exclude cancelled orders consistently from revenue.
-- [ ] Decide whether pending-payment delivered orders count in revenue and document the rule.
-- [ ] Update `getTopProductsReport` to honor the same period.
-- [ ] Update `getCustomersReport` to honor period or change UI copy to "last 30 days/platform totals".
-- [ ] Add backend tests for each period.
-- [ ] Verify admin Reports summary cards and CSV export.
+- [x] Update `getSalesReport` to accept `period=today|week|month|all`.
+- [x] Return `total_revenue`, `total_orders`, `status_breakdown`, `payment_breakdown`, and `payment_status`.
+- [x] Exclude cancelled orders consistently from revenue.
+- [x] Decide whether pending-payment delivered orders count in revenue and document the rule.
+- [x] Update `getTopProductsReport` to honor the same period.
+- [x] Update `getCustomersReport` to honor period or change UI copy to "last 30 days/platform totals".
+- [x] Add backend tests for each period.
+- [x] Verify admin Reports summary cards and CSV export.
 
 ---
 

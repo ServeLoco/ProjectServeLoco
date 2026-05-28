@@ -184,7 +184,37 @@ const getDashboard = async (req, res) => {
 };
 
 const getSalesReport = async (req, res) => {
+  const { period } = req.query;
+  let dateFilter = '1=1';
+  if (period === 'today') {
+    dateFilter = 'DATE(created_at) = CURDATE()';
+  } else if (period === 'week') {
+    dateFilter = 'YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)';
+  } else if (period === 'month') {
+    dateFilter = 'YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())';
+  }
+
   const [[salesRow]] = await pool.query(`
+    SELECT
+      -- Rule: Revenue includes all non-cancelled orders, regardless of payment status.
+      COALESCE(SUM(CASE WHEN status != 'Cancelled' THEN total ELSE 0 END), 0) as total_revenue,
+      COUNT(*) as total_orders
+    FROM orders
+    WHERE ${dateFilter}
+  `);
+
+  const [statusRows] = await pool.query(`SELECT status, COUNT(*) as count FROM orders WHERE ${dateFilter} GROUP BY status`);
+  const [paymentBreakdownRows] = await pool.query(`SELECT payment_method, COUNT(*) as count FROM orders WHERE ${dateFilter} GROUP BY payment_method`);
+  const [paymentStatusRows] = await pool.query(`SELECT payment_status, COUNT(*) as count FROM orders WHERE ${dateFilter} GROUP BY payment_status`);
+
+  const status_breakdown = {};
+  statusRows.forEach(row => { status_breakdown[row.status.toLowerCase()] = row.count; });
+  const payment_breakdown = {};
+  paymentBreakdownRows.forEach(row => { payment_breakdown[(row.payment_method || 'unknown').toLowerCase()] = row.count; });
+  const payment_status = {};
+  paymentStatusRows.forEach(row => { payment_status[(row.payment_status || 'unknown').toLowerCase()] = row.count; });
+
+  const [[legacySalesRow]] = await pool.query(`
     SELECT
       COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN total ELSE 0 END), 0) as today_sales,
       COALESCE(SUM(CASE WHEN YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1) THEN total ELSE 0 END), 0) as week_sales,
@@ -194,9 +224,14 @@ const getSalesReport = async (req, res) => {
   `);
 
   res.status(200).json({
-    today: salesRow.today_sales,
-    week: salesRow.week_sales,
-    month: salesRow.month_sales
+    total_revenue: salesRow.total_revenue,
+    total_orders: salesRow.total_orders,
+    status_breakdown,
+    payment_breakdown,
+    payment_status,
+    today: legacySalesRow.today_sales,
+    week: legacySalesRow.week_sales,
+    month: legacySalesRow.month_sales
   });
 };
 
@@ -223,11 +258,21 @@ const getAdminCustomerById = async (req, res) => {
 };
 
 const getTopProductsReport = async (req, res) => {
+  const { period } = req.query;
+  let dateFilter = '1=1';
+  if (period === 'today') {
+    dateFilter = 'DATE(o.created_at) = CURDATE()';
+  } else if (period === 'week') {
+    dateFilter = 'YEARWEEK(o.created_at, 1) = YEARWEEK(CURDATE(), 1)';
+  } else if (period === 'month') {
+    dateFilter = 'YEAR(o.created_at) = YEAR(CURDATE()) AND MONTH(o.created_at) = MONTH(CURDATE())';
+  }
+
   const [rows] = await pool.query(`
     SELECT oi.product_id, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
-    WHERE o.status != 'Cancelled'
+    WHERE o.status != 'Cancelled' AND ${dateFilter}
     GROUP BY oi.product_id, oi.product_name
     ORDER BY total_quantity DESC
     LIMIT 50
@@ -236,9 +281,20 @@ const getTopProductsReport = async (req, res) => {
 };
 
 const getCustomersReport = async (req, res) => {
+  const { period } = req.query;
+  let dateFilter = '1=1';
+  if (period === 'today') {
+    dateFilter = 'DATE(created_at) = CURDATE()';
+  } else if (period === 'week') {
+    dateFilter = 'YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)';
+  } else if (period === 'month') {
+    dateFilter = 'YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())';
+  }
+
   const [[metrics]] = await pool.query(`
     SELECT
       COUNT(*) as total_customers,
+      COUNT(CASE WHEN ${dateFilter} THEN 1 END) as new_customers,
       COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as new_customers_30d,
       COUNT(CASE WHEN trusted = 1 THEN 1 END) as trusted_customers,
       COUNT(CASE WHEN blocked = 1 THEN 1 END) as blocked_customers

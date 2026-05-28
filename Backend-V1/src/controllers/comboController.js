@@ -120,7 +120,7 @@ const validateComboItems = async (comboItems, comboStoreType, { required = true 
   const rows = comboItems
     .map((item, index) => ({
       product_id: Number(item.product_id || item.productId || item.id),
-      quantity: Number(item.quantity || item.qty || 1),
+      quantity: Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1)),
       display_order: Number(item.display_order || item.displayOrder || index),
     }))
     .filter(item => item.product_id);

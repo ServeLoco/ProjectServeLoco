@@ -124,7 +124,7 @@ const productSchema = (req) => {
     discount_label: normalizeField(req, 'discountLabel', 'discount_label'),
     combo_items: Array.isArray(rawComboItems) ? rawComboItems.map((item, index) => ({
       product_id: item.productId || item.product_id || item.id,
-      quantity: item.quantity || item.qty || 1,
+      quantity: item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1),
       display_order: item.displayOrder || item.display_order || index,
     })) : undefined
   };
@@ -190,7 +190,7 @@ const comboSchema = (req) => {
     discount_label: normalizeField(req, 'discountLabel', 'discount_label'),
     combo_items: Array.isArray(rawComboItems) ? rawComboItems.map((item, index) => ({
       product_id: item.productId || item.product_id || item.id,
-      quantity: item.quantity || item.qty || 1,
+      quantity: item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1),
       display_order: item.displayOrder || item.display_order || index,
     })) : undefined,
     store_type: normalizeField(req, 'storeType', 'store_type'),
