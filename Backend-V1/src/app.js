@@ -28,7 +28,7 @@ app.use(morgan(config.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Allow image loading across origins
 
-const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS ? process.env.CORS_ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://10.0.2.2:3000', '*'];
+const allowedOrigins = config.CORS_ORIGIN ? config.CORS_ORIGIN.split(',') : [];
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {

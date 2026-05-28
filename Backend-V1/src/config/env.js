@@ -68,10 +68,13 @@ if (missing.length > 0) {
   throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
 }
 
-// Safety check for JWT in production
+// Safety check for JWT and CORS in production
 if (isProd) {
   if (config.JWT_SECRET === 'your_jwt_secret_here' || config.JWT_SECRET.length < 16) {
     throw new Error('JWT_SECRET is unsafe for production environments.');
+  }
+  if (!config.CORS_ORIGIN || config.CORS_ORIGIN === '*' || config.CORS_ORIGIN.includes('*')) {
+    throw new Error('CORS_ORIGIN must be explicitly defined in production (no wildcards).');
   }
 }
 

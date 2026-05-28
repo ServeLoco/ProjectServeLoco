@@ -173,12 +173,12 @@ Deployments can think CORS is restricted while the app still accepts any origin.
 One documented env key should control CORS. Production should not default to wildcard.
 
 ### Checklist
-- [ ] Standardize on `CORS_ALLOWED_ORIGINS` or `CORS_ORIGIN`.
-- [ ] Update `.env.example` and config validation.
-- [ ] In production, fail startup if allowed origins are missing or wildcard.
-- [ ] Keep local development origins explicit.
-- [ ] Decide whether root aliases are still required; if kept, document them.
-- [ ] Add a small CORS config test if feasible.
+- [x] Standardize on `CORS_ALLOWED_ORIGINS` or `CORS_ORIGIN`.
+- [x] Update `.env.example` and config validation.
+- [x] In production, fail startup if allowed origins are missing or wildcard.
+- [x] Keep local development origins explicit.
+- [x] Decide whether root aliases are still required; if kept, document them.
+- [x] Add a small CORS config test if feasible.
 
 ---
 
