@@ -20,7 +20,7 @@ import {
   AppIcon,
   SkeletonRow,
 } from '../../../components';
-import { colors, typography, spacing, radius, shadows } from '../../../theme';
+import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { ordersApi } from '../../../api';
 import { asArray, normalizeOrder } from '../../../utils';
 
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
+    paddingBottom: layout.bottomNavHeight + spacing.lg,
   },
   skeletonContainer: {
     padding: spacing.lg,
