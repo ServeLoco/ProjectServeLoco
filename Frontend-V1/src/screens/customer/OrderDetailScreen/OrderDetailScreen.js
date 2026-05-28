@@ -99,6 +99,11 @@ export default function OrderDetailScreen() {
     ordersApi.cancelOrder(order.id)
       .then(response => {
         const cancelled = normalizeOrder(response?.order || response?.data || response || {});
+        // Stop modal animations immediately before state changes to avoid
+        // useNativeDriver conflict when TimelineStep re-renders.
+        modalOpacity.stopAnimation();
+        modalScale.stopAnimation();
+        setShowCancelModal(false);
         setOrder(prev => ({
           ...prev,
           ...cancelled,
@@ -106,7 +111,6 @@ export default function OrderDetailScreen() {
           status: cancelled.status || 'Cancelled',
           canCancel: false,
         }));
-        closeModal();
       })
       .finally(() => setIsCancelling(false));
   };
@@ -344,19 +348,26 @@ export default function OrderDetailScreen() {
 function TimelineStep({ label, isCompleted, isActive, isLast, index }) {
   const anim = useRef(new Animated.Value(0)).current;
   const activePulse = useRef(new Animated.Value(1)).current;
+  // Track whether the entrance animation has already started so re-renders
+  // (e.g. after cancellation) don't try to re-drive a native animated node.
+  const hasAnimated = useRef(false);
 
   useEffect(() => {
+    if (hasAnimated.current) return;
+    hasAnimated.current = true;
     Animated.timing(anim, {
       toValue: 1,
       duration: 300,
       delay: index * 150,
       useNativeDriver: true,
     }).start();
-  }, [anim, index]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let pulseLoop;
     if (isActive) {
+      activePulse.stopAnimation();
       activePulse.setValue(1);
       pulseLoop = Animated.loop(
         Animated.sequence([
@@ -373,6 +384,9 @@ function TimelineStep({ label, isCompleted, isActive, isLast, index }) {
         ])
       );
       pulseLoop.start();
+    } else {
+      activePulse.stopAnimation();
+      activePulse.setValue(1);
     }
     return () => {
       if (pulseLoop) {
