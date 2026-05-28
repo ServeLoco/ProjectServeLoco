@@ -229,28 +229,41 @@ export default function ProductListScreen() {
   };
 
   // Renders
-  const renderItem = ({ item }) => (
-    <View style={[styles.productWrap, { width: cardWidth }]}>
-      <TouchableOpacity activeOpacity={0.9} onPress={() => handleProductPress(item)}>
-        <ProductCard
-          name={item.name}
-          price={item.price}
-          originalPrice={item.originalPrice}
-          discountLabel={item.discountLabel}
-          unit={item.unit}
-          isCombo={item.isCombo}
-          comboItems={item.comboItems}
-          imageUri={item.imageUri}
-          quantity={item.isCombo || item.is_combo || item.comboItems?.length ? getComboQuantity(item) : getQty(item.id)}
-          onAdd={() => handleAddToCart(item)}
-          onIncrement={() => handleIncrement(item)}
-          onDecrement={() => handleDecrement(item)}
-          disabled={!item.available}
-          style={{ width: '100%' }}
-        />
-      </TouchableOpacity>
-    </View>
-  );
+  const renderItem = ({ item }) => {
+    const itemStoreType = item.storeType || item.store_type || item.type;
+    const showModeBadge = mode === 'search' && sectionStoreType === 'all' && !!itemStoreType;
+    const modeBadgeLabel = itemStoreType === 'fast_food' ? '🍔 Fast Food' : '📦 Packed';
+    const modeBadgeColor = itemStoreType === 'fast_food' ? '#FFF3E0' : '#E8F5E9';
+    const modeBadgeTextColor = itemStoreType === 'fast_food' ? '#E65100' : '#2E7D32';
+
+    return (
+      <View style={[styles.productWrap, { width: cardWidth }]}>
+        <TouchableOpacity activeOpacity={0.9} onPress={() => handleProductPress(item)}>
+          <ProductCard
+            name={item.name}
+            price={item.price}
+            originalPrice={item.originalPrice}
+            discountLabel={item.discountLabel}
+            unit={item.unit}
+            isCombo={item.isCombo}
+            comboItems={item.comboItems}
+            imageUri={item.imageUri}
+            quantity={item.isCombo || item.is_combo || item.comboItems?.length ? getComboQuantity(item) : getQty(item.id)}
+            onAdd={() => handleAddToCart(item)}
+            onIncrement={() => handleIncrement(item)}
+            onDecrement={() => handleDecrement(item)}
+            disabled={!item.available}
+            style={{ width: '100%' }}
+          />
+        </TouchableOpacity>
+        {showModeBadge && (
+          <View style={[styles.modeBadge, { backgroundColor: modeBadgeColor }]}>
+            <Text style={[styles.modeBadgeText, { color: modeBadgeTextColor }]}>{modeBadgeLabel}</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const renderSkeleton = () => (
     <View style={styles.skeletonContainer}>
@@ -438,6 +451,19 @@ const styles = StyleSheet.create({
   },
   productWrap: {
     // Wrap padding inside flatlist item
+  },
+  modeBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    marginLeft: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+  },
+  modeBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   skeletonContainer: {
     padding: spacing.lg,

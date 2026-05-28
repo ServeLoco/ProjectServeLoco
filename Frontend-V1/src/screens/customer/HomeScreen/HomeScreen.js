@@ -210,7 +210,9 @@ export default function HomeScreen() {
   });
 
   const handleSearchPress = () => {
-    navigation.navigate('ProductList', { mode: 'search', storeType: currentApiStoreType });
+    // Search across both modes (packed + fast food) so users
+    // find items regardless of the currently selected segment.
+    navigation.navigate('ProductList', { mode: 'search', storeType: 'all' });
   };
 
   const handleCategoryPress = (category) => {
