@@ -265,18 +265,26 @@ export default function ProductListScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <AppIcon name="search" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
-      <Text style={styles.emptyTitle}>No products found</Text>
-      <Text style={styles.emptyDesc}>Try adjusting your search or filters to find what you're looking for.</Text>
-      <Button 
-        label="Clear Search & Filters" 
-        onPress={() => {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setSearchQuery('');
-          setActiveCategory('All');
-          setShowAvailableOnly(false);
-          setSortBy('Popular');
-        }} 
-      />
+      <Text style={styles.emptyTitle}>
+        {mode === 'offer' ? 'No offer products available' : 'No products found'}
+      </Text>
+      <Text style={styles.emptyDesc}>
+        {mode === 'offer'
+          ? 'No products are currently available for this offer.'
+          : "Try adjusting your search or filters to find what you're looking for."}
+      </Text>
+      {mode !== 'offer' && (
+        <Button
+          label="Clear Search & Filters"
+          onPress={() => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setSearchQuery('');
+            setActiveCategory('All');
+            setShowAvailableOnly(false);
+            setSortBy('Popular');
+          }}
+        />
+      )}
     </View>
   );
 
@@ -300,7 +308,7 @@ export default function ProductListScreen() {
             : mode === 'combos'
             ? 'Popular Combos'
             : offerId
-            ? offerTitle || 'Special Offers'
+            ? offerTitle || 'Offer Products'
             : 'Products'
         }
         onBack={() => navigation.goBack()}

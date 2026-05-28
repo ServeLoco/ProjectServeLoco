@@ -128,6 +128,7 @@ const styles = StyleSheet.create({
     height: 30,
     paddingHorizontal: spacing.sm,
     minWidth: 56,
+    width: '100%',
     borderRadius: radius.sm,
     borderBottomWidth: 1.5,
     borderBottomColor: '#000000',
@@ -165,6 +166,7 @@ const styles = StyleSheet.create({
   stepperCompact: {
     height: 30,
     minWidth: 84,
+    width: '100%',
     borderRadius: radius.sm,
     borderBottomWidth: 1.5,
     borderBottomColor: '#000000',

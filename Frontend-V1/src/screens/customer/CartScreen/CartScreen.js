@@ -143,14 +143,16 @@ export default function CartScreen() {
   );
 
   const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
-  const isBelowMinimum = Boolean(bill && requiredMinimum && bill.subtotal < requiredMinimum);
+  const isBelowFreeDeliveryThreshold = Boolean(bill && requiredMinimum && bill.subtotal < requiredMinimum);
+  const deliveryLabel = bill?.belowThreshold || isBelowFreeDeliveryThreshold
+    ? 'Below-threshold Delivery Charge'
+    : 'Delivery Charge';
   const isCheckoutDisabled = 
     validItems.length === 0 ||
     isCalculating || 
     calcError || 
     shopStatus === 'closed' ||
-    !bill ||
-    isBelowMinimum;
+    !bill;
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
@@ -245,7 +247,7 @@ export default function CartScreen() {
                   </View>
                   
                   <View style={styles.billRow}>
-                    <Text style={styles.billLabel}>Delivery Charge</Text>
+                    <Text style={styles.billLabel}>{deliveryLabel}</Text>
                     <Text style={[styles.billValue, bill.deliveryCharge === 0 && styles.freeDeliveryText]}>
                       {bill.deliveryCharge > 0 ? `₹${bill.deliveryCharge}` : 'FREE'}
                     </Text>
@@ -275,13 +277,14 @@ export default function CartScreen() {
               ) : null}
 
               {/* Free Delivery Threshold Note */}
-              {bill && requiredMinimum > 0 && bill.subtotal < requiredMinimum && (
+              {bill && isBelowFreeDeliveryThreshold && (
                 <View style={styles.warningBox}>
                   <AppIcon name="box" size={16} color={colors.saffron || '#FF7A3A'} style={styles.warningIcon} />
                   <Text style={styles.warningText}>
                     Add items worth <Text style={styles.warningHighlight}>₹{(requiredMinimum - bill.subtotal).toFixed(0)}</Text> more
-                    <Text> to place this order</Text>
-                    {bill.freeAboveThresholdActive ? <Text> and unlock <Text style={styles.warningHighlight}>Free Delivery</Text></Text> : null}
+                    {bill.freeAboveThresholdActive
+                      ? <Text> to unlock <Text style={styles.warningHighlight}>Free Delivery</Text></Text>
+                      : <Text> to reach the preferred order value</Text>}
                     <Text> (₹{bill.deliveryCharge} delivery fee currently applied).</Text>
                   </Text>
                 </View>

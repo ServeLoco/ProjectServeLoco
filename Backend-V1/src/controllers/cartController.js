@@ -87,6 +87,8 @@ const calculateCart = async (req, res) => {
   let requiresLocation = false;
   let freeDeliveryOfferActive = false;
   let freeAboveThresholdActive = true;
+  let belowThreshold = false;
+  let belowThresholdDeliveryCharge = 0;
   let deliveryMessage = '';
   const minimumOrder = Number(settings.minimum_order_amount) || 0;
 
@@ -97,6 +99,8 @@ const calculateCart = async (req, res) => {
     deliveryCharge = thresholdDelivery.charge;
     freeDeliveryOfferActive = thresholdDelivery.freeDeliveryOfferActive;
     freeAboveThresholdActive = thresholdDelivery.freeAboveThresholdActive;
+    belowThreshold = thresholdDelivery.belowThreshold;
+    belowThresholdDeliveryCharge = thresholdDelivery.belowThresholdCharge || 0;
     deliveryMessage = 'Customer GPS location is required.';
   } else {
     // If coordinates are present
@@ -116,6 +120,8 @@ const calculateCart = async (req, res) => {
       deliveryCharge = thresholdDelivery.charge;
       freeDeliveryOfferActive = thresholdDelivery.freeDeliveryOfferActive;
       freeAboveThresholdActive = thresholdDelivery.freeAboveThresholdActive;
+      belowThreshold = thresholdDelivery.belowThreshold;
+      belowThresholdDeliveryCharge = thresholdDelivery.belowThresholdCharge || 0;
       deliveryMessage = thresholdDelivery.message;
     } else {
       deliveryCharge = 0;
@@ -171,6 +177,8 @@ const calculateCart = async (req, res) => {
     requiresLocation,
     freeDeliveryOfferActive,
     freeAboveThresholdActive,
+    belowThreshold,
+    belowThresholdDeliveryCharge,
     deliveryMessage
   };
 

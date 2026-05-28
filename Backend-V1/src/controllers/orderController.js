@@ -76,11 +76,6 @@ const createOrder = async (req, res) => {
     }
 
     subtotal = roundMoney(subtotal);
-    const minimumOrder = Number(settings.minimum_order_amount) || 0;
-    if (minimumOrder > 0 && subtotal < minimumOrder) {
-      throw new Error(`Minimum order amount is ₹${roundMoney(minimumOrder)}. Add ₹${roundMoney(minimumOrder - subtotal)} more to place this order.`);
-    }
-
     // Calculate delivery pricing based on distance
     const pricing = calculateDeliveryPricing({
       customerLat: latitude,
@@ -172,6 +167,9 @@ const createOrder = async (req, res) => {
       deliveryRadiusKmSnapshot: settings.delivery_radius_km !== null ? Number(settings.delivery_radius_km) : null,
       deliveryCostPerKmSnapshot: settings.delivery_cost_per_km !== null ? Number(settings.delivery_cost_per_km) : null,
       freeDeliveryOfferSnapshot: settings.free_delivery_offer_active !== null ? Boolean(settings.free_delivery_offer_active) : null,
+      belowThresholdDelivery: Boolean(thresholdDelivery.belowThreshold),
+      belowThresholdDeliveryCharge: thresholdDelivery.belowThresholdCharge || 0,
+      deliveryMessage: thresholdDelivery.message,
       items: orderItems.map(item => ({
         productId: item.product_id,
         name: item.product_name,

@@ -99,7 +99,38 @@ describe('Cart and Order Tests', () => {
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.subtotal).toEqual(200);
-    expect(res.body.deliveryCharge).toBeCloseTo(10.84, 2);
+    expect(res.body.deliveryCharge).toBe(35);
+    expect(res.body.deliveryMessage).toBe('Add ₹100 more for free delivery. ₹35 delivery applied.');
+  });
+
+  it('should apply below-threshold charge even when per-km charge is zero', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      minimum_order_amount: 300,
+      below_threshold_delivery_charge: 35,
+      delivery_charge: 10,
+      night_charge: 0,
+      shop_latitude: 12.9716,
+      shop_longitude: 77.5946,
+      delivery_radius_km: 8,
+      delivery_cost_per_km: 0,
+      free_delivery_offer_active: 0,
+      free_delivery_above_minimum_active: 1
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .send({
+        latitude: 12.9816,
+        longitude: 77.5946,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.subtotal).toEqual(200);
+    expect(res.body.deliveryCharge).toBe(35);
+    expect(res.body.grandTotal).toBe(235);
   });
 
   it('should apply standard delivery charge above threshold when admin disables free threshold delivery', async () => {
@@ -301,7 +332,7 @@ describe('Cart and Order Tests', () => {
     expect(orderRes.body.order.deliveryDistanceKm).toBeCloseTo(cartRes.body.deliveryDistanceKm, 4);
   });
 
-  it('should reject order creation below the configured minimum order amount', async () => {
+  it('should allow order creation below the free delivery threshold with delivery charge', async () => {
     const mockConnection = {
       beginTransaction: jest.fn(),
       query: jest.fn(),
@@ -317,12 +348,17 @@ describe('Cart and Order Tests', () => {
         shop_open: 1,
         delivery_available: 1,
         minimum_order_amount: 300,
+        below_threshold_delivery_charge: 35,
+        free_delivery_above_minimum_active: 1,
         shop_latitude: 12.9716,
         shop_longitude: 77.5946,
         delivery_radius_km: 8,
         delivery_cost_per_km: 5
       }]])
-      .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+      .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]])
+      .mockResolvedValueOnce([{ insertId: 1002 }])
+      .mockResolvedValueOnce([[{ COLUMN_NAME: 'item_type' }]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
 
     const res = await request(app)
       .post('/api/orders')
@@ -330,16 +366,19 @@ describe('Cart and Order Tests', () => {
       .send({
         address: '123 Test St',
         paymentMethod: 'Cash',
-        latitude: 12.9716,
+        latitude: 12.9816,
         longitude: 77.5946,
         items: [{ productId: 1, quantity: 2 }]
       });
 
-    expect(res.statusCode).toEqual(400);
-    expect(res.body.code).toEqual('VALIDATION_ERROR');
-    expect(res.body.message).toContain('Minimum order amount is ₹300');
-    expect(mockConnection.rollback).toHaveBeenCalledTimes(1);
-    expect(mockConnection.commit).not.toHaveBeenCalled();
+    expect(res.statusCode).toEqual(201);
+    expect(res.body).toHaveProperty('orderId', 1002);
+    expect(res.body.order.subtotal).toBe(200);
+    expect(res.body.order.deliveryCharge).toBe(35);
+    expect(res.body.order.total).toBe(235);
+    expect(res.body.order.belowThresholdDelivery).toBe(true);
+    expect(res.body.order.belowThresholdDeliveryCharge).toBe(35);
+    expect(mockConnection.commit).toHaveBeenCalledTimes(1);
   });
 
   it('should fail order creation when coordinates are missing', async () => {

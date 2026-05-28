@@ -2,6 +2,7 @@ const { pool } = require('../db/mysql');
 const { getDb } = require('../db/mongodb');
 const { ObjectId } = require('mongodb');
 const { normalizeStoreType } = require('../utils/storeMode');
+const config = require('../config/env');
 
 const SECTION_TYPES = ['offer_banner', 'category_grid', 'product_block', 'combo_block'];
 const STORE_TYPES = ['packed', 'fast_food', 'all'];
@@ -11,11 +12,22 @@ const SECTION_ITEM_TYPES = {
   product_block: 'product',
   combo_block: 'combo',
 };
+const STORE_SPECIFIC_TYPES = ['packed', 'fast_food'];
+const DEFAULT_OFFER_BANNER_LIMIT = 10;
+const OFFER_BANNER_SLUG_SUFFIX = {
+  packed: 'packed',
+  fast_food: 'fast-food',
+};
 
 const getExpectedStoreType = (storeType) => {
   if (!storeType) return 'all';
   return normalizeStoreType(storeType, { fallback: 'all', allowAll: true });
 };
+
+const getStoredImageUrl = (image) => image?.url ||
+  image?.imageUrl ||
+  image?.image_url ||
+  (image?.filename ? `${config.PUBLIC_BASE_URL}${config.STATIC_UPLOAD_PATH}/${image.filename}` : null);
 
 const isInvalidDateValue = (value) => value && Number.isNaN(new Date(value).getTime());
 
@@ -111,6 +123,124 @@ const getLinkedItemInfo = async (itemType, itemId) => {
   return { error: 'Invalid item type' };
 };
 
+const ensureUniqueSectionSlug = async (baseSlug, storeType, sourceSectionId) => {
+  let slug = baseSlug;
+  let counter = 2;
+
+  while (true) {
+    const [existing] = await pool.query(
+      'SELECT id FROM dashboard_sections WHERE slug = ? AND store_type = ? AND deleted_at IS NULL AND id != ? LIMIT 1',
+      [slug, storeType, sourceSectionId]
+    );
+    if (existing.length === 0) return slug;
+    slug = `${baseSlug}-${counter}`;
+    counter += 1;
+  }
+};
+
+const ensureModeSpecificOfferBannerSections = async () => {
+  const [sharedSections] = await pool.query(
+    `SELECT *
+     FROM dashboard_sections
+     WHERE section_type = 'offer_banner'
+       AND store_type = 'all'
+       AND deleted_at IS NULL`
+  );
+
+  for (const section of sharedSections) {
+    const targetSectionIds = {};
+
+    for (const storeType of STORE_SPECIFIC_TYPES) {
+      const baseSlug = `${section.slug}-${OFFER_BANNER_SLUG_SUFFIX[storeType]}`;
+      const [existingTargets] = await pool.query(
+        `SELECT id
+         FROM dashboard_sections
+         WHERE section_type = 'offer_banner'
+           AND store_type = ?
+           AND deleted_at IS NULL
+           AND slug = ?
+         ORDER BY id ASC
+         LIMIT 1`,
+        [storeType, baseSlug]
+      );
+
+      if (existingTargets.length > 0) {
+        targetSectionIds[storeType] = existingTargets[0].id;
+        continue;
+      }
+
+      const slug = await ensureUniqueSectionSlug(baseSlug, storeType, section.id);
+      const [insertResult] = await pool.query(
+        `INSERT INTO dashboard_sections (
+          title, slug, section_type, store_type, active, display_order,
+          max_visible_items, show_see_all, linked_category_id, linked_offer_id,
+          starts_at, ends_at, version
+        ) VALUES (?, ?, 'offer_banner', ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        [
+          section.title,
+          slug,
+          storeType,
+          section.active,
+          section.display_order,
+          section.max_visible_items,
+          section.show_see_all,
+          section.linked_category_id,
+          section.linked_offer_id,
+          section.starts_at,
+          section.ends_at,
+        ]
+      );
+      targetSectionIds[storeType] = insertResult.insertId;
+    }
+
+    const [items] = await pool.query(
+      `SELECT dsi.*, o.store_type as offer_store_type
+       FROM dashboard_section_items dsi
+       JOIN offers o ON o.id = dsi.item_id
+       WHERE dsi.section_id = ?
+         AND dsi.item_type = 'offer'
+         AND dsi.deleted_at IS NULL`,
+      [section.id]
+    );
+
+    for (const item of items) {
+      const targetSectionId = targetSectionIds[item.offer_store_type];
+      if (!targetSectionId) continue;
+
+      const [existingItem] = await pool.query(
+        `SELECT id
+         FROM dashboard_section_items
+         WHERE section_id = ?
+           AND item_type = 'offer'
+           AND item_id = ?
+           AND deleted_at IS NULL
+         LIMIT 1`,
+        [targetSectionId, item.item_id]
+      );
+      if (existingItem.length > 0) continue;
+
+      await pool.query(
+        `INSERT INTO dashboard_section_items (
+          section_id, item_type, item_id, display_order, active, starts_at, ends_at
+        ) VALUES (?, 'offer', ?, ?, ?, ?, ?)`,
+        [
+          targetSectionId,
+          item.item_id,
+          item.display_order,
+          item.active,
+          item.starts_at,
+          item.ends_at,
+        ]
+      );
+    }
+
+    await pool.query(
+      'UPDATE dashboard_sections SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL',
+      [section.id]
+    );
+  }
+};
+
 // Helper to resolve image URLs from MongoDB image collection
 const resolveImageUrls = async (rows) => {
   const imageIds = rows
@@ -123,7 +253,7 @@ const resolveImageUrls = async (rows) => {
   const db = getDb();
   const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
   const imageMap = {};
-  images.forEach(img => { imageMap[img._id.toString()] = img.url; });
+  images.forEach(img => { imageMap[img._id.toString()] = getStoredImageUrl(img); });
   rows.forEach(row => {
     if (row.image_id && imageMap[row.image_id]) {
       row.imageUrl = imageMap[row.image_id];
@@ -225,6 +355,43 @@ const mapProductRows = (rows) => rows.map(r => ({
   isCombo: r.is_combo || r.isCombo || false
 }));
 
+const mapOfferRows = (rows) => rows
+  .filter(r => r.imageUrl || r.image_url)
+  .map(r => ({
+    id: r.id,
+    sectionItemId: r.section_item_id,
+    title: r.title,
+    description: r.description,
+    imageUrl: r.imageUrl || r.image_url,
+    image_id: r.image_id,
+    active: r.active,
+    storeType: r.store_type,
+    store_type: r.store_type,
+    isClickable: Boolean(r.is_clickable),
+    is_clickable: Boolean(r.is_clickable)
+  }));
+
+const getDefaultOfferItems = async (expectedStoreType, limit = 6, offset = 0) => {
+  const params = [];
+  let query = `
+    SELECT o.*, NULL as section_item_id
+    FROM offers o
+    WHERE o.active = 1 AND o.deleted = 0
+  `;
+
+  if (expectedStoreType && expectedStoreType !== 'all') {
+    query += ' AND o.store_type = ?';
+    params.push(expectedStoreType);
+  }
+
+  query += ' ORDER BY o.updated_at DESC, o.id DESC LIMIT ? OFFSET ?';
+  params.push(limit, offset);
+
+  const [rows] = await pool.query(query, params);
+  await resolveImageUrls(rows);
+  return mapOfferRows(rows);
+};
+
 const getDefaultCategoryItems = async (expectedStoreType, limit = 8, offset = 0) => {
   const params = [];
   let query = `
@@ -316,19 +483,10 @@ const getDashboard = async (req, res) => {
           params
         );
         await resolveImageUrls(rows);
-        items = rows.filter(r => r.imageUrl || r.image_url).map(r => ({
-          id: r.id,
-          sectionItemId: r.section_item_id,
-          title: r.title,
-          description: r.description,
-          imageUrl: r.imageUrl || r.image_url,
-          image_id: r.image_id,
-          active: r.active,
-          storeType: r.store_type,
-          store_type: r.store_type,
-          isClickable: Boolean(r.is_clickable),
-          is_clickable: Boolean(r.is_clickable)
-        }));
+        items = mapOfferRows(rows);
+        if (items.length === 0) {
+          items = await getDefaultOfferItems(expectedStoreType, Math.max(Number(section.max_visible_items || 0), DEFAULT_OFFER_BANNER_LIMIT));
+        }
       } else if (section.section_type === 'category_grid') {
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, c.*
@@ -552,19 +710,10 @@ const getSectionItems = async (req, res) => {
         params
       );
       await resolveImageUrls(rows);
-      items = rows.filter(r => r.imageUrl || r.image_url).map(r => ({
-        id: r.id,
-        sectionItemId: r.section_item_id,
-        title: r.title,
-        description: r.description,
-        imageUrl: r.imageUrl || r.image_url,
-        image_id: r.image_id,
-        active: r.active,
-        storeType: r.store_type,
-        store_type: r.store_type,
-        isClickable: Boolean(r.is_clickable),
-        is_clickable: Boolean(r.is_clickable)
-      }));
+      items = mapOfferRows(rows);
+      if (items.length === 0) {
+        items = await getDefaultOfferItems(expectedStoreType, Math.max(limitNumber, DEFAULT_OFFER_BANNER_LIMIT), offset);
+      }
     } else if (section.section_type === 'category_grid') {
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, c.*
@@ -694,10 +843,14 @@ const getSectionItems = async (req, res) => {
 const getAdminSections = async (req, res) => {
   const { store_type } = req.query;
   try {
+    if (store_type && store_type !== 'all') {
+      await ensureModeSpecificOfferBannerSections();
+    }
+
     let query = 'SELECT * FROM dashboard_sections WHERE deleted_at IS NULL';
     const params = [];
     if (store_type) {
-      query += ' AND (store_type = ? OR store_type = "all")';
+      query += ' AND (store_type = ? OR (store_type = "all" AND section_type != "offer_banner"))';
       params.push(store_type);
     }
     query += ' ORDER BY display_order ASC, id ASC';

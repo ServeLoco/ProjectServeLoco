@@ -28,15 +28,17 @@ describe('Dashboard Admin Filter', () => {
     jest.clearAllMocks();
   });
 
-  it('should list only packed and all sections when store_type=packed is provided', async () => {
-    pool.query.mockResolvedValueOnce([[{ id: 1, store_type: 'packed' }, { id: 2, store_type: 'all' }]]);
+  it('should list packed sections and non-offer shared sections when store_type=packed is provided', async () => {
+    pool.query
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[{ id: 1, store_type: 'packed' }, { id: 2, store_type: 'all', section_type: 'category_grid' }]]);
 
     const res = await request(app)
       .get('/api/admin/dashboard-sections?store_type=packed')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.statusCode).toEqual(200);
-    expect(pool.query.mock.calls[0][0]).toContain('(store_type = ? OR store_type = "all")');
-    expect(pool.query.mock.calls[0][1]).toEqual(['packed']);
+    expect(pool.query.mock.calls[1][0]).toContain('(store_type = ? OR (store_type = "all" AND section_type != "offer_banner"))');
+    expect(pool.query.mock.calls[1][1]).toEqual(['packed']);
   });
 });

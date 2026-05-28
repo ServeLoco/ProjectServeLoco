@@ -6,6 +6,13 @@ import './MobileDashboard.css';
 import { readList } from '../utils/apiResponse';
 import { normalizeImageUrl } from '../utils/imageUrl';
 
+const DEFAULT_MAX_VISIBLE_BY_SECTION = {
+  offer_banner: 5,
+  category_grid: 8,
+  product_block: 6,
+  combo_block: 6
+};
+
 export default function MobileDashboard() {
   const [sections, setSections] = useState([]);
   const [selectedSection, setSelectedSection] = useState(null);
@@ -27,7 +34,7 @@ export default function MobileDashboard() {
     store_type: storeType,
     active: 1,
     display_order: 0,
-    max_visible_items: 6,
+    max_visible_items: DEFAULT_MAX_VISIBLE_BY_SECTION.product_block,
     show_see_all: 1,
     linked_category_id: '',
     linked_offer_id: '',
@@ -142,6 +149,12 @@ export default function MobileDashboard() {
     setNewSectionForm(prev => {
       const val = type === 'checkbox' ? (checked ? 1 : 0) : value;
       const updates = { [name]: val };
+      if (name === 'section_type') {
+        updates.max_visible_items = DEFAULT_MAX_VISIBLE_BY_SECTION[value] || 6;
+        if (value === 'offer_banner') {
+          updates.show_see_all = 0;
+        }
+      }
       if (name === 'title' && !prev.slug_manually_edited) {
         updates.slug = generateSlug(value);
       }
@@ -189,7 +202,7 @@ export default function MobileDashboard() {
         store_type: storeType,
         active: 1,
         display_order: 0,
-        max_visible_items: 6,
+        max_visible_items: DEFAULT_MAX_VISIBLE_BY_SECTION.product_block,
         show_see_all: 1,
         linked_category_id: '',
         linked_offer_id: '',
@@ -515,7 +528,9 @@ export default function MobileDashboard() {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Max Display Items</label>
+                    <label className="form-label">
+                      {selectedSection.section_type === 'offer_banner' ? 'Active Banners in Rotation' : 'Max Display Items'}
+                    </label>
                     <input 
                       type="number" 
                       name="max_visible_items" 
@@ -524,6 +539,11 @@ export default function MobileDashboard() {
                       value={editForm.max_visible_items} 
                       onChange={handleEditFormChange} 
                     />
+                    {selectedSection.section_type === 'offer_banner' && (
+                      <div className="form-hint">
+                        Add multiple active offer banners below. The customer app rotates them every 4 seconds.
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -604,6 +624,7 @@ export default function MobileDashboard() {
                               {item.item_type} • ID: {item.item_id}
                               {details.price && ` • ₹${details.price}`}
                               {(details.store_type || details.type) && ` • ${(details.store_type || details.type) === 'fast_food' ? 'Fast Food' : 'Packed'}`}
+                              {item.item_type === 'offer' && ` • ${details.active ? 'Active' : 'Inactive'}`}
                             </div>
                           </div>
                           <div className="item-action-controls">
@@ -668,7 +689,8 @@ export default function MobileDashboard() {
                         
                         const isOfferBanner = selectedSection.section_type === 'offer_banner';
                         const hasImage = !!img;
-                        const disabled = isOfferBanner && !hasImage;
+                        const isInactiveOffer = isOfferBanner && !(cand.active === 1 || cand.active === true);
+                        const disabled = isOfferBanner && (!hasImage || isInactiveOffer);
 
                         return (
                           <div key={cand.id} className={`picker-result-row ${disabled ? 'disabled-item' : ''}`}>
@@ -682,7 +704,8 @@ export default function MobileDashboard() {
                                 {cand.type && ` • ${cand.type === 'fast_food' ? 'Fast Food' : 'Packed'}`}
                                 {isOfferBanner && ` • ${cand.active ? 'Active' : 'Inactive'}`}
                                 {isOfferBanner && ` • ${cand.isClickable || cand.is_clickable ? 'Clickable' : 'Image only'}`}
-                                {disabled && <span style={{color: 'red'}}> • Missing image</span>}
+                                {isOfferBanner && !hasImage && <span style={{color: 'red'}}> • Missing image</span>}
+                                {isInactiveOffer && <span style={{color: 'red'}}> • Activate offer first</span>}
                               </div>
                             </div>
                             <button 
@@ -776,7 +799,9 @@ export default function MobileDashboard() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Max Visible Items</label>
+                  <label className="form-label">
+                    {newSectionForm.section_type === 'offer_banner' ? 'Active Banners in Rotation' : 'Max Visible Items'}
+                  </label>
                   <input 
                     type="number" 
                     name="max_visible_items" 
@@ -785,6 +810,11 @@ export default function MobileDashboard() {
                     value={newSectionForm.max_visible_items} 
                     onChange={handleModalFormChange} 
                   />
+                  {newSectionForm.section_type === 'offer_banner' && (
+                    <div className="form-hint">
+                      Add 2 or more active offer banners after creating this section. The customer app loops them every 4 seconds.
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">

@@ -1,16 +1,16 @@
 # Graph Report - ProjectServeLoco  (2026-05-28)
 
 ## Corpus Check
-- 280 files · ~441,652 words
+- 270 files · ~942,117 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2745 nodes · 4442 edges · 254 communities (243 shown, 11 thin omitted)
+- 2787 nodes · 4519 edges · 258 communities (248 shown, 10 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c1bbc0b3`
+- Built from commit: `3b2e65dc`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -256,6 +256,10 @@
 - [[_COMMUNITY_Community 251|Community 251]]
 - [[_COMMUNITY_Community 252|Community 252]]
 - [[_COMMUNITY_Community 253|Community 253]]
+- [[_COMMUNITY_Community 254|Community 254]]
+- [[_COMMUNITY_Community 255|Community 255]]
+- [[_COMMUNITY_Community 256|Community 256]]
+- [[_COMMUNITY_Community 260|Community 260]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `colors` - 74 edges
@@ -266,22 +270,22 @@
 6. `Admin Manager V1 Tasks` - 47 edges
 7. `ServeLoco Bugs Repair Checklist` - 43 edges
 8. `ServeLoco Backend Tasks` - 34 edges
-9. `useAuthStore` - 32 edges
-10. `pool` - 32 edges
+9. `getDb()` - 33 edges
+10. `useAuthStore` - 32 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `RootNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
   Frontend-V1/src/navigation/RootNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
-- `AdminNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
-  Frontend-V1/src/navigation/AdminNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
-- `CustomerNavigator()` --calls--> `useAuthStore`  [EXTRACTED]
-  Frontend-V1/src/navigation/CustomerNavigator.js → Frontend-V1/src/stores/useAuthStore.js
 - `useAuthGate()` --calls--> `useAuthStore`  [INFERRED]
   Frontend-V1/src/hooks/useAuthGate.js → Frontend-V1/src/stores/useAuthStore.js
 - `getAuditLogs()` --calls--> `getDb()`  [INFERRED]
   Backend-V1/src/controllers/adminController.js → Backend-V1/src/db/mongodb.js
+- `calculateCart()` --calls--> `validateCoordinates()`  [INFERRED]
+  Backend-V1/src/controllers/cartController.js → Backend-V1/src/validators/index.js
+- `AdminNavigator()` --calls--> `useAdminAuthStore`  [INFERRED]
+  Frontend-V1/src/navigation/AdminNavigator.js → Frontend-V1/src/stores/useAdminAuthStore.js
 
-## Communities (254 total, 11 thin omitted)
+## Communities (258 total, 10 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.13
@@ -328,8 +332,8 @@ Cohesion: 0.20
 Nodes (9): Bottom Navigation, Category Cards, Combo Deals, Frontend Home Dashboard Design, Offer Banner, ServeLoco Plan, Toggle Button, Top Section (+1 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.08
-Nodes (29): styles, adminAuthApi, adminCategoriesApi, adminSettingsApi, cartApi, imagesApi, OrdersApi, offersApi (+21 more)
+Cohesion: 0.17
+Nodes (15): cartApi, OrdersApi, ordersApi, CartScreen(), styles, CheckoutScreen(), getLocationErrorMessage(), requestLocationPermission() (+7 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.04
@@ -344,8 +348,8 @@ Cohesion: 0.25
 Nodes (8): categories, MySQL Data Models, offers, order_items, orders, products, settings, users
 
 ### Community 17 - "Community 17"
-Cohesion: 0.28
-Nodes (14): AdminSettingsScreen(), asBoolean(), asText(), buildOfferPayload(), buildSettingsPayload(), DEFAULT_FORM, getErrorMessage(), getOfferData() (+6 more)
+Cohesion: 0.10
+Nodes (20): 10. Customer offer click flow, 11. Frontend API mapping, 12. Tests, 13. Edge Cases and Guardrails, 14. Manual QA, 1. Backend database migration, 2. Backend offer payload support, 3. Backend offer-products APIs (+12 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.28
@@ -377,19 +381,19 @@ Nodes (3): config, { getDefaultConfig }, { getDefaultConfig, mergeConfig }
 
 ### Community 27 - "Community 27"
 Cohesion: 0.07
-Nodes (45): config, createAdminNotification(), deleteAdminNotification(), ensureOrderStatusEnum(), getAdminCustomerById(), getAdminCustomers(), getAdminNotificationById(), getAdminNotifications() (+37 more)
+Nodes (46): config, createAdminNotification(), deleteAdminNotification(), ensureOrderStatusEnum(), getAdminCustomerById(), getAdminCustomers(), getAdminNotificationById(), getAdminNotifications() (+38 more)
 
 ### Community 28 - "Community 28"
-Cohesion: 0.10
-Nodes (21): ApiError, getErrorMessage(), DEFAULT_API_BASE_URL, getApiBaseUrl(), getDevServerHost(), normalizeBaseUrl(), resolveDefaultApiBaseUrl(), setApiBaseUrl() (+13 more)
+Cohesion: 0.20
+Nodes (10): extractToken(), requireAdmin(), requireCustomer(), { verifyToken }, asyncHandler, { calculateCart }, express, { requireCustomer } (+2 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.06
 Nodes (35): 10. Visual Acceptance Checklist, 11. Implementation Protocol, 12. Assumptions, 1. Design Goal, 2. Reference Match Checklist, 3. Current App Analysis, 4. Design Rules, 5. Things That Must Not Change (+27 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.04
-Nodes (37): styles, AdminOrderDetailScreen(), ORDER_STATUSES, PAYMENT_STATUSES, styles, adminOrdersApi, styles, ICONS (+29 more)
+Cohesion: 0.50
+Nodes (4): 13. Backend Tests, Goal, Subtasks, Testing checklist
 
 ### Community 31 - "Community 31"
 Cohesion: 0.05
@@ -409,7 +413,7 @@ Nodes (25): attachComboItems(), config, createProduct(), deleteProduct(), fs, ge
 
 ### Community 43 - "Community 43"
 Cohesion: 0.10
-Nodes (26): dashboardApi, DashboardApi, productsApi, appLogo, assetsPlaceholder, FAST_FOOD_CATEGORIES, getShortAddress(), HomeScreen() (+18 more)
+Nodes (17): DashboardApi, productsApi, CategoriesScreen(), DEFAULT_CHIPS, MOCK_CATEGORIES, MOCK_CHIPS, styles, useAuthGate() (+9 more)
 
 ### Community 44 - "Community 44"
 Cohesion: 0.33
@@ -417,19 +421,23 @@ Nodes (6): Backend, Backend, Frontend, Frontend, Integration, Testing Checklist
 
 ### Community 45 - "Community 45"
 Cohesion: 0.05
-Nodes (21): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles (+13 more)
+Nodes (29): AnimatedCartBadge(), styles, AnimatedFadeSlide(), AnimatedModalView(), styles, AnimatedQuantitySwitcher(), AnimatedSegmentedControl(), styles (+21 more)
+
+### Community 46 - "Community 46"
+Cohesion: 0.17
+Nodes (9): adminAuthApi, adminCategoriesApi, adminDashboardApi, dashboardApi, apiClient, imagesApi, offersApi, buildQueryString() (+1 more)
 
 ### Community 47 - "Community 47"
-Cohesion: 0.18
-Nodes (25): calculateCart(), blockSchema(), categorySchema(), comboAvailabilitySchema(), comboSchema(), loginSchema(), productAvailabilitySchema(), productImageSchema() (+17 more)
+Cohesion: 0.25
+Nodes (18): blockSchema(), categorySchema(), comboAvailabilitySchema(), comboSchema(), loginSchema(), productAvailabilitySchema(), productImageSchema(), productSchema() (+10 more)
 
 ### Community 48 - "Community 48"
 Cohesion: 0.08
 Nodes (25): app, config, errorHandler(), notFoundHandler(), adminRoutes, App(), authRoutes, cartRoutes (+17 more)
 
 ### Community 49 - "Community 49"
-Cohesion: 0.39
-Nodes (5): AdminOrderCard(), AdminOrdersScreen(), PAYMENT_FILTERS, STATUS_FILTERS, styles
+Cohesion: 0.15
+Nodes (15): asyncHandler, { body, validationResult }, { createOrder, getOrders, getOrderById, cancelOrder }, createOrderSchema(), express, expressValidatorChecks, { requireCustomer }, router (+7 more)
 
 ### Community 50 - "Community 50"
 Cohesion: 0.20
@@ -448,12 +456,12 @@ Cohesion: 0.67
 Nodes (3): Included, Not Included, V1 Scope
 
 ### Community 54 - "Community 54"
-Cohesion: 0.12
-Nodes (25): { calculateDeliveryPricing }, { calculateThresholdDeliveryCharge }, { isId, isPositiveInteger, validateCoordinates }, { pool }, { roundMoney, toMoney }, { calculateDeliveryPricing }, { calculateThresholdDeliveryCharge }, createOrder() (+17 more)
+Cohesion: 0.11
+Nodes (29): calculateCart(), { calculateDeliveryPricing }, { calculateThresholdDeliveryCharge }, { isId, isPositiveInteger, validateCoordinates }, { pool }, { roundMoney, toMoney }, { calculateDeliveryPricing }, { calculateThresholdDeliveryCharge } (+21 more)
 
 ### Community 56 - "Community 56"
-Cohesion: 0.15
-Nodes (15): attachImageUrls(), createCategory(), deleteCategory(), getAdminCategories(), getCategories(), { getDb }, { normalizeStoreType }, { ObjectId } (+7 more)
+Cohesion: 0.14
+Nodes (17): attachImageUrls(), createCategory(), deleteCategory(), getAdminCategories(), getCategories(), { getDb }, { normalizeStoreType }, { ObjectId } (+9 more)
 
 ### Community 57 - "Community 57"
 Cohesion: 0.25
@@ -464,36 +472,36 @@ Cohesion: 0.11
 Nodes (18): dependencies, expo, expo-image-picker, expo-location, lucide-react-native, react, react-native, @react-native-async-storage/async-storage (+10 more)
 
 ### Community 59 - "Community 59"
-Cohesion: 0.11
-Nodes (37): AdminProductFormScreen(), buildImageFormData(), getImageData(), getImageId(), getImageUrl(), getResponseData(), styles, AdminProductCard() (+29 more)
+Cohesion: 0.08
+Nodes (44): AdminProductFormScreen(), buildImageFormData(), getImageData(), getImageId(), getImageUrl(), getResponseData(), styles, AdminProductCard() (+36 more)
 
 ### Community 60 - "Community 60"
-Cohesion: 0.15
-Nodes (8): AdminNavigator(), Stack, CustomerNavigator(), Stack, styles, Tab, RootNavigator(), ROUTES
+Cohesion: 0.26
+Nodes (15): AdminSettingsScreen(), asBoolean(), asText(), buildOfferPayload(), buildSettingsPayload(), DEFAULT_FORM, getErrorMessage(), getOfferData() (+7 more)
 
 ### Community 61 - "Community 61"
 Cohesion: 0.29
 Nodes (7): Backend Build Phases, Phase 1: API Foundation, Phase 2: Auth, Phase 3: Products, Categories, and Images, Phase 4: Settings, Cart, and Orders, Phase 5: Admin Operations, Phase 6: Frontend Integration Contract
 
 ### Community 62 - "Community 62"
-Cohesion: 0.16
-Nodes (16): CategoriesApi, CombosApi, ImagesApi, MobileDashboardApi, OffersApi, ProductsApi, CategoryFormDrawer(), ProductFormDrawer() (+8 more)
+Cohesion: 0.22
+Nodes (12): CategoriesApi, ImagesApi, CategoryFormDrawer(), ProductFormDrawer(), OfferFormDrawer(), ProductFormDrawer(), DEFAULT_SETTINGS, Settings() (+4 more)
 
 ### Community 63 - "Community 63"
 Cohesion: 0.33
 Nodes (6): Backend Plan, Default Local Admin, Environment Variables, images, MongoDB Image Model, Order Rules
 
 ### Community 64 - "Community 64"
-Cohesion: 0.10
-Nodes (37): addAdminSectionItem(), asNonNegativeInteger(), asPositiveInteger(), attachComboItems(), createAdminSection(), deleteAdminSection(), deleteAdminSectionItem(), getAdminSectionById() (+29 more)
+Cohesion: 0.09
+Nodes (44): addAdminSectionItem(), asNonNegativeInteger(), asPositiveInteger(), attachComboItems(), config, createAdminSection(), deleteAdminSection(), deleteAdminSectionItem() (+36 more)
 
 ### Community 65 - "Community 65"
 Cohesion: 0.22
 Nodes (8): adminRoutes, app, express, jwt, { pool }, productRoutes, request, token
 
 ### Community 66 - "Community 66"
-Cohesion: 0.10
-Nodes (26): attachOfferImageUrls(), attachSettingsImageUrls(), config, createOffer(), deleteOffer(), getActiveOffer(), getAdminOffers(), { getDb } (+18 more)
+Cohesion: 0.08
+Nodes (30): addOfferProduct(), attachOfferImageUrls(), attachOfferProductImageUrls(), attachSettingsImageUrls(), config, createOffer(), deleteOffer(), getActiveOffer() (+22 more)
 
 ### Community 67 - "Community 67"
 Cohesion: 0.07
@@ -520,8 +528,8 @@ Cohesion: 0.15
 Nodes (13): 2. Dashboard Data Model, Field meaning, Goal, Item types, New table: `dashboard_section_items`, New table: `dashboard_sections`, Section types, Subtasks (+5 more)
 
 ### Community 73 - "Community 73"
-Cohesion: 0.10
-Nodes (20): 13. Edge Cases And Data Integrity, 17. Backend Tests, 18. Admin Manager Tests, 19. Frontend Tests, Admin Controlled Mobile Dashboard Tasks, Cases to handle, Goal, Goal (+12 more)
+Cohesion: 0.12
+Nodes (15): 16. Rollout Plan, 17. Backend Tests, 18. Admin Manager Tests, Admin Controlled Mobile Dashboard Tasks, Goal, Goal, Goal, Goal (+7 more)
 
 ### Community 74 - "Community 74"
 Cohesion: 0.20
@@ -564,8 +572,8 @@ Cohesion: 0.10
 Nodes (25): { hashPassword, comparePassword, signCustomerToken }, login(), me(), { pool }, register(), updateProfile(), asyncHandler, authLimiter (+17 more)
 
 ### Community 87 - "Community 87"
-Cohesion: 0.10
-Nodes (8): AuditApi, CustomersApi, HealthApi, NotificationsApi, ReportsApi, SettingsApi, AuthProvider(), ORDER_STATUS_LABELS
+Cohesion: 0.12
+Nodes (7): AuditApi, CustomersApi, HealthApi, NotificationsApi, ReportsApi, SettingsApi, ORDER_STATUS_LABELS
 
 ### Community 88 - "Community 88"
 Cohesion: 0.11
@@ -580,8 +588,8 @@ Cohesion: 0.29
 Nodes (6): 11. Backend Tests, Goal, Goal, Location Based Delivery Tasks, Subtasks, Testing checklist
 
 ### Community 92 - "Community 92"
-Cohesion: 0.22
-Nodes (6): AuthContext, useAuth(), Header(), Loading(), Login(), ProtectedRoute()
+Cohesion: 0.12
+Nodes (8): AuthContext, AuthProvider(), useAuth(), Header(), Loading(), navItems, Login(), ProtectedRoute()
 
 ### Community 93 - "Community 93"
 Cohesion: 0.36
@@ -596,8 +604,8 @@ Cohesion: 0.29
 Nodes (7): 2. Backend Settings Fields, Defaults, Goal, New settings fields, Subtasks, Testing checklist, Things to avoid
 
 ### Community 100 - "Community 100"
-Cohesion: 0.14
-Nodes (21): attachComboItems(), config, createCombo(), createValidationError(), deleteCombo(), fs, getAdminComboById(), getAdminCombos() (+13 more)
+Cohesion: 0.11
+Nodes (25): attachComboItems(), config, createCombo(), createValidationError(), deleteCombo(), fs, getAdminComboById(), getAdminCombos() (+17 more)
 
 ### Community 101 - "Community 101"
 Cohesion: 0.29
@@ -656,8 +664,8 @@ Cohesion: 0.50
 Nodes (4): 13. Final Verification, Acceptance criteria, Goal, Subtasks
 
 ### Community 115 - "Community 115"
-Cohesion: 0.24
-Nodes (15): AdminCustomersScreen(), asBoolean(), BlockCustomerModal(), CustomerCard(), CustomerSkeletonList(), formatShortAddress(), getActionError(), getCustomersFromResponse() (+7 more)
+Cohesion: 0.33
+Nodes (6): 11. Error Handling And Edge Cases, Edge cases, Goal, Subtasks, Testing checklist, Things to avoid
 
 ### Community 116 - "Community 116"
 Cohesion: 0.15
@@ -796,24 +804,24 @@ Cohesion: 0.20
 Nodes (9): adminRoutes, adminToken, app, customerToken, express, jwt, orderRoutes, { pool } (+1 more)
 
 ### Community 150 - "Community 150"
-Cohesion: 0.36
-Nodes (5): setAdminTokenProvider(), setCustomerTokenProvider(), App(), assertNoEmoji(), hasEmoji()
+Cohesion: 0.14
+Nodes (5): appLogo, assetsPlaceholder, styles, FALLBACK_SOURCE, styles
 
 ### Community 151 - "Community 151"
 Cohesion: 0.25
 Nodes (7): adminRoutes, adminToken, app, express, jwt, { pool }, request
 
 ### Community 152 - "Community 152"
-Cohesion: 0.14
-Nodes (12): config, connect(), { MongoClient }, bcrypt, { getDb }, { getDb, connect }, { ObjectId }, { pool } (+4 more)
+Cohesion: 0.24
+Nodes (15): AdminCustomersScreen(), asBoolean(), BlockCustomerModal(), CustomerCard(), CustomerSkeletonList(), formatShortAddress(), getActionError(), getCustomersFromResponse() (+7 more)
 
 ### Community 153 - "Community 153"
 Cohesion: 0.25
 Nodes (8): Exact Changes, Files Likely Changed, Goal, Migration Requirements, Suggested Database Model, Task 3: Refactor Combos Away From Product Category Requirement, Testing Checklist, Things To Avoid
 
 ### Community 154 - "Community 154"
-Cohesion: 0.09
-Nodes (22): cancelOrder(), getOrderById(), getOrders(), extractToken(), requireAdmin(), requireCustomer(), { verifyToken }, asyncHandler (+14 more)
+Cohesion: 0.07
+Nodes (13): styles, styles, styles, PAYMENT_COLORS, STATUS_COLORS, styles, OrderConfirmationScreen(), styles (+5 more)
 
 ### Community 155 - "Community 155"
 Cohesion: 0.33
@@ -936,8 +944,8 @@ Cohesion: 0.40
 Nodes (5): 13. Frontend Testing, Admin Manager tests, Build checks, Customer app tests, Goal
 
 ### Community 186 - "Community 186"
-Cohesion: 0.14
-Nodes (11): config, mysql, pool, fs, { pool }, { createCombo }, { pool }, req (+3 more)
+Cohesion: 0.13
+Nodes (12): config, mysql, pool, fs, { pool }, { pool }, { validateComboItems }, app (+4 more)
 
 ### Community 187 - "Community 187"
 Cohesion: 0.25
@@ -976,8 +984,8 @@ Cohesion: 0.33
 Nodes (6): Files likely checked, Goal, Subtasks, Task 1: Confirm Current Mode Data Model, Testing checklist, Things to avoid
 
 ### Community 196 - "Community 196"
-Cohesion: 0.11
-Nodes (22): AdminDashboardScreen(), MetricCard(), styles, AdminEntryScreen(), styles, AdminLoginScreen(), adminDashboardApi, authApi (+14 more)
+Cohesion: 0.07
+Nodes (32): AdminDashboardScreen(), MetricCard(), styles, AdminEntryScreen(), styles, AdminLoginScreen(), styles, authApi (+24 more)
 
 ### Community 197 - "Community 197"
 Cohesion: 0.25
@@ -996,52 +1004,52 @@ Cohesion: 0.50
 Nodes (4): Final acceptance, Goal, Subtasks, Task 18: Final Verification
 
 ### Community 201 - "Community 201"
-Cohesion: 0.33
-Nodes (3): PAYMENT_COLORS, STATUS_COLORS, styles
+Cohesion: 0.40
+Nodes (5): 15. Permissions And Audit, Goal, Subtasks, Testing checklist, Things to avoid
 
 ### Community 202 - "Community 202"
-Cohesion: 0.33
-Nodes (6): 11. Error Handling And Edge Cases, Edge cases, Goal, Subtasks, Testing checklist, Things to avoid
+Cohesion: 0.25
+Nodes (12): ApiError, getErrorMessage(), buildBody(), buildHeaders(), createTimeoutSignal(), isFormData(), parseResponse(), request() (+4 more)
 
 ### Community 203 - "Community 203"
-Cohesion: 0.29
-Nodes (6): adminRoutes, app, express, jwt, { pool }, request
+Cohesion: 0.20
+Nodes (6): FILTER_CHIPS, MOCK_ORDERS, OrdersScreen(), STATUS_CODE_LABELS, STATUS_DISPLAY_LABELS, styles
 
 ### Community 204 - "Community 204"
-Cohesion: 0.40
-Nodes (5): 16. Rollout Plan, Goal, Subtasks, Testing checklist, Things to avoid
+Cohesion: 0.48
+Nodes (6): DEFAULT_API_BASE_URL, getApiBaseUrl(), getDevServerHost(), normalizeBaseUrl(), resolveDefaultApiBaseUrl(), setApiBaseUrl()
 
 ### Community 205 - "Community 205"
 Cohesion: 0.50
 Nodes (4): 15. Frontend Tests, Goal, Subtasks, Testing checklist
-
-### Community 206 - "Community 206"
-Cohesion: 0.29
-Nodes (6): adminRoutes, app, authMiddleware, express, { pool }, request
 
 ### Community 207 - "Community 207"
 Cohesion: 0.29
 Nodes (8): EMPTY_FILTERS, formatDateTime(), formatMoney(), getOrderStatusLabel(), ORDER_STATUS_LABELS, ORDER_STATUS_OPTIONS, Orders(), statusClassName()
 
 ### Community 208 - "Community 208"
-Cohesion: 0.38
-Nodes (5): CategoriesScreen(), DEFAULT_CHIPS, MOCK_CATEGORIES, MOCK_CHIPS, styles
+Cohesion: 0.14
+Nodes (12): config, connect(), { MongoClient }, bcrypt, { getDb }, { getDb, connect }, { ObjectId }, { pool } (+4 more)
 
 ### Community 209 - "Community 209"
-Cohesion: 0.40
-Nodes (5): 15. Permissions And Audit, Goal, Subtasks, Testing checklist, Things to avoid
+Cohesion: 0.20
+Nodes (10): AdminOrderCard(), AdminOrdersScreen(), PAYMENT_FILTERS, STATUS_FILTERS, styles, adminOrdersApi, LoadingSkeleton(), SkeletonCard() (+2 more)
 
 ### Community 210 - "Community 210"
-Cohesion: 0.50
-Nodes (4): 13. Backend Tests, Goal, Subtasks, Testing checklist
+Cohesion: 0.24
+Nodes (6): CombosApi, MobileDashboardApi, OffersApi, ProductsApi, DEFAULT_MAX_VISIBLE_BY_SECTION, readList()
+
+### Community 211 - "Community 211"
+Cohesion: 0.33
+Nodes (5): setAdminTokenProvider(), setCustomerTokenProvider(), App(), assertNoEmoji(), hasEmoji()
 
 ### Community 212 - "Community 212"
-Cohesion: 0.50
-Nodes (4): 14. Admin Manager Tests, Goal, Subtasks, Testing checklist
+Cohesion: 0.29
+Nodes (6): adminRoutes, app, authMiddleware, express, { pool }, request
 
 ### Community 213 - "Community 213"
 Cohesion: 0.33
-Nodes (5): app, express, { pool }, productRoutes, request
+Nodes (6): 13. Edge Cases And Data Integrity, Cases to handle, Goal, Subtasks, Testing checklist, Things to avoid
 
 ### Community 214 - "Community 214"
 Cohesion: 0.29
@@ -1104,8 +1112,8 @@ Cohesion: 0.40
 Nodes (5): BUG-009: Runtime DDL Runs Inside User/Admin Request Flows, Checklist, Evidence, Expected Behavior, Impact
 
 ### Community 229 - "Community 229"
-Cohesion: 0.40
-Nodes (5): BUG-010: Admin Mobile Dashboard Store Filter Is Ignored, Checklist, Evidence, Expected Behavior, Impact
+Cohesion: 0.50
+Nodes (4): 14. Admin Manager Tests, Goal, Subtasks, Testing checklist
 
 ### Community 230 - "Community 230"
 Cohesion: 0.40
@@ -1203,22 +1211,38 @@ Nodes (5): BUG-033: Customer Tokens Persist In AsyncStorage And Admin Tokens In 
 Cohesion: 0.40
 Nodes (5): BUG-034: Dependency Audit Advisories Remain, Checklist, Evidence, Expected Behavior, Impact
 
+### Community 254 - "Community 254"
+Cohesion: 0.50
+Nodes (4): 19. Frontend Tests, Goal, Subtasks, Testing checklist
+
+### Community 255 - "Community 255"
+Cohesion: 0.40
+Nodes (5): BUG-010: Admin Mobile Dashboard Store Filter Is Ignored, Checklist, Evidence, Expected Behavior, Impact
+
+### Community 256 - "Community 256"
+Cohesion: 0.07
+Nodes (15): AdminOrderDetailScreen(), ORDER_STATUSES, PAYMENT_STATUSES, styles, styles, ICONS, Chip(), ChipRow() (+7 more)
+
+### Community 260 - "Community 260"
+Cohesion: 0.29
+Nodes (6): adminRoutes, app, express, jwt, { pool }, request
+
 ## Knowledge Gaps
-- **1650 isolated node(s):** `install-dbs.sh script`, `id`, `name`, `resources`, `name` (+1645 more)
+- **1673 isolated node(s):** `install-dbs.sh script`, `id`, `name`, `resources`, `name` (+1668 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `App()` connect `Community 48` to `Community 87`?**
-  _High betweenness centrality (0.122) - this node is a cross-community bridge._
-- **Why does `ProductsApi` connect `Community 62` to `Community 208`, `Community 43`, `Community 87`?**
-  _High betweenness centrality (0.040) - this node is a cross-community bridge._
-- **Why does `ImagesApi` connect `Community 62` to `Community 13`, `Community 87`?**
+- **Why does `App()` connect `Community 48` to `Community 92`?**
+  _High betweenness centrality (0.125) - this node is a cross-community bridge._
+- **Why does `ProductsApi` connect `Community 210` to `Community 59`, `Community 43`, `Community 62`, `Community 87`?**
+  _High betweenness centrality (0.041) - this node is a cross-community bridge._
+- **Why does `ImagesApi` connect `Community 62` to `Community 210`, `Community 13`, `Community 87`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
 - **What connects `install-dbs.sh script`, `id`, `name` to the rest of the system?**
-  _1650 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1673 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**

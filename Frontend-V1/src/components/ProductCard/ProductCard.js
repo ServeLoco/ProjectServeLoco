@@ -185,38 +185,64 @@ function ProductCard({
           </Text>
         ) : null}
 
+        <View style={[styles.dealRow, dense && styles.dealRowDense]}>
+          {resolvedOriginalPrice ? (
+            <Text style={[styles.originalPrice, dense && styles.originalPriceDense]} numberOfLines={1}>
+              Rs. {resolvedOriginalPrice}
+            </Text>
+          ) : (
+            <Text style={[styles.priceNote, dense && styles.priceNoteDense]} numberOfLines={1}>
+              Everyday price
+            </Text>
+          )}
+
+          {savings > 0 && !dense ? (
+            <View style={styles.savingsBadge}>
+              <Text style={styles.savingsText} numberOfLines={1}>
+                Save Rs. {savings}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
         <View style={[styles.footer, compact && styles.footerCompact, dense && styles.footerDense, resolvedIsCombo && styles.comboFooter]}>
-          <View style={styles.priceRow}>
-            <View style={styles.priceWrap}>
-              <Text style={[styles.price, compact && styles.priceCompact, dense && styles.priceDense]}>
+          <View style={styles.priceBlock}>
+            <View style={styles.priceMainRow}>
+              <Text
+                style={[styles.price, compact && styles.priceCompact, dense && styles.priceDense]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+              >
                 Rs. {resolvedPrice}
               </Text>
-              {resolvedOriginalPrice ? (
-                <Text style={[styles.originalPrice, dense && styles.originalPriceDense]}>
-                  Rs. {resolvedOriginalPrice}
-                </Text>
-              ) : null}
             </View>
-            
-            {/* Savings Pill */}
-            {savings > 0 && !dense ? (
-              <View style={styles.savingsBadge}>
-                <Text style={styles.savingsText}>Save Rs. {savings}</Text>
-              </View>
-            ) : null}
           </View>
 
           {isUnavailable ? (
             <Text style={styles.unavailableLabel}>Unavailable</Text>
+          ) : compact ? (
+            <View style={styles.actionWrapCompact}>
+              <QuantityStepper
+                quantity={quantity}
+                onAdd={onAdd}
+                onIncrement={onIncrement}
+                onDecrement={onDecrement}
+                compact
+                dense={dense}
+              />
+            </View>
           ) : (
-            <QuantityStepper
-              quantity={quantity}
-              onAdd={onAdd}
-              onIncrement={onIncrement}
-              onDecrement={onDecrement}
-              compact
-              dense={dense}
-            />
+            <View style={[styles.actionWrap, dense && styles.actionWrapDense]}>
+              <QuantityStepper
+                quantity={quantity}
+                onAdd={onAdd}
+                onIncrement={onIncrement}
+                onDecrement={onDecrement}
+                compact
+                dense={dense}
+              />
+            </View>
           )}
         </View>
       </View>
@@ -419,33 +445,57 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: spacing.xs,
+    marginTop: 2,
+    gap: spacing.xs,
   },
   footerCompact: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    marginTop: spacing.xs,
-    gap: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
   },
   footerDense: {
     marginTop: 3,
     gap: 3,
+  },
+  actionWrap: {
+    width: 84,
+    flexShrink: 0,
+    alignItems: 'flex-end',
+  },
+  actionWrapDense: {
+    width: 76,
+  },
+  actionWrapCompact: {
+    width: 84,
+    flexShrink: 0,
+    alignItems: 'flex-end',
   },
   comboFooter: {
     paddingTop: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: '#FFF0E7',
   },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 4,
+  priceBlock: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    justifyContent: 'flex-end',
   },
-  priceWrap: {
+  priceMainRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    minWidth: 0,
+  },
+  dealRow: {
+    minHeight: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    gap: 6,
+    minWidth: 0,
+  },
+  dealRowDense: {
+    minHeight: 14,
     gap: 4,
   },
   price: {
@@ -463,16 +513,33 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textTertiary,
     textDecorationLine: 'line-through',
-    fontSize: 11,
+    fontSize: 10.5,
+    lineHeight: 13,
+    flexShrink: 1,
+    maxWidth: 86,
   },
   originalPriceDense: {
     fontSize: 9,
+    lineHeight: 11,
+    maxWidth: 64,
+  },
+  priceNote: {
+    ...typography.caption,
+    color: colors.textTertiary,
+    fontSize: 10,
+    lineHeight: 13,
+  },
+  priceNoteDense: {
+    fontSize: 8.5,
+    lineHeight: 11,
   },
   savingsBadge: {
     backgroundColor: '#EAFDF5', // Soft green background
     borderRadius: radius.xs,
     paddingHorizontal: 4,
     paddingVertical: 1,
+    maxWidth: 74,
+    flexShrink: 1,
   },
   savingsText: {
     color: colors.successDark,

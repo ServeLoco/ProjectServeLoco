@@ -308,12 +308,6 @@ export default function CheckoutScreen() {
         return;
       }
 
-      const verifiedMinimum = verifiedBill.minimumOrder || minimumOrder || 0;
-      if (verifiedMinimum > 0 && verifiedBill.subtotal < verifiedMinimum) {
-        setSubmitError(`Minimum order is ₹${verifiedMinimum}. Add items worth ₹${(verifiedMinimum - verifiedBill.subtotal).toFixed(0)} more.`);
-        return;
-      }
-
       const orderResponse = await ordersApi.createOrder({
         items: checkoutItems,
         deliveryAddress: address.trim(),
@@ -348,12 +342,15 @@ export default function CheckoutScreen() {
   };
 
   const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
-  const isBelowMinimum = Boolean(bill && requiredMinimum && bill.subtotal < requiredMinimum);
+  const isBelowFreeDeliveryThreshold = Boolean(bill && requiredMinimum && bill.subtotal < requiredMinimum);
+  const deliveryLabel = bill?.belowThreshold || isBelowFreeDeliveryThreshold
+    ? 'Below-threshold Delivery'
+    : 'Delivery';
   const totalQuantity = items.reduce((total, item) => total + (Number(item.quantity) || 0), 0);
   const hasPinnedLocation = Boolean(coordinates);
   const hasInvalidDelivery = Boolean(bill && (bill.requiresLocation || !bill.deliveryWithinRange));
   const isPinLocationDisabled = isSubmitting || gpsStatus === 'loading' || items.length === 0 || !address.trim();
-  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || hasInvalidDelivery || isBelowMinimum;
+  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || hasInvalidDelivery;
   const isPrimaryActionDisabled = hasPinnedLocation ? isPlaceOrderDisabled : isPinLocationDisabled;
   const placeOrderLabel = isSubmitting
     ? 'Processing...'
@@ -363,8 +360,6 @@ export default function CheckoutScreen() {
     ? 'Pin Location to Continue'
     : hasInvalidDelivery
     ? 'Delivery Not Available'
-    : isBelowMinimum
-    ? 'Minimum Order Not Met'
     : bill
     ? `Place Order • Rs. ${bill.grandTotal}`
     : isCalculating
@@ -536,7 +531,7 @@ export default function CheckoutScreen() {
                   <Text style={styles.summaryValue}>₹{bill.subtotal}</Text>
                 </View>
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Delivery</Text>
+                  <Text style={styles.summaryLabel}>{deliveryLabel}</Text>
                   <Text style={styles.summaryValue}>{bill.deliveryCharge === 0 ? 'FREE' : `₹${bill.deliveryCharge}`}</Text>
                 </View>
                 {bill.deliveryDistanceKm !== null && bill.deliveryDistanceKm !== undefined && (
@@ -571,13 +566,14 @@ export default function CheckoutScreen() {
                   <Text style={styles.summaryTotalLabel}>Total to Pay</Text>
                   <Text style={styles.summaryTotalValue}>₹{bill.grandTotal}</Text>
                 </View>
-                {isBelowMinimum && (
+                {isBelowFreeDeliveryThreshold && (
                   <View style={styles.warningBox}>
                     <AppIcon name="box" size={16} color={colors.saffron || '#FF7A3A'} style={styles.warningIcon} />
                     <Text style={styles.warningText}>
                       Add items worth <Text style={styles.warningHighlight}>₹{(requiredMinimum - bill.subtotal).toFixed(0)}</Text> more
-                      <Text> to place this order</Text>
-                      {bill.freeAboveThresholdActive ? <Text> and unlock <Text style={styles.warningHighlight}>Free Delivery</Text></Text> : null}
+                      {bill.freeAboveThresholdActive
+                        ? <Text> to unlock <Text style={styles.warningHighlight}>Free Delivery</Text></Text>
+                        : <Text> to reach the preferred order value</Text>}
                       <Text> (₹{bill.deliveryCharge} delivery fee currently applied).</Text>
                     </Text>
                   </View>

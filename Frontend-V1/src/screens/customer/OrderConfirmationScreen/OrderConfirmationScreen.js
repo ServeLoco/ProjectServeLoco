@@ -18,6 +18,8 @@ export default function OrderConfirmationScreen() {
   const orderId = route.params?.orderId || order.id;
   const orderLabel = order.orderNumber || order.order_number || orderId || 'Pending';
   const total = order.total || order.bill?.grandTotal || 0;
+  const deliveryCharge = order.bill?.delivery || 0;
+  const deliveryLabel = order.bill?.belowThresholdDelivery ? 'Below-threshold Delivery' : 'Delivery';
   const paymentMethod = order.paymentMethod || 'Cash';
   const address = order.address || order.customer?.address || 'Delivery address saved with your order';
 
@@ -161,6 +163,11 @@ export default function OrderConfirmationScreen() {
             <View style={styles.row}>
               <Text style={styles.label}>Total Amount</Text>
               <Text style={styles.value}>₹{total} ({paymentMethod})</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.row}>
+              <Text style={styles.label}>{deliveryLabel}</Text>
+              <Text style={styles.value}>{deliveryCharge > 0 ? `₹${deliveryCharge}` : 'FREE'}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.col}>

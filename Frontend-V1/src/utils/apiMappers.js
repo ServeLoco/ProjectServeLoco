@@ -16,21 +16,25 @@ function getApiOrigin() {
 
 function normalizeImageUrl(url) {
   if (!url || typeof url !== 'string') return null;
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) return null;
 
-  if (url.startsWith('/')) {
+  if (trimmedUrl.startsWith('/')) {
     const origin = getApiOrigin();
-    return origin ? `${origin}${url}` : url;
+    const encodedPath = encodeURI(trimmedUrl);
+    return origin ? `${origin}${encodedPath}` : encodedPath;
   }
 
   try {
-    const parsed = new URL(url);
+    const parsed = new URL(trimmedUrl);
     if (LOCAL_IMAGE_HOSTS.has(parsed.hostname)) {
       const origin = getApiOrigin();
-      return origin ? `${origin}${parsed.pathname}${parsed.search}` : url;
+      const encodedPath = encodeURI(`${parsed.pathname}${parsed.search}`);
+      return origin ? `${origin}${encodedPath}` : encodeURI(trimmedUrl);
     }
-    return url;
+    return encodeURI(trimmedUrl);
   } catch {
-    return url;
+    return encodeURI(trimmedUrl);
   }
 }
 
@@ -177,6 +181,8 @@ function normalizeCartCalculation(payload = {}) {
     requiresLocation: asBoolean(pickFirst(bill.requiresLocation, bill.requires_location), false),
     freeDeliveryOfferActive: asBoolean(pickFirst(bill.freeDeliveryOfferActive, bill.free_delivery_offer_active), false),
     freeAboveThresholdActive: asBoolean(pickFirst(bill.freeAboveThresholdActive, bill.free_delivery_above_minimum_active), true),
+    belowThreshold: asBoolean(pickFirst(bill.belowThreshold, bill.below_threshold, bill.belowThresholdDelivery, bill.below_threshold_delivery), false),
+    belowThresholdDeliveryCharge: numberOrZero(pickFirst(bill.belowThresholdDeliveryCharge, bill.below_threshold_delivery_charge)),
     deliveryMessage: pickFirst(bill.deliveryMessage, bill.delivery_message, bill.message, ''),
   };
 }
@@ -257,6 +263,9 @@ function normalizeOrder(order = {}) {
     deliveryRadiusKmSnapshot: pickFirst(order.deliveryRadiusKmSnapshot, order.delivery_radius_km_snapshot, null),
     deliveryCostPerKmSnapshot: pickFirst(order.deliveryCostPerKmSnapshot, order.delivery_cost_per_km_snapshot, null),
     freeDeliveryOfferSnapshot: asBoolean(pickFirst(order.freeDeliveryOfferSnapshot, order.free_delivery_offer_snapshot), false),
+    belowThresholdDelivery: asBoolean(pickFirst(order.belowThresholdDelivery, order.below_threshold_delivery), false),
+    belowThresholdDeliveryCharge: numberOrZero(pickFirst(order.belowThresholdDeliveryCharge, order.below_threshold_delivery_charge)),
+    deliveryMessage: pickFirst(order.deliveryMessage, order.delivery_message, ''),
     customer: {
       name: getCustomerName(order),
       phone: pickFirst(order.phone, order.customerPhone, order.customer_phone, order.customer?.phone, ''),
@@ -269,6 +278,8 @@ function normalizeOrder(order = {}) {
       delivery,
       discount,
       grandTotal,
+      belowThresholdDelivery: asBoolean(pickFirst(order.belowThresholdDelivery, order.below_threshold_delivery), false),
+      belowThresholdDeliveryCharge: numberOrZero(pickFirst(order.belowThresholdDeliveryCharge, order.below_threshold_delivery_charge)),
     },
   };
 }

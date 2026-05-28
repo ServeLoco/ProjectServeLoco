@@ -3,6 +3,7 @@ import { OffersApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import OfferProductsPanel from '../components/OfferProductsPanel';
+import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import './Offers.css';
 
 export default function Offers() {
@@ -245,6 +246,7 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
 
             <div className="form-group">
               <label className="form-label">Offer Image / Banner</label>
+              <p className="image-dimension-hint">{IMAGE_GUIDANCE.offerBanner.label}</p>
               {(formData.image_url || formData.imageUrl) && <img src={normalizeImageUrl(formData.image_url || formData.imageUrl)} alt="Preview" className="image-preview" />}
               <div className="image-upload-zone" onClick={() => fileInputRef.current?.click()}>
                 <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
@@ -265,7 +267,7 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
                 Banner is clickable
               </label>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                Note: The app may only display one active offer per mode at a time. Activating this will replace the currently displayed offer for {formData.store_type === 'fast_food' ? 'Fast Food' : 'Packed Items'}. Mobile banner displays only the uploaded image.
+                Multiple active offers can stay live in the same mode. Add them to the Mobile Dashboard offer banner section to rotate them on the customer app.
               </p>
             </div>
 

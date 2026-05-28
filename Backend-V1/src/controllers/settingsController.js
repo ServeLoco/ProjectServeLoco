@@ -5,6 +5,11 @@ const { normalizeStoreType } = require('../utils/storeMode');
 const config = require('../config/env');
 
 const hasValue = (value) => value !== undefined && value !== null && value !== '';
+const getStoredImageUrl = (image) => image?.url ||
+  image?.imageUrl ||
+  image?.image_url ||
+  (image?.filename ? `${config.PUBLIC_BASE_URL}${config.STATIC_UPLOAD_PATH}/${image.filename}` : null);
+
 const validateNonNegativeNumber = (value, message) => {
   if (!hasValue(value)) return null;
   const numeric = Number(value);
@@ -27,10 +32,7 @@ const attachSettingsImageUrls = async (settings) => {
 
   const db = getDb();
   const image = await db.collection('images').findOne({ _id: new ObjectId(imageId) });
-  const imageUrl = image?.url ||
-    image?.imageUrl ||
-    image?.image_url ||
-    (image?.filename ? `${config.PUBLIC_BASE_URL}${config.STATIC_UPLOAD_PATH}/${image.filename}` : null);
+  const imageUrl = getStoredImageUrl(image);
 
   if (imageUrl) {
     settings.upi_qr_image_url = imageUrl;
@@ -53,7 +55,7 @@ const attachOfferImageUrls = async (offers) => {
   const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
   const imageMap = {};
   images.forEach(image => {
-    imageMap[image._id.toString()] = image.url;
+    imageMap[image._id.toString()] = getStoredImageUrl(image);
   });
 
   rows.forEach(row => {
@@ -68,6 +70,32 @@ const attachOfferImageUrls = async (offers) => {
   });
 
   return offers;
+};
+
+const attachOfferProductImageUrls = async (products) => {
+  const rows = Array.isArray(products) ? products : [products].filter(Boolean);
+  const imageIds = rows
+    .map(row => row.image_id)
+    .filter(id => id && ObjectId.isValid(id))
+    .map(id => new ObjectId(id));
+
+  if (imageIds.length === 0) return products;
+
+  const db = getDb();
+  const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
+  const imageMap = {};
+  images.forEach(image => {
+    imageMap[image._id.toString()] = getStoredImageUrl(image);
+  });
+
+  rows.forEach(row => {
+    if (row.image_id && imageMap[row.image_id]) {
+      row.imageUrl = imageMap[row.image_id];
+      row.image_url = imageMap[row.image_id];
+    }
+  });
+
+  return products;
 };
 
 const getSettings = async (req, res) => {
@@ -241,13 +269,6 @@ const createOffer = async (req, res) => {
     [title, description || '', isActive, finalImageId, finalStoreType, finalIsClickable]
   );
 
-  if (isActive) {
-    await pool.query(
-      'UPDATE offers SET active = 0 WHERE store_type = ? AND id != ? AND deleted = 0',
-      [finalStoreType, result.insertId]
-    );
-  }
-
   res.status(201).json({ message: 'Offer created', id: result.insertId });
 };
 
@@ -316,16 +337,6 @@ const updateOffer = async (req, res) => {
   params.push(id);
   await pool.query(`UPDATE offers SET ${updates.join(', ')} WHERE id = ?`, params);
 
-  const nextActive = active !== undefined
-    ? (active === true || active === 'true' || active === 1 || active === '1')
-    : (existingOffer.active === true || existingOffer.active === 1 || existingOffer.active === '1' || existingOffer.active === 'true');
-  if (nextActive) {
-    await pool.query(
-      'UPDATE offers SET active = 0 WHERE store_type = ? AND id != ? AND deleted = 0',
-      [targetStoreType, id]
-    );
-  }
-
   res.status(200).json({ message: 'Offer updated' });
 };
 
@@ -349,11 +360,7 @@ const getAdminOffers = async (req, res) => {
   res.status(200).json({ data: rows });
 };
 
-const deleteOffer,
-  getOfferProducts,
-  addOfferProduct,
-  removeOfferProduct,
-  reorderOfferProducts = async (req, res) => {
+const deleteOffer = async (req, res) => {
   const { id } = req.params;
   const [result] = await pool.query('UPDATE offers SET deleted = 1 WHERE id = ? AND deleted = 0', [id]);
   if (result.affectedRows === 0) {
@@ -375,8 +382,7 @@ const getOfferProducts = async (req, res) => {
     ORDER BY op.display_order ASC, p.display_order ASC, p.id ASC
   `, [id]);
 
-  const { attachImageUrls } = require('./productController');
-  if (attachImageUrls) await attachImageUrls(rows);
+  await attachOfferProductImageUrls(rows);
 
   res.status(200).json({ data: rows });
 };

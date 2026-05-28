@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { CategoriesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
+import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import './Categories.css';
 
 export default function Categories() {
@@ -275,6 +276,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
 
             <div className="form-group">
               <label className="form-label">Category Image</label>
+              <p className="image-dimension-hint">{IMAGE_GUIDANCE.category.label}</p>
               {(formData.image_url || formData.imageUrl) && <img src={normalizeImageUrl(formData.image_url || formData.imageUrl)} alt="Preview" className="image-preview" />}
               <div className="image-upload-zone" onClick={() => fileInputRef.current?.click()}>
                 <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />

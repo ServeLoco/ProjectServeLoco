@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SettingsApi, ImagesApi } from '../api';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
+import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import './Settings.css';
 
 const DEFAULT_SETTINGS = {
@@ -350,6 +351,7 @@ export default function Settings() {
 
           <div className="settings-form-group full-width">
             <label className="settings-label">UPI QR Code Image</label>
+            <p className="image-dimension-hint">{IMAGE_GUIDANCE.qr.label}</p>
             {settings.upi_qr_image_url && <img src={normalizeImageUrl(settings.upi_qr_image_url)} alt="UPI QR" className="qr-preview" />}
             <div 
               style={{ border: '2px dashed var(--border-color)', padding: '2rem', textAlign: 'center', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--bg-color)' }}

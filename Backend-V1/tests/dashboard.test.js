@@ -129,6 +129,74 @@ describe('Dashboard Public and Admin API Tests', () => {
       expect(res.body.data.sections[0].sectionType).toEqual('category_grid');
       expect(res.body.data.sections[0].items[0].name).toEqual('Snacks');
     });
+
+    it('should recover active offer banners when dashboard item links are stale', async () => {
+      pool.query.mockResolvedValueOnce([[
+        {
+          id: 5,
+          title: 'Special Offers',
+          slug: 'hero-offers',
+          section_type: 'offer_banner',
+          store_type: 'fast_food',
+          active: 1,
+          display_order: 0,
+          max_visible_items: 1,
+          show_see_all: 0
+        }
+      ]]);
+
+      // Linked dashboard rows are stale, inactive, or missing for this section.
+      pool.query.mockResolvedValueOnce([[]]);
+
+      pool.query.mockResolvedValueOnce([[
+        {
+          id: 11,
+          title: 'Free Delivery',
+          description: '',
+          image_id: 'image-11',
+          image_url: 'http://10.0.2.2:3000/uploads/free-delivery.png',
+          active: 1,
+          deleted: 0,
+          store_type: 'fast_food',
+          is_clickable: 0,
+          section_item_id: null
+        },
+        {
+          id: 12,
+          title: 'Combo Deal',
+          description: '',
+          image_id: 'image-12',
+          image_url: 'http://10.0.2.2:3000/uploads/combo-deal.png',
+          active: 1,
+          deleted: 0,
+          store_type: 'fast_food',
+          is_clickable: 0,
+          section_item_id: null
+        }
+      ]]);
+
+      // No category or combo fallback rows for this focused offer-banner test.
+      pool.query.mockResolvedValueOnce([[]]);
+      pool.query.mockResolvedValueOnce([[]]);
+
+      const res = await request(app).get('/api/dashboard?storeType=fast_food');
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.data.sections).toHaveLength(1);
+      expect(res.body.data.sections[0].sectionType).toEqual('offer_banner');
+      expect(res.body.data.sections[0].items[0]).toMatchObject({
+        id: 11,
+        title: 'Free Delivery',
+        imageUrl: 'http://10.0.2.2:3000/uploads/free-delivery.png',
+        storeType: 'fast_food'
+      });
+      expect(res.body.data.sections[0].items[1]).toMatchObject({
+        id: 12,
+        title: 'Combo Deal',
+        imageUrl: 'http://10.0.2.2:3000/uploads/combo-deal.png',
+        storeType: 'fast_food'
+      });
+    });
   });
 
   describe('Admin Section Management', () => {

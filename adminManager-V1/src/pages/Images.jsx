@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ImagesApi } from '../api';
 import { normalizeImageUrl } from '../utils/imageUrl';
+import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import './Images.css';
 
 export default function Images() {
@@ -88,6 +89,7 @@ export default function Images() {
         <input type="file" hidden ref={fileInputRef} onChange={handleUpload} accept="image/*" />
         <h3 style={{ color: 'var(--primary-color)', marginBottom: '0.5rem' }}>{uploading ? 'Uploading...' : 'Click to Upload New Image'}</h3>
         <p style={{ color: 'var(--text-secondary)' }}>Supported formats: JPG, PNG, WebP. Max size: 5MB.</p>
+        <p className="image-dimension-hint">{IMAGE_GUIDANCE.library.label}</p>
       </div>
       {uploadMessage && (
         <p className={`upload-message ${uploadMessage.type}`} style={{ marginBottom: '1rem' }}>{uploadMessage.text}</p>

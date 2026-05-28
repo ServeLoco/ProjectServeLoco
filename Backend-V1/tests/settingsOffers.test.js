@@ -135,4 +135,26 @@ describe('Settings and Offers Tests', () => {
     expect(res.statusCode).toEqual(200);
     expect(res.body.data).toBeNull();
   });
+
+  it('should not deactivate other offers when activating an offer', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{
+        id: 2,
+        title: 'Second Banner',
+        active: 0,
+        image_id: '507f1f77bcf86cd799439011',
+        store_type: 'fast_food',
+        deleted: 0
+      }]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const res = await request(app)
+      .patch('/api/admin/offers/2')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ active: true });
+
+    expect(res.statusCode).toEqual(200);
+    expect(pool.query).toHaveBeenCalledTimes(2);
+    expect(pool.query.mock.calls.some(([query]) => query.includes('id != ?'))).toBe(false);
+  });
 });

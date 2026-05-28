@@ -137,9 +137,12 @@ input:checked + .toggle-slider:before {
 .qr-preview {
   width: 100%;
   max-width: 200px;
+  height: 200px;
+  object-fit: contain;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   margin-bottom: 1rem;
+  background: #fff;
 }
 
 .settings-footer {

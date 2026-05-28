@@ -122,6 +122,13 @@
   cursor: not-allowed;
 }
 
+.form-hint {
+  margin-top: 0.35rem;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
 .section-meta-info {
   flex: 1;
   display: flex;
@@ -287,10 +294,10 @@
 .item-thumbnail {
   width: 40px;
   height: 40px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 6px;
   border: 1px solid var(--border-color);
-  background: rgba(7, 10, 18, 0.7);
+  background: #fff;
 }
 
 .item-details {

@@ -26,18 +26,17 @@ const calculateThresholdDeliveryCharge = ({ subtotal, settings = {}, distanceCha
     ? getNonNegativeAmount(distanceCharge, 0)
     : getNonNegativeAmount(settings.delivery_charge, 0);
 
-  const belowThresholdCharge = distanceCharge !== null
-    ? standardDeliveryCharge
-    : getNonNegativeAmount(
-        settings.below_threshold_delivery_charge,
-        BELOW_THRESHOLD_DELIVERY_CHARGE
-      );
+  const belowThresholdCharge = getNonNegativeAmount(
+    settings.below_threshold_delivery_charge,
+    BELOW_THRESHOLD_DELIVERY_CHARGE
+  );
 
   if (freeDeliveryOfferActive) {
     return {
       charge: 0,
       threshold,
       belowThreshold: false,
+      belowThresholdCharge: 0,
       message: 'Free delivery offer applied!',
       freeDeliveryOfferActive: true,
       freeAboveThresholdActive,
@@ -50,6 +49,7 @@ const calculateThresholdDeliveryCharge = ({ subtotal, settings = {}, distanceCha
       charge,
       threshold,
       belowThreshold: false,
+      belowThresholdCharge: roundMoney(belowThresholdCharge),
       message: freeAboveThresholdActive
         ? 'Free delivery unlocked!'
         : (charge > 0 ? `Standard delivery charge ₹${charge} applied.` : 'No delivery charge applied.'),
@@ -59,9 +59,10 @@ const calculateThresholdDeliveryCharge = ({ subtotal, settings = {}, distanceCha
   }
 
   return {
-      charge: roundMoney(belowThresholdCharge),
+    charge: roundMoney(belowThresholdCharge),
     threshold,
     belowThreshold: threshold > 0 && total < threshold,
+    belowThresholdCharge: roundMoney(belowThresholdCharge),
     message: threshold > 0
       ? `Add ₹${roundMoney(Math.max(0, threshold - total))} more${freeAboveThresholdActive ? ' for free delivery' : ''}. ₹${roundMoney(belowThresholdCharge)} delivery applied.`
       : `₹${belowThresholdCharge} delivery applied.`,

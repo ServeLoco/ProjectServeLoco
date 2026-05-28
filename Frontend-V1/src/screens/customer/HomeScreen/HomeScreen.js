@@ -6,9 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
+  Easing,
   useWindowDimensions,
   Image,
-  ImageBackground,
   RefreshControl,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -27,7 +27,7 @@ import { colors, typography, spacing, radius, shadows, layout } from '../../../t
 import { useCartStore, useSettingsStore } from '../../../stores';
 import { useAuthGate } from '../../../hooks';
 import { dashboardApi, settingsApi, notificationsApi } from '../../../api';
-import { normalizeCategory, normalizeProduct, normalizeSettings } from '../../../utils';
+import { normalizeCategory, normalizeImageUrl, normalizeProduct, normalizeSettings } from '../../../utils';
 import { appLogo } from '../../../assets';
 
 export default function HomeScreen() {
@@ -588,9 +588,30 @@ export default function HomeScreen() {
 function OfferBannerCarousel({ offers = [], windowWidth, onOfferPress }) {
   const listRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
+  const sweepAnim = useRef(new Animated.Value(0)).current;
   const [activeIndex, setActiveIndex] = useState(0);
+  const [imageErrors, setImageErrors] = useState({});
+  const itemWidth = windowWidth - (spacing.md * 2);
   const bannerWidth = windowWidth - (spacing.md * 2);
-  const visibleOffers = offers.filter(Boolean);
+  const bannerHeight = Math.round(bannerWidth / 2);
+  const visibleOffers = offers.filter(offer => {
+    const imageUri = normalizeImageUrl(offer?.imageUrl || offer?.image_url || offer?.imageUri);
+    return Boolean(imageUri);
+  });
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.timing(sweepAnim, {
+        toValue: 1,
+        duration: 2600,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: true,
+      })
+    );
+
+    animation.start();
+    return () => animation.stop();
+  }, [sweepAnim]);
 
   useEffect(() => {
     if (visibleOffers.length <= 1) return undefined;
@@ -604,18 +625,35 @@ function OfferBannerCarousel({ offers = [], windowWidth, onOfferPress }) {
         });
         return nextIndex;
       });
-    }, 3800);
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [visibleOffers.length]);
+
+  useEffect(() => {
+    if (activeIndex >= visibleOffers.length) {
+      setActiveIndex(0);
+      listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    }
+  }, [activeIndex, visibleOffers.length]);
 
   if (visibleOffers.length === 0) return null;
 
   const handleMomentumEnd = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    const nextIndex = Math.round(offsetX / bannerWidth);
+    const nextIndex = Math.round(offsetX / itemWidth);
     setActiveIndex(Math.max(0, Math.min(nextIndex, visibleOffers.length - 1)));
   };
+
+  const sweepTranslateX = sweepAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-bannerWidth * 1.35, bannerWidth * 1.35],
+  });
+
+  const glowOpacity = sweepAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.28, 0.64, 0.28],
+  });
 
   return (
     <View style={styles.offerCarouselSection}>
@@ -627,7 +665,7 @@ function OfferBannerCarousel({ offers = [], windowWidth, onOfferPress }) {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         bounces={false}
-        snapToInterval={bannerWidth}
+        snapToInterval={itemWidth}
         decelerationRate="fast"
         onMomentumScrollEnd={handleMomentumEnd}
         onScroll={Animated.event(
@@ -636,29 +674,80 @@ function OfferBannerCarousel({ offers = [], windowWidth, onOfferPress }) {
         )}
         scrollEventThrottle={16}
         getItemLayout={(_, index) => ({
-          length: bannerWidth,
-          offset: bannerWidth * index,
+          length: itemWidth,
+          offset: itemWidth * index,
           index,
         })}
         renderItem={({ item: offer }) => {
-          const imageUri = offer.imageUrl || offer.image_url || offer.imageUri;
-          if (!imageUri) return null; // Defensive check, handled by filter above
-
+          const imageUri = normalizeImageUrl(offer.imageUrl || offer.image_url || offer.imageUri);
+          const offerKey = String(offer.id || imageUri);
           const isClickable = offer.isClickable || offer.is_clickable;
-
-          return (
-            <View style={{ width: bannerWidth }}>
-              <TouchableOpacity
-                activeOpacity={isClickable ? 0.9 : 1}
-                onPress={() => isClickable ? onOfferPress(offer) : null}
-                style={styles.offerBannerTouch}
-              >
+          const hasImageError = Boolean(imageErrors[offerKey]);
+          const bannerImage = (
+            <View style={styles.offerBannerFrame}>
+              <Animated.View style={[styles.offerBannerAura, { opacity: glowOpacity }]} />
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.offerBannerSweep,
+                  {
+                    transform: [
+                      { translateX: sweepTranslateX },
+                      { rotate: '-16deg' },
+                    ],
+                  },
+                ]}
+              />
+              <View pointerEvents="none" style={styles.offerBannerEdge} />
+              {hasImageError ? (
+                <View
+                  style={[
+                    styles.offerBanner,
+                    styles.offerBannerFallback,
+                    {
+                      width: '100%',
+                      height: bannerHeight,
+                      borderRadius: radius.lg,
+                    },
+                  ]}
+                >
+                  <Text style={styles.offerBannerFallbackText}>Banner image unavailable</Text>
+                </View>
+              ) : (
                 <Image
                   source={{ uri: imageUri }}
-                  style={[styles.offerBanner, { width: bannerWidth, borderRadius: radius.lg, backgroundColor: colors.bgSurface }]}
-                  resizeMode="cover"
+                  style={[
+                    styles.offerBanner,
+                    {
+                      width: '100%',
+                      height: bannerHeight,
+                      borderRadius: radius.lg,
+                    },
+                  ]}
+                  resizeMode="contain"
+                  onError={() => setImageErrors(prev => ({ ...prev, [offerKey]: true }))}
                 />
-              </TouchableOpacity>
+              )}
+            </View>
+          );
+
+          return (
+            <View style={{ width: itemWidth }}>
+              {isClickable ? (
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => onOfferPress(offer)}
+                  style={styles.offerBannerTouch}
+                  accessibilityRole="button"
+                  accessibilityLabel={offer.title || 'Offer banner'}
+                >
+                  {bannerImage}
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.offerBannerTouch}>
+                  {bannerImage}
+                </View>
+              )}
             </View>
           );
         }}
@@ -668,9 +757,9 @@ function OfferBannerCarousel({ offers = [], windowWidth, onOfferPress }) {
         <View style={styles.offerDots}>
           {visibleOffers.map((offer, index) => {
             const inputRange = [
-              (index - 1) * bannerWidth,
-              index * bannerWidth,
-              (index + 1) * bannerWidth,
+              (index - 1) * itemWidth,
+              index * itemWidth,
+              (index + 1) * itemWidth,
             ];
             const dotWidth = scrollX.interpolate({
               inputRange,
@@ -853,61 +942,61 @@ const styles = StyleSheet.create({
   },
   offerCarouselSection: {
     marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
   },
   offerBannerTouch: {
-    marginHorizontal: spacing.md,
     borderRadius: radius.lg,
+  },
+  offerBannerFrame: {
+    width: '100%',
+    padding: 4,
+    borderRadius: radius.lg + 5,
+    backgroundColor: '#071822',
+    overflow: 'hidden',
+    shadowColor: '#0891B2',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.28,
+    shadowRadius: 24,
+    elevation: 9,
   },
   offerBanner: {
-    backgroundColor: colors.saffron,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: colors.saffronDark,
-    minHeight: 150,
-    justifyContent: 'center',
-    ...shadows.card,
-  },
-  offerBannerWithImage: {
-    backgroundColor: colors.saffronDark,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  offerBannerImageRadius: {
-    borderRadius: radius.lg,
-  },
-  offerImageOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(14,17,22,0.28)',
-  },
-  offerContent: {
-    zIndex: 1,
-    maxWidth: '72%',
-  },
-  offerEyebrow: {
-    ...typography.caption,
-    color: colors.textInverse,
-    opacity: 0.88,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0,
-    marginBottom: 5,
-  },
-  offerTitle: {
-    ...typography.h3,
-    color: colors.textInverse,
-    marginBottom: 4,
-  },
-  offerDesc: {
-    ...typography.body,
-    color: colors.textInverse,
-    opacity: 0.9,
-    marginBottom: spacing.md,
-  },
-  offerBtn: {
-    alignSelf: 'flex-start',
     backgroundColor: colors.bgSurface,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.68)',
+  },
+  offerBannerAura: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#22D3EE',
+  },
+  offerBannerSweep: {
+    position: 'absolute',
+    top: -70,
+    bottom: -70,
+    width: 54,
+    backgroundColor: 'rgba(236,254,255,0.86)',
+    shadowColor: '#67E8F9',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.82,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  offerBannerEdge: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: radius.lg + 5,
+    borderWidth: 1,
+    borderColor: 'rgba(165,243,252,0.72)',
+  },
+  offerBannerFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  offerBannerFallbackText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   offerDots: {
     marginTop: spacing.sm,
