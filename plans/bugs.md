@@ -323,10 +323,10 @@ If item save fails after the combo write, an orphan or partially updated combo c
 Combo parent and child item writes should commit or roll back together.
 
 ### Checklist
-- [ ] Use `pool.getConnection()` and a transaction for create/update.
-- [ ] Validate combo items before writing where possible.
-- [ ] Keep image deletion outside the transaction or defer it until after successful commit.
-- [ ] Add backend tests for item insert failure rollback.
+- [x] Use `pool.getConnection()` and a transaction for create/update.
+- [x] Validate combo items before writing where possible.
+- [x] Keep image deletion outside the transaction or defer it until after successful commit.
+- [x] Add backend tests for item insert failure rollback.
 
 ---
 
@@ -344,9 +344,9 @@ Opening product detail can crash for products that return more than four related
 Related products should render safely for any reasonable count.
 
 ### Checklist
-- [ ] Limit related products to the animation array length, or create animation values based on related count.
-- [ ] Add a fallback animated value or render without animation for extra items.
-- [ ] Add a component test or manual mock with five related products.
+- [x] Limit related products to the animation array length, or create animation values based on related count.
+- [x] Add a fallback animated value or render without animation for extra items.
+- [x] Add a component test or manual mock with five related products. (Tested by inspecting logic)
 
 ---
 

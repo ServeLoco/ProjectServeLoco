@@ -174,8 +174,6 @@ const getProductById = async (req, res) => {
   );
 
   if (rows.length === 0) {
-    const combo = await loadCombo();
-    if (combo) return res.status(200).json({ data: combo });
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
