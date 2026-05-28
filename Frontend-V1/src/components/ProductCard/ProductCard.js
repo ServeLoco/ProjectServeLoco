@@ -188,7 +188,7 @@ function ProductCard({
         <View style={[styles.dealRow, dense && styles.dealRowDense]}>
           {resolvedOriginalPrice ? (
             <Text style={[styles.originalPrice, dense && styles.originalPriceDense]} numberOfLines={1}>
-              Rs. {resolvedOriginalPrice}
+              ₹{resolvedOriginalPrice}
             </Text>
           ) : (
             <Text style={[styles.priceNote, dense && styles.priceNoteDense]} numberOfLines={1}>
@@ -212,9 +212,9 @@ function ProductCard({
                 style={[styles.price, compact && styles.priceCompact, dense && styles.priceDense]}
                 numberOfLines={1}
                 adjustsFontSizeToFit
-                minimumFontScale={0.85}
+                minimumFontScale={0.72}
               >
-                Rs. {resolvedPrice}
+                ₹{resolvedPrice}
               </Text>
             </View>
           </View>
@@ -485,6 +485,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     minWidth: 0,
+    flexShrink: 1,
   },
   dealRow: {
     minHeight: 20,
@@ -518,7 +519,7 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     lineHeight: 13,
     flexShrink: 1,
-    maxWidth: 86,
+    maxWidth: 72,
   },
   originalPriceDense: {
     fontSize: 9,
