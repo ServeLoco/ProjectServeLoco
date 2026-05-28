@@ -141,11 +141,11 @@ const getDashboard = async (req, res) => {
   `);
 
   const topProducts = await queryRows(`
-    SELECT oi.product_id, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
+    SELECT oi.product_id, oi.item_type, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
     WHERE o.status != 'Cancelled'
-    GROUP BY oi.product_id, oi.product_name
+    GROUP BY oi.product_id, oi.item_type, oi.product_name
     ORDER BY total_sales DESC
     LIMIT 5
   `);
@@ -259,11 +259,11 @@ const getTopProductsReport = async (req, res) => {
   }
 
   const [rows] = await pool.query(`
-    SELECT oi.product_id, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
+    SELECT oi.product_id, oi.item_type, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
     WHERE o.status != 'Cancelled' AND ${dateFilter}
-    GROUP BY oi.product_id, oi.product_name
+    GROUP BY oi.product_id, oi.item_type, oi.product_name
     ORDER BY total_quantity DESC
     LIMIT 50
   `);

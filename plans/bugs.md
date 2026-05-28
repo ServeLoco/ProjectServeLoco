@@ -386,11 +386,11 @@ WhatsApp can disappear after refresh/relogin even though it exists in the databa
 Mobile should consistently normalize `whatsapp_number` to the field it renders, or render both.
 
 ### Checklist
-- [ ] Add a customer/profile mapper that maps `whatsapp_number` and `whatsappNumber` to `whatsapp`.
-- [ ] Use it for login, signup, `/auth/me`, and profile update.
-- [ ] Make `updateProfile` return the updated user without password fields.
-- [ ] Update Profile and EditProfile screens to use the normalized shape.
-- [ ] Add tests for profile normalization.
+- [x] Add a customer/profile mapper that maps `whatsapp_number` and `whatsappNumber` to `whatsapp`.
+- [x] Use it for login, signup, `/auth/me`, and profile update.
+- [x] Make `updateProfile` return the updated user without password fields.
+- [x] Update Profile and EditProfile screens to use the normalized shape.
+- [x] Add tests for profile normalization.
 
 ---
 

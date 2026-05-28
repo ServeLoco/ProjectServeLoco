@@ -150,17 +150,22 @@ export default function Dashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <section className="section-card">
             <div className="section-header">
-              <h2 className="section-title">Top Products</h2>
+              <h2 className="section-title">Top Items</h2>
             </div>
             {top_products.length > 0 ? (
               <ul className="top-products-list">
                 {top_products.map(prod => (
-                  <li key={prod.product_id} className="top-product-item">
-                    <div className="product-info">
-                      <span className="product-name">{prod.product_name}</span>
-                      <span className="product-sales">₹{prod.total_sales} total</span>
+                  <li key={`${prod.product_id}-${prod.item_type}`} className="top-product-item">
+                    <div className="top-product-info">
+                      <span className="top-product-name">
+                        {prod.product_name}
+                        {prod.item_type === 'combo' && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', backgroundColor: 'var(--bg-elevated)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>Combo</span>}
+                      </span>
+                      <span className="top-product-qty">{prod.total_quantity} sold</span>
                     </div>
-                    <span className="product-qty">{prod.total_quantity} sold</span>
+                    <div className="top-product-sales">
+                      ₹{prod.total_sales}
+                    </div>
                   </li>
                 ))}
               </ul>

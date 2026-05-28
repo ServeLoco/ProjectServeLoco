@@ -158,15 +158,21 @@ export default function Reports() {
             </div>
 
             <div className="report-section">
-              <h3 className="report-section-title">Top Products</h3>
+              <h3 className="report-section-title">Top Items</h3>
               {topProducts.length === 0 ? (
-                <p style={{ color: 'var(--text-secondary)' }}>No product data available for this period.</p>
+                <p style={{ color: 'var(--text-secondary)' }}>No item data available for this period.</p>
               ) : (
                 <ul className="breakdown-list">
                   {topProducts.slice(0, 5).map((p, i) => (
-                    <li key={i} className="breakdown-item">
-                      <span className="breakdown-name">{p.name || p.product_name || 'Unknown'}</span>
-                      <span className="breakdown-stat">{p.units_sold || p.total_quantity || 0} units</span>
+                    <li key={`${p.product_id}-${p.item_type}`} className="breakdown-item">
+                      <div className="breakdown-info">
+                        <span className="breakdown-label">
+                          {p.product_name}
+                          {p.item_type === 'combo' && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', backgroundColor: 'var(--bg-elevated)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>Combo</span>}
+                        </span>
+                        <span className="breakdown-subtext">{p.total_quantity} units sold</span>
+                      </div>
+                      <span className="breakdown-value">₹{p.total_sales}</span>
                     </li>
                   ))}
                 </ul>
