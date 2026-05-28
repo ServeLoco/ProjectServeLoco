@@ -38,7 +38,9 @@ const attachImageUrls = async (rows) => {
 
 const getCategories = async (req, res) => {
   const type = req.query.type || req.query.storeType || req.query.store_type;
-  const normalizedType = type && type !== 'all' ? normalizeStoreType(type, { allowAll: false }) : 'packed';
+  const normalizedType = type 
+    ? normalizeStoreType(type, { allowAll: true }) 
+    : 'all';
   const params = [];
   let query = `
     SELECT c.*, (
@@ -50,7 +52,7 @@ const getCategories = async (req, res) => {
     WHERE c.active = 1 AND c.deleted = 0
   `;
 
-  if (normalizedType) {
+  if (normalizedType !== 'all') {
     query += ' AND c.type = ?';
     params.push(normalizedType);
   }

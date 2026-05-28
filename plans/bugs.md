@@ -472,10 +472,10 @@ Selecting a default chip can hide all real categories.
 Only chips backed by data should filter categories.
 
 ### Checklist
-- [ ] Remove fake default chips or make them non-filtering shortcuts.
-- [ ] Build chips from actual category metadata if needed.
-- [ ] Keep `All` as the only default filter unless data supports more.
-- [ ] Manual QA: packed and fast_food categories remain visible.
+- [x] Remove fake default chips or make them non-filtering shortcuts.
+- [x] Build chips from actual category metadata if needed.
+- [x] Keep `All` as the only default filter unless data supports more.
+- [x] Manual QA: packed and fast_food categories remain visible.
 
 ---
 

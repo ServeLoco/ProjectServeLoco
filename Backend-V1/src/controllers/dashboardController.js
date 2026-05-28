@@ -13,8 +13,8 @@ const SECTION_ITEM_TYPES = {
 };
 
 const getExpectedStoreType = (storeType) => {
-  if (!storeType || storeType === 'all') return 'packed';
-  return normalizeStoreType(storeType, { fallback: null, allowAll: true });
+  if (!storeType) return 'all';
+  return normalizeStoreType(storeType, { fallback: 'all', allowAll: true });
 };
 
 const isInvalidDateValue = (value) => value && Number.isNaN(new Date(value).getTime());
@@ -224,7 +224,7 @@ const getDefaultCategoryItems = async (expectedStoreType, limit = 8, offset = 0)
     WHERE c.active = 1 AND c.deleted = 0
   `;
 
-  if (expectedStoreType) {
+  if (expectedStoreType && expectedStoreType !== 'all') {
     query += ' AND c.type = ?';
     params.push(expectedStoreType);
   }
@@ -245,7 +245,7 @@ const getDefaultComboItems = async (expectedStoreType, limit = 6, offset = 0) =>
     WHERE p.available = 1 AND p.deleted = 0
   `;
 
-  if (expectedStoreType) {
+  if (expectedStoreType && expectedStoreType !== 'all') {
     query += ' AND p.store_type = ?';
     params.push(expectedStoreType);
   }
@@ -277,7 +277,7 @@ const getDashboard = async (req, res) => {
     `;
     const params = [];
 
-    if (expectedStoreType) {
+    if (expectedStoreType && expectedStoreType !== 'all') {
       query += ' AND store_type = ?';
       params.push(expectedStoreType);
     }
@@ -292,8 +292,8 @@ const getDashboard = async (req, res) => {
       let items = [];
 
       if (section.section_type === 'offer_banner') {
-        const offerStoreFilter = expectedStoreType ? 'AND o.store_type = ?' : '';
-        const params = expectedStoreType ? [section.id, expectedStoreType] : [section.id];
+        const offerStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND o.store_type = ?' : '';
+        const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType] : [section.id];
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, o.* 
            FROM dashboard_section_items dsi
@@ -332,7 +332,7 @@ const getDashboard = async (req, res) => {
         await resolveImageUrls(rows);
         
         let filteredRows = rows;
-        if (expectedStoreType) {
+        if (expectedStoreType && expectedStoreType !== 'all') {
           filteredRows = rows.filter(r => r.type === expectedStoreType);
         }
         
@@ -358,14 +358,14 @@ const getDashboard = async (req, res) => {
         await attachComboItems(rows);
 
         let filteredRows = rows;
-        if (expectedStoreType) {
+        if (expectedStoreType && expectedStoreType !== 'all') {
           filteredRows = rows.filter(r => r.category_type === expectedStoreType);
         }
 
         items = mapProductRows(filteredRows);
       } else if (section.section_type === 'combo_block') {
-        const comboStoreFilter = expectedStoreType ? 'AND p.store_type = ?' : '';
-        const params = expectedStoreType ? [section.id, expectedStoreType] : [section.id];
+        const comboStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND p.store_type = ?' : '';
+        const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType] : [section.id];
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, p.store_type as category_type
            FROM dashboard_section_items dsi
@@ -475,7 +475,7 @@ const getSectionItems = async (req, res) => {
         AND (ends_at IS NULL OR ends_at >= NOW())
     `;
     const sectionParams = [slug];
-    if (expectedStoreType) {
+    if (expectedStoreType && expectedStoreType !== 'all') {
       sectionQuery += ' AND store_type = ?';
       sectionParams.push(expectedStoreType);
     }
@@ -523,8 +523,8 @@ const getSectionItems = async (req, res) => {
     let items = [];
 
     if (section.section_type === 'offer_banner') {
-      const offerStoreFilter = expectedStoreType ? 'AND o.store_type = ?' : '';
-      const params = expectedStoreType ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
+      const offerStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND o.store_type = ?' : '';
+      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, o.* 
          FROM dashboard_section_items dsi
@@ -564,7 +564,7 @@ const getSectionItems = async (req, res) => {
       await resolveImageUrls(rows);
       
       let filteredRows = rows;
-      if (expectedStoreType) {
+      if (expectedStoreType && expectedStoreType !== 'all') {
         filteredRows = rows.filter(r => r.type === expectedStoreType);
       }
       
@@ -574,8 +574,8 @@ const getSectionItems = async (req, res) => {
         items = await getDefaultCategoryItems(expectedStoreType, limitNumber, offset);
       }
     } else if (section.section_type === 'product_block') {
-      const productStoreFilter = expectedStoreType ? 'AND cat.type = ?' : '';
-      const params = expectedStoreType ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
+      const productStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND cat.type = ?' : '';
+      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type
          FROM dashboard_section_items dsi
@@ -613,8 +613,8 @@ const getSectionItems = async (req, res) => {
         comboItems: r.combo_items || []
       }));
     } else if (section.section_type === 'combo_block') {
-      const comboStoreFilter = expectedStoreType ? 'AND p.store_type = ?' : '';
-      const params = expectedStoreType ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
+      const comboStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND p.store_type = ?' : '';
+      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, p.store_type as category_type
          FROM dashboard_section_items dsi

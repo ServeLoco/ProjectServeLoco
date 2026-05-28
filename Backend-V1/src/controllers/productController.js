@@ -89,14 +89,14 @@ const attachComboItems = async (products = []) => {
 const getProducts = async (req, res) => {
   const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit } = req.query;
   const requestedType = type || storeType || store_type;
-  const normalizedType = requestedType && requestedType !== 'all'
-    ? normalizeStoreType(requestedType, { allowAll: false })
-    : 'packed';
+  const normalizedType = requestedType 
+    ? normalizeStoreType(requestedType, { allowAll: true }) 
+    : 'all';
   const finalCategoryId = categoryId || category_id;
   let finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
 
   // If filtering by category/categoryType/categoryId and isCombo isn't explicitly set, default to false (exclude combos)
-  if (finalIsCombo === undefined && (finalCategoryId || type)) {
+  if (finalIsCombo === undefined && (finalCategoryId || (requestedType && requestedType !== 'all'))) {
     finalIsCombo = 'false';
   }
 
@@ -114,8 +114,8 @@ const getProducts = async (req, res) => {
   const buildSubQuery = (baseQuery, isComboType) => {
     let q = baseQuery;
     if (finalCategoryId && !isComboType) q += ` AND p.category_id = ${pool.escape(finalCategoryId)}`;
-    if (normalizedType && !isComboType) q += ` AND c.type = ${pool.escape(normalizedType)}`;
-    if (normalizedType && isComboType) q += ` AND p.store_type = ${pool.escape(normalizedType)}`;
+    if (normalizedType !== 'all' && !isComboType) q += ` AND c.type = ${pool.escape(normalizedType)}`;
+    if (normalizedType !== 'all' && isComboType) q += ` AND p.store_type = ${pool.escape(normalizedType)}`;
     if (search) q += ` AND p.name LIKE ${pool.escape('%' + search + '%')}`;
     if (featured !== undefined) q += ` AND p.featured = ${featured === 'true' || featured === '1' ? 1 : 0}`;
     return q;
