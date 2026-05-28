@@ -429,11 +429,11 @@ Large catalogs load all rows. Pagination controls mislead admin and do not actua
 Backend should paginate, or the admin UI should remove pagination controls.
 
 ### Checklist
-- [ ] Add page/limit validation to admin product and combo list endpoints.
-- [ ] Return `pagination` consistently.
-- [ ] Keep max limit capped, for example 100.
-- [ ] Update UI to use returned pagination.
-- [ ] Add backend tests for page 1, page 2, invalid page, and limit cap.
+- [x] Add page/limit validation to admin product and combo list endpoints.
+- [x] Return `pagination` consistently.
+- [x] Keep max limit capped, for example 100.
+- [x] Update UI to use returned pagination.
+- [x] Add backend tests for page 1, page 2, invalid page, and limit cap.
 
 ---
 

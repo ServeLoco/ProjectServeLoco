@@ -1,12 +1,12 @@
 const { pool } = require('../db/mysql');
 const notificationService = require('../utils/notificationService');
+const { validatePagination } = require('../validators');
 
 const getNotifications = async (req, res) => {
   const userId = req.user.id;
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  const pagination = validatePagination(req.query.page, req.query.limit);
   const unreadOnly = req.query.unreadOnly === 'true';
-  const offset = (page - 1) * limit;
+  const offset = (pagination.page - 1) * pagination.limit;
 
   let query = 'SELECT * FROM notifications WHERE user_id = ? AND deleted_at IS NULL';
   const params = [userId];
@@ -16,7 +16,7 @@ const getNotifications = async (req, res) => {
   }
 
   query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-  params.push(limit, offset);
+  params.push(pagination.limit, offset);
 
   const [rows] = await pool.query(query, params);
 
@@ -45,13 +45,13 @@ const getNotifications = async (req, res) => {
     createdAt: r.created_at,
   }));
 
-  res.json({
+  res.status(200).json({
     data: normalizedRows,
     pagination: {
-      page,
-      limit,
+      page: pagination.page,
+      limit: pagination.limit,
       total,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / pagination.limit)
     },
     unreadCount
   });

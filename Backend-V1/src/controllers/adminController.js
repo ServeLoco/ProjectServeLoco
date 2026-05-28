@@ -1,6 +1,7 @@
 const config = require('../config/env');
 const { signAdminToken } = require('../utils/auth');
 const { pool } = require('../db/mysql');
+const { validatePagination } = require('../validators');
 const notificationService = require('../utils/notificationService');
 
 const ORDER_STATUS_VALUES = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
@@ -297,25 +298,25 @@ const getAuditLogs = async (req, res) => {
   try {
     const { getDb } = require('../db/mongodb');
     const db = getDb();
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 50;
-    const skip = (page - 1) * limit;
+    
+    const pagination = validatePagination(req.query.page, req.query.limit);
+    const skip = (pagination.page - 1) * pagination.limit;
 
     const total = await db.collection('audit_logs').countDocuments();
     const logs = await db.collection('audit_logs')
       .find()
       .sort({ timestamp: -1 })
       .skip(skip)
-      .limit(limit)
+      .limit(pagination.limit)
       .toArray();
 
     res.status(200).json({
       data: logs,
       pagination: {
         total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
+        page: pagination.page,
+        limit: pagination.limit,
+        totalPages: Math.ceil(total / pagination.limit)
       }
     });
   } catch (error) {
@@ -324,7 +325,8 @@ const getAuditLogs = async (req, res) => {
 };
 
 const getAdminOrders = async (req, res) => {
-  const { status, paymentStatus, payment_status, paymentMethod, payment_method, search, dateFrom, from, dateTo, to, page = 1, limit = 20 } = req.query;
+  const { status, paymentStatus, payment_status, paymentMethod, payment_method, search, dateFrom, from, dateTo, to, page, limit } = req.query;
+  const pagination = validatePagination(page, limit);
 
   let query = 'SELECT * FROM orders WHERE 1=1';
   const params = [];
@@ -372,8 +374,8 @@ const getAdminOrders = async (req, res) => {
 
   // Sorting and Pagination
   query += ` ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`;
-  const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
-  params.push(parseInt(limit, 10), offset);
+  const offset = (pagination.page - 1) * pagination.limit;
+  params.push(pagination.limit, offset);
 
   const [rows] = await pool.query(query, params);
 
@@ -381,9 +383,9 @@ const getAdminOrders = async (req, res) => {
     data: rows,
     pagination: {
       total,
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      totalPages: Math.ceil(total / parseInt(limit, 10))
+      page: pagination.page,
+      limit: pagination.limit,
+      totalPages: Math.ceil(total / pagination.limit)
     }
   });
 };
@@ -506,25 +508,24 @@ const updateOrderPayment = async (req, res) => {
 };
 
 const getAdminNotifications = async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
-  const offset = (page - 1) * limit;
+  const pagination = validatePagination(req.query.page, req.query.limit);
+  const offset = (pagination.page - 1) * pagination.limit;
 
   const [rows] = await pool.query(
     'SELECT * FROM notification_batches WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?',
-    [limit, offset]
+    [pagination.limit, offset]
   );
-  
+
   const [countRows] = await pool.query('SELECT COUNT(*) as total FROM notification_batches WHERE deleted_at IS NULL');
   const total = countRows[0].total;
 
-  res.json({
+  res.status(200).json({
     data: rows,
     pagination: {
-      page,
-      limit,
       total,
-      totalPages: Math.ceil(total / limit)
+      page: pagination.page,
+      limit: pagination.limit,
+      totalPages: Math.ceil(total / pagination.limit)
     }
   });
 };
