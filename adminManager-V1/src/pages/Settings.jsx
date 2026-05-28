@@ -19,13 +19,9 @@ const DEFAULT_SETTINGS = {
   upi_id: '',
   upi_qr_image_id: '',
   upi_qr_image_url: '',
-  shop_latitude: '',
-  shop_longitude: '',
-  delivery_radius_km: 8,
-  delivery_cost_per_km: 0,
-  below_threshold_delivery_charge: 20,
   free_delivery_above_minimum_active: true,
   free_delivery_offer_active: false
+  // Location-based distance pricing is removed, so latitude/longitude/radius are obsolete.
 };
 
 export default function Settings() {
@@ -98,8 +94,6 @@ export default function Settings() {
         ['delivery_charge', 'Standard delivery charge'],
         ['free_delivery_above', 'Free delivery above amount'],
         ['night_charge', 'Night delivery surcharge'],
-        ['delivery_radius_km', 'Delivery radius'],
-        ['delivery_cost_per_km', 'Delivery cost per km'],
         ['below_threshold_delivery_charge', 'Below-threshold delivery charge'],
       ];
 
@@ -113,19 +107,6 @@ export default function Settings() {
         }
       }
 
-      const latitude = nullableNumber(settings.shop_latitude);
-      const longitude = nullableNumber(settings.shop_longitude);
-      if (latitude !== null && (latitude < -90 || latitude > 90)) {
-        alert('Shop latitude must be between -90 and 90.');
-        setSaving(false);
-        return;
-      }
-      if (longitude !== null && (longitude < -180 || longitude > 180)) {
-        alert('Shop longitude must be between -180 and 180.');
-        setSaving(false);
-        return;
-      }
-
       // Ensure numeric fields are numbers
       const payload = {
         ...settings,
@@ -133,10 +114,6 @@ export default function Settings() {
         delivery_charge: Number(settings.delivery_charge),
         free_delivery_above: Number(settings.free_delivery_above),
         night_charge: Number(settings.night_charge),
-        shop_latitude: latitude,
-        shop_longitude: longitude,
-        delivery_radius_km: Number(settings.delivery_radius_km),
-        delivery_cost_per_km: Number(settings.delivery_cost_per_km),
         below_threshold_delivery_charge: Number(settings.below_threshold_delivery_charge),
         free_delivery_above_minimum_active: Boolean(settings.free_delivery_above_minimum_active),
         free_delivery_offer_active: Boolean(settings.free_delivery_offer_active),
@@ -251,68 +228,10 @@ export default function Settings() {
             <label className="settings-label">Night Charge End Time</label>
             <input type="time" name="night_charge_end" className="settings-input" value={settings.night_charge_end || ''} onChange={handleChange} />
           </div>
-        </div>
-      </section>
-
-      <section className="settings-section">
-        <h2 className="settings-section-title">Location Based Delivery</h2>
-        <div className="settings-form-grid">
-          <div className="settings-form-group">
-            <label className="settings-label">Shop Latitude</label>
-            <input
-              type="number"
-              step="0.000001"
-              min="-90"
-              max="90"
-              name="shop_latitude"
-              className="settings-input"
-              placeholder="e.g. 30.900965"
-              value={settings.shop_latitude ?? ''}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="settings-form-group">
-            <label className="settings-label">Shop Longitude</label>
-            <input
-              type="number"
-              step="0.000001"
-              min="-180"
-              max="180"
-              name="shop_longitude"
-              className="settings-input"
-              placeholder="e.g. 75.857276"
-              value={settings.shop_longitude ?? ''}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="settings-form-group">
-            <label className="settings-label">Delivery Radius (km)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              name="delivery_radius_km"
-              className="settings-input"
-              value={settings.delivery_radius_km ?? 8}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="settings-form-group">
-            <label className="settings-label">Delivery Cost Per Km (₹)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              name="delivery_cost_per_km"
-              className="settings-input"
-              value={settings.delivery_cost_per_km ?? 0}
-              onChange={handleChange}
-            />
-          </div>
           <div className="toggle-switch-wrapper full-width">
             <div style={{ flex: 1 }}>
               <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Free Delivery Offer</strong>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>When enabled, all in-range orders get zero delivery charge.</span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>When enabled, all orders get zero delivery charge.</span>
             </div>
             <label className="toggle-switch">
               <input
@@ -323,11 +242,6 @@ export default function Settings() {
               />
               <span className="toggle-slider"></span>
             </label>
-          </div>
-          <div className="settings-form-group full-width">
-            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6 }}>
-              Customers must pin GPS location at checkout. Backend allows orders only inside the radius; the final delivery charge follows the pricing rules above.
-            </p>
           </div>
         </div>
       </section>

@@ -236,6 +236,7 @@ function normalizeOrder(order = {}) {
   const bill = order.bill || order.totals || {};
   const subtotal = numberOrZero(pickFirst(bill.subtotal, order.subtotal, order.itemTotal, order.item_total));
   const delivery = numberOrZero(pickFirst(bill.delivery, bill.deliveryCharge, bill.delivery_charge, order.deliveryCharge, order.delivery_charge));
+  const nightCharge = numberOrZero(pickFirst(bill.nightCharge, bill.night_charge, order.nightCharge, order.night_charge));
   const discount = numberOrZero(pickFirst(bill.discount, bill.discountAmount, order.discount));
   const grandTotal = numberOrZero(pickFirst(
     bill.grandTotal,
@@ -276,6 +277,7 @@ function normalizeOrder(order = {}) {
     bill: {
       subtotal,
       delivery,
+      nightCharge,
       discount,
       grandTotal,
       belowThresholdDelivery: asBoolean(pickFirst(order.belowThresholdDelivery, order.below_threshold_delivery), false),

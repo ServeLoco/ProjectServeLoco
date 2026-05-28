@@ -1,7 +1,7 @@
 const { pool } = require('../db/mysql');
 const { calculateThresholdDeliveryCharge } = require('../utils/thresholdDelivery');
 const { isId, isPositiveInteger, validateCoordinates } = require('../validators');
-const { calculateDeliveryPricing } = require('../utils/deliveryPricing');
+// Location-based distance pricing is removed, so we no longer import calculateDeliveryPricing
 const { roundMoney, toMoney } = require('../utils/money');
 
 const calculateCart = async (req, res) => {
@@ -92,40 +92,23 @@ const calculateCart = async (req, res) => {
   let deliveryMessage = '';
   const minimumOrder = Number(settings.minimum_order_amount) || 0;
 
+  const thresholdDelivery = calculateThresholdDeliveryCharge({ subtotal, settings });
+  deliveryCharge = thresholdDelivery.charge;
+  freeDeliveryOfferActive = thresholdDelivery.freeDeliveryOfferActive;
+  freeAboveThresholdActive = thresholdDelivery.freeAboveThresholdActive;
+  belowThreshold = thresholdDelivery.belowThreshold;
+  belowThresholdDeliveryCharge = thresholdDelivery.belowThresholdCharge || 0;
+
   if (customerLat === undefined || customerLat === null || customerLat === '' ||
       customerLng === undefined || customerLng === null || customerLng === '') {
     requiresLocation = true;
-    const thresholdDelivery = calculateThresholdDeliveryCharge({ subtotal, settings });
-    deliveryCharge = thresholdDelivery.charge;
-    freeDeliveryOfferActive = thresholdDelivery.freeDeliveryOfferActive;
-    freeAboveThresholdActive = thresholdDelivery.freeAboveThresholdActive;
-    belowThreshold = thresholdDelivery.belowThreshold;
-    belowThresholdDeliveryCharge = thresholdDelivery.belowThresholdCharge || 0;
     deliveryMessage = 'Customer GPS location is required.';
   } else {
-    // If coordinates are present
-    const pricing = calculateDeliveryPricing({ customerLat, customerLng, settings });
-    deliveryDistanceKm = pricing.distance;
-    deliveryWithinRange = pricing.allowed;
-    freeDeliveryOfferActive = pricing.freeDeliveryOfferActive || false;
-    deliveryMessage = pricing.message;
-    requiresLocation = pricing.requiresLocation || false;
-
-    if (pricing.allowed) {
-      const thresholdDelivery = calculateThresholdDeliveryCharge({ 
-        subtotal, 
-        settings, 
-        distanceCharge: pricing.charge 
-      });
-      deliveryCharge = thresholdDelivery.charge;
-      freeDeliveryOfferActive = thresholdDelivery.freeDeliveryOfferActive;
-      freeAboveThresholdActive = thresholdDelivery.freeAboveThresholdActive;
-      belowThreshold = thresholdDelivery.belowThreshold;
-      belowThresholdDeliveryCharge = thresholdDelivery.belowThresholdCharge || 0;
-      deliveryMessage = thresholdDelivery.message;
-    } else {
-      deliveryCharge = 0;
-    }
+    // Distance-based pricing is removed. Always use threshold/fixed delivery logic.
+    deliveryDistanceKm = null;
+    deliveryWithinRange = true; // Always true now
+    requiresLocation = false;
+    deliveryMessage = thresholdDelivery.message;
   }
 
   let nightCharge = 0;

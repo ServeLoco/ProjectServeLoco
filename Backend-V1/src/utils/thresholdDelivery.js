@@ -16,15 +16,13 @@ const getFreeDeliveryThreshold = (settings = {}) => {
   return Number.isFinite(threshold) && threshold > 0 ? threshold : 0;
 };
 
-const calculateThresholdDeliveryCharge = ({ subtotal, settings = {}, distanceCharge = null }) => {
+const calculateThresholdDeliveryCharge = ({ subtotal, settings = {} }) => {
   const threshold = getFreeDeliveryThreshold(settings);
   const total = roundMoney(subtotal);
   const freeDeliveryOfferActive = isEnabled(settings.free_delivery_offer_active);
   const freeAboveThresholdActive = isEnabled(settings.free_delivery_above_minimum_active, true);
   
-  const standardDeliveryCharge = distanceCharge !== null 
-    ? getNonNegativeAmount(distanceCharge, 0)
-    : getNonNegativeAmount(settings.delivery_charge, 0);
+  const standardDeliveryCharge = getNonNegativeAmount(settings.delivery_charge, 0);
 
   const belowThresholdCharge = getNonNegativeAmount(
     settings.below_threshold_delivery_charge,

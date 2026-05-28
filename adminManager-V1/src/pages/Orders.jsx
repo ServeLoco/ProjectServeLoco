@@ -176,10 +176,10 @@ export default function Orders() {
         o.customer_name || '',
         o.phone || '',
         o.whatsapp_number || '',
-        `₹${o.subtotal}`,
-        `₹${o.delivery_charge}`,
-        `₹${o.night_charge || 0}`,
-        `₹${o.total}`,
+        `₹${formatMoney(o.subtotal)}`,
+        `₹${formatMoney(o.delivery_charge)}`,
+        `₹${formatMoney(o.night_charge || 0)}`,
+        `₹${formatMoney(o.total)}`,
         o.payment_method || '',
         o.payment_status || '',
         o.status || '',
@@ -591,18 +591,18 @@ export default function Orders() {
                 {(selectedOrder.items || []).map((item, idx) => (
                   <div key={idx} className="item-row">
                     <span>{item.quantity}x {item.product_name}</span>
-                    <strong>₹{item.line_total}</strong>
+                    <strong>₹{formatMoney(item.line_total)}</strong>
                   </div>
                 ))}
                 
                 <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                  <div className="detail-row"><span>Subtotal:</span> <strong>₹{selectedOrder.subtotal}</strong></div>
-                  <div className="detail-row"><span>Delivery:</span> <strong>₹{selectedOrder.delivery_charge}</strong></div>
+                  <div className="detail-row"><span>Subtotal:</span> <strong>₹{formatMoney(selectedOrder.subtotal)}</strong></div>
+                  <div className="detail-row"><span>Delivery:</span> <strong>₹{formatMoney(selectedOrder.delivery_charge)}</strong></div>
                   {selectedOrder.night_charge > 0 && (
-                    <div className="detail-row"><span>Night Charge:</span> <strong>₹{selectedOrder.night_charge}</strong></div>
+                    <div className="detail-row"><span>Night Charge:</span> <strong>₹{formatMoney(selectedOrder.night_charge)}</strong></div>
                   )}
                   <div className="detail-row" style={{ fontSize: '1.2rem', marginTop: '0.5rem' }}>
-                    <span>Total:</span> <strong style={{ color: 'var(--primary-color)' }}>₹{selectedOrder.total}</strong>
+                    <span>Total:</span> <strong style={{ color: 'var(--primary-color)' }}>₹{formatMoney(selectedOrder.total)}</strong>
                   </div>
                 </div>
               </div>

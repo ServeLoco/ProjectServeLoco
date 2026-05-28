@@ -1,5 +1,5 @@
 const { pool } = require('../db/mysql');
-const { calculateDeliveryPricing } = require('../utils/deliveryPricing');
+// Location-based pricing is removed, so calculateDeliveryPricing is no longer imported
 const notificationService = require('../utils/notificationService');
 const { calculateThresholdDeliveryCharge } = require('../utils/thresholdDelivery');
 const { roundMoney, toMoney } = require('../utils/money');
@@ -76,21 +76,10 @@ const createOrder = async (req, res) => {
     }
 
     subtotal = roundMoney(subtotal);
-    // Calculate delivery pricing based on distance
-    const pricing = calculateDeliveryPricing({
-      customerLat: latitude,
-      customerLng: longitude,
-      settings
-    });
-
-    if (!pricing.allowed) {
-      throw new Error(pricing.message);
-    }
-
+    // Delivery pricing is now completely threshold/fixed based. No distance restrictions.
     const thresholdDelivery = calculateThresholdDeliveryCharge({ 
       subtotal, 
-      settings,
-      distanceCharge: pricing.charge
+      settings
     });
     const deliveryCharge = roundMoney(thresholdDelivery.charge);
 
@@ -131,9 +120,9 @@ const createOrder = async (req, res) => {
         latitude || null, longitude || null, map_url || null,
         subtotal, deliveryCharge, nightCharge, total,
         payment_method, note || null,
-        pricing.distance !== null ? Number(pricing.distance.toFixed(4)) : null,
-        settings.delivery_radius_km !== null ? Number(settings.delivery_radius_km) : null,
-        settings.delivery_cost_per_km !== null ? Number(settings.delivery_cost_per_km) : null,
+        null, // delivery_distance_km
+        null, // delivery_radius_km_snapshot
+        null, // delivery_cost_per_km_snapshot
         settings.free_delivery_offer_active !== null ? Boolean(settings.free_delivery_offer_active) : null
       ]
     );
@@ -163,9 +152,9 @@ const createOrder = async (req, res) => {
       paymentMethod: payment_method,
       paymentStatus: 'Pending',
       status: 'Pending',
-      deliveryDistanceKm: pricing.distance !== null ? Number(pricing.distance.toFixed(4)) : null,
-      deliveryRadiusKmSnapshot: settings.delivery_radius_km !== null ? Number(settings.delivery_radius_km) : null,
-      deliveryCostPerKmSnapshot: settings.delivery_cost_per_km !== null ? Number(settings.delivery_cost_per_km) : null,
+      deliveryDistanceKm: null,
+      deliveryRadiusKmSnapshot: null,
+      deliveryCostPerKmSnapshot: null,
       freeDeliveryOfferSnapshot: settings.free_delivery_offer_active !== null ? Boolean(settings.free_delivery_offer_active) : null,
       belowThresholdDelivery: Boolean(thresholdDelivery.belowThreshold),
       belowThresholdDeliveryCharge: thresholdDelivery.belowThresholdCharge || 0,

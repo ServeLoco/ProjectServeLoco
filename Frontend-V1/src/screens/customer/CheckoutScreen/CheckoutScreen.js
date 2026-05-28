@@ -226,7 +226,7 @@ export default function CheckoutScreen() {
       if (!hasPermission) {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setGpsStatus('error');
-        setGpsError('Location permission was denied. GPS location is required for delivery range and pricing.');
+        setGpsError('Location permission was denied. GPS location is required for delivery.');
         return;
       }
 
@@ -272,7 +272,7 @@ export default function CheckoutScreen() {
       return;
     }
     if (!coordinates) {
-      setSubmitError('Please pin your GPS location to calculate delivery distance.');
+      setSubmitError('Please pin your GPS location to proceed.');
       return;
     }
     if (isCalculating || calcError || !bill) {
@@ -280,7 +280,7 @@ export default function CheckoutScreen() {
       return;
     }
     if (bill.requiresLocation) {
-      setSubmitError(bill.deliveryMessage || 'Please pin your GPS location to calculate delivery distance.');
+      setSubmitError(bill.deliveryMessage || 'Please pin your GPS location to proceed.');
       return;
     }
     if (!bill.deliveryWithinRange) {
@@ -299,7 +299,7 @@ export default function CheckoutScreen() {
       setBill(verifiedBill);
 
       if (verifiedBill.requiresLocation) {
-        setSubmitError(verifiedBill.deliveryMessage || 'Please pin your GPS location to calculate delivery distance.');
+        setSubmitError(verifiedBill.deliveryMessage || 'Please pin your GPS location to proceed.');
         return;
       }
 
@@ -534,19 +534,14 @@ export default function CheckoutScreen() {
                   <Text style={styles.summaryLabel}>{deliveryLabel}</Text>
                   <Text style={styles.summaryValue}>{bill.deliveryCharge === 0 ? 'FREE' : `₹${bill.deliveryCharge}`}</Text>
                 </View>
-                {bill.deliveryDistanceKm !== null && bill.deliveryDistanceKm !== undefined && (
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Distance</Text>
-                    <Text style={styles.summaryValue}>{Number(bill.deliveryDistanceKm).toFixed(2)} km</Text>
-                  </View>
-                )}
+                {/* Distance display removed since it's no longer used for pricing */}
                 {(bill.deliveryMessage || bill.requiresLocation || !bill.deliveryWithinRange || bill.freeDeliveryOfferActive) && (
                   <Text style={[
                     styles.deliveryStatusText,
                     !bill.deliveryWithinRange && styles.deliveryStatusError,
                     bill.freeDeliveryOfferActive && styles.deliveryStatusSuccess,
                   ]}>
-                    {bill.deliveryMessage || (bill.requiresLocation ? 'Pin location to calculate delivery.' : `Delivery available within ${bill.deliveryRadiusKm || 8} km.`)}
+                    {bill.deliveryMessage || (bill.requiresLocation ? 'Pin location to continue.' : 'Delivery available.')}
                   </Text>
                 )}
                 {bill.nightCharge > 0 && (
