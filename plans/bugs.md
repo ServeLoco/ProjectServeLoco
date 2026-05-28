@@ -100,12 +100,12 @@ If the business expects a true minimum order, customers can still place smaller 
 The project should have either a true minimum order rule or a clearly named free-delivery threshold rule.
 
 ### Checklist
-- [ ] Confirm intended business behavior from existing plans or product owner.
-- [ ] If true minimum: block cart checkout and backend order creation below the threshold.
-- [ ] If threshold only: rename admin/mobile labels to "Free delivery above" or similar.
-- [ ] Add backend test for below-minimum order creation.
-- [ ] Update mobile warning copy and disabled button states.
-- [ ] Verify cart, checkout, and order API all agree.
+- [x] Confirm intended business behavior from existing plans or product owner.
+- [x] If true minimum: block cart checkout and backend order creation below the threshold.
+- [x] If threshold only: rename admin/mobile labels to "Free delivery above" or similar.
+- [x] Add backend test for below-minimum order creation.
+- [x] Update mobile warning copy and disabled button states.
+- [x] Verify cart, checkout, and order API all agree.
 
 ---
 
