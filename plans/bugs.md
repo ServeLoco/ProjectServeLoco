@@ -282,11 +282,11 @@ Admin can assign/remove/reorder category-grid items, but public mobile output ig
 Either category grid is always derived and the admin item picker should be removed, or category grid is curated and public APIs must honor assigned items.
 
 ### Checklist
-- [ ] Decide derived vs curated category-grid behavior.
-- [ ] If derived: remove category item assignment UI for category-grid sections and explain ordering comes from categories.
-- [ ] If curated: update public `getDashboard` and `getSectionItems` to join `dashboard_section_items` for categories.
-- [ ] Preserve fallback derived categories only when no curated category-grid section exists.
-- [ ] Add tests for new category visibility and curated order.
+- [x] Decide derived vs curated category-grid behavior. (Curated with derived fallback).
+- [x] If derived: remove category item assignment UI for category-grid sections and explain ordering comes from categories. (Skipped, chose curated).
+- [x] If curated: update public `getDashboard` and `getSectionItems` to join `dashboard_section_items` for categories.
+- [x] Preserve fallback derived categories only when no curated category-grid section exists (or if it has 0 items).
+- [x] Add tests for new category visibility and curated order.
 
 ---
 

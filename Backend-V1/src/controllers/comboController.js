@@ -141,7 +141,7 @@ const validateComboItems = async (comboItems, comboStoreType, { required = true 
   }
 
   const [products] = await pool.query(
-    'SELECT p.id, p.name, p.is_combo, p.deleted, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id IN (?)',
+    'SELECT p.id, p.name, p.is_combo, p.deleted, p.available, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id IN (?)',
     [rows.map(row => row.product_id)]
   );
   const productById = new Map(products.map(product => [Number(product.id), product]));
@@ -149,7 +149,10 @@ const validateComboItems = async (comboItems, comboStoreType, { required = true 
   for (const row of rows) {
     const product = productById.get(row.product_id);
     if (!product || product.deleted) {
-      throw createValidationError(`Product ID ${row.product_id} is unavailable or does not exist.`);
+      throw createValidationError(`Product ID ${row.product_id} does not exist or has been deleted.`);
+    }
+    if (product.available === 0 || product.available === false) {
+      throw createValidationError(`Product ID ${row.product_id} (${product.name}) is currently unavailable.`);
     }
     if (product.is_combo) {
       throw createValidationError(`Combo cannot include another combo: ${product.name}.`);
@@ -339,6 +342,7 @@ const updateComboAvailability = async (req, res) => {
 };
 
 module.exports = {
+  validateComboItems,
   getAdminCombos,
   getAdminComboById,
   createCombo,
