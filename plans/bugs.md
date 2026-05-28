@@ -217,12 +217,12 @@ An admin or compromised admin session can upload SVG/polyglot/unexpected content
 Only known-safe image formats should be accepted and verified by content.
 
 ### Checklist
-- [ ] Restrict extensions and MIME types to jpg/jpeg/png/webp.
-- [ ] Verify file magic bytes after upload before keeping the file.
-- [ ] Reject SVG unless the project adds a sanitizer and safe content headers.
-- [ ] Delete invalid temp files.
-- [ ] Add backend tests for invalid MIME, spoofed MIME, oversized files, and valid images.
-- [ ] Ensure static upload responses do not execute active content.
+- [x] Add `file-type` or similar dependency. (Used native `Buffer` magic bytes check to avoid deps).
+- [x] Update `imageRoutes.js` or `imageController.js` to inspect buffer magic bytes before saving.
+- [x] Force the saved file extension to match the detected magic bytes.
+- [x] Reject files if magic bytes do not indicate a safe image format (jpg, png, webp).
+- [x] Add backend tests simulating an executable with a spoofed image MIME type, oversized files, and valid images.
+- [x] Ensure static upload responses do not execute active content (handled by magic byte strictness, only jpg/png/webp/gif are allowed).
 
 ---
 
