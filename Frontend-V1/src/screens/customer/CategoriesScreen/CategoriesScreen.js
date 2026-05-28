@@ -32,7 +32,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const DEFAULT_CHIPS = ['All', 'Bestsellers', 'New Arrivals', 'Offers'];
 
 export default function CategoriesScreen() {
   const navigation = useNavigation();
@@ -53,7 +52,7 @@ export default function CategoriesScreen() {
   const [storeType, setStoreType] = useState(initialStoreType);
   const [activeChip, setActiveChip] = useState('All');
   const [categories, setCategories] = useState([]);
-  const [chips, setChips] = useState(DEFAULT_CHIPS);
+  const [chips, setChips] = useState(['All']);
   const [isError, setIsError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   
@@ -93,7 +92,7 @@ export default function CategoriesScreen() {
             category.subcategories || []
           )).map(item => item.name || item).filter(Boolean)),
         ];
-        setChips(nextChips.length > 1 ? nextChips : DEFAULT_CHIPS);
+        setChips(nextChips);
       })
       .catch(() => setIsError(true))
       .finally(() => {

@@ -451,10 +451,10 @@ Bad query params can cause SQL errors or expensive queries. Admin export paths c
 Every paginated endpoint should clamp page and limit.
 
 ### Checklist
-- [ ] Use `validatePagination` for admin orders, audit logs, admin notifications, and customer notifications.
-- [ ] Cap limit to a safe max.
-- [ ] Return normalized page/limit in pagination response.
-- [ ] Add tests for negative, zero, non-numeric, and huge limits.
+- [x] Use `validatePagination` for admin orders, audit logs, admin notifications, and customer notifications.
+- [x] Cap limit to a safe max.
+- [x] Return normalized page/limit in pagination response.
+- [x] Add tests for negative, zero, non-numeric, and huge limits.
 
 ---
 
