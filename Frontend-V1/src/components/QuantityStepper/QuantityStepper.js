@@ -125,17 +125,17 @@ const styles = StyleSheet.create({
     borderBottomColor: '#000000',
   },
   addBtnCompact: {
-    height: 30,
-    paddingHorizontal: spacing.sm,
-    minWidth: 56,
+    height: 26,
+    paddingHorizontal: spacing.xs,
+    minWidth: 44,
     width: '100%',
     borderRadius: radius.sm,
     borderBottomWidth: 1.5,
     borderBottomColor: '#000000',
   },
   addBtnDense: {
-    height: 26,
-    minWidth: 48,
+    height: 22,
+    minWidth: 38,
     paddingHorizontal: spacing.xs,
   },
   addLabel: {
@@ -143,12 +143,16 @@ const styles = StyleSheet.create({
     color: colors.primaryText,
   },
   addLabelCompact: {
-    ...typography.buttonSmall,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.3,
     color: colors.primaryText,
   },
   addLabelDense: {
-    fontSize: 10,
-    lineHeight: 12,
+    fontSize: 9.5,
+    lineHeight: 11,
+    fontWeight: '800',
+    color: colors.primaryText,
   },
 
   // ── Stepper ──────────────────────────────────────
@@ -164,16 +168,16 @@ const styles = StyleSheet.create({
     borderBottomColor: '#000000',
   },
   stepperCompact: {
-    height: 30,
-    minWidth: 84,
+    height: 26,
+    minWidth: 72,
     width: '100%',
     borderRadius: radius.sm,
     borderBottomWidth: 1.5,
     borderBottomColor: '#000000',
   },
   stepperDense: {
-    height: 26,
-    minWidth: 76,
+    height: 22,
+    minWidth: 62,
   },
   stepBtn: {
     width: 36,
@@ -182,12 +186,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepBtnCompact: {
-    width: 28,
-    height: 30,
-  },
-  stepBtnDense: {
     width: 24,
     height: 26,
+  },
+  stepBtnDense: {
+    width: 20,
+    height: 22,
   },
   stepIcon: {
     ...typography.h3,

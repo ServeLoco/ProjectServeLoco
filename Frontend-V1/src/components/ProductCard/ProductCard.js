@@ -458,15 +458,15 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   actionWrap: {
-    width: 84,
+    width: 72,
     flexShrink: 0,
     alignItems: 'flex-end',
   },
   actionWrapDense: {
-    width: 76,
+    width: 62,
   },
   actionWrapCompact: {
-    width: 84,
+    width: 72,
     flexShrink: 0,
     alignItems: 'flex-end',
   },
@@ -504,10 +504,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   priceCompact: {
-    fontSize: 13.5,
+    fontSize: 16,
+    fontWeight: '900',
   },
   priceDense: {
-    fontSize: 11.5,
+    fontSize: 14,
+    fontWeight: '900',
   },
   originalPrice: {
     ...typography.caption,
