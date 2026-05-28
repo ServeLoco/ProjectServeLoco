@@ -48,7 +48,7 @@ export default function HomeScreen() {
   const shopStatus = useSettingsStore(state => state.shopStatus);
   const setSettings = useSettingsStore(state => state.setSettings);
   
-  const [storeType, setStoreType] = useState('Packed Items');
+  const [storeType, setStoreType] = useState('Fast Food');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dashboardSections, setDashboardSections] = useState([]);
