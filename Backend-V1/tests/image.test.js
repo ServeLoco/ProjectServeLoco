@@ -8,12 +8,25 @@ jest.mock('../src/db/mongodb', () => ({
   getDb: jest.fn()
 }));
 
+jest.mock('../src/db/mysql', () => ({
+  pool: { query: jest.fn() }
+}));
+
 const mockInsertOne = jest.fn();
+const mockDeleteOne = jest.fn();
+const mockFindOne = jest.fn();
+const mockFind = jest.fn(() => ({ sort: () => ({ toArray: () => [] }) }));
+
 getDb.mockReturnValue({
   collection: () => ({
-    insertOne: mockInsertOne
+    insertOne: mockInsertOne,
+    deleteOne: mockDeleteOne,
+    findOne: mockFindOne,
+    find: mockFind
   })
 });
+
+const { pool } = require('../src/db/mysql');
 
 const app = express();
 app.use(express.json());
@@ -37,5 +50,29 @@ describe('Image Metadata Tests', () => {
     expect(res.statusCode).toEqual(201);
     expect(res.body.data).toHaveProperty('id');
     expect(mockInsertOne).toHaveBeenCalledTimes(1);
+  });
+
+  it('should block deletion of in-use image', async () => {
+    mockFindOne.mockResolvedValueOnce({ _id: '507f1f77bcf86cd799439011', storageType: 'cloud' });
+    pool.query.mockResolvedValue([[{ image_id: '507f1f77bcf86cd799439011' }]]); // mock in use
+
+    const res = await request(app)
+      .delete('/api/admin/images/507f1f77bcf86cd799439011')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.message).toContain('in use');
+  });
+
+  it('should allow deletion of unused image', async () => {
+    mockFindOne.mockResolvedValueOnce({ _id: '507f1f77bcf86cd799439012', storageType: 'cloud' });
+    pool.query.mockResolvedValue([[]]); // mock unused
+
+    const res = await request(app)
+      .delete('/api/admin/images/507f1f77bcf86cd799439012')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(mockDeleteOne).toHaveBeenCalledTimes(1);
   });
 });

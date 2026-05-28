@@ -149,12 +149,12 @@ Admin can permanently delete an image still assigned to live content, causing br
 Image library should either prevent deletion of referenced images or clearly detach references safely.
 
 ### Checklist
-- [ ] Add backend reference checks across products, categories, combos, offers, and settings `upi_qr_image_id`.
-- [ ] Return `in_use` and `usage` metadata from `GET /admin/images`.
-- [ ] Block delete when referenced, returning a clear validation error.
-- [ ] Update admin Images UI to disable delete for `in_use` images.
-- [ ] Add backend tests for deleting used and unused images.
-- [ ] Verify product/category/offer/UPI QR images remain after image library actions.
+- [x] Add backend reference checks across products, categories, combos, offers, and settings `upi_qr_image_id`.
+- [x] Return `in_use` and `usage` metadata from `GET /admin/images`.
+- [x] Block delete when referenced, returning a clear validation error.
+- [x] Update admin Images UI to disable delete for `in_use` images.
+- [x] Add backend tests for deleting used and unused images.
+- [x] Verify product/category/offer/UPI QR images remain after image library actions.
 
 ---
 

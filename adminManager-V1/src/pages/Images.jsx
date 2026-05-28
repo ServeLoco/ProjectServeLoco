@@ -117,6 +117,7 @@ export default function Images() {
                   className="btn-icon danger" 
                   onClick={() => handleDelete(img.id)}
                   title={img.in_use ? "Cannot delete image in use" : "Delete image"}
+                  disabled={img.in_use}
                 >
                   Delete
                 </button>
