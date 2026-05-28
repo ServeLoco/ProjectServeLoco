@@ -86,7 +86,11 @@ const createOrder = async (req, res) => {
       throw new Error(pricing.message);
     }
 
-    const thresholdDelivery = calculateThresholdDeliveryCharge({ subtotal, settings });
+    const thresholdDelivery = calculateThresholdDeliveryCharge({ 
+      subtotal, 
+      settings,
+      distanceCharge: pricing.charge
+    });
     const deliveryCharge = roundMoney(thresholdDelivery.charge);
 
     let nightCharge = 0;

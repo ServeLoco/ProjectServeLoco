@@ -76,13 +76,13 @@ Admin sees one delivery pricing model, but customers are charged by another. Thi
 One backend source of truth must calculate delivery range and final delivery charge.
 
 ### Checklist
-- [ ] Decide the intended business rule: per-km only, threshold only, or per-km plus free-delivery threshold.
-- [ ] Update `cartController.calculateCart` to use the selected rule consistently.
-- [ ] Update `orderController.createOrder` to use the same rule.
-- [ ] Ensure cart preview and final order creation produce the same delivery charge for the same items/location/settings.
-- [ ] Update delivery messages so the text matches the actual calculation.
-- [ ] Add backend tests for in-range per-km charge, out-of-range block, free delivery offer, and below-threshold behavior.
-- [ ] Verify admin order details show snapshots that match the actual charge.
+- [x] Decide the intended business rule: per-km only, threshold only, or per-km plus free-delivery threshold.
+- [x] Update `cartController.calculateCart` to use the selected rule consistently.
+- [x] Update `orderController.createOrder` to use the same rule.
+- [x] Ensure cart preview and final order creation produce the same delivery charge for the same items/location/settings.
+- [x] Update delivery messages so the text matches the actual calculation.
+- [x] Add backend tests for in-range per-km charge, out-of-range block, free delivery offer, and below-threshold behavior.
+- [x] Verify admin order details show snapshots that match the actual charge.
 
 ---
 

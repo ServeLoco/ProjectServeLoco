@@ -108,7 +108,11 @@ const calculateCart = async (req, res) => {
     requiresLocation = pricing.requiresLocation || false;
 
     if (pricing.allowed) {
-      const thresholdDelivery = calculateThresholdDeliveryCharge({ subtotal, settings });
+      const thresholdDelivery = calculateThresholdDeliveryCharge({ 
+        subtotal, 
+        settings, 
+        distanceCharge: pricing.charge 
+      });
       deliveryCharge = thresholdDelivery.charge;
       freeDeliveryOfferActive = thresholdDelivery.freeDeliveryOfferActive;
       freeAboveThresholdActive = thresholdDelivery.freeAboveThresholdActive;

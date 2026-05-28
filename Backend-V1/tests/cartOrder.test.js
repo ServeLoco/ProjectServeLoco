@@ -99,7 +99,7 @@ describe('Cart and Order Tests', () => {
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.subtotal).toEqual(200);
-    expect(res.body.deliveryCharge).toEqual(35);
+    expect(res.body.deliveryCharge).toBeCloseTo(10.84, 2);
   });
 
   it('should apply standard delivery charge above threshold when admin disables free threshold delivery', async () => {
@@ -128,8 +128,8 @@ describe('Cart and Order Tests', () => {
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.subtotal).toEqual(200);
-    expect(res.body.deliveryCharge).toEqual(12);
-    expect(res.body.deliveryMessage).toBe('Standard delivery charge ₹12 applied.');
+    expect(res.body.deliveryCharge).toBeCloseTo(10.84, 2);
+    expect(res.body.deliveryMessage).toBe('Standard delivery charge ₹10.84 applied.');
   });
 
   it('should return out-of-range cart status without blocking calculation response', async () => {
@@ -296,7 +296,7 @@ describe('Cart and Order Tests', () => {
 
     expect(orderRes.statusCode).toEqual(201);
     expect(orderRes.body.order.deliveryCharge).toBeCloseTo(cartRes.body.deliveryCharge, 2);
-    expect(orderRes.body.order.deliveryCharge).toEqual(20);
+    expect(orderRes.body.order.deliveryCharge).toBeCloseTo(10.84, 2);
     expect(orderRes.body.order.deliveryDistanceKm).toBeCloseTo(cartRes.body.deliveryDistanceKm, 4);
   });
 
