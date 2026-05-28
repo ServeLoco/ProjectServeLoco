@@ -239,11 +239,11 @@ Requests can fail or hang if the DB user lacks DDL permissions. Runtime table al
 Schema changes belong in migrations only.
 
 ### Checklist
-- [ ] Move order status enum migration into `Backend-V1/src/db/migrate.js`.
-- [ ] Move `order_items.item_type` migration into `Backend-V1/src/db/migrate.js`.
-- [ ] Remove runtime `ALTER TABLE` calls from controllers.
-- [ ] Add startup or migration documentation requiring migrations before deploy.
-- [ ] Add tests that status update and order create do not issue DDL.
+- [x] Move order status enum migration into `Backend-V1/src/db/migrate.js`.
+- [x] Move `order_items.item_type` migration into `Backend-V1/src/db/migrate.js`.
+- [x] Remove runtime `ALTER TABLE` calls from controllers.
+- [x] Add startup or migration documentation requiring migrations before deploy.
+- [x] Add tests that status update and order create do not issue DDL.
 
 ---
 

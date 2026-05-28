@@ -140,17 +140,6 @@ const createOrder = async (req, res) => {
 
     const orderId = orderResult.insertId;
 
-    // Ensure item_type column exists before inserting
-    const [itemTypeCols] = await connection.query(`
-      SELECT COLUMN_NAME
-      FROM INFORMATION_SCHEMA.COLUMNS
-      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'order_items' AND COLUMN_NAME = 'item_type'
-    `, [process.env.MYSQL_DATABASE || 'serveloco']);
-
-    if (itemTypeCols.length === 0) {
-      await connection.query('ALTER TABLE order_items ADD COLUMN item_type VARCHAR(50) DEFAULT "product" AFTER product_id');
-    }
-
     for (const oi of orderItems) {
       await connection.query(
         `INSERT INTO order_items (order_id, product_id, item_type, product_name, quantity, unit_price, line_total)

@@ -4,17 +4,7 @@ const { pool } = require('../db/mysql');
 const notificationService = require('../utils/notificationService');
 
 const ORDER_STATUS_VALUES = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
-let orderStatusEnumReady = false;
 
-const ensureOrderStatusEnum = async () => {
-  if (orderStatusEnumReady) return;
-
-  await pool.query(`
-    ALTER TABLE orders
-    MODIFY COLUMN status ENUM('Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled') DEFAULT 'Pending'
-  `);
-  orderStatusEnumReady = true;
-};
 
 const queryRows = async (sql, params) => {
   const result = await pool.query(sql, params);
@@ -446,7 +436,6 @@ const updateOrderStatus = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Cannot move order from '${currentStatus}' back to '${status}'` });
   }
 
-  await ensureOrderStatusEnum();
   await pool.query('UPDATE orders SET status = ?, cancel_reason = ? WHERE id = ?', [status, cancel_reason || null, id]);
   const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
   const updatedOrder = updatedRows[0];

@@ -48,10 +48,9 @@ describe('Order Cancellation and Admin Action Tests', () => {
     expect(res.statusCode).toEqual(400);
   });
 
-  it('should update admin order status', async () => {
+  it('should update admin order status without runtime DDL', async () => {
     pool.query
       .mockResolvedValueOnce([[{ id: 1001, status: 'Pending', customer_id: 1 }]]) // check existing
-      .mockResolvedValueOnce([{}]) // ensure status enum accepts Accepted
       .mockResolvedValueOnce([{}]) // update
       .mockResolvedValueOnce([[{ id: 1001, status: 'Accepted', customer_id: 1 }]]); // return updated
 
@@ -62,6 +61,11 @@ describe('Order Cancellation and Admin Action Tests', () => {
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.order.status).toEqual('Accepted');
+    
+    // Ensure ALTER TABLE was not called
+    pool.query.mock.calls.forEach(call => {
+      expect(call[0]).not.toMatch(/ALTER TABLE/i);
+    });
   });
 
   it('should block a customer', async () => {
