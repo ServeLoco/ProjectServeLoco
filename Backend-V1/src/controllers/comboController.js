@@ -235,20 +235,30 @@ const createCombo = async (req, res) => {
     }
   }
 
-  const [result] = await pool.query(
-    'INSERT INTO combos (name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, store_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [
-      name, price, unit, description, image_id, 
-      available !== undefined ? available : true,
-      featured !== undefined ? featured : false,
-      finalDisplayOrder,
-      original_price || null,
-      discount_label || null,
-      store_type
-    ]
-  );
-  await saveComboItems(result.insertId, validatedComboItems, pool, store_type);
-  res.status(201).json({ message: 'Combo created', id: result.insertId });
+  const connection = await pool.getConnection();
+  await connection.beginTransaction();
+  try {
+    const [result] = await connection.query(
+      'INSERT INTO combos (name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, store_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        name, price, unit, description, image_id, 
+        available !== undefined ? available : true,
+        featured !== undefined ? featured : false,
+        finalDisplayOrder,
+        original_price || null,
+        discount_label || null,
+        store_type
+      ]
+    );
+    await saveComboItems(result.insertId, validatedComboItems, connection, store_type);
+    await connection.commit();
+    res.status(201).json({ message: 'Combo created', id: result.insertId });
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 };
 
 const updateCombo = async (req, res) => {
@@ -272,6 +282,42 @@ const updateCombo = async (req, res) => {
     await validateComboItems(existingItems, targetStoreType, { required: existingItems.length > 0 });
   }
 
+  const finalDisplayOrder = display_order !== undefined ? display_order : 0;
+  if (finalDisplayOrder > 0) {
+    const [orderExisting] = await pool.query('SELECT name FROM combos WHERE display_order = ? AND store_type = ? AND id != ? AND deleted = 0 LIMIT 1', [finalDisplayOrder, targetStoreType, id]);
+    if (orderExisting.length > 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${orderExisting[0].name} in this mode.` });
+    }
+  }
+
+  const connection = await pool.getConnection();
+  await connection.beginTransaction();
+  try {
+    await connection.query(
+      'UPDATE combos SET name = ?, price = ?, unit = ?, description = ?, image_id = ?, available = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ?, store_type = ? WHERE id = ?',
+      [
+        name, price, unit, description, image_id, 
+        available !== undefined ? available : true,
+        featured !== undefined ? featured : false,
+        finalDisplayOrder,
+        original_price || null,
+        discount_label || null,
+        targetStoreType,
+        id
+      ]
+    );
+    if (combo_items !== undefined) {
+      await saveComboItems(id, validatedComboItems, connection, targetStoreType);
+    }
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+
+  // Defer image deletion until after transaction commits
   if (existingCombo.image_id && existingCombo.image_id !== image_id) {
     const oldImageId = existingCombo.image_id;
     if (ObjectId.isValid(oldImageId)) {
@@ -289,30 +335,6 @@ const updateCombo = async (req, res) => {
     }
   }
 
-  const finalDisplayOrder = display_order !== undefined ? display_order : 0;
-  if (finalDisplayOrder > 0) {
-    const [orderExisting] = await pool.query('SELECT name FROM combos WHERE display_order = ? AND store_type = ? AND id != ? AND deleted = 0 LIMIT 1', [finalDisplayOrder, targetStoreType, id]);
-    if (orderExisting.length > 0) {
-      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${orderExisting[0].name} in this mode.` });
-    }
-  }
-
-  await pool.query(
-    'UPDATE combos SET name = ?, price = ?, unit = ?, description = ?, image_id = ?, available = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ?, store_type = ? WHERE id = ?',
-    [
-      name, price, unit, description, image_id, 
-      available !== undefined ? available : true,
-      featured !== undefined ? featured : false,
-      finalDisplayOrder,
-      original_price || null,
-      discount_label || null,
-      targetStoreType,
-      id
-    ]
-  );
-  if (combo_items !== undefined) {
-    await saveComboItems(id, validatedComboItems, pool, targetStoreType);
-  }
   res.status(200).json({ message: 'Combo updated' });
 };
 

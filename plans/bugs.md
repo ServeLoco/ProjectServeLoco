@@ -303,10 +303,10 @@ Admin can save combos containing unavailable products. Customer UI may show an i
 Combos should only contain existing, non-deleted, available normal products from the same store type.
 
 ### Checklist
-- [ ] Include `p.available` in combo item validation query.
-- [ ] Reject unavailable child products with a clear message.
-- [ ] Add backend tests for unavailable, deleted, duplicate, nested combo, and cross-mode child products.
-- [ ] Recheck dashboard combo fallback and product detail combo display.
+- [x] Include `p.available` in combo item validation query.
+- [x] Reject unavailable child products with a clear message.
+- [x] Add backend tests for unavailable, deleted, duplicate, nested combo, and cross-mode child products.
+- [x] Recheck dashboard combo fallback and product detail combo display.
 
 ---
 
