@@ -231,12 +231,12 @@ export default function ProductDetailScreen() {
                 style={[
                   styles.relatedCardWrap,
                   {
-                    opacity: staggerRelatedAnims[idx],
-                    transform: [{ 
-                      translateX: staggerRelatedAnims[idx].interpolate({
+                    opacity: staggerRelatedAnims[idx] || 1,
+                    transform: [{
+                      translateX: staggerRelatedAnims[idx] ? staggerRelatedAnims[idx].interpolate({
                         inputRange: [0, 1],
                         outputRange: [20, 0]
-                      }) 
+                      }) : 0
                     }]
                   }
                 ]}
