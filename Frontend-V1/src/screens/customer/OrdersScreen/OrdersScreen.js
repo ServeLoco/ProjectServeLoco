@@ -146,76 +146,85 @@ export default function OrdersScreen() {
       .finally(() => setCancellingId(null));
   };
 
-  const FadeInItem = ({ children, index, status }) => {
-    const anim = useRef(new Animated.Value(0)).current;
-    const highlightAnim = useRef(new Animated.Value(0)).current;
-    const glowAnim = useRef(new Animated.Value(0)).current;
+// Defined outside OrdersScreen so hooks are stable across renders.
+// Mixing useNativeDriver:true (opacity/transform) with useNativeDriver:false
+// (backgroundColor) on the SAME Animated.View crashes React Native.
+// Fix: use two separate layers — a plain View for the JS-driven background color,
+// and an inner Animated.View for native opacity/transform.
+const FadeInItem = ({ children, index, status }) => {
+  const anim = useRef(new Animated.Value(0)).current;
+  const highlightAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
 
-    const normalizedStatus = String(status || '').trim().toLowerCase();
-    const isInProcess = normalizedStatus !== 'delivered' && normalizedStatus !== 'cancelled';
+  const normalizedStatus = String(status || '').trim().toLowerCase();
+  const isInProcess = normalizedStatus !== 'delivered' && normalizedStatus !== 'cancelled';
 
-    useEffect(() => {
-      Animated.timing(anim, {
-        toValue: 1,
-        duration: 400,
-        delay: index * 100, // Stagger based on index
-        useNativeDriver: true,
-      }).start();
-    }, [anim, index]);
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 400,
+      delay: index * 100,
+      useNativeDriver: true,  // safe: only drives opacity + translateY
+    }).start();
+  // index and anim are stable refs — run once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    useEffect(() => {
-      if (status === 'Cancelled') {
+  useEffect(() => {
+    if (status === 'Cancelled') {
+      highlightAnim.stopAnimation();
+      Animated.sequence([
+        Animated.timing(highlightAnim, { toValue: 1, duration: 300, useNativeDriver: false }),
+        Animated.timing(highlightAnim, { toValue: 0, duration: 600, useNativeDriver: false }),
+      ]).start();
+    }
+  }, [status, highlightAnim]);
+
+  useEffect(() => {
+    let loop;
+    if (isInProcess) {
+      glowAnim.stopAnimation();
+      glowAnim.setValue(0);
+      loop = Animated.loop(
         Animated.sequence([
-          Animated.timing(highlightAnim, { toValue: 1, duration: 300, useNativeDriver: false }),
-          Animated.timing(highlightAnim, { toValue: 0, duration: 600, useNativeDriver: false })
-        ]).start();
-      }
-    }, [status, highlightAnim]);
+          Animated.timing(glowAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 0, duration: 1500, useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+    } else {
+      glowAnim.stopAnimation();
+      glowAnim.setValue(0);
+    }
+    return () => {
+      if (loop) loop.stop();
+    };
+  }, [isInProcess, glowAnim]);
 
-    useEffect(() => {
-      let loop;
-      if (isInProcess) {
-        glowAnim.setValue(0);
-        loop = Animated.loop(
-          Animated.sequence([
-            Animated.timing(glowAnim, {
-              toValue: 1,
-              duration: 1500,
-              useNativeDriver: true,
-            }),
-            Animated.timing(glowAnim, {
-              toValue: 0,
-              duration: 1500,
-              useNativeDriver: true,
-            }),
-          ])
-        );
-        loop.start();
-      } else {
-        glowAnim.setValue(0);
-      }
-      return () => {
-        if (loop) loop.stop();
-      };
-    }, [isInProcess, glowAnim]);
+  const highlightColor = highlightAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.bgSurface, colors.error + '1A'],
+  });
 
-    const highlightColor = highlightAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [colors.bgSurface, colors.error + '1A']
-    });
-
-    return (
+  // Outer Animated.View handles ONLY JS-driven backgroundColor (useNativeDriver:false).
+  // Inner Animated.View handles ONLY native opacity + translateY (useNativeDriver:true).
+  // Mixing both on a single node is what caused the crash.
+  return (
+    <Animated.View
+      style={{
+        backgroundColor: highlightColor,  // JS driver
+        borderRadius: radius.md,
+      }}
+    >
       <Animated.View
         style={{
-          opacity: anim,
+          opacity: anim,                   // native driver
           transform: [{
             translateY: anim.interpolate({
               inputRange: [0, 1],
-              outputRange: [20, 0]
-            })
+              outputRange: [20, 0],
+            }),
           }],
-          backgroundColor: highlightColor,
-          borderRadius: radius.md,
         }}
       >
         <View style={{ position: 'relative' }}>
@@ -236,8 +245,10 @@ export default function OrdersScreen() {
           )}
         </View>
       </Animated.View>
-    );
-  };
+    </Animated.View>
+  );
+};
+
 
   const getStatusColor = (status) => {
     switch(formatStatus(status)) {
