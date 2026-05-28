@@ -195,11 +195,11 @@ If a deployment forgets `NODE_ENV=production`, default admin credentials may wor
 Admin credentials should be explicit secrets outside test/demo environments.
 
 ### Checklist
-- [ ] Remove real-looking admin defaults from shared config.
-- [ ] Allow defaults only when `NODE_ENV=test` or a deliberate demo flag is set.
-- [ ] Validate admin owner/password presence and strength for production-like environments.
-- [ ] Update documentation with placeholders only.
-- [ ] Add startup tests for missing/weak admin credentials.
+- [x] Remove real-looking admin defaults from shared config.
+- [x] Allow defaults only when `NODE_ENV=test` or a deliberate demo flag is set.
+- [x] Validate admin owner/password presence and strength for production-like environments.
+- [x] Update documentation with placeholders only.
+- [x] Add startup tests for missing/weak admin credentials.
 
 ---
 

@@ -5,8 +5,6 @@ const isProd = ENV === 'production';
 
 // Safe defaults for local testing
 const localDefaults = {
-  ADMIN_OWNER_ID: '9350238504',
-  ADMIN_PASSWORD: 'admin143',
   PORT: '3000',
   CORS_ORIGIN: '*',
   PUBLIC_BASE_URL: 'http://10.0.2.2:3000',
@@ -28,8 +26,8 @@ const config = {
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   
-  ADMIN_OWNER_ID: getEnv('ADMIN_OWNER_ID', localDefaults.ADMIN_OWNER_ID),
-  ADMIN_PASSWORD: getEnv('ADMIN_PASSWORD', localDefaults.ADMIN_PASSWORD),
+  ADMIN_OWNER_ID: process.env.ADMIN_OWNER_ID || (ENV === 'test' ? 'test_admin' : undefined),
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || (ENV === 'test' ? 'test_pass' : undefined),
 
   MYSQL_HOST: process.env.MYSQL_HOST,
   MYSQL_PORT: process.env.MYSQL_PORT,
@@ -57,7 +55,9 @@ const requiredKeys = [
   'MYSQL_USER',
   'MYSQL_PASSWORD',
   'MONGODB_URI',
-  'MONGODB_DATABASE'
+  'MONGODB_DATABASE',
+  'ADMIN_OWNER_ID',
+  'ADMIN_PASSWORD'
 ];
 
 const missing = requiredKeys.filter((key) => {
@@ -75,6 +75,9 @@ if (isProd) {
   }
   if (!config.CORS_ORIGIN || config.CORS_ORIGIN === '*' || config.CORS_ORIGIN.includes('*')) {
     throw new Error('CORS_ORIGIN must be explicitly defined in production (no wildcards).');
+  }
+  if (config.ADMIN_PASSWORD === 'admin143' || config.ADMIN_PASSWORD === 'test_pass' || config.ADMIN_PASSWORD.length < 8) {
+    throw new Error('ADMIN_PASSWORD is too weak for production environments.');
   }
 }
 
