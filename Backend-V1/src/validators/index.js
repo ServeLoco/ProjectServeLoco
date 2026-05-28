@@ -10,6 +10,10 @@ const isPositiveInteger = (val, max = 999) => {
   const num = Number(val);
   return Number.isInteger(num) && num > 0 && num <= max;
 };
+const isNonNegativeInteger = (val) => {
+  const num = Number(val);
+  return Number.isInteger(num) && num >= 0;
+};
 const isBoolean = (val) => typeof val === 'boolean' || val === 'true' || val === 'false' || val === 1 || val === 0;
 const isEnum = (val, allowedValues) => allowedValues.includes(val);
 const isId = (val) => {
@@ -63,6 +67,7 @@ module.exports = {
   isString,
   isNumericAmount,
   isPositiveInteger,
+  isNonNegativeInteger,
   isBoolean,
   isEnum,
   isId,

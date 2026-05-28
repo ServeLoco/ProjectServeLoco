@@ -308,6 +308,12 @@ export default function CheckoutScreen() {
         return;
       }
 
+      const verifiedMinimum = verifiedBill.minimumOrder || minimumOrder || 0;
+      if (verifiedMinimum > 0 && verifiedBill.subtotal < verifiedMinimum) {
+        setSubmitError(`Minimum order is ₹${verifiedMinimum}. Add items worth ₹${(verifiedMinimum - verifiedBill.subtotal).toFixed(0)} more.`);
+        return;
+      }
+
       const orderResponse = await ordersApi.createOrder({
         items: checkoutItems,
         deliveryAddress: address.trim(),
@@ -347,7 +353,7 @@ export default function CheckoutScreen() {
   const hasPinnedLocation = Boolean(coordinates);
   const hasInvalidDelivery = Boolean(bill && (bill.requiresLocation || !bill.deliveryWithinRange));
   const isPinLocationDisabled = isSubmitting || gpsStatus === 'loading' || items.length === 0 || !address.trim();
-  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || hasInvalidDelivery;
+  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || hasInvalidDelivery || isBelowMinimum;
   const isPrimaryActionDisabled = hasPinnedLocation ? isPlaceOrderDisabled : isPinLocationDisabled;
   const placeOrderLabel = isSubmitting
     ? 'Processing...'
@@ -357,6 +363,8 @@ export default function CheckoutScreen() {
     ? 'Pin Location to Continue'
     : hasInvalidDelivery
     ? 'Delivery Not Available'
+    : isBelowMinimum
+    ? 'Minimum Order Not Met'
     : bill
     ? `Place Order • Rs. ${bill.grandTotal}`
     : isCalculating
@@ -568,7 +576,8 @@ export default function CheckoutScreen() {
                     <AppIcon name="box" size={16} color={colors.saffron || '#FF7A3A'} style={styles.warningIcon} />
                     <Text style={styles.warningText}>
                       Add items worth <Text style={styles.warningHighlight}>₹{(requiredMinimum - bill.subtotal).toFixed(0)}</Text> more
-                      {bill.freeAboveThresholdActive ? <Text> for <Text style={styles.warningHighlight}>Free Delivery</Text></Text> : null}
+                      <Text> to place this order</Text>
+                      {bill.freeAboveThresholdActive ? <Text> and unlock <Text style={styles.warningHighlight}>Free Delivery</Text></Text> : null}
                       <Text> (₹{bill.deliveryCharge} delivery fee currently applied).</Text>
                     </Text>
                   </View>

@@ -68,6 +68,10 @@ export const OffersApi = {
   create: (data) => apiClient('/admin/offers', { method: 'POST', body: data }),
   update: (id, data) => apiClient(`/admin/offers/${id}`, { method: 'PATCH', body: data }),
   delete: (id) => apiClient(`/admin/offers/${id}`, { method: 'DELETE' }),
+  listProducts: (id) => apiClient(`/admin/offers/${id}/products`, { method: 'GET' }),
+  addProduct: (id, productId) => apiClient(`/admin/offers/${id}/products`, { method: 'POST', body: { productId } }),
+  removeProduct: (id, productId) => apiClient(`/admin/offers/${id}/products/${productId}`, { method: 'DELETE' }),
+  reorderProducts: (id, productIds) => apiClient(`/admin/offers/${id}/products/reorder`, { method: 'PATCH', body: { productIds } }),
 };
 
 export const CustomersApi = {

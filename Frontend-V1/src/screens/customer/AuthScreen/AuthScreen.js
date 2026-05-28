@@ -27,7 +27,6 @@ import {
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useAuthStore } from '../../../stores';
 import { authApi } from '../../../api';
-import { normalizeSession } from '../../../utils';
 import { appLogo } from '../../../assets';
 
 export default function AuthScreen() {
@@ -135,6 +134,11 @@ export default function AuthScreen() {
       triggerShake();
       return;
     }
+    if (password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters');
+      triggerShake();
+      return;
+    }
     setErrorMsg('');
     setIsLoading(true);
 
@@ -147,7 +151,7 @@ export default function AuthScreen() {
         deliveryAddress: address,
         address,
         password,
-      }));
+      });
       if (!session.token) {
         throw new Error('Signup response did not include a session token');
       }

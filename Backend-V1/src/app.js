@@ -29,7 +29,7 @@ app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Allow image loading across origins
 
 const allowedOrigins = config.CORS_ORIGIN ? config.CORS_ORIGIN.split(',') : [];
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -37,8 +37,9 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   }
-}));
-app.options('*', cors()); // Handling preflight OPTIONS requests for all routes
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handling preflight OPTIONS requests for all routes
 
 // Request body JSON parsing with safe size limits
 app.use(express.json({ limit: '5mb' }));

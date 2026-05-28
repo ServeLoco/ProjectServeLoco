@@ -67,6 +67,7 @@ const me = async (req, res) => {
 
   const user = rows[0];
   delete user.password_hash;
+  delete user.password;
 
   res.status(200).json({ user });
 };
@@ -80,7 +81,7 @@ const updateProfile = async (req, res) => {
     [name, address, whatsapp_number, userId]
   );
 
-  const [rows] = await pool.query('SELECT id, name, email, phone_number, whatsapp_number, address, role FROM users WHERE id = ?', [userId]);
+  const [rows] = await pool.query('SELECT id, name, phone, whatsapp_number, address, trusted, blocked FROM users WHERE id = ?', [userId]);
 
   res.status(200).json({
     message: 'Profile updated successfully',

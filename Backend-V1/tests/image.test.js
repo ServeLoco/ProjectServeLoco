@@ -41,11 +41,12 @@ describe('Image Metadata Tests', () => {
 
   it('should upload an image and save metadata', async () => {
     mockInsertOne.mockResolvedValueOnce({ insertedId: '123456789012345678901234' });
+    const pngBytes = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0]);
 
     const res = await request(app)
       .post('/api/admin/images')
       .set('Authorization', `Bearer ${token}`)
-      .attach('image', Buffer.from('fake image data'), 'test.jpg');
+      .attach('image', pngBytes, 'test.jpg');
 
     expect(res.statusCode).toEqual(201);
     expect(res.body.data).toHaveProperty('id');

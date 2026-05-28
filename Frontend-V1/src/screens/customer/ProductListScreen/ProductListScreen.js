@@ -45,6 +45,7 @@ export default function ProductListScreen() {
   const mode = route.params?.mode || 'category'; // 'search' | 'category'
   const initialCategory = route.params?.categoryName || 'All';
   const offerId = route.params?.offerId || null;
+  const offerTitle = route.params?.offerTitle || null;
   const sectionSlug = route.params?.sectionSlug || null;
   const sectionTitle = route.params?.sectionTitle || null;
   const sectionStoreType = route.params?.storeType || 'all';
@@ -120,11 +121,6 @@ export default function ProductListScreen() {
         filtered = asArray(response, ['products']).map(normalizeProduct);
         if (mode !== 'combos') {
           filtered = filtered.filter(p => !(p.isCombo || p.is_combo || p.comboItems?.length));
-        }
-
-        // Offer Filter
-        if (offerId) {
-          filtered = filtered.filter(p => !!p.discountLabel);
         }
 
         // Category Filter
@@ -304,7 +300,7 @@ export default function ProductListScreen() {
             : mode === 'combos'
             ? 'Popular Combos'
             : offerId
-            ? 'Special Offers'
+            ? offerTitle || 'Special Offers'
             : 'Products'
         }
         onBack={() => navigation.goBack()}

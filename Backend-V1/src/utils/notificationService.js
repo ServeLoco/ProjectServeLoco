@@ -4,13 +4,17 @@ const { pool } = require('../db/mysql');
  * Utility service to handle notifications and batches.
  */
 
+const firstQueryResult = (queryResult) => (
+  Array.isArray(queryResult) ? queryResult[0] : queryResult
+);
+
 const createNotification = async ({
   userId, title, body, type, sourceType = null, sourceId = null, eventKey = null,
   batchId = null, actionType = null, actionPayload = null, createdByAdminId = null,
   connection = pool
 }) => {
   try {
-    const [result] = await connection.query(`
+    const queryResult = await connection.query(`
       INSERT IGNORE INTO notifications (
         user_id, title, body, type, source_type, source_id, event_key,
         batch_id, action_type, action_payload, created_by_admin_id
@@ -19,7 +23,7 @@ const createNotification = async ({
       userId, title, body, type, sourceType, sourceId, eventKey,
       batchId, actionType, actionPayload ? JSON.stringify(actionPayload) : null, createdByAdminId
     ]);
-    return result;
+    return firstQueryResult(queryResult);
   } catch (error) {
     console.error('Error creating notification:', error);
     // Non-blocking, so we return null instead of throwing
@@ -36,13 +40,13 @@ const createManyNotifications = async (notifications, connection = pool) => {
       n.actionPayload ? JSON.stringify(n.actionPayload) : null, n.createdByAdminId || null
     ]);
 
-    const [result] = await connection.query(`
+    const queryResult = await connection.query(`
       INSERT IGNORE INTO notifications (
         user_id, title, body, type, source_type, source_id, event_key,
         batch_id, action_type, action_payload, created_by_admin_id
       ) VALUES ?
     `, [values]);
-    return result;
+    return firstQueryResult(queryResult);
   } catch (error) {
     console.error('Error creating many notifications:', error);
     return null;
@@ -125,12 +129,12 @@ const createNotificationBatch = async ({
   title, body, type, target, recipientCount, createdByAdminId, connection = pool
 }) => {
   try {
-    const [result] = await connection.query(`
+    const queryResult = await connection.query(`
       INSERT INTO notification_batches (
         title, body, type, target, recipient_count, created_by_admin_id
       ) VALUES (?, ?, ?, ?, ?, ?)
     `, [title, body, type, target, recipientCount, createdByAdminId]);
-    return result;
+    return firstQueryResult(queryResult);
   } catch (error) {
     console.error('Error creating notification batch:', error);
     throw error;
@@ -142,9 +146,16 @@ const createBroadcastNotification = async ({
 }) => {
   if (!targetUserIds || targetUserIds.length === 0) return null;
 
+  const ownsConnection = connection === pool && typeof pool.getConnection === 'function';
+  const tx = ownsConnection ? await pool.getConnection() : connection;
+
   try {
+    if (ownsConnection) {
+      await tx.beginTransaction();
+    }
+
     const batchResult = await createNotificationBatch({
-      title, body, type, target: targetName, recipientCount: targetUserIds.length, createdByAdminId, connection
+      title, body, type, target: targetName, recipientCount: targetUserIds.length, createdByAdminId, connection: tx
     });
     const batchId = batchResult.insertId;
 
@@ -155,12 +166,25 @@ const createBroadcastNotification = async ({
       const notifications = chunk.map(userId => ({
         userId, title, body, type, sourceType: 'broadcast', batchId, createdByAdminId
       }));
-      await createManyNotifications(notifications, connection);
+      const insertResult = await createManyNotifications(notifications, tx);
+      if (!insertResult) {
+        throw new Error('Failed to create recipient notifications');
+      }
+    }
+    if (ownsConnection) {
+      await tx.commit();
     }
     return { batchId, count: targetUserIds.length };
   } catch (error) {
+    if (ownsConnection) {
+      await tx.rollback();
+    }
     console.error('Error creating broadcast notification:', error);
     return null;
+  } finally {
+    if (ownsConnection) {
+      tx.release();
+    }
   }
 };
 

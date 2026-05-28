@@ -269,6 +269,7 @@ const migrate = async () => {
         night_charge_start TIME DEFAULT '21:00:00',
         night_charge_end TIME DEFAULT '07:00:00',
         whatsapp_number VARCHAR(20),
+        support_phone VARCHAR(20),
         upi_id VARCHAR(100),
         upi_qr_image_id VARCHAR(255),
         delivery_time_message VARCHAR(255),
@@ -282,6 +283,7 @@ const migrate = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
     `);
+    await ensureColumn('settings', 'support_phone', 'support_phone VARCHAR(20) AFTER whatsapp_number');
     await ensureColumn('settings', 'upi_qr_image_id', 'upi_qr_image_id VARCHAR(255) AFTER upi_id');
     await ensureColumn('settings', 'shop_latitude', 'shop_latitude DECIMAL(10, 8) DEFAULT NULL AFTER delivery_time_message');
     await ensureColumn('settings', 'shop_longitude', 'shop_longitude DECIMAL(11, 8) DEFAULT NULL AFTER shop_latitude');
@@ -302,6 +304,7 @@ const migrate = async () => {
         active BOOLEAN DEFAULT FALSE,
         deleted BOOLEAN DEFAULT FALSE,
         store_type ENUM('packed', 'fast_food') NOT NULL DEFAULT 'packed',
+        is_clickable BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_active (active),
@@ -310,7 +313,28 @@ const migrate = async () => {
     `);
     await ensureColumn('offers', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER active');
     await ensureColumn('offers', 'store_type', 'store_type ENUM("packed", "fast_food") NOT NULL DEFAULT "packed" AFTER deleted');
+    await ensureColumn('offers', 'is_clickable', 'is_clickable BOOLEAN DEFAULT FALSE AFTER store_type');
     console.log('Offers table ready.');
+
+    // Offer Products Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS offer_products (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        offer_id INT NOT NULL,
+        product_id INT NOT NULL,
+        display_order INT NOT NULL DEFAULT 0,
+        active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY idx_offer_product (offer_id, product_id),
+        INDEX idx_offer_id (offer_id),
+        INDEX idx_product_id (product_id),
+        INDEX idx_active (active),
+        FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
+      );
+    `);
+    console.log('Offer products table ready.');
 
     // Dashboard Sections Table
     await connection.query(`
@@ -562,6 +586,55 @@ const migrate = async () => {
       );
     `);
     console.log('Notifications table ready.');
+
+    // Cleanup: Convert 'all' offer banner sections to 'packed' and 'fast_food'
+    const [allOfferSections] = await connection.query(`SELECT * FROM dashboard_sections WHERE section_type = 'offer_banner' AND store_type = 'all' AND deleted_at IS NULL`);
+    
+    for (const sec of allOfferSections) {
+      // 1. Create packed section
+      const [packedResult] = await connection.query(
+        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at)
+         VALUES (?, ?, ?, 'packed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [sec.title, sec.slug + '-packed', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at]
+      );
+      const packedId = packedResult.insertId;
+
+      // 2. Create fast_food section
+      const [fastFoodResult] = await connection.query(
+        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at)
+         VALUES (?, ?, ?, 'fast_food', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [sec.title, sec.slug + '-fast-food', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at]
+      );
+      const fastFoodId = fastFoodResult.insertId;
+
+      // 3. Move items
+      const [items] = await connection.query(
+        `SELECT dsi.*, o.store_type as offer_store_type
+         FROM dashboard_section_items dsi
+         JOIN offers o ON o.id = dsi.item_id
+         WHERE dsi.section_id = ? AND dsi.item_type = 'offer'`,
+        [sec.id]
+      );
+
+      for (const item of items) {
+        if (item.offer_store_type === 'packed') {
+          await connection.query(
+            `INSERT INTO dashboard_section_items (section_id, item_type, item_id, active, display_order, created_at, updated_at)
+             VALUES (?, 'offer', ?, ?, ?, ?, ?)`,
+            [packedId, item.item_id, item.active, item.display_order, item.created_at, item.updated_at]
+          );
+        } else if (item.offer_store_type === 'fast_food') {
+          await connection.query(
+            `INSERT INTO dashboard_section_items (section_id, item_type, item_id, active, display_order, created_at, updated_at)
+             VALUES (?, 'offer', ?, ?, ?, ?, ?)`,
+            [fastFoodId, item.item_id, item.active, item.display_order, item.created_at, item.updated_at]
+          );
+        }
+      }
+
+      // 4. Mark old section as deleted
+      await connection.query(`UPDATE dashboard_sections SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?`, [sec.id]);
+    }
 
     console.log('Migration and seeding completed successfully!');
   } catch (error) {

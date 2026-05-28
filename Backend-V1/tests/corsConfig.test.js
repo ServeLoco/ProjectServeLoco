@@ -1,6 +1,7 @@
 describe('CORS Configuration', () => {
   const originalEnv = process.env.NODE_ENV;
   const originalCors = process.env.CORS_ORIGIN;
+  const originalAdminPassword = process.env.ADMIN_PASSWORD;
 
   beforeEach(() => {
     jest.resetModules();
@@ -9,6 +10,11 @@ describe('CORS Configuration', () => {
   afterAll(() => {
     process.env.NODE_ENV = originalEnv;
     process.env.CORS_ORIGIN = originalCors;
+    if (originalAdminPassword === undefined) {
+      delete process.env.ADMIN_PASSWORD;
+    } else {
+      process.env.ADMIN_PASSWORD = originalAdminPassword;
+    }
   });
 
   beforeEach(() => {
@@ -33,6 +39,7 @@ describe('CORS Configuration', () => {
     process.env.CORS_ORIGIN = 'https://example.com';
     // Assume JWT_SECRET is safe to pass the other check
     process.env.JWT_SECRET = 'very_long_and_safe_jwt_secret_key_here';
+    process.env.ADMIN_PASSWORD = 'veryStrongAdminPassword123';
     const env = require('../src/config/env');
     expect(env.CORS_ORIGIN).toBe('https://example.com');
   });

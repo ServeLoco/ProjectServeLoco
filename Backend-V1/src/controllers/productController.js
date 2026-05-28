@@ -2,9 +2,6 @@ const { pool } = require('../db/mysql');
 const { getDb } = require('../db/mongodb');
 const { ObjectId } = require('mongodb');
 const { normalizeStoreType } = require('../utils/storeMode');
-const path = require('path');
-const fs = require('fs');
-const config = require('../config/env');
 const { validatePagination } = require('../validators');
 
 const resolveImageUrls = async (rows) => {
@@ -87,13 +84,51 @@ const attachComboItems = async (products = []) => {
 };
 
 const getProducts = async (req, res) => {
-  const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit } = req.query;
+  const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit, offerId, offer_id } = req.query;
   const requestedType = type || storeType || store_type;
   const normalizedType = requestedType 
     ? normalizeStoreType(requestedType, { allowAll: true }) 
     : 'all';
   const finalCategoryId = categoryId || category_id;
   let finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
+  const finalOfferId = offerId || offer_id;
+
+  if (finalOfferId) {
+    // 1. Validate the offer
+    const [offers] = await pool.query('SELECT store_type, active, deleted, is_clickable FROM offers WHERE id = ?', [finalOfferId]);
+    if (offers.length === 0 || offers[0].deleted || !offers[0].active || !offers[0].is_clickable) {
+      return res.status(200).json({ data: { products: [] }, products: [] });
+    }
+    if (normalizedType !== 'all' && offers[0].store_type !== normalizedType) {
+      return res.status(200).json({ data: { products: [] }, products: [] });
+    }
+
+    // 2. Fetch products attached to offer
+    let query = `
+      SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order
+      FROM offer_products op
+      JOIN products p ON op.product_id = p.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE op.offer_id = ? AND op.active = 1 AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0
+    `;
+    const params = [finalOfferId];
+
+    if (normalizedType !== 'all') {
+      query += ` AND c.type = ?`;
+      params.push(normalizedType);
+    }
+
+    query += ' ORDER BY op.display_order ASC, item_display_order ASC, p.id ASC';
+    
+    if (limit && Number.isInteger(Number(limit)) && Number(limit) > 0) {
+      query += ' LIMIT ?';
+      params.push(Number(limit));
+    }
+
+    const [rows] = await pool.query(query, params);
+    await resolveImageUrls(rows);
+    return res.status(200).json({ data: { products: rows }, products: rows });
+  }
 
   // If filtering by category/categoryType/categoryId and isCombo isn't explicitly set, default to false (exclude combos)
   if (finalIsCombo === undefined && (finalCategoryId || (requestedType && requestedType !== 'all'))) {
@@ -217,23 +252,9 @@ const updateProduct = async (req, res) => {
   const { id } = req.params;
   const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label } = req.validatedData;
 
-  // Check if image_id changed, delete old image from MongoDB and disk
-  const [existing] = await pool.query('SELECT image_id FROM products WHERE id = ?', [id]);
-  if (existing.length > 0 && existing[0].image_id && existing[0].image_id !== image_id) {
-    const oldImageId = existing[0].image_id;
-    if (ObjectId.isValid(oldImageId)) {
-      const db = getDb();
-      const image = await db.collection('images').findOne({ _id: new ObjectId(oldImageId) });
-      if (image) {
-        if (image.storageType === 'disk') {
-          const filePath = path.join(__dirname, '../../', config.UPLOAD_DIR, image.filename);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        }
-        await db.collection('images').deleteOne({ _id: new ObjectId(oldImageId) });
-      }
-    }
+  const [existing] = await pool.query('SELECT id FROM products WHERE id = ? AND deleted = 0', [id]);
+  if (existing.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
@@ -353,7 +374,7 @@ const getAdminProductById = async (req, res) => {
 
 const deleteProduct = async (req, res) => {
   const { id } = req.params;
-  const [existing] = await pool.query('SELECT image_id FROM products WHERE id = ?', [id]);
+  const [existing] = await pool.query('SELECT id FROM products WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
@@ -370,7 +391,10 @@ const updateProductAvailability = async (req, res) => {
   }
 
   const normalizedAvailable = finalAvail === true || finalAvail === 'true' || finalAvail === 1 || finalAvail === '1';
-  await pool.query('UPDATE products SET available = ? WHERE id = ?', [normalizedAvailable ? 1 : 0, id]);
+  const [result] = await pool.query('UPDATE products SET available = ? WHERE id = ? AND deleted = 0', [normalizedAvailable ? 1 : 0, id]);
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
+  }
   
   const [updatedRows] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
   res.status(200).json({ message: 'Product availability updated', product: updatedRows[0] });
@@ -385,26 +409,9 @@ const updateProductImage = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Image ID required' });
   }
 
-  const [existing] = await pool.query('SELECT image_id FROM products WHERE id = ?', [id]);
+  const [existing] = await pool.query('SELECT id FROM products WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
-  }
-
-  if (existing[0].image_id && existing[0].image_id !== finalImageId) {
-    const oldImageId = existing[0].image_id;
-    if (ObjectId.isValid(oldImageId)) {
-      const db = getDb();
-      const image = await db.collection('images').findOne({ _id: new ObjectId(oldImageId) });
-      if (image) {
-        if (image.storageType === 'disk') {
-          const filePath = path.join(__dirname, '../../', config.UPLOAD_DIR, image.filename);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        }
-        await db.collection('images').deleteOne({ _id: new ObjectId(oldImageId) });
-      }
-    }
   }
 
   await pool.query('UPDATE products SET image_id = ? WHERE id = ?', [finalImageId, id]);

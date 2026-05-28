@@ -244,7 +244,7 @@ describe('Cart and Order Tests', () => {
     const settings = {
       shop_open: 1,
       delivery_available: 1,
-      minimum_order_amount: 300,
+      minimum_order_amount: 149,
       delivery_charge: 10,
       free_delivery_above: 500,
       night_charge: 0,
@@ -252,7 +252,8 @@ describe('Cart and Order Tests', () => {
       shop_longitude: 77.5946,
       delivery_radius_km: 8,
       delivery_cost_per_km: 10,
-      free_delivery_offer_active: 0
+      free_delivery_offer_active: 0,
+      free_delivery_above_minimum_active: 0
     };
 
     pool.query.mockResolvedValueOnce([[settings]]);
@@ -298,6 +299,47 @@ describe('Cart and Order Tests', () => {
     expect(orderRes.body.order.deliveryCharge).toBeCloseTo(cartRes.body.deliveryCharge, 2);
     expect(orderRes.body.order.deliveryCharge).toBeCloseTo(10.84, 2);
     expect(orderRes.body.order.deliveryDistanceKm).toBeCloseTo(cartRes.body.deliveryDistanceKm, 4);
+  });
+
+  it('should reject order creation below the configured minimum order amount', async () => {
+    const mockConnection = {
+      beginTransaction: jest.fn(),
+      query: jest.fn(),
+      commit: jest.fn(),
+      rollback: jest.fn(),
+      release: jest.fn()
+    };
+    pool.getConnection.mockResolvedValue(mockConnection);
+
+    mockConnection.query
+      .mockResolvedValueOnce([[{ blocked: 0 }]])
+      .mockResolvedValueOnce([[{
+        shop_open: 1,
+        delivery_available: 1,
+        minimum_order_amount: 300,
+        shop_latitude: 12.9716,
+        shop_longitude: 77.5946,
+        delivery_radius_km: 8,
+        delivery_cost_per_km: 5
+      }]])
+      .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        address: '123 Test St',
+        paymentMethod: 'Cash',
+        latitude: 12.9716,
+        longitude: 77.5946,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.code).toEqual('VALIDATION_ERROR');
+    expect(res.body.message).toContain('Minimum order amount is ₹300');
+    expect(mockConnection.rollback).toHaveBeenCalledTimes(1);
+    expect(mockConnection.commit).not.toHaveBeenCalled();
   });
 
   it('should fail order creation when coordinates are missing', async () => {

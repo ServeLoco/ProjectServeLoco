@@ -71,6 +71,13 @@ export default function Images() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const formatImageDate = (img) => {
+    const value = img.created_at || img.createdAt;
+    if (!value) return 'Unknown date';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Unknown date' : date.toLocaleDateString();
+  };
+
   return (
     <div className="images-container">
       <header className="images-header">
@@ -108,7 +115,7 @@ export default function Images() {
                 <div className="image-filename" title={img.filename}>{img.filename}</div>
                 <div className="image-meta">
                   <span>{formatSize(img.size)}</span>
-                  <span>{new Date(img.created_at).toLocaleDateString()}</span>
+                  <span>{formatImageDate(img)}</span>
                 </div>
               </div>
               <div className="image-actions">

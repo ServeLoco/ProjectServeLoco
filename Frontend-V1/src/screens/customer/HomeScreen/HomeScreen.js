@@ -52,6 +52,7 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dashboardSections, setDashboardSections] = useState([]);
+  const [homeError, setHomeError] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const currentApiStoreType = storeType === 'Fast Food' ? 'fast_food' : 'packed';
   const cartItemCount = useMemo(
@@ -82,6 +83,7 @@ export default function HomeScreen() {
     } else {
       setIsLoading(true);
     }
+    setHomeError('');
 
     Promise.allSettled([
       dashboardApi.getDashboard({ storeType: currentApiStoreType }),
@@ -93,6 +95,9 @@ export default function HomeScreen() {
       if (dashboardResult.status === 'fulfilled') {
         const sectionsData = dashboardResult.value?.data?.sections || [];
         setDashboardSections(sectionsData);
+      } else {
+        setDashboardSections([]);
+        setHomeError('Unable to load home sections. Pull to retry.');
       }
 
       if (settingsResult.status === 'fulfilled') {
@@ -121,6 +126,7 @@ export default function HomeScreen() {
       ]).start();
     }).catch(() => {
       if (isMounted) {
+        setHomeError('Unable to load home data. Pull to retry.');
         setIsLoading(false);
         setIsRefreshing(false);
       }
@@ -209,6 +215,15 @@ export default function HomeScreen() {
 
   const handleCategoryPress = (category) => {
     navigation.navigate('ProductList', { categoryId: category.id, categoryName: category.name, storeType: currentApiStoreType });
+  };
+
+  const handleProductPress = (product) => {
+    const isCombo = product.isCombo || product.is_combo || product.comboItems?.length;
+    navigation.navigate('ProductDetail', {
+      id: product.id,
+      type: isCombo ? 'combo' : 'product',
+      product,
+    });
   };
 
   const getQty = (productId) => {
@@ -314,6 +329,13 @@ export default function HomeScreen() {
           <Text style={styles.closedText}>Shop is currently closed. We are not accepting orders.</Text>
         </View>
       )}
+
+      {!isLoading && homeError ? (
+        <View style={styles.homeErrorCard}>
+          <Text style={styles.homeErrorText}>{homeError}</Text>
+          <Button label="Retry" size="small" variant="outline" onPress={() => loadHomeData(true)} />
+        </View>
+      ) : null}
 
       {isLoading ? (
         <ScrollView
@@ -534,6 +556,7 @@ export default function HomeScreen() {
                             onAdd={() => handleAddToCart(item)}
                             onIncrement={() => handleIncrement(item)}
                             onDecrement={() => handleDecrement(item)}
+                            onPress={() => handleProductPress(item)}
                             disabled={!item.available}
                             compact
                             dense={!isComboBlock}
@@ -619,48 +642,22 @@ function OfferBannerCarousel({ offers = [], windowWidth, onOfferPress }) {
         })}
         renderItem={({ item: offer }) => {
           const imageUri = offer.imageUrl || offer.image_url || offer.imageUri;
-          const BannerSurface = imageUri ? ImageBackground : View;
-          const bannerSurfaceProps = imageUri
-            ? {
-                source: { uri: imageUri },
-                imageStyle: styles.offerBannerImageRadius,
-                resizeMode: 'cover',
-              }
-            : {};
+          if (!imageUri) return null; // Defensive check, handled by filter above
+
+          const isClickable = offer.isClickable || offer.is_clickable;
 
           return (
             <View style={{ width: bannerWidth }}>
               <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => onOfferPress(offer)}
+                activeOpacity={isClickable ? 0.9 : 1}
+                onPress={() => isClickable ? onOfferPress(offer) : null}
                 style={styles.offerBannerTouch}
               >
-                <BannerSurface
-                  {...bannerSurfaceProps}
-                  style={[
-                    styles.offerBanner,
-                    { width: bannerWidth },
-                    imageUri && styles.offerBannerWithImage,
-                  ]}
-                >
-                  {imageUri && <View style={styles.offerImageOverlay} />}
-                  <View style={styles.offerContent}>
-                    <Text style={styles.offerEyebrow}>Limited offer</Text>
-                    <Text style={styles.offerTitle} numberOfLines={2}>
-                      {offer.title || 'Special Offer'}
-                    </Text>
-                    <Text style={styles.offerDesc} numberOfLines={2}>
-                      {offer.description || 'Special discount for you'}
-                    </Text>
-                    <Button
-                      label="Shop Offer"
-                      variant="highlight"
-                      size="small"
-                      onPress={() => onOfferPress(offer)}
-                      style={styles.offerBtn}
-                    />
-                  </View>
-                </BannerSurface>
+                <Image
+                  source={{ uri: imageUri }}
+                  style={[styles.offerBanner, { width: bannerWidth, borderRadius: radius.lg, backgroundColor: colors.bgSurface }]}
+                  resizeMode="cover"
+                />
               </TouchableOpacity>
             </View>
           );
@@ -814,6 +811,20 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textInverse,
     fontWeight: '700',
+  },
+  homeErrorCard: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.error || '#FF4B4B',
+    backgroundColor: colors.bgCard,
+    gap: spacing.sm,
+  },
+  homeErrorText: {
+    ...typography.bodySmall,
+    color: colors.textPrimary,
   },
   searchBar: {
     marginHorizontal: spacing.md,

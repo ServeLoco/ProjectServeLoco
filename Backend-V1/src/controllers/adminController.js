@@ -105,7 +105,10 @@ const getAdminCustomers = async (req, res) => {
 const setBlockStatus = async (req, res) => {
   const { id, blocked } = req.validatedData;
 
-  await pool.query('UPDATE users SET blocked = ? WHERE id = ?', [blocked ? 1 : 0, id]);
+  const [result] = await pool.query('UPDATE users SET blocked = ? WHERE id = ?', [blocked ? 1 : 0, id]);
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Customer not found' });
+  }
 
   res.status(200).json({ message: `User ${blocked ? 'blocked' : 'unblocked'} successfully` });
 };
@@ -113,7 +116,10 @@ const setBlockStatus = async (req, res) => {
 const setTrustStatus = async (req, res) => {
   const { id, trusted } = req.validatedData;
 
-  await pool.query('UPDATE users SET trusted = ? WHERE id = ?', [trusted ? 1 : 0, id]);
+  const [result] = await pool.query('UPDATE users SET trusted = ? WHERE id = ?', [trusted ? 1 : 0, id]);
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Customer not found' });
+  }
 
   res.status(200).json({ message: `User ${trusted ? 'trusted' : 'untrusted'} successfully` });
 };
@@ -422,7 +428,6 @@ const updateOrderStatus = async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
   const currentStatus = orderRows[0].status;
-  const orderDetails = orderRows[0];
 
   // Terminal states cannot be changed
   if (currentStatus === 'Delivered' || currentStatus === 'Cancelled') {
@@ -479,7 +484,6 @@ const updateOrderPayment = async (req, res) => {
   }
   const currentPaymentStatus = orderRows[0].payment_status;
   const currentStatus = orderRows[0].status;
-  const orderDetails = orderRows[0];
 
   if (currentStatus === 'Canceled' || currentStatus === 'Cancelled') {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot update payment for a canceled order' });
@@ -531,7 +535,7 @@ const getAdminNotifications = async (req, res) => {
 };
 
 const createAdminNotification = async (req, res) => {
-  const { title, body, type, target, customerIds } = req.body;
+  const { title, body, type, target } = req.body;
   const adminId = req.admin.id;
 
   if (!title || !body || !type || !target) {

@@ -142,12 +142,15 @@ export default function CartScreen() {
     </Animated.View>
   );
 
+  const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
+  const isBelowMinimum = Boolean(bill && requiredMinimum && bill.subtotal < requiredMinimum);
   const isCheckoutDisabled = 
     validItems.length === 0 ||
     isCalculating || 
     calcError || 
-    shopStatus === 'closed';
-  const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
+    shopStatus === 'closed' ||
+    !bill ||
+    isBelowMinimum;
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
@@ -277,7 +280,8 @@ export default function CartScreen() {
                   <AppIcon name="box" size={16} color={colors.saffron || '#FF7A3A'} style={styles.warningIcon} />
                   <Text style={styles.warningText}>
                     Add items worth <Text style={styles.warningHighlight}>₹{(requiredMinimum - bill.subtotal).toFixed(0)}</Text> more
-                    {bill.freeAboveThresholdActive ? <Text> for <Text style={styles.warningHighlight}>Free Delivery</Text></Text> : null}
+                    <Text> to place this order</Text>
+                    {bill.freeAboveThresholdActive ? <Text> and unlock <Text style={styles.warningHighlight}>Free Delivery</Text></Text> : null}
                     <Text> (₹{bill.deliveryCharge} delivery fee currently applied).</Text>
                   </Text>
                 </View>

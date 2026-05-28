@@ -466,11 +466,11 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Price (₹)</label>
-                <input required type="number" min="0" step="1" name="price" className="form-input" value={formData.price} onChange={handleChange} />
+                <input required type="number" min="0" step="0.01" name="price" className="form-input" value={formData.price} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label className="form-label">Original Price (₹)</label>
-                <input type="number" min="0" step="1" name="original_price" className="form-input" placeholder="Optional" value={formData.original_price || ''} onChange={handleChange} />
+                <input type="number" min="0" step="0.01" name="original_price" className="form-input" placeholder="Optional" value={formData.original_price || ''} onChange={handleChange} />
               </div>
             </div>
 
@@ -522,7 +522,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Display Order</label>
-                <input type="number" name="display_order" className="form-input" value={formData.display_order} onChange={handleChange} />
+                <input type="number" min="0" step="1" name="display_order" className="form-input" value={formData.display_order} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label className="form-label">Discount Label (Optional)</label>

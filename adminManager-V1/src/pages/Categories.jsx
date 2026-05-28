@@ -288,7 +288,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Display Order</label>
-                <input type="number" name="display_order" className="form-input" value={formData.display_order} onChange={handleChange} />
+                <input type="number" min="0" step="1" name="display_order" className="form-input" value={formData.display_order} onChange={handleChange} />
               </div>
               <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '0.75rem' }}>
                 <label className="checkbox-label">

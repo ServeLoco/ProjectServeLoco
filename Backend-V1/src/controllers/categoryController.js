@@ -115,6 +115,11 @@ const updateCategory = async (req, res) => {
   const slug = req.validatedData.slug || slugify(name);
   const displayOrder = req.validatedData.display_order ?? 0;
 
+  const [currentRows] = await pool.query('SELECT id FROM categories WHERE id = ? AND deleted = 0', [id]);
+  if (currentRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Category not found' });
+  }
+
   if (displayOrder > 0) {
     const [existing] = await pool.query('SELECT name FROM categories WHERE type = ? AND display_order = ? AND id != ? AND deleted = 0 LIMIT 1', [type, displayOrder, id]);
     if (existing.length > 0) {
@@ -131,6 +136,35 @@ const updateCategory = async (req, res) => {
 
 const deleteCategory = async (req, res) => {
   const { id } = req.params;
+  const [currentRows] = await pool.query('SELECT id FROM categories WHERE id = ? AND deleted = 0', [id]);
+  if (currentRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Category not found' });
+  }
+
+  const [[productUsage]] = await pool.query(
+    'SELECT COUNT(*) as count FROM products WHERE category_id = ? AND deleted = 0',
+    [id]
+  );
+  if (Number(productUsage.count) > 0) {
+    return res.status(400).json({
+      code: 'VALIDATION_ERROR',
+      message: 'Cannot delete category while active products still use it'
+    });
+  }
+
+  const [[dashboardUsage]] = await pool.query(
+    `SELECT COUNT(*) as count
+     FROM dashboard_section_items
+     WHERE item_type = 'category' AND item_id = ? AND deleted_at IS NULL`,
+    [id]
+  );
+  if (Number(dashboardUsage.count) > 0) {
+    return res.status(400).json({
+      code: 'VALIDATION_ERROR',
+      message: 'Cannot delete category while it is assigned to the mobile dashboard'
+    });
+  }
+
   await pool.query('UPDATE categories SET deleted = 1 WHERE id = ?', [id]);
   res.status(200).json({ message: 'Category soft deleted' });
 };

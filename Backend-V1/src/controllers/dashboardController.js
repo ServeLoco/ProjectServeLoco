@@ -35,7 +35,13 @@ const asPositiveInteger = (value, fallback) => {
   return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
 };
 
-const validateSectionPayload = ({ title, slug, section_type, store_type, max_visible_items, starts_at, ends_at }, { partial = false } = {}) => {
+const asNonNegativeInteger = (value, fallback = 0) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  const numeric = Number(value);
+  return Number.isInteger(numeric) && numeric >= 0 ? numeric : null;
+};
+
+const validateSectionPayload = ({ title, slug, section_type, store_type, display_order, max_visible_items, starts_at, ends_at }, { partial = false } = {}) => {
   if (!partial && (!title || !slug || !section_type)) {
     return 'Title, slug, and section type are required';
   }
@@ -47,6 +53,9 @@ const validateSectionPayload = ({ title, slug, section_type, store_type, max_vis
   }
   if (slug !== undefined && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(slug))) {
     return 'Slug must use lowercase letters, numbers, and hyphens only';
+  }
+  if (display_order !== undefined && asNonNegativeInteger(display_order) === null) {
+    return 'Display order must be a whole number greater than or equal to 0';
   }
   if (max_visible_items !== undefined && asPositiveInteger(max_visible_items, 6) === null) {
     return 'Max visible items must be a positive whole number';
@@ -307,14 +316,18 @@ const getDashboard = async (req, res) => {
           params
         );
         await resolveImageUrls(rows);
-        items = rows.map(r => ({
+        items = rows.filter(r => r.imageUrl || r.image_url).map(r => ({
           id: r.id,
           sectionItemId: r.section_item_id,
           title: r.title,
           description: r.description,
           imageUrl: r.imageUrl || r.image_url,
           image_id: r.image_id,
-          active: r.active
+          active: r.active,
+          storeType: r.store_type,
+          store_type: r.store_type,
+          isClickable: Boolean(r.is_clickable),
+          is_clickable: Boolean(r.is_clickable)
         }));
       } else if (section.section_type === 'category_grid') {
         const [rows] = await pool.query(
@@ -539,14 +552,18 @@ const getSectionItems = async (req, res) => {
         params
       );
       await resolveImageUrls(rows);
-      items = rows.map(r => ({
+      items = rows.filter(r => r.imageUrl || r.image_url).map(r => ({
         id: r.id,
         sectionItemId: r.section_item_id,
         title: r.title,
         description: r.description,
         imageUrl: r.imageUrl || r.image_url,
         image_id: r.image_id,
-        active: r.active
+        active: r.active,
+        storeType: r.store_type,
+        store_type: r.store_type,
+        isClickable: Boolean(r.is_clickable),
+        is_clickable: Boolean(r.is_clickable)
       }));
     } else if (section.section_type === 'category_grid') {
       const [rows] = await pool.query(
@@ -778,7 +795,7 @@ const createAdminSection = async (req, res) => {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Section slug "${slug}" already exists for this store mode.` });
     }
 
-    const finalDisplayOrder = display_order !== undefined ? display_order : 0;
+    const finalDisplayOrder = asNonNegativeInteger(display_order, 0);
     if (finalDisplayOrder > 0) {
       const [orderExisting] = await pool.query(
         'SELECT title FROM dashboard_sections WHERE store_type = ? AND display_order = ? AND deleted_at IS NULL LIMIT 1',
@@ -818,7 +835,7 @@ const createAdminSection = async (req, res) => {
  */
 const updateAdminSection = async (req, res) => {
   const { id } = req.params;
-  const { title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version } = req.body;
+  const { title, slug, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version } = req.body;
 
   if (store_type === 'all') {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be explicitly packed or fast_food. "all" is no longer allowed.' });
@@ -857,7 +874,7 @@ const updateAdminSection = async (req, res) => {
       }
     }
 
-    const finalDisplayOrder = display_order !== undefined ? display_order : 0;
+    const finalDisplayOrder = asNonNegativeInteger(display_order, 0);
     if (finalDisplayOrder > 0) {
       const targetStoreType = store_type !== undefined ? store_type : existingSection.store_type;
       const [orderExisting] = await pool.query(
@@ -882,7 +899,7 @@ const updateAdminSection = async (req, res) => {
         slug !== undefined ? slug : existingSection.slug,
         store_type !== undefined ? store_type : existingSection.store_type,
         active !== undefined ? active : existingSection.active,
-        display_order !== undefined ? display_order : existingSection.display_order,
+        display_order !== undefined ? finalDisplayOrder : existingSection.display_order,
         max_visible_items !== undefined ? asPositiveInteger(max_visible_items, existingSection.max_visible_items) : existingSection.max_visible_items,
         show_see_all !== undefined ? show_see_all : existingSection.show_see_all,
         linked_category_id !== undefined ? linked_category_id : existingSection.linked_category_id,
@@ -935,6 +952,11 @@ const addAdminSectionItem = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Item type and item ID are required' });
   }
 
+  const finalDisplayOrder = asNonNegativeInteger(display_order, 0);
+  if (finalDisplayOrder === null) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Display order must be a whole number greater than or equal to 0' });
+  }
+
   const scheduleError = validateVisibilityWindow(starts_at, ends_at);
   if (scheduleError) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: scheduleError });
@@ -977,7 +999,6 @@ const addAdminSectionItem = async (req, res) => {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'This item is already assigned to this section.' });
     }
 
-    const finalDisplayOrder = display_order !== undefined ? display_order : 0;
     if (finalDisplayOrder > 0) {
       const [orderExisting] = await pool.query(
         'SELECT id FROM dashboard_section_items WHERE section_id = ? AND display_order = ? AND deleted_at IS NULL LIMIT 1',
@@ -1014,6 +1035,11 @@ const updateAdminSectionItem = async (req, res) => {
   const { id, itemId } = req.params;
   const { display_order, active, starts_at, ends_at } = req.body;
 
+  const parsedDisplayOrder = asNonNegativeInteger(display_order, null);
+  if (display_order !== undefined && parsedDisplayOrder === null) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Display order must be a whole number greater than or equal to 0' });
+  }
+
   const scheduleError = validateVisibilityWindow(starts_at, ends_at);
   if (scheduleError) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: scheduleError });
@@ -1030,7 +1056,7 @@ const updateAdminSectionItem = async (req, res) => {
 
     const existingItem = items[0];
 
-    const finalDisplayOrder = display_order !== undefined ? display_order : existingItem.display_order;
+    const finalDisplayOrder = display_order !== undefined ? parsedDisplayOrder : existingItem.display_order;
     if (finalDisplayOrder > 0) {
       const [orderExisting] = await pool.query(
         'SELECT id FROM dashboard_section_items WHERE section_id = ? AND display_order = ? AND id != ? AND deleted_at IS NULL LIMIT 1',

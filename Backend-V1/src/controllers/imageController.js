@@ -50,7 +50,9 @@ const normalizeImage = (image) => {
     id,
     imageUrl: url,
     image_url: url,
-    url
+    url,
+    created_at: image.created_at || image.createdAt || null,
+    updated_at: image.updated_at || image.updatedAt || null
   };
 };
 
@@ -91,13 +93,17 @@ const uploadImage = async (req, res) => {
       ...savedDoc,
       id: idStr,
       imageUrl: savedDoc.url,
-      image_url: savedDoc.url
+      image_url: savedDoc.url,
+      created_at: savedDoc.created_at || savedDoc.createdAt || null,
+      updated_at: savedDoc.updated_at || savedDoc.updatedAt || null
     },
     image: {
       ...savedDoc,
       id: idStr,
       imageUrl: savedDoc.url,
-      image_url: savedDoc.url
+      image_url: savedDoc.url,
+      created_at: savedDoc.created_at || savedDoc.createdAt || null,
+      updated_at: savedDoc.updated_at || savedDoc.updatedAt || null
     }
   });
 };

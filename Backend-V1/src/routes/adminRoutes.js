@@ -1,6 +1,6 @@
 const express = require('express');
 const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification } = require('../controllers/adminController');
-const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer } = require('../controllers/settingsController');
+const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
 const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability } = require('../controllers/comboController');
@@ -18,7 +18,7 @@ const {
 } = require('../controllers/dashboardController');
 const { requireAdmin } = require('../middleware/authMiddleware');
 const { auditLog } = require('../middleware/auditMiddleware');
-const { validate, isString, isId, isBoolean, isNumericAmount, isPositiveInteger, validatePagination, normalizeField } = require('../validators');
+const { validate, isString, isId, isBoolean, isNumericAmount, isPositiveInteger, isNonNegativeInteger, validatePagination, normalizeField } = require('../validators');
 const asyncHandler = require('../utils/asyncHandler');
 const rateLimit = require('express-rate-limit');
 
@@ -94,8 +94,8 @@ const categorySchema = (req) => {
   if (!isString(data.name)) errors.name = 'Name is required';
   if (!isString(data.type)) errors.type = 'Type is required';
   if (data.active !== undefined && !isBoolean(data.active)) errors.active = 'Active must be boolean';
-  if (data.display_order !== undefined && !Number.isInteger(Number(data.display_order))) {
-    errors.display_order = 'Display order must be a whole number';
+  if (data.display_order !== undefined && !isNonNegativeInteger(data.display_order)) {
+    errors.display_order = 'Display order must be a whole number greater than or equal to 0';
   }
   
   if (data.active !== undefined) {
@@ -153,7 +153,7 @@ const productSchema = (req) => {
         errors.combo_items = `Combo item ${i + 1}: quantity must be a whole number between 1 and 999`;
       }
       item.quantity = Number(item.quantity) || 1;
-      item.display_order = Number(item.display_order) || i;
+      item.display_order = isNonNegativeInteger(item.display_order) ? Number(item.display_order) : i;
     }
   }
   
@@ -165,6 +165,9 @@ const productSchema = (req) => {
   }
   if (data.featured !== undefined) {
     data.featured = data.featured === true || data.featured === 'true' || data.featured === 1;
+  }
+  if (data.display_order !== undefined && !isNonNegativeInteger(data.display_order)) {
+    errors.display_order = 'Display order must be a whole number greater than or equal to 0';
   }
   if (data.display_order !== undefined) {
     data.display_order = Number(data.display_order) || 0;
@@ -221,7 +224,7 @@ const comboSchema = (req) => {
         errors.combo_items = `Combo item ${i + 1}: quantity must be a whole number between 1 and 999`;
       }
       item.quantity = Number(item.quantity) || 1;
-      item.display_order = Number(item.display_order) || i;
+      item.display_order = isNonNegativeInteger(item.display_order) ? Number(item.display_order) : i;
     }
   }
   
@@ -230,6 +233,9 @@ const comboSchema = (req) => {
   }
   if (data.featured !== undefined) {
     data.featured = data.featured === true || data.featured === 'true' || data.featured === 1;
+  }
+  if (data.display_order !== undefined && !isNonNegativeInteger(data.display_order)) {
+    errors.display_order = 'Display order must be a whole number greater than or equal to 0';
   }
   if (data.display_order !== undefined) {
     data.display_order = Number(data.display_order) || 0;
@@ -339,6 +345,10 @@ router.get('/offers', requireAdmin, asyncHandler(getAdminOffers));
 router.post('/offers', requireAdmin, auditLog, asyncHandler(createOffer));
 router.patch('/offers/:id', requireAdmin, auditLog, asyncHandler(updateOffer));
 router.delete('/offers/:id', requireAdmin, auditLog, asyncHandler(deleteOffer));
+router.get('/offers/:id/products', requireAdmin, asyncHandler(getOfferProducts));
+router.post('/offers/:id/products', requireAdmin, auditLog, asyncHandler(addOfferProduct));
+router.delete('/offers/:id/products/:productId', requireAdmin, auditLog, asyncHandler(removeOfferProduct));
+router.patch('/offers/:id/products/reorder', requireAdmin, auditLog, asyncHandler(reorderOfferProducts));
 
 // Audit
 router.get('/audit', requireAdmin, asyncHandler(getAuditLogs));

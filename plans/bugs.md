@@ -492,10 +492,10 @@ Only chips backed by data should filter categories.
 Either all means all, or the UI should never say all when it means packed.
 
 ### Checklist
-- [ ] Decide whether public APIs support true `all`.
-- [ ] If true all: update backend filters to omit store filter for `all`.
-- [ ] If not: change mobile defaults and labels to explicit packed/fast_food.
-- [ ] Add tests for `type=all`, missing type, packed, and fast_food.
+- [x] Decide whether public APIs support true `all`.
+- [x] If true all: update backend filters to omit store filter for `all`.
+- [x] If not: change mobile defaults and labels to explicit packed/fast_food.
+- [x] Add tests for `type=all`, missing type, packed, and fast_food.
 
 ---
 

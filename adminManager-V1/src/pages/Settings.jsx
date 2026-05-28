@@ -93,7 +93,7 @@ export default function Settings() {
       setSaving(true);
       const nullableNumber = (value) => (value === '' || value === null || value === undefined ? null : Number(value));
       const nonNegativeFields = [
-        ['minimum_order_amount', 'Free delivery threshold'],
+        ['minimum_order_amount', 'Minimum order amount'],
         ['delivery_charge', 'Standard delivery charge'],
         ['free_delivery_above', 'Free delivery above amount'],
         ['night_charge', 'Night delivery surcharge'],
@@ -202,7 +202,7 @@ export default function Settings() {
         <h2 className="settings-section-title">Pricing & Rules</h2>
         <div className="settings-form-grid">
           <div className="settings-form-group">
-            <label className="settings-label">Free Delivery Threshold (₹)</label>
+            <label className="settings-label">Minimum Order Amount (₹)</label>
             <input type="number" min="0" step="1" name="minimum_order_amount" className="settings-input" value={settings.minimum_order_amount || ''} onChange={handleChange} />
           </div>
           <div className="settings-form-group">
@@ -225,7 +225,7 @@ export default function Settings() {
             <div style={{ flex: 1 }}>
               <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Free Delivery Above Threshold</strong>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                When enabled, orders at or above the threshold get free delivery. When disabled, standard delivery charge applies.
+                Orders below the minimum cannot be placed. When enabled, orders at or above the minimum also get free delivery.
               </span>
             </div>
             <label className="toggle-switch">

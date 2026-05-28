@@ -211,6 +211,12 @@ export default function MobileDashboard() {
     try {
       setSavingSection(true);
       setError(null);
+
+      if (selectedSection.section_type === 'offer_banner' && editForm.store_type === 'all') {
+        alert('Please convert "all" store mode offer banners to specific "packed" or "fast_food" mode before saving.');
+        setSavingSection(false);
+        return;
+      }
       
       const payload = {
         ...editForm,
@@ -658,21 +664,32 @@ export default function MobileDashboard() {
                       })
                       .map(cand => {
                         const name = cand.name || cand.title || 'Unnamed';
-                        const img = normalizeImageUrl(cand.imageUrl || cand.image_url) || 'https://via.placeholder.com/40';
+                        const img = normalizeImageUrl(cand.imageUrl || cand.image_url);
+                        
+                        const isOfferBanner = selectedSection.section_type === 'offer_banner';
+                        const hasImage = !!img;
+                        const disabled = isOfferBanner && !hasImage;
+
                         return (
-                          <div key={cand.id} className="picker-result-row">
-                            <img src={img} alt={name} className="item-thumbnail" />
-                            <div style={{ flex: 1, minWidth: 0 }}>
+                          <div key={cand.id} className={`picker-result-row ${disabled ? 'disabled-item' : ''}`}>
+                            <img src={img || 'https://via.placeholder.com/40'} alt={name} className="item-thumbnail" style={disabled ? { opacity: 0.5 } : {}} />
+                            <div style={{ flex: 1, minWidth: 0, opacity: disabled ? 0.6 : 1 }}>
                               <div className="item-title-name">{name}</div>
                               <div className="item-subtitle-meta">
-                                ID: {cand.id} {cand.price && `• ₹${cand.price}`} {cand.store_type && `• ${cand.store_type === 'fast_food' ? 'Fast Food' : 'Packed'}`} {cand.type && `• ${cand.type === 'fast_food' ? 'Fast Food' : 'Packed'}`}
+                                ID: {cand.id} 
+                                {cand.price && ` • ₹${cand.price}`} 
+                                {cand.store_type && ` • ${cand.store_type === 'fast_food' ? 'Fast Food' : 'Packed'}`} 
+                                {cand.type && ` • ${cand.type === 'fast_food' ? 'Fast Food' : 'Packed'}`}
+                                {isOfferBanner && ` • ${cand.active ? 'Active' : 'Inactive'}`}
+                                {isOfferBanner && ` • ${cand.isClickable || cand.is_clickable ? 'Clickable' : 'Image only'}`}
+                                {disabled && <span style={{color: 'red'}}> • Missing image</span>}
                               </div>
                             </div>
                             <button 
                               type="button" 
                               className="btn-primary btn-add-item-action"
                               onClick={() => handleAddItem(cand.id)}
-                              disabled={savingItem}
+                              disabled={savingItem || disabled}
                             >
                               + Add
                             </button>

@@ -25,7 +25,11 @@ const registerSchema = (req) => {
 
   if (!isString(data.name)) errors.name = 'Name is required';
   if (!isPhone(data.phone)) errors.phone = 'Valid phone number is required';
-  if (!isString(data.password)) errors.password = 'Password is required';
+  if (!isString(data.password)) {
+    errors.password = 'Password is required';
+  } else if (String(data.password).length < 6) {
+    errors.password = 'Password must be at least 6 characters';
+  }
 
   return { errors, data };
 };
@@ -48,7 +52,7 @@ const profileSchema = (req) => {
   const data = {
     name: normalizeField(req, 'name', 'name'),
     address: normalizeField(req, 'address', 'address'),
-    whatsapp_number: normalizeField(req, 'whatsappNumber', 'whatsapp_number')
+    whatsapp_number: normalizeField(req, 'whatsappNumber', 'whatsapp_number') ?? normalizeField(req, 'whatsapp', 'whatsapp')
   };
 
   if (!isString(data.name)) errors.name = 'Name is required';

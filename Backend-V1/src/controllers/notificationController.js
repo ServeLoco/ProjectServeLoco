@@ -2,6 +2,16 @@ const { pool } = require('../db/mysql');
 const notificationService = require('../utils/notificationService');
 const { validatePagination } = require('../validators');
 
+const safeParseActionPayload = (value) => {
+  if (!value) return null;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
 const getNotifications = async (req, res) => {
   const userId = req.user.id;
   const pagination = validatePagination(req.query.page, req.query.limit);
@@ -39,7 +49,7 @@ const getNotifications = async (req, res) => {
     sourceType: r.source_type,
     sourceId: r.source_id,
     actionType: r.action_type,
-    actionPayload: r.action_payload ? JSON.parse(r.action_payload) : null,
+    actionPayload: safeParseActionPayload(r.action_payload),
     read: !!r.read_at,
     readAt: r.read_at,
     createdAt: r.created_at,

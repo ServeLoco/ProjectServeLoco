@@ -1,9 +1,6 @@
 const { pool } = require('../db/mysql');
 const { getDb } = require('../db/mongodb');
 const { ObjectId } = require('mongodb');
-const path = require('path');
-const fs = require('fs');
-const config = require('../config/env');
 const { validatePagination } = require('../validators');
 const { isPositiveInteger } = require('../validators');
 const { normalizeStoreType } = require('../utils/storeMode');
@@ -288,7 +285,7 @@ const updateCombo = async (req, res) => {
   const { id } = req.params;
   const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items, store_type } = req.validatedData;
 
-  const [existing] = await pool.query('SELECT image_id, store_type FROM combos WHERE id = ? AND deleted = 0', [id]);
+  const [existing] = await pool.query('SELECT id, store_type FROM combos WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Combo not found' });
   }
@@ -340,30 +337,12 @@ const updateCombo = async (req, res) => {
     connection.release();
   }
 
-  // Defer image deletion until after transaction commits
-  if (existingCombo.image_id && existingCombo.image_id !== image_id) {
-    const oldImageId = existingCombo.image_id;
-    if (ObjectId.isValid(oldImageId)) {
-      const db = getDb();
-      const image = await db.collection('images').findOne({ _id: new ObjectId(oldImageId) });
-      if (image) {
-        if (image.storageType === 'disk') {
-          const filePath = path.join(__dirname, '../../', config.UPLOAD_DIR, image.filename);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        }
-        await db.collection('images').deleteOne({ _id: new ObjectId(oldImageId) });
-      }
-    }
-  }
-
   res.status(200).json({ message: 'Combo updated' });
 };
 
 const deleteCombo = async (req, res) => {
   const { id } = req.params;
-  const [existing] = await pool.query('SELECT id FROM combos WHERE id = ?', [id]);
+  const [existing] = await pool.query('SELECT id FROM combos WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Combo not found' });
   }
@@ -380,7 +359,10 @@ const updateComboAvailability = async (req, res) => {
   }
 
   const normalizedAvailable = finalAvail === true || finalAvail === 'true' || finalAvail === 1 || finalAvail === '1';
-  await pool.query('UPDATE combos SET available = ? WHERE id = ?', [normalizedAvailable ? 1 : 0, id]);
+  const [result] = await pool.query('UPDATE combos SET available = ? WHERE id = ? AND deleted = 0', [normalizedAvailable ? 1 : 0, id]);
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Combo not found' });
+  }
   
   const [updatedRows] = await pool.query('SELECT * FROM combos WHERE id = ?', [id]);
   res.status(200).json({ message: 'Combo availability updated', combo: updatedRows[0] });

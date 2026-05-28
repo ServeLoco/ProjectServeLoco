@@ -61,6 +61,10 @@ const attachOfferImageUrls = async (offers) => {
       row.imageUrl = imageMap[row.image_id];
       row.image_url = imageMap[row.image_id];
     }
+    if (row.is_clickable !== undefined) {
+      row.isClickable = Boolean(row.is_clickable);
+      row.is_clickable = Boolean(row.is_clickable);
+    }
   });
 
   return offers;
@@ -101,11 +105,11 @@ const getActiveOffer = async (req, res) => {
   const params = [];
 
   if (finalStoreType) {
-    const normalizedStoreType = finalStoreType === 'all'
-      ? 'packed'
-      : normalizeStoreType(finalStoreType, { allowAll: false });
-    query += ' AND store_type = ?';
-    params.push(normalizedStoreType);
+    const normalizedStoreType = normalizeStoreType(finalStoreType, { allowAll: true });
+    if (normalizedStoreType !== 'all') {
+      query += ' AND store_type = ?';
+      params.push(normalizedStoreType);
+    }
   }
 
   query += ' ORDER BY id DESC LIMIT 1';
@@ -123,7 +127,7 @@ const updateSettings = async (req, res) => {
   const fields = [
     'shop_open', 'delivery_available', 'minimum_order_amount', 'delivery_charge',
     'free_delivery_above', 'night_charge', 'night_charge_start', 'night_charge_end',
-    'whatsapp_number', 'upi_id', 'upi_qr_image_id', 'delivery_time_message',
+    'whatsapp_number', 'support_phone', 'upi_id', 'upi_qr_image_id', 'delivery_time_message',
     'shop_latitude', 'shop_longitude', 'delivery_radius_km', 'delivery_cost_per_km',
     'below_threshold_delivery_charge', 'free_delivery_above_minimum_active',
     'free_delivery_offer_active'
@@ -217,27 +221,45 @@ const updateSettings = async (req, res) => {
 };
 
 const createOffer = async (req, res) => {
-  const { title, description, active, image_id, imageId, store_type, storeType } = req.body;
+  const { title, description, active, image_id, imageId, store_type, storeType, is_clickable, isClickable } = req.body;
   const finalImageId = image_id || imageId || null;
   const finalStoreType = normalizeStoreType(store_type || storeType);
+  const clickableInput = is_clickable !== undefined ? is_clickable : isClickable;
+  const finalIsClickable = (clickableInput === true || clickableInput === 'true' || clickableInput === 1 || clickableInput === '1') ? 1 : 0;
 
   if (!title) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Title is required' });
   }
 
-  const isActive = (active === true || active === 'true' || active === 1) ? 1 : 0;
+  const isActive = (active === true || active === 'true' || active === 1 || active === '1') ? 1 : 0;
+  if (isActive && !finalImageId) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'An active offer must have an image.' });
+  }
 
   const [result] = await pool.query(
-    'INSERT INTO offers (title, description, active, image_id, store_type) VALUES (?, ?, ?, ?, ?)',
-    [title, description || '', isActive, finalImageId, finalStoreType]
+    'INSERT INTO offers (title, description, active, image_id, store_type, is_clickable) VALUES (?, ?, ?, ?, ?, ?)',
+    [title, description || '', isActive, finalImageId, finalStoreType, finalIsClickable]
   );
+
+  if (isActive) {
+    await pool.query(
+      'UPDATE offers SET active = 0 WHERE store_type = ? AND id != ? AND deleted = 0',
+      [finalStoreType, result.insertId]
+    );
+  }
 
   res.status(201).json({ message: 'Offer created', id: result.insertId });
 };
 
 const updateOffer = async (req, res) => {
   const { id } = req.params;
-  const { title, description, active, image_id, imageId } = req.body;
+  const { title, description, active, image_id, imageId, is_clickable, isClickable } = req.body;
+
+  const [existingRows] = await pool.query('SELECT * FROM offers WHERE id = ? AND deleted = 0', [id]);
+  if (existingRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
+  }
+  const existingOffer = existingRows[0];
   
   const updates = [];
   const params = [];
@@ -252,21 +274,39 @@ const updateOffer = async (req, res) => {
     params.push(description);
   }
 
-  if (active !== undefined) {
-    updates.push('active = ?');
-    params.push((active === true || active === 'true' || active === 1) ? 1 : 0);
+  const clickableInput = is_clickable !== undefined ? is_clickable : isClickable;
+  if (clickableInput !== undefined) {
+    updates.push('is_clickable = ?');
+    params.push((clickableInput === true || clickableInput === 'true' || clickableInput === 1 || clickableInput === '1') ? 1 : 0);
   }
 
-  const finalImageId = image_id || imageId;
+  const finalImageId = image_id !== undefined ? image_id : (imageId !== undefined ? imageId : undefined);
   if (finalImageId !== undefined) {
     updates.push('image_id = ?');
     params.push(finalImageId);
   }
 
+  const nextActive = active !== undefined
+    ? (active === true || active === 'true' || active === 1 || active === '1')
+    : (existingOffer.active === true || existingOffer.active === 1 || existingOffer.active === '1' || existingOffer.active === 'true');
+
+  const nextImageId = finalImageId !== undefined ? finalImageId : existingOffer.image_id;
+  if (nextActive && !nextImageId) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'An active offer must have an image.' });
+  }
+
+  if (active !== undefined) {
+    updates.push('active = ?');
+    params.push(nextActive ? 1 : 0);
+  }
+
   const finalStoreTypeInput = req.body.store_type || req.body.storeType;
+  const targetStoreType = finalStoreTypeInput !== undefined
+    ? normalizeStoreType(finalStoreTypeInput)
+    : existingOffer.store_type;
   if (finalStoreTypeInput !== undefined) {
     updates.push('store_type = ?');
-    params.push(normalizeStoreType(finalStoreTypeInput));
+    params.push(targetStoreType);
   }
 
   if (updates.length === 0) {
@@ -275,6 +315,16 @@ const updateOffer = async (req, res) => {
 
   params.push(id);
   await pool.query(`UPDATE offers SET ${updates.join(', ')} WHERE id = ?`, params);
+
+  const nextActive = active !== undefined
+    ? (active === true || active === 'true' || active === 1 || active === '1')
+    : (existingOffer.active === true || existingOffer.active === 1 || existingOffer.active === '1' || existingOffer.active === 'true');
+  if (nextActive) {
+    await pool.query(
+      'UPDATE offers SET active = 0 WHERE store_type = ? AND id != ? AND deleted = 0',
+      [targetStoreType, id]
+    );
+  }
 
   res.status(200).json({ message: 'Offer updated' });
 };
@@ -299,10 +349,107 @@ const getAdminOffers = async (req, res) => {
   res.status(200).json({ data: rows });
 };
 
-const deleteOffer = async (req, res) => {
+const deleteOffer,
+  getOfferProducts,
+  addOfferProduct,
+  removeOfferProduct,
+  reorderOfferProducts = async (req, res) => {
   const { id } = req.params;
-  await pool.query('UPDATE offers SET deleted = 1 WHERE id = ?', [id]);
+  const [result] = await pool.query('UPDATE offers SET deleted = 1 WHERE id = ? AND deleted = 0', [id]);
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
+  }
   res.status(200).json({ message: 'Offer soft deleted' });
+};
+
+
+const getOfferProducts = async (req, res) => {
+  const { id } = req.params;
+  const [rows] = await pool.query(`
+    SELECT op.id as offer_product_id, op.offer_id, op.product_id, op.display_order as op_display_order, op.active as op_active,
+           p.*, c.name as category_name, c.type as category_type
+    FROM offer_products op
+    JOIN products p ON op.product_id = p.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE op.offer_id = ?
+    ORDER BY op.display_order ASC, p.display_order ASC, p.id ASC
+  `, [id]);
+
+  const { attachImageUrls } = require('./productController');
+  if (attachImageUrls) await attachImageUrls(rows);
+
+  res.status(200).json({ data: rows });
+};
+
+const addOfferProduct = async (req, res) => {
+  const { id } = req.params;
+  const { product_id, productId, display_order } = req.body;
+  const finalProductId = product_id || productId;
+
+  if (!finalProductId) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'product_id is required' });
+  }
+
+  const [offerRows] = await pool.query('SELECT store_type, deleted FROM offers WHERE id = ?', [id]);
+  if (offerRows.length === 0 || offerRows[0].deleted) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found or deleted' });
+  }
+
+  const [productRows] = await pool.query(`
+    SELECT p.id, p.deleted, p.available, p.is_combo, c.type as category_type 
+    FROM products p 
+    LEFT JOIN categories c ON p.category_id = c.id 
+    WHERE p.id = ?`, [finalProductId]);
+  
+  if (productRows.length === 0 || productRows[0].deleted) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found or deleted' });
+  }
+
+  const product = productRows[0];
+  if (!product.available) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Product is unavailable' });
+  }
+  if (product.is_combo) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Combos cannot be added to offers directly yet' });
+  }
+  if (product.category_type !== offerRows[0].store_type) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Product store mode (${product.category_type}) does not match offer mode (${offerRows[0].store_type})` });
+  }
+
+  try {
+    await pool.query(
+      'INSERT INTO offer_products (offer_id, product_id, display_order) VALUES (?, ?, ?)',
+      [id, finalProductId, display_order || 0]
+    );
+    res.status(201).json({ message: 'Product added to offer' });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      res.status(200).json({ message: 'Product already attached' });
+    } else {
+      throw err;
+    }
+  }
+};
+
+const removeOfferProduct = async (req, res) => {
+  const { id, productId } = req.params;
+  await pool.query('DELETE FROM offer_products WHERE offer_id = ? AND product_id = ?', [id, productId]);
+  res.status(200).json({ message: 'Product removed from offer' });
+};
+
+const reorderOfferProducts = async (req, res) => {
+  const { id } = req.params;
+  const { productIds } = req.body;
+  
+  if (!Array.isArray(productIds)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'productIds array is required' });
+  }
+
+  for (let i = 0; i < productIds.length; i++) {
+    await pool.query('UPDATE offer_products SET display_order = ? WHERE offer_id = ? AND product_id = ?', [i, id, productIds[i]]);
+  }
+
+  res.status(200).json({ message: 'Products reordered' });
 };
 
 module.exports = {
@@ -312,5 +459,9 @@ module.exports = {
   createOffer,
   updateOffer,
   getAdminOffers,
-  deleteOffer
+  deleteOffer,
+  getOfferProducts,
+  addOfferProduct,
+  removeOfferProduct,
+  reorderOfferProducts
 };

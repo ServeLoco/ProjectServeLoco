@@ -113,6 +113,18 @@ describe('Settings and Offers Tests', () => {
     expect(res.body.data.title).toEqual('Test Offer');
   });
 
+  it('should not silently map active offer store_type=all to packed', async () => {
+    pool.query.mockResolvedValueOnce([[{ id: 1, title: 'Any Mode Offer', active: 1 }]]);
+
+    const res = await request(app)
+      .get('/api/admin/offers/active?store_type=all')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.data.title).toEqual('Any Mode Offer');
+    expect(pool.query.mock.calls[0][0]).not.toContain('store_type = ?');
+  });
+
   it('should return null if no offer is active', async () => {
     pool.query.mockResolvedValueOnce([[]]); // no rows
 

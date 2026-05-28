@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { OffersApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
+import OfferProductsPanel from '../components/OfferProductsPanel';
 import './Offers.css';
 
 export default function Offers() {
@@ -99,6 +100,9 @@ export default function Offers() {
                   <span className={`offer-status ${o.active ? 'active' : 'inactive'}`}>
                     {o.active ? 'Active' : 'Inactive'}
                   </span>
+                  <span className="offer-status" style={{ background: 'var(--surface-color)', color: 'var(--text-secondary)' }}>
+                    {o.isClickable ? 'Clickable' : 'Image only'}
+                  </span>
                   <div className="offer-actions">
                     <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => toggleActive(o)}>
                       {o.active ? 'Deactivate' : 'Activate'}
@@ -134,6 +138,7 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
     image_id: '',
     image_url: '',
     active: false,
+    is_clickable: Boolean(offer?.isClickable || offer?.is_clickable),
     store_type: offer?.store_type || currentMode || 'packed'
   });
   
@@ -251,14 +256,28 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
             </div>
 
             <div className="form-group" style={{ marginTop: '1rem' }}>
-              <label className="checkbox-label" style={{ padding: '1rem', background: 'var(--bg-color)', borderRadius: 'var(--radius-md)' }}>
+              <label className="checkbox-label" style={{ padding: '1rem', background: 'var(--bg-color)', borderRadius: 'var(--radius-md)', marginBottom: '0.5rem' }}>
                 <input type="checkbox" name="active" checked={Boolean(formData.active)} onChange={handleChange} />
                 Activate this offer
               </label>
+              <label className="checkbox-label" style={{ padding: '1rem', background: 'var(--bg-color)', borderRadius: 'var(--radius-md)' }}>
+                <input type="checkbox" name="is_clickable" checked={Boolean(formData.is_clickable)} onChange={handleChange} />
+                Banner is clickable
+              </label>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                Note: The app may only display one active offer per mode at a time. Activating this will replace the currently displayed offer for {formData.store_type === 'fast_food' ? 'Fast Food' : 'Packed Items'}.
+                Note: The app may only display one active offer per mode at a time. Activating this will replace the currently displayed offer for {formData.store_type === 'fast_food' ? 'Fast Food' : 'Packed Items'}. Mobile banner displays only the uploaded image.
               </p>
             </div>
+
+            {isEdit && (
+              formData.is_clickable ? (
+                <OfferProductsPanel offer={offer} />
+              ) : (
+                <div style={{ marginTop: '2rem', padding: '1rem', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  Enable "Banner is clickable" to attach products to this offer.
+                </div>
+              )
+            )}
           </div>
 
           <div className="drawer-footer">

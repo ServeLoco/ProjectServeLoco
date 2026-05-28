@@ -75,6 +75,12 @@ const createOrder = async (req, res) => {
       });
     }
 
+    subtotal = roundMoney(subtotal);
+    const minimumOrder = Number(settings.minimum_order_amount) || 0;
+    if (minimumOrder > 0 && subtotal < minimumOrder) {
+      throw new Error(`Minimum order amount is ₹${roundMoney(minimumOrder)}. Add ₹${roundMoney(minimumOrder - subtotal)} more to place this order.`);
+    }
+
     // Calculate delivery pricing based on distance
     const pricing = calculateDeliveryPricing({
       customerLat: latitude,
@@ -112,7 +118,6 @@ const createOrder = async (req, res) => {
       if (isNight) nightCharge = toMoney(settings.night_charge);
     }
 
-    subtotal = roundMoney(subtotal);
     const total = roundMoney(subtotal + deliveryCharge + nightCharge);
     const orderNumber = await generateOrderNumber(connection);
 
