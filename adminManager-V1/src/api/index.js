@@ -103,9 +103,9 @@ export const AuditApi = {
 };
 
 export const MobileDashboardApi = {
-  listSections: () => apiClient('/admin/dashboard-sections', { method: 'GET' }),
+  listSections: (params) => apiClient(withQuery('/admin/dashboard-sections', params), { method: 'GET' }),
   createSection: (data) => apiClient('/admin/dashboard-sections', { method: 'POST', body: data }),
-  reorderSections: (sectionIds) => apiClient('/admin/dashboard-sections/reorder', { method: 'PATCH', body: { sectionIds } }),
+  reorderSections: (sectionIds, params) => apiClient(withQuery('/admin/dashboard-sections/reorder', params), { method: 'PATCH', body: { sectionIds } }),
   getSection: (id) => apiClient(`/admin/dashboard-sections/${id}`, { method: 'GET' }),
   updateSection: (id, data) => apiClient(`/admin/dashboard-sections/${id}`, { method: 'PATCH', body: data }),
   deleteSection: (id) => apiClient(`/admin/dashboard-sections/${id}`, { method: 'DELETE' }),

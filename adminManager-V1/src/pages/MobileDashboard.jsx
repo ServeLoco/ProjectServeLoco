@@ -269,7 +269,7 @@ export default function MobileDashboard() {
     // Call reorder API
     try {
       const sectionIds = newSections.map(s => s.id);
-      await MobileDashboardApi.reorderSections(sectionIds);
+      await MobileDashboardApi.reorderSections(sectionIds, { store_type: storeType });
       setSections(newSections);
     } catch (err) {
       alert('Failed to reorder: ' + err.message);

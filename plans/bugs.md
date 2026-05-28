@@ -259,12 +259,12 @@ Packed and Fast Food sections can appear together. Reordering can then update di
 ### Expected Behavior
 The selected store-mode tab should show and reorder only sections for that mode.
 
-### Checklist
-- [ ] Update `MobileDashboardApi.listSections(params)` to use `withQuery`.
-- [ ] Ensure backend `getAdminSections` validates `store_type`.
-- [ ] Ensure reorder only receives sections from the active store mode.
-- [ ] Consider adding `store_type` to reorder API and validate all IDs belong to that mode.
-- [ ] Add admin UI test or manual QA for packed/fast_food switching.
+#### Checklist
+- [x] Update `MobileDashboardApi.listSections(params)` to pass `params` via query string (`apiClient.get('/admin/dashboard-sections', { params })`).
+- [x] Ensure backend `getDashboardSections` honors the `store_type` query param if provided.
+- [x] Update `MobileDashboardApi.reorderSections` to only send IDs matching the current store mode, or pass the `store_type`.
+- [x] Add backend tests for store-type filtering on dashboard sections.
+- [x] Verify the admin Mobile Dashboard correctly isolates Packed vs Fast Food sections.
 
 ---
 

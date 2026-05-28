@@ -646,7 +646,7 @@ const getAdminSections = async (req, res) => {
     let query = 'SELECT * FROM dashboard_sections WHERE deleted_at IS NULL';
     const params = [];
     if (store_type) {
-      query += ' AND store_type = ?';
+      query += ' AND (store_type = ? OR store_type = "all")';
       params.push(store_type);
     }
     query += ' ORDER BY display_order ASC, id ASC';
