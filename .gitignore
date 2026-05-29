@@ -7,8 +7,4 @@ build
 *.log
 coverage
 firebase-service-account.json
-graphify-out/manifest.json
-graphify-out/cost.json
-graphify-out/cache/
 .antigravitycli/
-
