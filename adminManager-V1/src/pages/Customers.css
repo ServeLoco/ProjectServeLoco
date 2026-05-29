@@ -67,7 +67,7 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(7, 10, 18, 0.62);
+  background: var(--overlay-dark);
   position: sticky;
   top: 0;
 }
@@ -121,7 +121,7 @@
   height: 64px;
   border-radius: 50%;
   background: var(--primary-color);
-  color: white;
+  color: var(--text-on-primary);
   display: flex;
   align-items: center;
   justify-content: center;

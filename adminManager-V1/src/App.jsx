@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './components/ThemeProvider';
 import { AuthProvider } from './components/AuthProvider';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminLayout from './layout/AdminLayout';
@@ -22,31 +23,33 @@ import AuditLogs from './pages/AuditLogs';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route element={<ProtectedRoute />}>
-            <Route element={<AdminLayout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/combos" element={<Combos />} />
-              <Route path="/categories" element={<Categories />} />
-              <Route path="/offers" element={<Offers />} />
-              <Route path="/mobile-dashboard" element={<MobileDashboard />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/images" element={<Images />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/health" element={<Health />} />
-              <Route path="/audit" element={<AuditLogs />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AdminLayout />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/products" element={<Products />} />
+                <Route path="/combos" element={<Combos />} />
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/offers" element={<Offers />} />
+                <Route path="/mobile-dashboard" element={<MobileDashboard />} />
+                <Route path="/customers" element={<Customers />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/images" element={<Images />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/health" element={<Health />} />
+                <Route path="/audit" element={<AuditLogs />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </Router>
-    </AuthProvider>
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

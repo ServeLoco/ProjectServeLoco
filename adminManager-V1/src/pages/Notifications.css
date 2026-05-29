@@ -65,8 +65,8 @@
 }
 
 .inline-error-box {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
   padding: 12px;
   border-radius: 8px;
   margin-bottom: 16px;
@@ -74,8 +74,8 @@
 }
 
 .inline-success-box {
-  background-color: #dcfce7;
-  color: #166534;
+  background-color: var(--success-bg);
+  color: var(--success-text);
   padding: 12px;
   border-radius: 8px;
   margin-bottom: 16px;
@@ -91,11 +91,11 @@
   text-transform: uppercase;
 }
 
-.badge-info { background: #dbeafe; color: #1e40af; }
-.badge-offer { background: #fef3c7; color: #92400e; }
-.badge-success { background: #dcfce7; color: #166534; }
-.badge-warning { background: #ffedd5; color: #9a3412; }
-.badge-admin { background: #f3f4f6; color: #374151; }
+.badge-info { background: var(--badge-info-bg); color: var(--badge-info-text); }
+.badge-offer { background: var(--badge-offer-bg); color: var(--badge-offer-text); }
+.badge-success { background: var(--success-bg); color: var(--success-text); }
+.badge-warning { background: var(--danger-soft); color: var(--badge-warning-text); }
+.badge-admin { background: var(--badge-admin-bg); color: var(--badge-admin-text); }
 
 .text-sm {
   font-size: 0.85rem;

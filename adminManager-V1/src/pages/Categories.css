@@ -48,7 +48,7 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(7, 10, 18, 0.62);
+  background: var(--overlay-dark);
 }
 
 .categories-table tbody tr:hover {
@@ -93,7 +93,7 @@
 
 .category-type.fast-food {
   background: rgba(245, 158, 11, 0.1);
-  color: #d97706;
+  color: var(--fast-food-color);
 }
 
 @media (max-width: 680px) {

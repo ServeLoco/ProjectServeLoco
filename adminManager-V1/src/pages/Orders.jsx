@@ -608,7 +608,7 @@ export default function Orders() {
               </div>
 
               {selectedOrder.note && (
-                <div className="detail-section" style={{ background: 'rgba(245, 158, 11, 0.1)', borderColor: 'var(--warning-color)' }}>
+                <div className="detail-section" style={{ background: 'var(--badge-pending-bg)', borderColor: 'var(--warning-color)' }}>
                   <h4>Customer Note</h4>
                   <p style={{ fontSize: '0.95rem' }}>{selectedOrder.note}</p>
                 </div>

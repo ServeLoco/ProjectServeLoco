@@ -221,7 +221,7 @@ export default function Customers() {
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                   <a href={`tel:${selectedCustomer.phone}`} className="btn-primary" style={{ flex: 1, justifyContent: 'center' }}>Call</a>
                   {selectedCustomer.whatsapp_number && (
-                    <a href={`https://wa.me/${selectedCustomer.whatsapp_number.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="btn-primary" style={{ flex: 1, justifyContent: 'center', background: '#25D366' }}>WhatsApp</a>
+                    <a href={`https://wa.me/${selectedCustomer.whatsapp_number.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="btn-primary" style={{ flex: 1, justifyContent: 'center', background: 'var(--whatsapp)' }}>WhatsApp</a>
                   )}
                 </div>
               </div>
@@ -239,7 +239,7 @@ export default function Customers() {
                 </button>
               </div>
 
-              <div className="action-card" style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+              <div className="action-card" style={{ borderColor: 'var(--danger-border)' }}>
                 <h4 style={{ color: 'var(--danger-color)' }}>Block Customer</h4>
                 <p>Blocked customers are immediately prevented from placing new orders.</p>
                 <button 

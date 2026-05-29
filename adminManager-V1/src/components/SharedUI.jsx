@@ -13,7 +13,7 @@ export function ErrorState({ message }) {
   return (
     <div style={{
       padding: '1.25rem 1.5rem',
-      backgroundColor: 'rgba(239, 68, 68, 0.05)',
+      backgroundColor: 'var(--danger-soft)',
       color: 'var(--danger-color)',
       borderLeft: '4px solid var(--danger-color)',
       borderRadius: '0 var(--radius-md) var(--radius-md) 0',
@@ -46,7 +46,7 @@ export function Table({ columns, data }) {
     <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', backgroundColor: 'var(--surface-color)', boxShadow: 'var(--shadow-sm)' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.925rem' }}>
         <thead>
-          <tr style={{ background: 'rgba(248, 250, 252, 0.6)', borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
+          <tr style={{ background: 'var(--table-header-bg)', borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
             {columns.map((col, idx) => (
               <th key={idx} style={{ padding: '1rem 1.25rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '0.05em' }}>
                 {col}

@@ -97,7 +97,7 @@
 }
 
 .btn-order-arrow {
-  background: rgba(7, 10, 18, 0.62);
+  background: var(--overlay-dark);
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
   border-radius: 4px;
@@ -113,7 +113,7 @@
 
 .btn-order-arrow:hover:not(:disabled) {
   background: var(--primary-color);
-  color: #ffffff;
+  color: var(--text-on-primary);
   border-color: var(--primary-color);
 }
 
@@ -216,7 +216,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(7, 10, 18, 0.38);
+  background: var(--overlay-light);
 }
 
 .detail-title {
@@ -239,7 +239,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  background: rgba(7, 10, 18, 0.5);
+  background: var(--overlay-medium);
   padding: 1.25rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
@@ -297,7 +297,7 @@
   object-fit: contain;
   border-radius: 6px;
   border: 1px solid var(--border-color);
-  background: #fff;
+  background: var(--surface-color);
 }
 
 .item-details {
@@ -342,7 +342,7 @@
 
 /* Add Items Picker Area */
 .add-items-picker {
-  background: rgba(7, 10, 18, 0.5);
+  background: var(--overlay-medium);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 1.25rem;
@@ -364,7 +364,7 @@
   gap: 0.5rem;
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  background: rgba(7, 10, 18, 0.42);
+  background: var(--overlay-medium);
 }
 
 .picker-result-row {
@@ -392,7 +392,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--overlay-drawer);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -415,8 +415,8 @@
 .modal-header {
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  background: linear-gradient(135deg, rgba(31, 181, 116, 0.88), rgba(59, 130, 246, 0.72));
-  color: #fff;
+  background: var(--primary-color);
+  color: var(--text-on-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -443,5 +443,5 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  background: rgba(7, 10, 18, 0.5);
+  background: var(--overlay-medium);
 }

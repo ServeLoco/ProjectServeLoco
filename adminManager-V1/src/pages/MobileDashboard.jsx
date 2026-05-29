@@ -704,8 +704,8 @@ export default function MobileDashboard() {
                                 {cand.type && ` • ${cand.type === 'fast_food' ? 'Fast Food' : 'Packed'}`}
                                 {isOfferBanner && ` • ${cand.active ? 'Active' : 'Inactive'}`}
                                 {isOfferBanner && ` • ${cand.isClickable || cand.is_clickable ? 'Clickable' : 'Image only'}`}
-                                {isOfferBanner && !hasImage && <span style={{color: 'red'}}> • Missing image</span>}
-                                {isInactiveOffer && <span style={{color: 'red'}}> • Activate offer first</span>}
+                                {isOfferBanner && !hasImage && <span style={{color: 'var(--danger-color)'}}> • Missing image</span>}
+                                {isInactiveOffer && <span style={{color: 'var(--danger-color)'}}> • Activate offer first</span>}
                               </div>
                             </div>
                             <button 
@@ -741,7 +741,7 @@ export default function MobileDashboard() {
             <form onSubmit={handleCreateSection}>
               <header className="modal-header">
                 <h3 className="modal-title">New Dashboard Section</h3>
-                <button type="button" style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem' }} onClick={() => setIsModalOpen(false)}>&times;</button>
+                <button type="button" style={{ background: 'none', border: 'none', color: 'var(--text-on-primary)', fontSize: '1.5rem' }} onClick={() => setIsModalOpen(false)}>&times;</button>
               </header>
 
               <div className="modal-body">

@@ -23,9 +23,9 @@
 }
 
 .btn-primary {
-  color: #06110b;
-  border: 1px solid rgba(34, 201, 130, 0.55);
-  background: linear-gradient(180deg, #45e19d, var(--primary-color));
+  color: var(--text-on-primary);
+  border: 1px solid var(--primary-color);
+  background: var(--primary-color);
   padding: 0.6rem 1.25rem;
   border-radius: var(--radius-md);
   font-weight: 800;
@@ -37,13 +37,13 @@
 }
 
 .btn-primary:hover {
-  background: linear-gradient(180deg, #58eba9, var(--primary-hover));
+  background: var(--primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 18px 38px rgba(31, 181, 116, 0.28), inset 0 1px rgba(255, 255, 255, 0.5);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-secondary {
-  background: rgba(15, 23, 42, 0.84);
+  background: var(--surface-strong);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
   padding: 0.6rem 1.25rem;
@@ -54,7 +54,7 @@
 }
 
 .btn-secondary:hover {
-  background: rgba(30, 41, 59, 0.92);
+  background: var(--surface-hover);
   border-color: var(--border-strong);
 }
 
@@ -168,7 +168,7 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(7, 10, 18, 0.62);
+  background: var(--overlay-dark);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -251,7 +251,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.3);
+  background: var(--overlay-drawer);
   backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
@@ -375,7 +375,7 @@
   object-fit: contain;
   border-radius: var(--radius-md);
   margin-bottom: 1rem;
-  background: #fff;
+  background: var(--surface-color);
   border: 1px solid var(--border-color);
 }
 

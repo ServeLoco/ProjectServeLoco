@@ -48,7 +48,7 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(7, 10, 18, 0.62);
+  background: var(--overlay-dark);
   position: sticky;
   top: 0;
 }
@@ -75,7 +75,7 @@
 
 .audit-action-badge.update {
   background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  color: var(--info-color);
 }
 
 .audit-action-badge.delete {

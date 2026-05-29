@@ -142,7 +142,7 @@ export default function Settings() {
       </header>
 
       {settings.delivery_available === false && (
-        <div style={{ backgroundColor: '#fff3cd', color: '#856404', padding: '1rem', borderRadius: '4px', marginBottom: '1rem', border: '1px solid #ffeeba' }}>
+        <div style={{ backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)', padding: '1rem', borderRadius: '4px', marginBottom: '1rem', border: '1px solid var(--warning-border)' }}>
           <strong>Warning:</strong> Delivery is currently OFF. Customers will not be able to select delivery at checkout.
         </div>
       )}

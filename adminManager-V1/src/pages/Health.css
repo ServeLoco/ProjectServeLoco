@@ -84,7 +84,7 @@
 }
 
 .service-item {
-  background: rgba(7, 10, 18, 0.62);
+  background: var(--overlay-dark);
   padding: 1.25rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);

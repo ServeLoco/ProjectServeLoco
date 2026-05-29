@@ -23,7 +23,7 @@
 
 .image-upload-area {
   border: 1px dashed rgba(31, 181, 116, 0.55);
-  background: rgba(15, 23, 42, 0.68);
+  background: var(--surface-strong);
   border-radius: var(--radius-lg);
   padding: 2rem;
   text-align: center;
@@ -102,7 +102,7 @@
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   background: rgba(16, 185, 129, 0.9);
-  color: white;
+  color: var(--text-on-primary);
   backdrop-filter: blur(4px);
 }
 

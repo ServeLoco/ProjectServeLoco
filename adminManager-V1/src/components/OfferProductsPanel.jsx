@@ -74,13 +74,13 @@ export default function OfferProductsPanel({ offer }) {
         {attachedProducts.map(p => (
           <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-color)', padding: '0.5rem', borderRadius: '4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <img src={normalizeImageUrl(p.imageUrl || p.image_url)} alt="" style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 4, background: '#fff', border: '1px solid var(--border-color)' }} />
+              <img src={normalizeImageUrl(p.imageUrl || p.image_url)} alt="" style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 4, background: 'var(--surface-color)', border: '1px solid var(--border-color)' }} />
               <div>
                 <div style={{ fontWeight: 500 }}>{p.name}</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                   ₹{p.price} • {p.category_type}
                   {(!p.available || p.deleted || p.category_type !== offer.store_type) && (
-                    <span style={{ color: 'red', marginLeft: '0.5rem', fontWeight: 600 }}>[Invalid]</span>
+                    <span style={{ color: 'var(--danger-color)', marginLeft: '0.5rem', fontWeight: 600 }}>[Invalid]</span>
                   )}
                 </div>
               </div>
@@ -103,7 +103,7 @@ export default function OfferProductsPanel({ offer }) {
         {filteredCandidates.map(p => (
           <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--border-color)', padding: '0.5rem', borderRadius: '4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <img src={normalizeImageUrl(p.imageUrl || p.image_url)} alt="" style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 4, background: '#fff', border: '1px solid var(--border-color)' }} />
+              <img src={normalizeImageUrl(p.imageUrl || p.image_url)} alt="" style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 4, background: 'var(--surface-color)', border: '1px solid var(--border-color)' }} />
               <div>
                 <div style={{ fontWeight: 500 }}>{p.name}</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>₹{p.price} • {p.category_name}</div>

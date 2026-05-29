@@ -83,7 +83,7 @@
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: rgba(7, 10, 18, 0.62);
+  background: var(--overlay-dark);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
 }
@@ -120,7 +120,7 @@
   width: 20px;
   left: 4px;
   bottom: 4px;
-  background-color: #f8fafc;
+  background-color: var(--surface-hover);
   transition: .4s;
   border-radius: 50%;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -142,7 +142,7 @@ input:checked + .toggle-slider:before {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   margin-bottom: 1rem;
-  background: #fff;
+  background: var(--surface-color);
 }
 
 .settings-footer {
