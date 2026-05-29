@@ -4,9 +4,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation';
 import { colors } from './src/theme';
 import { setCustomerTokenProvider } from './src/api';
+import { useCustomerRealtime } from './src/hooks';
 import { useAuthStore } from './src/stores';
 
 function App() {
+  useCustomerRealtime();
+
   useEffect(() => {
     setCustomerTokenProvider(() => useAuthStore.getState().token);
   }, []);

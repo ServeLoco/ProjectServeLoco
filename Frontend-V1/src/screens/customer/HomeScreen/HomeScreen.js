@@ -26,7 +26,13 @@ import {
 import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { useCartStore, useSettingsStore } from '../../../stores';
 import { useAuthGate } from '../../../hooks';
-import { dashboardApi, settingsApi, notificationsApi } from '../../../api';
+import {
+  dashboardApi,
+  notificationsApi,
+  settingsApi,
+  subscribeNotificationEvents,
+  subscribeRealtimeLifecycle,
+} from '../../../api';
 import { normalizeCategory, normalizeImageUrl, normalizeProduct, normalizeSettings } from '../../../utils';
 import { appLogo } from '../../../assets';
 
@@ -71,6 +77,7 @@ export default function HomeScreen() {
   // Notification animations
   const bellRotation = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const unreadRefreshTimer = useRef(null);
   
   // Staggered entry for cards
   const staggerCatAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
@@ -160,6 +167,48 @@ export default function HomeScreen() {
       return () => { isActive = false; };
     }, [])
   );
+
+  const queueUnreadRefresh = React.useCallback(() => {
+    if (unreadRefreshTimer.current) {
+      clearTimeout(unreadRefreshTimer.current);
+    }
+
+    unreadRefreshTimer.current = setTimeout(() => {
+      notificationsApi.getUnreadCount()
+        .then(count => setUnreadCount(count || 0))
+        .catch(() => {});
+    }, 350);
+  }, []);
+
+  useEffect(() => {
+    const unsubscribeNotifications = subscribeNotificationEvents(({ eventName, payload }) => {
+      if (eventName === 'notification.unread_count.updated') {
+        if (unreadRefreshTimer.current) {
+          clearTimeout(unreadRefreshTimer.current);
+        }
+        setUnreadCount(payload?.unreadCount || 0);
+        return;
+      }
+
+      if (eventName === 'notification.created') {
+        queueUnreadRefresh();
+      }
+    });
+
+    const unsubscribeLifecycle = subscribeRealtimeLifecycle(({ eventName }) => {
+      if (eventName === 'reconnected' || eventName === 'foreground') {
+        queueUnreadRefresh();
+      }
+    });
+
+    return () => {
+      unsubscribeNotifications();
+      unsubscribeLifecycle();
+      if (unreadRefreshTimer.current) {
+        clearTimeout(unreadRefreshTimer.current);
+      }
+    };
+  }, [queueUnreadRefresh]);
 
   useEffect(() => {
     // 1. Badge pulse/glow loop animation (1.0 to 2.0 scale)

@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -21,8 +21,14 @@ import {
   SkeletonRow,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
-import { ordersApi } from '../../../api';
+import { ordersApi, subscribeOrderEvents, subscribeRealtimeLifecycle } from '../../../api';
 import { asArray, normalizeOrder } from '../../../utils';
+import {
+  getRealtimeOrderId,
+  getRealtimeOrderKey,
+  isRecentRealtimeEvent,
+  mergeOrderRealtimePatch,
+} from '../../../utils/realtimeOrder';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -84,8 +90,10 @@ export default function OrdersScreen() {
 
   // Animations
   const listOpacity = useRef(new Animated.Value(1)).current;
+  const realtimeFetchTimer = useRef(null);
+  const recentRealtimeEvents = useRef({});
 
-  const fetchOrders = (refresh = false) => {
+  const fetchOrders = useCallback((refresh = false) => {
     if (refresh) {
       setIsRefreshing(true);
     } else {
@@ -116,7 +124,19 @@ export default function OrdersScreen() {
         setIsLoading(false);
         setIsRefreshing(false);
       });
-  };
+  }, [activeFilter, listOpacity]);
+
+  const queueRealtimeRefresh = useCallback(() => {
+    if (realtimeFetchTimer.current) {
+      clearTimeout(realtimeFetchTimer.current);
+    }
+
+    realtimeFetchTimer.current = setTimeout(() => {
+      if (isFocused) {
+        fetchOrders(false);
+      }
+    }, 350);
+  }, [fetchOrders, isFocused]);
 
   const handleRefresh = () => {
     fetchOrders(true);
@@ -127,6 +147,56 @@ export default function OrdersScreen() {
       fetchOrders();
     }
   }, [activeFilter, isFocused]); // Re-fetch on focus or filter change
+
+  useEffect(() => {
+    const unsubscribeOrders = subscribeOrderEvents(({ eventName, payload }) => {
+      const eventKey = getRealtimeOrderKey(eventName, payload);
+      if (isRecentRealtimeEvent(recentRealtimeEvents, eventKey)) return;
+
+      if (eventName === 'order.created') {
+        queueRealtimeRefresh();
+        return;
+      }
+
+      const eventOrderId = getRealtimeOrderId(payload);
+      if (!eventOrderId) return;
+
+      let shouldRefresh = activeFilter !== 'All';
+
+      setOrders(prevOrders => {
+        let found = false;
+        const nextOrders = prevOrders.map(order => {
+          if (String(order.id) !== eventOrderId) return order;
+          found = true;
+          return mergeOrderRealtimePatch(order, payload);
+        });
+
+        if (!found) {
+          shouldRefresh = true;
+        }
+
+        return nextOrders;
+      });
+
+      if (shouldRefresh) {
+        queueRealtimeRefresh();
+      }
+    });
+
+    const unsubscribeLifecycle = subscribeRealtimeLifecycle(({ eventName }) => {
+      if (eventName === 'reconnected' || eventName === 'foreground') {
+        queueRealtimeRefresh();
+      }
+    });
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeLifecycle();
+      if (realtimeFetchTimer.current) {
+        clearTimeout(realtimeFetchTimer.current);
+      }
+    };
+  }, [activeFilter, queueRealtimeRefresh]);
 
   const handleCancelOrder = (orderId) => {
     setCancellingId(orderId);

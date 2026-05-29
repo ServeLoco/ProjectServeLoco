@@ -20,8 +20,14 @@ import {
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useSettingsStore } from '../../../stores';
-import { ordersApi } from '../../../api';
+import { ordersApi, subscribeOrderEvents, subscribeRealtimeLifecycle } from '../../../api';
 import { normalizeOrder } from '../../../utils';
+import {
+  getRealtimeOrderId,
+  getRealtimeOrderKey,
+  isRecentRealtimeEvent,
+  mergeOrderRealtimePatch,
+} from '../../../utils/realtimeOrder';
 
 const STATUS_STEPS = [
   { id: 'Pending', label: 'Order Placed' },
@@ -54,6 +60,8 @@ export default function OrderDetailScreen() {
   // Modal Animations
   const modalOpacity = useRef(new Animated.Value(0)).current;
   const modalScale = useRef(new Animated.Value(0.8)).current;
+  const realtimeLoadTimer = useRef(null);
+  const recentRealtimeEvents = useRef({});
 
   const loadOrder = React.useCallback((refresh = false) => {
     if (refresh) {
@@ -76,6 +84,43 @@ export default function OrderDetailScreen() {
   useEffect(() => {
     loadOrder();
   }, [loadOrder]);
+
+  const queueRealtimeLoad = React.useCallback(() => {
+    if (realtimeLoadTimer.current) {
+      clearTimeout(realtimeLoadTimer.current);
+    }
+
+    realtimeLoadTimer.current = setTimeout(() => {
+      loadOrder(true);
+    }, 350);
+  }, [loadOrder]);
+
+  useEffect(() => {
+    const unsubscribeOrders = subscribeOrderEvents(({ eventName, payload }) => {
+      const eventOrderId = getRealtimeOrderId(payload);
+      if (!eventOrderId || eventOrderId !== String(orderId)) return;
+
+      const eventKey = getRealtimeOrderKey(eventName, payload);
+      if (isRecentRealtimeEvent(recentRealtimeEvents, eventKey)) return;
+
+      setOrder(prevOrder => mergeOrderRealtimePatch(prevOrder, payload));
+      queueRealtimeLoad();
+    });
+
+    const unsubscribeLifecycle = subscribeRealtimeLifecycle(({ eventName }) => {
+      if (eventName === 'reconnected' || eventName === 'foreground') {
+        queueRealtimeLoad();
+      }
+    });
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeLifecycle();
+      if (realtimeLoadTimer.current) {
+        clearTimeout(realtimeLoadTimer.current);
+      }
+    };
+  }, [orderId, queueRealtimeLoad]);
 
   const openModal = () => {
     setShowCancelModal(true);

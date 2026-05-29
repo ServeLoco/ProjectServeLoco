@@ -1,5 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { DashboardApi, SettingsApi } from '../api';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  DashboardApi,
+  SettingsApi,
+  subscribeAdminOrderEvents,
+  subscribeRealtimeLifecycle,
+} from '../api';
 import { Link } from 'react-router-dom';
 import './Dashboard.css';
 
@@ -7,6 +12,9 @@ const ORDER_STATUS_LABELS = {
   Pending: 'Order Placed',
   Accepted: 'Accepted',
   Preparing: 'Preparing/Packing',
+  'Out for Delivery': 'Out for Delivery',
+  Delivered: 'Delivered',
+  Cancelled: 'Cancelled',
 };
 const getOrderStatusLabel = (status) => ORDER_STATUS_LABELS[status] || status || 'Unknown';
 
@@ -15,10 +23,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [togglingShop, setTogglingShop] = useState(false);
+  const refreshTimerRef = useRef(null);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       setError(null);
       const res = await DashboardApi.getMetrics();
       setMetrics(res.data);
@@ -27,11 +36,41 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const queueDashboardRefresh = useCallback((delay = 350) => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+    }
+
+    refreshTimerRef.current = setTimeout(() => {
+      fetchDashboardData(false);
+    }, delay);
+  }, [fetchDashboardData]);
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
+
+  useEffect(() => {
+    const unsubscribeOrders = subscribeAdminOrderEvents(() => {
+      queueDashboardRefresh();
+    });
+
+    const unsubscribeLifecycle = subscribeRealtimeLifecycle(({ eventName }) => {
+      if (eventName === 'reconnected' || eventName === 'visible') {
+        queueDashboardRefresh();
+      }
+    });
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeLifecycle();
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, [queueDashboardRefresh]);
 
   const handleToggleShopStatus = async () => {
     if (!metrics) return;

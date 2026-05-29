@@ -1,6 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { OrdersApi } from '../api';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { OrdersApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } from '../api';
 import { readList } from '../utils/apiResponse';
+import {
+  getRealtimeOrderId,
+  getRealtimeOrderKey,
+  isRecentRealtimeEvent,
+  mergeAdminOrderPatch,
+} from '../utils/realtimeOrder';
 import './Orders.css';
 
 const ORDER_STATUS_OPTIONS = [
@@ -58,13 +64,31 @@ export default function Orders() {
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [updating, setUpdating] = useState(false);
+  const filtersRef = useRef(filters);
+  const paginationRef = useRef(pagination);
+  const selectedOrderRef = useRef(selectedOrder);
+  const refreshTimerRef = useRef(null);
+  const selectedRefreshTimerRef = useRef(null);
+  const recentRealtimeEvents = useRef({});
 
-  const fetchOrders = async (page = 1) => {
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  useEffect(() => {
+    paginationRef.current = pagination;
+  }, [pagination]);
+
+  useEffect(() => {
+    selectedOrderRef.current = selectedOrder;
+  }, [selectedOrder]);
+
+  const fetchOrders = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
       
-      const params = { page, limit: 20, ...filters };
+      const params = { page, limit: 20, ...filtersRef.current };
       Object.keys(params).forEach(k => !params[k] && delete params[k]);
 
       const res = await OrdersApi.list(params);
@@ -77,11 +101,108 @@ export default function Orders() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const fetchSelectedOrder = useCallback(async (id) => {
+    if (!id) return;
+
+    try {
+      const res = await OrdersApi.get(id);
+      setSelectedOrder(res.data);
+    } catch (err) {
+      setSelectedOrder(null);
+      fetchOrders(paginationRef.current.page || 1);
+    }
+  }, [fetchOrders]);
+
+  const queueOrdersRefresh = useCallback((page = paginationRef.current.page || 1, delay = 350) => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+    }
+
+    refreshTimerRef.current = setTimeout(() => {
+      fetchOrders(page);
+    }, delay);
+  }, [fetchOrders]);
+
+  const queueSelectedRefresh = useCallback((id, delay = 350) => {
+    if (selectedRefreshTimerRef.current) {
+      clearTimeout(selectedRefreshTimerRef.current);
+    }
+
+    selectedRefreshTimerRef.current = setTimeout(() => {
+      fetchSelectedOrder(id);
+    }, delay);
+  }, [fetchSelectedOrder]);
 
   useEffect(() => {
     fetchOrders(1);
   }, [filters]);
+
+  useEffect(() => {
+    const unsubscribeOrders = subscribeAdminOrderEvents(({ eventName, payload }) => {
+      const eventKey = getRealtimeOrderKey(eventName, payload);
+      if (isRecentRealtimeEvent(recentRealtimeEvents, eventKey)) return;
+
+      const page = paginationRef.current.page || 1;
+      const activeFilters = filtersRef.current;
+
+      if (eventName === 'admin.order.created') {
+        queueOrdersRefresh(Object.values(activeFilters).some(Boolean) ? page : 1);
+        return;
+      }
+
+      const eventOrderId = getRealtimeOrderId(payload);
+      if (!eventOrderId) return;
+
+      setOrders(prevOrders => {
+        let found = false;
+        const patchedOrders = prevOrders.map(order => {
+          if (String(order.id) !== eventOrderId) return order;
+          found = true;
+          return mergeAdminOrderPatch(order, payload);
+        });
+
+        if (!found) {
+          queueOrdersRefresh(page);
+        }
+
+        return patchedOrders;
+      });
+
+      setSelectedOrder(prevSelected => {
+        if (!prevSelected || String(prevSelected.id) !== eventOrderId) {
+          return prevSelected;
+        }
+        return mergeAdminOrderPatch(prevSelected, payload);
+      });
+
+      if (selectedOrderRef.current && String(selectedOrderRef.current.id) === eventOrderId) {
+        queueSelectedRefresh(eventOrderId);
+      }
+
+      if (activeFilters.status || activeFilters.paymentStatus) {
+        queueOrdersRefresh(page);
+      }
+    });
+
+    const unsubscribeLifecycle = subscribeRealtimeLifecycle(({ eventName }) => {
+      if (eventName === 'reconnected' || eventName === 'visible') {
+        const page = paginationRef.current.page || 1;
+        queueOrdersRefresh(page);
+        if (selectedOrderRef.current?.id) {
+          queueSelectedRefresh(selectedOrderRef.current.id);
+        }
+      }
+    });
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeLifecycle();
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      if (selectedRefreshTimerRef.current) clearTimeout(selectedRefreshTimerRef.current);
+    };
+  }, [queueOrdersRefresh, queueSelectedRefresh]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -119,6 +240,7 @@ export default function Orders() {
       fetchOrders(pagination.page); // Refresh list
     } catch (err) {
       alert('Failed to update status: ' + err.message);
+      fetchSelectedOrder(selectedOrder.id);
     } finally {
       setUpdating(false);
     }
@@ -135,6 +257,7 @@ export default function Orders() {
       fetchOrders(pagination.page); // Refresh list
     } catch (err) {
       alert('Failed to update payment: ' + err.message);
+      fetchSelectedOrder(selectedOrder.id);
     } finally {
       setUpdating(false);
     }
