@@ -257,7 +257,7 @@ export default function OrderDetailScreen() {
           </View>
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>
-              {order.bill.belowThresholdDelivery ? 'Below-threshold Delivery Charge' : 'Delivery Charge'}
+              {order.bill.belowThresholdDelivery ? 'Delivery Charge (Below Minimum)' : 'Delivery Charge'}
             </Text>
             <Text style={styles.billValue}>₹{order.bill.delivery}</Text>
           </View>

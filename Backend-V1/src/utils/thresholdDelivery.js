@@ -29,6 +29,7 @@ const calculateThresholdDeliveryCharge = ({ subtotal, settings = {} }) => {
     BELOW_THRESHOLD_DELIVERY_CHARGE
   );
 
+  // PRIORITY 1: free_delivery_offer_active completely overrides all other delivery charges (and night charges in orderController).
   if (freeDeliveryOfferActive) {
     return {
       charge: 0,

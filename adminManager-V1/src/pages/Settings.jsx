@@ -9,7 +9,6 @@ const DEFAULT_SETTINGS = {
   delivery_available: false,
   minimum_order_amount: 0,
   delivery_charge: 0,
-  free_delivery_above: 0,
   night_charge: 0,
   night_charge_start: '',
   night_charge_end: '',
@@ -92,7 +91,6 @@ export default function Settings() {
       const nonNegativeFields = [
         ['minimum_order_amount', 'Minimum order amount'],
         ['delivery_charge', 'Standard delivery charge'],
-        ['free_delivery_above', 'Free delivery above amount'],
         ['night_charge', 'Night delivery surcharge'],
         ['below_threshold_delivery_charge', 'Below-threshold delivery charge'],
       ];
@@ -112,7 +110,6 @@ export default function Settings() {
         ...settings,
         minimum_order_amount: Number(settings.minimum_order_amount),
         delivery_charge: Number(settings.delivery_charge),
-        free_delivery_above: Number(settings.free_delivery_above),
         night_charge: Number(settings.night_charge),
         below_threshold_delivery_charge: Number(settings.below_threshold_delivery_charge),
         free_delivery_above_minimum_active: Boolean(settings.free_delivery_above_minimum_active),
@@ -143,6 +140,12 @@ export default function Settings() {
           {saving ? 'Saving...' : 'Save All Changes'}
         </button>
       </header>
+
+      {settings.delivery_available === false && (
+        <div style={{ backgroundColor: '#fff3cd', color: '#856404', padding: '1rem', borderRadius: '4px', marginBottom: '1rem', border: '1px solid #ffeeba' }}>
+          <strong>Warning:</strong> Delivery is currently OFF. Customers will not be able to select delivery at checkout.
+        </div>
+      )}
 
       <section className="settings-section">
         <h2 className="settings-section-title">Operational Status</h2>
@@ -184,11 +187,11 @@ export default function Settings() {
             <input type="number" min="0" step="1" name="minimum_order_amount" className="settings-input" value={settings.minimum_order_amount || ''} onChange={handleChange} />
           </div>
           <div className="settings-form-group">
-            <label className="settings-label">Standard Delivery Charge (₹)</label>
+            <label className="settings-label">Delivery Charge (Above Minimum) (₹)</label>
             <input type="number" min="0" step="1" name="delivery_charge" className="settings-input" value={settings.delivery_charge} onChange={handleChange} />
           </div>
           <div className="settings-form-group">
-            <label className="settings-label">Below Threshold Delivery Charge (₹)</label>
+            <label className="settings-label">Delivery Charge (Below Minimum) (₹)</label>
             <input
               type="number"
               min="0"
@@ -201,9 +204,9 @@ export default function Settings() {
           </div>
           <div className="toggle-switch-wrapper full-width">
             <div style={{ flex: 1 }}>
-              <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Free Delivery Above Threshold</strong>
+              <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Free Delivery for Orders Above Minimum</strong>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                Orders below the minimum cannot be placed. When enabled, orders at or above the minimum also get free delivery.
+                When ON, orders at or above the minimum order amount get free delivery. When OFF, standard delivery charge applies.
               </span>
             </div>
             <label className="toggle-switch">

@@ -40,6 +40,7 @@ export default function CheckoutScreen() {
   const navigation = useNavigation();
   const { items, clearCart } = useCartStore();
   const shopStatus = useSettingsStore(state => state.shopStatus);
+  const deliveryAvailable = useSettingsStore(state => state.deliveryAvailable);
   const minimumOrder = useSettingsStore(state => state.minimumOrder);
   const upiId = useSettingsStore(state => state.upiId);
   const upiQrImageId = useSettingsStore(state => state.upiQrImageId);
@@ -92,21 +93,7 @@ export default function CheckoutScreen() {
     ]).start();
   }, [deliverySlide, paymentSlide, summarySlide]);
 
-  useEffect(() => {
-    let isActive = true;
-
-    settingsApi.getSettings()
-      .then(response => {
-        if (isActive) {
-          setSettings(normalizeSettings(response));
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      isActive = false;
-    };
-  }, [setSettings]);
+  // Fetching settings on mount was removed to save network requests (Task 3.5)
 
   useEffect(() => {
     if (upiQrImageUrl || !upiQrImageId) return undefined;
@@ -235,6 +222,9 @@ export default function CheckoutScreen() {
       });
 
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setBill(null);
+      setCalcError(null);
+      setSubmitError(null);
       setCoordinates({
         lat: position.coords.latitude,
         lng: position.coords.longitude,
@@ -344,14 +334,16 @@ export default function CheckoutScreen() {
   const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
   const isBelowFreeDeliveryThreshold = Boolean(bill && requiredMinimum && bill.subtotal < requiredMinimum);
   const deliveryLabel = bill?.belowThreshold || isBelowFreeDeliveryThreshold
-    ? 'Below-threshold Delivery'
-    : 'Delivery';
+    ? 'Delivery Charge (Below Minimum)'
+    : 'Delivery Charge';
   const totalQuantity = items.reduce((total, item) => total + (Number(item.quantity) || 0), 0);
   const hasPinnedLocation = Boolean(coordinates);
-  const hasInvalidDelivery = Boolean(bill && (bill.requiresLocation || !bill.deliveryWithinRange));
+  const hasInvalidDelivery = Boolean(bill && (!bill.deliveryWithinRange || (hasPinnedLocation && bill.requiresLocation)));
   const isPinLocationDisabled = isSubmitting || gpsStatus === 'loading' || items.length === 0 || !address.trim();
   const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || hasInvalidDelivery;
-  const isPrimaryActionDisabled = hasPinnedLocation ? isPlaceOrderDisabled : isPinLocationDisabled;
+  const isPrimaryActionDisabled = hasPinnedLocation
+    ? isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable
+    : isPinLocationDisabled || shopStatus === 'closed' || !deliveryAvailable;
   const placeOrderLabel = isSubmitting
     ? 'Processing...'
     : gpsStatus === 'loading'
@@ -535,7 +527,11 @@ export default function CheckoutScreen() {
                   <Text style={styles.summaryValue}>{bill.deliveryCharge === 0 ? 'FREE' : `₹${bill.deliveryCharge}`}</Text>
                 </View>
                 {/* Distance display removed since it's no longer used for pricing */}
-                {(bill.deliveryMessage || bill.requiresLocation || !bill.deliveryWithinRange || bill.freeDeliveryOfferActive) && (
+                {(!deliveryAvailable) ? (
+                  <Text style={[styles.deliveryStatusText, styles.deliveryStatusError]}>
+                    Delivery is currently unavailable in your area.
+                  </Text>
+                ) : (bill.deliveryMessage || bill.requiresLocation || !bill.deliveryWithinRange || bill.freeDeliveryOfferActive) ? (
                   <Text style={[
                     styles.deliveryStatusText,
                     !bill.deliveryWithinRange && styles.deliveryStatusError,
@@ -543,7 +539,7 @@ export default function CheckoutScreen() {
                   ]}>
                     {bill.deliveryMessage || (bill.requiresLocation ? 'Pin location to continue.' : 'Delivery available.')}
                   </Text>
-                )}
+                ) : null}
                 {bill.nightCharge > 0 && (
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Night Charge</Text>
@@ -569,7 +565,7 @@ export default function CheckoutScreen() {
                       {bill.freeAboveThresholdActive
                         ? <Text> to unlock <Text style={styles.warningHighlight}>Free Delivery</Text></Text>
                         : <Text> to reach the preferred order value</Text>}
-                      <Text> (₹{bill.deliveryCharge} delivery fee currently applied).</Text>
+                      <Text> (₹{bill.belowThresholdDeliveryCharge || bill.deliveryCharge} delivery fee currently applied).</Text>
                     </Text>
                   </View>
                 )}
@@ -592,7 +588,16 @@ export default function CheckoutScreen() {
 
       {/* Bottom Action Bar */}
       <View style={styles.bottomBar}>
-        <PressableScale
+        {shopStatus === 'closed' ? (
+          <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
+            <Text style={styles.placeOrderBtnTextDisabled}>Shop is Closed</Text>
+          </View>
+        ) : !deliveryAvailable ? (
+          <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
+            <Text style={styles.placeOrderBtnTextDisabled}>Delivery Unavailable</Text>
+          </View>
+        ) : (
+          <PressableScale
           onPress={hasPinnedLocation ? handlePlaceOrder : handleRequestGPS}
           disabled={isPrimaryActionDisabled}
           style={[
@@ -616,7 +621,8 @@ export default function CheckoutScreen() {
               </Animated.View>
             )}
           </View>
-        </PressableScale>
+          </PressableScale>
+        )}
         <TouchableOpacity 
           style={styles.backToCartBtn}
           onPress={() => navigation.goBack()}
@@ -928,11 +934,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.error,
   },
-  minimumOrderText: {
-    ...typography.caption,
-    color: colors.warning,
-    marginTop: spacing.xs,
-  },
+
   deliveryStatusText: {
     ...typography.caption,
     color: colors.textSecondary,

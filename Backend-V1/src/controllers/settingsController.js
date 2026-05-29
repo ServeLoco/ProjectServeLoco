@@ -108,7 +108,6 @@ const getSettings = async (req, res) => {
       shop_open: 1,
       minimum_order_amount: 50,
       delivery_charge: 10,
-      free_delivery_above: 500,
       night_charge: 0,
       support_phone: '',
       support_whatsapp: '',
@@ -174,6 +173,14 @@ const updateSettings = async (req, res) => {
   for (const [field, message] of moneyFields) {
     const error = validateNonNegativeNumber(body[field], message);
     if (error) return res.status(400).json(error);
+  }
+
+  // Validate night charge window requires an actual charge
+  if (hasValue(body.night_charge_start) && hasValue(body.night_charge_end)) {
+    const nightCharge = Number(body.night_charge);
+    if (!Number.isFinite(nightCharge) || nightCharge <= 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Night delivery surcharge must be > 0 if start and end times are set' });
+    }
   }
 
   // Validate coordinates when provided

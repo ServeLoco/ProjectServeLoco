@@ -10,9 +10,8 @@ export const useSettingsStore = create(
   persist(
     (set) => ({
       shopStatus: 'open', // 'open' | 'closed'
+      deliveryAvailable: true,
       minimumOrder: 0,
-      deliveryCharge: 0,
-      nightCharge: 0,
       upiId: null,
       upiQrImageId: null,
       upiQrImageUrl: null,

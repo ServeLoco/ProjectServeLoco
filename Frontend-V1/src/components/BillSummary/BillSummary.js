@@ -22,6 +22,7 @@ function BillSummary({
   discount = 0,
   total = 0,
   minimumOrder,
+  belowThreshold = false,
   style,
 }) {
   const showNight = nightCharge > 0;
@@ -32,23 +33,23 @@ function BillSummary({
     <View style={[styles.container, style]}>
       <Text style={styles.heading}>Bill Summary</Text>
 
-      <BillRow label="Subtotal" value={`Rs. ${subtotal.toFixed(0)}`} />
-      <BillRow label="Delivery Charge" value={deliveryCharge === 0 ? 'Free' : `Rs. ${deliveryCharge.toFixed(0)}`} />
+      <BillRow label="Subtotal" value={`₹${subtotal.toFixed(0)}`} />
+      <BillRow label={belowThreshold ? 'Delivery Charge (Below Minimum)' : 'Delivery Charge'} value={deliveryCharge === 0 ? 'Free' : `₹${deliveryCharge.toFixed(0)}`} />
       {showNight ? (
-        <BillRow label="Night Charge" value={`Rs. ${nightCharge.toFixed(0)}`} warn />
+        <BillRow label="Night Charge" value={`₹${nightCharge.toFixed(0)}`} warn />
       ) : null}
       {showDiscount ? (
-        <BillRow label="Discount" value={`- Rs. ${discount.toFixed(0)}`} success />
+        <BillRow label="Discount" value={`- ₹${discount.toFixed(0)}`} success />
       ) : null}
 
       <View style={styles.divider} />
 
-      <BillRow label="Grand Total" value={`Rs. ${total.toFixed(0)}`} total />
+      <BillRow label="Grand Total" value={`₹${total.toFixed(0)}`} total />
 
       {belowMin ? (
         <View style={styles.minOrderWarn}>
           <Text style={styles.minOrderText}>
-            Minimum order is Rs. {minimumOrder}. Add items worth Rs.{' '}
+            Minimum order is ₹{minimumOrder}. Add items worth ₹{' '}
             {(minimumOrder - subtotal).toFixed(0)} more.
           </Text>
         </View>

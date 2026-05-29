@@ -153,9 +153,8 @@ function normalizeSettings(payload = {}) {
 
   return {
     shopStatus: asBoolean(pickFirst(settings.shopOpen, settings.shop_open, settings.isShopOpen), true) ? 'open' : 'closed',
+    deliveryAvailable: asBoolean(pickFirst(settings.deliveryAvailable, settings.delivery_available), true),
     minimumOrder: numberOrZero(pickFirst(settings.minimumOrderAmount, settings.minimum_order_amount, settings.minimumOrder)),
-    deliveryCharge: numberOrZero(pickFirst(settings.deliveryCharge, settings.delivery_charge)),
-    nightCharge: numberOrZero(pickFirst(settings.nightCharge, settings.night_charge)),
     supportPhone: pickFirst(settings.supportPhone, settings.support_phone, settings.whatsapp_number, null),
     upiId: pickFirst(settings.upiId, settings.upi_id, null),
     upiQrImageId: pickFirst(settings.upiQrImageId, settings.upi_qr_image_id, null),

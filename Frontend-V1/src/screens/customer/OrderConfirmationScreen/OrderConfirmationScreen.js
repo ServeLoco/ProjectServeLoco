@@ -19,7 +19,7 @@ export default function OrderConfirmationScreen() {
   const orderLabel = order.orderNumber || order.order_number || orderId || 'Pending';
   const total = order.total || order.bill?.grandTotal || 0;
   const deliveryCharge = order.bill?.delivery || 0;
-  const deliveryLabel = order.bill?.belowThresholdDelivery ? 'Below-threshold Delivery' : 'Delivery';
+  const deliveryLabel = order.bill?.belowThresholdDelivery ? 'Delivery Charge (Below Minimum)' : 'Delivery Charge';
   const paymentMethod = order.paymentMethod || 'Cash';
   const address = order.address || order.customer?.address || 'Delivery address saved with your order';
 

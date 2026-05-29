@@ -1,4 +1,8 @@
 /**
+ * @deprecated This file is obsolete. Distance-based delivery pricing has been removed.
+ * It is kept for historical reference only.
+ */
+/**
  * Calculates geodetic distance between two coordinates using the Haversine formula.
  * @param {number} lat1 Latitude of point 1
  * @param {number} lon1 Longitude of point 1

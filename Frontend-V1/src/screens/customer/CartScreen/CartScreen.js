@@ -145,7 +145,7 @@ export default function CartScreen() {
   const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
   const isBelowFreeDeliveryThreshold = Boolean(bill && requiredMinimum && bill.subtotal < requiredMinimum);
   const deliveryLabel = bill?.belowThreshold || isBelowFreeDeliveryThreshold
-    ? 'Below-threshold Delivery Charge'
+    ? 'Delivery Charge (Below Minimum)'
     : 'Delivery Charge';
   const isCheckoutDisabled = 
     validItems.length === 0 ||
@@ -285,7 +285,7 @@ export default function CartScreen() {
                     {bill.freeAboveThresholdActive
                       ? <Text> to unlock <Text style={styles.warningHighlight}>Free Delivery</Text></Text>
                       : <Text> to reach the preferred order value</Text>}
-                    <Text> (₹{bill.deliveryCharge} delivery fee currently applied).</Text>
+                    <Text> (₹{bill.belowThresholdDeliveryCharge || bill.deliveryCharge} delivery fee currently applied).</Text>
                   </Text>
                 </View>
               )}

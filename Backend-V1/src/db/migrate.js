@@ -264,7 +264,6 @@ const migrate = async () => {
         delivery_available BOOLEAN DEFAULT TRUE,
         minimum_order_amount DECIMAL(10, 2) DEFAULT 149.00,
         delivery_charge DECIMAL(10, 2) DEFAULT 0.00,
-        free_delivery_above DECIMAL(10, 2),
         night_charge DECIMAL(10, 2) DEFAULT 0.00,
         night_charge_start TIME DEFAULT '21:00:00',
         night_charge_end TIME DEFAULT '07:00:00',
@@ -273,10 +272,12 @@ const migrate = async () => {
         upi_id VARCHAR(100),
         upi_qr_image_id VARCHAR(255),
         delivery_time_message VARCHAR(255),
+        /* OBSOLETE LOCATION FIELDS - kept for schema stability */
         shop_latitude DECIMAL(10, 8) DEFAULT NULL,
         shop_longitude DECIMAL(11, 8) DEFAULT NULL,
         delivery_radius_km DECIMAL(10, 2) DEFAULT 8.00,
         delivery_cost_per_km DECIMAL(10, 2) DEFAULT 0.00,
+        /* END OBSOLETE FIELDS */
         below_threshold_delivery_charge DECIMAL(10, 2) DEFAULT 20.00,
         free_delivery_above_minimum_active BOOLEAN DEFAULT TRUE,
         free_delivery_offer_active BOOLEAN DEFAULT FALSE,
@@ -292,6 +293,14 @@ const migrate = async () => {
     await ensureColumn('settings', 'below_threshold_delivery_charge', 'below_threshold_delivery_charge DECIMAL(10, 2) DEFAULT 20.00 AFTER delivery_cost_per_km');
     await ensureColumn('settings', 'free_delivery_above_minimum_active', 'free_delivery_above_minimum_active BOOLEAN DEFAULT TRUE AFTER below_threshold_delivery_charge');
     await ensureColumn('settings', 'free_delivery_offer_active', 'free_delivery_offer_active BOOLEAN DEFAULT FALSE AFTER free_delivery_above_minimum_active');
+    
+    // Drop free_delivery_above column if it exists (Task 1.1)
+    try {
+      await connection.query('ALTER TABLE settings DROP COLUMN free_delivery_above');
+    } catch(e) {
+      // Ignore error if column doesn't exist
+    }
+    
     console.log('Settings table ready.');
 
     // Offers Table

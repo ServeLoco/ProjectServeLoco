@@ -113,6 +113,7 @@ const createOrder = async (req, res) => {
         order_number, customer_id, customer_name, phone, whatsapp_number, address,
         latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total,
         payment_method, payment_status, status, note,
+        /* GPS coordinates (latitude/longitude) are stored here for admin records and delivery navigation only, not for pricing */
         delivery_distance_km, delivery_radius_km_snapshot, delivery_cost_per_km_snapshot, free_delivery_offer_snapshot
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?)`,
       [
