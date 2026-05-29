@@ -15,9 +15,10 @@ import {
   AppScreen,
   AppHeader,
   AppIcon,
+  ConfirmModal,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
-import { useAuthStore, useSettingsStore } from '../../../stores';
+import { useAuthStore, useCartStore, useSettingsStore } from '../../../stores';
 import { authApi } from '../../../api';
 
 export default function ProfileScreen() {
@@ -25,8 +26,11 @@ export default function ProfileScreen() {
   const user = useAuthStore(state => state.user);
   const profile = useAuthStore(state => state.profile);
   const setProfile = useAuthStore(state => state.setProfile);
+  const logout = useAuthStore(state => state.logout);
+  const clearCart = useCartStore(state => state.clearCart);
   const supportPhone = useSettingsStore(state => state.supportPhone);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const cardFade = useRef(new Animated.Value(0)).current;
   const cardSlide = useRef(new Animated.Value(10)).current;
@@ -61,6 +65,12 @@ export default function ProfileScreen() {
     if (supportPhone) {
       Linking.openURL(`tel:${supportPhone}`);
     }
+  };
+
+  const handleLogout = () => {
+    clearCart();
+    logout();
+    setShowLogoutConfirm(false);
   };
 
   return (
@@ -175,12 +185,30 @@ export default function ProfileScreen() {
               label="Help and Support"
               caption={supportPhone ? `Call ${supportPhone}` : 'Contact shop support'}
               onPress={handleHelpSupport}
+            />
+            <MenuOption
+              icon="Logout"
+              label="Logout"
+              caption="Log out from this device."
+              onPress={() => setShowLogoutConfirm(true)}
+              isDestructive
               isLast
             />
           </View>
         </Animated.View>
 
       </ScrollView>
+
+      <ConfirmModal
+        visible={showLogoutConfirm}
+        title="Logout?"
+        message="You will need to login again to place orders and view your account."
+        confirmLabel="Logout"
+        cancelLabel="Stay"
+        confirmVariant="danger"
+        onCancel={() => setShowLogoutConfirm(false)}
+        onConfirm={handleLogout}
+      />
 
     </AppScreen>
   );
@@ -192,6 +220,7 @@ function MenuOption({ icon, label, caption, onPress, isDestructive, isLast }) {
     Box: 'orders',
     Pin: 'location',
     Help: 'phone',
+    Logout: 'logout',
   };
   const iconColor = isDestructive ? colors.error : colors.textSecondary;
 
