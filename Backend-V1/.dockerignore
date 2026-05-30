@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+tests
+README.md
+API.md
+API_TEST_REPORT.md
+uploads
+docker-compose.yml
+.eslintrc.js
+jest.config.js

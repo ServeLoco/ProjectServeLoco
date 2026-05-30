@@ -1,0 +1,39 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'Backend-V1/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'Backend-V1/**'
+
+jobs:
+  test-and-lint:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./Backend-V1
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: './Backend-V1/package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run Linter
+      run: npm run lint
+      
+    - name: Run Tests
+      run: npm test

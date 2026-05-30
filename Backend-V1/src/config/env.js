@@ -35,6 +35,8 @@ const config = {
   MYSQL_DATABASE: process.env.MYSQL_DATABASE,
   MYSQL_USER: process.env.MYSQL_USER,
   MYSQL_PASSWORD: process.env.MYSQL_PASSWORD,
+  MYSQL_SSL: process.env.MYSQL_SSL,
+  MYSQL_SSL_CA_PATH: process.env.MYSQL_SSL_CA_PATH,
 
   MONGODB_URI: process.env.MONGODB_URI,
   MONGODB_DATABASE: process.env.MONGODB_DATABASE,

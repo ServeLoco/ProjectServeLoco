@@ -9,33 +9,6 @@
 
 ---
 
-### [DEPLOY-1] UPI Payment Not Verified — Revenue Fraud Risk
-
-**Component:** `Backend-V1`
-
-**Issue:**
-UPI orders are placed with `payment_status = 'Pending'` and there is zero server-side payment confirmation. No payment gateway SDK, no webhook endpoint, no callback URL. The admin must manually mark orders as paid.
-
-A customer can:
-1. Select UPI payment
-2. Place order successfully
-3. Close the app without paying
-4. Receive delivery because the order status is just `Pending`
-
-**Fix:**
-- Integrate **Razorpay** (recommended for India — supports UPI, QR, autopay)
-- Create `Backend-V1/src/routes/paymentRoutes.js`
-- Add `POST /api/payments/create-order` — creates a Razorpay order ID
-- Add `POST /api/payments/verify` — verifies signature after payment
-- Add `POST /api/payments/webhook` — handles async payment events
-- Only dispatch/accept an order once `payment_status = 'Paid'` is confirmed
-
-**References:**
-- Razorpay Node SDK: `npm install razorpay`
-- Razorpay Docs: https://razorpay.com/docs/payments/server-integration/nodejs/
-
----
-
 ### [DEPLOY-2] Weak Credentials Still in `.env` — Security Breach Risk
 
 **Component:** `Backend-V1/.env`

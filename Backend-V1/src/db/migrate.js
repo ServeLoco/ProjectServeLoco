@@ -1,16 +1,35 @@
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 const config = require('../config/env');
+const { getMysqlSslOptions } = require('./mysqlSsl');
 
 const migrate = async () => {
   let connection;
   try {
+    if (!/^[a-zA-Z0-9_]+$/.test(config.MYSQL_DATABASE || '')) {
+      throw new Error('MYSQL_DATABASE must contain only letters, numbers, and underscores');
+    }
+
+    const ssl = getMysqlSslOptions();
+    const serverConnection = await mysql.createConnection({
+      host: config.MYSQL_HOST,
+      port: config.MYSQL_PORT,
+      user: config.MYSQL_USER,
+      password: config.MYSQL_PASSWORD,
+      ssl,
+      multipleStatements: true
+    });
+
+    await serverConnection.query(`CREATE DATABASE IF NOT EXISTS \`${config.MYSQL_DATABASE}\``);
+    await serverConnection.end();
+
     connection = await mysql.createConnection({
       host: config.MYSQL_HOST,
       port: config.MYSQL_PORT,
       user: config.MYSQL_USER,
       password: config.MYSQL_PASSWORD,
       database: config.MYSQL_DATABASE,
+      ssl,
       multipleStatements: true
     });
 

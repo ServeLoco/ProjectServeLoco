@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=serveloco
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+      - MONGODB_URI=mongodb://mongodb:27017/
+      - MONGODB_DATABASE=serveloco_images
+      - CORS_ORIGIN=*
+      - PUBLIC_BASE_URL=http://localhost:3000
+    volumes:
+      - ./uploads:/usr/src/app/uploads
+      # Uncomment the next line if you want hot-reloading in docker (along with changing command to npm run dev)
+      # - ./src:/usr/src/app/src
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+
+  mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: serveloco
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  mongodb:
+    image: mongo:7.0
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+volumes:
+  mysql_data:
+  mongodb_data:

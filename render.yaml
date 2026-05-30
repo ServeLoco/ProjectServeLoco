@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: serveloco-backend
+    env: docker
+    region: oregon
+    plan: free # Change this if you need a paid plan
+    rootDir: Backend-V1
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: MYSQL_HOST
+        sync: false # Set these in the Render dashboard
+      - key: MYSQL_PORT
+        value: 3306
+      - key: MYSQL_DATABASE
+        sync: false
+      - key: MYSQL_USER
+        sync: false
+      - key: MYSQL_PASSWORD
+        sync: false
+      - key: MYSQL_SSL
+        value: true
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DATABASE
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_OWNER_ID
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
