@@ -18,8 +18,16 @@
     "android": {
       "permissions": [
         "ACCESS_FINE_LOCATION",
+        "READ_MEDIA_IMAGES",
+        "ACCESS_FINE_LOCATION",
         "READ_MEDIA_IMAGES"
-      ]
+      ],
+      "package": "com.yashsiwach.serveloco"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "96e49b89-ae8d-427e-ac57-b3c433db5782"
+      }
     }
   }
 }
