@@ -44,9 +44,9 @@ const config = {
   CORS_ORIGIN: getEnv('CORS_ORIGIN', localDefaults.CORS_ORIGIN),
   
   PUBLIC_BASE_URL: getEnv('PUBLIC_BASE_URL', localDefaults.PUBLIC_BASE_URL),
-  UPLOAD_DIR: getEnv('UPLOAD_DIR', localDefaults.UPLOAD_DIR),
-  MAX_IMAGE_SIZE_MB: getEnv('MAX_IMAGE_SIZE_MB', localDefaults.MAX_IMAGE_SIZE_MB),
-  STATIC_UPLOAD_PATH: getEnv('STATIC_UPLOAD_PATH', localDefaults.STATIC_UPLOAD_PATH)
+  UPLOAD_DIR: process.env.UPLOAD_DIR || localDefaults.UPLOAD_DIR,
+  MAX_IMAGE_SIZE_MB: process.env.MAX_IMAGE_SIZE_MB || localDefaults.MAX_IMAGE_SIZE_MB,
+  STATIC_UPLOAD_PATH: process.env.STATIC_UPLOAD_PATH || localDefaults.STATIC_UPLOAD_PATH
 };
 
 // Validation
