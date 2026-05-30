@@ -32,10 +32,11 @@ import { appLogo } from '../../../assets';
 export default function AuthScreen() {
   const setSession = useAuthStore(state => state.setSession);
 
-  const [mode, setMode] = useState('Login'); // 'Login' | 'Sign Up'
+  const [mode, setMode] = useState('Login'); // 'Login' | 'Sign Up' | 'Reset Password'
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   // Form State
   const [phone, setPhone] = useState('');
@@ -164,6 +165,45 @@ export default function AuthScreen() {
     }
   };
 
+  const submitPasswordResetRequest = async () => {
+    if (!phone || !password || !confirmPassword) {
+      setErrorMsg('Phone and new password are required');
+      triggerShake();
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErrorMsg('Passwords do not match');
+      triggerShake();
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters');
+      triggerShake();
+      return;
+    }
+
+    setErrorMsg('');
+    setSuccessMsg('');
+    setIsLoading(true);
+
+    try {
+      const response = await authApi.requestPasswordReset({
+        phone,
+        newPassword: password,
+        new_password: password,
+      });
+      setPassword('');
+      setConfirmPassword('');
+      setMode('Login');
+      setSuccessMsg(response.message || 'Password reset request sent for admin approval');
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to request password reset');
+      triggerShake();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const renderLoginForm = () => (
     <View style={styles.form}>
       <TextInputField
@@ -183,6 +223,7 @@ export default function AuthScreen() {
         editable={!isLoading}
       />
       {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
+      {!!successMsg && <Text style={styles.successText}>{successMsg}</Text>}
       <Button
         label="Login"
         onPress={submitLogin}
@@ -190,9 +231,68 @@ export default function AuthScreen() {
         style={styles.mainBtn}
       />
       <Button
+        label="Forgot password?"
+        variant="ghost"
+        onPress={() => {
+          setMode('Reset Password');
+          setErrorMsg('');
+          setSuccessMsg('');
+          setPassword('');
+          setConfirmPassword('');
+        }}
+        disabled={isLoading}
+      />
+      <Button
         label="Create an account"
         variant="ghost"
         onPress={() => setMode('Sign Up')}
+        disabled={isLoading}
+      />
+    </View>
+  );
+
+  const renderResetPasswordForm = () => (
+    <View style={styles.form}>
+      <TextInputField
+        label="Phone Number"
+        placeholder="Registered mobile number"
+        keyboardType="phone-pad"
+        value={phone}
+        onChangeText={setPhone}
+        editable={!isLoading}
+      />
+      <TextInputField
+        label="New Password"
+        placeholder="Minimum 6 characters"
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+        editable={!isLoading}
+      />
+      <TextInputField
+        label="Confirm New Password"
+        placeholder="Re-enter new password"
+        secureTextEntry
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        editable={!isLoading}
+      />
+      {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
+      <Button
+        label="Send for Approval"
+        onPress={submitPasswordResetRequest}
+        loading={isLoading}
+        style={styles.mainBtn}
+      />
+      <Button
+        label="Back to Login"
+        variant="ghost"
+        onPress={() => {
+          setMode('Login');
+          setErrorMsg('');
+          setPassword('');
+          setConfirmPassword('');
+        }}
         disabled={isLoading}
       />
     </View>
@@ -305,17 +405,20 @@ export default function AuthScreen() {
             >
               <SegmentedControl
                 options={['Login', 'Sign Up']}
-                selectedOption={mode}
+                selectedOption={mode === 'Reset Password' ? 'Login' : mode}
                 onSelect={(opt) => {
                   LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                   setMode(opt);
                   setErrorMsg('');
+                  setSuccessMsg('');
                 }}
                 disabled={isLoading}
               />
 
               <View style={styles.formContainer}>
-                {mode === 'Login' ? renderLoginForm() : renderSignupForm()}
+                {mode === 'Login' && renderLoginForm()}
+                {mode === 'Sign Up' && renderSignupForm()}
+                {mode === 'Reset Password' && renderResetPasswordForm()}
               </View>
             </Animated.View>
           </ScrollView>
@@ -373,6 +476,11 @@ const styles = StyleSheet.create({
   errorText: {
     ...typography.caption,
     color: colors.error,
+    textAlign: 'center',
+  },
+  successText: {
+    ...typography.caption,
+    color: colors.success,
     textAlign: 'center',
   },
 });

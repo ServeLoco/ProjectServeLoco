@@ -6,6 +6,29 @@ import { notificationsApi, subscribeNotificationEvents, subscribeRealtimeLifecyc
 import { useAuthStore } from '../../../stores';
 import { mapNotification } from '../../../utils';
 
+const parseActionPayload = (value) => {
+  if (!value) return null;
+  if (typeof value === 'object') return value;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
+const getNotificationOrderId = (notification = {}) => {
+  const actionPayload = parseActionPayload(notification.actionPayload);
+  const payloadOrderId = actionPayload?.orderId || actionPayload?.order_id;
+
+  if (payloadOrderId) return String(payloadOrderId);
+
+  const isOrderSource = String(notification.sourceType || '').toLowerCase() === 'order';
+  if (isOrderSource && notification.sourceId) return String(notification.sourceId);
+
+  return null;
+};
+
 export default function NotificationsScreen({ navigation }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -101,9 +124,24 @@ export default function NotificationsScreen({ navigation }) {
     }
   };
 
+  const openNotification = async (notification) => {
+    const orderId = getNotificationOrderId(notification);
+    if (!orderId) return;
+
+    if (!notification.read) {
+      setNotifications(prev => prev.map(n => (
+        String(n.id) === String(notification.id) ? { ...n, read: true } : n
+      )));
+      notificationsApi.markRead(notification.id).catch(() => {});
+    }
+
+    navigation.navigate('OrderDetail', { orderId });
+  };
+
   const renderItem = ({ item }) => {
     let iconName = 'notification';
     let iconColor = colors.primary;
+    const orderId = getNotificationOrderId(item);
 
     if (item.type === 'success') {
       iconName = 'check';
@@ -114,7 +152,12 @@ export default function NotificationsScreen({ navigation }) {
     }
 
     return (
-      <View style={[styles.notificationCard, !item.read && styles.unreadCard]}>
+      <TouchableOpacity
+        activeOpacity={orderId ? 0.85 : 1}
+        disabled={!orderId}
+        onPress={() => openNotification(item)}
+        style={[styles.notificationCard, !item.read && styles.unreadCard]}
+      >
         <View style={styles.cardHeader}>
           <View style={styles.iconWrapper}>
             <AppIcon name={iconName} size={18} color={iconColor} />
@@ -124,11 +167,17 @@ export default function NotificationsScreen({ navigation }) {
             <Text style={styles.body}>{item.body}</Text>
             <Text style={styles.time}>{item.timeLabel || item.time}</Text>
           </View>
-          <TouchableOpacity onPress={() => clearNotification(item.id)} style={styles.deleteBtn}>
+          <TouchableOpacity
+            onPress={(event) => {
+              event?.stopPropagation?.();
+              clearNotification(item.id);
+            }}
+            style={styles.deleteBtn}
+          >
             <AppIcon name="close" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 

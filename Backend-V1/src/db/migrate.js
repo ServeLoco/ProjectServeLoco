@@ -55,6 +55,24 @@ const migrate = async () => {
     }
     console.log('Users table ready.');
 
+    // Password Reset Requests Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS password_reset_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+        requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        reviewed_at TIMESTAMP NULL DEFAULT NULL,
+        reviewed_by_admin_id VARCHAR(50),
+        review_note VARCHAR(255),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_password_reset_status (status, requested_at),
+        INDEX idx_password_reset_user_status (user_id, status)
+      );
+    `);
+    console.log('Password reset requests table ready.');
+
     // Categories Table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS categories (

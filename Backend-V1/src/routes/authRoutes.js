@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
-const { register, login, me, updateProfile } = require('../controllers/authController');
+const { register, login, me, updateProfile, requestPasswordReset } = require('../controllers/authController');
 const { requireCustomer } = require('../middleware/authMiddleware');
 const { validate, isString, isPhone, normalizeField } = require('../validators');
 const rateLimit = require('express-rate-limit');
@@ -61,10 +61,26 @@ const profileSchema = (req) => {
   return { errors, data };
 };
 
+const passwordResetRequestSchema = (req) => {
+  const errors = {};
+  const data = {
+    phone: normalizeField(req, 'phone', 'phone'),
+    newPassword: normalizeField(req, 'newPassword', 'new_password')
+  };
+
+  if (!isPhone(data.phone)) errors.phone = 'Valid phone number is required';
+  if (!isString(data.newPassword) || String(data.newPassword).length < 6) {
+    errors.newPassword = 'New password must be at least 6 characters';
+  }
+
+  return { errors, data };
+};
+
 // Routes
 router.post('/register', authLimiter, validate(registerSchema), asyncHandler(register));
 router.post('/signup', authLimiter, validate(registerSchema), asyncHandler(register)); // alias for frontend
 router.post('/login', authLimiter, validate(loginSchema), asyncHandler(login));
+router.post('/password-reset-requests', authLimiter, validate(passwordResetRequestSchema), asyncHandler(requestPasswordReset));
 router.get('/me', requireCustomer, asyncHandler(me));
 router.put('/profile', requireCustomer, validate(profileSchema), asyncHandler(updateProfile));
 router.patch('/profile', requireCustomer, validate(profileSchema), asyncHandler(updateProfile)); // PATCH alias

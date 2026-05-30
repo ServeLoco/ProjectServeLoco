@@ -169,6 +169,23 @@ Authorization: Bearer <your-jwt-token>
 }
 ```
 
+**Customer Password Reset Request (`POST /api/auth/password-reset-requests`)**
+```json
+// Request
+{
+  "phone": "9999999999",
+  "newPassword": "temporary123"
+}
+```
+
+The request is stored for admin approval. The password is hashed immediately and is never returned to the admin.
+
+**Admin Password Reset Approval (`PATCH /api/admin/password-reset-requests/:id/approve`)**
+Approves a pending password reset request and applies the requested password.
+
+**Admin Password Reset Rejection (`PATCH /api/admin/password-reset-requests/:id/reject`)**
+Rejects a pending password reset request without changing the customer password.
+
 **Admin Image Upload (`POST /api/admin/images`)**
 - Send `multipart/form-data` with a single file under the field name `image`.
 - The response returns the fully qualified `imageUrl` and a MongoDB `_id` (`id`) that can be attached to products via `PATCH /api/admin/products/:id/image`.

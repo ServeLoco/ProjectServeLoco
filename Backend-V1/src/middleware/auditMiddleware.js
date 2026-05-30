@@ -6,6 +6,26 @@ const logAuditError = (message, error) => {
   }
 };
 
+const SENSITIVE_BODY_KEYS = new Set([
+  'password',
+  'newPassword',
+  'new_password',
+  'currentPassword',
+  'current_password',
+  'confirmPassword',
+  'confirm_password'
+]);
+
+const redactSensitiveBody = (value) => {
+  if (!value || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map(redactSensitiveBody);
+
+  return Object.entries(value).reduce((acc, [key, entryValue]) => {
+    acc[key] = SENSITIVE_BODY_KEYS.has(key) ? '[REDACTED]' : redactSensitiveBody(entryValue);
+    return acc;
+  }, {});
+};
+
 const auditLog = async (req, res, next) => {
   // Capture the original send method to log response status if needed
   const originalSend = res.send;
@@ -21,7 +41,7 @@ const auditLog = async (req, res, next) => {
       statusCode: res.statusCode,
       timestamp: new Date(),
       ip: req.ip,
-      body: ['POST', 'PUT', 'PATCH'].includes(req.method) ? req.body : null,
+      body: ['POST', 'PUT', 'PATCH'].includes(req.method) ? redactSensitiveBody(req.body) : null,
       params: req.params,
       query: req.query
     };

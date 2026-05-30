@@ -14,7 +14,7 @@ import {
   UIManager,
 } from 'react-native';
 import * as Location from 'expo-location';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
@@ -311,9 +311,7 @@ export default function CheckoutScreen() {
       });
       const responseOrder = orderResponse?.order || orderResponse?.data || orderResponse;
       const orderId = responseOrder?.id || responseOrder?.orderId || orderResponse?.orderId;
-
-      clearCart();
-      navigation.navigate('OrderConfirmation', {
+      const confirmationParams = {
         orderId,
         order: {
           ...responseOrder,
@@ -322,7 +320,18 @@ export default function CheckoutScreen() {
           total: responseOrder?.total || bill.grandTotal,
           paymentMethod,
         },
-      });
+      };
+
+      clearCart();
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 1,
+          routes: [
+            { name: 'MainTabs', params: { screen: 'Orders' } },
+            { name: 'OrderConfirmation', params: confirmationParams },
+          ],
+        })
+      );
     } catch (error) {
       setSubmitError(error.message || 'Unable to place order. Please try again.');
     } finally {

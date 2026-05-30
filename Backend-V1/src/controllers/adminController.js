@@ -243,16 +243,89 @@ const getAdminCustomerById = async (req, res) => {
 
   const customer = userRows[0];
   const [orderRows] = await pool.query('SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC', [id]);
+  const [resetRows] = await pool.query(
+    `SELECT id, status, requested_at
+     FROM password_reset_requests
+     WHERE user_id = ? AND status = 'pending'
+     ORDER BY requested_at DESC
+     LIMIT 1`,
+    [id]
+  );
   
   const lifetimeSpend = orderRows
     .filter(o => o.status !== 'Cancelled')
     .reduce((sum, o) => sum + Number(o.total), 0);
   
   customer.orders = orderRows;
+  customer.pending_password_reset_request = resetRows[0] || null;
   customer.lifetime_spend = lifetimeSpend;
   customer.order_count = orderRows.length;
 
   res.status(200).json({ data: customer });
+};
+
+const getPasswordResetRequests = async (req, res) => {
+  const { status = 'pending' } = req.query;
+  const allowedStatuses = ['pending', 'approved', 'rejected'];
+  const finalStatus = allowedStatuses.includes(status) ? status : 'pending';
+
+  const [rows] = await pool.query(
+    `SELECT prr.id, prr.user_id, prr.status, prr.requested_at, prr.reviewed_at, prr.reviewed_by_admin_id,
+            u.name, u.phone, u.whatsapp_number
+     FROM password_reset_requests prr
+     JOIN users u ON u.id = prr.user_id
+     WHERE prr.status = ?
+     ORDER BY prr.requested_at DESC
+     LIMIT 100`,
+    [finalStatus]
+  );
+
+  res.status(200).json({ data: rows });
+};
+
+const approvePasswordResetRequest = async (req, res) => {
+  const { id } = req.params;
+
+  const [rows] = await pool.query(
+    'SELECT id, user_id, password_hash, status FROM password_reset_requests WHERE id = ?',
+    [id]
+  );
+
+  if (rows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Password reset request not found' });
+  }
+
+  const request = rows[0];
+  if (request.status !== 'pending') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Password reset request is already reviewed' });
+  }
+
+  await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [request.password_hash, request.user_id]);
+  await pool.query(
+    `UPDATE password_reset_requests
+     SET status = 'approved', reviewed_at = CURRENT_TIMESTAMP, reviewed_by_admin_id = ?
+     WHERE id = ?`,
+    [req.admin.id, id]
+  );
+
+  res.status(200).json({ message: 'Password reset request approved successfully' });
+};
+
+const rejectPasswordResetRequest = async (req, res) => {
+  const { id } = req.params;
+
+  const [result] = await pool.query(
+    `UPDATE password_reset_requests
+     SET status = 'rejected', reviewed_at = CURRENT_TIMESTAMP, reviewed_by_admin_id = ?
+     WHERE id = ? AND status = 'pending'`,
+    [req.admin.id, id]
+  );
+
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Pending password reset request not found' });
+  }
+
+  res.status(200).json({ message: 'Password reset request rejected successfully' });
 };
 
 const getTopProductsReport = async (req, res) => {
@@ -625,6 +698,9 @@ module.exports = {
   updateOrderStatus,
   updateOrderPayment,
   getAdminCustomerById,
+  getPasswordResetRequests,
+  approvePasswordResetRequest,
+  rejectPasswordResetRequest,
   getTopProductsReport,
   getCustomersReport,
   getAuditLogs,

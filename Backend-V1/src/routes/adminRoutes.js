@@ -1,5 +1,5 @@
 const express = require('express');
-const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification } = require('../controllers/adminController');
+const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getPasswordResetRequests, approvePasswordResetRequest, rejectPasswordResetRequest, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
@@ -291,6 +291,10 @@ router.put('/customers/:id/block', requireAdmin, validate(blockSchema), asyncHan
 router.patch('/customers/:id/block', requireAdmin, validate(blockSchema), asyncHandler(setBlockStatus));
 router.put('/customers/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
 router.patch('/customers/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
+
+router.get('/password-reset-requests', requireAdmin, asyncHandler(getPasswordResetRequests));
+router.patch('/password-reset-requests/:id/approve', requireAdmin, auditLog, asyncHandler(approvePasswordResetRequest));
+router.patch('/password-reset-requests/:id/reject', requireAdmin, auditLog, asyncHandler(rejectPasswordResetRequest));
 
 router.get('/categories', requireAdmin, asyncHandler(getAdminCategories));
 router.post('/categories', requireAdmin, auditLog, validate(categorySchema), asyncHandler(createCategory));

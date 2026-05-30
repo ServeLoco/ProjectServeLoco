@@ -89,9 +89,41 @@ const updateProfile = async (req, res) => {
   });
 };
 
+const requestPasswordReset = async (req, res) => {
+  const { phone, newPassword } = req.validatedData;
+  const [users] = await pool.query('SELECT id FROM users WHERE phone = ?', [phone]);
+
+  // Return the same success message even if the phone is unknown to avoid account discovery.
+  const response = {
+    message: 'If the phone number is registered, your password reset request has been sent for admin approval'
+  };
+
+  if (users.length === 0) {
+    return res.status(202).json(response);
+  }
+
+  const userId = users[0].id;
+  const hashedPassword = await hashPassword(newPassword);
+
+  await pool.query(
+    `UPDATE password_reset_requests
+     SET status = 'rejected', reviewed_at = CURRENT_TIMESTAMP, reviewed_by_admin_id = 'system', review_note = 'Replaced by newer request'
+     WHERE user_id = ? AND status = 'pending'`,
+    [userId]
+  );
+
+  await pool.query(
+    'INSERT INTO password_reset_requests (user_id, password_hash) VALUES (?, ?)',
+    [userId, hashedPassword]
+  );
+
+  res.status(202).json(response);
+};
+
 module.exports = {
   register,
   login,
   me,
-  updateProfile
+  updateProfile,
+  requestPasswordReset
 };

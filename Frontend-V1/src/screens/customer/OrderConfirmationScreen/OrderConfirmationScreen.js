@@ -37,8 +37,9 @@ export default function OrderConfirmationScreen() {
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Prevent back navigation to checkout
+    // Keep completed checkout out of the back stack.
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      navigation.replace('MainTabs', { screen: 'Orders' });
       return true;
     });
 

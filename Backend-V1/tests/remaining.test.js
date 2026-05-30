@@ -1,6 +1,7 @@
 const request = require('supertest');
 const express = require('express');
 const adminRoutes = require('../src/routes/adminRoutes');
+const authRoutes = require('../src/routes/authRoutes');
 const orderRoutes = require('../src/routes/orderRoutes');
 const { pool } = require('../src/db/mysql');
 const jwt = require('jsonwebtoken');
@@ -12,9 +13,22 @@ jest.mock('../src/db/mysql', () => ({
   }
 }));
 
+jest.mock('../src/db/mongodb', () => {
+  const insertOne = jest.fn(() => Promise.resolve());
+  return {
+    __mockInsertOne: insertOne,
+    getDb: jest.fn(() => ({
+      collection: jest.fn(() => ({ insertOne }))
+    }))
+  };
+});
+
+const { __mockInsertOne } = require('../src/db/mongodb');
+
 const app = express();
 app.use(express.json());
 app.use('/api/admin', adminRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 
 const adminToken = jwt.sign({ id: 'admin', role: 'admin' }, process.env.JWT_SECRET || 'secret');
@@ -78,6 +92,45 @@ describe('Order Cancellation and Admin Action Tests', () => {
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.message).toContain('blocked');
+  });
+
+  it('should allow customer to request a password reset with a hashed pending password', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 1 }]])
+      .mockResolvedValueOnce([{}])
+      .mockResolvedValueOnce([{ insertId: 7 }]);
+
+    const res = await request(app)
+      .post('/api/auth/password-reset-requests')
+      .send({ phone: '9999999999', newPassword: 'TempPass123' });
+
+    expect(res.statusCode).toEqual(202);
+    expect(res.body.message).toContain('admin approval');
+    expect(pool.query).toHaveBeenCalledWith(
+      'INSERT INTO password_reset_requests (user_id, password_hash) VALUES (?, ?)',
+      [1, expect.stringMatching(/^\$2[aby]\$/)]
+    );
+  });
+
+  it('should allow admin to approve a pending password reset request', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 7, user_id: 1, password_hash: '$2b$10$hashed', status: 'pending' }]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const res = await request(app)
+      .patch('/api/admin/password-reset-requests/7/approve')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.message).toContain('approved');
+    expect(pool.query).toHaveBeenCalledWith(
+      'UPDATE users SET password_hash = ? WHERE id = ?',
+      ['$2b$10$hashed', 1]
+    );
+    expect(__mockInsertOne).toHaveBeenCalledWith(expect.objectContaining({
+      body: {}
+    }));
   });
 
   it('should aggregate admin stats', async () => {

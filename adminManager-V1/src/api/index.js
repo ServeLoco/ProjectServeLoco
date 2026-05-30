@@ -87,6 +87,9 @@ export const CustomersApi = {
   get: (id) => apiClient(`/admin/customers/${id}`, { method: 'GET' }),
   updateBlock: (id, blocked) => apiClient(`/admin/customers/${id}/block`, { method: 'PATCH', body: { blocked } }),
   updateTrust: (id, trusted) => apiClient(`/admin/customers/${id}/trust`, { method: 'PATCH', body: { trusted } }),
+  listPasswordResetRequests: (params) => apiClient(withQuery('/admin/password-reset-requests', params), { method: 'GET' }),
+  approvePasswordReset: (requestId) => apiClient(`/admin/password-reset-requests/${requestId}/approve`, { method: 'PATCH' }),
+  rejectPasswordReset: (requestId) => apiClient(`/admin/password-reset-requests/${requestId}/reject`, { method: 'PATCH' }),
 };
 
 export const SettingsApi = {

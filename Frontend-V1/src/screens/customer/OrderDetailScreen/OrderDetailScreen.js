@@ -42,6 +42,15 @@ const normalizeTimelineStatus = (status) => {
   return status || 'Pending';
 };
 
+const getCancelledOrderPatch = (response) => {
+  const responseOrder = response?.order || response?.data;
+  if (!responseOrder || responseOrder.success) {
+    return { status: 'Cancelled' };
+  }
+
+  return normalizeOrder(responseOrder);
+};
+
 export default function OrderDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -143,7 +152,7 @@ export default function OrderDetailScreen() {
     setIsCancelling(true);
     ordersApi.cancelOrder(order.id)
       .then(response => {
-        const cancelled = normalizeOrder(response?.order || response?.data || response || {});
+        const cancelled = getCancelledOrderPatch(response);
         // Stop modal animations immediately before state changes to avoid
         // useNativeDriver conflict when TimelineStep re-renders.
         modalOpacity.stopAnimation();

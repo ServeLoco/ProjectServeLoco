@@ -17,10 +17,15 @@ export default function Customers() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [resetRequests, setResetRequests] = useState([]);
 
   useEffect(() => {
     fetchCustomers(1);
   }, [filters]);
+
+  useEffect(() => {
+    fetchPasswordResetRequests();
+  }, []);
 
   const fetchCustomers = async (page = 1) => {
     try {
@@ -41,6 +46,15 @@ export default function Customers() {
     }
   };
 
+  const fetchPasswordResetRequests = async () => {
+    try {
+      const res = await CustomersApi.listPasswordResetRequests({ status: 'pending' });
+      setResetRequests(res.data || []);
+    } catch (err) {
+      console.warn('Failed to fetch password reset requests:', err);
+    }
+  };
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
@@ -58,6 +72,16 @@ export default function Customers() {
       setUpdating(false);
     }
   };
+
+  const handlePendingResetClick = () => {
+    const [request] = resetRequests;
+    if (!request) return;
+    handleRowClick(request.user_id);
+  };
+
+  const getPendingResetForCustomer = (customerId) => (
+    resetRequests.find(request => Number(request.user_id) === Number(customerId))
+  );
 
   const closeDrawer = () => {
     setDrawerOpen(false);
@@ -93,10 +117,46 @@ export default function Customers() {
     }
   };
 
+  const handleReviewPasswordReset = async (action) => {
+    const request = selectedCustomer?.pending_password_reset_request;
+    if (!request) return;
+    const isApprove = action === 'approve';
+    const confirmed = window.confirm(
+      `${isApprove ? 'Approve' : 'Reject'} password reset request for ${selectedCustomer.name}?`
+    );
+    if (!confirmed) return;
+
+    try {
+      setUpdating(true);
+      if (isApprove) {
+        await CustomersApi.approvePasswordReset(request.id);
+      } else {
+        await CustomersApi.rejectPasswordReset(request.id);
+      }
+      setSelectedCustomer(prev => ({ ...prev, pending_password_reset_request: null }));
+      fetchPasswordResetRequests();
+      alert(`Password reset request ${isApprove ? 'approved' : 'rejected'} successfully.`);
+    } catch (err) {
+      alert('Failed to review password reset request: ' + err.message);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   return (
     <div className="customers-container">
       <header className="customers-header">
         <h1 className="customers-title">Customers</h1>
+        {resetRequests.length > 0 && (
+          <button
+            type="button"
+            className="reset-request-pill"
+            onClick={handlePendingResetClick}
+            disabled={updating}
+          >
+            {resetRequests.length} pending password reset{resetRequests.length === 1 ? '' : 's'}
+          </button>
+        )}
       </header>
 
       <section className="filter-bar">
@@ -139,20 +199,24 @@ export default function Customers() {
             ) : customers.length === 0 ? (
               <tr><td colSpan="4" style={{ textAlign: 'center', padding: '2rem' }}>No customers found.</td></tr>
             ) : (
-              customers.map(c => (
+              customers.map(c => {
+                const pendingReset = getPendingResetForCustomer(c.id);
+                return (
                 <tr key={c.id} onClick={() => handleRowClick(c.id)}>
                   <td>
                     <div className="customer-name">
                       {c.name}
                       {c.trusted ? <span className="badge-trusted">Trusted</span> : null}
                       {c.blocked ? <span className="badge-blocked">Blocked</span> : null}
+                      {pendingReset ? <span className="badge-reset">Password Reset</span> : null}
                     </div>
                   </td>
                   <td>{c.phone}</td>
                   <td>{c.order_count || c.total_orders || 0}</td>
                   <td>{new Date(c.created_at).toLocaleDateString()}</td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
@@ -238,6 +302,40 @@ export default function Customers() {
                   {selectedCustomer.trusted ? 'Revoke Trust' : 'Mark as Trusted'}
                 </button>
               </div>
+
+              {selectedCustomer.pending_password_reset_request ? (
+                <div className="action-card password-reset-card">
+                  <h4>Password Reset Request</h4>
+                  <p>
+                    Customer requested a new password on{' '}
+                    {new Date(selectedCustomer.pending_password_reset_request.requested_at).toLocaleString()}.
+                    Verify the customer before approving.
+                  </p>
+                  <div className="password-reset-actions">
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={() => handleReviewPasswordReset('approve')}
+                      disabled={updating}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => handleReviewPasswordReset('reject')}
+                      disabled={updating}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="action-card">
+                  <h4>Password Reset</h4>
+                  <p>No pending password reset request for this customer.</p>
+                </div>
+              )}
 
               <div className="action-card" style={{ borderColor: 'var(--danger-border)' }}>
                 <h4 style={{ color: 'var(--danger-color)' }}>Block Customer</h4>

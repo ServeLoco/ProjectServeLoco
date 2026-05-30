@@ -76,6 +76,15 @@ const formatDate = (value) => {
   });
 };
 
+const getCancelledOrderPatch = (response) => {
+  const responseOrder = response?.order || response?.data;
+  if (!responseOrder || responseOrder.success) {
+    return { status: 'Cancelled' };
+  }
+
+  return normalizeOrder(responseOrder);
+};
+
 export default function OrdersScreen() {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
@@ -202,7 +211,7 @@ export default function OrdersScreen() {
     setCancellingId(orderId);
     ordersApi.cancelOrder(orderId)
       .then(response => {
-        const cancelled = normalizeOrder(response?.order || response?.data || response || {});
+        const cancelled = getCancelledOrderPatch(response);
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setOrders(prev => prev.map(o => o.id === orderId ? {
           ...o,
