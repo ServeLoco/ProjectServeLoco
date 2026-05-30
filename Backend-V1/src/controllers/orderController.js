@@ -1,6 +1,7 @@
 const { pool } = require('../db/mysql');
 // Location-based pricing is removed, so calculateDeliveryPricing is no longer imported
 const notificationService = require('../utils/notificationService');
+const realtimeEvents = require('../realtime/orderEvents');
 const { calculateThresholdDeliveryCharge } = require('../utils/thresholdDelivery');
 const { roundMoney, toMoney } = require('../utils/money');
 
@@ -144,6 +145,7 @@ const createOrder = async (req, res) => {
     const order = {
       id: orderId,
       orderId,
+      customerId: userId,
       orderNumber,
       address: finalAddress,
       subtotal,
@@ -175,7 +177,9 @@ const createOrder = async (req, res) => {
       userId,
       order,
       event: 'order_placed'
-    });
+    }).then(result => realtimeEvents.emitNotificationCreated(userId, result));
+
+    realtimeEvents.emitOrderCreated(order);
 
     res.status(201).json({
       message: 'Order placed successfully',
@@ -248,13 +252,21 @@ const cancelOrder = async (req, res) => {
     'UPDATE orders SET status = "Cancelled", cancel_reason = ? WHERE id = ?',
     [reason || 'Cancelled by customer', id]
   );
+  const updatedOrder = {
+    ...order,
+    status: 'Cancelled',
+    cancel_reason: reason || 'Cancelled by customer',
+    updated_at: new Date().toISOString(),
+  };
 
   // Fire notification (non-blocking)
   notificationService.createOrderNotification({
     userId,
-    order,
+    order: updatedOrder,
     event: 'status_cancelled'
-  });
+  }).then(result => realtimeEvents.emitNotificationCreated(userId, result));
+
+  realtimeEvents.emitOrderCancelled(updatedOrder);
 
   res.status(200).json({ success: true, message: 'Order cancelled successfully' });
 };

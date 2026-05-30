@@ -1,4 +1,12 @@
 import { apiClient } from './client';
+export {
+  connectAdminRealtime,
+  disconnectAdminRealtime,
+  getRealtimeConnectionState,
+  subscribeAdminOrderEvents,
+  subscribeRealtime,
+  subscribeRealtimeLifecycle,
+} from './realtimeClient';
 
 const withQuery = (path, params = {}) => {
   const qs = new URLSearchParams();

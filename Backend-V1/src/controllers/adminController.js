@@ -3,6 +3,7 @@ const { signAdminToken } = require('../utils/auth');
 const { pool } = require('../db/mysql');
 const { validatePagination } = require('../validators');
 const notificationService = require('../utils/notificationService');
+const realtimeEvents = require('../realtime/orderEvents');
 
 const ORDER_STATUS_VALUES = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
@@ -460,8 +461,10 @@ const updateOrderStatus = async (req, res) => {
         userId: updatedOrder.customer_id,
         order: updatedOrder,
         event: eventName
-      });
+      }).then(result => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result));
     }
+
+    realtimeEvents.emitOrderStatusUpdated(updatedOrder);
   }
 
   res.status(200).json({ message: 'Order status updated successfully', order: updatedOrder });
@@ -504,8 +507,10 @@ const updateOrderPayment = async (req, res) => {
         userId: updatedOrder.customer_id,
         order: updatedOrder,
         event: eventName
-      });
+      }).then(result => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result));
     }
+
+    realtimeEvents.emitOrderPaymentUpdated(updatedOrder);
   }
 
   res.status(200).json({ message: 'Order payment status updated successfully', order: updatedOrder });

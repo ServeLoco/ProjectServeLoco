@@ -1,6 +1,7 @@
 const app = require('./app');
 const config = require('./config/env');
 const db = require('./db');
+const { closeRealtime, initRealtime } = require('./realtime/socket');
 
 const PORT = config.PORT;
 
@@ -13,6 +14,7 @@ const startServer = async () => {
     server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server is running on port ${PORT}`);
     });
+    initRealtime(server);
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
@@ -24,6 +26,8 @@ startServer();
 // Graceful shutdown helpers
 const shutdown = async () => {
   console.log('SIGTERM/SIGINT signal received: closing HTTP server and database connections');
+  await closeRealtime();
+
   if (server) {
     server.close(async () => {
       console.log('HTTP server closed');
@@ -31,6 +35,7 @@ const shutdown = async () => {
       process.exit(0);
     });
   } else {
+    await closeRealtime();
     await db.closeDB();
     process.exit(0);
   }

@@ -1,6 +1,17 @@
 export { ApiError } from './apiError';
 export { apiClient, request } from './httpClient';
 export { DEFAULT_API_BASE_URL, getApiBaseUrl, setApiBaseUrl } from './config';
+export { getRealtimeBaseUrl } from './realtimeConfig';
+export {
+  connectCustomerRealtime,
+  disconnectCustomerRealtime,
+  emitRealtimeForeground,
+  getRealtimeConnectionState,
+  subscribeNotificationEvents,
+  subscribeOrderEvents,
+  subscribeRealtime,
+  subscribeRealtimeLifecycle,
+} from './realtimeClient';
 export {
   clearTokenProviders,
   setCustomerTokenProvider,

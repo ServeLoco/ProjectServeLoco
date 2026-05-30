@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { AppScreen, AppHeader, AppIcon } from '../../../components';
 import { colors, typography, spacing, radius } from '../../../theme';
-import { notificationsApi } from '../../../api';
+import { notificationsApi, subscribeNotificationEvents, subscribeRealtimeLifecycle } from '../../../api';
 import { useAuthStore } from '../../../stores';
+import { mapNotification } from '../../../utils';
 
 export default function NotificationsScreen({ navigation }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const refreshTimer = useRef(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -18,7 +20,7 @@ export default function NotificationsScreen({ navigation }) {
     }
   }, [isAuthenticated]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
       const res = await notificationsApi.list({ limit: 50 });
@@ -28,13 +30,56 @@ export default function NotificationsScreen({ navigation }) {
       if (hasUnread) {
         // Mark all as read on the backend automatically
         await notificationsApi.markAllRead();
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       }
     } catch (err) {
       console.warn('Failed to fetch notifications', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const queueRefresh = useCallback(() => {
+    if (refreshTimer.current) {
+      clearTimeout(refreshTimer.current);
+    }
+
+    refreshTimer.current = setTimeout(() => {
+      if (isAuthenticated) {
+        fetchNotifications();
+      }
+    }, 350);
+  }, [fetchNotifications, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+
+    const unsubscribeNotifications = subscribeNotificationEvents(({ eventName, payload }) => {
+      if (eventName !== 'notification.created') return;
+
+      const notification = mapNotification(payload);
+      setNotifications(prev => {
+        if (prev.some(item => String(item.id) === String(notification.id))) {
+          return prev;
+        }
+        return [notification, ...prev].slice(0, 50);
+      });
+    });
+
+    const unsubscribeLifecycle = subscribeRealtimeLifecycle(({ eventName }) => {
+      if (eventName === 'reconnected' || eventName === 'foreground') {
+        queueRefresh();
+      }
+    });
+
+    return () => {
+      unsubscribeNotifications();
+      unsubscribeLifecycle();
+      if (refreshTimer.current) {
+        clearTimeout(refreshTimer.current);
+      }
+    };
+  }, [isAuthenticated, queueRefresh]);
 
   const markAllAsRead = async () => {
     if (!isAuthenticated) return;

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AuthApi } from '../api';
+import { AuthApi, connectAdminRealtime, disconnectAdminRealtime } from '../api';
 import { storage } from '../utils/storage';
 
 const AuthContext = createContext();
@@ -15,8 +15,10 @@ export const AuthProvider = ({ children }) => {
         try {
           const userData = await AuthApi.me();
           setUser(userData.user || userData.data || userData);
+          connectAdminRealtime();
         } catch (error) {
           storage.clearToken();
+          disconnectAdminRealtime();
         }
       }
       setLoading(false);
@@ -28,10 +30,12 @@ export const AuthProvider = ({ children }) => {
     const data = await AuthApi.login(credentials);
     storage.setToken(data.token);
     setUser(data.user);
+    connectAdminRealtime();
   };
 
   const logout = () => {
     storage.clearToken();
+    disconnectAdminRealtime();
     setUser(null);
   };
 
