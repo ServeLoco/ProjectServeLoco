@@ -22,6 +22,10 @@ const generateOrderNumber = async (connection) => {
   return `${prefix}${nextSeq}`;
 };
 
+const getCancelledPaymentStatus = (paymentMethod) => (
+  paymentMethod === 'UPI' ? 'Refunded' : 'Failed'
+);
+
 const createOrder = async (req, res) => {
   const userId = req.user.id;
   const { address, latitude, longitude, map_url, payment_method, note, items } = req.validatedData;
@@ -234,6 +238,10 @@ const cancelOrder = async (req, res) => {
   const { id } = req.params;
   const { reason } = req.body;
 
+  if (reason && reason.length > 500) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Reason must not exceed 500 characters' });
+  }
+
   const [orderRows] = await pool.query(
     'SELECT * FROM orders WHERE id = ? AND customer_id = ?',
     [id, userId]
@@ -248,13 +256,15 @@ const cancelOrder = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Only pending orders can be cancelled' });
   }
 
+  const cancelledPaymentStatus = getCancelledPaymentStatus(order.payment_method);
   await pool.query(
-    'UPDATE orders SET status = "Cancelled", cancel_reason = ? WHERE id = ?',
-    [reason || 'Cancelled by customer', id]
+    'UPDATE orders SET status = "Cancelled", payment_status = ?, cancel_reason = ? WHERE id = ?',
+    [cancelledPaymentStatus, reason || 'Cancelled by customer', id]
   );
   const updatedOrder = {
     ...order,
     status: 'Cancelled',
+    payment_status: cancelledPaymentStatus,
     cancel_reason: reason || 'Cancelled by customer',
     updated_at: new Date().toISOString(),
   };
@@ -268,7 +278,7 @@ const cancelOrder = async (req, res) => {
 
   realtimeEvents.emitOrderCancelled(updatedOrder);
 
-  res.status(200).json({ success: true, message: 'Order cancelled successfully' });
+  res.status(200).json({ success: true, message: 'Order cancelled successfully', order: updatedOrder, data: updatedOrder });
 };
 
 module.exports = {

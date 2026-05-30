@@ -13,6 +13,10 @@ function getRealtimeOrderKey(eventName, payload = {}) {
   ].join(':');
 }
 
+function getCancelledPaymentStatus(paymentMethod) {
+  return paymentMethod === 'UPI' ? 'Refunded' : 'Failed';
+}
+
 function mergeOrderRealtimePatch(order, payload = {}) {
   if (!order) return order;
 
@@ -24,6 +28,11 @@ function mergeOrderRealtimePatch(order, payload = {}) {
   if (status !== undefined && status !== null) {
     next.status = status;
     next.canCancel = status === 'Pending';
+    if (status === 'Cancelled' && (paymentStatus === undefined || paymentStatus === null)) {
+      const paymentMethod = payload.paymentMethod || payload.payment_method || next.paymentMethod || next.payment_method;
+      next.paymentStatus = getCancelledPaymentStatus(paymentMethod);
+      next.payment_status = next.paymentStatus;
+    }
   }
 
   if (paymentStatus !== undefined && paymentStatus !== null) {

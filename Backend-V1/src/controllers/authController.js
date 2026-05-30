@@ -30,25 +30,33 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   const { phone, password } = req.validatedData;
 
-  const [rows] = await pool.query('SELECT * FROM users WHERE phone = ?', [phone]);
+  const [rows] = await pool.query('SELECT id, name, phone, whatsapp_number, address, trusted, blocked, created_at, password_hash FROM users WHERE phone = ?', [phone]);
   if (rows.length === 0) {
     return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid phone or password' });
   }
 
-  const user = rows[0];
-  const passwordHash = user.password_hash || user.password;
+  const row = rows[0];
+  const passwordHash = row.password_hash || row.password;
   const isMatch = await comparePassword(password, passwordHash);
   if (!isMatch) {
     return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid phone or password' });
   }
 
-  if (user.blocked) {
+  if (row.blocked) {
     return res.status(403).json({ code: 'FORBIDDEN', message: 'Your account is blocked' });
   }
 
-  const token = signCustomerToken(user.id);
-  delete user.password_hash; // Do not return hash
-  delete user.password;
+  const token = signCustomerToken(row.id);
+  const user = {
+    id: row.id,
+    name: row.name,
+    phone: row.phone,
+    whatsapp_number: row.whatsapp_number,
+    address: row.address,
+    trusted: row.trusted,
+    blocked: row.blocked,
+    created_at: row.created_at
+  };
 
   res.status(200).json({
     message: 'Login successful',
@@ -60,14 +68,12 @@ const login = async (req, res) => {
 const me = async (req, res) => {
   const userId = req.user.id;
 
-  const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
+  const [rows] = await pool.query('SELECT id, name, phone, whatsapp_number, address, trusted, blocked, created_at FROM users WHERE id = ?', [userId]);
   if (rows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
   const user = rows[0];
-  delete user.password_hash;
-  delete user.password;
 
   res.status(200).json({ user });
 };

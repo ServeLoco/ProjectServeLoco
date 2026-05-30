@@ -27,8 +27,8 @@ const registerSchema = (req) => {
   if (!isPhone(data.phone)) errors.phone = 'Valid phone number is required';
   if (!isString(data.password)) {
     errors.password = 'Password is required';
-  } else if (String(data.password).length < 6) {
-    errors.password = 'Password must be at least 6 characters';
+  } else if (String(data.password).length < 8) {
+    errors.password = 'Password must be at least 8 characters';
   }
 
   return { errors, data };
@@ -69,8 +69,8 @@ const passwordResetRequestSchema = (req) => {
   };
 
   if (!isPhone(data.phone)) errors.phone = 'Valid phone number is required';
-  if (!isString(data.newPassword) || String(data.newPassword).length < 6) {
-    errors.newPassword = 'New password must be at least 6 characters';
+  if (!isString(data.newPassword) || String(data.newPassword).length < 8) {
+    errors.newPassword = 'New password must be at least 8 characters';
   }
 
   return { errors, data };

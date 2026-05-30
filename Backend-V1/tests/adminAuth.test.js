@@ -14,14 +14,19 @@ const app = express();
 app.use(express.json());
 app.use('/api/admin', adminRoutes);
 
+const bcrypt = require('bcrypt');
+
 describe('Admin Auth Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    delete process.env.ADMIN_OWNER_ID;
+    delete process.env.ADMIN_PASSWORD;
+    delete process.env.ADMIN_PASSWORD_HASH;
   });
 
-  it('should login admin with correct credentials', async () => {
+  it('should login admin with correct credentials using hash', async () => {
     process.env.ADMIN_OWNER_ID = 'admin';
-    process.env.ADMIN_PASSWORD = 'admin';
+    process.env.ADMIN_PASSWORD_HASH = await bcrypt.hash('admin', 10);
 
     const res = await request(app)
       .post('/api/admin/login')
@@ -30,6 +35,7 @@ describe('Admin Auth Tests', () => {
         password: 'admin'
       });
 
+    if (res.statusCode !== 200) console.log(res.body);
     expect(res.statusCode).toEqual(200);
     expect(res.body).toHaveProperty('token');
     expect(res.body.user.role).toEqual('admin');
@@ -37,7 +43,7 @@ describe('Admin Auth Tests', () => {
 
   it('should fail admin login with incorrect credentials', async () => {
     process.env.ADMIN_OWNER_ID = 'admin';
-    process.env.ADMIN_PASSWORD = 'admin';
+    process.env.ADMIN_PASSWORD_HASH = await bcrypt.hash('admin', 10);
 
     const res = await request(app)
       .post('/api/admin/login')

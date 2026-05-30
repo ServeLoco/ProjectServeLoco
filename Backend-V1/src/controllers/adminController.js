@@ -4,8 +4,13 @@ const { pool } = require('../db/mysql');
 const { validatePagination } = require('../validators');
 const notificationService = require('../utils/notificationService');
 const realtimeEvents = require('../realtime/orderEvents');
+const bcrypt = require('bcrypt');
 
 const ORDER_STATUS_VALUES = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
+
+const getCancelledPaymentStatus = (paymentMethod) => (
+  paymentMethod === 'UPI' ? 'Refunded' : 'Failed'
+);
 
 
 const queryRows = async (sql, params) => {
@@ -13,20 +18,31 @@ const queryRows = async (sql, params) => {
   return Array.isArray(result) ? result[0] || [] : [];
 };
 
-const login = (req, res) => {
+const login = async (req, res) => {
   const { id, password } = req.validatedData;
 
-  // Compare against environment variables
   const ownerId = process.env.ADMIN_OWNER_ID || config.ADMIN_OWNER_ID;
+  const ownerPasswordHash = process.env.ADMIN_PASSWORD_HASH || config.ADMIN_PASSWORD_HASH;
   const ownerPassword = process.env.ADMIN_PASSWORD || config.ADMIN_PASSWORD;
 
-  if (id === ownerId && password === ownerPassword) {
-    const token = signAdminToken(id);
-    return res.status(200).json({
-      message: 'Admin login successful',
-      token,
-      user: { id, role: 'admin' }
-    });
+  if (id === ownerId) {
+    let isMatch = false;
+
+    if (ownerPasswordHash) {
+      isMatch = await bcrypt.compare(password, ownerPasswordHash);
+    } else if (ownerPassword) {
+      console.warn('WARNING: Using plaintext ADMIN_PASSWORD for admin login. This is for dev only and should not be used in production.');
+      isMatch = (password === ownerPassword);
+    }
+
+    if (isMatch) {
+      const token = signAdminToken(id);
+      return res.status(200).json({
+        message: 'Admin login successful',
+        token,
+        user: { id, role: 'admin' }
+      });
+    }
   }
 
   return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid admin credentials' });
@@ -183,6 +199,11 @@ const getDashboard = async (req, res) => {
 
 const getSalesReport = async (req, res) => {
   const { period } = req.query;
+  const allowedPeriods = ['today', 'week', 'month'];
+  if (period && !allowedPeriods.includes(period)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid period parameter' });
+  }
+
   let dateFilter = '1=1';
   if (period === 'today') {
     dateFilter = 'DATE(created_at) = CURDATE()';
@@ -287,7 +308,7 @@ const approvePasswordResetRequest = async (req, res) => {
   const { id } = req.params;
 
   const [rows] = await pool.query(
-    'SELECT id, user_id, password_hash, status FROM password_reset_requests WHERE id = ?',
+    'SELECT id, user_id, password_hash, status, requested_at FROM password_reset_requests WHERE id = ?',
     [id]
   );
 
@@ -298,6 +319,14 @@ const approvePasswordResetRequest = async (req, res) => {
   const request = rows[0];
   if (request.status !== 'pending') {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Password reset request is already reviewed' });
+  }
+
+  const requestedAt = new Date(request.requested_at);
+  const now = new Date();
+  const diffHours = (now - requestedAt) / (1000 * 60 * 60);
+
+  if (diffHours > 72) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Password reset request is older than 72 hours' });
   }
 
   await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [request.password_hash, request.user_id]);
@@ -330,6 +359,11 @@ const rejectPasswordResetRequest = async (req, res) => {
 
 const getTopProductsReport = async (req, res) => {
   const { period } = req.query;
+  const allowedPeriods = ['today', 'week', 'month'];
+  if (period && !allowedPeriods.includes(period)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid period parameter' });
+  }
+
   let dateFilter = '1=1';
   if (period === 'today') {
     dateFilter = 'DATE(o.created_at) = CURDATE()';
@@ -353,6 +387,11 @@ const getTopProductsReport = async (req, res) => {
 
 const getCustomersReport = async (req, res) => {
   const { period } = req.query;
+  const allowedPeriods = ['today', 'week', 'month'];
+  if (period && !allowedPeriods.includes(period)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid period parameter' });
+  }
+
   let dateFilter = '1=1';
   if (period === 'today') {
     dateFilter = 'DATE(created_at) = CURDATE()';
@@ -408,7 +447,7 @@ const getAdminOrders = async (req, res) => {
   const { status, paymentStatus, payment_status, paymentMethod, payment_method, search, dateFrom, from, dateTo, to, page, limit } = req.query;
   const pagination = validatePagination(page, limit);
 
-  let query = 'SELECT * FROM orders WHERE 1=1';
+  let query = 'SELECT id, order_number, customer_id, customer_name, phone, whatsapp_number, address, latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total, payment_method, payment_status, status, note, cancel_reason, created_at, updated_at FROM orders WHERE 1=1';
   const params = [];
 
   const finalStatus = status;
@@ -449,7 +488,8 @@ const getAdminOrders = async (req, res) => {
   }
 
   // Count total for pagination
-  const [countRows] = await pool.query(query.replace('SELECT *', 'SELECT COUNT(*) as total'), params);
+  const countQueryStr = query.replace('SELECT id, order_number, customer_id, customer_name, phone, whatsapp_number, address, latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total, payment_method, payment_status, status, note, cancel_reason, created_at, updated_at FROM orders', 'SELECT COUNT(*) as total FROM orders');
+  const [countRows] = await pool.query(countQueryStr, params);
   const total = countRows[0].total;
 
   // Sorting and Pagination
@@ -473,7 +513,7 @@ const getAdminOrders = async (req, res) => {
 const getAdminOrderById = async (req, res) => {
   const { id } = req.params;
 
-  const [orderRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+  const [orderRows] = await pool.query('SELECT id, order_number, customer_id, customer_name, phone, whatsapp_number, address, latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total, payment_method, payment_status, status, note, cancel_reason, created_at, updated_at FROM orders WHERE id = ?', [id]);
   if (orderRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
@@ -517,7 +557,15 @@ const updateOrderStatus = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Cannot move order from '${currentStatus}' back to '${status}'` });
   }
 
-  await pool.query('UPDATE orders SET status = ?, cancel_reason = ? WHERE id = ?', [status, cancel_reason || null, id]);
+  if (status === 'Cancelled') {
+    const cancelledPaymentStatus = getCancelledPaymentStatus(orderRows[0].payment_method);
+    await pool.query(
+      'UPDATE orders SET status = ?, payment_status = ?, cancel_reason = ? WHERE id = ?',
+      [status, cancelledPaymentStatus, cancel_reason || null, id]
+    );
+  } else {
+    await pool.query('UPDATE orders SET status = ?, cancel_reason = ? WHERE id = ?', [status, cancel_reason || null, id]);
+  }
   const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
   const updatedOrder = updatedRows[0];
 

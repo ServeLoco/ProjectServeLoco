@@ -68,6 +68,10 @@ function numberOrZero(value) {
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
+function getCancelledPaymentStatus(paymentMethod) {
+  return paymentMethod === 'UPI' ? 'Refunded' : 'Failed';
+}
+
 function getDiscountLabel(item) {
   return pickFirst(
     item.discountLabel,
@@ -245,14 +249,19 @@ function normalizeOrder(order = {}) {
     order.total,
     order.totalAmount,
   ));
+  const status = pickFirst(order.status, order.orderStatus, order.order_status, 'Pending');
+  const paymentMethod = pickFirst(order.paymentMethod, order.payment_method, 'Cash');
+  const paymentStatus = status === 'Cancelled'
+    ? getCancelledPaymentStatus(paymentMethod)
+    : pickFirst(order.paymentStatus, order.payment_status, 'Pending');
 
   return {
     ...order,
     id: String(pickFirst(order.id, order._id, order.orderId, order.order_id)),
     date: pickFirst(order.date, order.createdAt, order.created_at, order.updatedAt, ''),
-    status: pickFirst(order.status, order.orderStatus, order.order_status, 'Pending'),
-    paymentStatus: pickFirst(order.paymentStatus, order.payment_status, 'Pending'),
-    paymentMethod: pickFirst(order.paymentMethod, order.payment_method, 'Cash'),
+    status,
+    paymentStatus,
+    paymentMethod,
     itemCount: numberOrZero(pickFirst(order.itemCount, order.item_count, items.length)),
     total: grandTotal,
     canCancel: asBoolean(pickFirst(order.canCancel, order.can_cancel, order.cancellable), false),

@@ -1,6 +1,8 @@
 const TOKEN_KEY = 'admin_token';
 const THEME_KEY = 'admin_theme';
 
+// Note: We use localStorage (not cookies) for token storage, making it safe from CSRF attacks.
+
 export const storage = {
   getToken: () => localStorage.getItem(TOKEN_KEY),
   setToken: (token) => localStorage.setItem(TOKEN_KEY, token),

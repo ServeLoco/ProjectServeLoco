@@ -30,6 +30,7 @@ describe('Cart and Order Tests', () => {
 
     const res = await request(app)
       .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
       .send({
         items: [{ productId: 1, quantity: 2 }]
       });
@@ -58,6 +59,7 @@ describe('Cart and Order Tests', () => {
 
     const res = await request(app)
       .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
       .send({
         latitude: 12.9716,
         longitude: 77.6046,
@@ -66,7 +68,7 @@ describe('Cart and Order Tests', () => {
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.subtotal).toEqual(200);
-    expect(res.body.deliveryDistanceKm).toBeGreaterThan(0);
+    expect(res.body.deliveryDistanceKm).toBeNull();
     expect(res.body.deliveryWithinRange).toBe(true);
     expect(res.body.requiresLocation).toBe(false);
     expect(res.body.deliveryCharge).toBe(0);
@@ -91,6 +93,7 @@ describe('Cart and Order Tests', () => {
 
     const res = await request(app)
       .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
       .send({
         latitude: 12.9716,
         longitude: 77.6046,
@@ -121,6 +124,7 @@ describe('Cart and Order Tests', () => {
 
     const res = await request(app)
       .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
       .send({
         latitude: 12.9816,
         longitude: 77.5946,
@@ -151,6 +155,7 @@ describe('Cart and Order Tests', () => {
 
     const res = await request(app)
       .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
       .send({
         latitude: 12.9716,
         longitude: 77.6046,
@@ -159,39 +164,11 @@ describe('Cart and Order Tests', () => {
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.subtotal).toEqual(200);
-    expect(res.body.deliveryCharge).toBeCloseTo(10.84, 2);
-    expect(res.body.deliveryMessage).toBe('Standard delivery charge ₹10.84 applied.');
+    expect(res.body.deliveryCharge).toBe(12);
+    expect(res.body.deliveryMessage).toBe('Standard delivery charge ₹12 applied.');
   });
 
-  it('should return out-of-range cart status without blocking calculation response', async () => {
-    pool.query.mockResolvedValueOnce([[{
-      shop_open: 1,
-      minimum_order_amount: 149,
-      delivery_charge: 10,
-      free_delivery_above: 500,
-      night_charge: 0,
-      shop_latitude: 12.9716,
-      shop_longitude: 77.5946,
-      delivery_radius_km: 8,
-      delivery_cost_per_km: 10,
-      free_delivery_offer_active: 0
-    }]]);
-    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
 
-    const res = await request(app)
-      .post('/api/cart/calculate')
-      .send({
-        latitude: 13.2,
-        longitude: 77.5946,
-        items: [{ productId: 1, quantity: 2 }]
-      });
-
-    expect(res.statusCode).toEqual(200);
-    expect(res.body.deliveryWithinRange).toBe(false);
-    expect(res.body.valid).toBe(false);
-    expect(res.body.deliveryCharge).toBe(0);
-    expect(res.body.deliveryMessage).toContain('exceeds our delivery limit');
-  });
 
   it('should make cart delivery free when free delivery offer is active', async () => {
     pool.query.mockResolvedValueOnce([[{
@@ -210,6 +187,7 @@ describe('Cart and Order Tests', () => {
 
     const res = await request(app)
       .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
       .send({
         latitude: 12.9716,
         longitude: 77.6046,
@@ -264,9 +242,9 @@ describe('Cart and Order Tests', () => {
 
     expect(res.statusCode).toEqual(201);
     expect(res.body).toHaveProperty('orderId', 1001);
-    expect(res.body.order).toHaveProperty('deliveryDistanceKm', 0);
-    expect(res.body.order).toHaveProperty('deliveryRadiusKmSnapshot', 8);
-    expect(res.body.order).toHaveProperty('deliveryCostPerKmSnapshot', 5);
+    expect(res.body.order).toHaveProperty('deliveryDistanceKm', null);
+    expect(res.body.order).toHaveProperty('deliveryRadiusKmSnapshot', null);
+    expect(res.body.order).toHaveProperty('deliveryCostPerKmSnapshot', null);
     expect(mockConnection.commit).toHaveBeenCalledTimes(1);
     expect(mockConnection.release).toHaveBeenCalledTimes(1);
   });
@@ -292,6 +270,7 @@ describe('Cart and Order Tests', () => {
 
     const cartRes = await request(app)
       .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
       .send({
         latitude: 12.9716,
         longitude: 77.6046,
@@ -327,9 +306,9 @@ describe('Cart and Order Tests', () => {
       });
 
     expect(orderRes.statusCode).toEqual(201);
-    expect(orderRes.body.order.deliveryCharge).toBeCloseTo(cartRes.body.deliveryCharge, 2);
-    expect(orderRes.body.order.deliveryCharge).toBeCloseTo(10.84, 2);
-    expect(orderRes.body.order.deliveryDistanceKm).toBeCloseTo(cartRes.body.deliveryDistanceKm, 4);
+    expect(orderRes.body.order.deliveryCharge).toBe(cartRes.body.deliveryCharge);
+    expect(orderRes.body.order.deliveryCharge).toBe(10);
+    expect(orderRes.body.order.deliveryDistanceKm).toBeNull();
   });
 
   it('should allow order creation below the free delivery threshold with delivery charge', async () => {
@@ -413,83 +392,5 @@ describe('Cart and Order Tests', () => {
     expect(res.body.details).toHaveProperty('latitude', 'Invalid GPS coordinates provided');
   });
 
-  it('should fail order creation when customer is out of range', async () => {
-    const mockConnection = {
-      beginTransaction: jest.fn(),
-      query: jest.fn(),
-      commit: jest.fn(),
-      rollback: jest.fn(),
-      release: jest.fn()
-    };
-    pool.getConnection.mockResolvedValue(mockConnection);
 
-    mockConnection.query
-      .mockResolvedValueOnce([[{ blocked: 0 }]]) // user check
-      .mockResolvedValueOnce([[{
-        shop_open: 1,
-        delivery_available: 1,
-        shop_latitude: 12.9716,
-        shop_longitude: 77.5946,
-        delivery_radius_km: 8,
-        delivery_cost_per_km: 5
-      }]]) // settings
-      .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]); // product check
-
-    const res = await request(app)
-      .post('/api/orders')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        address: '123 Test St',
-        paymentMethod: 'Cash',
-        latitude: 14.0, // far away
-        longitude: 77.5946,
-        items: [{ productId: 1, quantity: 2 }]
-      });
-
-    expect(res.statusCode).toEqual(400);
-    expect(res.body.code).toEqual('VALIDATION_ERROR');
-    expect(res.body.message).toContain('exceeds our delivery limit');
-    expect(mockConnection.rollback).toHaveBeenCalledTimes(1);
-    expect(mockConnection.release).toHaveBeenCalledTimes(1);
-  });
-
-  it('should fail order creation when shop coordinates are missing', async () => {
-    const mockConnection = {
-      beginTransaction: jest.fn(),
-      query: jest.fn(),
-      commit: jest.fn(),
-      rollback: jest.fn(),
-      release: jest.fn()
-    };
-    pool.getConnection.mockResolvedValue(mockConnection);
-
-    mockConnection.query
-      .mockResolvedValueOnce([[{ blocked: 0 }]]) // user check
-      .mockResolvedValueOnce([[{
-        shop_open: 1,
-        delivery_available: 1,
-        shop_latitude: null, // missing
-        shop_longitude: null,
-        delivery_radius_km: 8,
-        delivery_cost_per_km: 5
-      }]]) // settings
-      .mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]); // product check
-
-    const res = await request(app)
-      .post('/api/orders')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        address: '123 Test St',
-        paymentMethod: 'Cash',
-        latitude: 12.9716,
-        longitude: 77.5946,
-        items: [{ productId: 1, quantity: 2 }]
-      });
-
-    expect(res.statusCode).toEqual(400);
-    expect(res.body.code).toEqual('VALIDATION_ERROR');
-    expect(res.body.message).toContain('Shop location is not configured');
-    expect(mockConnection.rollback).toHaveBeenCalledTimes(1);
-    expect(mockConnection.release).toHaveBeenCalledTimes(1);
-  });
 });

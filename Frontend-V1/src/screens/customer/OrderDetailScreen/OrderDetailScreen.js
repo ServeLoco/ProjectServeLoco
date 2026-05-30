@@ -51,6 +51,23 @@ const getCancelledOrderPatch = (response) => {
   return normalizeOrder(responseOrder);
 };
 
+const getCancelledPaymentStatus = (paymentMethod) => (
+  paymentMethod === 'UPI' ? 'Refunded' : 'Failed'
+);
+
+const getPaymentStatusColor = (status) => {
+  switch (status) {
+    case 'Paid':
+    case 'Refunded':
+      return colors.success;
+    case 'Failed':
+      return colors.error;
+    case 'Pending':
+    default:
+      return colors.warning || '#F59E0B';
+  }
+};
+
 export default function OrderDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -163,6 +180,7 @@ export default function OrderDetailScreen() {
           ...cancelled,
           id: prev.id,
           status: cancelled.status || 'Cancelled',
+          paymentStatus: cancelled.paymentStatus || getCancelledPaymentStatus(prev.paymentMethod),
           canCancel: false,
         }));
       })
@@ -198,6 +216,14 @@ export default function OrderDetailScreen() {
     );
   }
 
+  const displayPaymentStatus = order.status === 'Cancelled'
+    ? getCancelledPaymentStatus(order.paymentMethod)
+    : order.paymentStatus;
+  const displayPaymentLabel = order.paymentMethod === 'UPI' && displayPaymentStatus === 'Pending'
+    ? 'Checking'
+    : displayPaymentStatus;
+  const displayPaymentColor = getPaymentStatusColor(displayPaymentStatus);
+
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
       <AppHeader title="Track Order" onBack={() => navigation.goBack()} />
@@ -222,8 +248,13 @@ export default function OrderDetailScreen() {
           <Text style={styles.sectionTitle}>Track Order</Text>
           {order.status === 'Cancelled' ? (
             <View style={styles.cancelledBox}>
-              <Text style={styles.cancelledEmoji}>Cancelled</Text>
-              <Text style={styles.cancelledText}>This order was cancelled.</Text>
+              <View style={styles.cancelledIconFrame}>
+                <AppIcon name="close" size={18} color={colors.error} />
+              </View>
+              <View style={styles.cancelledCopy}>
+                <Text style={styles.cancelledTitle}>Order Cancelled</Text>
+                <Text style={styles.cancelledText}>This order was cancelled.</Text>
+              </View>
             </View>
           ) : (
             <View style={styles.timeline}>
@@ -287,8 +318,8 @@ export default function OrderDetailScreen() {
             <Text style={styles.infoLabel}>Payment Method</Text>
             <Text style={styles.infoValue}>
               {order.paymentMethod} •{' '}
-              <Text style={{ color: order.paymentStatus === 'Paid' ? colors.success : colors.warning }}>
-                {order.paymentMethod === 'UPI' && order.paymentStatus === 'Pending' ? 'Checking' : order.paymentStatus}
+              <Text style={{ color: displayPaymentColor, fontWeight: '700' }}>
+                {displayPaymentLabel}
               </Text>
             </Text>
           </View>
@@ -549,21 +580,38 @@ const styles = StyleSheet.create({
   },
   cancelledBox: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: colors.error + '1A',
     padding: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.error + '40',
   },
-  cancelledEmoji: {
-    fontSize: 24,
+  cancelledIconFrame: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.error + '40',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: spacing.sm,
   },
-  cancelledText: {
+  cancelledCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cancelledTitle: {
     ...typography.labelLarge,
     color: colors.error,
-    fontWeight: '600',
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  cancelledText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
   itemRow: {
     flexDirection: 'row',

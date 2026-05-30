@@ -29,7 +29,7 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Never leak stack traces in production
-  if (config.NODE_ENV !== 'production') {
+  if (process.env.DEBUG === 'true') {
     response.stack = err.stack;
   }
 

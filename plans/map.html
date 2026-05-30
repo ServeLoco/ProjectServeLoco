@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ServeLoco - Complete App Flow Map</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#232734;--border:#2e3348;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --blue:#3b82f6;--blue2:#1d4ed8;--blue-bg:rgba(59,130,246,0.12);
+  --green:#10b981;--green2:#059669;--green-bg:rgba(16,185,129,0.12);
+  --orange:#f59e0b;--orange2:#d97706;--orange-bg:rgba(245,158,11,0.12);
+  --red:#ef4444;--red-bg:rgba(239,68,68,0.12);
+  --purple:#8b5cf6;--purple-bg:rgba(139,92,246,0.12);
+  --cyan:#06b6d4;--cyan-bg:rgba(6,182,212,0.12);
+  --pink:#ec4899;--pink-bg:rgba(236,72,153,0.12);
+}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw}
+#toolbar{position:fixed;top:0;left:0;right:0;height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;z-index:100;gap:12px}
+#toolbar h1{font-size:15px;font-weight:700;white-space:nowrap}
+#toolbar h1 span{color:var(--blue)}
+#search-box{position:relative;flex:0 0 260px}
+#search-box input{width:100%;padding:7px 12px 7px 32px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;outline:none}
+#search-box input:focus{border-color:var(--blue)}
+#search-box svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text3)}
+.filter-btns{display:flex;gap:6px;margin-left:auto}
+.filter-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:12px;cursor:pointer;transition:all .15s}
+.filter-btn:hover{border-color:var(--text3);color:var(--text)}
+.filter-btn.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.filter-btn.lane-customer.active{background:var(--blue);border-color:var(--blue)}
+.filter-btn.lane-admin.active{background:var(--green);border-color:var(--green)}
+.filter-btn.lane-backend.active{background:var(--orange);border-color:var(--orange)}
+#canvas-wrap{position:fixed;top:52px;left:0;right:0;bottom:0;overflow:hidden;cursor:grab}
+#canvas-wrap.dragging{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0;will-change:transform}
+svg#connections{position:absolute;top:0;left:0;pointer-events:none;overflow:visible}
+.node{position:absolute;border-radius:10px;padding:10px 14px;cursor:pointer;transition:box-shadow .15s,transform .1s;border:1.5px solid transparent;user-select:none;max-width:220px}
+.node:hover{transform:translateY(-1px);z-index:10}
+.node.screen{background:var(--surface2);border-color:var(--border)}
+.node.screen:hover{box-shadow:0 0 0 2px var(--blue)}
+.node.decision{background:var(--surface2);border-color:var(--orange);border-radius:4px;transform:rotate(0deg);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);padding:18px 24px;text-align:center;max-width:180px}
+.node.decision:hover{filter:brightness(1.1)}
+.node.action{background:var(--surface2);border-color:var(--green);border-radius:20px}
+.node.action:hover{box-shadow:0 0 0 2px var(--green)}
+.node.api{background:var(--surface2);border-color:var(--orange);border-radius:4px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);padding:14px 20px;text-align:center;max-width:180px}
+.node.api:hover{filter:brightness(1.1)}
+.node.start{background:var(--blue2);border-color:var(--blue);border-radius:20px;color:#fff}
+.node.end{background:var(--red);border-color:var(--red);border-radius:20px;color:#fff}
+.node .icon{font-size:16px;margin-bottom:3px}
+.node .label{font-size:11px;font-weight:600;line-height:1.3}
+.node .sub{font-size:9px;color:var(--text3);margin-top:2px;line-height:1.2}
+.node.decision .label,.node.api .label{font-size:10px}
+.node.highlight{box-shadow:0 0 0 3px var(--pink)!important;z-index:20}
+.node.dimmed{opacity:0.2}
+.lane-label{position:absolute;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:2px;opacity:0.15;writing-mode:vertical-rl;text-orientation:mixed;pointer-events:none}
+#info-panel{position:fixed;right:0;top:52px;bottom:0;width:340px;background:var(--surface);border-left:1px solid var(--border);z-index:90;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto;padding:20px}
+#info-panel.open{transform:translateX(0)}
+#info-panel .close-btn{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px}
+#info-panel h2{font-size:16px;font-weight:700;margin-bottom:4px}
+#info-panel .type-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;margin-bottom:12px}
+#info-panel .desc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px}
+#info-panel h3{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin:16px 0 8px}
+#info-panel ul{list-style:none;padding:0}
+#info-panel li{font-size:12px;color:var(--text2);padding:4px 0;border-bottom:1px solid var(--border);line-height:1.4}
+#info-panel li:last-child{border:none}
+#info-panel .api-endpoint{font-family:'SF Mono',Monaco,monospace;font-size:11px;background:var(--surface2);padding:6px 10px;border-radius:6px;color:var(--orange);margin:4px 0;display:block;border:1px solid var(--border)}
+#legend{position:fixed;bottom:16px;left:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;z-index:90;font-size:11px}
+#legend h4{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px}
+.legend-item{display:flex;align-items:center;gap:8px;margin:4px 0}
+.legend-shape{width:20px;height:14px;border-radius:3px;border:1.5px solid;flex-shrink:0}
+.legend-shape.screen{border-color:var(--border);background:var(--surface2)}
+.legend-shape.decision{border-color:var(--orange);background:var(--surface2);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);width:20px;height:18px}
+.legend-shape.action{border-color:var(--green);background:var(--surface2);border-radius:10px}
+.legend-shape.api{border-color:var(--orange);background:var(--surface2);clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)}
+#zoom-controls{position:fixed;bottom:16px;right:16px;display:flex;flex-direction:column;gap:4px;z-index:90}
+#zoom-controls button{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#zoom-controls button:hover{background:var(--surface2)}
+#zoom-level{position:fixed;bottom:16px;right:64px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--text3);z-index:90}
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h1><span>ServeLoco</span> Flow Map</h1>
+  <div id="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="search" placeholder="Search nodes... (Ctrl+K)">
+  </div>
+  <div class="filter-btns">
+    <button class="filter-btn active" data-lane="all">All</button>
+    <button class="filter-btn lane-customer" data-lane="customer">Customer App</button>
+    <button class="filter-btn lane-admin" data-lane="admin">Admin Panel</button>
+    <button class="filter-btn lane-backend" data-lane="backend">Backend API</button>
+  </div>
+</div>
+
+<div id="canvas-wrap">
+  <div id="canvas">
+    <svg id="connections"></svg>
+  </div>
+</div>
+
+<div id="info-panel">
+  <button class="close-btn" onclick="closePanel()">&times;</button>
+  <div id="panel-content"></div>
+</div>
+
+<div id="legend">
+  <h4>Legend</h4>
+  <div class="legend-item"><div class="legend-shape screen"></div><span>Screen / Page</span></div>
+  <div class="legend-item"><div class="legend-shape decision"></div><span>Decision Point</span></div>
+  <div class="legend-item"><div class="legend-shape action"></div><span>Action / Event</span></div>
+  <div class="legend-item"><div class="legend-shape api"></div><span>API Endpoint</span></div>
+</div>
+
+<div id="zoom-controls">
+  <button onclick="zoomIn()" title="Zoom In">+</button>
+  <button onclick="zoomReset()" title="Reset">1:1</button>
+  <button onclick="zoomOut()" title="Zoom Out">&minus;</button>
+  <button onclick="fitAll()" title="Fit All" style="font-size:12px">&#9723;</button>
+</div>
+<div id="zoom-level">100%</div>
+
+<script>
+// ============================================================
+// FLOW DATA - All nodes, connections, and details
+// ============================================================
+
+const NODES = [
+  // ---- CUSTOMER APP LANE (x: 80-480) ----
+  {id:'c_auth',label:'Auth Gate',sub:'Login / Sign Up',type:'start',lane:'customer',x:240,y:80,
+    details:{desc:'Checks AsyncStorage for JWT token. If no token, shows AuthScreen with Login/Sign Up toggle.',
+      actions:['Phone + Password login','Sign Up: Name, Phone, WhatsApp, Address, Password','JWT stored in AsyncStorage']}},
+  {id:'c_home',label:'Home Screen',sub:'Main dashboard',type:'screen',lane:'customer',x:240,y:220,
+    details:{desc:'Landing page after auth. Loads dashboard sections, settings, notification count.',
+      actions:['Mode Switch: Packed Items / Fast Food','Search bar -> ProductList','Offer banner carousel -> ProductList','Category grid -> ProductList','See All -> Categories screen','Product/Combo cards -> ProductDetail','Notification bell -> Notifications','Sticky mini-cart -> Cart']}},
+  {id:'c_mode',label:'Mode Switch?',sub:'Packed or Fast Food',type:'decision',lane:'customer',x:440,y:220,
+    details:{desc:'SegmentedControl toggles storeType between "Packed Items" and "Fast Food". Reloads dashboard with new type.',
+      actions:['Packed Items -> type=packed','Fast Food -> type=fast_food','Triggers dashboard reload','Affects categories, products, combos shown']}},
+  {id:'c_categories',label:'Categories',sub:'Browse by category',type:'screen',lane:'customer',x:240,y:380,
+    details:{desc:'Lists all active categories filtered by current mode. Subcategory chip filtering.',
+      actions:['Mode switcher (same as home)','Subcategory chips filter list','Tap category -> ProductList with categoryId','Pull-to-refresh']}},
+  {id:'c_products',label:'Product List',sub:'Search / Filter / Sort',type:'screen',lane:'customer',x:240,y:520,
+    details:{desc:'Grid of products. Supports search, category filter, sort (Popular/Price Low-High/Price High-Low).',
+      actions:['Live search with 500ms debounce','Sort: Popular / Price Low->High / Price High->Low','Tap card -> ProductDetail','Add button -> Cart (requires auth)','+/- stepper adjusts quantity']}},
+  {id:'c_pdetail',label:'Product Detail',sub:'Single product view',type:'screen',lane:'customer',x:240,y:660,
+    details:{desc:'Full product detail with image, price, description, related products.',
+      actions:['Add to Cart button (qty=0)','QuantityStepper + View Cart (qty>0)','Related products horizontal scroll','Discount badge, out-of-stock overlay']}},
+  {id:'c_cart',label:'Cart Screen',sub:'Bill calculation',type:'screen',lane:'customer',x:240,y:820,
+    details:{desc:'Shows cart items, bill summary. Calls /cart/calculate on every item change.',
+      actions:['QuantityStepper per item','Delete icon per item','Clear all button','Bill: subtotal, delivery charge, night charge, discount, grand total','Minimum order warning','Proceed to Pay button']}},
+  {id:'c_bill_calc',label:'Bill Calculation',sub:'Backend pricing logic',type:'decision',lane:'customer',x:440,y:820,
+    details:{desc:'POST /cart/calculate with all items. Returns delivery charge, night charge, minimum order check.',
+      decisions:['Night charge applicable? (time-based)','Delivery charge: free above min?','Below minimum order?','Free delivery offer active?','Delivery within range?']}},
+  {id:'c_checkout',label:'Checkout',sub:'Address + Payment + GPS',type:'screen',lane:'customer',x:240,y:1000,
+    details:{desc:'Final step before order placement. Address, GPS pinning, payment method selection.',
+      actions:['Delivery address input (pre-filled from profile)','GPS location pinning (required)','View on Map button','Payment: Cash on Delivery or UPI','UPI shows QR code + UPI ID','Place Order button (requires GPS)']}},
+  {id:'c_gps',label:'GPS Pinned?',sub:'Location required',type:'decision',lane:'customer',x:440,y:1000,
+    details:{desc:'Must pin GPS coordinates before placing order. Requests foreground location permission.',
+      decisions:['Yes -> Enable Place Order button','No -> Show "Pin Location to Continue" button','GPS coordinates sent to /cart/calculate','Google Maps URL generated']}},
+  {id:'c_place_order',label:'Place Order',sub:'POST /api/orders',type:'action',lane:'customer',x:240,y:1180,
+    details:{desc:'Validates all data, creates order via API. Cart is cleared.',
+      actions:['Final bill re-verification via /cart/calculate','Address + GPS + payment method sent','Items with product_id, quantity, type, isCombo']}},
+  {id:'c_order_confirm',label:'Order Confirmation',sub:'Success screen',type:'screen',lane:'customer',x:240,y:1320,
+    details:{desc:'Shows success animation, order ID, total. Auto-redirects to OrderDetail after 3 seconds.',
+      actions:['Success check icon with ripple animation','Order ID, Total, Delivery Charge, Address','3-second countdown progress bar','Back button BLOCKED','Auto-redirect to OrderDetail']}},
+  {id:'c_order_detail',label:'Order Detail',sub:'5-step tracking',type:'screen',lane:'customer',x:240,y:1480,
+    details:{desc:'Real-time order tracking with 5-step timeline. Order Placed -> Accepted -> Preparing -> Out for Delivery -> Delivered.',
+      actions:['Status timeline with pulsing active step','View on Map button','Cancel Order button (if status=Pending)','Contact Store button (phone dialer)','Bill summary with all charges']}},
+  {id:'c_orders_list',label:'Orders List',sub:'Filter by status',type:'screen',lane:'customer',x:80,y:1480,
+    details:{desc:'Lists all customer orders. Filter chips for each status.',
+      actions:['Filter: All / Placed / Accepted / Preparing / Out for Delivery / Delivered / Cancelled','Cancel Order button on cards','View Details -> OrderDetail','Pull-to-refresh']}},
+  {id:'c_profile',label:'Profile',sub:'User account',type:'screen',lane:'customer',x:400,y:1480,
+    details:{desc:'User profile with edit, orders, help options.',
+      actions:['Edit Profile -> EditProfile screen','My Orders -> Orders tab','Saved Address -> EditProfile','Help and Support -> Phone dialer','Blocked account banner if blocked']}},
+  {id:'c_edit_profile',label:'Edit Profile',sub:'Update user info',type:'screen',lane:'customer',x:400,y:1620,
+    details:{desc:'Edit name, WhatsApp number, delivery address.',
+      actions:['Full Name (required)','WhatsApp Number (optional, 10-digit)','Delivery Address (required)','Save -> authApi.updateProfile()']}},
+  {id:'c_notifications',label:'Notifications',sub:'Push notifications',type:'screen',lane:'customer',x:80,y:1320,
+    details:{desc:'Lists notifications. Auto-marks as read when screen opens.',
+      actions:['Read All button','Delete (X) per notification','Types: success, offer, info','Unread highlighted with blue border']}},
+
+  // ---- ADMIN PANEL LANE (x: 700-1100) ----
+  {id:'a_login',label:'Admin Login',sub:'Owner ID + Password',type:'start',lane:'admin',x:860,y:80,
+    details:{desc:'Admin authentication via /admin/login. Compares against env vars ADMIN_OWNER_ID and ADMIN_PASSWORD.',
+      actions:['Owner ID input','Password input','JWT token stored in localStorage','Auto-redirect to /login on 401']}},
+  {id:'a_dashboard',label:'Dashboard',sub:'Overview metrics',type:'screen',lane:'admin',x:860,y:220,
+    details:{desc:'Main admin overview with key metrics and quick actions.',
+      actions:['Shop Status toggle (Open/Closed)','Today\'s Sales, Orders, Pending Orders, Pending Payments','Latest Orders table','Top Items list','Out of Stock alerts']}},
+  {id:'a_orders',label:'Orders',sub:'Manage all orders',type:'screen',lane:'admin',x:720,y:380,
+    details:{desc:'Full order management with filters, status updates, payment tracking.',
+      actions:['Filter: status, payment, method, date range','Quick status chips','Export CSV (up to 1000 orders)','Click row -> Order Detail drawer','Update fulfillment status','Update payment status','Print invoice','WhatsApp customer','View map location']}},
+  {id:'a_products',label:'Products',sub:'CRUD + availability',type:'screen',lane:'admin',x:860,y:380,
+    details:{desc:'Product management with mode switching, bulk actions, inline editing.',
+      actions:['Mode switcher: Packed / Fast Food','+ New Product opens form drawer','Edit existing product','Toggle availability (In Stock / Out of Stock)','Bulk: Mark In Stock, Mark Out Stock, Delete','Filter: category, availability, featured','Pagination']}},
+  {id:'a_product_form',label:'Product Form',sub:'Create / Edit',type:'action',lane:'admin',x:1020,y:380,
+    details:{desc:'Form drawer for creating or editing products.',
+      fields:['Product Name (required)','Price + Original Price','Mode: Packed / Fast Food','Category (filtered by mode)','Unit, Description','Image upload (1000x1000)','Display Order, Discount Label','In Stock, Featured checkboxes']}},
+  {id:'a_combos',label:'Combos',sub:'Bundle deals',type:'screen',lane:'admin',x:860,y:540,
+    details:{desc:'Combo management. Each combo contains multiple products from same mode.',
+      actions:['Mode switcher: Packed / Fast Food','+ New Combo with product items','Dynamic combo items list','Product dropdown (filtered by mode)','Quantity per item','Availability toggle','Bulk actions']}},
+  {id:'a_categories_m',label:'Categories',sub:'CRUD + visibility',type:'screen',lane:'admin',x:720,y:540,
+    details:{desc:'Category management with type tagging and visibility control.',
+      actions:['+ New Category','Edit category (name, slug, type, image)','Toggle Active/Hidden','Type: Packed / Fast Food','Delete (fails if products assigned)','Display order']}},
+  {id:'a_offers',label:'Offers',sub:'Promotions + banners',type:'screen',lane:'admin',x:1000,y:540,
+    details:{desc:'Offer/promotion management with banner images and product attachment.',
+      actions:['+ New Offer','Mode: Packed / Fast Food','Banner image upload (1200x600)','Activate/Deactivate toggle','Clickable banner -> attach products','Product panel: add/remove products','Display order']}},
+  {id:'a_mobile_dash',label:'Mobile Dashboard',sub:'Layout editor',type:'screen',lane:'admin',x:860,y:700,
+    details:{desc:'Two-panel layout editor for the customer app home screen.',
+      actions:['Mode: Packed / Fast Food layout','Section types: offer_banner, category_grid, product_block, combo_block','Add/remove/reorder sections','Add/remove/reorder items per section','Scheduled visibility (start/end time)','Max visible items per section']}},
+  {id:'a_customers',label:'Customers',sub:'Manage users',type:'screen',lane:'admin',x:720,y:700,
+    details:{desc:'Customer management with trust and block controls.',
+      actions:['Search by name, phone, WhatsApp','Filter: trusted, blocked','Customer detail drawer','Mark as Trusted / Revoke Trust','Block / Unblock customer','Call / WhatsApp buttons','View order history']}},
+  {id:'a_notifications_m',label:'Notifications',sub:'Broadcast messages',type:'screen',lane:'admin',x:1000,y:700,
+    details:{desc:'Send broadcast notifications to all customers.',
+      actions:['Target: All Active Customers','Type: Info/Offer/Promotion/Success/Warning/Alert/Admin','Title (80 chars) + Body (240 chars)','Confirmation before send','Broadcast history table','Delete broadcasts']}},
+  {id:'a_settings',label:'Settings',sub:'Shop configuration',type:'screen',lane:'admin',x:860,y:860,
+    details:{desc:'Global shop settings affecting both admin and customer app.',
+      fields:['Shop Open / Delivery Available toggles','Delivery Time Message','Minimum Order Amount','Delivery Charge (above/below minimum)','Free Delivery toggles','Night Charge + start/end time','WhatsApp Number, Support Phone','UPI ID + QR Code image']}},
+  {id:'a_images',label:'Images',sub:'Upload library',type:'screen',lane:'admin',x:720,y:860,
+    details:{desc:'Image library for all uploaded assets.',
+      actions:['Upload (JPG/PNG/WebP, max 5MB)','Usage tracking (IN USE / UNUSED)','Copy URL button','Delete (disabled if in use)','Guidance: banners 1200x600, products 1000x1000']}},
+  {id:'a_reports',label:'Reports',sub:'Analytics + export',type:'screen',lane:'admin',x:1000,y:860,
+    details:{desc:'Sales, product, and customer analytics.',
+      actions:['Period: Today/Week/Month/All Time','Total Revenue, Delivered Orders, New Customers','Payment Methods breakdown','Top 5 Items','Customer Trust Metrics','Export CSV']}},
+  {id:'a_health',label:'Health',sub:'System status',type:'screen',lane:'admin',x:720,y:1020,
+    details:{desc:'Backend system health monitoring.',
+      actions:['Core API Server status','MySQL Database status','MongoDB Database status','Refresh Status button','Troubleshooting guidance']}},
+  {id:'a_audit',label:'Audit Logs',sub:'Activity trail',type:'screen',lane:'admin',x:860,y:1020,
+    details:{desc:'Admin activity audit trail stored in MongoDB.',
+      actions:['Timestamp, Admin, Action, Resource','Color-coded actions: CREATE(green), UPDATE(blue), DELETE(red)','IP address tracking','Pagination (Newer/Older)','Refresh Logs']}},
+  {id:'a_order_detail',label:'Order Detail',sub:'Status + Payment',type:'screen',lane:'admin',x:720,y:380,
+    details:{desc:'Order detail drawer with full management controls.',
+      actions:['Customer: name, phone, address, WhatsApp, Map','Delivery pricing: distance, radius, cost/km','Fulfillment status dropdown (forward-only)','Payment status dropdown','Items list with quantities','Print Invoice (HTML template)','Customer notes']}},
+
+  // ---- BACKEND API LANE (x: 1360-1760) ----
+  {id:'b_health',label:'GET /health',sub:'Health check',type:'api',lane:'backend',x:1520,y:80,
+    details:{desc:'Checks MySQL and MongoDB connectivity.',
+      endpoints:['GET /health -> { mysql: OK/ERROR, mongo: OK/ERROR }']}},
+
+  {id:'b_cust_auth',label:'Auth Routes',sub:'/api/auth/*',type:'api',lane:'backend',x:1360,y:220,
+    details:{desc:'Customer authentication and profile management.',
+      endpoints:['POST /api/auth/register (rate: 10/15min)','POST /api/auth/login (rate: 10/15min)','GET /api/auth/me (requireCustomer)','PUT /api/auth/profile (requireCustomer)'],
+      notes:['bcrypt password hashing (10 rounds)','JWT token: 7-day expiry','Role: customer']}},
+
+  {id:'b_admin_auth',label:'Admin Auth',sub:'/api/admin/login',type:'api',lane:'backend',x:1520,y:220,
+    details:{desc:'Admin login. No database lookup - compares against env vars.',
+      endpoints:['POST /api/admin/login (rate: 5/15min)','GET /api/admin/me (requireAdmin)'],
+      notes:['ADMIN_OWNER_ID + ADMIN_PASSWORD from env','JWT role: admin','401 auto-redirect in frontend']}},
+
+  {id:'b_order_create',label:'POST /api/orders',sub:'Create order',type:'api',lane:'backend',x:1520,y:400,
+    details:{desc:'Full order creation with validation, pricing, and transaction.',
+      endpoints:['POST /api/orders (requireCustomer)'],
+      steps:['1. Validate JWT + extract user ID','2. Check user.blocked -> 403 if true','3. Check shop_open -> 400 if closed','4. Check delivery_available -> 400 if unavailable','5. Validate each item (product exists, available, not deleted)','6. Calculate unit price x quantity per item','7. Calculate delivery charge (threshold logic)','8. Calculate night charge (time-based)','9. Generate order number OD-YYYYMMDD-XXXX','10. Begin MySQL transaction','11. Insert order + order_items','12. Commit transaction','13. Fire notification (fire-and-forget)']}},
+
+  {id:'b_user_block',label:'User Blocked?',sub:'Check user status',type:'decision',lane:'backend',x:1680,y:400,
+    details:{desc:'Queries users table for blocked flag.',
+      decisions:['blocked=true -> Return 403, rollback','blocked=false -> Continue']}},
+  {id:'b_shop_check',label:'Shop Open?',sub:'Check settings',type:'decision',lane:'backend',x:1680,y:540,
+    details:{desc:'Queries settings table for shop_open flag.',
+      decisions:['shop_open=false -> Return 400 "Shop closed"','delivery_available=false -> Return 400 "Delivery unavailable"','Both true -> Continue']}},
+
+  {id:'b_delivery_calc',label:'Delivery Charge',sub:'Threshold-based pricing',type:'decision',lane:'backend',x:1520,y:700,
+    details:{desc:'Priority-based delivery charge calculation.',
+      decisions:['P1: free_delivery_offer_active? -> Charge = 0','P2: subtotal >= minimum_order?','  -> free_delivery_above_minimum_active? -> Charge = 0','  -> else Charge = delivery_charge','P3: subtotal < minimum_order?','  -> Charge = below_threshold_delivery_charge','  -> Message: "Add Rs.X more for free delivery"'],
+      notes:['minimum_order_amount (default 149)','delivery_charge (standard)','below_threshold_delivery_charge (default 20)']}},
+
+  {id:'b_night_charge',label:'Night Charge',sub:'Time-based surcharge',type:'decision',lane:'backend',x:1680,y:700,
+    details:{desc:'Adds surcharge during night hours (e.g., 9PM-7AM).',
+      decisions:['night_charge > 0?','Current time in IST night window?','  -> Overnight window (21:00-07:00): now >= start OR now <= end','  -> Same day window: now >= start AND now <= end','  -> isNight=true: add night_charge amount','  -> isNight=false: no charge'],
+      notes:['night_charge: surcharge amount','night_charge_start / night_charge_end: time strings','Converts to minutes-since-midnight for comparison']}},
+
+  {id:'b_cart_calc',label:'POST /cart/calculate',sub:'Bill calculation (public)',type:'api',lane:'backend',x:1360,y:700,
+    details:{desc:'Public endpoint for cart bill calculation. Same logic as order creation pricing.',
+      endpoints:['POST /api/cart/calculate (no auth required)'],
+      notes:['Validates product/combo availability + pricing','Returns: subtotal, deliveryCharge, nightCharge, discount, grandTotal','Returns: deliveryWithinRange, requiresLocation, minimumOrder']}},
+
+  {id:'b_products_api',label:'Products API',sub:'/api/products/*',type:'api',lane:'backend',x:1360,y:860,
+    details:{desc:'Product and category public endpoints.',
+      endpoints:['GET /api/products (filter: category, type, offer, search)','GET /api/products/:id','GET /api/categories (filter: storeType)','GET /api/dashboard','GET /api/dashboard/sections/:slug/items','GET /api/offers/active'],
+      notes:['All public (no auth)','storeType filter: packed/fast_food']}},
+
+  {id:'b_admin_crud',label:'Admin CRUD',sub:'/api/admin/*',type:'api',lane:'backend',x:1520,y:860,
+    details:{desc:'All admin management endpoints. requireAdmin + auditLog middleware.',
+      endpoints:['Products: GET/POST/PUT/DELETE /admin/products','  PATCH /admin/products/:id/availability','  PATCH /admin/products/:id/image','Combos: GET/POST/PUT/DELETE /admin/combos','  PATCH /admin/combos/:id/availability','Categories: GET/POST/PUT/DELETE /admin/categories','Offers: GET/POST/PATCH/DELETE /admin/offers','  GET/POST/DELETE /admin/offers/:id/products','Settings: GET/PATCH /admin/settings','Dashboard: GET /admin/dashboard'],
+      notes:['Soft delete for products, combos, categories, offers','Audit log (MongoDB) on all mutations','Rate limiting on auth routes']}},
+
+  {id:'b_orders_api',label:'Orders API',sub:'/api/admin/orders',type:'api',lane:'backend',x:1680,y:860,
+    details:{desc:'Admin order management endpoints.',
+      endpoints:['GET /admin/orders (filter: status, payment, method, date)','GET /admin/orders/:id','PATCH /admin/orders/:id/status','PATCH /admin/orders/:id/payment','GET /admin/reports/sales','GET /admin/reports/top-products','GET /admin/reports/customers'],
+      notes:['Status: forward-only progression','Valid: Pending->Accepted->Preparing->Out for Delivery->Delivered','Cancelled can be triggered from any non-terminal state','Terminal: Delivered, Cancelled (cannot change)']}},
+
+  {id:'b_notifications_api',label:'Notifications API',sub:'/api/notifications/*',type:'api',lane:'backend',x:1520,y:1020,
+    details:{desc:'Customer notification endpoints.',
+      endpoints:['GET /api/notifications (paginated)','GET /api/notifications/unread-count','PATCH /api/notifications/read-all','PATCH /api/notifications/:id/read','DELETE /api/notifications/:id'],
+      notes:['Deduplication: UNIQUE(user_id, source_type, source_id, event_key)','INSERT IGNORE prevents duplicate notifications','Events: order_placed, status_accepted, status_preparing, etc.']}},
+
+  {id:'b_images_api',label:'Images API',sub:'/api/images/*',type:'api',lane:'backend',x:1360,y:1020,
+    details:{desc:'Image upload and management (MongoDB storage).',
+      endpoints:['GET /api/images/:id (public)','GET /api/images (admin)','POST /api/images (admin, rate: 20/hour)','DELETE /api/images/:id (admin, checks usage)'],
+      notes:['Multer for file upload','Magic byte validation','Stored in MongoDB, served from /uploads/']}},
+
+  {id:'b_settings_api',label:'Settings API',sub:'/api/settings',type:'api',lane:'backend',x:1680,y:1020,
+    details:{desc:'Shop settings endpoints.',
+      endpoints:['GET /api/settings (public)','PATCH /api/admin/settings (requireAdmin, audit)'],
+      notes:['Singleton table, single row','Public: shop_open, delivery_available, minimum_order, UPI details','Admin: all fields including night_charge, delivery_charges']}},
+
+  {id:'b_middleware',label:'Middleware',sub:'Auth + Audit + Error',type:'action',lane:'backend',x:1520,y:1180,
+    details:{desc:'Express middleware pipeline.',
+      actions:['requireCustomer: JWT + role=customer','requireAdmin: JWT + role=admin','auditLog: intercepts res.send on admin mutations -> MongoDB','errorHandler: MySQL ER_DUP_ENTRY -> 409, hides stack in prod','Rate limiting: auth 10/15min, admin login 5/15min, images 20/hr'],
+      notes:['JWT secret from env JWT_SECRET','Token expiry: 7 days (JWT_EXPIRES_IN)']}},
+
+  {id:'b_db',label:'Databases',sub:'MySQL + MongoDB',type:'action',lane:'backend',x:1360,y:1180,
+    details:{desc:'Dual database architecture.',
+      actions:['MySQL: users, categories, products, combos, combo_items, orders, order_items, settings, offers, offer_products, dashboard_sections, dashboard_section_items, notifications, notification_batches','MongoDB: images (file storage), audit_logs (admin activity)'],
+      notes:['MySQL for all relational data','MongoDB for unstructured data + file references','Soft delete pattern across all MySQL entities']}}
+];
+
+const CONNECTIONS = [
+  // Customer flow
+  {from:'c_auth',to:'c_home',label:'Authenticated'},
+  {from:'c_home',to:'c_mode',label:'Toggle'},
+  {from:'c_home',to:'c_categories',label:'See All'},
+  {from:'c_home',to:'c_products',label:'Search / Tap product'},
+  {from:'c_home',to:'c_notifications',label:'Bell icon'},
+  {from:'c_categories',to:'c_products',label:'Tap category'},
+  {from:'c_products',to:'c_pdetail',label:'Tap card'},
+  {from:'c_pdetail',to:'c_cart',label:'Add to Cart'},
+  {from:'c_cart',to:'c_bill_calc',label:'Items change'},
+  {from:'c_cart',to:'c_checkout',label:'Proceed to Pay'},
+  {from:'c_checkout',to:'c_gps',label:'Pin location'},
+  {from:'c_checkout',to:'c_place_order',label:'Place Order'},
+  {from:'c_place_order',to:'c_order_confirm',label:'Success'},
+  {from:'c_order_confirm',to:'c_order_detail',label:'Auto-redirect (3s)'},
+  {from:'c_home',to:'c_orders_list',label:'Orders tab'},
+  {from:'c_home',to:'c_profile',label:'Profile tab'},
+  {from:'c_profile',to:'c_edit_profile',label:'Edit Profile'},
+  {from:'c_orders_list',to:'c_order_detail',label:'View Details'},
+
+  // Admin flow
+  {from:'a_login',to:'a_dashboard',label:'Success'},
+  {from:'a_dashboard',to:'a_orders',label:'View All'},
+  {from:'a_orders',to:'a_order_detail',label:'Click row'},
+  {from:'a_products',to:'a_product_form',label:'+ New / Edit'},
+  {from:'a_dashboard',to:'a_products',label:'Sidebar nav'},
+  {from:'a_dashboard',to:'a_combos',label:'Sidebar nav'},
+  {from:'a_dashboard',to:'a_categories_m',label:'Sidebar nav'},
+  {from:'a_dashboard',to:'a_offers',label:'Sidebar nav'},
+  {from:'a_dashboard',to:'a_mobile_dash',label:'Sidebar nav'},
+  {from:'a_dashboard',to:'a_customers',label:'Sidebar nav'},
+  {from:'a_dashboard',to:'a_notifications_m',label:'Sidebar nav'},
+  {from:'a_dashboard',to:'a_settings',label:'Sidebar nav'},
+  {from:'a_dashboard',to:'a_images',label:'Sidebar nav'},
+  {from:'a_dashboard',to:'a_reports',label:'Sidebar nav'},
+  {from:'a_dashboard',to:'a_health',label:'Sidebar nav'},
+  {from:'a_dashboard',to:'a_audit',label:'Sidebar nav'},
+
+  // Backend flow
+  {from:'b_cust_auth',to:'c_auth',label:'Auth API',cross:true},
+  {from:'b_admin_auth',to:'a_login',label:'Login API',cross:true},
+  {from:'b_order_create',to:'b_user_block',label:'Step 2'},
+  {from:'b_user_block',to:'b_shop_check',label:'Not blocked'},
+  {from:'b_shop_check',to:'b_delivery_calc',label:'Shop open'},
+  {from:'b_delivery_calc',to:'b_night_charge',label:'After delivery'},
+  {from:'b_cart_calc',to:'b_delivery_calc',label:'Same logic'},
+  {from:'b_cart_calc',to:'b_night_charge',label:'Same logic'},
+  {from:'c_place_order',to:'b_order_create',label:'POST /orders',cross:true},
+  {from:'c_bill_calc',to:'b_cart_calc',label:'POST /cart/calculate',cross:true},
+  {from:'b_products_api',to:'c_products',label:'Products data',cross:true},
+  {from:'b_products_api',to:'c_categories',label:'Categories data',cross:true},
+  {from:'b_admin_crud',to:'a_products',label:'CRUD APIs',cross:true},
+  {from:'b_admin_crud',to:'a_combos',label:'CRUD APIs',cross:true},
+  {from:'b_admin_crud',to:'a_categories_m',label:'CRUD APIs',cross:true},
+  {from:'b_admin_crud',to:'a_offers',label:'CRUD APIs',cross:true},
+  {from:'b_orders_api',to:'a_orders',label:'Orders APIs',cross:true},
+  {from:'b_notifications_api',to:'c_notifications',label:'Notifications',cross:true},
+  {from:'b_notifications_api',to:'a_notifications_m',label:'Broadcast API',cross:true},
+  {from:'b_settings_api',to:'a_settings',label:'Settings API',cross:true},
+  {from:'b_settings_api',to:'c_home',label:'Public settings',cross:true},
+  {from:'b_images_api',to:'a_images',label:'Image API',cross:true},
+  {from:'b_middleware',to:'b_order_create',label:'Auth + Audit'},
+  {from:'b_db',to:'b_order_create',label:'MySQL tx'},
+  {from:'b_db',to:'b_images_api',label:'MongoDB'}
+];
+
+const CANVAS_W = 2200;
+const CANVAS_H = 2400;
+
+// ============================================================
+// RENDERING ENGINE
+// ============================================================
+
+const canvas = document.getElementById('canvas');
+const svgEl = document.getElementById('connections');
+const canvasWrap = document.getElementById('canvas-wrap');
+const infoPanel = document.getElementById('info-panel');
+const panelContent = document.getElementById('panel-content');
+const searchInput = document.getElementById('search');
+
+let scale = 1, panX = 50, panY = 20;
+let isDragging = false, dragStartX, dragStartY, panStartX, panStartY;
+let activeFilter = 'all';
+let selectedNode = null;
+
+function init() {
+  canvas.style.width = CANVAS_W + 'px';
+  canvas.style.height = CANVAS_H + 'px';
+  svgEl.setAttribute('width', CANVAS_W);
+  svgEl.setAttribute('height', CANVAS_H);
+  svgEl.setAttribute('viewBox', `0 0 ${CANVAS_W} ${CANVAS_H}`);
+  drawLaneLabels();
+  renderNodes();
+  renderConnections();
+  applyTransform();
+  fitAll();
+  setupInteractions();
+}
+
+function drawLaneLabels() {
+  const lanes = [
+    {label:'CUSTOMER APP',x:80,color:'var(--blue)'},
+    {label:'ADMIN PANEL',x:700,color:'var(--green)'},
+    {label:'BACKEND API',x:1360,color:'var(--orange)'}
+  ];
+  lanes.forEach(l => {
+    const el = document.createElement('div');
+    el.className = 'lane-label';
+    el.textContent = l.label;
+    el.style.left = l.x + 'px';
+    el.style.top = '40px';
+    el.style.color = l.color;
+    canvas.appendChild(el);
+  });
+}
+
+function renderNodes() {
+  NODES.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'node ' + n.type;
+    el.dataset.id = n.id;
+    el.dataset.lane = n.lane;
+    el.style.left = n.x + 'px';
+    el.style.top = n.y + 'px';
+
+    let icon = '';
+    if (n.type === 'start') icon = '&#9654;';
+    else if (n.type === 'end') icon = '&#9632;';
+    else if (n.type === 'decision') icon = '&#9670;';
+    else if (n.type === 'api') icon = '&#9881;';
+    else if (n.type === 'action') icon = '&#9654;';
+
+    el.innerHTML = `<div class="icon">${icon}</div><div class="label">${n.label}</div>${n.sub ? '<div class="sub">'+n.sub+'</div>' : ''}`;
+    el.addEventListener('click', (e) => { e.stopPropagation(); selectNode(n); });
+    canvas.appendChild(el);
+  });
+}
+
+function getNodeCenter(n) {
+  const el = document.querySelector(`.node[data-id="${n.id}"]`);
+  if (!el) return {x: n.x + 80, y: n.y + 20};
+  const w = el.offsetWidth || 160;
+  const h = el.offsetHeight || 40;
+  return {x: n.x + w/2, y: n.y + h/2};
+}
+
+function renderConnections() {
+  let svg = '';
+  const defs = `<defs>
+    <marker id="arrow" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="8" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,3 L0,6 Z" fill="#475569"/>
+    </marker>
+    <marker id="arrow-cross" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="8" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,3 L0,6 Z" fill="#f59e0b"/>
+    </marker>
+  </defs>`;
+  svg += defs;
+
+  CONNECTIONS.forEach(c => {
+    const fromNode = NODES.find(n => n.id === c.from);
+    const toNode = NODES.find(n => n.id === c.to);
+    if (!fromNode || !toNode) return;
+
+    const from = getNodeCenter(fromNode);
+    const to = getNodeCenter(toNode);
+
+    const isCross = c.cross;
+    const color = isCross ? '#f59e0b' : '#475569';
+    const marker = isCross ? 'url(#arrow-cross)' : 'url(#arrow)';
+    const dashArr = isCross ? 'stroke-dasharray="6 3"' : '';
+
+    let d;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+
+    if (Math.abs(dx) > 300) {
+      const mx = (from.x + to.x) / 2;
+      d = `M${from.x},${from.y} C${mx},${from.y} ${mx},${to.y} ${to.x},${to.y}`;
+    } else {
+      const cy1 = from.y + Math.abs(dy) * 0.4;
+      const cy2 = to.y - Math.abs(dy) * 0.4;
+      d = `M${from.x},${from.y} C${from.x},${cy1} ${to.x},${cy2} ${to.x},${to.y}`;
+    }
+
+    svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.5" marker-end="${marker}" ${dashArr} opacity="0.6"/>`;
+
+    if (c.label) {
+      const lx = (from.x + to.x) / 2;
+      const ly = (from.y + to.y) / 2 - 6;
+      svg += `<text x="${lx}" y="${ly}" fill="#64748b" font-size="8" text-anchor="middle" font-family="Inter,sans-serif">${escHtml(c.label)}</text>`;
+    }
+  });
+
+  svgEl.innerHTML = svg;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+// INTERACTIONS - Pan, Zoom, Click, Search
+// ============================================================
+
+function applyTransform() {
+  canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+  document.getElementById('zoom-level').textContent = Math.round(scale * 100) + '%';
+}
+
+function setupInteractions() {
+  canvasWrap.addEventListener('mousedown', startDrag);
+  window.addEventListener('mousemove', moveDrag);
+  window.addEventListener('mouseup', endDrag);
+  canvasWrap.addEventListener('wheel', handleZoom, {passive: false});
+  canvas.addEventListener('click', (e) => {
+    if (e.target === canvas || e.target.classList.contains('lane-label')) closePanel();
+  });
+  searchInput.addEventListener('input', handleSearch);
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); searchInput.focus(); }
+    if (e.key === 'Escape') { closePanel(); searchInput.value = ''; handleSearch(); }
+  });
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.lane;
+      applyLaneFilter();
+    });
+  });
+}
+
+function startDrag(e) {
+  if (e.target.closest('.node')) return;
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  panStartX = panX;
+  panStartY = panY;
+  canvasWrap.classList.add('dragging');
+}
+
+function moveDrag(e) {
+  if (!isDragging) return;
+  panX = panStartX + (e.clientX - dragStartX);
+  panY = panStartY + (e.clientY - dragStartY);
+  applyTransform();
+}
+
+function endDrag() {
+  isDragging = false;
+  canvasWrap.classList.remove('dragging');
+}
+
+function handleZoom(e) {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.08 : 0.08;
+  const newScale = Math.max(0.15, Math.min(3, scale + delta));
+  const rect = canvasWrap.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  panX = mx - (mx - panX) * (newScale / scale);
+  panY = my - (my - panY) * (newScale / scale);
+  scale = newScale;
+  applyTransform();
+}
+
+function zoomIn() { scale = Math.min(3, scale + 0.15); applyTransform(); }
+function zoomOut() { scale = Math.max(0.15, scale - 0.15); applyTransform(); }
+function zoomReset() { scale = 1; panX = 50; panY = 20; applyTransform(); }
+
+function fitAll() {
+  const rect = canvasWrap.getBoundingClientRect();
+  const padX = 40, padY = 40;
+  const scaleX = (rect.width - padX * 2) / CANVAS_W;
+  const scaleY = (rect.height - padY * 2) / CANVAS_H;
+  scale = Math.min(scaleX, scaleY, 1);
+  panX = (rect.width - CANVAS_W * scale) / 2;
+  panY = (rect.height - CANVAS_H * scale) / 2;
+  applyTransform();
+}
+
+function selectNode(n) {
+  selectedNode = n;
+  document.querySelectorAll('.node.highlight').forEach(el => el.classList.remove('highlight'));
+  const el = document.querySelector(`.node[data-id="${n.id}"]`);
+  if (el) el.classList.add('highlight');
+
+  const d = n.details || {};
+  let typeColor = 'var(--blue)';
+  let typeName = 'Screen';
+  if (n.type === 'decision') { typeColor = 'var(--orange)'; typeName = 'Decision'; }
+  if (n.type === 'api') { typeColor = 'var(--orange)'; typeName = 'API Endpoint'; }
+  if (n.type === 'action') { typeColor = 'var(--green)'; typeName = 'Action'; }
+  if (n.type === 'start') { typeColor = 'var(--blue)'; typeName = 'Start'; }
+  if (n.type === 'end') { typeColor = 'var(--red)'; typeName = 'End'; }
+
+  let html = `<h2>${escHtml(n.label)}</h2>`;
+  html += `<span class="type-badge" style="background:${typeColor}22;color:${typeColor}">${typeName} &middot; ${n.lane}</span>`;
+  if (d.desc) html += `<div class="desc">${escHtml(d.desc)}</div>`;
+
+  if (d.actions && d.actions.length) {
+    html += '<h3>Actions</h3><ul>';
+    d.actions.forEach(a => html += `<li>${escHtml(a)}</li>`);
+    html += '</ul>';
+  }
+  if (d.endpoints && d.endpoints.length) {
+    html += '<h3>API Endpoints</h3>';
+    d.endpoints.forEach(e => html += `<code class="api-endpoint">${escHtml(e)}</code>`);
+  }
+  if (d.fields && d.fields.length) {
+    html += '<h3>Fields</h3><ul>';
+    d.fields.forEach(f => html += `<li>${escHtml(f)}</li>`);
+    html += '</ul>';
+  }
+  if (d.decisions && d.decisions.length) {
+    html += '<h3>Decision Logic</h3><ul>';
+    d.decisions.forEach(dec => html += `<li>${escHtml(dec)}</li>`);
+    html += '</ul>';
+  }
+  if (d.steps && d.steps.length) {
+    html += '<h3>Processing Steps</h3><ul>';
+    d.steps.forEach(s => html += `<li>${escHtml(s)}</li>`);
+    html += '</ul>';
+  }
+  if (d.notes && d.notes.length) {
+    html += '<h3>Notes</h3><ul>';
+    d.notes.forEach(nt => html += `<li>${escHtml(nt)}</li>`);
+    html += '</ul>';
+  }
+
+  // Connected nodes
+  const outEdges = CONNECTIONS.filter(c => c.from === n.id);
+  const inEdges = CONNECTIONS.filter(c => c.to === n.id);
+  if (outEdges.length || inEdges.length) {
+    html += '<h3>Connections</h3><ul>';
+    outEdges.forEach(c => {
+      const t = NODES.find(x => x.id === c.to);
+      if (t) html += `<li style="color:var(--green)">→ ${escHtml(t.label)}${c.label ? ' ('+escHtml(c.label)+')' : ''}</li>`;
+    });
+    inEdges.forEach(c => {
+      const s = NODES.find(x => x.id === c.from);
+      if (s) html += `<li style="color:var(--blue)">← ${escHtml(s.label)}${c.label ? ' ('+escHtml(c.label)+')' : ''}</li>`;
+    });
+    html += '</ul>';
+  }
+
+  panelContent.innerHTML = html;
+  infoPanel.classList.add('open');
+}
+
+function closePanel() {
+  infoPanel.classList.remove('open');
+  document.querySelectorAll('.node.highlight').forEach(el => el.classList.remove('highlight'));
+  selectedNode = null;
+}
+
+function handleSearch() {
+  const q = searchInput.value.toLowerCase().trim();
+  document.querySelectorAll('.node').forEach(el => {
+    const id = el.dataset.id;
+    const node = NODES.find(n => n.id === id);
+    if (!q) {
+      el.classList.remove('dimmed');
+      el.classList.remove('highlight');
+      return;
+    }
+    const match = node && (
+      node.label.toLowerCase().includes(q) ||
+      (node.sub && node.sub.toLowerCase().includes(q)) ||
+      (node.details && node.details.desc && node.details.desc.toLowerCase().includes(q))
+    );
+    el.classList.toggle('dimmed', !match);
+    el.classList.toggle('highlight', match);
+  });
+}
+
+function applyLaneFilter() {
+  document.querySelectorAll('.node').forEach(el => {
+    if (activeFilter === 'all') {
+      el.classList.remove('dimmed');
+    } else {
+      el.classList.toggle('dimmed', el.dataset.lane !== activeFilter);
+    }
+  });
+}
+
+// Touch support for mobile
+let touchStartX, touchStartY;
+canvasWrap.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    panStartX = panX;
+    panStartY = panY;
+    isDragging = true;
+  }
+}, {passive: true});
+canvasWrap.addEventListener('touchmove', (e) => {
+  if (!isDragging || e.touches.length !== 1) return;
+  panX = panStartX + (e.touches[0].clientX - touchStartX);
+  panY = panStartY + (e.touches[0].clientY - touchStartY);
+  applyTransform();
+}, {passive: true});
+canvasWrap.addEventListener('touchend', () => { isDragging = false; });
+
+// Init
+init();
+</script>
+</script>
+</body>
+</html>

@@ -85,6 +85,10 @@ const getCancelledOrderPatch = (response) => {
   return normalizeOrder(responseOrder);
 };
 
+const getCancelledPaymentStatus = (paymentMethod) => (
+  paymentMethod === 'UPI' ? 'Refunded' : 'Failed'
+);
+
 export default function OrdersScreen() {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
@@ -218,6 +222,7 @@ export default function OrdersScreen() {
           ...cancelled,
           id: o.id,
           status: cancelled.status || 'Cancelled',
+          paymentStatus: cancelled.paymentStatus || getCancelledPaymentStatus(o.paymentMethod),
           canCancel: false,
         } : o));
       })
@@ -341,10 +346,26 @@ const FadeInItem = ({ children, index, status }) => {
     }
   };
 
+  const getPaymentStatusColor = (status) => {
+    switch (status) {
+      case 'Paid':
+      case 'Refunded':
+        return colors.success;
+      case 'Failed':
+        return colors.error;
+      case 'Pending':
+      default:
+        return colors.warning || '#F59E0B';
+    }
+  };
+
   const renderItem = ({ item, index }) => {
     const statusLabel = formatStatus(item.status);
     const displayStatus = STATUS_DISPLAY_LABELS[statusLabel] || statusLabel;
     const orderLabel = item.orderNumber || item.order_number || item.id;
+    const paymentStatus = statusLabel === 'Cancelled'
+      ? getCancelledPaymentStatus(item.paymentMethod)
+      : item.paymentStatus;
 
     return (
     <FadeInItem index={index} status={statusLabel}>
@@ -371,6 +392,10 @@ const FadeInItem = ({ children, index, status }) => {
               <View style={styles.infoBadge}>
                 <AppIcon name="creditCard" size={13} color={colors.textSecondary} />
                 <Text style={styles.infoBadgeText} numberOfLines={1}>{item.paymentMethod}</Text>
+              </View>
+              <View style={[styles.infoBadge, { borderColor: getPaymentStatusColor(paymentStatus) + '40', backgroundColor: getPaymentStatusColor(paymentStatus) + '12' }]}>
+                <View style={[styles.paymentDot, { backgroundColor: getPaymentStatusColor(paymentStatus) }]} />
+                <Text style={[styles.infoBadgeText, { color: getPaymentStatusColor(paymentStatus) }]} numberOfLines={1}>{paymentStatus}</Text>
               </View>
             </View>
           </View>
@@ -620,6 +645,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 11,
     fontWeight: '600',
+  },
+  paymentDot: {
+    width: 7,
+    height: 7,
+    borderRadius: radius.circle,
   },
   amountBlock: {
     alignItems: 'flex-end',

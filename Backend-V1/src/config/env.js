@@ -24,10 +24,11 @@ const config = {
   NODE_ENV: ENV,
   PORT: getEnv('PORT', localDefaults.PORT),
   JWT_SECRET: process.env.JWT_SECRET,
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '1d',
   
   ADMIN_OWNER_ID: process.env.ADMIN_OWNER_ID || (ENV === 'test' ? 'test_admin' : undefined),
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || (ENV === 'test' ? 'test_pass' : undefined),
+  ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH || undefined,
 
   MYSQL_HOST: process.env.MYSQL_HOST,
   MYSQL_PORT: process.env.MYSQL_PORT,
@@ -64,6 +65,11 @@ const missing = requiredKeys.filter((key) => {
   if (key === 'MYSQL_PASSWORD' && !isProd) return config[key] === undefined;
   return !config[key];
 });
+// Allow either ADMIN_PASSWORD (plain) or ADMIN_PASSWORD_HASH (bcrypt) to be set
+const hasAdminAuth = config.ADMIN_PASSWORD || config.ADMIN_PASSWORD_HASH;
+if (missing.includes('ADMIN_PASSWORD') && hasAdminAuth) {
+  missing.splice(missing.indexOf('ADMIN_PASSWORD'), 1);
+}
 if (missing.length > 0) {
   throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
 }
@@ -76,8 +82,17 @@ if (isProd) {
   if (!config.CORS_ORIGIN || config.CORS_ORIGIN === '*' || config.CORS_ORIGIN.includes('*')) {
     throw new Error('CORS_ORIGIN must be explicitly defined in production (no wildcards).');
   }
-  if (config.ADMIN_PASSWORD === 'admin143' || config.ADMIN_PASSWORD === 'test_pass' || config.ADMIN_PASSWORD.length < 8) {
-    throw new Error('ADMIN_PASSWORD is too weak for production environments.');
+  // In production, require ADMIN_PASSWORD_HASH (bcrypt) — plaintext is not allowed
+  if (config.ADMIN_PASSWORD_HASH) {
+    if (!config.ADMIN_PASSWORD_HASH.startsWith('$2b$') && !config.ADMIN_PASSWORD_HASH.startsWith('$2a$')) {
+      throw new Error('ADMIN_PASSWORD_HASH must be a valid bcrypt hash in production.');
+    }
+  } else if (config.ADMIN_PASSWORD) {
+    if (config.ADMIN_PASSWORD === 'admin143' || config.ADMIN_PASSWORD === 'test_pass' || config.ADMIN_PASSWORD.length < 8) {
+      throw new Error('ADMIN_PASSWORD is too weak for production. Use ADMIN_PASSWORD_HASH instead.');
+    }
+  } else {
+    throw new Error('Either ADMIN_PASSWORD_HASH or ADMIN_PASSWORD must be set.');
   }
 }
 

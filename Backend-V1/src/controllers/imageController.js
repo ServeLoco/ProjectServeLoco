@@ -61,7 +61,9 @@ const uploadImage = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No image file provided' });
   }
 
-  const { filename, originalname, mimetype, size } = req.file;
+  let { filename, originalname, mimetype, size } = req.file;
+  
+  originalname = path.basename(originalname).replace(/[^a-zA-Z0-9._-]/g, '');
   const baseUrl = config.PUBLIC_BASE_URL;
   const staticPath = config.STATIC_UPLOAD_PATH;
   

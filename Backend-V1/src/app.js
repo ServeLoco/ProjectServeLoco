@@ -47,7 +47,14 @@ app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // Static file serving for images
-app.use(config.STATIC_UPLOAD_PATH, express.static(path.join(__dirname, '../', config.UPLOAD_DIR)));
+app.use(config.STATIC_UPLOAD_PATH, (req, res, next) => {
+  const ext = path.extname(req.path).toLowerCase();
+  const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.avif'];
+  if (!imageExts.includes(ext)) {
+    return res.status(403).json({ code: 'FORBIDDEN', message: 'Only image files are allowed' });
+  }
+  next();
+}, express.static(path.join(__dirname, '../', config.UPLOAD_DIR)));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -65,18 +72,17 @@ app.use('/api/realtime', realtimeRoutes);
 app.use('/api/admin/images', imageRoutes); // alias for admin panel
 
 // Local/mobile clients may be configured with either the server root or /api.
-// Keep root aliases so an old Expo bundle does not fail with "route not found".
-app.use('/auth', authRoutes);
-app.use('/admin', adminRoutes);
-app.use('/images', imageRoutes);
-app.use('/categories', categoryRoutes);
-app.use('/products', productRoutes);
-app.use('/orders', orderRoutes);
-app.use('/cart', cartRoutes);
-app.use('/settings', settingsRoutes);
-app.use('/offers', offerRoutes);
-app.use('/dashboard', dashboardRoutes);
-app.use('/admin/images', imageRoutes);
+// Redirect legacy root paths to /api/...
+const legacyPaths = [
+  '/auth', '/admin', '/images', '/categories', '/products', 
+  '/orders', '/cart', '/settings', '/offers', '/dashboard', 
+  '/admin/images'
+];
+legacyPaths.forEach(legacyPath => {
+  app.use(legacyPath, (req, res) => {
+    res.redirect(308, `/api${req.originalUrl}`);
+  });
+});
 
 // Public health endpoint
 app.get('/health', async (req, res) => {
@@ -84,8 +90,7 @@ app.get('/health', async (req, res) => {
   const isHealthy = dbHealth.mysql === 'ok' && dbHealth.mongodb === 'ok';
   
   res.status(isHealthy ? 200 : 503).json({
-    status: isHealthy ? 'ok' : 'error',
-    databases: dbHealth
+    status: isHealthy ? 'ok' : 'error'
   });
 });
 

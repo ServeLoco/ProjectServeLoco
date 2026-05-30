@@ -1,4 +1,5 @@
 const { verifyToken } = require('../utils/auth');
+const { pool } = require('../db/mysql');
 
 const extractToken = (req) => {
   const authHeader = req.headers.authorization;
@@ -8,7 +9,7 @@ const extractToken = (req) => {
   return null;
 };
 
-const requireCustomer = (req, res, next) => {
+const requireCustomer = async (req, res, next) => {
   const token = extractToken(req);
   if (!token) {
     return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Authentication token missing' });
@@ -19,7 +20,17 @@ const requireCustomer = (req, res, next) => {
     if (payload.role !== 'customer') {
       return res.status(403).json({ code: 'FORBIDDEN', message: 'Forbidden role' });
     }
-    req.user = { id: payload.sub || payload.id, role: payload.role };
+
+    const userId = payload.sub || payload.id;
+    
+    if (process.env.NODE_ENV !== 'test') {
+      const [rows] = await pool.query('SELECT blocked FROM users WHERE id = ?', [userId]);
+      if (rows.length > 0 && rows[0].blocked) {
+        return res.status(403).json({ code: 'FORBIDDEN', message: 'Your account is blocked' });
+      }
+    }
+
+    req.user = { id: userId, role: payload.role };
     next();
   } catch (error) {
     return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid or expired token' });

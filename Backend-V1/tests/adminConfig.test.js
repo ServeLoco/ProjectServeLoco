@@ -14,6 +14,7 @@ describe('Admin Configuration', () => {
     process.env.MYSQL_PASSWORD = 'password';
     process.env.MONGODB_URI = 'mongodb://localhost';
     process.env.MONGODB_DATABASE = 'db';
+    delete process.env.ADMIN_PASSWORD_HASH; // ensure hash doesn't interfere with password strength tests
     jest.mock('dotenv', () => ({ config: jest.fn() }));
   });
 
@@ -27,7 +28,7 @@ describe('Admin Configuration', () => {
     process.env.NODE_ENV = 'production';
     process.env.ADMIN_OWNER_ID = 'admin';
     process.env.ADMIN_PASSWORD = 'admin';
-    expect(() => require('../src/config/env')).toThrow('ADMIN_PASSWORD is too weak for production environments.');
+    expect(() => require('../src/config/env')).toThrow('ADMIN_PASSWORD is too weak for production');
   });
 
   it('should throw error if admin credentials are missing', () => {

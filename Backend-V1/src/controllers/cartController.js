@@ -106,7 +106,6 @@ const calculateCart = async (req, res) => {
   } else {
     // Distance-based pricing is removed. Always use threshold/fixed delivery logic.
     // Note: Coordinates are deliberately ignored for pricing calculation.
-    console.log(`[cartController] calculateCart received coordinates (Lat: ${customerLat}, Lng: ${customerLng}) but they are intentionally ignored for pricing.`);
     
     deliveryDistanceKm = null;
     deliveryWithinRange = true; // Always true now
