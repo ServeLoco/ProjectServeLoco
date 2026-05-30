@@ -39,7 +39,6 @@ services:
   - type: web
     name: serveloco-admin
     env: static
-    region: oregon
     plan: free
     rootDir: adminManager-V1
     buildCommand: npm install && npm run build
