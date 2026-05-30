@@ -35,3 +35,19 @@ services:
         sync: false
       - key: ADMIN_PASSWORD_HASH
         sync: false
+
+  - type: web
+    name: serveloco-admin
+    env: static
+    region: oregon
+    plan: free
+    rootDir: adminManager-V1
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false # Set to your deployed backend URL in the Render dashboard
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
