@@ -1,6 +1,12 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import CustomerNavigator from './CustomerNavigator';
+
+/**
+ * Shared navigation ref — used by useLocalNotifications to navigate
+ * when the user taps a phone notification.
+ */
+export const navigationRef = createNavigationContainerRef();
 
 /**
  * RootNavigator
@@ -8,7 +14,7 @@ import CustomerNavigator from './CustomerNavigator';
  */
 export default function RootNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <CustomerNavigator />
     </NavigationContainer>
   );

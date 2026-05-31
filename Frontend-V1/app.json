@@ -8,6 +8,14 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#FF6B35"
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -19,8 +27,7 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "READ_MEDIA_IMAGES",
-        "ACCESS_FINE_LOCATION",
-        "READ_MEDIA_IMAGES"
+        "POST_NOTIFICATIONS"
       ],
       "package": "com.yashsiwach.serveloco"
     },
