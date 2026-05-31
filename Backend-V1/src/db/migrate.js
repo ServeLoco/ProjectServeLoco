@@ -1,4 +1,3 @@
-require('dotenv').config();
 const mysql = require('mysql2/promise');
 const config = require('../config/env');
 const { getMysqlSslOptions } = require('./mysqlSsl');

@@ -1,6 +1,6 @@
-require('dotenv').config();
+const { appEnv } = require('./loadEnv');
 
-const ENV = process.env.NODE_ENV || 'development';
+const ENV = process.env.NODE_ENV || appEnv || 'development';
 const isProd = ENV === 'production';
 
 // Safe defaults for local testing
@@ -21,6 +21,7 @@ const getEnv = (key, fallback) => {
 };
 
 const config = {
+  APP_ENV: appEnv,
   NODE_ENV: ENV,
   PORT: getEnv('PORT', localDefaults.PORT),
   JWT_SECRET: process.env.JWT_SECRET,

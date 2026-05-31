@@ -4,6 +4,9 @@ dist
 build
 .env
 .env.local
+.env.*
+!.env.example
+!.env.*.example
 *.log
 coverage
 firebase-service-account.json
