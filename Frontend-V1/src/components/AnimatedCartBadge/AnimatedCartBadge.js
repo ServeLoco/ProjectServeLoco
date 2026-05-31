@@ -44,4 +44,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AnimatedCartBadge;
+export default React.memo(AnimatedCartBadge);

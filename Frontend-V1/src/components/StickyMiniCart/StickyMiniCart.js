@@ -187,4 +187,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default StickyMiniCart;
+export default React.memo(StickyMiniCart);

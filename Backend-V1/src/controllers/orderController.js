@@ -34,7 +34,7 @@ const createOrder = async (req, res) => {
   await connection.beginTransaction();
 
   try {
-    const [userRows] = await connection.query('SELECT * FROM users WHERE id = ?', [userId]);
+    const [userRows] = await connection.query('SELECT id, name, phone, whatsapp_number, address, blocked FROM users WHERE id = ?', [userId]);
     const user = userRows[0];
     if (user.blocked) {
       await connection.rollback();
@@ -42,7 +42,7 @@ const createOrder = async (req, res) => {
       return res.status(403).json({ code: 'FORBIDDEN', message: 'Your account is blocked' });
     }
 
-    const [settingRows] = await connection.query('SELECT * FROM settings LIMIT 1');
+    const [settingRows] = await connection.query('SELECT shop_open, delivery_available, minimum_order_amount, delivery_charge, night_charge, night_charge_start, night_charge_end, below_threshold_delivery_charge, free_delivery_above_minimum_active, free_delivery_offer_active, fast_delivery_enabled, fast_delivery_charge FROM settings LIMIT 1');
     const settings = settingRows[0];
     
     if (settings.shop_open === 0 || settings.shop_open === false) throw new Error('Shop is currently closed');
@@ -57,9 +57,9 @@ const createOrder = async (req, res) => {
       let prodRows;
 
       if (isCombo) {
-        [prodRows] = await connection.query('SELECT * FROM combos WHERE id = ? AND available = 1 AND deleted = 0', [productId]);
+        [prodRows] = await connection.query('SELECT id, name, price FROM combos WHERE id = ? AND available = 1 AND deleted = 0', [productId]);
       } else {
-        [prodRows] = await connection.query('SELECT * FROM products WHERE id = ? AND available = 1 AND deleted = 0', [productId]);
+        [prodRows] = await connection.query('SELECT id, name, price FROM products WHERE id = ? AND available = 1 AND deleted = 0', [productId]);
       }
 
       if (prodRows.length === 0) throw new Error(`${isCombo ? 'Combo' : 'Product'} ID ${productId} is unavailable or does not exist`);

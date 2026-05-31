@@ -263,6 +263,26 @@ const migrate = async () => {
     await ensureColumn('orders', 'delivery_cost_per_km_snapshot', 'delivery_cost_per_km_snapshot DECIMAL(10, 2) DEFAULT NULL AFTER delivery_radius_km_snapshot');
     await ensureColumn('orders', 'free_delivery_offer_snapshot', 'free_delivery_offer_snapshot BOOLEAN DEFAULT NULL AFTER delivery_cost_per_km_snapshot');
     await ensureColumn('orders', 'delivery_type', "delivery_type ENUM('standard', 'fast') DEFAULT 'standard' AFTER free_delivery_offer_snapshot");
+
+    // Performance indexes for common order filter queries
+    const ensureIndex = async (tableName, indexName, columns) => {
+      const [rows] = await connection.query(
+        `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ? LIMIT 1`,
+        [config.MYSQL_DATABASE, tableName, indexName]
+      );
+      if (rows.length === 0) {
+        await connection.query(`ALTER TABLE ${tableName} ADD INDEX ${indexName} (${columns})`);
+      }
+    };
+
+    await ensureIndex('orders', 'idx_orders_status_created', 'status, created_at');
+    await ensureIndex('orders', 'idx_orders_payment_status_created', 'payment_status, created_at');
+    await ensureIndex('orders', 'idx_orders_customer_created', 'customer_id, created_at');
+    await ensureIndex('products', 'idx_products_available_deleted', 'available, deleted');
+    await ensureIndex('notifications', 'idx_notifications_user_unread', 'user_id, read_at, deleted_at');
+    await ensureIndex('offer_products', 'idx_offer_products_active_display', 'offer_id, active, display_order');
+
     console.log('Orders table ready.');
 
     // Order Items Table

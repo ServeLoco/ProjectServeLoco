@@ -110,10 +110,13 @@ export default function CartScreen() {
   };
 
   useEffect(() => {
-    // Recalculate bill whenever items change
-    calculateBill();
+    // Debounce bill recalculation to avoid rapid successive API calls
+    const timer = setTimeout(() => {
+      calculateBill();
+    }, 300);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, validItems]);
+  }, [items]);
 
   const handleRemove = (id, type = 'product') => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);

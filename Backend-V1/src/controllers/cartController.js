@@ -11,60 +11,69 @@ const calculateCart = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Items array is required' });
   }
 
-  const [settingRows] = await pool.query('SELECT * FROM settings LIMIT 1');
+  const [settingRows] = await pool.query(
+    'SELECT shop_open, minimum_order_amount, delivery_charge, night_charge, night_charge_start, night_charge_end, below_threshold_delivery_charge, free_delivery_above_minimum_active, free_delivery_offer_active, fast_delivery_enabled, fast_delivery_charge, delivery_radius_km FROM settings LIMIT 1'
+  );
   const settings = settingRows[0] || {
-    shop_open: 1, minimum_order_amount: 0, delivery_charge: 0, free_delivery_above: null, night_charge: 0
+    shop_open: 1, minimum_order_amount: 0, delivery_charge: 0, night_charge: 0
   };
+
+  // Validate all items first before touching the DB
+  const normalizedItems = [];
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    const productId = item.product_id || item.productId;
+    const isCombo = item.type === 'combo' || item.isCombo || item.is_combo;
+
+    if (!isId(productId)) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Item ${index + 1}: valid product_id is required` });
+    }
+    if (!isPositiveInteger(item.quantity)) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Item ${index + 1}: quantity must be a whole number between 1 and 999` });
+    }
+    normalizedItems.push({ productId: Number(productId), quantity: Number(item.quantity), isCombo });
+  }
+
+  // Batch fetch products and combos in 2 queries instead of N queries
+  const productIds = normalizedItems.filter(i => !i.isCombo).map(i => i.productId);
+  const comboIds = normalizedItems.filter(i => i.isCombo).map(i => i.productId);
+
+  const productMap = {};
+  if (productIds.length > 0) {
+    const [prodRows] = await pool.query(
+      'SELECT id, name, price FROM products WHERE id IN (?) AND available = 1 AND deleted = 0',
+      [productIds]
+    );
+    prodRows.forEach(p => { productMap[p.id] = p; });
+  }
+
+  const comboMap = {};
+  if (comboIds.length > 0) {
+    const [comboRows] = await pool.query(
+      'SELECT id, name, price FROM combos WHERE id IN (?) AND available = 1 AND deleted = 0',
+      [comboIds]
+    );
+    comboRows.forEach(c => { comboMap[c.id] = c; });
+  }
 
   let subtotal = 0;
   const processedItems = [];
 
-  for (let index = 0; index < items.length; index++) {
-    const item = items[index];
-    const isCombo = item.type === 'combo' || item.isCombo || item.is_combo;
-    const productId = item.product_id || item.productId;
-    let prodRows;
+  for (let index = 0; index < normalizedItems.length; index++) {
+    const { productId, quantity, isCombo } = normalizedItems[index];
+    const product = isCombo ? comboMap[productId] : productMap[productId];
 
-    if (!isId(productId)) {
-      return res.status(400).json({
-        code: 'VALIDATION_ERROR',
-        message: `Item ${index + 1}: valid product_id is required`
-      });
-    }
-
-    if (!isPositiveInteger(item.quantity)) {
-      return res.status(400).json({
-        code: 'VALIDATION_ERROR',
-        message: `Item ${index + 1}: quantity must be a whole number between 1 and 999`
-      });
-    }
-    
-    if (isCombo) {
-      [prodRows] = await pool.query('SELECT * FROM combos WHERE id = ? AND available = 1 AND deleted = 0', [productId]);
-    } else {
-      [prodRows] = await pool.query('SELECT * FROM products WHERE id = ? AND available = 1 AND deleted = 0', [productId]);
-    }
-
-    if (prodRows.length === 0) {
+    if (!product) {
       return res.status(400).json({
         code: 'VALIDATION_ERROR',
         message: `Item ${index + 1}: ${isCombo ? 'combo' : 'product'} is unavailable or does not exist`
       });
     }
 
-    const product = prodRows[0];
-    const quantity = Number(item.quantity);
     const unitPrice = toMoney(product.price);
     const lineTotal = roundMoney(unitPrice * quantity);
     subtotal += lineTotal;
-    processedItems.push({
-      id: product.id,
-      name: product.name,
-      quantity,
-      unitPrice,
-      lineTotal,
-      type: isCombo ? 'combo' : 'product'
-    });
+    processedItems.push({ id: product.id, name: product.name, quantity, unitPrice, lineTotal, type: isCombo ? 'combo' : 'product' });
   }
 
   const { latitude, longitude, lat, lng } = req.body;

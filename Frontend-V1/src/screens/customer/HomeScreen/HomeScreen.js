@@ -53,6 +53,8 @@ export default function HomeScreen() {
   } = useCartStore();
   const shopStatus = useSettingsStore(state => state.shopStatus);
   const setSettings = useSettingsStore(state => state.setSettings);
+  const isSettingsStale = useSettingsStore(state => state.isStale);
+  const markSettingsFetched = useSettingsStore(state => state.markFetched);
   
   const [storeType, setStoreType] = useState('Fast Food');
   const [isLoading, setIsLoading] = useState(true);
@@ -92,9 +94,14 @@ export default function HomeScreen() {
     }
     setHomeError('');
 
+    // Only fetch settings if stale (older than 5 min) or explicit refresh
+    const settingsPromise = (refresh || isSettingsStale())
+      ? settingsApi.getSettings()
+      : Promise.resolve(null);
+
     Promise.allSettled([
       dashboardApi.getDashboard({ storeType: currentApiStoreType }),
-      settingsApi.getSettings(),
+      settingsPromise,
       notificationsApi.getUnreadCount().catch(() => 0),
     ]).then(([dashboardResult, settingsResult, notificationsResult]) => {
       if (!isMounted) return;
@@ -107,9 +114,10 @@ export default function HomeScreen() {
         setHomeError('Unable to load home sections. Pull to retry.');
       }
 
-      if (settingsResult.status === 'fulfilled') {
+      if (settingsResult.status === 'fulfilled' && settingsResult.value !== null) {
         const nextSettings = normalizeSettings(settingsResult.value);
         setSettings(nextSettings);
+        markSettingsFetched();
       }
 
       if (notificationsResult.status === 'fulfilled') {
@@ -142,7 +150,7 @@ export default function HomeScreen() {
     return () => {
       isMounted = false;
     };
-  }, [currentApiStoreType, fadeAnim, setSettings, slideAnim, staggerCatAnims, staggerComboAnims]);
+  }, [currentApiStoreType, fadeAnim, setSettings, markSettingsFetched, isSettingsStale, slideAnim, staggerCatAnims, staggerComboAnims]);
 
   useEffect(() => {
     let cleanupLoad;
