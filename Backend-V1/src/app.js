@@ -88,9 +88,13 @@ legacyPaths.forEach(legacyPath => {
 app.get('/health', async (req, res) => {
   const dbHealth = await db.checkHealth();
   const isHealthy = dbHealth.mysql === 'ok' && dbHealth.mongodb === 'ok';
-  
-  res.status(isHealthy ? 200 : 503).json({
-    status: isHealthy ? 'ok' : 'error'
+
+  res.status(200).json({
+    status: isHealthy ? 'ok' : 'error',
+    databases: {
+      mysql: dbHealth.mysql,
+      mongodb: dbHealth.mongodb
+    }
   });
 });
 
