@@ -127,7 +127,7 @@ const ensureUniqueSectionSlug = async (baseSlug, storeType, sourceSectionId) => 
   let slug = baseSlug;
   let counter = 2;
 
-  while (true) {
+  for (;;) {
     const [existing] = await pool.query(
       'SELECT id FROM dashboard_sections WHERE slug = ? AND store_type = ? AND deleted_at IS NULL AND id != ? LIMIT 1',
       [slug, storeType, sourceSectionId]
