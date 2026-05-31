@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -38,13 +37,18 @@ export default function AuthScreen() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Form State
+  // Form state
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
-  const [address, setAddress] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Input refs for keyboard "Next" chaining
+  const phoneRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
+  const resetPasswordRef = useRef(null);
+  const resetConfirmRef = useRef(null);
 
   // Animations
   const fadeAnimHeader = useRef(new Animated.Value(0)).current;
@@ -53,8 +57,9 @@ export default function AuthScreen() {
   const slideAnimCard = useRef(new Animated.Value(30)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
+  const scrollRef = useRef(null);
+
   useEffect(() => {
-    // Mount animations
     Animated.stagger(150, [
       Animated.parallel([
         Animated.timing(fadeAnimHeader, { toValue: 1, duration: 600, useNativeDriver: true }),
@@ -66,24 +71,23 @@ export default function AuthScreen() {
       ])
     ]).start();
 
-    const keyboardDidShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setKeyboardVisible(true);
-      }
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setKeyboardVisible(false);
-      }
-    );
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showListener = Keyboard.addListener(showEvent, () => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setKeyboardVisible(true);
+      // Scroll to bottom so active input is visible
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    });
+    const hideListener = Keyboard.addListener(hideEvent, () => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setKeyboardVisible(false);
+    });
 
     return () => {
-      keyboardDidHideListener.remove();
-      keyboardDidShowListener.remove();
+      showListener.remove();
+      hideListener.remove();
     };
   }, []);
 
@@ -93,7 +97,7 @@ export default function AuthScreen() {
       Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
       Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
       Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true })
+      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
     ]).start();
   };
 
@@ -109,12 +113,9 @@ export default function AuthScreen() {
     }
     setErrorMsg('');
     setIsLoading(true);
-
     try {
       const session = await authApi.login({ phone, password });
-      if (!session.token) {
-        throw new Error('Login response did not include a session token');
-      }
+      if (!session.token) throw new Error('Login response did not include a session token');
       setIsLoading(false);
       handleSuccess(session.token, session.user);
     } catch (err) {
@@ -125,8 +126,8 @@ export default function AuthScreen() {
   };
 
   const submitSignup = async () => {
-    if (!name || !phone || !address || !password || !confirmPassword) {
-      setErrorMsg('Please fill in all required fields');
+    if (!name.trim() || !phone || !password || !confirmPassword) {
+      setErrorMsg('Please fill in all fields');
       triggerShake();
       return;
     }
@@ -135,27 +136,21 @@ export default function AuthScreen() {
       triggerShake();
       return;
     }
-    if (password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setErrorMsg('Password must be at least 8 characters');
       triggerShake();
       return;
     }
     setErrorMsg('');
     setIsLoading(true);
-
     try {
       const session = await authApi.signup({
-        name,
-        fullName: name,
+        name: name.trim(),
+        fullName: name.trim(),
         phone,
-        whatsappNumber: whatsapp,
-        deliveryAddress: address,
-        address,
         password,
       });
-      if (!session.token) {
-        throw new Error('Signup response did not include a session token');
-      }
+      if (!session.token) throw new Error('Signup response did not include a session token');
       setIsLoading(false);
       handleSuccess(session.token, session.user);
     } catch (err) {
@@ -176,16 +171,14 @@ export default function AuthScreen() {
       triggerShake();
       return;
     }
-    if (password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setErrorMsg('Password must be at least 8 characters');
       triggerShake();
       return;
     }
-
     setErrorMsg('');
     setSuccessMsg('');
     setIsLoading(true);
-
     try {
       const response = await authApi.requestPasswordReset({
         phone,
@@ -204,6 +197,15 @@ export default function AuthScreen() {
     }
   };
 
+  const switchMode = (newMode) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setMode(newMode);
+    setErrorMsg('');
+    setSuccessMsg('');
+    setPassword('');
+    setConfirmPassword('');
+  };
+
   const renderLoginForm = () => (
     <View style={styles.form}>
       <TextInputField
@@ -213,6 +215,9 @@ export default function AuthScreen() {
         value={phone}
         onChangeText={setPhone}
         editable={!isLoading}
+        returnKeyType="next"
+        onSubmitEditing={() => passwordRef.current?.focus()}
+        inputRef={phoneRef}
       />
       <TextInputField
         label="Password"
@@ -221,31 +226,79 @@ export default function AuthScreen() {
         value={password}
         onChangeText={setPassword}
         editable={!isLoading}
+        returnKeyType="done"
+        onSubmitEditing={submitLogin}
+        inputRef={passwordRef}
       />
       {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
       {!!successMsg && <Text style={styles.successText}>{successMsg}</Text>}
-      <Button
-        label="Login"
-        onPress={submitLogin}
-        loading={isLoading}
-        style={styles.mainBtn}
-      />
+      <Button label="Login" onPress={submitLogin} loading={isLoading} style={styles.mainBtn} />
       <Button
         label="Forgot password?"
         variant="ghost"
-        onPress={() => {
-          setMode('Reset Password');
-          setErrorMsg('');
-          setSuccessMsg('');
-          setPassword('');
-          setConfirmPassword('');
-        }}
+        onPress={() => switchMode('Reset Password')}
         disabled={isLoading}
       />
       <Button
         label="Create an account"
         variant="ghost"
-        onPress={() => setMode('Sign Up')}
+        onPress={() => switchMode('Sign Up')}
+        disabled={isLoading}
+      />
+    </View>
+  );
+
+  const renderSignupForm = () => (
+    <View style={styles.form}>
+      <TextInputField
+        label="Full Name"
+        placeholder="Your full name"
+        value={name}
+        onChangeText={setName}
+        editable={!isLoading}
+        returnKeyType="next"
+        onSubmitEditing={() => phoneRef.current?.focus()}
+        autoCapitalize="words"
+      />
+      <TextInputField
+        label="Phone Number"
+        placeholder="10-digit mobile number"
+        keyboardType="phone-pad"
+        value={phone}
+        onChangeText={setPhone}
+        editable={!isLoading}
+        returnKeyType="next"
+        onSubmitEditing={() => passwordRef.current?.focus()}
+        inputRef={phoneRef}
+      />
+      <TextInputField
+        label="Password"
+        placeholder="Minimum 8 characters"
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+        editable={!isLoading}
+        returnKeyType="next"
+        onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+        inputRef={passwordRef}
+      />
+      <TextInputField
+        label="Confirm Password"
+        placeholder="Re-enter password"
+        secureTextEntry
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        editable={!isLoading}
+        returnKeyType="done"
+        onSubmitEditing={submitSignup}
+        inputRef={confirmPasswordRef}
+      />
+      {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
+      <Button label="Create Account" onPress={submitSignup} loading={isLoading} style={styles.mainBtn} />
+      <Button
+        label="Already have an account? Login"
+        variant="ghost"
+        onPress={() => switchMode('Login')}
         disabled={isLoading}
       />
     </View>
@@ -260,14 +313,20 @@ export default function AuthScreen() {
         value={phone}
         onChangeText={setPhone}
         editable={!isLoading}
+        returnKeyType="next"
+        onSubmitEditing={() => resetPasswordRef.current?.focus()}
+        inputRef={phoneRef}
       />
       <TextInputField
         label="New Password"
-        placeholder="Minimum 6 characters"
+        placeholder="Minimum 8 characters"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
         editable={!isLoading}
+        returnKeyType="next"
+        onSubmitEditing={() => resetConfirmRef.current?.focus()}
+        inputRef={resetPasswordRef}
       />
       <TextInputField
         label="Confirm New Password"
@@ -276,6 +335,9 @@ export default function AuthScreen() {
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         editable={!isLoading}
+        returnKeyType="done"
+        onSubmitEditing={submitPasswordResetRequest}
+        inputRef={resetConfirmRef}
       />
       {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
       <Button
@@ -287,77 +349,7 @@ export default function AuthScreen() {
       <Button
         label="Back to Login"
         variant="ghost"
-        onPress={() => {
-          setMode('Login');
-          setErrorMsg('');
-          setPassword('');
-          setConfirmPassword('');
-        }}
-        disabled={isLoading}
-      />
-    </View>
-  );
-
-  const renderSignupForm = () => (
-    <View style={styles.form}>
-      <TextInputField
-        label="Full Name *"
-        placeholder="John Doe"
-        value={name}
-        onChangeText={setName}
-        editable={!isLoading}
-      />
-      <TextInputField
-        label="Phone Number *"
-        placeholder="10-digit mobile number"
-        keyboardType="phone-pad"
-        value={phone}
-        onChangeText={setPhone}
-        editable={!isLoading}
-      />
-      <TextInputField
-        label="WhatsApp Number (Optional)"
-        placeholder="For order updates"
-        keyboardType="phone-pad"
-        value={whatsapp}
-        onChangeText={setWhatsapp}
-        editable={!isLoading}
-      />
-      <TextInputField
-        label="Delivery Address *"
-        placeholder="Complete address with landmark"
-        multiline
-        value={address}
-        onChangeText={setAddress}
-        editable={!isLoading}
-      />
-      <TextInputField
-        label="Password *"
-        placeholder="Minimum 6 characters"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        editable={!isLoading}
-      />
-      <TextInputField
-        label="Confirm Password *"
-        placeholder="Re-enter password"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        editable={!isLoading}
-      />
-      {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
-      <Button
-        label="Create Account"
-        onPress={submitSignup}
-        loading={isLoading}
-        style={styles.mainBtn}
-      />
-      <Button
-        label="Already have an account? Login"
-        variant="ghost"
-        onPress={() => setMode('Login')}
+        onPress={() => switchMode('Login')}
         disabled={isLoading}
       />
     </View>
@@ -366,18 +358,21 @@ export default function AuthScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 0}
     >
       <View style={styles.backdrop}>
         <AppScreen style={styles.container} safeAreaTop safeAreaBottom>
           <ScrollView
+            ref={scrollRef}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            bounces={false}
           >
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.header, 
+                styles.header,
                 { opacity: fadeAnimHeader, transform: [{ translateY: slideAnimHeader }] }
               ]}
             >
@@ -393,13 +388,12 @@ export default function AuthScreen() {
               )}
             </Animated.View>
 
-            {/* Auth Card */}
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.authCard, 
-                { 
-                  opacity: fadeAnimCard, 
-                  transform: [{ translateY: slideAnimCard }, { translateX: shakeAnim }] 
+                styles.authCard,
+                {
+                  opacity: fadeAnimCard,
+                  transform: [{ translateY: slideAnimCard }, { translateX: shakeAnim }],
                 }
               ]}
             >
@@ -407,10 +401,7 @@ export default function AuthScreen() {
                 options={['Login', 'Sign Up']}
                 selectedOption={mode === 'Reset Password' ? 'Login' : mode}
                 onSelect={(opt) => {
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                  setMode(opt);
-                  setErrorMsg('');
-                  setSuccessMsg('');
+                  switchMode(opt);
                 }}
                 disabled={isLoading}
               />
