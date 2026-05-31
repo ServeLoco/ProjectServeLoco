@@ -9,6 +9,7 @@ function PressableScale({
   onPress,
   scaleTo = 0.97,
   style,
+  accessibilityState,
   ...pressableProps
 }) {
   const reducedMotion = useReducedMotion();
@@ -24,19 +25,23 @@ function PressableScale({
     }).start();
   };
 
+  // Ensure disabled is always a boolean
+  const isDisabled = Boolean(disabled);
+
   return (
     <Pressable
       {...pressableProps}
-      disabled={disabled}
+      disabled={isDisabled}
       onPress={onPress}
       onPressIn={() => animateTo(scaleTo)}
       onPressOut={() => animateTo(1)}
+      accessibilityState={accessibilityState ? { ...accessibilityState, disabled: isDisabled } : undefined}
     >
       {({ pressed }) => (
         <Animated.View
           style={[
             style,
-            disabled && styles.disabled,
+            isDisabled && styles.disabled,
             pressed && reducedMotion && styles.pressedReducedMotion,
             {
               transform: [{ scale }],

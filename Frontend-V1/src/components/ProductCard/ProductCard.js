@@ -228,6 +228,7 @@ function ProductCard({
                 onAdd={onAdd}
                 onIncrement={onIncrement}
                 onDecrement={onDecrement}
+                disabled={isUnavailable}
                 compact
                 dense={dense}
               />
@@ -239,6 +240,7 @@ function ProductCard({
                 onAdd={onAdd}
                 onIncrement={onIncrement}
                 onDecrement={onDecrement}
+                disabled={isUnavailable}
                 compact
                 dense={dense}
               />

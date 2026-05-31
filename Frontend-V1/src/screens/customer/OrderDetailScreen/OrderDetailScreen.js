@@ -346,6 +346,12 @@ export default function OrderDetailScreen() {
             </Text>
             <Text style={styles.billValue}>₹{order.bill.delivery}</Text>
           </View>
+          {order.bill.nightCharge > 0 && (
+            <View style={styles.billRow}>
+              <Text style={[styles.billLabel, { color: colors.warning || '#F59E0B' }]}>Night Charge</Text>
+              <Text style={[styles.billValue, { color: colors.warning || '#F59E0B' }]}>₹{order.bill.nightCharge}</Text>
+            </View>
+          )}
           {order.bill.discount > 0 && (
             <View style={styles.billRow}>
               <Text style={[styles.billLabel, { color: colors.success }]}>Discount</Text>
