@@ -20,8 +20,9 @@ export default function Customers() {
   const [resetRequests, setResetRequests] = useState([]);
 
   useEffect(() => {
-    fetchCustomers(1);
-  }, [filters]);
+    const timer = setTimeout(() => fetchCustomers(1), 500);
+    return () => clearTimeout(timer);
+  }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchPasswordResetRequests();

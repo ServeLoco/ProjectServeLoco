@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -180,12 +180,12 @@ export default function ProductListScreen() {
   }, [searchQuery, mode]);
 
   // Callbacks
-  const getQty = (productId) => {
+  const getQty = useCallback((productId) => {
     const item = items.find(i => i.product.id === productId && (i.type || 'product') !== 'combo');
     return item ? item.quantity : 0;
-  };
+  }, [items]);
 
-  const handleAddToCart = (product) => {
+  const handleAddToCart = useCallback((product) => {
     requireAuth(null, () => {
       if (product.isCombo || product.is_combo || product.comboItems?.length) {
         addCombo(product);
@@ -193,9 +193,9 @@ export default function ProductListScreen() {
         addItem(product);
       }
     });
-  };
+  }, [requireAuth, addCombo, addItem]);
 
-  const handleIncrement = (product) => {
+  const handleIncrement = useCallback((product) => {
     requireAuth(null, () => {
       if (product.isCombo || product.is_combo || product.comboItems?.length) {
         addCombo(product);
@@ -203,9 +203,9 @@ export default function ProductListScreen() {
         addItem(product);
       }
     });
-  };
+  }, [requireAuth, addCombo, addItem]);
 
-  const handleDecrement = (product) => {
+  const handleDecrement = useCallback((product) => {
     if (product.isCombo || product.is_combo || product.comboItems?.length) {
       decrementCombo(product);
       return;
@@ -217,16 +217,16 @@ export default function ProductListScreen() {
     } else {
       updateQuantity(product.id, currentQty - 1);
     }
-  };
+  }, [decrementCombo, getQty, removeItem, updateQuantity]);
 
-  const handleProductPress = (product) => {
+  const handleProductPress = useCallback((product) => {
     const isCombo = product.isCombo || product.is_combo || product.comboItems?.length;
     navigation.navigate('ProductDetail', {
       id: product.id,
       type: isCombo ? 'combo' : 'product',
       product,
     });
-  };
+  }, [navigation]);
 
   // Renders
   const renderItem = ({ item }) => {

@@ -33,9 +33,11 @@ export default function Products() {
     fetchCategories();
   }, []);
 
+  // Debounce all filter changes — 500ms delay prevents API spam while typing
   useEffect(() => {
-    fetchProducts(1);
-  }, [filters]);
+    const timer = setTimeout(() => fetchProducts(1), 500);
+    return () => clearTimeout(timer);
+  }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchCategories = async () => {
     try {

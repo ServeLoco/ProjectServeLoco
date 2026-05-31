@@ -58,13 +58,13 @@ export default function CategoriesScreen() {
   
   const normalizedStoreType = storeType === 'Fast Food' ? 'fast_food' : storeType === 'Packed Items' ? 'packed' : storeType;
 
-  const displayCategories = categories.filter(category => {
+  const displayCategories = useMemo(() => categories.filter(category => {
     const type = String(category.type || '').toLowerCase();
     const typeMatches = !type || type === normalizedStoreType.toLowerCase();
     const chipMatches = activeChip === 'All'
       || category.subcategories?.some(item => String(item.name || item).toLowerCase() === activeChip.toLowerCase());
     return typeMatches && chipMatches;
-  });
+  }), [categories, normalizedStoreType, activeChip]);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;

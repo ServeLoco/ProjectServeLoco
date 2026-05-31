@@ -285,12 +285,12 @@ export default function HomeScreen() {
     });
   };
 
-  const getQty = (productId) => {
+  const getQty = React.useCallback((productId) => {
     const item = items.find(i => i.product.id === productId && (i.type || 'product') !== 'combo');
     return item ? item.quantity : 0;
-  };
+  }, [items]);
 
-  const handleAddToCart = (product) => {
+  const handleAddToCart = React.useCallback((product) => {
     requireAuth(null, () => {
       if (product.isCombo || product.is_combo || product.comboItems?.length) {
         addCombo(product);
@@ -298,9 +298,9 @@ export default function HomeScreen() {
         addItem(product);
       }
     });
-  };
+  }, [requireAuth, addCombo, addItem]);
 
-  const handleIncrement = (product) => {
+  const handleIncrement = React.useCallback((product) => {
     requireAuth(null, () => {
       if (product.isCombo || product.is_combo || product.comboItems?.length) {
         addCombo(product);
@@ -308,9 +308,9 @@ export default function HomeScreen() {
         addItem(product);
       }
     });
-  };
+  }, [requireAuth, addCombo, addItem]);
 
-  const handleDecrement = (product) => {
+  const handleDecrement = React.useCallback((product) => {
     if (product.isCombo || product.is_combo || product.comboItems?.length) {
       decrementCombo(product);
       return;
@@ -322,11 +322,11 @@ export default function HomeScreen() {
     } else {
       updateQuantity(product.id, currentQty - 1);
     }
-  };
+  }, [decrementCombo, getQty, removeItem, updateQuantity]);
 
-  const handleCartPress = () => {
+  const handleCartPress = React.useCallback(() => {
     navigation.navigate('Cart');
-  };
+  }, [navigation]);
 
 
   const categoryGap = spacing.sm;
