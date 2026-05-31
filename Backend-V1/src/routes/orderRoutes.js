@@ -29,6 +29,8 @@ const createOrderSchema = (req) => {
     errors.payment_method = 'Payment method must be Cash or UPI';
   }
   if (data.mapUrl && !data.map_url) data.map_url = data.mapUrl;
+  if (data.deliveryType && !data.delivery_type) data.delivery_type = data.deliveryType;
+  data.delivery_type = ['standard', 'fast'].includes(data.delivery_type) ? data.delivery_type : 'standard';
 
   const customerLat = data.latitude !== undefined ? data.latitude : data.lat;
   const customerLng = data.longitude !== undefined ? data.longitude : data.lng;

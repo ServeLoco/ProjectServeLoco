@@ -28,7 +28,7 @@ const getCancelledPaymentStatus = (paymentMethod) => (
 
 const createOrder = async (req, res) => {
   const userId = req.user.id;
-  const { address, latitude, longitude, map_url, payment_method, note, items } = req.validatedData;
+  const { address, latitude, longitude, map_url, payment_method, note, items, delivery_type } = req.validatedData;
 
   const connection = await pool.getConnection();
   await connection.beginTransaction();
@@ -82,11 +82,20 @@ const createOrder = async (req, res) => {
 
     subtotal = roundMoney(subtotal);
     // Delivery pricing is now completely threshold/fixed based. No distance restrictions.
-    const thresholdDelivery = calculateThresholdDeliveryCharge({ 
-      subtotal, 
+    const thresholdDelivery = calculateThresholdDeliveryCharge({
+      subtotal,
       settings
     });
-    const deliveryCharge = roundMoney(thresholdDelivery.charge);
+    let deliveryCharge = roundMoney(thresholdDelivery.charge);
+
+    // Fast delivery replaces only the standard delivery_charge (not night charge or below-threshold charge)
+    const fastEnabled = Boolean(settings.fast_delivery_enabled);
+    const isFastDelivery = delivery_type === 'fast' && fastEnabled &&
+      !thresholdDelivery.freeDeliveryOfferActive && !thresholdDelivery.belowThreshold;
+    if (isFastDelivery) {
+      deliveryCharge = roundMoney(toMoney(settings.fast_delivery_charge || 0));
+    }
+    const finalDeliveryType = isFastDelivery ? 'fast' : 'standard';
 
     let nightCharge = 0;
     if (settings.night_charge && parseFloat(settings.night_charge) > 0 &&
@@ -118,18 +127,17 @@ const createOrder = async (req, res) => {
         order_number, customer_id, customer_name, phone, whatsapp_number, address,
         latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total,
         payment_method, payment_status, status, note,
-        /* GPS coordinates (latitude/longitude) are stored here for admin records and delivery navigation only, not for pricing */
-        delivery_distance_km, delivery_radius_km_snapshot, delivery_cost_per_km_snapshot, free_delivery_offer_snapshot
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?)`,
+        delivery_distance_km, delivery_radius_km_snapshot, delivery_cost_per_km_snapshot,
+        free_delivery_offer_snapshot, delivery_type
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?)`,
       [
         orderNumber, userId, user.name, user.phone, user.whatsapp_number, finalAddress,
         latitude || null, longitude || null, map_url || null,
         subtotal, deliveryCharge, nightCharge, total,
         payment_method, note || null,
-        null, // delivery_distance_km
-        null, // delivery_radius_km_snapshot
-        null, // delivery_cost_per_km_snapshot
-        settings.free_delivery_offer_active !== null ? Boolean(settings.free_delivery_offer_active) : null
+        null, null, null,
+        settings.free_delivery_offer_active !== null ? Boolean(settings.free_delivery_offer_active) : null,
+        finalDeliveryType
       ]
     );
 
@@ -163,6 +171,7 @@ const createOrder = async (req, res) => {
       deliveryRadiusKmSnapshot: null,
       deliveryCostPerKmSnapshot: null,
       freeDeliveryOfferSnapshot: settings.free_delivery_offer_active !== null ? Boolean(settings.free_delivery_offer_active) : null,
+      deliveryType: finalDeliveryType,
       belowThresholdDelivery: Boolean(thresholdDelivery.belowThreshold),
       belowThresholdDeliveryCharge: thresholdDelivery.belowThresholdCharge || 0,
       deliveryMessage: thresholdDelivery.message,

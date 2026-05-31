@@ -5,7 +5,8 @@ const { isId, isPositiveInteger, validateCoordinates } = require('../validators'
 const { roundMoney, toMoney } = require('../utils/money');
 
 const calculateCart = async (req, res) => {
-  const { items } = req.body;
+  const { items, delivery_type: rawDeliveryType } = req.body;
+  const deliveryTypeInput = rawDeliveryType === 'fast' ? 'fast' : 'standard';
   if (!items || !Array.isArray(items)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Items array is required' });
   }
@@ -99,6 +100,15 @@ const calculateCart = async (req, res) => {
   belowThreshold = thresholdDelivery.belowThreshold;
   belowThresholdDeliveryCharge = thresholdDelivery.belowThresholdCharge || 0;
 
+  // Fast delivery: replaces standard delivery_charge only when above threshold
+  // Night charge, below-threshold charge, and free delivery offer are untouched
+  const fastDeliveryEnabled = Boolean(settings.fast_delivery_enabled);
+  const fastDeliveryCharge = toMoney(settings.fast_delivery_charge || 0);
+  const isFast = deliveryTypeInput === 'fast' && fastDeliveryEnabled && !freeDeliveryOfferActive && !belowThreshold;
+  if (isFast) {
+    deliveryCharge = fastDeliveryCharge;
+  }
+
   if (customerLat === undefined || customerLat === null || customerLat === '' ||
       customerLng === undefined || customerLng === null || customerLng === '') {
     requiresLocation = true;
@@ -154,7 +164,7 @@ const calculateCart = async (req, res) => {
     isValid: deliveryWithinRange,
     valid: deliveryWithinRange,
     message: !deliveryWithinRange ? deliveryMessage : '',
-    
+
     // Location delivery details
     deliveryDistanceKm: deliveryDistanceKm !== null ? Number(deliveryDistanceKm.toFixed(4)) : null,
     deliveryRadiusKm: Number(settings.delivery_radius_km) || 8.00,
@@ -164,7 +174,12 @@ const calculateCart = async (req, res) => {
     freeAboveThresholdActive,
     belowThreshold,
     belowThresholdDeliveryCharge,
-    deliveryMessage
+    deliveryMessage,
+
+    // Fast delivery
+    deliveryType: isFast ? 'fast' : 'standard',
+    fastDeliveryEnabled,
+    fastDeliveryCharge,
   };
 
   res.status(200).json({

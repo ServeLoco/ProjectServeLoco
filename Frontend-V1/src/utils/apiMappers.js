@@ -187,6 +187,9 @@ function normalizeCartCalculation(payload = {}) {
     belowThreshold: asBoolean(pickFirst(bill.belowThreshold, bill.below_threshold, bill.belowThresholdDelivery, bill.below_threshold_delivery), false),
     belowThresholdDeliveryCharge: numberOrZero(pickFirst(bill.belowThresholdDeliveryCharge, bill.below_threshold_delivery_charge)),
     deliveryMessage: pickFirst(bill.deliveryMessage, bill.delivery_message, bill.message, ''),
+    deliveryType: pickFirst(bill.deliveryType, bill.delivery_type, 'standard'),
+    fastDeliveryEnabled: asBoolean(pickFirst(bill.fastDeliveryEnabled, bill.fast_delivery_enabled), false),
+    fastDeliveryCharge: numberOrZero(pickFirst(bill.fastDeliveryCharge, bill.fast_delivery_charge)),
   };
 }
 
@@ -288,6 +291,7 @@ function normalizeOrder(order = {}) {
       nightCharge,
       discount,
       grandTotal,
+      deliveryType: pickFirst(order.deliveryType, order.delivery_type, 'standard'),
       belowThresholdDelivery: asBoolean(pickFirst(order.belowThresholdDelivery, order.below_threshold_delivery), false),
       belowThresholdDeliveryCharge: numberOrZero(pickFirst(order.belowThresholdDeliveryCharge, order.below_threshold_delivery_charge)),
     },

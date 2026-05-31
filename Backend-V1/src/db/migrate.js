@@ -262,6 +262,7 @@ const migrate = async () => {
     await ensureColumn('orders', 'delivery_radius_km_snapshot', 'delivery_radius_km_snapshot DECIMAL(10, 2) DEFAULT NULL AFTER delivery_distance_km');
     await ensureColumn('orders', 'delivery_cost_per_km_snapshot', 'delivery_cost_per_km_snapshot DECIMAL(10, 2) DEFAULT NULL AFTER delivery_radius_km_snapshot');
     await ensureColumn('orders', 'free_delivery_offer_snapshot', 'free_delivery_offer_snapshot BOOLEAN DEFAULT NULL AFTER delivery_cost_per_km_snapshot');
+    await ensureColumn('orders', 'delivery_type', "delivery_type ENUM('standard', 'fast') DEFAULT 'standard' AFTER free_delivery_offer_snapshot");
     console.log('Orders table ready.');
 
     // Order Items Table
@@ -329,6 +330,8 @@ const migrate = async () => {
     await ensureColumn('settings', 'below_threshold_delivery_charge', 'below_threshold_delivery_charge DECIMAL(10, 2) DEFAULT 20.00 AFTER delivery_cost_per_km');
     await ensureColumn('settings', 'free_delivery_above_minimum_active', 'free_delivery_above_minimum_active BOOLEAN DEFAULT TRUE AFTER below_threshold_delivery_charge');
     await ensureColumn('settings', 'free_delivery_offer_active', 'free_delivery_offer_active BOOLEAN DEFAULT FALSE AFTER free_delivery_above_minimum_active');
+    await ensureColumn('settings', 'fast_delivery_enabled', 'fast_delivery_enabled BOOLEAN DEFAULT FALSE AFTER free_delivery_offer_active');
+    await ensureColumn('settings', 'fast_delivery_charge', 'fast_delivery_charge DECIMAL(10, 2) DEFAULT 0.00 AFTER fast_delivery_enabled');
     
     // Drop free_delivery_above column if it exists (Task 1.1)
     try {

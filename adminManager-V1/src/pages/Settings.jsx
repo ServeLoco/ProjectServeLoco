@@ -12,6 +12,8 @@ const DEFAULT_SETTINGS = {
   night_charge: 0,
   night_charge_start: '',
   night_charge_end: '',
+  fast_delivery_enabled: false,
+  fast_delivery_charge: 0,
   delivery_time_message: '',
   whatsapp_number: '',
   support_phone: '',
@@ -114,6 +116,8 @@ export default function Settings() {
         below_threshold_delivery_charge: Number(settings.below_threshold_delivery_charge),
         free_delivery_above_minimum_active: Boolean(settings.free_delivery_above_minimum_active),
         free_delivery_offer_active: Boolean(settings.free_delivery_offer_active),
+        fast_delivery_enabled: Boolean(settings.fast_delivery_enabled),
+        fast_delivery_charge: Number(settings.fast_delivery_charge || 0),
         upi_qr_image_id: settings.upi_qr_image_id,
       };
       const response = await SettingsApi.update(payload);
@@ -246,6 +250,47 @@ export default function Settings() {
               <span className="toggle-slider"></span>
             </label>
           </div>
+
+          {/* Fast Delivery */}
+          <div className="toggle-switch-wrapper full-width fast-delivery-toggle">
+            <div style={{ flex: 1 }}>
+              <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                ⚡ Fast Delivery Option
+              </strong>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                When enabled, customers can choose ~30 min fast delivery at a fixed charge you set below.
+                Replaces the standard delivery charge for eligible orders.
+              </span>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                name="fast_delivery_enabled"
+                checked={Boolean(settings.fast_delivery_enabled)}
+                onChange={handleChange}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {Boolean(settings.fast_delivery_enabled) && (
+            <div className="settings-form-group fast-delivery-charge-input">
+              <label className="settings-label">⚡ Fast Delivery Charge (₹)</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                name="fast_delivery_charge"
+                className="settings-input"
+                value={settings.fast_delivery_charge ?? 0}
+                onChange={handleChange}
+                placeholder="e.g. 50"
+              />
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                This replaces the standard delivery charge when customer selects fast delivery.
+              </span>
+            </div>
+          )}
         </div>
       </section>
 

@@ -447,7 +447,7 @@ const getAdminOrders = async (req, res) => {
   const { status, paymentStatus, payment_status, paymentMethod, payment_method, search, dateFrom, from, dateTo, to, page, limit } = req.query;
   const pagination = validatePagination(page, limit);
 
-  let query = 'SELECT id, order_number, customer_id, customer_name, phone, whatsapp_number, address, latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total, payment_method, payment_status, status, note, cancel_reason, created_at, updated_at FROM orders WHERE 1=1';
+  let query = 'SELECT id, order_number, customer_id, customer_name, phone, whatsapp_number, address, latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total, delivery_type, payment_method, payment_status, status, note, cancel_reason, created_at, updated_at FROM orders WHERE 1=1';
   const params = [];
 
   const finalStatus = status;
@@ -488,7 +488,7 @@ const getAdminOrders = async (req, res) => {
   }
 
   // Count total for pagination
-  const countQueryStr = query.replace('SELECT id, order_number, customer_id, customer_name, phone, whatsapp_number, address, latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total, payment_method, payment_status, status, note, cancel_reason, created_at, updated_at FROM orders', 'SELECT COUNT(*) as total FROM orders');
+  const countQueryStr = query.replace('SELECT id, order_number, customer_id, customer_name, phone, whatsapp_number, address, latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total, delivery_type, payment_method, payment_status, status, note, cancel_reason, created_at, updated_at FROM orders', 'SELECT COUNT(*) as total FROM orders');
   const [countRows] = await pool.query(countQueryStr, params);
   const total = countRows[0].total;
 
@@ -513,7 +513,7 @@ const getAdminOrders = async (req, res) => {
 const getAdminOrderById = async (req, res) => {
   const { id } = req.params;
 
-  const [orderRows] = await pool.query('SELECT id, order_number, customer_id, customer_name, phone, whatsapp_number, address, latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total, payment_method, payment_status, status, note, cancel_reason, created_at, updated_at FROM orders WHERE id = ?', [id]);
+  const [orderRows] = await pool.query('SELECT id, order_number, customer_id, customer_name, phone, whatsapp_number, address, latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total, delivery_type, payment_method, payment_status, status, note, cancel_reason, created_at, updated_at FROM orders WHERE id = ?', [id]);
   if (orderRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }

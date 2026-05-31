@@ -156,7 +156,7 @@ const updateSettings = async (req, res) => {
     'night_charge', 'night_charge_start', 'night_charge_end',
     'whatsapp_number', 'support_phone', 'upi_id', 'upi_qr_image_id', 'delivery_time_message',
     'below_threshold_delivery_charge', 'free_delivery_above_minimum_active',
-    'free_delivery_offer_active'
+    'free_delivery_offer_active', 'fast_delivery_enabled', 'fast_delivery_charge'
     // DEPRECATED (no longer used): free_delivery_above, shop_latitude, shop_longitude,
     // delivery_radius_km, delivery_cost_per_km
   ];
@@ -167,7 +167,8 @@ const updateSettings = async (req, res) => {
     ['minimum_order_amount', 'Minimum order amount cannot be negative'],
     ['delivery_charge', 'Standard delivery charge cannot be negative'],
     ['night_charge', 'Night delivery surcharge cannot be negative'],
-    ['below_threshold_delivery_charge', 'Below-threshold delivery charge cannot be negative']
+    ['below_threshold_delivery_charge', 'Below-threshold delivery charge cannot be negative'],
+    ['fast_delivery_charge', 'Fast delivery charge cannot be negative']
   ];
 
   for (const [field, message] of moneyFields) {
