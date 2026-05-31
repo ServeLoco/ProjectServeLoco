@@ -15,7 +15,7 @@ Notifications.setNotificationHandler({
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-async function requestPermission() {
+export async function requestNotificationPermission() {
   if (Platform.OS === 'android' && Platform.Version < 33) {
     // Android < 13 doesn't need runtime permission for notifications
     return true;
@@ -25,6 +25,11 @@ async function requestPermission() {
   if (existing === 'granted') return true;
 
   const { status } = await Notifications.requestPermissionsAsync();
+  return status === 'granted';
+}
+
+export async function checkNotificationPermission() {
+  const { status } = await Notifications.getPermissionsAsync();
   return status === 'granted';
 }
 
@@ -81,15 +86,15 @@ function extractOrderId(payload) {
  */
 export function useLocalNotifications(navigationRef) {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
-  const responseListener = useRef(null);
   const permissionGranted = useRef(false);
 
-  // ── 1. One-time setup: permissions + Android channel ─────────────────────
+  // ── 1. One-time setup: Android channel only (no permission request) ─────
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      const granted = await requestPermission();
+      // Check if permission is already granted
+      const granted = await checkNotificationPermission();
       if (!cancelled) permissionGranted.current = granted;
       await createAndroidChannel();
     })();
@@ -105,11 +110,22 @@ export function useLocalNotifications(navigationRef) {
 
     const unsubscribe = subscribeNotificationEvents(async ({ eventName, payload }) => {
       if (eventName !== 'notification.created') return;
-      if (!permissionGranted.current) return;
+
+      // Check permission every time (user might grant it later)
+      const hasPermission = await checkNotificationPermission();
+      console.log('[useLocalNotifications] Permission status:', hasPermission);
+      console.log('[useLocalNotifications] Notification payload:', payload);
+
+      if (!hasPermission) {
+        console.log('[useLocalNotifications] No permission, skipping notification');
+        return;
+      }
 
       const title = payload?.title ?? 'ServeLoco';
       const body  = payload?.body  ?? payload?.message ?? '';
       const orderId = extractOrderId(payload);
+
+      console.log('[useLocalNotifications] Scheduling notification:', { title, body, orderId });
 
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -123,6 +139,8 @@ export function useLocalNotifications(navigationRef) {
         },
         trigger: null, // fire immediately
       });
+
+      console.log('[useLocalNotifications] Notification scheduled successfully');
     });
 
     return () => unsubscribe();
@@ -130,29 +148,25 @@ export function useLocalNotifications(navigationRef) {
 
   // ── 3. Handle tap on notification → navigate to OrderDetail ──────────────
   useEffect(() => {
-    responseListener.current =
-      Notifications.addNotificationResponseReceivedListener(response => {
-        const orderId =
-          response.notification.request.content.data?.orderId;
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const orderId = response.notification.request.content.data?.orderId;
 
-        if (!orderId) return;
+      if (!orderId) return;
 
-        // Wait for navigator to be ready before navigating
-        const tryNavigate = () => {
-          if (navigationRef?.current?.isReady()) {
-            navigationRef.current.navigate('OrderDetail', { orderId });
-          } else {
-            setTimeout(tryNavigate, 200);
-          }
-        };
+      // Wait for navigator to be ready before navigating
+      const tryNavigate = () => {
+        if (navigationRef?.current?.isReady()) {
+          navigationRef.current.navigate('OrderDetail', { orderId });
+        } else {
+          setTimeout(tryNavigate, 200);
+        }
+      };
 
-        tryNavigate();
-      });
+      tryNavigate();
+    });
 
     return () => {
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
+      subscription.remove();
     };
   }, [navigationRef]);
 }

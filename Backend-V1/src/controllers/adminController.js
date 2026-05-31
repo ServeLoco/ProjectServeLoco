@@ -698,6 +698,21 @@ const createAdminNotification = async (req, res) => {
     return res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to create broadcast notification' });
   }
 
+  // Emit realtime events to all recipients so they get phone notifications
+  for (const userId of targetUserIds) {
+    try {
+      const [notifications] = await pool.query(
+        'SELECT * FROM notifications WHERE user_id = ? AND batch_id = ? ORDER BY id DESC LIMIT 1',
+        [userId, result.batchId]
+      );
+      if (notifications.length > 0) {
+        realtimeEvents.emitNotificationRow(userId, notifications[0]);
+      }
+    } catch (error) {
+      console.error(`Failed to emit notification to user ${userId}:`, error);
+    }
+  }
+
   res.status(201).json({
     success: true,
     message: 'Broadcast sent successfully',

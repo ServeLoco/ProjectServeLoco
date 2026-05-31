@@ -54,61 +54,93 @@ const createManyNotifications = async (notifications, connection = pool) => {
 };
 
 const createOrderNotification = async ({ userId, order, event, connection = pool }) => {
+  const orderNumber = order.order_number || order.orderNumber || order.id;
+  const orderId = order.id;
+
+  // Try to get template from database (gracefully handle if table doesn't exist)
   let title = '';
   let body = '';
   let type = '';
 
-  const orderNumber = order.order_number || order.orderNumber || order.id;
-  const orderId = order.id;
+  try {
+    const [templates] = await connection.query(
+      'SELECT title, body FROM notification_templates WHERE event_key = ? AND enabled = 1 LIMIT 1',
+      [event]
+    );
 
-  switch (event) {
-    case 'order_placed':
-      title = 'Order placed';
-      body = `Your order #${orderNumber} has been placed successfully.`;
+    if (templates && templates.length > 0) {
+      title = templates[0].title;
+      body = templates[0].body;
+    }
+  } catch (error) {
+    // Table might not exist in test environment or old databases - that's okay
+    // We'll use fallback messages
+  }
+
+  // Fallback to hardcoded messages if template not found
+  if (!title || !body) {
+    switch (event) {
+      case 'order_placed':
+        title = '🎉 Order Confirmed!';
+        body = 'Your order has been placed successfully. We\'ll notify you once it\'s accepted.';
+        type = 'order';
+        break;
+      case 'status_accepted':
+        title = '✅ Order Accepted!';
+        body = 'Great news! Your order has been accepted and will be prepared shortly.';
+        type = 'info';
+        break;
+      case 'status_preparing':
+        title = '👨‍🍳 Preparing Your Order';
+        body = 'Your delicious order is being prepared with care. Hang tight!';
+        type = 'info';
+        break;
+      case 'status_out_for_delivery':
+        title = '🚚 On The Way!';
+        body = 'Your order is out for delivery. It will reach you soon!';
+        type = 'warning';
+        break;
+      case 'status_delivered':
+        title = '🎊 Delivered!';
+        body = 'Your order has been delivered. Enjoy your meal!';
+        type = 'success';
+        break;
+      case 'status_cancelled':
+        title = '❌ Order Cancelled';
+        body = 'Your order was cancelled. Contact us if you need help.';
+        type = 'warning';
+        break;
+      case 'payment_paid':
+        title = '💰 Payment Received';
+        body = 'Your payment has been confirmed. Thank you!';
+        type = 'success';
+        break;
+      case 'payment_failed':
+        title = '⚠️ Payment Issue';
+        body = 'Payment failed. Please try again or contact support.';
+        type = 'warning';
+        break;
+      case 'payment_refunded':
+        title = '💸 Refund Processed';
+        body = 'Your payment has been refunded successfully.';
+        type = 'info';
+        break;
+      default:
+        return null;
+    }
+  }
+
+  // Determine type based on event if not set
+  if (!type) {
+    if (event.includes('delivered') || event.includes('paid')) {
+      type = 'success';
+    } else if (event.includes('cancelled') || event.includes('failed')) {
+      type = 'warning';
+    } else if (event === 'order_placed') {
       type = 'order';
-      break;
-    case 'status_accepted':
-      title = 'Order accepted';
-      body = `Your order #${orderNumber} has been accepted by the shop.`;
+    } else {
       type = 'info';
-      break;
-    case 'status_preparing':
-      title = 'Preparing your order';
-      body = `Your order #${orderNumber} is being prepared and packed.`;
-      type = 'info';
-      break;
-    case 'status_out_for_delivery':
-      title = 'Out for delivery';
-      body = `Your order #${orderNumber} is on the way.`;
-      type = 'warning';
-      break;
-    case 'status_delivered':
-      title = 'Order delivered';
-      body = `Your order #${orderNumber} has been delivered.`;
-      type = 'success';
-      break;
-    case 'status_cancelled':
-      title = 'Order cancelled';
-      body = `Your order #${orderNumber} was cancelled.`;
-      type = 'warning';
-      break;
-    case 'payment_paid':
-      title = 'Payment received';
-      body = `Payment for order #${orderNumber} has been marked paid.`;
-      type = 'success';
-      break;
-    case 'payment_failed':
-      title = 'Payment failed';
-      body = `Payment for order #${orderNumber} failed. Please contact support.`;
-      type = 'warning';
-      break;
-    case 'payment_refunded':
-      title = 'Payment refunded';
-      body = `Payment for order #${orderNumber} has been refunded.`;
-      type = 'info';
-      break;
-    default:
-      return null;
+    }
   }
 
   return createNotification({
@@ -120,7 +152,7 @@ const createOrderNotification = async ({ userId, order, event, connection = pool
     sourceId: orderId,
     eventKey: event,
     actionType: 'open_order',
-    actionPayload: { orderId },
+    actionPayload: { orderId, orderNumber },
     connection
   });
 };

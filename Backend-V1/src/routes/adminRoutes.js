@@ -4,6 +4,7 @@ const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, g
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
 const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability } = require('../controllers/comboController');
+const { getNotificationTemplates, updateNotificationTemplate, resetNotificationTemplate } = require('../controllers/notificationTemplateController');
 const {
   getAdminSections,
   getAdminSectionById,
@@ -362,5 +363,10 @@ router.get('/notifications', requireAdmin, asyncHandler(getAdminNotifications));
 router.post('/notifications', requireAdmin, auditLog, asyncHandler(createAdminNotification));
 router.get('/notifications/:id', requireAdmin, asyncHandler(getAdminNotificationById));
 router.delete('/notifications/:id', requireAdmin, auditLog, asyncHandler(deleteAdminNotification));
+
+// Notification Templates
+router.get('/notification-templates', requireAdmin, asyncHandler(getNotificationTemplates));
+router.patch('/notification-templates/:id', requireAdmin, auditLog, asyncHandler(updateNotificationTemplate));
+router.post('/notification-templates/:id/reset', requireAdmin, auditLog, asyncHandler(resetNotificationTemplate));
 
 module.exports = router;

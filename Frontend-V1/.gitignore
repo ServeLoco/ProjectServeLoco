@@ -35,6 +35,10 @@ local.properties
 !debug.keystore
 .kotlin/
 
+# Expo generated native folders - do not commit
+android/
+ios/
+
 # node.js
 #
 node_modules/

@@ -30,3 +30,4 @@ export { default as AnimatedSegmentedControl } from './AnimatedSegmentedControl'
 export { default as AnimatedTabItem } from './AnimatedTabItem';
 export { default as AnimatedModalView } from './AnimatedModalView';
 export { default as ValidationMessage } from './ValidationMessage';
+export { default as NotificationPermissionModal } from './NotificationPermissionModal';

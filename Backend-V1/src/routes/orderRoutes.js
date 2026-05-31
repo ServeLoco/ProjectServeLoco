@@ -33,15 +33,22 @@ const createOrderSchema = (req) => {
   const customerLat = data.latitude !== undefined ? data.latitude : data.lat;
   const customerLng = data.longitude !== undefined ? data.longitude : data.lng;
 
-  if (customerLat === undefined || customerLat === null || customerLat === '') {
-    errors.latitude = 'Latitude is required';
-  } else if (customerLng === undefined || customerLng === null || customerLng === '') {
-    errors.longitude = 'Longitude is required';
-  } else if (!validateCoordinates(customerLat, customerLng)) {
-    errors.latitude = 'Invalid GPS coordinates provided';
+  // Location is now optional - only validate if provided
+  if (customerLat !== undefined && customerLat !== null && customerLat !== '') {
+    if (customerLng === undefined || customerLng === null || customerLng === '') {
+      errors.longitude = 'Longitude is required when latitude is provided';
+    } else if (!validateCoordinates(customerLat, customerLng)) {
+      errors.latitude = 'Invalid GPS coordinates provided';
+    } else {
+      data.latitude = Number(customerLat);
+      data.longitude = Number(customerLng);
+    }
+  } else if (customerLng !== undefined && customerLng !== null && customerLng !== '') {
+    errors.latitude = 'Latitude is required when longitude is provided';
   } else {
-    data.latitude = Number(customerLat);
-    data.longitude = Number(customerLng);
+    // No coordinates provided - that's okay now
+    data.latitude = null;
+    data.longitude = null;
   }
 
   if (!Array.isArray(data.items) || data.items.length === 0) {

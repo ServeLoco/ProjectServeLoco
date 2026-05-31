@@ -261,23 +261,14 @@ export default function CheckoutScreen() {
       setSubmitError('The shop is currently closed. We cannot accept orders right now.');
       return;
     }
-    if (!coordinates) {
-      setSubmitError('Please pin your GPS location to proceed.');
-      return;
-    }
+    // Location is now optional - removed coordinate requirement
     if (isCalculating || calcError || !bill) {
       setSubmitError('Please wait while we verify the order total.');
       return;
     }
-    if (bill.requiresLocation) {
-      setSubmitError(bill.deliveryMessage || 'Please pin your GPS location to proceed.');
-      return;
-    }
-    if (!bill.deliveryWithinRange) {
-      setSubmitError(bill.deliveryMessage || 'Delivery is not available at this location.');
-      return;
-    }
-    
+    // Removed requiresLocation check - location is optional
+    // Removed deliveryWithinRange check - will be validated by backend
+
     setSubmitError(null);
     setIsSubmitting(true);
 
@@ -288,15 +279,7 @@ export default function CheckoutScreen() {
       const verifiedBill = normalizeCartCalculation(await cartApi.calculate(calculationPayload));
       setBill(verifiedBill);
 
-      if (verifiedBill.requiresLocation) {
-        setSubmitError(verifiedBill.deliveryMessage || 'Please pin your GPS location to proceed.');
-        return;
-      }
-
-      if (!verifiedBill.deliveryWithinRange) {
-        setSubmitError(verifiedBill.deliveryMessage || 'Delivery is not available at this location.');
-        return;
-      }
+      // Location validation removed - backend will handle delivery availability
 
       const orderResponse = await ordersApi.createOrder({
         items: checkoutItems,
@@ -347,24 +330,15 @@ export default function CheckoutScreen() {
     : 'Delivery Charge';
   const totalQuantity = items.reduce((total, item) => total + (Number(item.quantity) || 0), 0);
   const hasPinnedLocation = Boolean(coordinates);
-  const hasInvalidDelivery = Boolean(bill && (!bill.deliveryWithinRange || (hasPinnedLocation && bill.requiresLocation)));
+  // Location is now optional - removed delivery validation checks
   const isPinLocationDisabled = isSubmitting || gpsStatus === 'loading' || items.length === 0 || !address.trim();
-  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || hasInvalidDelivery;
-  const isPrimaryActionDisabled = hasPinnedLocation
-    ? isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable
-    : isPinLocationDisabled || shopStatus === 'closed' || !deliveryAvailable;
+  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError);
   const placeOrderLabel = isSubmitting
     ? 'Processing...'
-    : gpsStatus === 'loading'
-    ? 'Pinning Location...'
-    : !hasPinnedLocation
-    ? 'Pin Location to Continue'
-    : hasInvalidDelivery
-    ? 'Delivery Not Available'
-    : bill
-    ? `Place Order • Rs. ${bill.grandTotal}`
     : isCalculating
     ? 'Calculating total...'
+    : bill
+    ? `Place Order • ₹${bill.grandTotal}`
     : 'Place Order';  return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
       <AppHeader
@@ -391,11 +365,39 @@ export default function CheckoutScreen() {
             containerStyle={styles.addressInput}
           />
 
+          {/* Pin Location Button - Now under address input */}
+          {!hasPinnedLocation && (
+            <PressableScale
+              onPress={handleRequestGPS}
+              disabled={isPinLocationDisabled}
+              style={[
+                styles.pinLocationBtn,
+                isPinLocationDisabled && styles.pinLocationBtnDisabled
+              ]}
+              scaleTo={0.97}
+            >
+              <AppIcon
+                name="location"
+                size={18}
+                color={isPinLocationDisabled ? colors.textDisabled : colors.primary}
+              />
+              <Text style={[
+                styles.pinLocationBtnText,
+                isPinLocationDisabled && styles.pinLocationBtnTextDisabled
+              ]}>
+                {gpsStatus === 'loading' ? 'Pinning Location...' : 'Pin My Location (Optional)'}
+              </Text>
+              {gpsStatus === 'loading' && (
+                <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: spacing.xs }} />
+              )}
+            </PressableScale>
+          )}
+
           <View style={styles.gpsContainer}>
             {gpsStatus === 'idle' ? (
               <View style={styles.gpsHintBox}>
                 <AppIcon name="location" size={18} color={colors.textSecondary} />
-                <Text style={styles.gpsHintText}>Tap the bottom button to pin your delivery location.</Text>
+                <Text style={styles.gpsHintText}>Location not pinned. You can still place order without GPS location.</Text>
               </View>
             ) : gpsStatus === 'loading' ? (
               <View style={styles.gpsLoading}>
@@ -607,26 +609,26 @@ export default function CheckoutScreen() {
           </View>
         ) : (
           <PressableScale
-          onPress={hasPinnedLocation ? handlePlaceOrder : handleRequestGPS}
-          disabled={isPrimaryActionDisabled}
+          onPress={handlePlaceOrder}
+          disabled={isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable}
           style={[
             styles.customPlaceOrderBtn,
-            isPrimaryActionDisabled && styles.customPlaceOrderBtnDisabled
+            (isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable) && styles.customPlaceOrderBtnDisabled
           ]}
           scaleTo={0.96}
           accessibilityRole="button"
-          accessibilityLabel={hasPinnedLocation && bill ? `Place Order, ₹${bill.grandTotal}` : 'Pin Location to Continue'}
+          accessibilityLabel={bill ? `Place Order, ₹${bill.grandTotal}` : 'Place Order'}
         >
           <View style={styles.placeOrderBtnContent}>
-            {isSubmitting || isCalculating || gpsStatus === 'loading' ? (
+            {isSubmitting || isCalculating ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : null}
-            <Text style={isPrimaryActionDisabled ? styles.placeOrderBtnTextDisabled : styles.placeOrderBtnText}>
+            <Text style={(isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable) ? styles.placeOrderBtnTextDisabled : styles.placeOrderBtnText}>
               {placeOrderLabel}
             </Text>
-            {!isSubmitting && !isCalculating && gpsStatus !== 'loading' && (
+            {!isSubmitting && !isCalculating && (
               <Animated.View style={[styles.placeOrderBtnArrow, { transform: [{ translateX: arrowAnim }] }]}>
-                <AppIcon name={hasPinnedLocation ? 'chevronRight' : 'location'} size={16} color={isPrimaryActionDisabled ? colors.textDisabled : '#FFFFFF'} />
+                <AppIcon name="chevronRight" size={16} color={(isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable) ? colors.textDisabled : '#FFFFFF'} />
               </Animated.View>
             )}
           </View>
@@ -670,7 +672,32 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   addressInput: {
+    marginBottom: spacing.sm,
+  },
+  pinLocationBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgApp,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
     marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  pinLocationBtnDisabled: {
+    backgroundColor: colors.bgDisabled,
+    borderColor: colors.border,
+  },
+  pinLocationBtnText: {
+    ...typography.button,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  pinLocationBtnTextDisabled: {
+    color: colors.textDisabled,
   },
   gpsContainer: {
     marginTop: spacing.sm,

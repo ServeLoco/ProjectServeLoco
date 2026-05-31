@@ -17,11 +17,14 @@ import {
   AppIcon,
   Button,
   PressableScale,
+  NotificationPermissionModal,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useSettingsStore } from '../../../stores';
 import { ordersApi, subscribeOrderEvents, subscribeRealtimeLifecycle } from '../../../api';
 import { normalizeOrder } from '../../../utils';
+import { requestNotificationPermission, checkNotificationPermission } from '../../../hooks/useLocalNotifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getRealtimeOrderId,
   getRealtimeOrderKey,
@@ -83,6 +86,9 @@ export default function OrderDetailScreen() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
+  // Notification Permission Modal State
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+
   // Modal Animations
   const modalOpacity = useRef(new Animated.Value(0)).current;
   const modalScale = useRef(new Animated.Value(0.8)).current;
@@ -110,6 +116,33 @@ export default function OrderDetailScreen() {
   useEffect(() => {
     loadOrder();
   }, [loadOrder]);
+
+  // Check if we should show notification permission modal
+  useEffect(() => {
+    const checkNotificationPermissionStatus = async () => {
+      try {
+        // Check if user has already been asked
+        const hasBeenAsked = await AsyncStorage.getItem('notification_permission_asked');
+        if (hasBeenAsked === 'true') return;
+
+        // Check if permission is already granted
+        const isGranted = await checkNotificationPermission();
+        if (isGranted) {
+          await AsyncStorage.setItem('notification_permission_asked', 'true');
+          return;
+        }
+
+        // Show modal after a short delay (let user see their order first)
+        setTimeout(() => {
+          setShowNotificationModal(true);
+        }, 2000);
+      } catch (error) {
+        // Silently fail - not critical
+      }
+    };
+
+    checkNotificationPermissionStatus();
+  }, []);
 
   const queueRealtimeLoad = React.useCallback(() => {
     if (realtimeLoadTimer.current) {
@@ -190,6 +223,30 @@ export default function OrderDetailScreen() {
   const handleContact = () => {
     if (supportPhone) {
       Linking.openURL(`tel:${supportPhone}`);
+    }
+  };
+
+  const handleAllowNotifications = async () => {
+    try {
+      const granted = await requestNotificationPermission();
+      await AsyncStorage.setItem('notification_permission_asked', 'true');
+      setShowNotificationModal(false);
+
+      if (!granted) {
+        // User denied - could show a message here if needed
+      }
+    } catch (error) {
+      // Silently fail
+      setShowNotificationModal(false);
+    }
+  };
+
+  const handleDismissNotificationModal = async () => {
+    try {
+      await AsyncStorage.setItem('notification_permission_asked', 'true');
+      setShowNotificationModal(false);
+    } catch (error) {
+      setShowNotificationModal(false);
     }
   };
 
@@ -431,6 +488,13 @@ export default function OrderDetailScreen() {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* Notification Permission Modal */}
+      <NotificationPermissionModal
+        visible={showNotificationModal}
+        onAllow={handleAllowNotifications}
+        onDismiss={handleDismissNotificationModal}
+      />
 
     </AppScreen>
   );
