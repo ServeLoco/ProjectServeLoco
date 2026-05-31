@@ -4,7 +4,7 @@
   "description": "Backend for ServeLoco V1",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node src/db/migrate.js && node src/server.js",
     "dev": "APP_ENV=development NODE_ENV=development nodemon src/server.js",
     "start:dev": "APP_ENV=development NODE_ENV=development node src/server.js",
     "start:prod": "APP_ENV=production NODE_ENV=production node src/server.js",
