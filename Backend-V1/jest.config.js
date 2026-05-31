@@ -1,7 +1,7 @@
 module.exports = {
   testEnvironment: 'node',
   clearMocks: true,
-  setupFiles: ['dotenv/config'],
+  setupFiles: ['<rootDir>/tests/setupEnv.js'],
   testMatch: ['**/tests/**/*.test.js'],
   moduleNameMapper: {
     '^bcryptjs$': 'bcrypt'

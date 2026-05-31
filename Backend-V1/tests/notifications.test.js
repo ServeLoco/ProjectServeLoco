@@ -1,4 +1,182 @@
 const request = require('supertest');
+
+jest.mock('../src/db/mongodb', () => ({
+  getDb: () => ({
+    collection: () => ({
+      insertOne: jest.fn().mockResolvedValue({})
+    })
+  })
+}));
+
+jest.mock('../src/db/mysql', () => {
+  const state = {
+    nextUserId: 1,
+    nextBatchId: 1,
+    nextNotificationId: 1,
+    users: [],
+    batches: [],
+    notifications: []
+  };
+
+  const runQuery = async (sql, params = []) => {
+    const normalized = String(sql).replace(/\s+/g, ' ').trim();
+
+    if (normalized.startsWith('INSERT INTO users')) {
+      const id = state.nextUserId++;
+      state.users.push({ id, phone: params[0], name: params[1], password_hash: params[2], blocked: 0 });
+      return [{ insertId: id, affectedRows: 1 }];
+    }
+
+    if (normalized.startsWith('DELETE FROM users')) {
+      state.users = state.users.filter(user => user.id !== params[0]);
+      return [{ affectedRows: 1 }];
+    }
+
+    if (normalized.startsWith('SELECT id FROM users WHERE blocked = 0')) {
+      return [state.users.filter(user => !user.blocked).map(user => ({ id: user.id }))];
+    }
+
+    if (normalized.startsWith('INSERT INTO notification_batches')) {
+      const id = state.nextBatchId++;
+      state.batches.push({
+        id,
+        title: params[0],
+        body: params[1],
+        type: params[2],
+        target: params[3],
+        recipient_count: params[4],
+        created_by_admin_id: params[5],
+        created_at: new Date(),
+        deleted_at: null
+      });
+      return [{ insertId: id, affectedRows: 1 }];
+    }
+
+    if (normalized.startsWith('INSERT IGNORE INTO notifications')) {
+      const rows = Array.isArray(params[0]) ? params[0] : [params];
+      rows.forEach(row => {
+        state.notifications.push({
+          id: state.nextNotificationId++,
+          user_id: row[0],
+          title: row[1],
+          body: row[2],
+          type: row[3],
+          source_type: row[4],
+          source_id: row[5],
+          event_key: row[6],
+          batch_id: row[7],
+          action_type: row[8],
+          action_payload: row[9],
+          created_by_admin_id: row[10],
+          created_at: new Date(),
+          read_at: null,
+          deleted_at: null
+        });
+      });
+      return [{ affectedRows: rows.length }];
+    }
+
+    if (normalized.startsWith('SELECT COUNT(*) as count FROM notifications')) {
+      const userId = params[0];
+      const count = state.notifications.filter(row => row.user_id === userId && !row.read_at && !row.deleted_at).length;
+      return [[{ count }]];
+    }
+
+    if (normalized.startsWith('SELECT * FROM notifications WHERE user_id = ?')) {
+      const userId = params[0];
+      return [state.notifications.filter(row => row.user_id === userId && !row.deleted_at)];
+    }
+
+    if (normalized.startsWith('SELECT COUNT(*) as total FROM notifications WHERE user_id = ?')) {
+      const userId = params[0];
+      const total = state.notifications.filter(row => row.user_id === userId && !row.deleted_at).length;
+      return [[{ total }]];
+    }
+
+    if (normalized.startsWith('UPDATE notifications SET read_at = CURRENT_TIMESTAMP WHERE id = ?')) {
+      const [id, userId] = params;
+      const notification = state.notifications.find(row => row.id === Number(id) && row.user_id === userId && !row.read_at && !row.deleted_at);
+      if (notification) {
+        notification.read_at = new Date();
+        return [{ affectedRows: 1 }];
+      }
+      return [{ affectedRows: 0 }];
+    }
+
+    if (normalized.startsWith('SELECT id, read_at FROM notifications WHERE id = ?')) {
+      const [id, userId] = params;
+      return [state.notifications.filter(row => row.id === Number(id) && row.user_id === userId && !row.deleted_at)];
+    }
+
+    if (normalized.startsWith('UPDATE notifications SET read_at = CURRENT_TIMESTAMP WHERE user_id = ?')) {
+      const userId = params[0];
+      let affectedRows = 0;
+      state.notifications.forEach(row => {
+        if (row.user_id === userId && !row.read_at && !row.deleted_at) {
+          row.read_at = new Date();
+          affectedRows += 1;
+        }
+      });
+      return [{ affectedRows }];
+    }
+
+    if (normalized.startsWith('UPDATE notifications SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?')) {
+      const [id, userId] = params;
+      const notification = state.notifications.find(row => row.id === Number(id) && row.user_id === userId && !row.deleted_at);
+      if (notification) {
+        notification.deleted_at = new Date();
+        return [{ affectedRows: 1 }];
+      }
+      return [{ affectedRows: 0 }];
+    }
+
+    if (normalized.startsWith('SELECT id FROM notifications WHERE id = ?')) {
+      const [id, userId] = params;
+      return [state.notifications.filter(row => row.id === Number(id) && row.user_id === userId)];
+    }
+
+    if (normalized.startsWith('SELECT * FROM notification_batches WHERE id = ?')) {
+      const id = Number(params[0]);
+      return [state.batches.filter(row => row.id === id && !row.deleted_at)];
+    }
+
+    if (normalized.startsWith('UPDATE notification_batches SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?')) {
+      const batch = state.batches.find(row => row.id === Number(params[0]));
+      if (batch) batch.deleted_at = new Date();
+      return [{ affectedRows: batch ? 1 : 0 }];
+    }
+
+    if (normalized.startsWith('UPDATE notifications SET deleted_at = CURRENT_TIMESTAMP WHERE batch_id = ?')) {
+      const batchId = Number(params[0]);
+      let affectedRows = 0;
+      state.notifications.forEach(row => {
+        if (row.batch_id === batchId && !row.deleted_at) {
+          row.deleted_at = new Date();
+          affectedRows += 1;
+        }
+      });
+      return [{ affectedRows }];
+    }
+
+    return [[]];
+  };
+
+  const pool = {
+    query: jest.fn(runQuery),
+    getConnection: jest.fn(async () => ({
+      query: jest.fn(runQuery),
+      beginTransaction: jest.fn(),
+      commit: jest.fn(),
+      rollback: jest.fn(),
+      release: jest.fn()
+    })),
+    end: jest.fn(),
+    __state: state
+  };
+
+  return { pool };
+});
+
 const app = require('../src/app');
 const { pool } = require('../src/db/mysql');
 const { signCustomerToken, signAdminToken } = require('../src/utils/auth');
