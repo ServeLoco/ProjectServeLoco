@@ -51,6 +51,9 @@ export default function BulkImport() {
   // Result data
   const [result, setResult] = useState(null); // { created, updated, failed, errors }
 
+  // Confirmation gate
+  const [confirmPending, setConfirmPending] = useState(false);
+
   // ── Drag-and-drop ──────────────────────────────────────────────────────────
   const [dragOver, setDragOver] = useState(null); // 'csv' | 'zip' | null
 
@@ -87,9 +90,9 @@ export default function BulkImport() {
     }
   };
 
-  // ── Step 2 → Step 3 : Commit ──────────────────────────────────────────────
+  // ── Step 2 → Step 3 : Commit ──────────────────────────────────────────────────
   const handleCommit = async () => {
-    if (!window.confirm(`Confirm import of ${preview?.summary?.valid || 0} products? This cannot be undone.`)) return;
+    setConfirmPending(false);
     setError(null);
     setLoading(true);
     try {
@@ -129,6 +132,7 @@ export default function BulkImport() {
     setPreview(null);
     setResult(null);
     setError(null);
+    setConfirmPending(false);
     if (csvRef.current) csvRef.current.value = '';
     if (zipRef.current) zipRef.current.value = '';
   };
@@ -296,9 +300,23 @@ export default function BulkImport() {
 
               <div className="bi-preview-actions">
                 <button className="btn-secondary" onClick={resetForm} disabled={loading}>← Back</button>
-                <button className="btn-primary bi-commit-btn" onClick={handleCommit} disabled={loading}>
-                  {loading ? <><span className="bi-spinner" /> Importing…</> : `✅ Confirm & Import ${preview.summary.valid} Products`}
-                </button>
+                {!confirmPending ? (
+                  <button
+                    className="btn-primary bi-commit-btn"
+                    onClick={() => setConfirmPending(true)}
+                    disabled={loading}
+                  >
+                    {`✅ Import ${preview.summary.valid} Products`}
+                  </button>
+                ) : (
+                  <div className="bi-confirm-bar">
+                    <span>⚠️ This will write to the database and cannot be undone. Confirm?</span>
+                    <button className="btn-secondary" onClick={() => setConfirmPending(false)} disabled={loading}>Cancel</button>
+                    <button className="btn-primary" onClick={handleCommit} disabled={loading}>
+                      {loading ? <><span className="bi-spinner" /> Importing…</> : 'Yes, Import Now'}
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}

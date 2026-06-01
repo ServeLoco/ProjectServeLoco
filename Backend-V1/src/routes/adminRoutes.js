@@ -24,20 +24,35 @@ const { auditLog } = require('../middleware/auditMiddleware');
 const { validate, isString, isId, isBoolean, isNumericAmount, isPositiveInteger, isNonNegativeInteger, validatePagination, normalizeField } = require('../validators');
 const asyncHandler = require('../utils/asyncHandler');
 const rateLimit = require('express-rate-limit');
-const config = require('../config/env');
 
 
 const router = express.Router();
 
-// Bulk import multer — in-memory, 50 MB combined limit, no rate limiting (admin-only route)
-const bulkImportMaxMb = parseInt(process.env.MAX_BULK_IMPORT_SIZE_MB || '50');
-const bulkUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: bulkImportMaxMb * 1024 * 1024 },
-}).fields([
-  { name: 'csvFile', maxCount: 1 },
-  { name: 'imagesZip', maxCount: 1 },
-]);
+// Bulk import multer — in-memory, no rate limiting (admin-only route)
+// CSV/XLSX: max 10 MB | ZIP: max 50 MB
+const BULK_CSV_MAX_BYTES = parseInt(process.env.MAX_BULK_CSV_SIZE_MB || '10') * 1024 * 1024;
+const BULK_ZIP_MAX_BYTES = parseInt(process.env.MAX_BULK_IMPORT_SIZE_MB || '50') * 1024 * 1024;
+
+const bulkUpload = (req, res, next) => {
+  multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: BULK_ZIP_MAX_BYTES }, // largest single file allowed
+  }).fields([
+    { name: 'csvFile', maxCount: 1 },
+    { name: 'imagesZip', maxCount: 1 },
+  ])(req, res, (err) => {
+    if (err) return next(err);
+    // Secondary check: CSV/XLSX should not be > 10 MB
+    const csv = req.files?.csvFile?.[0];
+    if (csv && csv.size > BULK_CSV_MAX_BYTES) {
+      return res.status(413).json({
+        code: 'PAYLOAD_TOO_LARGE',
+        message: `Spreadsheet file exceeds the ${process.env.MAX_BULK_CSV_SIZE_MB || 10} MB limit.`,
+      });
+    }
+    next();
+  });
+};
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

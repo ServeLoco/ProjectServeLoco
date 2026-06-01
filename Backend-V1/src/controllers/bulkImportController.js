@@ -17,6 +17,9 @@ const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 const UPLOAD_DIR = path.join(__dirname, '../../', config.UPLOAD_DIR);
 const MAX_IMAGE_BYTES = parseInt(config.MAX_IMAGE_SIZE_MB || '5') * 1024 * 1024;
 
+/** Verify a buffer starts with ZIP magic bytes PK\x03\x04 */
+const isValidZip = (buffer) => buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04;
+
 /** Detect image type from magic bytes */
 const detectImageType = (buffer) => {
   if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) return 'jpg';
@@ -140,16 +143,15 @@ const validateRows = async (rawRows, zipEntryMap, categoryMap) => {
       if (!zipEntryMap[imageFile]) {
         rowErrors.push(`"${imageFile}" not found in the ZIP file`);
       } else {
-        // Validate size
-        const entrySize = zipEntryMap[imageFile].header?.size || zipEntryMap[imageFile].getData().length;
-        if (entrySize > MAX_IMAGE_BYTES) {
+        // Decompress once — cache on the entry object to avoid double decompression
+        if (!zipEntryMap[imageFile]._cachedData) {
+          zipEntryMap[imageFile]._cachedData = zipEntryMap[imageFile].getData();
+        }
+        const buf = zipEntryMap[imageFile]._cachedData;
+        if (buf.length > MAX_IMAGE_BYTES) {
           rowErrors.push(`"${imageFile}" exceeds the ${config.MAX_IMAGE_SIZE_MB || 5} MB size limit`);
-        } else {
-          // Validate magic bytes
-          const buf = zipEntryMap[imageFile].getData();
-          if (!detectImageType(buf)) {
-            rowErrors.push(`"${imageFile}" is not a valid image (JPG, PNG, or WebP required)`);
-          }
+        } else if (!detectImageType(buf)) {
+          rowErrors.push(`"${imageFile}" is not a valid image (JPG, PNG, or WebP required)`);
         }
       }
     }
@@ -182,6 +184,7 @@ const validateRows = async (rawRows, zipEntryMap, categoryMap) => {
     const discountLabel = String(raw.discount_label || '').trim() || null;
     const description = String(raw.description || '').trim() || '';
     const unit = String(raw.unit || '').trim();
+    if (!unit) rowErrors.push('unit is required (e.g. 500ml, 1 Plate, 52g)');
 
     // ── Duplicate name+category check within CSV
     const nameKey = `${name.toLowerCase()}::${categoryId}`;
@@ -235,6 +238,11 @@ const parseAndValidate = async (req) => {
 
   if (!rawRows || rawRows.length === 0) {
     throw { status: 422, message: 'The spreadsheet contains no data rows.' };
+  }
+
+  // Validate ZIP magic bytes before attempting to parse
+  if (!isValidZip(zipFile.buffer)) {
+    throw { status: 422, message: 'imagesZip is not a valid ZIP file.' };
   }
 
   // Parse ZIP → map: filename → AdmZip entry
@@ -350,9 +358,9 @@ const commitBulkImport = async (req, res) => {
     let updated = 0;
 
     for (const row of validatedRows) {
-      // 1. Get image bytes from ZIP
+      // 1. Get image bytes from ZIP — use cached buffer from validation if available
       const imgEntry = zipEntryMap[row.image_file];
-      const imgBuffer = imgEntry.getData();
+      const imgBuffer = imgEntry._cachedData || imgEntry.getData();
       const imgType = detectImageType(imgBuffer);
       const mimetype = MIME_MAP[imgType] || 'image/jpeg';
 
