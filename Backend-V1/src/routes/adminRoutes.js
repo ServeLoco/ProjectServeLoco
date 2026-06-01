@@ -1,10 +1,12 @@
 const express = require('express');
+const multer = require('multer');
 const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getPasswordResetRequests, approvePasswordResetRequest, rejectPasswordResetRequest, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
 const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability } = require('../controllers/comboController');
 const { getNotificationTemplates, updateNotificationTemplate, resetNotificationTemplate } = require('../controllers/notificationTemplateController');
+const { previewBulkImport, commitBulkImport } = require('../controllers/bulkImportController');
 const {
   getAdminSections,
   getAdminSectionById,
@@ -22,9 +24,20 @@ const { auditLog } = require('../middleware/auditMiddleware');
 const { validate, isString, isId, isBoolean, isNumericAmount, isPositiveInteger, isNonNegativeInteger, validatePagination, normalizeField } = require('../validators');
 const asyncHandler = require('../utils/asyncHandler');
 const rateLimit = require('express-rate-limit');
+const config = require('../config/env');
 
 
 const router = express.Router();
+
+// Bulk import multer — in-memory, 50 MB combined limit, no rate limiting (admin-only route)
+const bulkImportMaxMb = parseInt(process.env.MAX_BULK_IMPORT_SIZE_MB || '50');
+const bulkUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: bulkImportMaxMb * 1024 * 1024 },
+}).fields([
+  { name: 'csvFile', maxCount: 1 },
+  { name: 'imagesZip', maxCount: 1 },
+]);
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -309,6 +322,13 @@ router.put('/products/:id', requireAdmin, auditLog, validate(productSchema), asy
 router.delete('/products/:id', requireAdmin, auditLog, asyncHandler(deleteProduct));
 router.patch('/products/:id/availability', requireAdmin, auditLog, validate(productAvailabilitySchema), asyncHandler(updateProductAvailability));
 router.patch('/products/:id/image', requireAdmin, auditLog, validate(productImageSchema), asyncHandler(updateProductImage));
+// Bulk import: ?preview=true for dry-run, no query param for commit
+router.post('/products/bulk-import', requireAdmin, auditLog, bulkUpload, asyncHandler(async (req, res) => {
+  if (req.query.preview === 'true') {
+    return previewBulkImport(req, res);
+  }
+  return commitBulkImport(req, res);
+}));
 
 router.get('/combos', requireAdmin, asyncHandler(getAdminCombos));
 router.get('/combos/:id', requireAdmin, asyncHandler(getAdminComboById));

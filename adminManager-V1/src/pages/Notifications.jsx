@@ -18,6 +18,8 @@ const QUICK_TEMPLATES = [
   { title: '🎊 Thank You!', body: 'Thank you for being our valued customer. Enjoy 10% off your next order!', type: 'success' }
 ];
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function Notifications() {
   const [broadcasts, setBroadcasts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,8 @@ export default function Notifications() {
       setBody('');
       fetchBroadcasts();
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to send broadcast');
+      console.error(err);
+      setErrorMsg(GENERIC_ERROR);
     } finally {
       setIsSending(false);
     }
@@ -87,7 +90,8 @@ export default function Notifications() {
       await NotificationsApi.delete(id);
       fetchBroadcasts();
     } catch (err) {
-      alert(err.message || 'Failed to delete');
+      console.error(err);
+      setErrorMsg(GENERIC_ERROR);
     }
   };
 

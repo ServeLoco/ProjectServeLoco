@@ -25,8 +25,11 @@ const DEFAULT_SETTINGS = {
   // Location-based distance pricing is removed, so latitude/longitude/radius are obsolete.
 };
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function Settings() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [error, setError] = useState(null);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,7 +49,8 @@ export default function Settings() {
         setSettings({ ...DEFAULT_SETTINGS, ...res.data });
       }
     } catch (err) {
-      alert('Failed to fetch settings: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -79,7 +83,8 @@ export default function Settings() {
       }));
       setUploadMessage({ type: 'success', text: 'QR image uploaded. Save settings to apply it.' });
     } catch (err) {
-      setUploadMessage({ type: 'error', text: 'QR image upload failed: ' + err.message });
+      console.error(err);
+      setUploadMessage({ type: 'error', text: GENERIC_ERROR });
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -126,7 +131,8 @@ export default function Settings() {
       }
       alert('Settings saved successfully!');
     } catch (err) {
-      alert('Failed to save settings: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setSaving(false);
     }
@@ -144,6 +150,8 @@ export default function Settings() {
           {saving ? 'Saving...' : 'Save All Changes'}
         </button>
       </header>
+
+      {error && <div className="error-container" style={{ marginBottom: '1rem' }}>{error}</div>}
 
       {settings.delivery_available === false && (
         <div style={{ backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)', padding: '1rem', borderRadius: '4px', marginBottom: '1rem', border: '1px solid var(--warning-border)' }}>

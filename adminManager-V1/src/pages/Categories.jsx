@@ -5,6 +5,8 @@ import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import './Categories.css';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function Categories() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -24,7 +26,8 @@ export default function Categories() {
       const res = await CategoriesApi.list();
       setCategories(readList(res, ['categories']));
     } catch (err) {
-      setError(err.message || 'Failed to fetch categories');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -59,7 +62,8 @@ export default function Categories() {
       });
       fetchCategories();
     } catch (err) {
-      alert('Failed to update status: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     }
   };
 
@@ -194,7 +198,8 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
       }));
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the category to apply it.' });
     } catch (err) {
-      setUploadMessage({ type: 'error', text: 'Image upload failed: ' + err.message });
+      console.error(err);
+      setUploadMessage({ type: 'error', text: GENERIC_ERROR });
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -221,7 +226,8 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
       }
       onSave();
     } catch (err) {
-      setFormError('Failed to save category: ' + (err.response?.data?.message || err.message));
+      console.error(err);
+      setFormError(GENERIC_ERROR);
       setSaving(false);
     }
   };
@@ -234,7 +240,8 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
       await CategoriesApi.delete(category.id);
       onSave();
     } catch (err) {
-      setFormError('Delete failed (likely products exist): ' + (err.response?.data?.message || err.message));
+      console.error(err);
+      setFormError(GENERIC_ERROR);
       setSaving(false);
     }
   };

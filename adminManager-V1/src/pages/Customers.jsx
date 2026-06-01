@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { CustomersApi } from '../api';
 import './Customers.css';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
@@ -41,7 +43,8 @@ export default function Customers() {
         setPagination(res.pagination);
       }
     } catch (err) {
-      setError(err.message || 'Failed to fetch customers');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -68,7 +71,8 @@ export default function Customers() {
       setSelectedCustomer(res.data);
       setDrawerOpen(true);
     } catch (err) {
-      alert('Failed to load customer details: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setUpdating(false);
     }
@@ -97,7 +101,8 @@ export default function Customers() {
       setSelectedCustomer(prev => ({ ...prev, trusted: newStatus }));
       fetchCustomers(pagination.page);
     } catch (err) {
-      alert('Failed to update trust status: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setUpdating(false);
     }
@@ -112,7 +117,8 @@ export default function Customers() {
       setSelectedCustomer(prev => ({ ...prev, blocked: newStatus }));
       fetchCustomers(pagination.page);
     } catch (err) {
-      alert('Failed to update block status: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setUpdating(false);
     }
@@ -138,7 +144,8 @@ export default function Customers() {
       fetchPasswordResetRequests();
       alert(`Password reset request ${isApprove ? 'approved' : 'rejected'} successfully.`);
     } catch (err) {
-      alert('Failed to review password reset request: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setUpdating(false);
     }

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ReportsApi } from '../api';
 import './Reports.css';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function Reports() {
   const [period, setPeriod] = useState('today'); // today, week, month, all
   const [salesData, setSalesData] = useState(null);
@@ -52,7 +54,8 @@ export default function Reports() {
         total_users: rawCustomers.total_users ?? rawCustomers.total_customers ?? 0,
       });
     } catch (err) {
-      setError('Failed to load some report data: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }

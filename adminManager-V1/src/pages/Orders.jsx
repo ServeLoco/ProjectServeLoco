@@ -54,6 +54,8 @@ const formatDateTime = (value) => {
 };
 const statusClassName = (status) => String(status || 'unknown').toLowerCase().replace(/\s+/g, '-');
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
@@ -97,7 +99,8 @@ export default function Orders() {
         setPagination(res.pagination);
       }
     } catch (err) {
-      setError(err.message || 'Failed to fetch orders');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -221,7 +224,8 @@ export default function Orders() {
       const res = await OrdersApi.get(id);
       setSelectedOrder(res.data);
     } catch (err) {
-      alert('Failed to fetch order details: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setUpdating(false);
     }
@@ -239,7 +243,8 @@ export default function Orders() {
       setSelectedOrder(prev => ({ ...prev, status: newStatus }));
       fetchOrders(pagination.page); // Refresh list
     } catch (err) {
-      alert('Failed to update status: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
       fetchSelectedOrder(selectedOrder.id);
     } finally {
       setUpdating(false);
@@ -256,7 +261,8 @@ export default function Orders() {
       setSelectedOrder(prev => ({ ...prev, payment_status: newPayment }));
       fetchOrders(pagination.page); // Refresh list
     } catch (err) {
-      alert('Failed to update payment: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
       fetchSelectedOrder(selectedOrder.id);
     } finally {
       setUpdating(false);
@@ -320,7 +326,8 @@ export default function Orders() {
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      alert('Failed to export orders: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }

@@ -16,8 +16,10 @@
     "seed": "node src/db/seed_demo.js"
   },
   "dependencies": {
+    "adm-zip": "^0.5.17",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
+    "csv-parse": "^6.2.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^8.5.2",
@@ -28,7 +30,8 @@
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
     "mysql2": "^3.22.3",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "eslint": "^8.57.0",

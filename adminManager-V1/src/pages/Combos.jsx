@@ -5,6 +5,8 @@ import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import './Products.css';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function Combos() {
   // Combos are bundles and do not require category.
   const [products, setProducts] = useState([]);
@@ -61,7 +63,8 @@ export default function Combos() {
       }
       setSelectedIds([]); // clear selection on page change
     } catch (err) {
-      setError(err.message || 'Failed to fetch products');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -89,7 +92,8 @@ export default function Combos() {
       await CombosApi.updateAvailability(product.id, newStatus);
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, available: newStatus } : p));
     } catch (err) {
-      alert('Failed to update availability: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     }
   };
 
@@ -101,7 +105,8 @@ export default function Combos() {
       await Promise.all(selectedIds.map(id => CombosApi.updateAvailability(id, available)));
       fetchProducts(pagination.page);
     } catch (err) {
-      alert('Error updating some products: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setBulkUpdating(false);
     }
@@ -114,7 +119,8 @@ export default function Combos() {
       await Promise.all(selectedIds.map(id => CombosApi.delete(id)));
       fetchProducts(1);
     } catch (err) {
-      alert('Error deleting some products: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setBulkUpdating(false);
     }
@@ -321,6 +327,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
   );
   
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
@@ -352,7 +359,8 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
       }));
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the combo to apply it.' });
     } catch (err) {
-      setUploadMessage({ type: 'error', text: 'Image upload failed: ' + err.message });
+      console.error(err);
+      setUploadMessage({ type: 'error', text: GENERIC_ERROR });
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -454,7 +462,8 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
       }
       onSave();
     } catch (err) {
-      alert('Failed to save combo: ' + err.message);
+      console.error(err);
+      setFormError(GENERIC_ERROR);
       setSaving(false);
     }
   };
@@ -466,7 +475,8 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
       await CombosApi.delete(product.id);
       onSave();
     } catch (err) {
-      alert('Delete failed: ' + err.message);
+      console.error(err);
+      setFormError(GENERIC_ERROR);
       setSaving(false);
     }
   };
@@ -619,6 +629,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
           </div>
 
           <div className="drawer-footer">
+            {formError && <p className="upload-message error" style={{ margin: '0 auto 0 0', maxWidth: '60%' }}>{formError}</p>}
             {isEdit && (
               <button type="button" className="action-link danger" onClick={handleDelete} disabled={saving} style={{ marginRight: 'auto' }}>
                 Delete Combo

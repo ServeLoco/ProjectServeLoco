@@ -13,6 +13,8 @@ const DEFAULT_MAX_VISIBLE_BY_SECTION = {
   combo_block: 6
 };
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function MobileDashboard() {
   const [sections, setSections] = useState([]);
   const [selectedSection, setSelectedSection] = useState(null);
@@ -71,7 +73,8 @@ export default function MobileDashboard() {
       const res = await MobileDashboardApi.listSections({ store_type: storeType });
       setSections(res.data || []);
     } catch (err) {
-      setError(err.message || 'Failed to fetch dashboard sections');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoadingSections(false);
     }
@@ -101,7 +104,8 @@ export default function MobileDashboard() {
         version: section.version
       });
     } catch (err) {
-      setError(err.message || 'Failed to load section details');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoadingDetail(false);
     }
@@ -212,7 +216,8 @@ export default function MobileDashboard() {
 
       await fetchSections();
     } catch (err) {
-      setError(err.message || 'Failed to create section');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setSavingSection(false);
     }
@@ -250,7 +255,8 @@ export default function MobileDashboard() {
       await fetchSectionDetail(selectedSection.id);
       await fetchSections();
     } catch (err) {
-      setError(err.message || 'Failed to update section');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setSavingSection(false);
     }
@@ -267,7 +273,8 @@ export default function MobileDashboard() {
       setEditForm(null);
       await fetchSections();
     } catch (err) {
-      setError(err.message || 'Failed to delete section');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setSavingSection(false);
     }
@@ -291,7 +298,8 @@ export default function MobileDashboard() {
       await MobileDashboardApi.reorderSections(sectionIds, { store_type: storeType });
       setSections(newSections);
     } catch (err) {
-      alert('Failed to reorder: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
       fetchSections();
     }
   };
@@ -327,7 +335,8 @@ export default function MobileDashboard() {
       // Reload section items
       await fetchSectionDetail(selectedSection.id);
     } catch (err) {
-      alert('Failed to add item: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setSavingItem(false);
     }
@@ -342,7 +351,8 @@ export default function MobileDashboard() {
       await MobileDashboardApi.deleteSectionItem(selectedSection.id, sectionItemId);
       await fetchSectionDetail(selectedSection.id);
     } catch (err) {
-      alert('Failed to remove item: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setSavingItem(false);
     }
@@ -370,7 +380,8 @@ export default function MobileDashboard() {
         items: newItems
       }));
     } catch (err) {
-      alert('Failed to reorder items: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
       fetchSectionDetail(selectedSection.id);
     }
   };

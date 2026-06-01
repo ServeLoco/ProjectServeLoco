@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ProductsApi, CategoriesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import './Products.css';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function Products() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
@@ -64,7 +68,8 @@ export default function Products() {
       }
       setSelectedIds([]); // clear selection on page change
     } catch (err) {
-      setError(err.message || 'Failed to fetch products');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -92,7 +97,8 @@ export default function Products() {
       await ProductsApi.updateAvailability(product.id, newStatus);
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, available: newStatus } : p));
     } catch (err) {
-      alert('Failed to update availability: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     }
   };
 
@@ -104,7 +110,8 @@ export default function Products() {
       await Promise.all(selectedIds.map(id => ProductsApi.updateAvailability(id, available)));
       fetchProducts(pagination.page);
     } catch (err) {
-      alert('Error updating some products: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setBulkUpdating(false);
     }
@@ -117,7 +124,8 @@ export default function Products() {
       await Promise.all(selectedIds.map(id => ProductsApi.delete(id)));
       fetchProducts(1);
     } catch (err) {
-      alert('Error deleting some products: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setBulkUpdating(false);
     }
@@ -142,9 +150,10 @@ export default function Products() {
     <div className="products-container">
       <header className="products-header">
         <h1 className="products-title">Products Management</h1>
-        <button className="btn-primary" onClick={openCreateDrawer}>
-          + New Product
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button className="btn-secondary" onClick={() => navigate('/bulk-import')}>📦 Bulk Import</button>
+          <button className="btn-primary" onClick={openCreateDrawer}>+ New Product</button>
+        </div>
       </header>
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
@@ -320,6 +329,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
   });
   
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
@@ -363,7 +373,8 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       }));
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the product to apply it.' });
     } catch (err) {
-      setUploadMessage({ type: 'error', text: 'Image upload failed: ' + err.message });
+      console.error(err);
+      setUploadMessage({ type: 'error', text: GENERIC_ERROR });
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -434,7 +445,8 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       }
       onSave();
     } catch (err) {
-      alert('Failed to save product: ' + err.message);
+      console.error(err);
+      setFormError(GENERIC_ERROR);
       setSaving(false);
     }
   };
@@ -446,7 +458,8 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       await ProductsApi.delete(product.id);
       onSave();
     } catch (err) {
-      alert('Delete failed: ' + err.message);
+      console.error(err);
+      setFormError(GENERIC_ERROR);
       setSaving(false);
     }
   };
@@ -461,6 +474,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
           </div>
           
           <div className="drawer-body">
+            {formError && <div className="error-container" style={{ marginBottom: '1rem' }}>{formError}</div>}
             <div className="form-group">
               <label className="form-label">Product Name</label>
               <input required type="text" name="name" className="form-input" value={formData.name} onChange={handleChange} />

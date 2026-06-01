@@ -18,6 +18,9 @@ const ORDER_STATUS_LABELS = {
 };
 const getOrderStatusLabel = (status) => ORDER_STATUS_LABELS[status] || status || 'Unknown';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
+
 export default function Dashboard() {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +35,8 @@ export default function Dashboard() {
       const res = await DashboardApi.getMetrics();
       setMetrics(res.data);
     } catch (err) {
-      setError(err.message || 'Failed to load dashboard metrics');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -80,7 +84,8 @@ export default function Dashboard() {
       await SettingsApi.update({ shop_open: newStatus });
       setMetrics((prev) => ({ ...prev, shop_open: newStatus }));
     } catch (err) {
-      alert('Failed to update shop status: ' + (err.message || 'Unknown error'));
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setTogglingShop(false);
     }

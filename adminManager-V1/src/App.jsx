@@ -20,6 +20,7 @@ import Images from './pages/Images';
 import Reports from './pages/Reports';
 import Health from './pages/Health';
 import AuditLogs from './pages/AuditLogs';
+import BulkImport from './pages/BulkImport';
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/health" element={<Health />} />
                 <Route path="/audit" element={<AuditLogs />} />
+                <Route path="/bulk-import" element={<BulkImport />} />
               </Route>
             </Route>
           </Routes>

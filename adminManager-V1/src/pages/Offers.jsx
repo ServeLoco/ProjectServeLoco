@@ -6,6 +6,8 @@ import OfferProductsPanel from '../components/OfferProductsPanel';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import './Offers.css';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function Offers() {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,7 +27,8 @@ export default function Offers() {
       const res = await OffersApi.list({ store_type: storeType });
       setOffers(readList(res, ['offers']));
     } catch (err) {
-      setError(err.message || 'Failed to fetch offers');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -51,7 +54,8 @@ export default function Offers() {
       await OffersApi.update(offer.id, { active: !offer.active });
       fetchOffers();
     } catch (err) {
-      alert('Failed to update status: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     }
   };
 
@@ -173,7 +177,8 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
       }));
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the offer to apply it.' });
     } catch (err) {
-      setUploadMessage({ type: 'error', text: 'Image upload failed: ' + err.message });
+      console.error(err);
+      setUploadMessage({ type: 'error', text: GENERIC_ERROR });
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -197,7 +202,8 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
       }
       onSave();
     } catch (err) {
-      setFormError('Failed to save offer: ' + (err.response?.data?.message || err.message));
+      console.error(err);
+      setFormError(GENERIC_ERROR);
       setSaving(false);
     }
   };
@@ -210,7 +216,8 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
       await OffersApi.delete(offer.id);
       onSave();
     } catch (err) {
-      setFormError('Delete failed: ' + (err.response?.data?.message || err.message));
+      console.error(err);
+      setFormError(GENERIC_ERROR);
       setSaving(false);
     }
   };

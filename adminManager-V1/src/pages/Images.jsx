@@ -4,6 +4,9 @@ import { normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import './Images.css';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
+
 export default function Images() {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,7 +25,8 @@ export default function Images() {
       const res = await ImagesApi.list();
       setImages(res.data || []);
     } catch (err) {
-      setError(err.message || 'Failed to fetch images');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -42,7 +46,8 @@ export default function Images() {
       setUploadMessage({ type: 'success', text: 'Image uploaded successfully.' });
       fetchImages();
     } catch (err) {
-      setUploadMessage({ type: 'error', text: 'Upload failed: ' + err.message });
+      console.error(err);
+      setUploadMessage({ type: 'error', text: GENERIC_ERROR });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -55,13 +60,13 @@ export default function Images() {
       await ImagesApi.delete(id);
       fetchImages();
     } catch (err) {
-      alert('Failed to delete image (it may be in use): ' + (err.response?.data?.message || err.message));
+      console.error(err);
+      setError(GENERIC_ERROR);
     }
   };
 
   const handleCopyUrl = (url) => {
     navigator.clipboard.writeText(normalizeImageUrl(url));
-    alert('Image URL copied to clipboard!');
   };
 
   const formatSize = (bytes) => {
