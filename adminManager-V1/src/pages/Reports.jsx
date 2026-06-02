@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { ReportsApi } from '../api';
 import './Reports.css';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+const escapeCsvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+
 export default function Reports() {
   const [period, setPeriod] = useState('today'); // today, week, month, all
   const [salesData, setSalesData] = useState(null);
@@ -52,7 +55,8 @@ export default function Reports() {
         total_users: rawCustomers.total_users ?? rawCustomers.total_customers ?? 0,
       });
     } catch (err) {
-      setError('Failed to load some report data: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -71,8 +75,8 @@ export default function Reports() {
     ];
 
     const csvContent = "data:text/csv;charset=utf-8," 
-      + headers.join(",") + "\n"
-      + rows.map(e => e.join(",")).join("\n");
+      + headers.map(escapeCsvCell).join(",") + "\n"
+      + rows.map(e => e.map(escapeCsvCell).join(",")).join("\n");
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");

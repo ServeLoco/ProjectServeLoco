@@ -88,10 +88,12 @@ const createOrder = async (req, res) => {
     });
     let deliveryCharge = roundMoney(thresholdDelivery.charge);
 
-    // Fast delivery replaces only the standard delivery_charge (not night charge or below-threshold charge)
+    // Fast delivery fully REPLACES the standard delivery charge whenever the user picks it
+    // and the admin has enabled fast delivery. Below-threshold and free-delivery-offer state
+    // do NOT block fast delivery — they only affect what the standard charge would have been.
+    // Night charge stays independent and is added separately below.
     const fastEnabled = Boolean(settings.fast_delivery_enabled);
-    const isFastDelivery = delivery_type === 'fast' && fastEnabled &&
-      !thresholdDelivery.freeDeliveryOfferActive && !thresholdDelivery.belowThreshold;
+    const isFastDelivery = delivery_type === 'fast' && fastEnabled;
     if (isFastDelivery) {
       deliveryCharge = roundMoney(toMoney(settings.fast_delivery_charge || 0));
     }

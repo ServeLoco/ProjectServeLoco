@@ -3,7 +3,10 @@ import { ProductsApi, CombosApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
+import { getImageUploadError } from '../utils/fileValidation';
 import './Products.css';
+
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 
 export default function Combos() {
   // Combos are bundles and do not require category.
@@ -61,7 +64,8 @@ export default function Combos() {
       }
       setSelectedIds([]); // clear selection on page change
     } catch (err) {
-      setError(err.message || 'Failed to fetch products');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -89,32 +93,49 @@ export default function Combos() {
       await CombosApi.updateAvailability(product.id, newStatus);
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, available: newStatus } : p));
     } catch (err) {
-      alert('Failed to update availability: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     }
   };
 
-  // Bulk Actions
+  // Bulk Actions — use allSettled so partial failures don't hide successful ops.
+  const runBulk = async (ids, action) => {
+    const results = await Promise.allSettled(ids.map(id => action(id).then(() => id)));
+    const failed = results
+      .map((r, i) => (r.status === 'rejected' ? { id: ids[i], reason: r.reason?.message || 'failed' } : null))
+      .filter(Boolean);
+    return failed;
+  };
+
   const handleBulkAvailability = async (available) => {
-    if (!window.confirm(`Mark ${selectedIds.length} products as ${available ? 'In Stock' : 'Out of Stock'}?`)) return;
+    if (!window.confirm(`Mark ${selectedIds.length} combos as ${available ? 'In Stock' : 'Out of Stock'}?`)) return;
     setBulkUpdating(true);
     try {
-      await Promise.all(selectedIds.map(id => CombosApi.updateAvailability(id, available)));
+      const failed = await runBulk(selectedIds, id => CombosApi.updateAvailability(id, available));
+      if (failed.length) {
+        setError(`Updated ${selectedIds.length - failed.length} of ${selectedIds.length}. Failed ids: ${failed.map(f => f.id).join(', ')}.`);
+      }
       fetchProducts(pagination.page);
     } catch (err) {
-      alert('Error updating some products: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setBulkUpdating(false);
     }
   };
 
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} products?`)) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} combos?`)) return;
     setBulkUpdating(true);
     try {
-      await Promise.all(selectedIds.map(id => CombosApi.delete(id)));
+      const failed = await runBulk(selectedIds, id => CombosApi.delete(id));
+      if (failed.length) {
+        setError(`Deleted ${selectedIds.length - failed.length} of ${selectedIds.length}. Failed ids: ${failed.map(f => f.id).join(', ')}.`);
+      }
       fetchProducts(1);
     } catch (err) {
-      alert('Error deleting some products: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setBulkUpdating(false);
     }
@@ -321,6 +342,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
   );
   
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
@@ -337,6 +359,13 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
     const file = e.target.files[0];
     if (!file) return;
 
+    const sizeError = getImageUploadError(file);
+    if (sizeError) {
+      setUploadMessage({ type: 'error', text: sizeError });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     const data = new FormData();
     data.append('image', file);
 
@@ -352,7 +381,8 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
       }));
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the combo to apply it.' });
     } catch (err) {
-      setUploadMessage({ type: 'error', text: 'Image upload failed: ' + err.message });
+      console.error(err);
+      setUploadMessage({ type: 'error', text: GENERIC_ERROR });
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -454,7 +484,8 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
       }
       onSave();
     } catch (err) {
-      alert('Failed to save combo: ' + err.message);
+      console.error(err);
+      setFormError(GENERIC_ERROR);
       setSaving(false);
     }
   };
@@ -466,7 +497,8 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
       await CombosApi.delete(product.id);
       onSave();
     } catch (err) {
-      alert('Delete failed: ' + err.message);
+      console.error(err);
+      setFormError(GENERIC_ERROR);
       setSaving(false);
     }
   };
@@ -619,6 +651,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
           </div>
 
           <div className="drawer-footer">
+            {formError && <p className="upload-message error" style={{ margin: '0 auto 0 0', maxWidth: '60%' }}>{formError}</p>}
             {isEdit && (
               <button type="button" className="action-link danger" onClick={handleDelete} disabled={saving} style={{ marginRight: 'auto' }}>
                 Delete Combo

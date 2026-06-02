@@ -1,10 +1,12 @@
 const express = require('express');
+const multer = require('multer');
 const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getPasswordResetRequests, approvePasswordResetRequest, rejectPasswordResetRequest, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
 const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability } = require('../controllers/comboController');
 const { getNotificationTemplates, updateNotificationTemplate, resetNotificationTemplate } = require('../controllers/notificationTemplateController');
+const { previewBulkImport, commitBulkImport } = require('../controllers/bulkImportController');
 const {
   getAdminSections,
   getAdminSectionById,
@@ -25,6 +27,32 @@ const rateLimit = require('express-rate-limit');
 
 
 const router = express.Router();
+
+// Bulk import multer — in-memory, no rate limiting (admin-only route)
+// CSV/XLSX: max 10 MB | ZIP: max 50 MB
+const BULK_CSV_MAX_BYTES = parseInt(process.env.MAX_BULK_CSV_SIZE_MB || '10') * 1024 * 1024;
+const BULK_ZIP_MAX_BYTES = parseInt(process.env.MAX_BULK_IMPORT_SIZE_MB || '50') * 1024 * 1024;
+
+const bulkUpload = (req, res, next) => {
+  multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: BULK_ZIP_MAX_BYTES }, // largest single file allowed
+  }).fields([
+    { name: 'csvFile', maxCount: 1 },
+    { name: 'imagesZip', maxCount: 1 },
+  ])(req, res, (err) => {
+    if (err) return next(err);
+    // Secondary check: CSV/XLSX should not be > 10 MB
+    const csv = req.files?.csvFile?.[0];
+    if (csv && csv.size > BULK_CSV_MAX_BYTES) {
+      return res.status(413).json({
+        code: 'PAYLOAD_TOO_LARGE',
+        message: `Spreadsheet file exceeds the ${process.env.MAX_BULK_CSV_SIZE_MB || 10} MB limit.`,
+      });
+    }
+    next();
+  });
+};
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -309,6 +337,13 @@ router.put('/products/:id', requireAdmin, auditLog, validate(productSchema), asy
 router.delete('/products/:id', requireAdmin, auditLog, asyncHandler(deleteProduct));
 router.patch('/products/:id/availability', requireAdmin, auditLog, validate(productAvailabilitySchema), asyncHandler(updateProductAvailability));
 router.patch('/products/:id/image', requireAdmin, auditLog, validate(productImageSchema), asyncHandler(updateProductImage));
+// Bulk import: ?preview=true for dry-run, no query param for commit
+router.post('/products/bulk-import', requireAdmin, auditLog, bulkUpload, asyncHandler(async (req, res) => {
+  if (req.query.preview === 'true') {
+    return previewBulkImport(req, res);
+  }
+  return commitBulkImport(req, res);
+}));
 
 router.get('/combos', requireAdmin, asyncHandler(getAdminCombos));
 router.get('/combos/:id', requireAdmin, asyncHandler(getAdminComboById));

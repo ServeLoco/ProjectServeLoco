@@ -11,6 +11,8 @@ let activeToken = null;
 let hasConnected = false;
 let storageListenerBound = false;
 let visibilityListenerBound = false;
+let storageHandler = null;
+let visibilityHandler = null;
 
 const listeners = new Map();
 
@@ -104,7 +106,7 @@ function bindSocketEvents(nextSocket) {
 
 function bindBrowserLifecycle() {
   if (!storageListenerBound) {
-    window.addEventListener('storage', event => {
+    storageHandler = event => {
       if (event.key !== TOKEN_KEY) return;
 
       if (!event.newValue) {
@@ -113,18 +115,20 @@ function bindBrowserLifecycle() {
       }
 
       connectAdminRealtime();
-    });
+    };
+    window.addEventListener('storage', storageHandler);
     storageListenerBound = true;
   }
 
   if (!visibilityListenerBound) {
-    document.addEventListener('visibilitychange', () => {
+    visibilityHandler = () => {
       if (document.visibilityState === 'visible') {
         emitLocal('lifecycle.visible', {
           connected: Boolean(socket?.connected),
         });
       }
-    });
+    };
+    document.addEventListener('visibilitychange', visibilityHandler);
     visibilityListenerBound = true;
   }
 }
@@ -133,14 +137,14 @@ function connectAdminRealtime() {
   const token = storage.getToken();
   if (!token) return null;
 
-  bindBrowserLifecycle();
-
   if (socket && activeToken === token) {
+    bindBrowserLifecycle();
     if (!socket.connected) socket.connect();
     return socket;
   }
 
   disconnectAdminRealtime();
+  bindBrowserLifecycle();
 
   activeToken = token;
   hasConnected = false;
@@ -163,6 +167,18 @@ function disconnectAdminRealtime() {
   socket = null;
   activeToken = null;
   hasConnected = false;
+
+  if (storageListenerBound && storageHandler) {
+    window.removeEventListener('storage', storageHandler);
+    storageHandler = null;
+    storageListenerBound = false;
+  }
+
+  if (visibilityListenerBound && visibilityHandler) {
+    document.removeEventListener('visibilitychange', visibilityHandler);
+    visibilityHandler = null;
+    visibilityListenerBound = false;
+  }
 }
 
 function getRealtimeConnectionState() {

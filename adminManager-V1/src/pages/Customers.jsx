@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { CustomersApi } from '../api';
 import './Customers.css';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
@@ -41,7 +43,8 @@ export default function Customers() {
         setPagination(res.pagination);
       }
     } catch (err) {
-      setError(err.message || 'Failed to fetch customers');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -68,7 +71,8 @@ export default function Customers() {
       setSelectedCustomer(res.data);
       setDrawerOpen(true);
     } catch (err) {
-      alert('Failed to load customer details: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setUpdating(false);
     }
@@ -90,14 +94,18 @@ export default function Customers() {
   };
 
   const handleToggleTrust = async () => {
+    const newStatus = !selectedCustomer.trusted;
+    const action = newStatus ? 'mark this customer as trusted' : 'revoke trusted status for this customer';
+    if (!window.confirm(`Are you sure you want to ${action}?`)) return;
+
     try {
       setUpdating(true);
-      const newStatus = !selectedCustomer.trusted;
       await CustomersApi.updateTrust(selectedCustomer.id, newStatus);
       setSelectedCustomer(prev => ({ ...prev, trusted: newStatus }));
       fetchCustomers(pagination.page);
     } catch (err) {
-      alert('Failed to update trust status: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setUpdating(false);
     }
@@ -105,14 +113,18 @@ export default function Customers() {
 
   const handleToggleBlock = async () => {
     const newStatus = !selectedCustomer.blocked;
-    if (newStatus && !window.confirm('Are you sure you want to block this customer? They will not be able to place orders.')) return;
+    const action = newStatus
+      ? 'block this customer? They will not be able to place orders.'
+      : 'unblock this customer? They will be able to place orders again.';
+    if (!window.confirm(`Are you sure you want to ${action}`)) return;
     try {
       setUpdating(true);
       await CustomersApi.updateBlock(selectedCustomer.id, newStatus);
       setSelectedCustomer(prev => ({ ...prev, blocked: newStatus }));
       fetchCustomers(pagination.page);
     } catch (err) {
-      alert('Failed to update block status: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setUpdating(false);
     }
@@ -138,7 +150,8 @@ export default function Customers() {
       fetchPasswordResetRequests();
       alert(`Password reset request ${isApprove ? 'approved' : 'rejected'} successfully.`);
     } catch (err) {
-      alert('Failed to review password reset request: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setUpdating(false);
     }

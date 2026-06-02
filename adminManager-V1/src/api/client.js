@@ -44,7 +44,14 @@ export const apiClient = async (endpoint, options = {}) => {
     
     if (response.status === 401) {
       storage.clearToken();
-      window.location.href = '/login';
+      // Emit an event so the app (App.jsx) can navigate via React Router and
+      // preserve form/state, instead of doing a hard reload that wipes the page.
+      try {
+        window.dispatchEvent(new CustomEvent('admin:unauthorized'));
+      } catch (_) {
+        // Last-resort fallback if CustomEvent isn't available.
+        window.location.href = '/login';
+      }
       return Promise.reject(new Error('Unauthorized'));
     }
 

@@ -86,6 +86,10 @@ export default function CheckoutScreen() {
   const arrowAnim = useRef(new Animated.Value(0)).current;
   const gpsPulse = useRef(new Animated.Value(1)).current;
 
+  // Synchronous double-submit guard. React state is async, so isSubmitting alone
+  // does not protect against a fast double-tap on Place Order.
+  const isSubmittingRef = useRef(false);
+
   useEffect(() => {
     // Staggered entrance
     Animated.stagger(100, [
@@ -94,6 +98,13 @@ export default function CheckoutScreen() {
       Animated.timing(summarySlide, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
   }, [deliverySlide, paymentSlide, summarySlide]);
+
+  // If the admin disables fast delivery entirely, fall back to standard.
+  useEffect(() => {
+    if (deliveryType === 'fast' && bill && bill.fastDeliveryEnabled === false) {
+      setDeliveryType('standard');
+    }
+  }, [bill, deliveryType]);
 
   // Fetching settings on mount was removed to save network requests (Task 3.5)
 
@@ -170,37 +181,37 @@ export default function CheckoutScreen() {
   useEffect(() => {
     let isActive = true;
 
-    const calculateCheckoutBill = async () => {
-      if (checkoutItems.length === 0) {
-        setBill(null);
-        setCalcError(null);
-        return;
-      }
+    if (checkoutItems.length === 0) {
+      setBill(null);
+      setCalcError(null);
+      return undefined;
+    }
 
+    // Debounce so rapid toggles (delivery type, coordinates updates) don't fire
+    // a burst of parallel cart/calculate requests.
+    const debounceMs = 250;
+    const timer = setTimeout(() => {
       setIsCalculating(true);
       setCalcError(null);
 
-      try {
-        const calculatedBill = normalizeCartCalculation(await cartApi.calculate(calculationPayload));
-        if (isActive) {
-          setBill(calculatedBill);
-        }
-      } catch (error) {
-        if (isActive) {
+      cartApi.calculate(calculationPayload)
+        .then(response => {
+          if (!isActive) return;
+          setBill(normalizeCartCalculation(response));
+        })
+        .catch(error => {
+          if (!isActive) return;
           setBill(null);
-          setCalcError(error.message || 'Unable to calculate checkout total.');
-        }
-      } finally {
-        if (isActive) {
-          setIsCalculating(false);
-        }
-      }
-    };
-
-    calculateCheckoutBill();
+          setCalcError(error?.message || 'Unable to calculate checkout total.');
+        })
+        .finally(() => {
+          if (isActive) setIsCalculating(false);
+        });
+    }, debounceMs);
 
     return () => {
       isActive = false;
+      clearTimeout(timer);
     };
   }, [calculationPayload, checkoutItems.length]);
 
@@ -255,6 +266,8 @@ export default function CheckoutScreen() {
   };
 
   const handlePlaceOrder = async () => {
+    // Synchronous re-entry guard.
+    if (isSubmittingRef.current) return;
     if (!address.trim()) {
       setSubmitError('Please enter a delivery address');
       return;
@@ -271,6 +284,7 @@ export default function CheckoutScreen() {
     // Removed requiresLocation check - location is optional
     // Removed deliveryWithinRange check - will be validated by backend
 
+    isSubmittingRef.current = true;
     setSubmitError(null);
     setIsSubmitting(true);
 
@@ -308,7 +322,8 @@ export default function CheckoutScreen() {
         },
       };
 
-      clearCart();
+      // Navigate first so we never end up with an empty cart on the Checkout screen
+      // if navigation throws synchronously. Cart is cleared right after.
       navigation.dispatch(
         CommonActions.reset({
           index: 1,
@@ -318,9 +333,11 @@ export default function CheckoutScreen() {
           ],
         })
       );
+      clearCart();
     } catch (error) {
       setSubmitError(error.message || 'Unable to place order. Please try again.');
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
       Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
     }
@@ -433,7 +450,8 @@ export default function CheckoutScreen() {
           </View>
         </Animated.View>
 
-        {/* Delivery Type Selector — only show when fast delivery is enabled by admin */}
+        {/* Delivery Type Selector — shown whenever the admin has enabled fast delivery.
+            Fast delivery fully replaces the standard charge, regardless of threshold/free-offer. */}
         {bill?.fastDeliveryEnabled && (
           <Animated.View style={[styles.section, { transform: [{ translateY: paymentSlide }] }]}>
             <Text style={styles.sectionTitle}>Delivery Speed</Text>
@@ -447,19 +465,17 @@ export default function CheckoutScreen() {
                 accessibilityLabel="Standard delivery"
                 accessibilityState={{ selected: deliveryType === 'standard' }}
               >
-                <View style={styles.deliveryTypeIconRow}>
-                  <Text style={styles.deliveryTypeEmoji}>🕐</Text>
-                  {deliveryType === 'standard' && (
-                    <View style={styles.deliveryTypeCheck}><Text style={styles.deliveryTypeCheckText}>✓</Text></View>
-                  )}
+                <Text style={styles.deliveryTypeEmoji}>🕐</Text>
+                <View style={styles.deliveryTypeInfo}>
+                  <Text numberOfLines={1} style={[styles.deliveryTypeTitle, deliveryType === 'standard' && styles.deliveryTypeTitleActive]}>Standard Delivery</Text>
+                  <Text numberOfLines={1} style={styles.deliveryTypeTime}>Arrives in about 1 hour</Text>
                 </View>
-                <Text style={[styles.deliveryTypeTitle, deliveryType === 'standard' && styles.deliveryTypeTitleActive]}>
-                  Standard
+                <Text numberOfLines={1} style={[styles.deliveryTypePrice, deliveryType === 'standard' && styles.deliveryTypePriceActive]}>
+                  {bill.standardDeliveryCharge === 0 ? 'FREE' : `₹${bill.standardDeliveryCharge}`}
                 </Text>
-                <Text style={styles.deliveryTypeTime}>~1 hour</Text>
-                <Text style={[styles.deliveryTypePrice, deliveryType === 'standard' && styles.deliveryTypePriceActive]}>
-                  {bill.deliveryCharge === 0 && deliveryType === 'standard' ? 'FREE' : `₹${bill.deliveryType === 'standard' ? bill.deliveryCharge : (bill.belowThreshold ? bill.belowThresholdDeliveryCharge : 0)}`}
-                </Text>
+                {deliveryType === 'standard' && (
+                  <View style={styles.deliveryTypeCheck}><Text style={styles.deliveryTypeCheckText}>✓</Text></View>
+                )}
               </PressableScale>
 
               {/* Fast */}
@@ -471,19 +487,17 @@ export default function CheckoutScreen() {
                 accessibilityLabel="Fast delivery"
                 accessibilityState={{ selected: deliveryType === 'fast' }}
               >
-                <View style={styles.deliveryTypeIconRow}>
-                  <Text style={styles.deliveryTypeEmoji}>⚡</Text>
-                  {deliveryType === 'fast' && (
-                    <View style={[styles.deliveryTypeCheck, styles.deliveryTypeCheckFast]}><Text style={styles.deliveryTypeCheckText}>✓</Text></View>
-                  )}
+                <Text style={styles.deliveryTypeEmoji}>⚡</Text>
+                <View style={styles.deliveryTypeInfo}>
+                  <Text numberOfLines={1} style={[styles.deliveryTypeTitleFast, deliveryType === 'fast' && styles.deliveryTypeTitleFastActive]}>Fast Delivery</Text>
+                  <Text numberOfLines={1} style={styles.deliveryTypeTime}>Arrives in about 30 mins</Text>
                 </View>
-                <Text style={[styles.deliveryTypeTitleFast, deliveryType === 'fast' && styles.deliveryTypeTitleFastActive]}>
-                  Fast
-                </Text>
-                <Text style={styles.deliveryTypeTime}>~30 mins</Text>
-                <Text style={[styles.deliveryTypePriceFast, deliveryType === 'fast' && styles.deliveryTypePriceFastActive]}>
+                <Text numberOfLines={1} style={[styles.deliveryTypePriceFast, deliveryType === 'fast' && styles.deliveryTypePriceFastActive]}>
                   ₹{bill.fastDeliveryCharge}
                 </Text>
+                {deliveryType === 'fast' && (
+                  <View style={[styles.deliveryTypeCheck, styles.deliveryTypeCheckFast]}><Text style={styles.deliveryTypeCheckText}>✓</Text></View>
+                )}
               </PressableScale>
             </View>
           </Animated.View>
@@ -596,7 +610,9 @@ export default function CheckoutScreen() {
                   <Text style={styles.summaryLabel}>
                     {bill.deliveryType === 'fast' ? '⚡ Fast Delivery' : deliveryLabel}
                   </Text>
-                  <Text style={styles.summaryValue}>{bill.deliveryCharge === 0 ? 'FREE' : `₹${bill.deliveryCharge}`}</Text>
+                  <Text style={styles.summaryValue}>
+                    {bill.deliveryCharge === 0 ? 'FREE' : `₹${bill.deliveryCharge}`}
+                  </Text>
                 </View>
                 {/* Distance display removed since it's no longer used for pricing */}
                 {(!deliveryAvailable) ? (
@@ -847,17 +863,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   deliveryTypeRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
+    flexDirection: 'column',
+    gap: spacing.sm,
   },
   deliveryTypeCard: {
-    flex: 1,
-    padding: spacing.md,
-    borderRadius: radius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
     borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.bgApp,
-    alignItems: 'center',
+    gap: spacing.sm,
   },
   deliveryTypeCardActive: {
     borderColor: colors.primary,
@@ -871,15 +889,11 @@ const styles = StyleSheet.create({
     borderColor: '#FF8C00',
     backgroundColor: '#FFF3D0',
   },
-  deliveryTypeIconRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: spacing.xs,
+  deliveryTypeInfo: {
+    flex: 1,
   },
   deliveryTypeEmoji: {
-    fontSize: 28,
+    fontSize: 22,
   },
   deliveryTypeCheck: {
     width: 20,
@@ -898,19 +912,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   deliveryTypeTitle: {
-    ...typography.labelLarge,
+    ...typography.label,
     color: colors.textSecondary,
     fontWeight: '700',
-    alignSelf: 'flex-start',
   },
   deliveryTypeTitleActive: {
     color: colors.primary,
   },
   deliveryTypeTitleFast: {
-    ...typography.labelLarge,
+    ...typography.label,
     color: '#CC7700',
     fontWeight: '700',
-    alignSelf: 'flex-start',
   },
   deliveryTypeTitleFastActive: {
     color: '#FF8C00',
@@ -918,25 +930,20 @@ const styles = StyleSheet.create({
   deliveryTypeTime: {
     ...typography.caption,
     color: colors.textTertiary,
-    alignSelf: 'flex-start',
     marginTop: 2,
   },
   deliveryTypePrice: {
-    ...typography.h3,
+    ...typography.labelLarge,
     color: colors.textPrimary,
     fontWeight: '800',
-    alignSelf: 'flex-start',
-    marginTop: spacing.xs,
   },
   deliveryTypePriceActive: {
     color: colors.primary,
   },
   deliveryTypePriceFast: {
-    ...typography.h3,
+    ...typography.labelLarge,
     color: '#CC7700',
     fontWeight: '800',
-    alignSelf: 'flex-start',
-    marginTop: spacing.xs,
   },
   deliveryTypePriceFastActive: {
     color: '#FF8C00',

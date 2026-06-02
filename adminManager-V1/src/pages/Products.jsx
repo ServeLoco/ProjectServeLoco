@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ProductsApi, CategoriesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
+import { getImageUploadError } from '../utils/fileValidation';
 import './Products.css';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function Products() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
@@ -64,7 +69,8 @@ export default function Products() {
       }
       setSelectedIds([]); // clear selection on page change
     } catch (err) {
-      setError(err.message || 'Failed to fetch products');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -92,19 +98,32 @@ export default function Products() {
       await ProductsApi.updateAvailability(product.id, newStatus);
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, available: newStatus } : p));
     } catch (err) {
-      alert('Failed to update availability: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     }
   };
 
-  // Bulk Actions
+  // Bulk Actions — use allSettled so partial failures don't hide successful ops.
+  const runBulk = async (ids, action) => {
+    const results = await Promise.allSettled(ids.map(id => action(id).then(() => id)));
+    const failed = results
+      .map((r, i) => (r.status === 'rejected' ? { id: ids[i], reason: r.reason?.message || 'failed' } : null))
+      .filter(Boolean);
+    return failed;
+  };
+
   const handleBulkAvailability = async (available) => {
     if (!window.confirm(`Mark ${selectedIds.length} products as ${available ? 'In Stock' : 'Out of Stock'}?`)) return;
     setBulkUpdating(true);
     try {
-      await Promise.all(selectedIds.map(id => ProductsApi.updateAvailability(id, available)));
+      const failed = await runBulk(selectedIds, id => ProductsApi.updateAvailability(id, available));
+      if (failed.length) {
+        setError(`Updated ${selectedIds.length - failed.length} of ${selectedIds.length}. Failed ids: ${failed.map(f => f.id).join(', ')}.`);
+      }
       fetchProducts(pagination.page);
     } catch (err) {
-      alert('Error updating some products: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setBulkUpdating(false);
     }
@@ -114,10 +133,14 @@ export default function Products() {
     if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} products?`)) return;
     setBulkUpdating(true);
     try {
-      await Promise.all(selectedIds.map(id => ProductsApi.delete(id)));
+      const failed = await runBulk(selectedIds, id => ProductsApi.delete(id));
+      if (failed.length) {
+        setError(`Deleted ${selectedIds.length - failed.length} of ${selectedIds.length}. Failed ids: ${failed.map(f => f.id).join(', ')}.`);
+      }
       fetchProducts(1);
     } catch (err) {
-      alert('Error deleting some products: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setBulkUpdating(false);
     }
@@ -142,9 +165,10 @@ export default function Products() {
     <div className="products-container">
       <header className="products-header">
         <h1 className="products-title">Products Management</h1>
-        <button className="btn-primary" onClick={openCreateDrawer}>
-          + New Product
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button className="btn-secondary" onClick={() => navigate('/bulk-import')}>📦 Bulk Import</button>
+          <button className="btn-primary" onClick={openCreateDrawer}>+ New Product</button>
+        </div>
       </header>
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
@@ -320,6 +344,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
   });
   
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
@@ -348,6 +373,13 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
     const file = e.target.files[0];
     if (!file) return;
 
+    const sizeError = getImageUploadError(file);
+    if (sizeError) {
+      setUploadMessage({ type: 'error', text: sizeError });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     const data = new FormData();
     data.append('image', file);
 
@@ -363,7 +395,8 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       }));
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the product to apply it.' });
     } catch (err) {
-      setUploadMessage({ type: 'error', text: 'Image upload failed: ' + err.message });
+      console.error(err);
+      setUploadMessage({ type: 'error', text: GENERIC_ERROR });
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -434,7 +467,8 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       }
       onSave();
     } catch (err) {
-      alert('Failed to save product: ' + err.message);
+      console.error(err);
+      setFormError(GENERIC_ERROR);
       setSaving(false);
     }
   };
@@ -446,7 +480,8 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       await ProductsApi.delete(product.id);
       onSave();
     } catch (err) {
-      alert('Delete failed: ' + err.message);
+      console.error(err);
+      setFormError(GENERIC_ERROR);
       setSaving(false);
     }
   };
@@ -461,6 +496,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
           </div>
           
           <div className="drawer-body">
+            {formError && <div className="error-container" style={{ marginBottom: '1rem' }}>{formError}</div>}
             <div className="form-group">
               <label className="form-label">Product Name</label>
               <input required type="text" name="name" className="form-input" value={formData.name} onChange={handleChange} />

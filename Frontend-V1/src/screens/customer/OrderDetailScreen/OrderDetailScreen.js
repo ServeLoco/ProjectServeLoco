@@ -85,6 +85,7 @@ export default function OrderDetailScreen() {
   // Modal State
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
 
   // Notification Permission Modal State
   const [showNotificationModal, setShowNotificationModal] = useState(false);
@@ -195,11 +196,13 @@ export default function OrderDetailScreen() {
       Animated.timing(modalScale, { toValue: 0.8, duration: 200, useNativeDriver: true })
     ]).start(() => {
       setShowCancelModal(false);
+      setCancelError(null);
     });
   };
 
   const confirmCancel = () => {
     setIsCancelling(true);
+    setCancelError(null);
     ordersApi.cancelOrder(order.id)
       .then(response => {
         const cancelled = getCancelledOrderPatch(response);
@@ -216,6 +219,11 @@ export default function OrderDetailScreen() {
           paymentStatus: cancelled.paymentStatus || getCancelledPaymentStatus(prev.paymentMethod),
           canCancel: false,
         }));
+      })
+      .catch(err => {
+        // Surface the failure inside the modal so the user can retry instead of
+        // staring at a stuck spinner.
+        setCancelError(err?.message || 'Unable to cancel order. Please try again.');
       })
       .finally(() => setIsCancelling(false));
   };
@@ -472,7 +480,10 @@ export default function OrderDetailScreen() {
             <AppIcon name="orders" size={34} color={colors.warning} style={styles.modalIcon} />
             <Text style={styles.modalTitle}>Cancel Order?</Text>
             <Text style={styles.modalDesc}>Are you sure you want to cancel this order? This action cannot be undone.</Text>
-            
+            {cancelError ? (
+              <Text style={[styles.modalDesc, { color: colors.error, marginTop: 4 }]}>{cancelError}</Text>
+            ) : null}
+
             <View style={styles.modalActions}>
               <Button 
                 label="Keep Order" 

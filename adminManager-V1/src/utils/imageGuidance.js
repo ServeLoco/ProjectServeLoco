@@ -1,21 +1,21 @@
 export const IMAGE_GUIDANCE = {
   offerBanner: {
-    label: 'Recommended: 1200 x 600 px (2:1). Keep important text and products centered.',
+    label: 'Recommended: 1200 × 480 px (2.5:1 ratio). Keep key content in the centre 60% width.',
   },
   product: {
-    label: 'Recommended: 1000 x 1000 px square. Keep the product centered with padding.',
+    label: 'Recommended: 800 × 800 px (1:1 square). Centred product, ≥ 10% padding on all sides, white/light-grey background.',
   },
   combo: {
-    label: 'Recommended: 1000 x 1000 px square or 1000 x 750 px. Keep bundle items centered.',
+    label: 'Recommended: 800 × 800 px (1:1 square). Bundle items centred, consistent padding on all sides.',
   },
   category: {
-    label: 'Recommended: 800 x 800 px square. Use a centered icon or product photo.',
+    label: 'Recommended: 600 × 600 px (1:1 square). Icon or product photo, centred on a clean background.',
   },
   qr: {
-    label: 'Recommended: 1000 x 1000 px square. Upload a sharp QR code with quiet white border.',
+    label: 'Recommended: 600 × 600 px (1:1 square). Sharp QR code, ≥ 10 px white quiet border around all sides.',
   },
   library: {
-    label: 'Recommended sizes: banner 1200 x 600 px, products/categories/QR 1000 x 1000 px. JPG, PNG, WebP up to 5MB.',
+    label: 'Sizes — product/combo/QR: 800 × 800 px | category: 600 × 600 px | offer banner: 1200 × 480 px. Formats: JPG, PNG, WebP (max 5 MB).',
   },
 };
 

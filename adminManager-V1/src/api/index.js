@@ -51,6 +51,8 @@ export const ProductsApi = {
     `/admin/products/${id}/image`,
     { method: 'PATCH', body: { imageId, image_id: imageId } }
   ),
+  bulkPreview: (formData) => apiClient('/admin/products/bulk-import?preview=true', { method: 'POST', body: formData }),
+  bulkImport: (formData) => apiClient('/admin/products/bulk-import', { method: 'POST', body: formData }),
 };
 
 export const CombosApi = {

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { AuditApi } from '../api';
 import './AuditLogs.css';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function AuditLogs() {
   const [logs, setLogs] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 50, totalPages: 1 });
@@ -22,7 +24,8 @@ export default function AuditLogs() {
         setPagination(res.pagination);
       }
     } catch (err) {
-      setError(err.message || 'Failed to fetch audit logs');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }

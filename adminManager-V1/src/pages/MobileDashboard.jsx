@@ -1,5 +1,5 @@
 // MobileDashboard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MobileDashboardApi, ProductsApi, CategoriesApi, OffersApi, CombosApi } from '../api';
 import './MobileDashboard.css';
 
@@ -12,6 +12,8 @@ const DEFAULT_MAX_VISIBLE_BY_SECTION = {
   product_block: 6,
   combo_block: 6
 };
+
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 
 export default function MobileDashboard() {
   const [sections, setSections] = useState([]);
@@ -49,6 +51,8 @@ export default function MobileDashboard() {
   const [candidates, setCandidates] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [addingItemId, setAddingItemId] = useState(null);
+  const addingItemRef = useRef(false);
 
   useEffect(() => {
     fetchSections();
@@ -71,7 +75,8 @@ export default function MobileDashboard() {
       const res = await MobileDashboardApi.listSections({ store_type: storeType });
       setSections(res.data || []);
     } catch (err) {
-      setError(err.message || 'Failed to fetch dashboard sections');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoadingSections(false);
     }
@@ -101,7 +106,8 @@ export default function MobileDashboard() {
         version: section.version
       });
     } catch (err) {
-      setError(err.message || 'Failed to load section details');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoadingDetail(false);
     }
@@ -110,6 +116,7 @@ export default function MobileDashboard() {
   const loadCandidates = async (sectionType) => {
     try {
       setLoadingCandidates(true);
+      setCandidates([]);
       if (sectionType === 'offer_banner') {
         const res = await OffersApi.list({ store_type: storeType });
         setCandidates(readList(res, 'offers'));
@@ -212,7 +219,8 @@ export default function MobileDashboard() {
 
       await fetchSections();
     } catch (err) {
-      setError(err.message || 'Failed to create section');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setSavingSection(false);
     }
@@ -250,7 +258,8 @@ export default function MobileDashboard() {
       await fetchSectionDetail(selectedSection.id);
       await fetchSections();
     } catch (err) {
-      setError(err.message || 'Failed to update section');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setSavingSection(false);
     }
@@ -267,7 +276,8 @@ export default function MobileDashboard() {
       setEditForm(null);
       await fetchSections();
     } catch (err) {
-      setError(err.message || 'Failed to delete section');
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setSavingSection(false);
     }
@@ -289,17 +299,23 @@ export default function MobileDashboard() {
     try {
       const sectionIds = newSections.map(s => s.id);
       await MobileDashboardApi.reorderSections(sectionIds, { store_type: storeType });
-      setSections(newSections);
+      setSections(newSections.map((section, displayOrder) => ({
+        ...section,
+        display_order: displayOrder,
+      })));
     } catch (err) {
-      alert('Failed to reorder: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
       fetchSections();
     }
   };
 
   const handleAddItem = async (itemId) => {
-    if (!selectedSection) return;
+    if (!selectedSection || addingItemRef.current) return;
+    addingItemRef.current = true;
     try {
       setSavingItem(true);
+      setAddingItemId(itemId);
       setError(null);
 
       const sectionTypeToItemType = {
@@ -327,9 +343,12 @@ export default function MobileDashboard() {
       // Reload section items
       await fetchSectionDetail(selectedSection.id);
     } catch (err) {
-      alert('Failed to add item: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
+      addingItemRef.current = false;
       setSavingItem(false);
+      setAddingItemId(null);
     }
   };
 
@@ -342,7 +361,8 @@ export default function MobileDashboard() {
       await MobileDashboardApi.deleteSectionItem(selectedSection.id, sectionItemId);
       await fetchSectionDetail(selectedSection.id);
     } catch (err) {
-      alert('Failed to remove item: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setSavingItem(false);
     }
@@ -370,7 +390,8 @@ export default function MobileDashboard() {
         items: newItems
       }));
     } catch (err) {
-      alert('Failed to reorder items: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
       fetchSectionDetail(selectedSection.id);
     }
   };
@@ -523,6 +544,7 @@ export default function MobileDashboard() {
                       value={editForm.store_type} 
                       onChange={handleEditFormChange}
                     >
+                      <option value="all">All Stores (legacy)</option>
                       <option value="packed">Packed Items Only</option>
                       <option value="fast_food">Fast Food Only</option>
                     </select>
@@ -681,7 +703,7 @@ export default function MobileDashboard() {
                     getFilteredCandidates()
                       .filter(cand => {
                         // Exclude items already in this section
-                        return !selectedSection.items?.some(i => i.item_id === cand.id);
+                        return !selectedSection.items?.some(i => String(i.item_id) === String(cand.id));
                       })
                       .map(cand => {
                         const name = cand.name || cand.title || 'Unnamed';
@@ -690,7 +712,7 @@ export default function MobileDashboard() {
                         const isOfferBanner = selectedSection.section_type === 'offer_banner';
                         const hasImage = !!img;
                         const isInactiveOffer = isOfferBanner && !(cand.active === 1 || cand.active === true);
-                        const disabled = isOfferBanner && (!hasImage || isInactiveOffer);
+                        const disabled = (isOfferBanner && (!hasImage || isInactiveOffer)) || addingItemId === cand.id;
 
                         return (
                           <div key={cand.id} className={`picker-result-row ${disabled ? 'disabled-item' : ''}`}>
@@ -714,7 +736,7 @@ export default function MobileDashboard() {
                               onClick={() => handleAddItem(cand.id)}
                               disabled={savingItem || disabled}
                             >
-                              + Add
+                              {addingItemId === cand.id ? 'Adding...' : '+ Add'}
                             </button>
                           </div>
                         );
