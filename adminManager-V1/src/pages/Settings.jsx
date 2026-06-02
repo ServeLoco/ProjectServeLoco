@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SettingsApi, ImagesApi } from '../api';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
+import { getImageUploadError } from '../utils/fileValidation';
 import './Settings.css';
 
 const DEFAULT_SETTINGS = {
@@ -9,6 +10,7 @@ const DEFAULT_SETTINGS = {
   delivery_available: false,
   minimum_order_amount: 0,
   delivery_charge: 0,
+  below_threshold_delivery_charge: 20,
   night_charge: 0,
   night_charge_start: '',
   night_charge_end: '',
@@ -68,6 +70,13 @@ export default function Settings() {
     const file = e.target.files[0];
     if (!file) return;
 
+    const sizeError = getImageUploadError(file);
+    if (sizeError) {
+      setUploadMessage({ type: 'error', text: sizeError });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     const data = new FormData();
     data.append('image', file);
 
@@ -112,6 +121,16 @@ export default function Settings() {
         }
       }
 
+      // Night charge requires both start and end times when active.
+      // Otherwise customers are either always or never charged at night.
+      if (Number(settings.night_charge) > 0) {
+        if (!settings.night_charge_start || !settings.night_charge_end) {
+          alert('Night charge is set but the start or end time is missing. Either set both times or set the charge to 0.');
+          setSaving(false);
+          return;
+        }
+      }
+
       // Ensure numeric fields are numbers
       const payload = {
         ...settings,
@@ -127,7 +146,10 @@ export default function Settings() {
       };
       const response = await SettingsApi.update(payload);
       if (response.data) {
-        setSettings({ ...DEFAULT_SETTINGS, ...response.data });
+        // Merge over the current state — NOT over DEFAULT_SETTINGS — so that
+        // fields the backend doesn't echo back (e.g. whatsapp_number) keep the
+        // value the admin just typed instead of reverting to blank.
+        setSettings(prev => ({ ...prev, ...response.data }));
       }
       alert('Settings saved successfully!');
     } catch (err) {

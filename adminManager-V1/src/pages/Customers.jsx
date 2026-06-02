@@ -94,9 +94,12 @@ export default function Customers() {
   };
 
   const handleToggleTrust = async () => {
+    const newStatus = !selectedCustomer.trusted;
+    const action = newStatus ? 'mark this customer as trusted' : 'revoke trusted status for this customer';
+    if (!window.confirm(`Are you sure you want to ${action}?`)) return;
+
     try {
       setUpdating(true);
-      const newStatus = !selectedCustomer.trusted;
       await CustomersApi.updateTrust(selectedCustomer.id, newStatus);
       setSelectedCustomer(prev => ({ ...prev, trusted: newStatus }));
       fetchCustomers(pagination.page);
@@ -110,7 +113,10 @@ export default function Customers() {
 
   const handleToggleBlock = async () => {
     const newStatus = !selectedCustomer.blocked;
-    if (newStatus && !window.confirm('Are you sure you want to block this customer? They will not be able to place orders.')) return;
+    const action = newStatus
+      ? 'block this customer? They will not be able to place orders.'
+      : 'unblock this customer? They will be able to place orders again.';
+    if (!window.confirm(`Are you sure you want to ${action}`)) return;
     try {
       setUpdating(true);
       await CustomersApi.updateBlock(selectedCustomer.id, newStatus);

@@ -6,6 +6,18 @@ function pickFirst(...values) {
   return values.find(value => value !== undefined && value !== null && value !== '');
 }
 
+/**
+ * Stringifies a value into an id, returning null when there is no real value.
+ * Avoids the previous "undefined"/"null" stringification bug where missing ids
+ * silently collided with each other in equality checks.
+ */
+function toIdString(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const str = String(value);
+  if (str === 'undefined' || str === 'null') return null;
+  return str;
+}
+
 function getApiOrigin() {
   try {
     return new URL(getApiBaseUrl()).origin;
@@ -106,7 +118,7 @@ function getComboItems(item = {}) {
 }
 
 function normalizeProduct(item = {}) {
-  const id = String(pickFirst(item.id, item._id, item.productId, item.product_id, item.slug));
+  const id = toIdString(pickFirst(item.id, item._id, item.productId, item.product_id, item.slug));
   const isCombo = asBoolean(pickFirst(item.isCombo, item.is_combo), false);
   const comboItems = getComboItems(item);
   const imageUrl = normalizeImageUrl(pickFirst(item.imageUrl, item.image_url, item.image, item.url, null));
@@ -134,7 +146,7 @@ function normalizeProduct(item = {}) {
 }
 
 function normalizeCategory(item = {}) {
-  const id = String(pickFirst(item.id, item._id, item.categoryId, item.category_id, item.name));
+  const id = toIdString(pickFirst(item.id, item._id, item.categoryId, item.category_id, item.name));
   const imageUrl = normalizeImageUrl(pickFirst(item.imageUrl, item.image_url, item.image, null));
 
   return {
@@ -189,7 +201,9 @@ function normalizeCartCalculation(payload = {}) {
     deliveryMessage: pickFirst(bill.deliveryMessage, bill.delivery_message, bill.message, ''),
     deliveryType: pickFirst(bill.deliveryType, bill.delivery_type, 'standard'),
     fastDeliveryEnabled: asBoolean(pickFirst(bill.fastDeliveryEnabled, bill.fast_delivery_enabled), false),
+    fastDeliveryAvailable: asBoolean(pickFirst(bill.fastDeliveryAvailable, bill.fast_delivery_available), false),
     fastDeliveryCharge: numberOrZero(pickFirst(bill.fastDeliveryCharge, bill.fast_delivery_charge)),
+    standardDeliveryCharge: numberOrZero(pickFirst(bill.standardDeliveryCharge, bill.standard_delivery_charge, bill.deliveryCharge, bill.delivery_charge)),
   };
 }
 
@@ -197,7 +211,7 @@ function normalizeProfile(user = {}) {
   if (!user) return user;
   return {
     ...user,
-    id: String(pickFirst(user.id, user._id, user.userId, user.user_id)),
+    id: toIdString(pickFirst(user.id, user._id, user.userId, user.user_id)),
     name: pickFirst(user.name, user.fullName, user.full_name, 'User'),
     phone: pickFirst(user.phone, user.phoneNumber, user.phone_number, ''),
     whatsapp: pickFirst(user.whatsapp, user.whatsappNumber, user.whatsapp_number, ''),
@@ -229,7 +243,7 @@ function getCustomerName(order = {}) {
 function getOrderItems(order = {}) {
   return asArray(order.items || order.orderItems || order.order_items, ['items']).map(item => ({
     ...item,
-    id: String(pickFirst(item.id, item._id, item.productId, item.product_id, item.name)),
+    id: toIdString(pickFirst(item.id, item._id, item.productId, item.product_id, item.name)),
     name: pickFirst(item.name, item.productName, item.product_name, item.product?.name, 'Item'),
     quantity: numberOrZero(pickFirst(item.quantity, item.qty, 1)),
     price: numberOrZero(pickFirst(item.price, item.unitPrice, item.unit_price, item.line_total)),
@@ -260,7 +274,7 @@ function normalizeOrder(order = {}) {
 
   return {
     ...order,
-    id: String(pickFirst(order.id, order._id, order.orderId, order.order_id)),
+    id: toIdString(pickFirst(order.id, order._id, order.orderId, order.order_id)),
     date: pickFirst(order.date, order.createdAt, order.created_at, order.updatedAt, ''),
     status,
     paymentStatus,
@@ -325,7 +339,7 @@ function normalizeDashboard(payload = {}) {
     },
     topProducts: asArray(data.topProducts || data.top_products, ['topProducts']).map(product => ({
       ...product,
-      id: String(pickFirst(product.id, product._id, product.productId, product.name)),
+      id: toIdString(pickFirst(product.id, product._id, product.productId, product.name)),
       name: pickFirst(product.name, product.productName, product.product_name, 'Product'),
       sales: numberOrZero(pickFirst(product.sales, product.salesCount, product.sales_count, product.quantity)),
       amount: numberOrZero(pickFirst(product.amount, product.salesAmount, product.sales_amount, product.total)),
@@ -334,7 +348,7 @@ function normalizeDashboard(payload = {}) {
 }
 
 function normalizeNotification(item = {}) {
-  const id = String(pickFirst(item.id, item._id));
+  const id = toIdString(pickFirst(item.id, item._id));
   const read = asBoolean(pickFirst(item.read, item.isRead, item.is_read), false);
   const createdAt = pickFirst(item.createdAt, item.created_at, item.timestamp);
   

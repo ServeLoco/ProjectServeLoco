@@ -26,6 +26,7 @@ const formatMoney = (value) => {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric.toFixed(2) : '0.00';
 };
+const escapeCsvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -139,7 +140,9 @@ export default function Orders() {
   }, [fetchSelectedOrder]);
 
   useEffect(() => {
-    fetchOrders(1);
+    // Debounce so typing in the search box doesn't fire a request per keystroke.
+    const timer = setTimeout(() => fetchOrders(1), 300);
+    return () => clearTimeout(timer);
   }, [filters]);
 
   useEffect(() => {
@@ -235,7 +238,19 @@ export default function Orders() {
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
+    // Snapshot the order at the moment the admin opened the dropdown so we can
+    // detect if a realtime event or another admin mutated it underneath.
+    const expectedStatus = selectedOrder?.status;
+    const expectedUpdatedAt = selectedOrder?.updated_at;
     if (!window.confirm(`Change order status to ${getOrderStatusLabel(newStatus)}?`)) return;
+
+    // Re-check after the confirm dialog: state may have changed via realtime
+    // while the dialog was open.
+    if (selectedOrder?.status !== expectedStatus || selectedOrder?.updated_at !== expectedUpdatedAt) {
+      setError('Order was updated by someone else. Please review the new state and try again.');
+      fetchSelectedOrder(selectedOrder.id);
+      return;
+    }
 
     try {
       setUpdating(true);
@@ -253,7 +268,15 @@ export default function Orders() {
 
   const handlePaymentChange = async (e) => {
     const newPayment = e.target.value;
+    const expectedPayment = selectedOrder?.payment_status;
+    const expectedUpdatedAt = selectedOrder?.updated_at;
     if (!window.confirm(`Change payment status to ${newPayment}?`)) return;
+
+    if (selectedOrder?.payment_status !== expectedPayment || selectedOrder?.updated_at !== expectedUpdatedAt) {
+      setError('Order was updated by someone else. Please review the new state and try again.');
+      fetchSelectedOrder(selectedOrder.id);
+      return;
+    }
 
     try {
       setUpdating(true);
@@ -312,11 +335,13 @@ export default function Orders() {
         o.payment_method || '',
         o.payment_status || '',
         o.status || '',
-        (o.note || '').replace(/"/g, '""')
+        o.note || ''
       ]);
 
       const csvContent = "data:text/csv;charset=utf-8," 
-        + [headers.join(",")].concat(rows.map(r => r.map(val => `"${val}"`).join(","))).join("\n");
+        + [headers.map(escapeCsvCell).join(",")]
+          .concat(rows.map(r => r.map(escapeCsvCell).join(",")))
+          .join("\n");
 
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
@@ -423,23 +448,20 @@ export default function Orders() {
     printFrame.style.border = '0';
     document.body.appendChild(printFrame);
 
-    const frameWindow = printFrame.contentWindow;
-    const frameDocument = frameWindow?.document;
-    if (!frameWindow || !frameDocument) {
-      alert('Unable to open print preview. Please try again.');
-      printFrame.remove();
-      return;
-    }
+    printFrame.onload = () => {
+      const frameWindow = printFrame.contentWindow;
+      if (!frameWindow) {
+        alert('Unable to open print preview. Please try again.');
+        printFrame.remove();
+        return;
+      }
 
-    frameDocument.open();
-    frameDocument.write(invoiceHtml);
-    frameDocument.close();
-
-    setTimeout(() => {
       frameWindow.focus();
       frameWindow.print();
       setTimeout(() => printFrame.remove(), 1000);
-    }, 150);
+    };
+
+    printFrame.srcdoc = invoiceHtml;
   };
 
   const isTerminalState = (status) => ['Delivered', 'Cancelled'].includes(status);

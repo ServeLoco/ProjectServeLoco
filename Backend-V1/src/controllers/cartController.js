@@ -104,16 +104,19 @@ const calculateCart = async (req, res) => {
 
   const thresholdDelivery = calculateThresholdDeliveryCharge({ subtotal, settings });
   deliveryCharge = thresholdDelivery.charge;
+  const standardDeliveryCharge = roundMoney(thresholdDelivery.charge);
   freeDeliveryOfferActive = thresholdDelivery.freeDeliveryOfferActive;
   freeAboveThresholdActive = thresholdDelivery.freeAboveThresholdActive;
   belowThreshold = thresholdDelivery.belowThreshold;
   belowThresholdDeliveryCharge = thresholdDelivery.belowThresholdCharge || 0;
 
-  // Fast delivery: replaces standard delivery_charge only when above threshold
-  // Night charge, below-threshold charge, and free delivery offer are untouched
+  // Fast delivery: when the user picks fast, the fast charge fully REPLACES the standard
+  // delivery charge — regardless of below-threshold state or a free-delivery offer.
+  // Night charge is independent and is added separately below.
   const fastDeliveryEnabled = Boolean(settings.fast_delivery_enabled);
   const fastDeliveryCharge = toMoney(settings.fast_delivery_charge || 0);
-  const isFast = deliveryTypeInput === 'fast' && fastDeliveryEnabled && !freeDeliveryOfferActive && !belowThreshold;
+  const fastDeliveryAvailable = fastDeliveryEnabled;
+  const isFast = deliveryTypeInput === 'fast' && fastDeliveryAvailable;
   if (isFast) {
     deliveryCharge = fastDeliveryCharge;
   }
@@ -188,7 +191,9 @@ const calculateCart = async (req, res) => {
     // Fast delivery
     deliveryType: isFast ? 'fast' : 'standard',
     fastDeliveryEnabled,
+    fastDeliveryAvailable,
     fastDeliveryCharge,
+    standardDeliveryCharge,
   };
 
   res.status(200).json({

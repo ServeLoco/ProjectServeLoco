@@ -4,6 +4,7 @@ import { ProductsApi, CategoriesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
+import { getImageUploadError } from '../utils/fileValidation';
 import './Products.css';
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
@@ -102,12 +103,23 @@ export default function Products() {
     }
   };
 
-  // Bulk Actions
+  // Bulk Actions — use allSettled so partial failures don't hide successful ops.
+  const runBulk = async (ids, action) => {
+    const results = await Promise.allSettled(ids.map(id => action(id).then(() => id)));
+    const failed = results
+      .map((r, i) => (r.status === 'rejected' ? { id: ids[i], reason: r.reason?.message || 'failed' } : null))
+      .filter(Boolean);
+    return failed;
+  };
+
   const handleBulkAvailability = async (available) => {
     if (!window.confirm(`Mark ${selectedIds.length} products as ${available ? 'In Stock' : 'Out of Stock'}?`)) return;
     setBulkUpdating(true);
     try {
-      await Promise.all(selectedIds.map(id => ProductsApi.updateAvailability(id, available)));
+      const failed = await runBulk(selectedIds, id => ProductsApi.updateAvailability(id, available));
+      if (failed.length) {
+        setError(`Updated ${selectedIds.length - failed.length} of ${selectedIds.length}. Failed ids: ${failed.map(f => f.id).join(', ')}.`);
+      }
       fetchProducts(pagination.page);
     } catch (err) {
       console.error(err);
@@ -121,7 +133,10 @@ export default function Products() {
     if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} products?`)) return;
     setBulkUpdating(true);
     try {
-      await Promise.all(selectedIds.map(id => ProductsApi.delete(id)));
+      const failed = await runBulk(selectedIds, id => ProductsApi.delete(id));
+      if (failed.length) {
+        setError(`Deleted ${selectedIds.length - failed.length} of ${selectedIds.length}. Failed ids: ${failed.map(f => f.id).join(', ')}.`);
+      }
       fetchProducts(1);
     } catch (err) {
       console.error(err);
@@ -357,6 +372,13 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    const sizeError = getImageUploadError(file);
+    if (sizeError) {
+      setUploadMessage({ type: 'error', text: sizeError });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     const data = new FormData();
     data.append('image', file);

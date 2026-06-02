@@ -26,6 +26,19 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
+  // Listen for 401s dispatched by the API client. Clear local auth state and
+  // let ProtectedRoute redirect — no hard page reload, so any unsaved form
+  // state in inputs is at least preserved until the redirect renders.
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      storage.clearToken();
+      disconnectAdminRealtime();
+      setUser(null);
+    };
+    window.addEventListener('admin:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('admin:unauthorized', handleUnauthorized);
+  }, []);
+
   const login = async (credentials) => {
     const data = await AuthApi.login(credentials);
     storage.setToken(data.token);

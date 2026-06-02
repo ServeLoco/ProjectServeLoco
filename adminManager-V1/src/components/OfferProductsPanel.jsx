@@ -3,10 +3,13 @@ import { ProductsApi, OffersApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { normalizeImageUrl } from '../utils/imageUrl';
 
+const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
 export default function OfferProductsPanel({ offer }) {
   const [attachedProducts, setAttachedProducts] = useState([]);
   const [candidateProducts, setCandidateProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -18,6 +21,7 @@ export default function OfferProductsPanel({ offer }) {
   const loadData = async () => {
     try {
       setLoading(true);
+      setError('');
       const [attachedRes, candidatesRes] = await Promise.all([
         OffersApi.listProducts(offer.id),
         ProductsApi.list({ limit: 100, is_combo: '0', available: '1', type: offer.store_type })
@@ -30,7 +34,7 @@ export default function OfferProductsPanel({ offer }) {
       setCandidateProducts(candidates);
     } catch (err) {
       console.error(err);
-      alert('Failed to load products');
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -39,10 +43,12 @@ export default function OfferProductsPanel({ offer }) {
   const handleAttach = async (productId) => {
     try {
       setLoading(true);
+      setError('');
       await OffersApi.addProduct(offer.id, productId);
       await loadData();
     } catch (err) {
-      alert('Failed to attach product: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -51,10 +57,12 @@ export default function OfferProductsPanel({ offer }) {
   const handleRemove = async (productId) => {
     try {
       setLoading(true);
+      setError('');
       await OffersApi.removeProduct(offer.id, productId);
       await loadData();
     } catch (err) {
-      alert('Failed to remove product: ' + err.message);
+      console.error(err);
+      setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -66,6 +74,7 @@ export default function OfferProductsPanel({ offer }) {
 
   return (
     <div className="offer-products-panel" style={{ marginTop: '2rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+      {error && <div className="error-container" style={{ marginBottom: '1rem' }}>{error}</div>}
       <h4>Attached Products ({attachedProducts.length})</h4>
       {attachedProducts.length === 0 && (
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No products attached yet.</p>

@@ -14,12 +14,24 @@ import { normalizeOrder } from '../../../utils';
 export default function OrderConfirmationScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const order = normalizeOrder(route.params?.order || {});
-  const orderId = route.params?.orderId || order.id;
+  const rawOrder = route.params?.order;
+  const rawOrderId = route.params?.orderId;
+  const hasOrderData = Boolean(rawOrder || rawOrderId);
+  const order = normalizeOrder(rawOrder || {});
+  // Resolve orderId from explicit param, then normalized order; only use the
+  // normalized id when it is a real value (normalizeOrder returns the literal
+  // string "undefined" when the source object is empty).
+  const normalizedId = order.id && order.id !== 'undefined' ? order.id : null;
+  const orderId = rawOrderId || normalizedId;
   const orderLabel = order.orderNumber || order.order_number || orderId || 'Pending';
   const total = order.total || order.bill?.grandTotal || 0;
   const deliveryCharge = order.bill?.delivery || 0;
-  const deliveryLabel = order.bill?.belowThresholdDelivery ? 'Delivery Charge (Below Minimum)' : 'Delivery Charge';
+  const deliveryType = order.bill?.deliveryType || order.deliveryType || 'standard';
+  const deliveryLabel = deliveryType === 'fast'
+    ? '⚡ Fast Delivery'
+    : order.bill?.belowThresholdDelivery
+      ? 'Delivery Charge (Below Minimum)'
+      : 'Delivery Charge';
   const paymentMethod = order.paymentMethod || 'Cash';
   const address = order.address || order.customer?.address || 'Delivery address saved with your order';
 
@@ -73,10 +85,10 @@ export default function OrderConfirmationScreen() {
       } else {
         navigation.replace('MainTabs', { screen: 'Orders' });
       }
-    }, 3000);
+    }, hasOrderData ? 3000 : 1500);
 
     return () => clearTimeout(redirectTimer);
-  }, [navigation, orderId, progress]);
+  }, [navigation, orderId, hasOrderData, progress]);
 
   useEffect(() => {
     const runRing1 = () => {

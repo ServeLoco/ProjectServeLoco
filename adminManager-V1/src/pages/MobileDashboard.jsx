@@ -1,5 +1,5 @@
 // MobileDashboard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MobileDashboardApi, ProductsApi, CategoriesApi, OffersApi, CombosApi } from '../api';
 import './MobileDashboard.css';
 
@@ -51,6 +51,8 @@ export default function MobileDashboard() {
   const [candidates, setCandidates] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [addingItemId, setAddingItemId] = useState(null);
+  const addingItemRef = useRef(false);
 
   useEffect(() => {
     fetchSections();
@@ -114,6 +116,7 @@ export default function MobileDashboard() {
   const loadCandidates = async (sectionType) => {
     try {
       setLoadingCandidates(true);
+      setCandidates([]);
       if (sectionType === 'offer_banner') {
         const res = await OffersApi.list({ store_type: storeType });
         setCandidates(readList(res, 'offers'));
@@ -296,7 +299,10 @@ export default function MobileDashboard() {
     try {
       const sectionIds = newSections.map(s => s.id);
       await MobileDashboardApi.reorderSections(sectionIds, { store_type: storeType });
-      setSections(newSections);
+      setSections(newSections.map((section, displayOrder) => ({
+        ...section,
+        display_order: displayOrder,
+      })));
     } catch (err) {
       console.error(err);
       setError(GENERIC_ERROR);
@@ -305,9 +311,11 @@ export default function MobileDashboard() {
   };
 
   const handleAddItem = async (itemId) => {
-    if (!selectedSection) return;
+    if (!selectedSection || addingItemRef.current) return;
+    addingItemRef.current = true;
     try {
       setSavingItem(true);
+      setAddingItemId(itemId);
       setError(null);
 
       const sectionTypeToItemType = {
@@ -338,7 +346,9 @@ export default function MobileDashboard() {
       console.error(err);
       setError(GENERIC_ERROR);
     } finally {
+      addingItemRef.current = false;
       setSavingItem(false);
+      setAddingItemId(null);
     }
   };
 
@@ -534,6 +544,7 @@ export default function MobileDashboard() {
                       value={editForm.store_type} 
                       onChange={handleEditFormChange}
                     >
+                      <option value="all">All Stores (legacy)</option>
                       <option value="packed">Packed Items Only</option>
                       <option value="fast_food">Fast Food Only</option>
                     </select>
@@ -692,7 +703,7 @@ export default function MobileDashboard() {
                     getFilteredCandidates()
                       .filter(cand => {
                         // Exclude items already in this section
-                        return !selectedSection.items?.some(i => i.item_id === cand.id);
+                        return !selectedSection.items?.some(i => String(i.item_id) === String(cand.id));
                       })
                       .map(cand => {
                         const name = cand.name || cand.title || 'Unnamed';
@@ -701,7 +712,7 @@ export default function MobileDashboard() {
                         const isOfferBanner = selectedSection.section_type === 'offer_banner';
                         const hasImage = !!img;
                         const isInactiveOffer = isOfferBanner && !(cand.active === 1 || cand.active === true);
-                        const disabled = isOfferBanner && (!hasImage || isInactiveOffer);
+                        const disabled = (isOfferBanner && (!hasImage || isInactiveOffer)) || addingItemId === cand.id;
 
                         return (
                           <div key={cand.id} className={`picker-result-row ${disabled ? 'disabled-item' : ''}`}>
@@ -725,7 +736,7 @@ export default function MobileDashboard() {
                               onClick={() => handleAddItem(cand.id)}
                               disabled={savingItem || disabled}
                             >
-                              + Add
+                              {addingItemId === cand.id ? 'Adding...' : '+ Add'}
                             </button>
                           </div>
                         );

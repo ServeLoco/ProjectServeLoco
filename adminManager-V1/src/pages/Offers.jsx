@@ -4,6 +4,7 @@ import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import OfferProductsPanel from '../components/OfferProductsPanel';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
+import { getImageUploadError } from '../utils/fileValidation';
 import './Offers.css';
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
@@ -51,7 +52,12 @@ export default function Offers() {
 
   const toggleActive = async (offer) => {
     try {
-      await OffersApi.update(offer.id, { active: !offer.active });
+      await OffersApi.update(offer.id, {
+        ...offer,
+        active: !offer.active,
+        imageId: offer.image_id,
+        image_id: offer.image_id,
+      });
       fetchOffers();
     } catch (err) {
       console.error(err);
@@ -161,6 +167,13 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    const sizeError = getImageUploadError(file);
+    if (sizeError) {
+      setUploadMessage({ type: 'error', text: sizeError });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     const data = new FormData();
     data.append('image', file);

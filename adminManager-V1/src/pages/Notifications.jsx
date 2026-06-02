@@ -72,7 +72,8 @@ export default function Notifications() {
 
     try {
       const res = await NotificationsApi.create({ title, body, type, target });
-      setSuccessMsg(`✅ Sent successfully to ${res.data.recipientCount} customers!`);
+      const recipientCount = res?.data?.recipientCount ?? 'all';
+      setSuccessMsg(`✅ Sent successfully to ${recipientCount} customers!`);
       setTitle('');
       setBody('');
       fetchBroadcasts();

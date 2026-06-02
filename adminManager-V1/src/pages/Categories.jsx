@@ -3,6 +3,7 @@ import { CategoriesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
+import { getImageUploadError } from '../utils/fileValidation';
 import './Categories.css';
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
@@ -50,10 +51,13 @@ export default function Categories() {
 
   const toggleActive = async (category) => {
     try {
+      // Send the full category payload — backend uses PUT semantics, so omitting
+      // fields (description in particular) would wipe them on every toggle.
       await CategoriesApi.update(category.id, {
         name: category.name,
         slug: category.slug,
         type: category.type,
+        description: category.description ?? '',
         imageId: category.image_id,
         image_id: category.image_id,
         active: !category.active,
@@ -182,6 +186,13 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    const sizeError = getImageUploadError(file);
+    if (sizeError) {
+      setUploadMessage({ type: 'error', text: sizeError });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     const data = new FormData();
     data.append('image', file);

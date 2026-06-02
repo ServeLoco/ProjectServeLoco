@@ -11,6 +11,7 @@ import {
   Platform,
   UIManager,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import {
@@ -88,6 +89,109 @@ const getCancelledOrderPatch = (response) => {
 const getCancelledPaymentStatus = (paymentMethod) => (
   paymentMethod === 'UPI' ? 'Refunded' : 'Failed'
 );
+
+// Defined at module scope so its hook identities and component reference are
+// stable across OrdersScreen renders. Previously this lived inside the parent
+// function and forced every card to unmount/remount on each parent render.
+//
+// Mixing useNativeDriver:true (opacity/transform) with useNativeDriver:false
+// (backgroundColor) on the SAME Animated.View crashes React Native, so the
+// JS-driven backgroundColor lives on the outer Animated.View and the native
+// opacity/transform on an inner Animated.View.
+const FadeInItem = ({ children, index, status }) => {
+  const anim = useRef(new Animated.Value(0)).current;
+  const highlightAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  const normalizedStatus = String(status || '').trim().toLowerCase();
+  const isInProcess = normalizedStatus !== 'delivered' && normalizedStatus !== 'cancelled';
+
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 400,
+      delay: index * 100,
+      useNativeDriver: true,
+    }).start();
+  // index and anim are stable refs — run once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (status === 'Cancelled') {
+      highlightAnim.stopAnimation();
+      Animated.sequence([
+        Animated.timing(highlightAnim, { toValue: 1, duration: 300, useNativeDriver: false }),
+        Animated.timing(highlightAnim, { toValue: 0, duration: 600, useNativeDriver: false }),
+      ]).start();
+    }
+  }, [status, highlightAnim]);
+
+  useEffect(() => {
+    let loop;
+    if (isInProcess) {
+      glowAnim.stopAnimation();
+      glowAnim.setValue(0);
+      loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 0, duration: 1500, useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+    } else {
+      glowAnim.stopAnimation();
+      glowAnim.setValue(0);
+    }
+    return () => {
+      if (loop) loop.stop();
+    };
+  }, [isInProcess, glowAnim]);
+
+  const highlightColor = highlightAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.bgSurface, colors.error + '1A'],
+  });
+
+  return (
+    <Animated.View
+      style={{
+        backgroundColor: highlightColor,
+        borderRadius: radius.md,
+      }}
+    >
+      <Animated.View
+        style={{
+          opacity: anim,
+          transform: [{
+            translateY: anim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [20, 0],
+            }),
+          }],
+        }}
+      >
+        <View style={{ position: 'relative' }}>
+          {children}
+          {isInProcess && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.glowBorder,
+                {
+                  opacity: glowAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.15, 0.65],
+                  }),
+                },
+              ]}
+            />
+          )}
+        </View>
+      </Animated.View>
+    </Animated.View>
+  );
+};
 
 export default function OrdersScreen() {
   const navigation = useNavigation();
@@ -226,113 +330,14 @@ export default function OrdersScreen() {
           canCancel: false,
         } : o));
       })
-      .catch(() => setIsError(true))
+      // Don't flip the full-screen error state for a single failed cancel —
+      // that would wipe the entire orders list. Show an inline alert and keep
+      // the list intact so the user can retry.
+      .catch(err => {
+        Alert.alert('Cancel failed', err?.message || 'Unable to cancel this order. Please try again.');
+      })
       .finally(() => setCancellingId(null));
   };
-
-// Defined outside OrdersScreen so hooks are stable across renders.
-// Mixing useNativeDriver:true (opacity/transform) with useNativeDriver:false
-// (backgroundColor) on the SAME Animated.View crashes React Native.
-// Fix: use two separate layers — a plain View for the JS-driven background color,
-// and an inner Animated.View for native opacity/transform.
-const FadeInItem = ({ children, index, status }) => {
-  const anim = useRef(new Animated.Value(0)).current;
-  const highlightAnim = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
-
-  const normalizedStatus = String(status || '').trim().toLowerCase();
-  const isInProcess = normalizedStatus !== 'delivered' && normalizedStatus !== 'cancelled';
-
-  useEffect(() => {
-    Animated.timing(anim, {
-      toValue: 1,
-      duration: 400,
-      delay: index * 100,
-      useNativeDriver: true,  // safe: only drives opacity + translateY
-    }).start();
-  // index and anim are stable refs — run once on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (status === 'Cancelled') {
-      highlightAnim.stopAnimation();
-      Animated.sequence([
-        Animated.timing(highlightAnim, { toValue: 1, duration: 300, useNativeDriver: false }),
-        Animated.timing(highlightAnim, { toValue: 0, duration: 600, useNativeDriver: false }),
-      ]).start();
-    }
-  }, [status, highlightAnim]);
-
-  useEffect(() => {
-    let loop;
-    if (isInProcess) {
-      glowAnim.stopAnimation();
-      glowAnim.setValue(0);
-      loop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
-          Animated.timing(glowAnim, { toValue: 0, duration: 1500, useNativeDriver: true }),
-        ])
-      );
-      loop.start();
-    } else {
-      glowAnim.stopAnimation();
-      glowAnim.setValue(0);
-    }
-    return () => {
-      if (loop) loop.stop();
-    };
-  }, [isInProcess, glowAnim]);
-
-  const highlightColor = highlightAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [colors.bgSurface, colors.error + '1A'],
-  });
-
-  // Outer Animated.View handles ONLY JS-driven backgroundColor (useNativeDriver:false).
-  // Inner Animated.View handles ONLY native opacity + translateY (useNativeDriver:true).
-  // Mixing both on a single node is what caused the crash.
-  return (
-    <Animated.View
-      style={{
-        backgroundColor: highlightColor,  // JS driver
-        borderRadius: radius.md,
-      }}
-    >
-      <Animated.View
-        style={{
-          opacity: anim,                   // native driver
-          transform: [{
-            translateY: anim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [20, 0],
-            }),
-          }],
-        }}
-      >
-        <View style={{ position: 'relative' }}>
-          {children}
-          {isInProcess && (
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.glowBorder,
-                {
-                  opacity: glowAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.15, 0.65],
-                  }),
-                },
-              ]}
-            />
-          )}
-        </View>
-      </Animated.View>
-    </Animated.View>
-  );
-};
-
 
   const getStatusColor = (status) => {
     switch(formatStatus(status)) {

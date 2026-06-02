@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ImagesApi } from '../api';
 import { normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
+import { getImageUploadError } from '../utils/fileValidation';
 import './Images.css';
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
@@ -35,6 +36,13 @@ export default function Images() {
   const handleUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    const sizeError = getImageUploadError(file);
+    if (sizeError) {
+      setUploadMessage({ type: 'error', text: sizeError });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     const data = new FormData();
     data.append('image', file);

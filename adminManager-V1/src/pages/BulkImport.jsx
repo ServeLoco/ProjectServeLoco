@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductsApi } from '../api';
+import { getFileSizeError, MAX_BULK_CSV_BYTES, MAX_BULK_ZIP_BYTES } from '../utils/fileValidation';
 import './BulkImport.css';
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
@@ -57,13 +58,35 @@ export default function BulkImport() {
   // ── Drag-and-drop ──────────────────────────────────────────────────────────
   const [dragOver, setDragOver] = useState(null); // 'csv' | 'zip' | null
 
+  const setUploadFile = (type, file) => {
+    if (!file) {
+      if (type === 'csv') setCsvFile(null);
+      else setZipFile(null);
+      return;
+    }
+
+    const errorMessage = type === 'csv'
+      ? getFileSizeError(file, MAX_BULK_CSV_BYTES, 'CSV/XLSX file')
+      : getFileSizeError(file, MAX_BULK_ZIP_BYTES, 'Image ZIP');
+
+    if (errorMessage) {
+      setError(errorMessage);
+      if (type === 'csv' && csvRef.current) csvRef.current.value = '';
+      if (type === 'zip' && zipRef.current) zipRef.current.value = '';
+      return;
+    }
+
+    setError(null);
+    if (type === 'csv') setCsvFile(file);
+    else setZipFile(file);
+  };
+
   const handleDrop = (type) => (e) => {
     e.preventDefault();
     setDragOver(null);
     const file = e.dataTransfer.files[0];
     if (!file) return;
-    if (type === 'csv') setCsvFile(file);
-    else setZipFile(file);
+    setUploadFile(type, file);
   };
 
   // ── Step 1 → Step 2 : Preview ─────────────────────────────────────────────
@@ -174,7 +197,7 @@ export default function BulkImport() {
                 type="file"
                 hidden
                 accept=".csv,.xlsx,.xls"
-                onChange={e => setCsvFile(e.target.files[0] || null)}
+                onChange={e => setUploadFile('csv', e.target.files[0] || null)}
               />
               <div className="bi-dropzone-icon">📄</div>
               {csvFile
@@ -197,7 +220,7 @@ export default function BulkImport() {
                 type="file"
                 hidden
                 accept=".zip"
-                onChange={e => setZipFile(e.target.files[0] || null)}
+                onChange={e => setUploadFile('zip', e.target.files[0] || null)}
               />
               <div className="bi-dropzone-icon">🗜️</div>
               {zipFile

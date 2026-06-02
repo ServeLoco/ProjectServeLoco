@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCartStore } from './useCartStore';
 
 /**
  * useAuthStore
@@ -18,20 +19,37 @@ export const useAuthStore = create(
       previewStartedAt: Date.now(),
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
-      
+
       setRedirectRoute: (route) => set({ redirectRoute: route }),
-      
-      setSession: (token, user) => 
-        set({ token, user, profile: user, isAuthenticated: true }),
-        
-      logout: () => 
+
+      setSession: (token, user) => {
+        // Clear any previous user's cart when a new session starts.
+        // Prevents cart bleed across user accounts on the same device.
+        try {
+          const cartState = useCartStore.getState();
+          const prevUserId = useAuthStore.getState()?.user?.id;
+          const newUserId = user?.id;
+          if (prevUserId && newUserId && String(prevUserId) !== String(newUserId)) {
+            cartState.clearCart?.();
+          }
+        } catch (_) {
+          // Best-effort; never block sign-in on this.
+        }
+        set({ token, user, profile: user, isAuthenticated: true });
+      },
+
+      logout: () => {
+        try {
+          useCartStore.getState()?.clearCart?.();
+        } catch (_) {}
         set({
           token: null,
           user: null,
           profile: null,
           isAuthenticated: false,
           previewStartedAt: Date.now(),
-        }),
+        });
+      },
         
       updateUser: (userData) => 
         set((state) => ({

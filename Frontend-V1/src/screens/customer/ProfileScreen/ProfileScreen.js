@@ -165,7 +165,7 @@ export default function ProfileScreen() {
               icon="Box"
               label="My Orders"
               caption="Track current and past orders"
-              onPress={() => navigation.navigate('Orders')}
+              onPress={() => navigation.navigate('MainTabs', { screen: 'Orders' })}
             />
             <MenuOption
               icon="Pin"
