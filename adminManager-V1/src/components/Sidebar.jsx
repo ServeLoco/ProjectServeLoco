@@ -1,50 +1,106 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import './Sidebar.css';
 
-const navItems = [
-  { path: '/', label: 'Dashboard' },
-  { path: '/orders', label: 'Orders' },
-  { path: '/products', label: 'Products / Items' },
-  { path: '/combos', label: 'Combos' },
-  { path: '/categories', label: 'Categories' },
-  { path: '/offers', label: 'Offers' },
-  { path: '/mobile-dashboard', label: 'Mobile Dashboard' },
-  { path: '/customers', label: 'Customers' },
-  { path: '/notifications', label: 'Notifications' },
-  { path: '/settings', label: 'Settings' },
-  { path: '/images', label: 'Images' },
-  { path: '/reports', label: 'Reports' },
-  { path: '/health', label: 'Backend Health' },
-  { path: '/audit', label: 'Activity / Audit Log' },
+const NAV_GROUPS = [
+  {
+    label: 'Operations',
+    items: [
+      { path: '/', label: 'Dashboard', icon: '⚡' },
+      { path: '/orders', label: 'Orders', icon: '📦' },
+    ],
+  },
+  {
+    label: 'Catalogue',
+    items: [
+      { path: '/products', label: 'Products', icon: '🏷️' },
+      { path: '/combos', label: 'Combos', icon: '🍱' },
+      { path: '/categories', label: 'Categories', icon: '🗂️' },
+      { path: '/offers', label: 'Offers', icon: '🎁' },
+    ],
+  },
+  {
+    label: 'Engagement',
+    items: [
+      { path: '/mobile-dashboard', label: 'App Home', icon: '📱' },
+      { path: '/customers', label: 'Customers', icon: '👥' },
+      { path: '/notifications', label: 'Notifications', icon: '🔔' },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { path: '/images', label: 'Images', icon: '🖼️' },
+      { path: '/settings', label: 'Settings', icon: '⚙️' },
+      { path: '/reports', label: 'Reports', icon: '📊' },
+      { path: '/health', label: 'System Health', icon: '💚' },
+      { path: '/audit', label: 'Audit Log', icon: '📋' },
+    ],
+  },
 ];
 
 export default function Sidebar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
-    <aside className="admin-sidebar">
-      <div className="sidebar-header">
-        <div className="sidebar-logo">SL</div>
-        <div className="sidebar-brand-text">
-          <span className="sidebar-brand-name">ServeLoco Admin</span>
-          <span className="sidebar-brand-subtitle">Operations Control</span>
+    <>
+      {/* Mobile hamburger */}
+      <button
+        className="sidebar-mobile-toggle"
+        onClick={() => setMobileOpen(o => !o)}
+        aria-label="Toggle navigation"
+      >
+        {mobileOpen ? '✕' : '☰'}
+      </button>
+
+      <aside className={`admin-sidebar${mobileOpen ? ' mobile-open' : ''}`}>
+        <div className="sidebar-header">
+          <div className="sidebar-logo">
+            <span className="sidebar-logo-text">SL</span>
+          </div>
+          <div className="sidebar-brand-text">
+            <span className="sidebar-brand-name">ServeLoco</span>
+            <span className="sidebar-brand-subtitle">Admin Panel</span>
+          </div>
         </div>
-      </div>
-      <nav className="sidebar-nav">
-        <ul className="sidebar-list">
-          {navItems.map(item => (
-            <li key={item.path}>
-              <NavLink 
-                to={item.path} 
-                className={({ isActive }) => 
-                  `sidebar-item-link${isActive ? ' active' : ''}`
-                }
-              >
-                {item.label}
-              </NavLink>
-            </li>
+
+        <nav className="sidebar-nav">
+          {NAV_GROUPS.map(group => (
+            <div key={group.label} className="sidebar-group">
+              <span className="sidebar-group-label">{group.label}</span>
+              <ul className="sidebar-list">
+                {group.items.map(item => (
+                  <li key={item.path}>
+                    <NavLink
+                      to={item.path}
+                      className={({ isActive }) =>
+                        `sidebar-item-link${isActive ? ' active' : ''}`
+                      }
+                      onClick={() => setMobileOpen(false)}
+                      end={item.path === '/'}
+                    >
+                      <span className="sidebar-icon">{item.icon}</span>
+                      <span className="sidebar-label">{item.label}</span>
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
-      </nav>
-    </aside>
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-footer-badge">
+            <span className="sidebar-footer-dot" />
+            <span>ServeLoco Admin</span>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="sidebar-mobile-backdrop" onClick={() => setMobileOpen(false)} />
+      )}
+    </>
   );
 }

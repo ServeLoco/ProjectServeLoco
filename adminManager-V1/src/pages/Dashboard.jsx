@@ -20,7 +20,6 @@ const getOrderStatusLabel = (status) => ORDER_STATUS_LABELS[status] || status ||
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 
-
 export default function Dashboard() {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,36 +42,21 @@ export default function Dashboard() {
   }, []);
 
   const queueDashboardRefresh = useCallback((delay = 350) => {
-    if (refreshTimerRef.current) {
-      clearTimeout(refreshTimerRef.current);
-    }
-
-    refreshTimerRef.current = setTimeout(() => {
-      fetchDashboardData(false);
-    }, delay);
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => fetchDashboardData(false), delay);
   }, [fetchDashboardData]);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+  useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
 
   useEffect(() => {
-    const unsubscribeOrders = subscribeAdminOrderEvents(() => {
-      queueDashboardRefresh();
-    });
-
+    const unsubscribeOrders = subscribeAdminOrderEvents(() => queueDashboardRefresh());
     const unsubscribeLifecycle = subscribeRealtimeLifecycle(({ eventName }) => {
-      if (eventName === 'reconnected' || eventName === 'visible') {
-        queueDashboardRefresh();
-      }
+      if (eventName === 'reconnected' || eventName === 'visible') queueDashboardRefresh();
     });
-
     return () => {
       unsubscribeOrders();
       unsubscribeLifecycle();
-      if (refreshTimerRef.current) {
-        clearTimeout(refreshTimerRef.current);
-      }
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     };
   }, [queueDashboardRefresh]);
 
@@ -94,18 +78,17 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Loading your dashboard...</p>
+        <div className="spinner" />
+        <p>Loading dashboard…</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="error-container">
-        <h3>Oops! Something went wrong.</h3>
-        <p>{error}</p>
-        <button onClick={fetchDashboardData} style={{ marginTop: '1rem', padding: '0.5rem 1rem' }}>Retry</button>
+      <div className="error-container" style={{ padding: '2rem', textAlign: 'center' }}>
+        <p style={{ fontWeight: 700, marginBottom: '1rem' }}>{error}</p>
+        <button className="btn-primary" onClick={fetchDashboardData}>Retry</button>
       </div>
     );
   }
@@ -118,48 +101,48 @@ export default function Dashboard() {
     <div className="dashboard-container">
       <header className="dashboard-header">
         <h1 className="dashboard-title">Overview</h1>
-        
+
         <div className="shop-status-card">
-          <span className="status-label">Shop Status</span>
-          <button 
+          <span className="status-label">Shop</span>
+          <button
             className={`status-toggle ${shop_open ? 'open' : 'closed'}`}
             onClick={handleToggleShopStatus}
             disabled={togglingShop}
           >
             <span className="status-dot">●</span>
-            {shop_open ? 'Open Accepting Orders' : 'Closed'}
+            {togglingShop ? 'Updating…' : shop_open ? 'Open' : 'Closed'}
           </button>
         </div>
       </header>
 
       <section className="metrics-grid">
-        <div className="metric-card">
+        <div className="metric-card sales">
           <div className="metric-icon icon-sales">₹</div>
           <span className="metric-title">Today's Sales</span>
-          <span className="metric-value">₹{sales.todaySales || 0}</span>
+          <span className="metric-value">₹{(sales.todaySales || 0).toLocaleString('en-IN')}</span>
         </div>
-        <div className="metric-card">
+        <div className="metric-card orders">
           <div className="metric-icon icon-orders">📦</div>
           <span className="metric-title">Today's Orders</span>
           <span className="metric-value">{sales.todayOrders || 0}</span>
         </div>
-        <div className="metric-card">
+        <div className="metric-card pending">
           <div className="metric-icon icon-pending">⏳</div>
           <span className="metric-title">Pending Orders</span>
           <span className="metric-value">{sales.pendingOrders || 0}</span>
         </div>
-        <div className="metric-card">
-          <div className="metric-icon icon-payments">💵</div>
+        <div className="metric-card payments">
+          <div className="metric-icon icon-payments">💳</div>
           <span className="metric-title">Pending Payments</span>
-          <span className="metric-value">₹{sales.pendingPaymentTotal || 0}</span>
+          <span className="metric-value">₹{(sales.pendingPaymentTotal || 0).toLocaleString('en-IN')}</span>
         </div>
       </section>
 
       <div className="dashboard-content-grid">
         <section className="section-card">
           <div className="section-header">
-            <h2 className="section-title">Latest Orders</h2>
-            <Link to="/orders" style={{ fontSize: '0.9rem', fontWeight: 600 }}>View All</Link>
+            <h2 className="section-title">📋 Latest Orders</h2>
+            <Link to="/orders" style={{ fontSize: '0.85rem', fontWeight: 700 }}>View All →</Link>
           </div>
           {latest_orders.length > 0 ? (
             <table className="latest-orders-table">
@@ -176,7 +159,7 @@ export default function Dashboard() {
                   <tr key={order.id}>
                     <td className="order-number">#{order.order_number}</td>
                     <td>{order.customer_name}</td>
-                    <td style={{ fontWeight: 600 }}>₹{order.total}</td>
+                    <td style={{ fontWeight: 700 }}>₹{Number(order.total).toLocaleString('en-IN')}</td>
                     <td>
                       <span className={`status-badge ${order.status.toLowerCase().replace(/ /g, '-')}`}>
                         {getOrderStatusLabel(order.status)}
@@ -191,10 +174,10 @@ export default function Dashboard() {
           )}
         </section>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <section className="section-card">
             <div className="section-header">
-              <h2 className="section-title">Top Items</h2>
+              <h2 className="section-title">🏆 Top Items</h2>
             </div>
             {top_products.length > 0 ? (
               <ul className="top-products-list">
@@ -203,13 +186,15 @@ export default function Dashboard() {
                     <div className="top-product-info">
                       <span className="top-product-name">
                         {prod.product_name}
-                        {prod.item_type === 'combo' && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', backgroundColor: 'var(--bg-elevated)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>Combo</span>}
+                        {prod.item_type === 'combo' && (
+                          <span style={{ marginLeft: '0.4rem', fontSize: '0.68rem', background: 'var(--surface-soft)', padding: '1px 6px', borderRadius: '4px', color: 'var(--text-secondary)', verticalAlign: 'middle' }}>
+                            Combo
+                          </span>
+                        )}
                       </span>
                       <span className="top-product-qty">{prod.total_quantity} sold</span>
                     </div>
-                    <div className="top-product-sales">
-                      ₹{prod.total_sales}
-                    </div>
+                    <div className="top-product-sales">₹{Number(prod.total_sales).toLocaleString('en-IN')}</div>
                   </li>
                 ))}
               </ul>
@@ -221,12 +206,12 @@ export default function Dashboard() {
           {product_alerts.length > 0 && (
             <section className="section-card">
               <div className="section-header">
-                <h2 className="section-title" style={{ color: 'var(--danger-color)' }}>Out of Stock Alerts</h2>
+                <h2 className="section-title" style={{ color: 'var(--danger-color)' }}>⚠️ Out of Stock</h2>
               </div>
               <div className="alerts-list">
                 {product_alerts.map(prod => (
                   <div key={prod.id} className="alert-item">
-                    <strong>{prod.name}</strong> is currently marked unavailable.
+                    <strong>{prod.name}</strong> is currently unavailable.
                   </div>
                 ))}
               </div>
