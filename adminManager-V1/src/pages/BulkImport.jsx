@@ -240,12 +240,14 @@ export default function BulkImport() {
               </div>
               <div>
                 <strong>Optional</strong>
-                <code>description, available, featured, display_order, original_price, discount_label</code>
+                <code>description, available, featured, display_order, original_price, discount_label, mode</code>
               </div>
             </div>
             <div className="bi-guide-note">
               💡 Image filenames must be lowercase with hyphens, e.g. <code>coca-cola-500ml.webp</code>
               &nbsp;— exactly matching the <code>image_file</code> column in the CSV.
+              <br />
+              💡 The optional <code>mode</code> column accepts <code>packed</code> or <code>fast_food</code> to override auto-detection.
             </div>
           </div>
 
