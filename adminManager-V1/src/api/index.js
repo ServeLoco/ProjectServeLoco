@@ -53,6 +53,8 @@ export const ProductsApi = {
   ),
   bulkPreview: (formData) => apiClient('/admin/products/bulk-import?preview=true', { method: 'POST', body: formData }),
   bulkImport: (formData) => apiClient('/admin/products/bulk-import', { method: 'POST', body: formData }),
+  bulkUpdate: (ids, updates) => apiClient('/admin/products/bulk', { method: 'PATCH', body: { ids, updates } }),
+  bulkDelete: (ids) => apiClient('/admin/products/bulk', { method: 'DELETE', body: { ids } }),
 };
 
 export const CombosApi = {

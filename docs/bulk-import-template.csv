@@ -1,11 +1,7 @@
-name,price,category_id,unit,image_file,description,available,featured,display_order,original_price,discount_label
-Coca-Cola 500ml,40,1,500ml,coca-cola-500ml.webp,Chilled classic cola refreshment,true,true,1,50,20% OFF
-Lays Magic Masala 52g,20,2,52g,lays-magic-masala-52g.webp,Spicy and tangy potato chips,true,false,1,,
-Sprite 750ml,45,1,750ml,sprite-750ml.webp,Cool lime flavoured carbonated drink,true,false,2,,
-Amul Butter 100g,55,3,100g,amul-butter-100g.webp,Fresh and creamy white butter,true,false,1,,
-Veg Cheese Burger,120,4,1 Burger,veg-cheese-burger.webp,Loaded with cheese and fresh veggies in a toasted bun,true,true,1,150,20% OFF
-Masala Dosa,80,4,1 Plate,masala-dosa.webp,Crispy dosa with spiced potato filling and chutneys,true,false,2,,
-Maggi Noodles 70g,15,2,70g,maggi-noodles-70g.webp,Classic instant noodles,true,false,2,,
-Amul Milk 500ml,33,3,500ml,amul-milk-500ml.webp,Full cream fresh pasteurised milk,true,false,2,,
-Chocolate Brownie,90,5,1 pc,chocolate-brownie.webp,Rich and fudgy dark chocolate brownie,true,true,1,,
-Cold Coffee,70,5,300ml,cold-coffee.webp,Chilled creamy cold coffee with a hint of sweetness,true,false,2,,
+mode,category,category_id,id,product_id,name,price,unit,image_file,description,available,featured,display_order,original_price,discount_label
+packed,Snacks,,,,Lays Magic Masala 52g,20,52g,lays-magic-masala-52g.webp,Classic masala flavour chips,TRUE,FALSE,0,,
+packed,Cold Drinks,,,,Coca Cola 500ml,40,500ml,coca-cola-500ml.webp,Chilled cola,TRUE,FALSE,0,45,10% OFF
+packed,Groceries,,,,Amul Butter 100g,55,100g,amul-butter-100g.webp,,TRUE,FALSE,0,,
+fast_food,Fast Food,,,,Veg Burger,80,1 Piece,veg-burger.webp,Crispy veg patty burger,TRUE,TRUE,1,,
+fast_food,Desserts,,,,Chocolate Brownie,60,1 Piece,choco-brownie.webp,Rich fudgy brownie,TRUE,FALSE,0,,
+packed,Snacks,,42,,Lays Magic Masala 52g,22,52g,,,TRUE,FALSE,0,,
