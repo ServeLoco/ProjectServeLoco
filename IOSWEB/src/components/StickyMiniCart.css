@@ -1,0 +1,51 @@
+.sticky-mini-cart {
+  position: fixed;
+  bottom: calc(96px + env(safe-area-inset-bottom)); /* above the floating pill nav (16 + 64 + 16 gap) */
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 398px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--btn-dark-start), var(--btn-dark-end));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-xl);
+  z-index: 49;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+}
+
+.cart-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-inverse);
+}
+
+.cart-icon {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.cart-count {
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-md);
+}
+
+.cart-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-inverse);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-md);
+}
+
+.chevron-right {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}

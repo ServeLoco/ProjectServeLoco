@@ -272,6 +272,9 @@ export default function BulkImport() {
               </div>
             </div>
             <div className="bi-guide-note">
+              💡 Image filenames must be lowercase with hyphens, e.g. <code>coca-cola-500ml.webp</code>
+              &nbsp;— exactly matching the <code>image_file</code> column in the CSV.
+              <br />
               💡 <strong>mode</strong> accepted values: <code>packed</code> · <code>packed items</code> · <code>fast</code> · <code>fast food</code> · <code>fast_food</code>
               <br />
               💡 For <strong>updates</strong>, supply <code>id</code> or <code>product_id</code> to target by ID, or use name+category to match. Omit <code>image_file</code> to keep the existing image.

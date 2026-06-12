@@ -1,0 +1,120 @@
+.global-order-alerts {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.order-alert-toast {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--primary-color);
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  pointer-events: auto;
+  cursor: pointer;
+  animation: slideInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  min-width: 320px;
+}
+
+.order-alert-toast:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-primary);
+}
+
+.order-alert-icon {
+  font-size: 1.5rem;
+  background: var(--primary-soft);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: bounceAlert 1s ease-in-out 2;
+}
+
+.order-alert-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.order-alert-content strong {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-family: 'Outfit', 'Inter', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.order-alert-content span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.order-alert-hint {
+  font-size: 0.75rem !important;
+  color: var(--text-muted) !important;
+  margin-top: 0.15rem;
+  font-weight: 500 !important;
+}
+
+.order-alert-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: -0.25rem;
+  margin-right: -0.25rem;
+}
+
+.order-alert-close:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes bounceAlert {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.15) rotate(12deg); }
+  75% { transform: scale(1.15) rotate(-12deg); }
+}
+
+@media (max-width: 600px) {
+  .global-order-alerts {
+    bottom: 1rem;
+    right: 1rem;
+    left: 1rem;
+  }
+  .order-alert-toast {
+    min-width: 0;
+    width: 100%;
+  }
+}
