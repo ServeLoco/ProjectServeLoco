@@ -1,0 +1,28 @@
+.categories-screen {
+  padding-bottom: 140px;
+}
+
+.cat-header {
+  background: var(--bg-surface);
+  padding: var(--space-md) var(--screen-padding-h);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cat-title {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+}
+
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--screen-padding-h);
+}

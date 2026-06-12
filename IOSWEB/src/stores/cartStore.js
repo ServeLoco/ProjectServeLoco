@@ -1,0 +1,65 @@
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+export const useCartStore = create(
+  persist(
+    (set, get) => ({
+      items: [], // [{ product: { id, name, price, unit, imageUrl }, quantity, type: 'product'|'combo' }]
+
+      addItem: (product, quantity = 1) => set((state) => {
+        const existing = state.items.find(i => i.product.id === product.id && i.type === 'product');
+        if (existing) {
+          return {
+            items: state.items.map(i =>
+              i.product.id === product.id && i.type === 'product'
+                ? { ...i, quantity: i.quantity + quantity }
+                : i
+            )
+          };
+        }
+        return { items: [...state.items, { product, quantity, type: 'product' }] };
+      }),
+
+      addCombo: (combo, quantity = 1) => set((state) => {
+        const existing = state.items.find(i => i.product.id === combo.id && i.type === 'combo');
+        if (existing) {
+          return {
+            items: state.items.map(i =>
+              i.product.id === combo.id && i.type === 'combo'
+                ? { ...i, quantity: i.quantity + quantity }
+                : i
+            )
+          };
+        }
+        return { items: [...state.items, { product: combo, quantity, type: 'combo' }] };
+      }),
+
+      removeItem: (productId, type = 'product') => set((state) => ({
+        items: state.items.filter(i => !(i.product.id === productId && i.type === type))
+      })),
+
+      updateQty: (productId, quantity, type = 'product') => set((state) => {
+        if (quantity <= 0) {
+          return { items: state.items.filter(i => !(i.product.id === productId && i.type === type)) };
+        }
+        return {
+          items: state.items.map(i =>
+            i.product.id === productId && i.type === type
+              ? { ...i, quantity }
+              : i
+          )
+        };
+      }),
+
+      clearCart: () => set({ items: [] }),
+
+      // Derived state
+      getTotalItems: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
+      getDisplayTotal: () => get().items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0),
+    }),
+    {
+      name: 'serveloco-customer-cart',
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);
