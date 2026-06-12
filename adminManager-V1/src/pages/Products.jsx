@@ -16,29 +16,28 @@ export default function Products() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
-  // Normal products require category. Combos are bundles and do not require category.
   const [filters, setFilters] = useState({
     search: '',
     category_id: '',
     available: '',
     featured: '',
-    is_combo: '0', // Default to normal products
+    is_combo: '0',
     type: 'packed'
   });
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [bulkCategoryId, setBulkCategoryId] = useState('');
+  // Inline delete confirmation state
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  useEffect(() => { fetchCategories(); }, []);
 
-  // Debounce all filter changes — 500ms delay prevents API spam while typing
   useEffect(() => {
     const timer = setTimeout(() => fetchProducts(1), 500);
     return () => clearTimeout(timer);
@@ -61,13 +60,10 @@ export default function Products() {
       setError(null);
       const params = { page, limit: 20, ...filters };
       Object.keys(params).forEach(k => !params[k] && params[k] !== false && delete params[k]);
-
       const res = await ProductsApi.list(params);
       setProducts(readProducts(res));
-      if (res.pagination) {
-        setPagination(res.pagination);
-      }
-      setSelectedIds([]); // clear selection on page change
+      if (res.pagination) setPagination(res.pagination);
+      setSelectedIds([]);
     } catch (err) {
       console.error(err);
       setError(GENERIC_ERROR);
@@ -82,14 +78,17 @@ export default function Products() {
   };
 
   const toggleSelection = (id) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
   const selectAll = () => {
     if (selectedIds.length === products.length) setSelectedIds([]);
     else setSelectedIds(products.map(p => p.id));
+  };
+
+  const showSuccess = (msg) => {
+    setSuccessMessage(msg);
+    setTimeout(() => setSuccessMessage(null), 4000);
   };
 
   const toggleAvailability = async (product) => {
@@ -103,23 +102,16 @@ export default function Products() {
     }
   };
 
-  // Bulk Actions — use allSettled so partial failures don't hide successful ops.
-  const runBulk = async (ids, action) => {
-    const results = await Promise.allSettled(ids.map(id => action(id).then(() => id)));
-    const failed = results
-      .map((r, i) => (r.status === 'rejected' ? { id: ids[i], reason: r.reason?.message || 'failed' } : null))
-      .filter(Boolean);
-    return failed;
-  };
-
-  const handleBulkAvailability = async (available) => {
-    if (!window.confirm(`Mark ${selectedIds.length} products as ${available ? 'In Stock' : 'Out of Stock'}?`)) return;
+  // Generic bulk action using the new batch APIs
+  const runBulkUpdate = async (updates, successLabel) => {
     setBulkUpdating(true);
+    setError(null);
     try {
-      const failed = await runBulk(selectedIds, id => ProductsApi.updateAvailability(id, available));
-      if (failed.length) {
-        setError(`Updated ${selectedIds.length - failed.length} of ${selectedIds.length}. Failed ids: ${failed.map(f => f.id).join(', ')}.`);
-      }
+      const res = await ProductsApi.bulkUpdate(selectedIds, updates);
+      const msg = res.skipped > 0
+        ? `${res.updated} products updated. ${res.skipped} skipped (already deleted).`
+        : `${res.updated} products ${successLabel}.`;
+      showSuccess(msg);
       fetchProducts(pagination.page);
     } catch (err) {
       console.error(err);
@@ -129,14 +121,28 @@ export default function Products() {
     }
   };
 
+  const handleBulkAvailability = (available) =>
+    runBulkUpdate({ available }, available ? 'marked in stock' : 'marked out of stock');
+
+  const handleBulkFeatured = (featured) =>
+    runBulkUpdate({ featured }, featured ? 'marked as featured' : 'removed from featured');
+
+  const handleBulkMoveCategory = async () => {
+    if (!bulkCategoryId) return;
+    await runBulkUpdate({ category_id: Number(bulkCategoryId) }, 'moved to category');
+    setBulkCategoryId('');
+  };
+
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} products?`)) return;
     setBulkUpdating(true);
+    setError(null);
+    setConfirmDelete(false);
     try {
-      const failed = await runBulk(selectedIds, id => ProductsApi.delete(id));
-      if (failed.length) {
-        setError(`Deleted ${selectedIds.length - failed.length} of ${selectedIds.length}. Failed ids: ${failed.map(f => f.id).join(', ')}.`);
-      }
+      const res = await ProductsApi.bulkDelete(selectedIds);
+      const msg = res.skipped > 0
+        ? `${res.deleted} products deleted. ${res.skipped} skipped (already removed).`
+        : `${res.deleted} products deleted.`;
+      showSuccess(msg);
       fetchProducts(1);
     } catch (err) {
       console.error(err);
@@ -146,20 +152,12 @@ export default function Products() {
     }
   };
 
-  const openCreateDrawer = () => {
-    setEditingProduct(null);
-    setDrawerOpen(true);
-  };
+  const openCreateDrawer = () => { setEditingProduct(null); setDrawerOpen(true); };
+  const openEditDrawer = (product) => { setEditingProduct(product); setDrawerOpen(true); };
+  const closeDrawer = () => { setDrawerOpen(false); setEditingProduct(null); };
 
-  const openEditDrawer = (product) => {
-    setEditingProduct(product);
-    setDrawerOpen(true);
-  };
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    setEditingProduct(null);
-  };
+  // Categories filtered by current mode tab for the move-to-category dropdown
+  const filteredCategoriesForBulk = categories.filter(c => c.type === filters.type && !c.deleted);
 
   return (
     <div className="products-container">
@@ -172,14 +170,14 @@ export default function Products() {
       </header>
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-        <button 
+        <button
           className={`btn-secondary ${filters.type === 'packed' ? 'active' : ''}`}
           style={filters.type === 'packed' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
           onClick={() => setFilters(prev => ({ ...prev, type: 'packed', category_id: '' }))}
         >
           Packed Items
         </button>
-        <button 
+        <button
           className={`btn-secondary ${filters.type === 'fast_food' ? 'active' : ''}`}
           style={filters.type === 'fast_food' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
           onClick={() => setFilters(prev => ({ ...prev, type: 'fast_food', category_id: '' }))}
@@ -190,12 +188,8 @@ export default function Products() {
 
       <section className="filter-bar">
         <input
-          type="text"
-          name="search"
-          placeholder="Search product name..."
-          className="filter-input filter-search"
-          value={filters.search}
-          onChange={handleFilterChange}
+          type="text" name="search" placeholder="Search product name..."
+          className="filter-input filter-search" value={filters.search} onChange={handleFilterChange}
         />
         <select name="category_id" className="filter-select" value={filters.category_id} onChange={handleFilterChange}>
           <option value="">All Categories</option>
@@ -220,11 +214,43 @@ export default function Products() {
           <div className="bulk-actions-buttons">
             <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkAvailability(true)}>Mark In Stock</button>
             <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkAvailability(false)}>Mark Out of Stock</button>
-            <button className="btn-secondary" style={{ borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }} disabled={bulkUpdating} onClick={handleBulkDelete}>Delete</button>
+            <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkFeatured(true)}>⭐ Mark Featured</button>
+            <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkFeatured(false)}>Remove Featured</button>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <select
+                className="filter-select"
+                style={{ margin: 0 }}
+                value={bulkCategoryId}
+                onChange={e => setBulkCategoryId(e.target.value)}
+              >
+                <option value="">Move to Category...</option>
+                {filteredCategoriesForBulk.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <button className="btn-secondary" disabled={bulkUpdating || !bulkCategoryId} onClick={handleBulkMoveCategory}>Move</button>
+            </div>
+            {!confirmDelete ? (
+              <button
+                className="btn-secondary"
+                style={{ borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }}
+                disabled={bulkUpdating}
+                onClick={() => setConfirmDelete(true)}
+              >
+                Delete
+              </button>
+            ) : (
+              <div className="bi-confirm-bar" style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center', background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '6px', padding: '0.35rem 0.75rem' }}>
+                <span style={{ fontSize: '0.85rem', color: '#856404' }}>⚠️ Delete {selectedIds.length} products?</span>
+                <button className="btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem', borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }} disabled={bulkUpdating} onClick={handleBulkDelete}>Yes, Delete</button>
+                <button className="btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setConfirmDelete(false)}>Cancel</button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
+      {successMessage && <div className="success-container" style={{ margin: '0 0 1rem 0', padding: '0.75rem 1rem', background: '#d4edda', border: '1px solid #c3e6cb', borderRadius: '6px', color: '#155724' }}>{successMessage}</div>}
       {error && <div className="error-container" style={{ margin: '0 0 2rem 0' }}>{error}</div>}
 
       <section className="products-table-wrapper">
@@ -232,9 +258,9 @@ export default function Products() {
           <thead>
             <tr>
               <th style={{ width: '40px' }}>
-                <input 
-                  type="checkbox" 
-                  checked={products.length > 0 && selectedIds.length === products.length} 
+                <input
+                  type="checkbox"
+                  checked={products.length > 0 && selectedIds.length === products.length}
                   onChange={selectAll}
                 />
               </th>
@@ -273,7 +299,7 @@ export default function Products() {
                   <td>{p.category_name}</td>
                   <td>{p.display_order || 0}</td>
                   <td>
-                    <button 
+                    <button
                       className={`availability-toggle ${p.available ? 'in-stock' : 'out-of-stock'}`}
                       onClick={() => toggleAvailability(p)}
                     >
@@ -288,34 +314,20 @@ export default function Products() {
             )}
           </tbody>
         </table>
-        
+
         <div className="pagination-controls">
-          <button 
-            className="btn-secondary" 
-            disabled={pagination.page <= 1 || loading}
-            onClick={() => fetchProducts(pagination.page - 1)}
-          >
-            Previous
-          </button>
-          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-            Page {pagination.page} of {pagination.totalPages}
-          </span>
-          <button 
-            className="btn-secondary" 
-            disabled={pagination.page >= pagination.totalPages || loading}
-            onClick={() => fetchProducts(pagination.page + 1)}
-          >
-            Next
-          </button>
+          <button className="btn-secondary" disabled={pagination.page <= 1 || loading} onClick={() => fetchProducts(pagination.page - 1)}>Previous</button>
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Page {pagination.page} of {pagination.totalPages}</span>
+          <button className="btn-secondary" disabled={pagination.page >= pagination.totalPages || loading} onClick={() => fetchProducts(pagination.page + 1)}>Next</button>
         </div>
       </section>
 
       {drawerOpen && (
-        <ProductFormDrawer 
-          product={editingProduct} 
+        <ProductFormDrawer
+          product={editingProduct}
           categories={categories}
           currentMode={filters.type}
-          onClose={closeDrawer} 
+          onClose={closeDrawer}
           onSave={() => { closeDrawer(); fetchProducts(pagination.page); }}
         />
       )}
@@ -323,26 +335,17 @@ export default function Products() {
   );
 }
 
-// Separate Component for the Drawer
+// Separate Component for the Drawer — unchanged from original
 function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }) {
   const isEdit = !!product;
   const initialMode = product?.category_type || categories.find(c => String(c.id) === String(product?.category_id))?.type || currentMode || 'packed';
   const [productMode, setProductMode] = useState(initialMode);
   const [formData, setFormData] = useState(product || {
-    name: '',
-    description: '',
-    price: '',
-    original_price: '',
-    unit: '',
-    category_id: '',
-    display_order: 0,
-    available: true,
-    featured: false,
-    discount_label: '',
-    image_id: '',
-    image_url: ''
+    name: '', description: '', price: '', original_price: '', unit: '',
+    category_id: '', display_order: 0, available: true, featured: false,
+    discount_label: '', image_id: '', image_url: ''
   });
-  
+
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -351,10 +354,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleModeChange = (e) => {
@@ -362,37 +362,27 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
     setProductMode(nextMode);
     setFormData(prev => {
       const selectedCategory = categories.find(c => String(c.id) === String(prev.category_id));
-      return {
-        ...prev,
-        category_id: selectedCategory?.type === nextMode ? prev.category_id : '',
-      };
+      return { ...prev, category_id: selectedCategory?.type === nextMode ? prev.category_id : '' };
     });
   };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const sizeError = getImageUploadError(file);
     if (sizeError) {
       setUploadMessage({ type: 'error', text: sizeError });
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
-
     const data = new FormData();
     data.append('image', file);
-
     try {
       setUploadingImage(true);
       setUploadMessage(null);
       const res = await ImagesApi.upload(data);
       const image = getUploadedImage(res);
-      setFormData(prev => ({
-        ...prev,
-        image_id: image.id,
-        image_url: image.url,
-      }));
+      setFormData(prev => ({ ...prev, image_id: image.id, image_url: image.url }));
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the product to apply it.' });
     } catch (err) {
       console.error(err);
@@ -409,7 +399,6 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       setSaving(true);
       const price = Number(formData.price);
       const originalPrice = formData.original_price ? Number(formData.original_price) : null;
-
       if (!Number.isFinite(price) || price < 0) {
         alert('Product price must be a valid non-negative number.');
         setSaving(false);
@@ -420,29 +409,10 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
         setSaving(false);
         return;
       }
-
-      // Convert number strings
-      const payload = {
-        ...formData,
-        price,
-        original_price: originalPrice,
-        display_order: Number(formData.display_order) || 0,
-        imageId: formData.image_id,
-        image_id: formData.image_id,
-      };
-
+      const payload = { ...formData, price, original_price: originalPrice, display_order: Number(formData.display_order) || 0, imageId: formData.image_id, image_id: formData.image_id };
       const selectedCat = categories.find(c => c.id.toString() === formData.category_id.toString());
-      if (!selectedCat) {
-        alert('Please select a category for this product.');
-        setSaving(false);
-        return;
-      }
-      if (selectedCat.type !== productMode) {
-        alert('Selected category does not match the chosen product mode.');
-        setSaving(false);
-        return;
-      }
-
+      if (!selectedCat) { alert('Please select a category for this product.'); setSaving(false); return; }
+      if (selectedCat.type !== productMode) { alert('Selected category does not match the chosen product mode.'); setSaving(false); return; }
       if (isEdit) {
         if (product.category_id && formData.category_id && product.category_id.toString() !== formData.category_id.toString()) {
           const oldCat = categories.find(c => c.id.toString() === product.category_id.toString());
@@ -461,9 +431,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       } else {
         const created = await ProductsApi.create(payload);
         const productId = created.id || created.product?.id || created.data?.id;
-        if (productId && formData.image_id) {
-          await ProductsApi.attachImage(productId, formData.image_id);
-        }
+        if (productId && formData.image_id) await ProductsApi.attachImage(productId, formData.image_id);
       }
       onSave();
     } catch (err) {
@@ -494,14 +462,12 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
             <h3 className="drawer-title">{isEdit ? 'Edit Product' : 'New Product'}</h3>
             <button type="button" className="drawer-close" onClick={onClose}>&times;</button>
           </div>
-          
           <div className="drawer-body">
             {formError && <div className="error-container" style={{ marginBottom: '1rem' }}>{formError}</div>}
             <div className="form-group">
               <label className="form-label">Product Name</label>
               <input required type="text" name="name" className="form-input" value={formData.name} onChange={handleChange} />
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Price (₹)</label>
@@ -512,7 +478,6 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
                 <input type="number" min="0" step="0.01" name="original_price" className="form-input" placeholder="Optional" value={formData.original_price || ''} onChange={handleChange} />
               </div>
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Product Mode</label>
@@ -526,26 +491,21 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
                 <select required name="category_id" className="form-select" value={formData.category_id} onChange={handleChange}>
                   <option value="">Select {productMode === 'fast_food' ? 'Fast Food' : 'Packed Items'} Category</option>
                   {categories.filter(c => c.type === productMode).map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.type === 'fast_food' ? 'Fast Food' : 'Packed Items'})
-                    </option>
+                    <option key={c.id} value={c.id}>{c.name} ({c.type === 'fast_food' ? 'Fast Food' : 'Packed Items'})</option>
                   ))}
                 </select>
               </div>
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Unit (e.g., 1 Plate)</label>
                 <input type="text" name="unit" className="form-input" value={formData.unit || ''} onChange={handleChange} />
               </div>
             </div>
-
             <div className="form-group">
               <label className="form-label">Description</label>
               <textarea name="description" className="form-textarea" value={formData.description || ''} onChange={handleChange} />
             </div>
-
             <div className="form-group">
               <label className="form-label">Product Image</label>
               <p className="image-dimension-hint">{IMAGE_GUIDANCE.product.label}</p>
@@ -554,11 +514,8 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
                 <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
                 {uploadingImage ? 'Uploading...' : 'Click to Upload Image'}
               </div>
-              {uploadMessage && (
-                <p className={`upload-message ${uploadMessage.type}`}>{uploadMessage.text}</p>
-              )}
+              {uploadMessage && <p className={`upload-message ${uploadMessage.type}`}>{uploadMessage.text}</p>}
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Display Order</label>
@@ -569,7 +526,6 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
                 <input type="text" name="discount_label" className="form-input" placeholder="e.g. 20% OFF" value={formData.discount_label || ''} onChange={handleChange} />
               </div>
             </div>
-
             <div className="form-row" style={{ marginTop: '1rem', gap: '2rem' }}>
               <label className="checkbox-label">
                 <input type="checkbox" name="available" checked={formData.available} onChange={handleChange} />
@@ -581,17 +537,12 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
               </label>
             </div>
           </div>
-
           <div className="drawer-footer">
             {isEdit && (
-              <button type="button" className="action-link danger" onClick={handleDelete} disabled={saving} style={{ marginRight: 'auto' }}>
-                Delete Product
-              </button>
+              <button type="button" className="action-link danger" onClick={handleDelete} disabled={saving} style={{ marginRight: 'auto' }}>Delete Product</button>
             )}
             <button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
-            <button type="submit" className="btn-primary" disabled={saving || uploadingImage}>
-              {saving ? 'Saving...' : 'Save Product'}
-            </button>
+            <button type="submit" className="btn-primary" disabled={saving || uploadingImage}>{saving ? 'Saving...' : 'Save Product'}</button>
           </div>
         </form>
       </div>

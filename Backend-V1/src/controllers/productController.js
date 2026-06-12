@@ -431,3 +431,91 @@ module.exports = {
   updateProductAvailability,
   updateProductImage
 };
+
+const bulkUpdateProducts = async (req, res) => {
+  const { ids, updates } = req.body;
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: '`ids` must be a non-empty array of product IDs.' });
+  }
+  const numericIds = ids.map(id => parseInt(id, 10)).filter(id => Number.isFinite(id) && id > 0);
+  if (numericIds.length === 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No valid numeric product IDs provided.' });
+  }
+
+  const ALLOWED = ['available', 'featured', 'category_id'];
+  if (!updates || typeof updates !== 'object') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: '`updates` object is required.' });
+  }
+  const updateKeys = Object.keys(updates).filter(k => updates[k] !== undefined && updates[k] !== null && updates[k] !== '');
+  const disallowed = updateKeys.filter(k => !ALLOWED.includes(k));
+  if (disallowed.length > 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Unsupported update fields: ${disallowed.join(', ')}. Allowed: ${ALLOWED.join(', ')}.` });
+  }
+  const validKeys = updateKeys.filter(k => ALLOWED.includes(k));
+  if (validKeys.length === 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'At least one update field is required (available, featured, or category_id).' });
+  }
+
+  if (updates.category_id !== undefined) {
+    const catId = parseInt(updates.category_id, 10);
+    if (!Number.isFinite(catId) || catId <= 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: '`category_id` must be a valid positive integer.' });
+    }
+    const [cats] = await pool.query('SELECT id FROM categories WHERE id = ? AND deleted = 0', [catId]);
+    if (cats.length === 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Category ID ${catId} does not exist or has been deleted.` });
+    }
+    updates.category_id = catId;
+  }
+
+  const [existing] = await pool.query('SELECT id FROM products WHERE id IN (?) AND deleted = 0', [numericIds]);
+  const validIds = existing.map(r => r.id);
+  const skipped = numericIds.length - validIds.length;
+
+  if (validIds.length === 0) {
+    return res.status(200).json({ updated: 0, skipped: numericIds.length, errors: [] });
+  }
+
+  const setClauses = [];
+  const setValues = [];
+
+  if (validKeys.includes('available')) {
+    setClauses.push('available = ?');
+    setValues.push(updates.available === true || updates.available === 'true' || updates.available === 1 ? 1 : 0);
+  }
+  if (validKeys.includes('featured')) {
+    setClauses.push('featured = ?');
+    setValues.push(updates.featured === true || updates.featured === 'true' || updates.featured === 1 ? 1 : 0);
+  }
+  if (validKeys.includes('category_id')) {
+    setClauses.push('category_id = ?');
+    setValues.push(updates.category_id);
+  }
+
+  setValues.push(validIds);
+  await pool.query(`UPDATE products SET ${setClauses.join(', ')} WHERE id IN (?)`, setValues);
+
+  return res.status(200).json({ updated: validIds.length, skipped, errors: [] });
+};
+
+const bulkDeleteProducts = async (req, res) => {
+  const { ids } = req.body;
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: '`ids` must be a non-empty array of product IDs.' });
+  }
+  const numericIds = ids.map(id => parseInt(id, 10)).filter(id => Number.isFinite(id) && id > 0);
+  if (numericIds.length === 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No valid numeric product IDs provided.' });
+  }
+
+  const [result] = await pool.query('UPDATE products SET deleted = 1 WHERE id IN (?) AND deleted = 0', [numericIds]);
+  const deleted = result.affectedRows;
+  const skipped = numericIds.length - deleted;
+
+  return res.status(200).json({ deleted, skipped, errors: [] });
+};
+
+// Re-export with bulk additions
+Object.assign(module.exports, { bulkUpdateProducts, bulkDeleteProducts });

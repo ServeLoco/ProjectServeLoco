@@ -195,6 +195,33 @@
 .bi-stat-card.update .bi-stat-value { color: #b45309; }
 .bi-stat-card.danger { border-color: #fca5a5; }
 .bi-stat-card.danger .bi-stat-value { color: #dc2626; }
+.bi-stat-card.warn { border-color: #fcd34d; }
+.bi-stat-card.warn .bi-stat-value { color: #b45309; }
+
+/* Skipped rows section */
+.bi-skipped-section {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius-lg, 12px);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.bi-skipped-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+}
+.bi-row-skipped { background: rgba(251, 191, 36, 0.08); }
+.bi-error-name { font-weight: 600; color: var(--text-primary); flex-shrink: 0; }
 
 /* Validation errors */
 .bi-validation-errors {
@@ -252,6 +279,7 @@
 }
 .bi-action-badge.create { background: #dbeafe; color: #1d4ed8; }
 .bi-action-badge.update { background: #fef3c7; color: #92400e; }
+.bi-action-badge.valid { background: #dcfce7; color: #15803d; }
 
 /* Preview & commit actions */
 .bi-preview-actions {

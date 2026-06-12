@@ -3,7 +3,7 @@ const multer = require('multer');
 const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getPasswordResetRequests, approvePasswordResetRequest, rejectPasswordResetRequest, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
-const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage } = require('../controllers/productController');
+const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage, bulkUpdateProducts, bulkDeleteProducts } = require('../controllers/productController');
 const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability } = require('../controllers/comboController');
 const { getNotificationTemplates, updateNotificationTemplate, resetNotificationTemplate } = require('../controllers/notificationTemplateController');
 const { previewBulkImport, commitBulkImport } = require('../controllers/bulkImportController');
@@ -331,8 +331,14 @@ router.put('/categories/:id', requireAdmin, auditLog, validate(categorySchema), 
 router.delete('/categories/:id', requireAdmin, auditLog, asyncHandler(deleteCategory));
 
 router.get('/products', requireAdmin, asyncHandler(getAdminProducts));
-router.get('/products/:id', requireAdmin, asyncHandler(getAdminProductById));
 router.post('/products', requireAdmin, auditLog, validate(productSchema), asyncHandler(createProduct));
+
+// Bulk action routes — MUST be registered before /:id routes to prevent Express
+// matching the literal string "bulk" as a product ID parameter.
+router.patch('/products/bulk', requireAdmin, auditLog, asyncHandler(bulkUpdateProducts));
+router.delete('/products/bulk', requireAdmin, auditLog, asyncHandler(bulkDeleteProducts));
+
+router.get('/products/:id', requireAdmin, asyncHandler(getAdminProductById));
 router.put('/products/:id', requireAdmin, auditLog, validate(productSchema), asyncHandler(updateProduct));
 router.delete('/products/:id', requireAdmin, auditLog, asyncHandler(deleteProduct));
 router.patch('/products/:id/availability', requireAdmin, auditLog, validate(productAvailabilitySchema), asyncHandler(updateProductAvailability));
