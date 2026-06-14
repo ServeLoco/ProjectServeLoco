@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "VillKro",
+    "slug": "villkro",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#FF6B35"
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "VillKro uses your location to pin your delivery address.",
+        "NSPhotoLibraryUsageDescription": "VillKro lets admins choose product photos from the library."
+      }
+    },
+    "android": {
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "READ_MEDIA_IMAGES",
+        "POST_NOTIFICATIONS"
+      ],
+      "package": "com.yashsiwach.villkro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "96e49b89-ae8d-427e-ac57-b3c433db5782"
+      }
+    }
+  }
+}

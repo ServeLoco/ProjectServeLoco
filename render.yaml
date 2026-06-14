@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: serveloco-backend
+    name: villkro-api
     env: docker
     region: oregon
     plan: free # Change this if you need a paid plan
-    rootDir: Backend-V1
+    rootDir: apps/api
     dockerfilePath: ./Dockerfile
     envVars:
       - key: NODE_ENV
@@ -37,10 +37,10 @@ services:
         sync: false
 
   - type: web
-    name: serveloco-admin
+    name: villkro-admin
     env: static
-   
-    rootDir: adminManager-V1
+
+    rootDir: apps/admin
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     envVars:

@@ -1,22 +1,22 @@
-name: Admin Manager CI
+name: Admin CI
 
 on:
   push:
     branches: [ "main" ]
     paths:
-      - 'adminManager-V1/**'
+      - 'apps/admin/**'
   pull_request:
     branches: [ "main" ]
     paths:
-      - 'adminManager-V1/**'
+      - 'apps/admin/**'
 
 jobs:
   test-and-lint:
     runs-on: ubuntu-latest
-    
+
     defaults:
       run:
-        working-directory: ./adminManager-V1
+        working-directory: ./apps/admin
 
     steps:
     - name: Checkout code
@@ -27,13 +27,13 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
-        cache-dependency-path: './adminManager-V1/package-lock.json'
+        cache-dependency-path: './apps/admin/package-lock.json'
 
     - name: Install dependencies
       run: npm ci
 
     - name: Run Linter
       run: npm run lint
-      
+
     - name: Build project
       run: npm run build

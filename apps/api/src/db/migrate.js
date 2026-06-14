@@ -1,0 +1,764 @@
+const mysql = require('mysql2/promise');
+const config = require('../config/env');
+const { getMysqlSslOptions } = require('./mysqlSsl');
+
+const migrate = async () => {
+  let connection;
+  try {
+    if (!/^[a-zA-Z0-9_]+$/.test(config.MYSQL_DATABASE || '')) {
+      throw new Error('MYSQL_DATABASE must contain only letters, numbers, and underscores');
+    }
+
+    const ssl = getMysqlSslOptions();
+    const serverConnection = await mysql.createConnection({
+      host: config.MYSQL_HOST,
+      port: config.MYSQL_PORT,
+      user: config.MYSQL_USER,
+      password: config.MYSQL_PASSWORD,
+      ssl,
+      multipleStatements: true
+    });
+
+    await serverConnection.query(`CREATE DATABASE IF NOT EXISTS \`${config.MYSQL_DATABASE}\``);
+    await serverConnection.end();
+
+    connection = await mysql.createConnection({
+      host: config.MYSQL_HOST,
+      port: config.MYSQL_PORT,
+      user: config.MYSQL_USER,
+      password: config.MYSQL_PASSWORD,
+      database: config.MYSQL_DATABASE,
+      ssl,
+      multipleStatements: true
+    });
+
+    console.log('Connected to MySQL. Running migrations...');
+
+    const ensureColumn = async (tableName, columnName, columnDefinition) => {
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?
+      `, [config.MYSQL_DATABASE, tableName, columnName]);
+
+      if (columns.length === 0) {
+        await connection.query(`ALTER TABLE ${tableName} ADD COLUMN ${columnDefinition}`);
+      }
+    };
+
+    // Users Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        phone VARCHAR(20) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        whatsapp_number VARCHAR(20),
+        address TEXT,
+        short_address VARCHAR(255),
+        trusted BOOLEAN DEFAULT FALSE,
+        blocked BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_phone (phone)
+      );
+    `);
+    const [shortAddressColumns] = await connection.query(`
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'short_address'
+    `, [config.MYSQL_DATABASE]);
+    if (shortAddressColumns.length === 0) {
+      await connection.query('ALTER TABLE users ADD COLUMN short_address VARCHAR(255) AFTER address');
+    }
+    console.log('Users table ready.');
+
+    // Password Reset Requests Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS password_reset_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+        requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        reviewed_at TIMESTAMP NULL DEFAULT NULL,
+        reviewed_by_admin_id VARCHAR(50),
+        review_note VARCHAR(255),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_password_reset_status (status, requested_at),
+        INDEX idx_password_reset_user_status (user_id, status)
+      );
+    `);
+    console.log('Password reset requests table ready.');
+
+    // Categories Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) NOT NULL UNIQUE,
+        type VARCHAR(50) NOT NULL,
+        image_id VARCHAR(255),
+        active BOOLEAN DEFAULT TRUE,
+        display_order INT NOT NULL DEFAULT 0,
+        deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_slug (slug)
+      );
+    `);
+    const [categoryOrderColumns] = await connection.query(`
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'categories' AND COLUMN_NAME = 'display_order'
+    `, [config.MYSQL_DATABASE]);
+    if (categoryOrderColumns.length === 0) {
+      await connection.query('ALTER TABLE categories ADD COLUMN display_order INT NOT NULL DEFAULT 0 AFTER active');
+    }
+    await ensureColumn('categories', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER display_order');
+    console.log('Categories table ready.');
+
+    // Products Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        price DECIMAL(10, 2) NOT NULL,
+        category_id INT NOT NULL,
+        unit VARCHAR(50),
+        description TEXT,
+        image_id VARCHAR(255),
+        available BOOLEAN DEFAULT TRUE,
+        is_combo BOOLEAN DEFAULT FALSE,
+        featured BOOLEAN DEFAULT FALSE,
+        display_order INT NOT NULL DEFAULT 0,
+        original_price DECIMAL(10, 2),
+        discount_label VARCHAR(50),
+        deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
+        INDEX idx_category (category_id)
+      );
+    `);
+    await ensureColumn('products', 'is_combo', 'is_combo BOOLEAN DEFAULT FALSE AFTER available');
+    await ensureColumn('products', 'featured', 'featured BOOLEAN DEFAULT FALSE AFTER is_combo');
+    await ensureColumn('products', 'display_order', 'display_order INT NOT NULL DEFAULT 0 AFTER featured');
+    await ensureColumn('products', 'original_price', 'original_price DECIMAL(10, 2) AFTER display_order');
+    await ensureColumn('products', 'discount_label', 'discount_label VARCHAR(50) AFTER original_price');
+    await ensureColumn('products', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER discount_label');
+    console.log('Products table ready.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_combo_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        combo_product_id INT NOT NULL,
+        product_id INT NOT NULL,
+        quantity INT NOT NULL DEFAULT 1,
+        display_order INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_combo_product (combo_product_id, product_id),
+        FOREIGN KEY (combo_product_id) REFERENCES products(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+        INDEX idx_combo_product (combo_product_id),
+        INDEX idx_combo_item_product (product_id)
+      );
+    `);
+    console.log('Product combo items table ready.');
+
+    // Combos Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS combos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        price DECIMAL(10, 2) NOT NULL,
+        original_price DECIMAL(10, 2),
+        unit VARCHAR(50),
+        image_id VARCHAR(255),
+        available BOOLEAN DEFAULT TRUE,
+        featured BOOLEAN DEFAULT FALSE,
+        display_order INT NOT NULL DEFAULT 0,
+        discount_label VARCHAR(50),
+        deleted BOOLEAN DEFAULT FALSE,
+        store_type ENUM('packed', 'fast_food') NOT NULL DEFAULT 'packed',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_combo_store_type (store_type)
+      );
+    `);
+    await ensureColumn('combos', 'store_type', 'store_type ENUM("packed", "fast_food") NOT NULL DEFAULT "packed" AFTER deleted');
+    console.log('Combos table ready.');
+
+    // Combo Items Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS combo_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        combo_id INT NOT NULL,
+        product_id INT NOT NULL,
+        quantity INT NOT NULL DEFAULT 1,
+        display_order INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_combo_item (combo_id, product_id),
+        FOREIGN KEY (combo_id) REFERENCES combos(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+        INDEX idx_combo_item_combo (combo_id),
+        INDEX idx_combo_item_product (product_id)
+      );
+    `);
+    console.log('Combo items table ready.');
+
+    // Data Migration for Combos
+    await connection.query(`
+      INSERT IGNORE INTO combos (id, name, description, price, original_price, unit, image_id, available, featured, display_order, discount_label, deleted, created_at, updated_at)
+      SELECT id, name, description, price, original_price, unit, image_id, available, featured, display_order, discount_label, deleted, created_at, updated_at
+      FROM products
+      WHERE is_combo = 1
+    `);
+    
+    await connection.query(`
+      INSERT IGNORE INTO combo_items (combo_id, product_id, quantity, display_order, created_at)
+      SELECT combo_product_id, product_id, quantity, display_order, created_at
+      FROM product_combo_items
+    `);
+    await connection.query('UPDATE products SET deleted = 1 WHERE is_combo = 1');
+    console.log('Combo data migration completed.');
+
+    // Orders Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_number VARCHAR(20) NOT NULL UNIQUE,
+        customer_id INT NOT NULL,
+        customer_name VARCHAR(255) NOT NULL,
+        phone VARCHAR(20) NOT NULL,
+        whatsapp_number VARCHAR(20),
+        address TEXT NOT NULL,
+        latitude DECIMAL(10, 8),
+        longitude DECIMAL(11, 8),
+        map_url TEXT,
+        subtotal DECIMAL(10, 2) NOT NULL,
+        delivery_charge DECIMAL(10, 2) NOT NULL,
+        night_charge DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+        total DECIMAL(10, 2) NOT NULL,
+        payment_method ENUM('Cash', 'UPI') DEFAULT 'Cash',
+        payment_status ENUM('Pending', 'Paid', 'Failed', 'Refunded') DEFAULT 'Pending',
+        status ENUM('Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled') DEFAULT 'Pending',
+        note TEXT,
+        cancel_reason TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE RESTRICT,
+        INDEX idx_customer (customer_id),
+        INDEX idx_status (status),
+        INDEX idx_created_at (created_at)
+      );
+    `);
+    await connection.query(`
+      ALTER TABLE orders
+      MODIFY COLUMN status ENUM('Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled') DEFAULT 'Pending'
+    `);
+    await ensureColumn('orders', 'delivery_distance_km', 'delivery_distance_km DECIMAL(10, 4) DEFAULT NULL AFTER longitude');
+    await ensureColumn('orders', 'delivery_radius_km_snapshot', 'delivery_radius_km_snapshot DECIMAL(10, 2) DEFAULT NULL AFTER delivery_distance_km');
+    await ensureColumn('orders', 'delivery_cost_per_km_snapshot', 'delivery_cost_per_km_snapshot DECIMAL(10, 2) DEFAULT NULL AFTER delivery_radius_km_snapshot');
+    await ensureColumn('orders', 'free_delivery_offer_snapshot', 'free_delivery_offer_snapshot BOOLEAN DEFAULT NULL AFTER delivery_cost_per_km_snapshot');
+    await ensureColumn('orders', 'delivery_type', "delivery_type ENUM('standard', 'fast') DEFAULT 'standard' AFTER free_delivery_offer_snapshot");
+
+    // Performance indexes for common order filter queries
+    const ensureIndex = async (tableName, indexName, columns) => {
+      const [rows] = await connection.query(
+        `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ? LIMIT 1`,
+        [config.MYSQL_DATABASE, tableName, indexName]
+      );
+      if (rows.length === 0) {
+        await connection.query(`ALTER TABLE ${tableName} ADD INDEX ${indexName} (${columns})`);
+      }
+    };
+
+    await ensureIndex('orders', 'idx_orders_status_created', 'status, created_at');
+    await ensureIndex('orders', 'idx_orders_payment_status_created', 'payment_status, created_at');
+    await ensureIndex('orders', 'idx_orders_customer_created', 'customer_id, created_at');
+    await ensureIndex('products', 'idx_products_available_deleted', 'available, deleted');
+    // NOTE: indexes for `notifications` and `offer_products` are added after
+    // those tables are created later in this file (a fresh DB has no such
+    // tables yet at this point).
+
+    console.log('Orders table ready.');
+
+    // Order Items Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS order_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id INT NOT NULL,
+        product_id INT NOT NULL,
+        item_type VARCHAR(50) DEFAULT 'product',
+        product_name VARCHAR(255) NOT NULL,
+        quantity INT NOT NULL,
+        unit_price DECIMAL(10, 2) NOT NULL,
+        line_total DECIMAL(10, 2) NOT NULL,
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+      );
+    `);
+    await ensureColumn('order_items', 'item_type', 'item_type VARCHAR(50) DEFAULT "product" AFTER product_id');
+    const [orderItemProductFks] = await connection.query(`
+      SELECT CONSTRAINT_NAME
+      FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'order_items'
+        AND COLUMN_NAME = 'product_id'
+        AND REFERENCED_TABLE_NAME = 'products'
+    `, [config.MYSQL_DATABASE]);
+    for (const fk of orderItemProductFks) {
+      await connection.query(`ALTER TABLE order_items DROP FOREIGN KEY ${fk.CONSTRAINT_NAME}`);
+    }
+    console.log('Order Items table ready.');
+
+    // Settings Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        shop_open BOOLEAN DEFAULT TRUE,
+        delivery_available BOOLEAN DEFAULT TRUE,
+        minimum_order_amount DECIMAL(10, 2) DEFAULT 149.00,
+        delivery_charge DECIMAL(10, 2) DEFAULT 0.00,
+        night_charge DECIMAL(10, 2) DEFAULT 0.00,
+        night_charge_start TIME DEFAULT '21:00:00',
+        night_charge_end TIME DEFAULT '07:00:00',
+        whatsapp_number VARCHAR(20),
+        support_phone VARCHAR(20),
+        upi_id VARCHAR(100),
+        upi_qr_image_id VARCHAR(255),
+        /* OBSOLETE LOCATION FIELDS - kept for schema stability */
+        shop_latitude DECIMAL(10, 8) DEFAULT NULL,
+        shop_longitude DECIMAL(11, 8) DEFAULT NULL,
+        delivery_radius_km DECIMAL(10, 2) DEFAULT 8.00,
+        delivery_cost_per_km DECIMAL(10, 2) DEFAULT 0.00,
+        /* END OBSOLETE FIELDS */
+        below_threshold_delivery_charge DECIMAL(10, 2) DEFAULT 20.00,
+        free_delivery_above_minimum_active BOOLEAN DEFAULT TRUE,
+        free_delivery_offer_active BOOLEAN DEFAULT FALSE,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+    `);
+    await ensureColumn('settings', 'support_phone', 'support_phone VARCHAR(20) AFTER whatsapp_number');
+    await ensureColumn('settings', 'upi_qr_image_id', 'upi_qr_image_id VARCHAR(255) AFTER upi_id');
+    await ensureColumn('settings', 'shop_latitude', 'shop_latitude DECIMAL(10, 8) DEFAULT NULL AFTER upi_qr_image_id');
+    await ensureColumn('settings', 'shop_longitude', 'shop_longitude DECIMAL(11, 8) DEFAULT NULL AFTER shop_latitude');
+    await ensureColumn('settings', 'delivery_radius_km', 'delivery_radius_km DECIMAL(10, 2) DEFAULT 8.00 AFTER shop_longitude');
+    await ensureColumn('settings', 'delivery_cost_per_km', 'delivery_cost_per_km DECIMAL(10, 2) DEFAULT 0.00 AFTER delivery_radius_km');
+    await ensureColumn('settings', 'below_threshold_delivery_charge', 'below_threshold_delivery_charge DECIMAL(10, 2) DEFAULT 20.00 AFTER delivery_cost_per_km');
+    await ensureColumn('settings', 'free_delivery_above_minimum_active', 'free_delivery_above_minimum_active BOOLEAN DEFAULT TRUE AFTER below_threshold_delivery_charge');
+    await ensureColumn('settings', 'free_delivery_offer_active', 'free_delivery_offer_active BOOLEAN DEFAULT FALSE AFTER free_delivery_above_minimum_active');
+    await ensureColumn('settings', 'fast_delivery_enabled', 'fast_delivery_enabled BOOLEAN DEFAULT FALSE AFTER free_delivery_offer_active');
+    await ensureColumn('settings', 'fast_delivery_charge', 'fast_delivery_charge DECIMAL(10, 2) DEFAULT 0.00 AFTER fast_delivery_enabled');
+    await ensureColumn('settings', 'standard_delivery_minutes', 'standard_delivery_minutes INT DEFAULT 60 AFTER fast_delivery_charge');
+    await ensureColumn('settings', 'fast_delivery_minutes', 'fast_delivery_minutes INT DEFAULT 30 AFTER standard_delivery_minutes');
+    
+    // Drop free_delivery_above column if it exists (Task 1.1)
+    try {
+      await connection.query('ALTER TABLE settings DROP COLUMN free_delivery_above');
+    } catch(e) {
+      // Ignore error if column doesn't exist
+    }
+
+    // Drop delivery_time_message column if it exists (orphaned free-text field — replaced by structured minutes)
+    try {
+      await connection.query('ALTER TABLE settings DROP COLUMN delivery_time_message');
+    } catch(e) {
+      // Ignore error if column doesn't exist
+    }
+    
+    console.log('Settings table ready.');
+
+    // Offers Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS offers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        image_id VARCHAR(255),
+        active BOOLEAN DEFAULT FALSE,
+        deleted BOOLEAN DEFAULT FALSE,
+        store_type ENUM('packed', 'fast_food') NOT NULL DEFAULT 'packed',
+        is_clickable BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_active (active),
+        INDEX idx_offer_store_type (store_type)
+      );
+    `);
+    await ensureColumn('offers', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER active');
+    await ensureColumn('offers', 'store_type', 'store_type ENUM("packed", "fast_food") NOT NULL DEFAULT "packed" AFTER deleted');
+    await ensureColumn('offers', 'is_clickable', 'is_clickable BOOLEAN DEFAULT FALSE AFTER store_type');
+    console.log('Offers table ready.');
+
+    // Offer Products Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS offer_products (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        offer_id INT NOT NULL,
+        product_id INT NOT NULL,
+        display_order INT NOT NULL DEFAULT 0,
+        active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY idx_offer_product (offer_id, product_id),
+        INDEX idx_offer_id (offer_id),
+        INDEX idx_product_id (product_id),
+        INDEX idx_active (active),
+        FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
+      );
+    `);
+    await ensureIndex('offer_products', 'idx_offer_products_active_display', 'offer_id, active, display_order');
+    console.log('Offer products table ready.');
+
+    // Dashboard Sections Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS dashboard_sections (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) NOT NULL,
+        section_type ENUM('offer_banner', 'category_grid', 'product_block', 'combo_block') NOT NULL,
+        store_type ENUM('packed', 'fast_food', 'all') NOT NULL DEFAULT 'all',
+        active BOOLEAN DEFAULT TRUE,
+        display_order INT NOT NULL DEFAULT 0,
+        max_visible_items INT NOT NULL DEFAULT 6,
+        show_see_all BOOLEAN DEFAULT TRUE,
+        linked_category_id INT DEFAULT NULL,
+        linked_offer_id INT DEFAULT NULL,
+        starts_at TIMESTAMP NULL DEFAULT NULL,
+        ends_at TIMESTAMP NULL DEFAULT NULL,
+        version INT NOT NULL DEFAULT 1,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY idx_section_store_slug (store_type, slug, deleted_at),
+        INDEX idx_active (active),
+        INDEX idx_display_order (display_order),
+        INDEX idx_store_type (store_type)
+      );
+    `);
+    await ensureColumn('dashboard_sections', 'starts_at', 'starts_at TIMESTAMP NULL DEFAULT NULL AFTER linked_offer_id');
+    await ensureColumn('dashboard_sections', 'ends_at', 'ends_at TIMESTAMP NULL DEFAULT NULL AFTER starts_at');
+    await ensureColumn('dashboard_sections', 'version', 'version INT NOT NULL DEFAULT 1 AFTER ends_at');
+    await ensureColumn('dashboard_sections', 'deleted_at', 'deleted_at TIMESTAMP NULL DEFAULT NULL AFTER version');
+    console.log('Dashboard sections table ready.');
+    try {
+      await connection.query('ALTER TABLE dashboard_sections DROP INDEX unique_active_slug');
+      await connection.query('ALTER TABLE dashboard_sections ADD UNIQUE KEY idx_section_store_slug (store_type, slug, deleted_at)');
+    } catch (e) {
+      // Ignored if already dropped/added
+    }
+
+    // Dashboard Section Items Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS dashboard_section_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        section_id INT NOT NULL,
+        item_type ENUM('product', 'category', 'combo', 'offer') NOT NULL,
+        item_id INT NOT NULL,
+        display_order INT NOT NULL DEFAULT 0,
+        active BOOLEAN DEFAULT TRUE,
+        starts_at TIMESTAMP NULL DEFAULT NULL,
+        ends_at TIMESTAMP NULL DEFAULT NULL,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_section_item (section_id, item_type, item_id, deleted_at),
+        FOREIGN KEY (section_id) REFERENCES dashboard_sections(id) ON DELETE CASCADE,
+        INDEX idx_active (active),
+        INDEX idx_display_order (display_order)
+      );
+    `);
+    await ensureColumn('dashboard_section_items', 'starts_at', 'starts_at TIMESTAMP NULL DEFAULT NULL AFTER active');
+    await ensureColumn('dashboard_section_items', 'ends_at', 'ends_at TIMESTAMP NULL DEFAULT NULL AFTER starts_at');
+    await ensureColumn('dashboard_section_items', 'deleted_at', 'deleted_at TIMESTAMP NULL DEFAULT NULL AFTER ends_at');
+    console.log('Dashboard section items table ready.');
+
+    // ---------------------------------------------------------
+    // SEED DATA (Idempotent)
+    // ---------------------------------------------------------
+    console.log('Seeding data...');
+
+    // Seed Settings
+    const [settingsRows] = await connection.query('SELECT * FROM settings LIMIT 1');
+    if (settingsRows.length === 0) {
+      await connection.query(`
+        INSERT INTO settings (minimum_order_amount, night_charge_start, night_charge_end, delivery_charge) 
+        VALUES (149.00, '21:00:00', '07:00:00', 20.00)
+      `);
+      console.log('Seeded default settings.');
+    }
+
+    // Seed Categories
+    const categories = [
+      { name: 'Cold Drinks', slug: 'cold-drinks', type: 'packed', display_order: 1 },
+      { name: 'Snacks', slug: 'snacks', type: 'packed', display_order: 2 },
+      { name: 'Fast Food', slug: 'fast-food', type: 'fast_food', display_order: 3 },
+      { name: 'Groceries', slug: 'groceries', type: 'packed', display_order: 4 },
+      { name: 'Desserts', slug: 'desserts', type: 'fast_food', display_order: 5 },
+      { name: 'Daily Essentials', slug: 'daily-essentials', type: 'packed', display_order: 6 }
+    ];
+
+    for (const cat of categories) {
+      await connection.query(`
+        INSERT IGNORE INTO categories (name, slug, type, display_order) VALUES (?, ?, ?, ?)
+      `, [cat.name, cat.slug, cat.type, cat.display_order]);
+      await connection.query(`
+        UPDATE categories SET display_order = ? WHERE slug = ? AND display_order = 0
+      `, [cat.display_order, cat.slug]);
+    }
+    console.log('Seeded frontend categories.');
+
+    // Seed Optional Sample Products (for local testing)
+    const [catRows] = await connection.query('SELECT id, slug FROM categories');
+    const catMap = catRows.reduce((acc, row) => ({ ...acc, [row.slug]: row.id }), {});
+
+    const sampleProducts = [
+      { name: 'Coca Cola', price: 40.00, category_id: catMap['cold-drinks'], unit: '750ml' },
+      { name: 'Lays Classic Salted', price: 20.00, category_id: catMap['snacks'], unit: '1 Pack' },
+      { name: 'Aloo Tikki Burger', price: 60.00, category_id: catMap['fast-food'], unit: '1 pc' },
+      { name: 'Atta (Wheat Flour)', price: 250.00, category_id: catMap['groceries'], unit: '5kg' },
+      { name: 'Chocolate Brownie', price: 90.00, category_id: catMap['desserts'], unit: '1 pc' },
+      { name: 'Amul Milk', price: 33.00, category_id: catMap['daily-essentials'], unit: '500ml' }
+    ];
+
+    for (const prod of sampleProducts) {
+      if (prod.category_id) {
+        await connection.query(`
+          INSERT INTO products (name, price, category_id, unit) 
+          SELECT ?, ?, ?, ? FROM DUAL
+          WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = ?)
+        `, [prod.name, prod.price, prod.category_id, prod.unit, prod.name]);
+      }
+    }
+    console.log('Seeded sample products.');
+
+    // Seed Dashboard Sections (Idempotent per default section)
+    console.log('Ensuring default dashboard sections...');
+    const ensureDashboardSection = async ({ title, slug, sectionType, displayOrder, maxVisibleItems, showSeeAll }) => {
+      const [existing] = await connection.query(
+        'SELECT id FROM dashboard_sections WHERE slug = ? LIMIT 1',
+        [slug]
+      );
+      if (existing.length > 0) return existing[0].id;
+
+      const [result] = await connection.query(`
+        INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all)
+        VALUES (?, ?, ?, 'all', ?, ?, ?)
+      `, [title, slug, sectionType, displayOrder, maxVisibleItems, showSeeAll]);
+      return result.insertId;
+    };
+
+    const offerSectionId = await ensureDashboardSection({
+      title: 'Special Offers',
+      slug: 'hero-offers',
+      sectionType: 'offer_banner',
+      displayOrder: 0,
+      maxVisibleItems: 1,
+      showSeeAll: false
+    });
+
+    const [activeOffers] = await connection.query('SELECT id FROM offers WHERE active = 1 AND deleted = 0 LIMIT 1');
+    if (activeOffers.length > 0) {
+      await connection.query(`
+        INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
+        SELECT ?, 'offer', ?, 0 FROM DUAL
+        WHERE NOT EXISTS (
+          SELECT 1 FROM dashboard_section_items
+          WHERE section_id = ? AND item_type = 'offer' AND item_id = ? AND deleted_at IS NULL
+        )
+      `, [offerSectionId, activeOffers[0].id, offerSectionId, activeOffers[0].id]);
+    }
+
+    const catSectionId = await ensureDashboardSection({
+      title: 'Shop by Category',
+      slug: 'categories-grid',
+      sectionType: 'category_grid',
+      displayOrder: 1,
+      maxVisibleItems: 8,
+      showSeeAll: false
+    });
+
+    const [activeCats] = await connection.query('SELECT id, display_order FROM categories WHERE active = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
+    for (const cat of activeCats) {
+      await connection.query(`
+        INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
+        SELECT ?, 'category', ?, ? FROM DUAL
+        WHERE NOT EXISTS (
+          SELECT 1 FROM dashboard_section_items
+          WHERE section_id = ? AND item_type = 'category' AND item_id = ? AND deleted_at IS NULL
+        )
+      `, [catSectionId, cat.id, cat.display_order, catSectionId, cat.id]);
+    }
+
+    const comboSectionId = await ensureDashboardSection({
+      title: 'Popular Combos',
+      slug: 'popular-combos',
+      sectionType: 'combo_block',
+      displayOrder: 2,
+      maxVisibleItems: 6,
+      showSeeAll: true
+    });
+
+    const [activeCombos] = await connection.query('SELECT id FROM combos WHERE available = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
+    let comboOrder = 0;
+    for (const combo of activeCombos) {
+      await connection.query(`
+        INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
+        SELECT ?, 'combo', ?, ? FROM DUAL
+        WHERE NOT EXISTS (
+          SELECT 1 FROM dashboard_section_items
+          WHERE section_id = ? AND item_type = 'combo' AND item_id = ? AND deleted_at IS NULL
+        )
+      `, [comboSectionId, combo.id, comboOrder++, comboSectionId, combo.id]);
+    }
+    console.log('Default dashboard sections and items ready.');
+
+    // Notification Batches Table (for Admin broadcasts)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS notification_batches (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        target VARCHAR(50) NOT NULL,
+        recipient_count INT NOT NULL DEFAULT 0,
+        created_by_admin_id VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL
+      );
+    `);
+    console.log('Notification batches table ready.');
+
+    // Notifications Table (per-user rows)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        source_type VARCHAR(50),
+        source_id INT,
+        event_key VARCHAR(100),
+        batch_id INT,
+        action_type VARCHAR(50),
+        action_payload JSON,
+        read_at TIMESTAMP NULL DEFAULT NULL,
+        seen_at TIMESTAMP NULL DEFAULT NULL,
+        created_by_admin_id VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (batch_id) REFERENCES notification_batches(id) ON DELETE SET NULL,
+        INDEX idx_notifications_user_created (user_id, created_at),
+        INDEX idx_notifications_user_read (user_id, read_at),
+        INDEX idx_notifications_source (source_type, source_id),
+        INDEX idx_notifications_batch (batch_id),
+        INDEX idx_notifications_deleted (deleted_at),
+        UNIQUE KEY uniq_notification_event (user_id, source_type, source_id, event_key)
+      );
+    `);
+    await ensureIndex('notifications', 'idx_notifications_user_unread', 'user_id, read_at, deleted_at');
+    console.log('Notifications table ready.');
+
+    // Cleanup: Convert 'all' offer banner sections to 'packed' and 'fast_food'
+    const [allOfferSections] = await connection.query(`SELECT * FROM dashboard_sections WHERE section_type = 'offer_banner' AND store_type = 'all' AND deleted_at IS NULL`);
+    
+    for (const sec of allOfferSections) {
+      // 1. Create packed section
+      const [packedResult] = await connection.query(
+        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at)
+         VALUES (?, ?, ?, 'packed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [sec.title, sec.slug + '-packed', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at]
+      );
+      const packedId = packedResult.insertId;
+
+      // 2. Create fast_food section
+      const [fastFoodResult] = await connection.query(
+        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at)
+         VALUES (?, ?, ?, 'fast_food', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [sec.title, sec.slug + '-fast-food', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at]
+      );
+      const fastFoodId = fastFoodResult.insertId;
+
+      // 3. Move items
+      const [items] = await connection.query(
+        `SELECT dsi.*, o.store_type as offer_store_type
+         FROM dashboard_section_items dsi
+         JOIN offers o ON o.id = dsi.item_id
+         WHERE dsi.section_id = ? AND dsi.item_type = 'offer'`,
+        [sec.id]
+      );
+
+      for (const item of items) {
+        if (item.offer_store_type === 'packed') {
+          await connection.query(
+            `INSERT INTO dashboard_section_items (section_id, item_type, item_id, active, display_order, created_at, updated_at)
+             VALUES (?, 'offer', ?, ?, ?, ?, ?)`,
+            [packedId, item.item_id, item.active, item.display_order, item.created_at, item.updated_at]
+          );
+        } else if (item.offer_store_type === 'fast_food') {
+          await connection.query(
+            `INSERT INTO dashboard_section_items (section_id, item_type, item_id, active, display_order, created_at, updated_at)
+             VALUES (?, 'offer', ?, ?, ?, ?, ?)`,
+            [fastFoodId, item.item_id, item.active, item.display_order, item.created_at, item.updated_at]
+          );
+        }
+      }
+
+      // 4. Mark old section as deleted
+      await connection.query(`UPDATE dashboard_sections SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?`, [sec.id]);
+    }
+
+    // Notification Templates Table (for admin-customizable messages)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS notification_templates (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        event_key VARCHAR(50) NOT NULL UNIQUE,
+        title VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        enabled TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_event_key (event_key)
+      );
+    `);
+
+    const defaultTemplates = [
+      { event_key: 'order_placed',            title: '🎉 Order Confirmed!',        body: "Your order has been placed successfully. We'll notify you once it's accepted." },
+      { event_key: 'status_accepted',          title: '✅ Order Accepted!',          body: 'Great news! Your order has been accepted and will be prepared shortly.' },
+      { event_key: 'status_preparing',         title: '👨‍🍳 Preparing Your Order',   body: 'Your delicious order is being prepared with care. Hang tight!' },
+      { event_key: 'status_out_for_delivery',  title: '🚚 On The Way!',             body: 'Your order is out for delivery. It will reach you soon!' },
+      { event_key: 'status_delivered',         title: '🎊 Delivered!',              body: 'Your order has been delivered. Enjoy your meal!' },
+      { event_key: 'status_cancelled',         title: '❌ Order Cancelled',          body: 'Your order was cancelled. Contact us if you need help.' },
+      { event_key: 'payment_paid',             title: '💰 Payment Received',        body: 'Your payment has been confirmed. Thank you!' },
+      { event_key: 'payment_failed',           title: '⚠️ Payment Issue',           body: 'Payment failed. Please try again or contact support.' },
+      { event_key: 'payment_refunded',         title: '💸 Refund Processed',        body: 'Your payment has been refunded successfully.' }
+    ];
+
+    for (const t of defaultTemplates) {
+      await connection.query(
+        `INSERT INTO notification_templates (event_key, title, body) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE title = VALUES(title), body = VALUES(body)`,
+        [t.event_key, t.title, t.body]
+      );
+    }
+    console.log('Notification templates table ready.');
+
+    console.log('Migration and seeding completed successfully!');
+  } catch (error) {
+    console.error('Migration failed:', error);
+    process.exit(1);
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+migrate();
