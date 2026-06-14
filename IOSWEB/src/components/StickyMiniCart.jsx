@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCartStore } from '../stores/cartStore';
+import { useCartStore, selectCartTotalItems, selectCartDisplayTotal } from '../stores/cartStore';
 import { formatPrice } from '../utils/formatters';
 import './StickyMiniCart.css';
 
@@ -18,8 +18,8 @@ const ChevronRight = () => (
 
 export default function StickyMiniCart() {
   const navigate = useNavigate();
-  const totalItems = useCartStore((state) => state.getTotalItems());
-  const displayTotal = useCartStore((state) => state.getDisplayTotal());
+  const totalItems = useCartStore(selectCartTotalItems);
+  const displayTotal = useCartStore(selectCartDisplayTotal);
 
   if (totalItems === 0) return null;
 

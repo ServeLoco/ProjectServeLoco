@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import Button from '../../components/Button';
 import { formatPrice } from '../../utils/formatters';
+import { isCodBlockedDuringNight } from '../../utils/nightDelivery';
 import './CheckoutScreen.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -34,17 +35,44 @@ export default function CheckoutScreen() {
   const [coords, setCoords] = useState(null); // { latitude, longitude }
   const [deliveryType, setDeliveryType] = useState('standard');
   const [paymentMethod, setPaymentMethod] = useState('cod');
-  
+
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  const codBlockedByNight = isCodBlockedDuringNight(settings, now);
+  useEffect(() => {
+    if (codBlockedByNight && paymentMethod === 'cod') {
+      setPaymentMethod('upi');
+    }
+  }, [codBlockedByNight, paymentMethod]);
+  const nightWindowStart = settings?.night_charge_start || settings?.nightChargeStart || null;
+  const nightWindowEnd = settings?.night_charge_end || settings?.nightChargeEnd || null;
+
   const [bill, setBill] = useState(null);
   const [calculating, setCalculating] = useState(false);
   const [placing, setPlacing] = useState(false);
-  const [calculateError, setCalculateError] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [noticeMessage, setNoticeMessage] = useState(null);
+  const [hydrated, setHydrated] = useState(
+    useCartStore.persist?.hasHydrated?.() ?? true
+  );
 
   const isSubmitting = useRef(false);
   const debounceRef = useRef(null);
 
-  // Recalculate bill when deliveryType or coords change
   useEffect(() => {
+    if (hydrated) return;
+    const unsubFinish = useCartStore.persist.onFinishHydration(() => setHydrated(true));
+    return () => {
+      if (typeof unsubFinish === 'function') unsubFinish();
+    };
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
     if (items.length === 0) {
       navigate('/', { replace: true });
       return;
@@ -67,15 +95,14 @@ export default function CheckoutScreen() {
         const res = await cartApi.calculate(payload);
         const responsePayload = res.data || res;
         setBill(responsePayload);
-        setCalculateError(null);
         
-        // If fast delivery is disabled by backend but user selected it, fallback
         if (deliveryType === 'fast' && !responsePayload.fastDeliveryEnabled) {
           setDeliveryType('standard');
+          setNoticeMessage('Express delivery is not available in your area. Switched to standard delivery.');
         }
       } catch (err) {
         console.error('Failed to calculate cart', err);
-        setCalculateError(err);
+        setErrorMessage('Failed to calculate delivery charges. Please try again.');
       } finally {
         setCalculating(false);
       }
@@ -85,11 +112,11 @@ export default function CheckoutScreen() {
     debounceRef.current = setTimeout(calculateCart, 250);
     
     return () => clearTimeout(debounceRef.current);
-  }, [items, deliveryType, coords, navigate]);
+  }, [items, deliveryType, coords, navigate, hydrated]);
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      setErrorMessage('Geolocation is not supported by your browser.');
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -98,10 +125,11 @@ export default function CheckoutScreen() {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude
         });
+        setErrorMessage(null);
       },
       (err) => {
-        alert("Unable to retrieve your location");
         console.error(err);
+        setErrorMessage('Unable to retrieve your location.');
       }
     );
   };
@@ -109,23 +137,23 @@ export default function CheckoutScreen() {
   const handlePlaceOrder = async () => {
     if (isSubmitting.current) return;
     if (!address.trim()) {
-      alert("Please enter your delivery address");
+      setErrorMessage('Please enter your delivery address.');
       return;
     }
     if (!shopOpen) {
-      alert("Shop is currently closed");
+      setErrorMessage('Shop is currently closed.');
       return;
     }
     if (!bill) return;
     
-    // Check minimum order
     if (bill.belowThreshold) {
-      alert(`Minimum order is ${formatPrice(bill.minimumOrder)}`);
+      setErrorMessage(`Minimum order is ${formatPrice(bill.minimumOrder)}.`);
       return;
     }
 
     isSubmitting.current = true;
     setPlacing(true);
+    setErrorMessage(null);
 
     try {
       const payload = {
@@ -149,15 +177,32 @@ export default function CheckoutScreen() {
       
       const res = await ordersApi.createOrder(payload);
       const responsePayload = res.data || res;
+      const orderId = responsePayload.order_id || responsePayload.id;
+      // Navigate first; clear cart after navigation so a thrown navigate doesn't lose the cart.
+      // The `confirmation` state flag is read by OrderConfirmationScreen to
+      // decide whether to render (true) or bounce to home (false, e.g. when
+      // the user types the URL or hits back).
+      navigate(`/order-confirmation/${orderId}`, { replace: true, state: { confirmation: true } });
       clearCart();
-      navigate(`/order-confirmation/${responsePayload.order_id || responsePayload.id}`, { replace: true });
     } catch (err) {
-      alert(err.message || "Failed to place order. Please try again.");
+      setErrorMessage(err.message || 'Failed to place order. Please try again.');
       isSubmitting.current = false;
     } finally {
       setPlacing(false);
     }
   };
+
+  if (!hydrated) {
+    return (
+      <div className="screen-container">
+        <div className="checkout-header">
+          <button className="co-back-btn" onClick={() => navigate(-1)}><BackIcon /></button>
+          <div className="co-title">Checkout</div>
+        </div>
+        <div style={{ padding: '24px', textAlign: 'center' }}>Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="screen-container checkout-screen">
@@ -167,6 +212,19 @@ export default function CheckoutScreen() {
       </div>
 
       <div className="co-content">
+        {errorMessage && (
+          <div className="co-error" role="alert">
+            <span>{errorMessage}</span>
+            <button className="co-error-dismiss" onClick={() => setErrorMessage(null)} aria-label="Dismiss">×</button>
+          </div>
+        )}
+        {noticeMessage && (
+          <div className="co-notice" role="status">
+            <span>{noticeMessage}</span>
+            <button className="co-notice-dismiss" onClick={() => setNoticeMessage(null)} aria-label="Dismiss">×</button>
+          </div>
+        )}
+
         <div className="co-section">
           <div className="co-section-title">Delivery Address</div>
           <textarea 
@@ -206,15 +264,33 @@ export default function CheckoutScreen() {
 
         <div className="co-section">
           <div className="co-section-title">Payment Method</div>
+          {codBlockedByNight && (
+            <div className="co-night-notice" role="status">
+              <span>
+                Cash on Delivery is unavailable during night delivery hours
+                {nightWindowStart && nightWindowEnd ? ` (${nightWindowStart} to ${nightWindowEnd})` : ''}. Please use UPI.
+              </span>
+            </div>
+          )}
           <div className="co-radio-group">
-            <label className={`co-radio-card ${paymentMethod === 'cod' ? 'active' : ''}`}>
-              <input type="radio" name="payment" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} />
+            <label className={`co-radio-card ${paymentMethod === 'cod' ? 'active' : ''} ${codBlockedByNight ? 'disabled' : ''}`}>
+              <input
+                type="radio"
+                name="payment"
+                checked={paymentMethod === 'cod'}
+                disabled={codBlockedByNight}
+                onChange={() => {
+                  if (!codBlockedByNight) setPaymentMethod('cod');
+                }}
+              />
               <div className="co-radio-content">
                 <div className="co-radio-title">Cash on Delivery</div>
-                <div className="co-radio-desc">Pay when your order arrives</div>
+                <div className="co-radio-desc">
+                  {codBlockedByNight ? 'Unavailable during night hours' : 'Pay when your order arrives'}
+                </div>
               </div>
             </label>
-            
+
             <label className={`co-radio-card ${paymentMethod === 'upi' ? 'active' : ''}`}>
               <input type="radio" name="payment" checked={paymentMethod === 'upi'} onChange={() => setPaymentMethod('upi')} />
               <div className="co-radio-content">

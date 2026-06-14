@@ -3,6 +3,7 @@ const { calculateThresholdDeliveryCharge } = require('../utils/thresholdDelivery
 const { isId, isPositiveInteger, validateCoordinates } = require('../validators');
 // Location-based distance pricing is removed, so we no longer import calculateDeliveryPricing
 const { roundMoney, toMoney } = require('../utils/money');
+const { calculateNightCharge } = require('../utils/nightDelivery');
 
 const calculateCart = async (req, res) => {
   const { items, delivery_type: rawDeliveryType } = req.body;
@@ -136,24 +137,9 @@ const calculateCart = async (req, res) => {
   }
 
   let nightCharge = 0;
-  if (settings.night_charge && parseFloat(settings.night_charge) > 0 &&
-      settings.night_charge_start && settings.night_charge_end) {
-    // Parse time to minutes since midnight for reliable comparison
-    const toMinutes = (t) => {
-      const str = typeof t === 'string' ? t : String(t);
-      const parts = str.split(':').map(Number);
-      return (parts[0] || 0) * 60 + (parts[1] || 0);
-    };
-    const now = new Date();
-    const nowIST = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-    const nowMinutes = nowIST.getHours() * 60 + nowIST.getMinutes();
-    const startMin = toMinutes(settings.night_charge_start);
-    const endMin = toMinutes(settings.night_charge_end);
-    // Overnight window (e.g. 21:00 to 07:00): start > end
-    const isNight = startMin > endMin
-      ? (nowMinutes >= startMin || nowMinutes <= endMin)
-      : (nowMinutes >= startMin && nowMinutes <= endMin);
-    if (isNight) nightCharge = toMoney(settings.night_charge);
+  if (settings.night_charge && settings.night_charge_start && settings.night_charge_end) {
+    const raw = calculateNightCharge(settings);
+    if (raw > 0) nightCharge = toMoney(raw);
   }
 
   let discount = 0; // if offers apply, could be calculated here

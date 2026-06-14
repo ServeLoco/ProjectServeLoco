@@ -71,26 +71,25 @@ export default function ProductListScreen() {
       const res = await productsApi.getProducts(params);
       const payload = res.data || res;
       const newProducts = payload.products || (Array.isArray(payload) ? payload : []);
-      
+      // Prefer the server-provided pagination flag when present; fall back
+      // to the page-size heuristic so empty last pages don't show a "Load More"
+      // button that returns nothing.
+      const hasMore = typeof payload.hasMore === 'boolean'
+        ? payload.hasMore
+        : (typeof payload.has_more === 'boolean'
+            ? payload.has_more
+            : newProducts.length === 20);
+
       setProducts(prev => isAppend ? [...prev, ...newProducts] : newProducts);
-      setHasMore(newProducts.length === 20);
+      setHasMore(hasMore);
       setPage(pageNum);
-      
-      // Update URL params
-      const newParams = new URLSearchParams(searchParams);
-      if (activeCategory) newParams.set('categoryId', activeCategory);
-      else newParams.delete('categoryId');
-      if (searchQuery) newParams.set('search', searchQuery);
-      else newParams.delete('search');
-      setSearchParams(newParams, { replace: true });
-      
     } catch (err) {
       setError(err.message || 'Failed to load products');
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [activeCategory, searchQuery, storeType, searchParams, setSearchParams]);
+  }, [activeCategory, searchQuery, storeType]);
 
   useEffect(() => {
     // Debounce search
@@ -99,6 +98,21 @@ export default function ProductListScreen() {
     }, 400);
     return () => clearTimeout(timer);
   }, [activeCategory, searchQuery, loadProducts]);
+
+  // Mirror activeCategory/searchQuery back into the URL on a *separate* tick
+  // so setSearchParams cannot re-trigger the load effect above.
+  useEffect(() => {
+    const newParams = new URLSearchParams(searchParams);
+    if (activeCategory) newParams.set('categoryId', activeCategory);
+    else newParams.delete('categoryId');
+    if (searchQuery) newParams.set('search', searchQuery);
+    else newParams.delete('search');
+    const currentCategory = searchParams.get('categoryId') || '';
+    const currentSearch = searchParams.get('search') || '';
+    if (currentCategory === activeCategory && currentSearch === searchQuery) return;
+    setSearchParams(newParams, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategory, searchQuery]);
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);

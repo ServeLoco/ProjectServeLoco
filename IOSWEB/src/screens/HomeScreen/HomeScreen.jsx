@@ -35,7 +35,13 @@ export default function HomeScreen() {
   const { fetchSettings, shopOpen } = useSettingsStore();
   const { unreadCount, fetchUnreadCount } = useNotificationStore();
   
-  const [storeType, setStoreType] = useState('fast_food');
+  const [storeType, setStoreType] = useState(() => {
+    try {
+      return localStorage.getItem('home-store-type') || 'fast_food';
+    } catch {
+      return 'fast_food';
+    }
+  });
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,6 +50,10 @@ export default function HomeScreen() {
     fetchSettings();
     if (token) fetchUnreadCount();
   }, [fetchSettings, token, fetchUnreadCount]);
+
+  useEffect(() => {
+    try { localStorage.setItem('home-store-type', storeType); } catch { /* storage may be unavailable */ }
+  }, [storeType]);
 
   const loadDashboard = async () => {
     setLoading(true);

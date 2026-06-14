@@ -26,6 +26,7 @@ import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../../stores';
 import { cartApi, ordersApi, settingsApi, imagesApi } from '../../../api';
 import { normalizeCartCalculation, normalizeImageUrl, normalizeSettings } from '../../../utils';
+import { isCodBlockedDuringNight } from '../../../utils/nightDelivery';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -45,8 +46,23 @@ export default function CheckoutScreen() {
   const upiId = useSettingsStore(state => state.upiId);
   const upiQrImageId = useSettingsStore(state => state.upiQrImageId);
   const upiQrImageUrl = useSettingsStore(state => state.upiQrImageUrl);
+  const nightChargeStart = useSettingsStore(state => state.nightChargeStart);
+  const nightChargeEnd = useSettingsStore(state => state.nightChargeEnd);
+  const nightCharge = useSettingsStore(state => state.nightCharge);
   const setSettings = useSettingsStore(state => state.setSettings);
   const userProfile = useAuthStore(state => state.profile);
+
+  const [now, setNow] = React.useState(() => new Date());
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  const codBlockedByNight = isCodBlockedDuringNight({
+    night_charge_start: nightChargeStart,
+    night_charge_end: nightChargeEnd,
+    night_charge: nightCharge,
+  }, now);
 
   // Form State
   const [address, setAddress] = useState(userProfile?.address || '');
@@ -105,6 +121,14 @@ export default function CheckoutScreen() {
       setDeliveryType('standard');
     }
   }, [bill, deliveryType]);
+
+  // If the current time is inside the night delivery window, COD is unavailable
+  // and we force the user to UPI.
+  useEffect(() => {
+    if (codBlockedByNight && paymentMethod === 'Cash') {
+      setPaymentMethod('UPI');
+    }
+  }, [codBlockedByNight, paymentMethod]);
 
   // Fetching settings on mount was removed to save network requests (Task 3.5)
 
@@ -506,26 +530,57 @@ export default function CheckoutScreen() {
         {/* Payment Method */}
         <Animated.View style={[styles.section, { transform: [{ translateY: paymentSlide }] }]}>
           <Text style={styles.sectionTitle}>Payment Method</Text>
-          
+
+          {codBlockedByNight && (
+            <View style={styles.nightNotice}>
+              <AppIcon name="clock" size={16} color={colors.saffron || '#FF7A3A'} style={{ marginRight: spacing.sm }} />
+              <Text style={styles.nightNoticeText}>
+                Cash on Delivery is unavailable during night delivery hours ({nightChargeStart || '—'} to {nightChargeEnd || '—'}). Please use UPI.
+              </Text>
+            </View>
+          )}
+
           <View style={styles.paymentOptions}>
-            <PressableScale 
-              style={[styles.paymentBox, paymentMethod === 'Cash' && styles.paymentBoxActive]}
-              onPress={() => setPaymentMethod('Cash')}
-              scaleTo={0.96}
+            <PressableScale
+              style={[
+                styles.paymentBox,
+                paymentMethod === 'Cash' && !codBlockedByNight && styles.paymentBoxActive,
+                codBlockedByNight && styles.paymentBoxDisabled,
+              ]}
+              onPress={() => {
+                if (!codBlockedByNight) setPaymentMethod('Cash');
+              }}
+              disabled={codBlockedByNight}
+              scaleTo={codBlockedByNight ? 1 : 0.96}
+              accessibilityRole="button"
+              accessibilityLabel="Cash on Delivery"
+              accessibilityState={{ disabled: codBlockedByNight, selected: paymentMethod === 'Cash' && !codBlockedByNight }}
             >
               <AppIcon
                 name="rupee"
                 size={28}
-                color={paymentMethod === 'Cash' ? colors.success : colors.textSecondary}
+                color={codBlockedByNight ? colors.textDisabled : (paymentMethod === 'Cash' ? colors.success : colors.textSecondary)}
                 style={styles.paymentIcon}
               />
-              <Text style={[styles.paymentText, paymentMethod === 'Cash' && styles.paymentTextActive]}>Cash on Delivery</Text>
+              <Text style={[
+                styles.paymentText,
+                paymentMethod === 'Cash' && !codBlockedByNight && styles.paymentTextActive,
+                codBlockedByNight && styles.paymentTextDisabled,
+              ]}>
+                Cash on Delivery
+              </Text>
+              {codBlockedByNight && (
+                <Text style={styles.paymentBlockedHint}>Unavailable at night</Text>
+              )}
             </PressableScale>
 
-            <PressableScale 
+            <PressableScale
               style={[styles.paymentBox, paymentMethod === 'UPI' && styles.paymentBoxActive]}
               onPress={() => setPaymentMethod('UPI')}
               scaleTo={0.96}
+              accessibilityRole="button"
+              accessibilityLabel="UPI / Online"
+              accessibilityState={{ selected: paymentMethod === 'UPI' }}
             >
               <AppIcon
                 name="creditCard"
@@ -961,6 +1016,11 @@ const styles = StyleSheet.create({
     borderColor: colors.success,
     backgroundColor: colors.successLight,
   },
+  paymentBoxDisabled: {
+    borderColor: colors.border,
+    backgroundColor: colors.bgDisabled,
+    opacity: 0.6,
+  },
   paymentIcon: {
     marginBottom: spacing.xs,
   },
@@ -971,6 +1031,31 @@ const styles = StyleSheet.create({
   paymentTextActive: {
     color: colors.success,
     fontWeight: '700',
+  },
+  paymentTextDisabled: {
+    color: colors.textDisabled,
+  },
+  paymentBlockedHint: {
+    ...typography.caption,
+    color: colors.textDisabled,
+    marginTop: spacing.xs,
+    fontStyle: 'italic',
+  },
+  nightNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: (colors.saffronLight || '#FFF2EB'),
+    borderColor: (colors.saffron || '#FF7A3A') + '40',
+    borderWidth: 1.5,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  nightNoticeText: {
+    ...typography.caption,
+    color: colors.saffronDark || '#E05A1A',
+    flex: 1,
+    fontWeight: '600',
   },
   paymentPendingNote: {
     ...typography.caption,

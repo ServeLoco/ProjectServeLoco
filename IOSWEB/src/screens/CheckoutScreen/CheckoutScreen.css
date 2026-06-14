@@ -44,6 +44,41 @@
   gap: var(--space-lg);
 }
 
+.co-error,
+.co-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+
+.co-error {
+  background: var(--error-light);
+  color: var(--text-error);
+  border: 1px solid var(--error-border);
+}
+
+.co-notice {
+  background: var(--warning-light);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
+.co-error-dismiss,
+.co-notice-dismiss {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
 .co-section {
   background: var(--bg-surface);
   padding: var(--space-md);
@@ -109,8 +144,35 @@
   background: var(--primary-light);
 }
 
+.co-radio-card.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--bg-app);
+  border-color: var(--border);
+}
+
+.co-radio-card.disabled.active {
+  /* keep it disabled even if "active" class is somehow also set */
+  opacity: 0.55;
+  background: var(--bg-app);
+  border-color: var(--border);
+}
+
 .co-radio-card input {
   margin: 0;
+}
+
+.co-night-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  background: var(--warning-light);
+  color: var(--warning);
+  border: 1px solid var(--warning);
 }
 
 .co-radio-content {

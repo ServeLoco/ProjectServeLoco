@@ -1,14 +1,15 @@
 export const formatPrice = (price) => {
-  if (isNaN(price) || price === null) return '₹0';
+  if (price === null || price === undefined || isNaN(price)) return '—';
   return `₹${Number(price).toLocaleString('en-IN')}`;
 };
 
 export const formatDate = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-IN', { 
-    year: 'numeric', 
-    month: 'short', 
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-IN', {
+    year: 'numeric',
+    month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
@@ -19,7 +20,8 @@ export const timeAgo = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
   const seconds = Math.floor((new Date() - date) / 1000);
-  
+  if (!isFinite(seconds) || seconds < 0) return 'Just now';
+
   let interval = seconds / 31536000;
   if (interval > 1) return Math.floor(interval) + ' years ago';
   interval = seconds / 2592000;

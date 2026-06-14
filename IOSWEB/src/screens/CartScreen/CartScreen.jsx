@@ -7,9 +7,8 @@ import Button from '../../components/Button';
 import QuantityControl from '../../components/QuantityControl';
 import EmptyState from '../../components/EmptyState';
 import { formatPrice } from '../../utils/formatters';
+import { getResolvedImageUrl } from '../../utils/imageUtils';
 import './CartScreen.css';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const BackIcon = () => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -96,10 +95,10 @@ export default function CartScreen() {
         <div className="cart-items-list">
           {items.map((item, idx) => (
             <div key={`${item.product.id}-${item.type}-${idx}`} className="cart-item-row">
-              <img 
-                src={item.product.image_file ? `${API_BASE_URL.replace('/api', '')}/uploads/${item.product.image_file}` : '/placeholder.png'} 
-                alt={item.product.name} 
-                className="cart-item-img" 
+              <img
+                src={getResolvedImageUrl(item.product)}
+                alt={item.product.name}
+                className="cart-item-img"
               />
               <div className="cart-item-info">
                 <div className="cart-item-name">{item.product.name}</div>

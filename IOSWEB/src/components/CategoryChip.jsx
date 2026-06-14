@@ -3,8 +3,9 @@ import './CategoryChip.css';
 
 export default function CategoryChip({ label, active, onClick }) {
   return (
-    <button 
-      className={`category-chip ${active ? 'active' : ''}`} 
+    <button
+      type="button"
+      className={`category-chip ${active ? 'active' : ''}`}
       onClick={onClick}
     >
       {label}

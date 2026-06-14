@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useRef } from 'react';
+import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { authApi } from '../../api/authApi';
 import { useAuthStore } from '../../stores/authStore';
 import { connectCustomerRealtime } from '../../api/realtimeClient';
@@ -12,13 +12,9 @@ export default function AuthScreen() {
   const location = useLocation();
   const login = useAuthStore(state => state.login);
   const token = useAuthStore(state => state.token);
+  const submittingRef = useRef(false);
 
-  React.useEffect(() => {
-    if (token) {
-      navigate('/', { replace: true });
-    }
-  }, [token, navigate]);
-
+  // Hooks must run before any conditional return.
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -28,6 +24,12 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+
+  if (token) {
+    const origin = location.state?.from?.pathname || '/';
+    const search = location.state?.from?.search || '';
+    return <Navigate to={origin + search} replace />;
+  }
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -44,6 +46,8 @@ export default function AuthScreen() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -74,9 +78,12 @@ export default function AuthScreen() {
         if (formData.password !== formData.confirmPassword) {
           throw new Error("Passwords don't match");
         }
+        if (formData.password.length < 8) {
+          throw new Error("Password must be at least 8 characters");
+        }
         await authApi.requestPasswordReset({
           phone: formData.phone,
-          new_password: formData.password
+          newPassword: formData.password
         });
         setSuccess("Password reset requested. An admin will review it soon.");
         setFormData({ name: '', phone: '', password: '', confirmPassword: '' });
@@ -85,6 +92,7 @@ export default function AuthScreen() {
       setError(err.message || 'Authentication failed');
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
@@ -149,28 +157,28 @@ export default function AuthScreen() {
 
           <div className="input-group">
             <label>{mode === 'reset' ? 'New Password' : 'Password'}</label>
-            <input 
-              type="password" 
-              name="password" 
-              className="auth-input" 
+            <input
+              type="password"
+              name="password"
+              className="auth-input"
               placeholder="••••••••"
               value={formData.password}
               onChange={handleChange}
-              required 
+              required
             />
           </div>
 
           {(mode === 'signup' || mode === 'reset') && (
             <div className="input-group">
-              <label>Confirm Password</label>
-              <input 
-                type="password" 
-                name="confirmPassword" 
-                className="auth-input" 
+              <label>{mode === 'reset' ? 'Confirm New Password' : 'Confirm Password'}</label>
+              <input
+                type="password"
+                name="confirmPassword"
+                className="auth-input"
                 placeholder="••••••••"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                required 
+                required
               />
             </div>
           )}

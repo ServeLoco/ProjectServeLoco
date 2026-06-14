@@ -16,6 +16,9 @@ export const useAuthStore = create(
       updateUser: (updates) => set((state) => ({ user: { ...state.user, ...updates } })),
       logout: () => {
         disconnectCustomerRealtime();
+        // Clear any cross-user UI state stored outside the auth slice
+        // (e.g. the "install as PWA" prompt dismissal, which is per-user).
+        try { localStorage.removeItem('ath-dismissed'); } catch { /* storage may be unavailable */ }
         set({ user: null, token: null });
       },
     }),

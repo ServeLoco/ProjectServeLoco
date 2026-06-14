@@ -1,8 +1,9 @@
 import { io } from 'socket.io-client';
 
-// Use same host as API, but for websockets
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-const getRealtimeBaseUrl = () => API_BASE_URL.replace('/api', '');
+const getRealtimeBaseUrl = () => {
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+  return apiBase.replace('/api', '');
+};
 
 const ORDER_EVENTS = [
   'order.created',
@@ -19,6 +20,7 @@ const NOTIFICATION_EVENTS = [
 
 let socket = null;
 let activeToken = null;
+let connectPromise = null;
 const listeners = new Map();
 
 function getSet(eventName) {
@@ -71,25 +73,53 @@ function bindSocketEvents(nextSocket) {
   NOTIFICATION_EVENTS.forEach(eventName => {
     nextSocket.on(eventName, payload => emitLocal(eventName, payload));
   });
-  nextSocket.on('connect', () => console.log('[realtime] connected'));
-  nextSocket.on('disconnect', () => console.log('[realtime] disconnected'));
+  if (import.meta.env.DEV) {
+    nextSocket.on('connect', () => console.log('[realtime] connected'));
+    nextSocket.on('disconnect', () => console.log('[realtime] disconnected'));
+  }
 }
 
 export function connectCustomerRealtime(token) {
   if (!token) return null;
+  // Reuse a healthy socket for the same token.
   if (socket && activeToken === token) {
     if (!socket.connected) socket.connect();
     return socket;
   }
-  disconnectCustomerRealtime();
+  // If a connection is already in flight for this token, return its promise.
+  if (connectPromise && activeToken === token) {
+    return connectPromise;
+  }
+  // Disconnect any prior socket before swapping to a new token.
+  if (socket) {
+    disconnectCustomerRealtime();
+  }
   activeToken = token;
-  socket = io(getRealtimeBaseUrl(), {
+  const nextSocket = io(getRealtimeBaseUrl(), {
     auth: { token },
     reconnection: true,
     transports: ['websocket', 'polling'],
   });
-  bindSocketEvents(socket);
-  return socket;
+  socket = nextSocket;
+  bindSocketEvents(nextSocket);
+  // Resolve once the socket has either connected or errored so concurrent
+  // callers can `await` the same socket instead of racing.
+  connectPromise = new Promise((resolve) => {
+    const onConnect = () => {
+      nextSocket.off('connect_error', onError);
+      resolve(nextSocket);
+    };
+    const onError = () => {
+      nextSocket.off('connect', onConnect);
+      resolve(nextSocket);
+    };
+    nextSocket.once('connect', onConnect);
+    nextSocket.once('connect_error', onError);
+  });
+  connectPromise.finally(() => {
+    connectPromise = null;
+  });
+  return nextSocket;
 }
 
 export function disconnectCustomerRealtime() {
@@ -99,4 +129,5 @@ export function disconnectCustomerRealtime() {
   }
   socket = null;
   activeToken = null;
+  connectPromise = null;
 }

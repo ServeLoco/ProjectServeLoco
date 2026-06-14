@@ -4,6 +4,7 @@ const notificationService = require('../utils/notificationService');
 const realtimeEvents = require('../realtime/orderEvents');
 const { calculateThresholdDeliveryCharge } = require('../utils/thresholdDelivery');
 const { roundMoney, toMoney } = require('../utils/money');
+const { calculateNightCharge, isCodBlockedDuringNight } = require('../utils/nightDelivery');
 
 const generateOrderNumber = async (connection) => {
   const date = new Date();
@@ -47,6 +48,10 @@ const createOrder = async (req, res) => {
     
     if (settings.shop_open === 0 || settings.shop_open === false) throw new Error('Shop is currently closed');
     if (settings.delivery_available === 0 || settings.delivery_available === false) throw new Error('Delivery is currently unavailable');
+
+    if (isCodBlockedDuringNight(settings) && payment_method === 'Cash') {
+      throw new Error('Cash on Delivery is not available during night delivery hours. Please choose UPI.');
+    }
 
     let subtotal = 0;
     const orderItems = [];
@@ -100,22 +105,9 @@ const createOrder = async (req, res) => {
     const finalDeliveryType = isFastDelivery ? 'fast' : 'standard';
 
     let nightCharge = 0;
-    if (settings.night_charge && parseFloat(settings.night_charge) > 0 &&
-        settings.night_charge_start && settings.night_charge_end) {
-      const toMinutes = (t) => {
-        const str = typeof t === 'string' ? t : String(t);
-        const parts = str.split(':').map(Number);
-        return (parts[0] || 0) * 60 + (parts[1] || 0);
-      };
-      const now = new Date();
-      const nowIST = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-      const nowMinutes = nowIST.getHours() * 60 + nowIST.getMinutes();
-      const startMin = toMinutes(settings.night_charge_start);
-      const endMin = toMinutes(settings.night_charge_end);
-      const isNight = startMin > endMin
-        ? (nowMinutes >= startMin || nowMinutes <= endMin)
-        : (nowMinutes >= startMin && nowMinutes <= endMin);
-      if (isNight) nightCharge = toMoney(settings.night_charge);
+    if (settings.night_charge && settings.night_charge_start && settings.night_charge_end) {
+      const raw = calculateNightCharge(settings);
+      if (raw > 0) nightCharge = toMoney(raw);
     }
 
     const total = roundMoney(subtotal + deliveryCharge + nightCharge);

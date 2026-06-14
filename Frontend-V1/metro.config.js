@@ -1,5 +1,4 @@
 const { getDefaultConfig } = require('expo/metro-config');
-const exclusionList = require('metro-config/private/defaults/exclusionList').default;
 
 /**
  * Metro configuration
@@ -9,11 +8,15 @@ const exclusionList = require('metro-config/private/defaults/exclusionList').def
  */
 const config = getDefaultConfig(__dirname);
 
-config.resolver.blockList = exclusionList([
+// Metro's `resolver.blockList` accepts an array of RegExp directly. We pass the
+// patterns inline instead of metro's `exclusionList` helper, whose internal
+// path (metro-config/private/...) is not resolvable in the Expo SDK 54
+// dependency tree and caused a MODULE_NOT_FOUND -> ESM import() crash on load.
+config.resolver.blockList = [
   /node_modules\/.*\/android\/.*/,
   /node_modules\/.*\/ios\/.*/,
   /node_modules\/.*\/macos\/.*/,
   /node_modules\/.*\/windows\/.*/,
-]);
+];
 
 module.exports = config;

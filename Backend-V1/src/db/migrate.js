@@ -280,8 +280,9 @@ const migrate = async () => {
     await ensureIndex('orders', 'idx_orders_payment_status_created', 'payment_status, created_at');
     await ensureIndex('orders', 'idx_orders_customer_created', 'customer_id, created_at');
     await ensureIndex('products', 'idx_products_available_deleted', 'available, deleted');
-    await ensureIndex('notifications', 'idx_notifications_user_unread', 'user_id, read_at, deleted_at');
-    await ensureIndex('offer_products', 'idx_offer_products_active_display', 'offer_id, active, display_order');
+    // NOTE: indexes for `notifications` and `offer_products` are added after
+    // those tables are created later in this file (a fresh DB has no such
+    // tables yet at this point).
 
     console.log('Orders table ready.');
 
@@ -402,6 +403,7 @@ const migrate = async () => {
         FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
       );
     `);
+    await ensureIndex('offer_products', 'idx_offer_products_active_display', 'offer_id, active, display_order');
     console.log('Offer products table ready.');
 
     // Dashboard Sections Table
@@ -653,6 +655,7 @@ const migrate = async () => {
         UNIQUE KEY uniq_notification_event (user_id, source_type, source_id, event_key)
       );
     `);
+    await ensureIndex('notifications', 'idx_notifications_user_unread', 'user_id, read_at, deleted_at');
     console.log('Notifications table ready.');
 
     // Cleanup: Convert 'all' offer banner sections to 'packed' and 'fast_food'

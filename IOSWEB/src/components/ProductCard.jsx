@@ -48,6 +48,7 @@ export default function ProductCard({ item, isCombo = false }) {
 
   const imageUrl = getResolvedImageUrl(item);
   const originalPrice = item.originalPrice ?? item.original_price;
+  const isAvailable = item.available !== false && item.available !== 0 && item.available !== null;
   const discountLabel =
     item.discountLabel ??
     item.discount_label ??
@@ -85,7 +86,7 @@ export default function ProductCard({ item, isCombo = false }) {
               variant="outline"
               className="add-btn"
               onClick={handleAdd}
-              disabled={!shopOpen || (item.available === false) || (item.available === 0)}
+              disabled={!shopOpen || !isAvailable}
             >
               ADD
             </Button>

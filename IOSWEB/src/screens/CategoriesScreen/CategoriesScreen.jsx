@@ -27,7 +27,7 @@ export default function CategoriesScreen() {
         <div className="cat-title">Categories</div>
       </div>
       
-      <div className="store-type-tabs" style={{ boxShadow: 'var(--shadow-sm)', position: 'relative', zIndex: 39 }}>
+      <div className="store-type-tabs cat-tabs">
         <button 
           className={`store-type-tab ${type === 'packed' ? 'active' : ''}`}
           onClick={() => setType('packed')}

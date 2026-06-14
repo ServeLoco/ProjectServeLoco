@@ -176,6 +176,9 @@ function normalizeSettings(payload = {}) {
     upiQrImageId: pickFirst(settings.upiQrImageId, settings.upi_qr_image_id, null),
     upiQrImageUrl: normalizeImageUrl(pickFirst(settings.upiQrImageUrl, settings.upi_qr_image_url, settings.upiQrUrl, settings.upi_qr_url, null)),
     activeOffer,
+    nightCharge: numberOrZero(pickFirst(settings.nightCharge, settings.night_charge)),
+    nightChargeStart: pickFirst(settings.nightChargeStart, settings.night_charge_start, null),
+    nightChargeEnd: pickFirst(settings.nightChargeEnd, settings.night_charge_end, null),
   };
 }
 

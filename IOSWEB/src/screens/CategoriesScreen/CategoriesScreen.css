@@ -26,3 +26,9 @@
   gap: var(--space-md);
   padding: var(--space-lg) var(--screen-padding-h);
 }
+
+.cat-tabs {
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  z-index: 39;
+}

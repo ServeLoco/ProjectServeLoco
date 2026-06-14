@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 export const useCartStore = create(
   persist(
-    (set, get) => ({
+    (set) => ({
       items: [], // [{ product: { id, name, price, unit, imageUrl }, quantity, type: 'product'|'combo' }]
 
       addItem: (product, quantity = 1) => set((state) => {
@@ -52,14 +52,17 @@ export const useCartStore = create(
       }),
 
       clearCart: () => set({ items: [] }),
-
-      // Derived state
-      getTotalItems: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
-      getDisplayTotal: () => get().items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0),
     }),
     {
       name: 'serveloco-customer-cart',
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ items: state.items }),
     }
   )
 );
+
+export const selectCartTotalItems = (state) =>
+  state.items.reduce((sum, item) => sum + item.quantity, 0);
+
+export const selectCartDisplayTotal = (state) =>
+  state.items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);

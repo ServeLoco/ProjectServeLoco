@@ -45,7 +45,13 @@ export default function ProfileScreen() {
     }
   };
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="screen-container profile-screen">
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="screen-container profile-screen">

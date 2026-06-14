@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const getApiBaseUrl = () => import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 // Tiny inline SVG placeholder — light grey card with image icon
 const PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -11,18 +11,22 @@ export const getResolvedImageUrl = (item) => {
   let url = item.imageUrl || item.image_url;
 
   if (!url && item.image_file) {
-    url = `${API_BASE_URL.replace('/api', '')}/uploads/${item.image_file}`;
+    url = `${getApiBaseUrl().replace('/api', '')}/uploads/${item.image_file}`;
   }
 
   if (!url) return PLACEHOLDER;
 
   try {
     const urlObj = new URL(url);
-    const apiObj = new URL(API_BASE_URL);
-    
-    // Force image host to match the API host so cross-device testing and local testing both work
-    // regardless of what hardcoded PUBLIC_BASE_URL is in the backend's .env file.
-    if (urlObj.hostname !== apiObj.hostname) {
+    const apiObj = new URL(getApiBaseUrl());
+
+    // Only force the image host to match the API host when the URL points at
+    // a relative-style upload path produced by the backend. Leave external
+    // CDN URLs (with their own query strings, signed tokens, etc.) alone so
+    // we don't 404 a perfectly valid https://cdn.example.com/img?token=... URL.
+    const isUploadPath = urlObj.pathname.startsWith('/uploads/')
+      || urlObj.pathname.startsWith('/images/');
+    if (isUploadPath && urlObj.hostname !== apiObj.hostname) {
       urlObj.hostname = apiObj.hostname;
       urlObj.port = apiObj.port;
       urlObj.protocol = apiObj.protocol;

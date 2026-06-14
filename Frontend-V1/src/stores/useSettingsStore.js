@@ -14,6 +14,9 @@ export const useSettingsStore = create(
       upiQrImageId: null,
       upiQrImageUrl: null,
       activeOffer: null,
+      nightCharge: 0,
+      nightChargeStart: null,
+      nightChargeEnd: null,
       _lastFetched: null,
 
       setSettings: (settings) =>

@@ -9,7 +9,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       manifest: false,       // we manage manifest.json manually in /public
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2,ttf,json}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/your-backend\.com\/api\/.*/,

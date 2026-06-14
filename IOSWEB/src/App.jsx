@@ -14,6 +14,7 @@ import OrderConfirmationScreen from './screens/OrderConfirmationScreen/OrderConf
 import ProfileScreen from './screens/ProfileScreen/ProfileScreen';
 import EditProfileScreen from './screens/EditProfileScreen/EditProfileScreen';
 import NotificationsScreen from './screens/NotificationsScreen/NotificationsScreen';
+import NotFoundScreen from './screens/NotFoundScreen/NotFoundScreen';
 import RealtimeManager from './components/RealtimeManager';
 import AddToHomePrompt from './components/AddToHomePrompt';
 import { useAuthStore } from './stores/authStore';
@@ -49,7 +50,7 @@ export default function App() {
         <Route path="/notifications" element={<AuthGuard><NotificationsScreen /></AuthGuard>} />
         
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundScreen />} />
       </Routes>
     </BrowserRouter>
   );

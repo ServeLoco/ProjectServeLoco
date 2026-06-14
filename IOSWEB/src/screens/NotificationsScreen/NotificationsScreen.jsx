@@ -34,9 +34,15 @@ export default function NotificationsScreen() {
         const res = await notificationsApi.list();
         const payload = res.data || res;
         setNotifications(payload.notifications || (Array.isArray(payload) ? payload : []));
-        // Automatically mark all as read when viewed
-        await notificationsApi.markAllRead();
-        fetchUnreadCount(); // reset store count to 0
+        // Automatically mark all as read when viewed. Swallow errors here
+        // so a 401 (expired token) doesn't blow up the screen; the list
+        // is still rendered, and the next request will refresh the count.
+        try {
+          await notificationsApi.markAllRead();
+          fetchUnreadCount(); // reset store count to 0
+        } catch (markErr) {
+          console.warn('Failed to mark notifications as read', markErr);
+        }
       } catch (err) {
         setError(err.message || 'Failed to load notifications');
       } finally {
@@ -71,18 +77,23 @@ export default function NotificationsScreen() {
           />
         ) : (
           <div className="notif-list">
-            {notifications.map(notif => (
-              <div key={notif.id} className={`notif-item ${!notif.is_read ? 'unread' : ''}`}>
+            {notifications.map(notif => {
+              const isRead = notif.read ?? notif.is_read ?? false;
+              const message = notif.body || notif.message || '';
+              const createdAt = notif.createdAt || notif.created_at;
+              return (
+              <div key={notif.id} className={`notif-item ${!isRead ? 'unread' : ''}`}>
                 <div className="notif-icon-wrapper">
                   <BellIcon />
                 </div>
                 <div className="notif-content">
                   <div className="notif-item-title">{notif.title}</div>
-                  <div className="notif-item-desc">{notif.message}</div>
-                  <div className="notif-item-time">{timeAgo(notif.created_at)}</div>
+                  <div className="notif-item-desc">{message}</div>
+                  <div className="notif-item-time">{timeAgo(createdAt)}</div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

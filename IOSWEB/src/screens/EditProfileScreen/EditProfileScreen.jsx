@@ -14,11 +14,11 @@ const BackIcon = () => (
 export default function EditProfileScreen() {
   const navigate = useNavigate();
   const user = useAuthStore(state => state.user);
-  const setProfile = useAuthStore(state => state.setProfile);
+  const updateUser = useAuthStore(state => state.updateUser);
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
-    whatsapp: user?.whatsapp || '',
+    whatsapp: user?.whatsapp ?? user?.whatsapp_number ?? '',
     address: user?.address || '',
   });
 
@@ -50,15 +50,15 @@ export default function EditProfileScreen() {
     try {
       const response = await authApi.updateProfile({
         name: formData.name,
-        fullName: formData.name, // match Android API payload 
-        whatsappNumber: formData.whatsapp, // match Android API payload
         whatsapp: formData.whatsapp,
-        deliveryAddress: formData.address, // match Android API payload
         address: formData.address,
       });
       
-      const updatedProfile = response?.data?.user || response?.data?.profile || { ...user, ...formData };
-      setProfile(updatedProfile);
+      const serverUser = response?.data?.user || response?.user || response?.data?.profile;
+      const updatedProfile = serverUser
+        ? { ...serverUser, whatsapp: serverUser.whatsapp ?? serverUser.whatsapp_number ?? formData.whatsapp }
+        : { ...user, ...formData };
+      updateUser(updatedProfile);
       setSuccess(true);
       
       setTimeout(() => {

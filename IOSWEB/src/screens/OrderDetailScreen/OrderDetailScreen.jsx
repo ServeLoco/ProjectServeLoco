@@ -37,22 +37,26 @@ export default function OrderDetailScreen() {
     };
     fetchOrder();
 
+    let cancelled = false;
     const unsubOrders = subscribeOrderEvents(({ eventName, payload }) => {
       if (!payload || String(payload.orderId) !== String(id)) return;
-      
-      const mappedPayload = {
-        status: payload.status,
-        payment_status: payload.paymentStatus,
-      };
-
-      if (eventName === 'order.status.updated' || eventName === 'order.payment.updated' || eventName === 'order.updated') {
-        setOrder(prev => ({ ...prev, ...mappedPayload }));
-      } else if (eventName === 'order.cancelled') {
-        setOrder(prev => ({ ...prev, ...mappedPayload, status: 'Cancelled' }));
+      if (cancelled) return;
+      if (
+        eventName === 'order.status.updated' ||
+        eventName === 'order.payment.updated' ||
+        eventName === 'order.updated' ||
+        eventName === 'order.cancelled'
+      ) {
+        // Refetch so the UI shows all server-side fields, not just the two
+        // fields the partial payload happens to carry.
+        fetchOrder();
       }
     });
 
-    return () => unsubOrders();
+    return () => {
+      cancelled = true;
+      unsubOrders();
+    };
   }, [id]);
 
   if (loading) {
