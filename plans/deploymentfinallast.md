@@ -1,4 +1,4 @@
-# ServeLoco — Final Deployment Plan
+# VillKro — Final Deployment Plan
 
 > Complete step-by-step deployment plan covering Phase 1 (Lightsail deployable) and Phase 2 (correctness + safety). All requirements captured across planning sessions are documented here.
 
@@ -58,8 +58,8 @@
                           │  (yourdomain.com) │
                           └────────┬─────────┘
                                    │
-        ┌──────────────────────────┼───────────────────────────┐
-        ▼                          ▼                           ▼
+         ┌──────────────────────────┼───────────────────────────┐
+         ▼                          ▼                           ▼
  ┌─────────────┐          ┌─────────────────┐         ┌──────────────────┐
  │ Admin Panel │          │ iOS Web (PWA)   │         │ Backend API      │
  │ (Lightsail  │          │ (Lightsail      │         │ (Lightsail       │
@@ -69,14 +69,14 @@
                                                       │  ap-south-1      │
                                                       └────────┬─────────┘
                                                                │
-                              ┌────────────────────────────────┼─────────────────────┐
-                              ▼                                ▼                     ▼
-                       ┌─────────────┐                  ┌──────────────┐      ┌────────────┐
-                       │ S3          │                  │ Azure MySQL  │      │ MongoDB    │
-                       │ serveloco-  │                  │ Flexible B1ms│      │ Atlas M0    │
-                       │ images-prod │                  │ (TLS)        │      │ (free)      │
-                       │ < $1/mo     │                  │ $18/mo       │      │ $0          │
-                       └─────────────┘                  └──────────────┘      └────────────┘
+                               ┌────────────────────────────────┼─────────────────────┐
+                               ▼                                ▼                     ▼
+                        ┌─────────────┐                  ┌──────────────┐      ┌────────────┐
+                        │ S3          │                  │ Azure MySQL  │      │ MongoDB    │
+                        │ villkro-   │                  │ Flexible B1ms│      │ Atlas M0    │
+                        │ images-prod │                  │ (TLS)        │      │ (free)      │
+                        │ < $1/mo     │                  │ $18/mo       │      │ $0          │
+                        └─────────────┘                  └──────────────┘      └────────────┘
 ```
 
 ---
@@ -93,11 +93,11 @@
 - `SELECT *` → explicit columns on 5 `dashboardController` hot queries
 
 **Frontend:**
-- Deleted unused `Frontend-V1/Images/ServeLOCO.png` (416 KB)
+- Deleted unused `apps/customer-app/Images/ServeLOCO-removebg-preview.png` (416 KB)
 - Removed unused `expo-image-picker` dep
 - Added `expo-image` dep
 - Swapped `ProductImage.js` to `expo-image` (drop-in, disk cache built-in)
-- Added Workbox `CacheFirst` for `/uploads/` in IOSWEB + admin (PWA service worker)
+- Added Workbox `CacheFirst` for `/uploads/` in apps/web + admin (PWA service worker)
 
 ### Tier 2 — N+1 fixes + selector hygiene (DONE)
 
@@ -112,7 +112,7 @@
 ### Tier 3 — Caching + realtime compression + prefetch (DONE)
 
 **Backend:**
-- New `Backend-V1/src/utils/ttlCache.js` — tiny TTL cache helper
+- New `apps/api/src/utils/ttlCache.js` — tiny TTL cache helper
 - `getSettings` wrapped in 60s TTL cache, invalidated on PATCH
 - `getCategories` wrapped in 60s TTL cache (per storeType), invalidated on CRUD
 - Socket.IO `perMessageDeflate: { threshold: 1024 }` (60-80% smaller realtime frames)
@@ -137,34 +137,36 @@
 
 | File | Change |
 |---|---|
-| `Backend-V1/src/config/s3.js` *(new)* | S3 client + `uploadBuffer(bucket, key, buffer, mimeType)` helper |
-| `Backend-V1/src/config/env.js` | + `S3_BUCKET`, `S3_REGION`, `S3_PUBLIC_URL` |
-| `Backend-V1/src/routes/imageRoutes.js` | Swap `multer.diskStorage` → `multer-s3` with `ACL: public-read`, `ContentType: image/webp` |
-| `Backend-V1/src/controllers/imageController.js` | Store S3 URLs in Mongo `images` collection instead of local paths |
-| `Backend-V1/src/controllers/bulkImportController.js` | Same S3 swap for ZIP-embedded images |
-| `Backend-V1/src/app.js` | Remove `/uploads/*` static middleware (S3 replaces it) |
-| `Backend-V1/Dockerfile` | Confirmed Lightsail Container Service compatible (multi-stage) |
-| `IOSWEB/Dockerfile` *(new)* | Multi-stage: node:20-alpine build → nginx:alpine runtime |
-| `IOSWEB/nginx.conf` *(new)* | SPA fallback + 6-month `Cache-Control` on `/assets/*` |
-| `IOSWEB/.dockerignore` *(new)* | exclude node_modules, dist, .env*, .git |
+| `apps/api/src/config/s3.js` *(new)* | S3 client + `uploadBuffer(bucket, key, buffer, mimeType)` helper |
+| `apps/api/src/config/env.js` | + `S3_BUCKET`, `S3_REGION`, `S3_PUBLIC_URL` |
+| `apps/api/src/routes/imageRoutes.js` | Swap `multer.diskStorage` → `multer-s3` with `ACL: public-read`, `ContentType: image/webp` |
+| `apps/api/src/controllers/imageController.js` | Store S3 URLs in Mongo `images` collection instead of local paths |
+| `apps/api/src/controllers/bulkImportController.js` | Same S3 swap for ZIP-embedded images |
+| `apps/api/src/app.js` | Remove `/uploads/*` static middleware (S3 replaces it) |
+| `apps/api/Dockerfile` | Confirmed Lightsail Container Service compatible (multi-stage) |
+| `apps/web/Dockerfile` *(new)* | Multi-stage: node:20-alpine build → nginx:alpine runtime |
+| `apps/web/nginx.conf` *(new)* | SPA fallback + 6-month `Cache-Control` on `/assets/*` |
+| `apps/web/.dockerignore` *(new)* | exclude node_modules, dist, .env*, .git |
 | `plans/production-deploy.md` *(new)* | Step-by-step runbook |
 
 ### 5.2 Console setup — AWS (ap-south-1)
 
 | Step | What | Time | Cost |
 |---|---|---|---|
-| 1 | Create ECR repository `serveloco-backend` | 5 min | $0 |
+| 1 | Create ECR repository `villkro-api` | 5 min | $0 |
 | 2 | Build Docker image locally, push to ECR | 15 min | $0 |
-| 3 | Create S3 bucket `serveloco-images-prod` (public-read, CORS for GET) | 10 min | < $1/mo |
+| 3 | Create S3 bucket `villkro-images-prod` (public-read, CORS for GET) | 10 min | < $1/mo |
 | 4 | Create IAM user `lightsail-s3-user` with `AmazonS3ReadWrite` on bucket | 5 min | $0 |
-| 5 | Create Lightsail Container Service `serveloco-api` (2 GB, 1 node, min 1 / max 2, port 3000) | 10 min | $10/mo |
-| 6 | Create Lightsail Container Service `serveloco-admin-web` (static) | 10 min | $0 (free tier) |
-| 7 | Create Lightsail Container Service `serveloco-iosweb` (static) | 10 min | $0 (free tier) |
+| 5 | Create Lightsail Container Service `villkro-api` (2 GB, 1 node, min 1 / max 2, port 3000) | 10 min | $10/mo |
+| 6 | Create Lightsail Container Service `villkro-admin` (static) | 10 min | $0 (free tier) |
+| 7 | Create Lightsail Container Service `villkro-web` (static) | 10 min | $0 (free tier) |
 | 8 | Set env vars on Lightsail (see section 5.6) | 10 min | $0 |
 | 9 | ACM cert + Route 53 (or registrar CNAME) for your domain | 20 min | $0 |
 | 10 | Deploy: push image, Lightsail pulls and runs | 5 min | $0 |
 
 **AWS total: ~1.5 hours, $10/mo**
+
+> Note: S3 bucket name is set here to `villkro-images-prod` for new deploys. If migrating from a prior `serveloco-images-prod` bucket, either keep the old name (already documented as a deployment identifier) or migrate the contents and update `S3_BUCKET` + `S3_PUBLIC_URL` env vars on Lightsail.
 
 ### 5.3 Console setup — Azure (centralindia)
 
@@ -173,7 +175,7 @@
 | 1 | Create MySQL Flexible Server, B1ms Burstable, 32 GB storage | 20 min | $18/mo |
 | 2 | Create database `serveloco`, create user | 5 min | $0 |
 | 3 | Firewall: allow from your Lightsail NAT IP range (or 0.0.0.0 for now) | 5 min | $0 |
-| 4 | Download DigiCert Global Root G2 CA cert, save to `Backend-V1/certs/` | 5 min | $0 |
+| 4 | Download DigiCert Global Root G2 CA cert, save to `apps/api/certs/` | 5 min | $0 |
 | 5 | Update Lightsail env vars with the MySQL host/user/password | 5 min | $0 |
 
 **Azure total: ~40 min, $18/mo**
@@ -233,9 +235,9 @@ PUBLIC_BASE_URL=https://api.yourdomain.com
 UPLOAD_DIR=/tmp/uploads   # unused with S3 but keep for legacy
 
 # S3
-S3_BUCKET=serveloco-images-prod
+S3_BUCKET=villkro-images-prod
 S3_REGION=ap-south-1
-S3_PUBLIC_URL=https://serveloco-images-prod.s3.ap-south-1.amazonaws.com
+S3_PUBLIC_URL=https://villkro-images-prod.s3.ap-south-1.amazonaws.com
 AWS_ACCESS_KEY_ID=<from IAM user>
 AWS_SECRET_ACCESS_KEY=<from IAM user>
 
@@ -253,7 +255,7 @@ LOG_LEVEL=info
 
 | Step | What | Time | Cost |
 |---|---|---|---|
-| 1 | Create Sentry account, project `serveloco-backend` (Node) | 3 min | $0 |
+| 1 | Create Sentry account, project `villkro-api` (Node) | 3 min | $0 |
 | 2 | Copy DSN, paste into Lightsail env | 1 min | $0 |
 
 ### 5.8 Phase 1 verification
@@ -271,7 +273,7 @@ curl https://api.yourdomain.com/api/settings
 https://admin.yourdomain.com
 
 # Upload a test product image in admin
-# Verify URL is on serveloco-images-prod.s3.ap-south-1.amazonaws.com
+# Verify URL is on villkro-images-prod.s3.ap-south-1.amazonaws.com
 # Verify image is publicly readable in browser
 ```
 
@@ -283,16 +285,16 @@ https://admin.yourdomain.com
 
 | File | Change | Status |
 |---|---|---|
-| `Backend-V1/src/server.js` | Add `unhandledRejection` / `uncaughtException` handlers; `server.keepAliveTimeout=65000`, `server.headersTimeout=70000`, `server.requestTimeout=30000` | NEW |
-| `Backend-V1/src/app.js` | Split `/health` into `/live` (always 200) + `/ready` (DB-conditional) | NEW |
-| `Backend-V1/src/app.js` | Remove legacy route aliases (lines 76-85) — only after grep confirms zero callers in apps | NEW |
-| `Backend-V1/package.json` | + `@sentry/node`, `pino`, `pino-http` | NEW |
-| `Backend-V1/src/utils/logger.js` *(new)* | pino instance + request ID middleware | NEW |
-| `Backend-V1/src/app.js` | Add Sentry init before other middleware; wrap with `Sentry.Handlers.requestHandler()` + `Sentry.Handlers.errorHandler()` | NEW |
-| `Backend-V1/src/db/migrate.js` | Verify all 5 indexes from `plans/performance.md` exist (most already do) | VERIFY |
-| `Backend-V1/.env.example` | Document all new env vars | NEW |
-| `Backend-V1/Dockerfile` | Add `tini` for signal handling; pin `node:20-alpine` digest | NEW |
-| `Backend-V1/.dockerignore` | Add `.env.production`, `certs/`, `*.log` | NEW |
+| `apps/api/src/server.js` | Add `unhandledRejection` / `uncaughtException` handlers; `server.keepAliveTimeout=65000`, `server.headersTimeout=70000`, `server.requestTimeout=30000` | NEW |
+| `apps/api/src/app.js` | Split `/health` into `/live` (always 200) + `/ready` (DB-conditional) | NEW |
+| `apps/api/src/app.js` | Remove legacy route aliases (lines 76-85) — only after grep confirms zero callers in apps | NEW |
+| `apps/api/package.json` | + `@sentry/node`, `pino`, `pino-http` | NEW |
+| `apps/api/src/utils/logger.js` *(new)* | pino instance + request ID middleware | NEW |
+| `apps/api/src/app.js` | Add Sentry init before other middleware; wrap with `Sentry.Handlers.requestHandler()` + `Sentry.Handlers.errorHandler()` | NEW |
+| `apps/api/src/db/migrate.js` | Verify all 5 indexes from `plans/performance.md` exist (most already do) | VERIFY |
+| `apps/api/.env.example` | Document all new env vars | NEW |
+| `apps/api/Dockerfile` | Add `tini` for signal handling; pin `node:20-alpine` digest | NEW |
+| `apps/api/.dockerignore` | Add `.env.production`, `certs/`, `*.log` | NEW |
 | `plans/production-deploy.md` | Append Phase 2 runbook (Sentry, CloudWatch, UptimeRobot) | NEW |
 
 ### 6.2 Verify existing N+1 + cache + compression work landed in production
@@ -308,7 +310,7 @@ All Tier 1/2/3 optimization changes are already committed and tested locally. Af
 
 | Step | What | Time | Cost |
 |---|---|---|---|
-| 1 | CloudWatch → Logs → Create log group `/ecs/serveloco-api` | 2 min | $0 (5 GB free tier year 1) |
+| 1 | CloudWatch → Logs → Create log group `/ecs/villkro-api` | 2 min | $0 (5 GB free tier year 1) |
 | 2 | Lightsail → Service → Enable CloudWatch logging | 3 min | $0 |
 
 ### 6.4 UptimeRobot monitors (free)
@@ -344,7 +346,7 @@ All Tier 1/2/3 optimization changes are already committed and tested locally. Af
 
 ## 7. Open Items (need from you)
 
-1. **Exact domain name** (e.g. `serveloco.app`, `serve-loco.in`) + subdomain choices for `api.`, `admin.`, `app.`
+1. **Exact domain name** (e.g. `villkro.app`, `villkro.in`) + subdomain choices for `api.`, `admin.`, `app.`
 2. **Admin `ownerId`** (phone or email for `ADMIN_OWNER_ID`)
 3. **Strong admin password** (you generate; I'll bcrypt-hash it locally and put the hash in env)
 4. **AWS account** with admin IAM access — confirm you have it
@@ -404,24 +406,207 @@ Three options, in order of ease:
 ## 12. Files Created or Modified by Deployment Phase (summary)
 
 ### Created
-- `Backend-V1/src/config/s3.js`
-- `IOSWEB/Dockerfile`
-- `IOSWEB/nginx.conf`
-- `IOSWEB/.dockerignore`
-- `Backend-V1/src/utils/logger.js` (Phase 2)
+- `apps/api/src/config/s3.js`
+- `apps/web/Dockerfile`
+- `apps/web/nginx.conf`
+- `apps/web/.dockerignore`
+- `apps/api/src/utils/logger.js` (Phase 2)
 - `plans/production-deploy.md` (the runbook)
 
 ### Modified
-- `Backend-V1/src/config/env.js` (new S3 env vars)
-- `Backend-V1/src/routes/imageRoutes.js` (multer-s3)
-- `Backend-V1/src/controllers/imageController.js` (S3 URLs)
-- `Backend-V1/src/controllers/bulkImportController.js` (S3 swap)
-- `Backend-V1/src/app.js` (remove static, add Sentry, split health)
-- `Backend-V1/src/server.js` (handlers, timeouts)
-- `Backend-V1/package.json` (sentry, pino)
-- `Backend-V1/Dockerfile` (tini)
-- `Backend-V1/.dockerignore` (certs, env)
-- `Backend-V1/.env.example` (document all env vars)
+- `apps/api/src/config/env.js` (new S3 env vars)
+- `apps/api/src/routes/imageRoutes.js` (multer-s3)
+- `apps/api/src/controllers/imageController.js` (S3 URLs)
+- `apps/api/src/controllers/bulkImportController.js` (S3 swap)
+- `apps/api/src/app.js` (remove static, add Sentry, split health)
+- `apps/api/src/server.js` (handlers, timeouts)
+- `apps/api/package.json` (sentry, pino)
+- `apps/api/Dockerfile` (tini)
+- `apps/api/.dockerignore` (certs, env)
+- `apps/api/.env.example` (document all env vars)
+
+---
+
+# Addendum — Updated for Monorepo Restructure & Local-Dev Verification
+
+> Added after the project was restructured into a professional monorepo and the local Expo dev server was verified end-to-end. The sections above remain valid in spirit; this addendum captures the deltas and the verified local-dev flow you should run **before** touching the cloud consoles.
+
+## A. Monorepo Layout (post-restructure)
+
+The top-level folder structure is now:
+
+```
+villkro/
+├── apps/
+│   ├── api/              Node + Express + Socket.IO backend (was Backend-V1)
+│   ├── customer-app/     React Native (Expo) iOS + Android app (was Frontend-V1)
+│   ├── admin/            React + Vite admin panel (was adminManager-V1)
+│   └── web/              React + Vite iOS-style PWA (was IOSWEB)
+├── docs/                 (legacy; may contain the original brand logo source PNGs)
+├── plans/                design / audit / deployment docs (this file lives here)
+├── .github/workflows/    CI pipelines
+├── .gitignore
+├── PRODUCTION_READINESS.md
+├── README.md
+└── render.yaml
+```
+
+### What changed in the deployment scripts
+- `render.yaml` — `rootDir: apps/api` and `rootDir: apps/admin`. Service names are `villkro-api` and `villkro-admin`.
+- `.github/workflows/ci.yml` — `working-directory: ./apps/api`, `paths: 'apps/api/**'`.
+- `.github/workflows/ci-admin.yml` — `working-directory: ./apps/admin`, `paths: 'apps/admin/**'`.
+- Dockerfiles — unchanged (they use relative `COPY` paths and work correctly when `rootDir` is `apps/*`).
+- Root smoke-test scripts `test_cart.js` and `test_thresh.js` — now `require('./apps/api/...')`.
+- `scripts/migrate_modes.js` and `install-dbs.sh` — removed during cleanup (one-time / obsolete).
+
+> **If you find any old `Backend-V1/` / `IOSWEB/` reference in this deployment plan, treat it as `apps/api/` / `apps/web/`.** A future cleanup pass should sweep this file to use only the new paths.
+
+## B. Brand Identity: VillKro (was ServeLoco)
+
+| Surface | New value |
+|---|---|
+| Customer app display name | `VillKro` |
+| Customer app slug (Expo) | `villkro` |
+| Customer app Android package | `com.yashsiwach.villkro` |
+| iOS permission descriptions | "VillKro uses your location..." |
+| Admin sidebar brand | "VillKro" + "VK" logo badge |
+| Admin login brand | "VK" badges + "VillKro" title |
+| iOS-style PWA name | `VillKro` (manifest + apple-mobile-web-app-title + browser title) |
+| Render service names | `villkro-api`, `villkro-admin`, `villkro-web` |
+| Login logo file | `apps/customer-app/Images/villkro-login-logo.webp` |
+| Dashboard logo file | `apps/customer-app/Images/villkro-dashboard-logo.png` |
+| Stale user-visible brand text remaining | ~14 occurrences across customer-app pull-to-refresh toasts, admin invoice HTML, web PWA HomeScreen/AuthScreen/AddToHomePrompt (see audit report) |
+| Internal identifiers left intact (KEEP, not RENAME) | DB names `serveloco` / `serveloco_images`; AsyncStorage keys `serveloco-settings`, `serveloco-cart`, `serveloco-customer-auth`; Android notification channel `serveloco-orders`; S3 bucket name (deploy-time, see Phase 1); deployed service hostname; CSV download filenames |
+
+**Recommended: do a final brand sweep before going live** (1 hour of work). Every line is a copy-paste replacement, no behavior change.
+
+## C. Pre-Deploy Smoke Tests (run locally before touching AWS/Azure)
+
+Run these in your terminal **before** you start creating cloud resources. Each takes under a minute. If any fails, do not deploy — fix it first.
+
+### 1. Backend tests + lint
+```bash
+cd apps/api
+npm test
+npm run lint
+```
+Expected: `28 passed, 0 failed`, `0 errors / 12 pre-existing warnings`.
+
+### 2. Customer Expo app — local dev with QR
+```bash
+cd apps/customer-app
+# Either of these works on Windows:
+npx expo start --lan --port 8081
+# or with explicit IPv4 host (use this if the phone scan times out):
+set EXPO_DEV_SERVER_HOST=192.168.1.4 && npx expo start --lan --port 8081
+```
+
+**Phone side:**
+1. Install **Expo Go** on the phone (App Store / Play Store). Must be SDK 54 compatible.
+2. Make sure the phone is on the **same Wi-Fi/Ethernet network as the PC** (same `192.168.1.x` subnet).
+3. Open Expo Go → tap **"Enter URL manually"** → type `exp://192.168.1.4:8081` → tap **Connect**.
+   - Or scan the QR code that Expo prints in the terminal.
+4. The app should bundle and open the Home screen. First bundle takes 30–60 s; subsequent reloads are <2 s thanks to the `expo-image` disk cache.
+
+**If the phone can't reach Metro** (most common failure):
+- Verify `curl http://192.168.1.4:8081/status` from the PC returns `200 OK`.
+- If the PC has the firewall on, open port 8081 in an **admin PowerShell**:
+  ```powershell
+  netsh advfirewall firewall add rule name="Allow Expo Metro 8081" dir=in action=allow protocol=TCP localport=8081 profile=any
+  ```
+- On Windows, Node sometimes binds to IPv6 `::` only. The `EXPO_DEV_SERVER_HOST=192.168.1.4` env var makes Expo advertise the IPv4 URL in the QR code instead of `localhost`.
+
+### 3. Admin panel — local dev
+```bash
+cd apps/admin
+npm run lint
+npm run build
+npm run dev
+```
+Open `http://localhost:5173` (Vite default). The brand bar must show **"VK / VillKro / VillKro Admin"** in the sidebar. Login with `ADMIN_OWNER_ID` from your `.env`. The PWA service worker is generated on `npm run build` (not on `dev`).
+
+### 4. iOS-style web PWA — local dev
+```bash
+cd apps/web
+npm run build
+npm run dev
+```
+Open `http://localhost:5174`. The Home screen and Auth screen must show **"VillKro"** (not "ServeLoco"). The browser title should be "VillKro" and the manifest should list it as `VillKro`.
+
+### 5. End-to-end smoke
+1. Sign up a new customer in the Expo app → should hit `http://192.168.1.4:3000/api/auth/register` (per `.env`'s `EXPO_PUBLIC_API_BASE_URL`).
+2. Place a test order → confirm it appears in the admin Orders page within 350 ms (real-time push from the existing `admin.order.created` socket).
+3. In the admin panel, click **Accept** on the new order → the customer should see a system notification + in-app notification + order status changes to "Accepted" within ~1 s.
+4. Open `apps/customer-app/Images/` and confirm both `villkro-login-logo.webp` and `villkro-dashboard-logo.png` are present.
+
+If all 5 pass, **proceed to Phase 1 below**.
+
+## D. Pre-Deploy Checklist (paste this in your runbook)
+
+Copy this into a checklist tool and tick each item before creating any cloud resource.
+
+```
+[ ] Section C.1 — apps/api: npm test (185/185), npm run lint (0 errors)
+[ ] Section C.2 — apps/customer-app: npx expo start --lan, app loads on phone, signup works
+[ ] Section C.3 — apps/admin: lint clean, build succeeds, dev server shows VK/VillKro/VillKro Admin
+[ ] Section C.4 — apps/web: build succeeds, dev server title is "VillKro", manifest name is "VillKro"
+[ ] Section C.5 — end-to-end: place an order, accept it in admin, customer sees status change
+[ ] Brand sweep: zero "ServeLoco" / "SL" / "serveloco" in user-visible strings (audit found 14)
+[ ] Have: AWS account + admin IAM access in ap-south-1
+[ ] Have: Azure student subscription with $150 credit active
+[ ] Have: MongoDB Atlas account
+[ ] Have: Cloudflare account + own the custom domain (api./admin./app. subdomains)
+[ ] Have: Sentry account (free tier)
+[ ] Have: 32-byte random JWT secret (openssl rand -hex 32)
+[ ] Have: ADMIN_OWNER_ID (phone/email) + strong ADMIN_PASSWORD (will be bcrypt-hashed)
+[ ] Have: SSL cert (Lightsail + ACM auto-provisions)
+[ ] Have: DigiCert Global Root G2 CA cert downloaded (for Azure MySQL TLS)
+[ ] Firewall: port 8081 open on dev machine (admin PowerShell, see §C.2)
+```
+
+When every box is ticked, **start Phase 1**.
+
+## E. Phased Deployment Sequence (unchanged from above)
+
+The order is still:
+
+1. **Phase 1** — Make the backend Lightsail-deployable (~1 h code, ~2.5 h console):
+   - Code: S3 swap, `apps/api/Dockerfile` polish, env config, `apps/web/Dockerfile`, `plans/production-deploy.md` runbook.
+   - Console: AWS Lightsail Container Service (ap-south-1), Azure MySQL B1ms (centralindia), Atlas M0, Cloudflare DNS, S3 bucket, Sentry, env vars.
+2. **Phase 2** — Correctness + safety (back-to-back):
+   - Sentry init, pino logger, `/live` + `/ready`, server timeouts, unhandled rejection handlers.
+   - CloudWatch log group, UptimeRobot monitors, Azure backup retention check.
+
+## F. Post-Deploy Verification (paste in runbook)
+
+```
+[ ] curl -I https://api.yourdomain.com/live  → 200
+[ ] curl -I https://api.yourdomain.com/ready → 200
+[ ] curl -I https://api.yourdomain.com/health → 410 (old endpoint removed)
+[ ] curl -H "Accept-Encoding: gzip" -I https://api.yourdomain.com/api/settings → Content-Encoding: gzip
+[ ] UptimeRobot monitor on /live, /ready, /api/settings all PASSING
+[ ] Sentry receives a test event from the deployed backend
+[ ] CloudWatch log group shows structured JSON logs with requestId
+[ ] Image upload in admin: URL is on villkro-images-prod.s3.ap-south-1.amazonaws.com
+[ ] Public-read test: open image URL in a private browser window, it loads
+[ ] 100 concurrent GETs to /api/products: <2s (use autocannon or k6)
+[ ] Disable backend in Lightsail console: /ready goes 503, UptimeRobot alerts
+[ ] Re-enable: /ready recovers within 30 s, UptimeRobot resolves
+```
+
+When every box is ticked, **the deployment is live**. Monitor for 24 hours; if no errors, the migration is done.
+
+## G. Rollback (if Phase 1 or 2 goes wrong)
+
+- **Code rollback:** `git revert <commit>` + push. Lightsail redeploys in ~90 s.
+- **DB rollback:** the Azure MySQL Flexible Server has 7-day PITR by default. To roll back: Azure portal → MySQL Flexible Server → "Restore" → pick a point in time before the bad deploy.
+- **S3 rollback:** images are content-addressed by URL — old images stay in the bucket when the new deploy writes new ones. Re-pointing the URL is enough.
+- **Settings cache rollback:** the new TTL cache in `settingsController` is invalidated by PATCH. If a bad admin write pollutes the cache, a `settingsCache.del()` + `updateSettings` re-write returns it to truth within 60 s.
+- **N+1 rollback:** the order + broadcast fixes are pure perf wins. The previous per-item loop still works — it just took 10x as long. Worst case, revert those commits and the system stays functionally correct.
+
+---
+
+**This addendum supersedes the path references in sections above.** Wherever you see `Backend-V1/`, treat it as `apps/api/`. Wherever you see `IOSWEB/`, treat it as `apps/web/`. Wherever you see `adminManager-V1/`, treat it as `apps/admin/`. Wherever you see `Frontend-V1/`, treat it as `apps/customer-app/`. The plan is now fully aligned with the current monorepo structure.
 
 ---
 
