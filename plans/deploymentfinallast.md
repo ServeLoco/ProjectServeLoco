@@ -9,13 +9,13 @@
 | Decision | Choice |
 |---|---|
 | **Backend cloud** | AWS (ap-south-1 Mumbai) |
-| **Backend service** | AWS Lightsail Container Service ($10/mo, 2 GB, 1 node) |
-| **Database** | Azure MySQL Flexible Server, B1ms Burstable, centralindia region ($18/mo) |
-| **Image storage** | AWS S3 single bucket in ap-south-1, public-read |
+| **Backend service** | AWS Lightsail Container Service (see §2A sizing — **2 GB / 1 vCPU minimum for 500 concurrent**, not the 0.5 vCPU nano) |
+| **Database** | MySQL — **same cloud as the API** to avoid cross-cloud per-query latency. AWS RDS/Lightsail Managed DB in ap-south-1 preferred over Azure for the 500-concurrent target (see §2A + §10.1) |
+| **Image storage** | AWS S3 single bucket in ap-south-1, public-read (**prerequisite for >1 node — local disk does not work across instances**) |
 | **Admin + iOS web frontend** | Lightsail Container Service (static) |
 | **DNS + HTTPS** | Cloudflare free tier (proxied) |
 | **Custom domain** | Yes (user-owned) |
-| **Scale target** | 500 active users (not 5000) |
+| **Scale target** | **500 *concurrent* requests** (simultaneous in-flight), not just 500 registered users. This is the demanding interpretation and drives the §2A sizing below. |
 | **Image count** | 100–150 images |
 | **Budget** | $120 AWS credits + $150 Azure credits = $270 total |
 | **Runway** | ~9 months at $29.70/mo before credits exhaust |
@@ -26,9 +26,12 @@
 
 ## 2. Estimated Monthly Cost
 
+> **Two cost rows below** — the original "500 active users" baseline, and the revised "500 *concurrent*" sizing this plan now targets. Pick the row that matches your real load.
+
+### Baseline (500 active / ~50 peak concurrent)
 | Component | Cost/mo |
 |---|---|
-| AWS Lightsail Container Service 2 GB (ap-south-1) | $10 |
+| AWS Lightsail Container Service 2 GB / 0.5 vCPU (ap-south-1) | $10 |
 | Azure MySQL Flexible Server B1ms (centralindia) | $18 |
 | S3 storage (100–150 images, < 1 GB) | < $1 |
 | CloudWatch logs (5 GB free tier year 1) | $0 |
@@ -39,7 +42,18 @@
 | Domain renewal (annual, prorated) | ~$1.20 |
 | **Total** | **~$29.70/mo** |
 
-**Runway: $270 / $29.70 ≈ 9 months** before credits exhaust. After that, either generate revenue or migrate to free-tier infrastructure.
+### Revised (500 *concurrent* — this plan's target)
+| Component | Cost/mo |
+|---|---|
+| AWS Lightsail Container Service 4 GB / 2 vCPU (ap-south-1), 2 nodes | ~$80 |
+| MySQL **on AWS** (RDS db.t4g.small ap-south-1) — same-cloud, no cross-cloud latency | ~$25–30 |
+| Redis (Lightsail/managed small) — shared cache + Socket.IO adapter for multi-node | ~$15 |
+| S3 storage (100–150 images, < 1 GB) | < $1 |
+| CloudWatch / Cloudflare / Atlas M0 / Sentry / UptimeRobot (free tiers) | $0 |
+| Domain renewal (annual, prorated) | ~$1.20 |
+| **Total** | **~$125–130/mo** |
+
+**Runway:** the $270 credit pool covers the baseline ~9 months but only **~2 months** at the revised concurrent sizing. If 500-concurrent is a *peak* you rarely hit (not steady-state), start on the baseline tier with autoscale headroom and resize up only when CloudWatch shows CPU/connection saturation — that preserves runway. After credits exhaust, either generate revenue or migrate to free-tier infrastructure.
 
 ---
 

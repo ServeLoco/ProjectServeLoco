@@ -301,6 +301,14 @@ const cancelOrder = async (req, res) => {
   }
 
   const order = orderRows[0];
+
+  // Idempotent: a flaky network can land the cancel request twice. If the order
+  // is already cancelled, return it with 200 instead of a 400 that the user
+  // reads as "cancel failed" even though their first request succeeded.
+  if (order.status === 'Cancelled') {
+    return res.status(200).json({ success: true, message: 'Order already cancelled', order, data: order });
+  }
+
   if (order.status !== 'Pending') {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Only pending orders can be cancelled' });
   }
