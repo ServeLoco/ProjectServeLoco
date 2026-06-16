@@ -153,8 +153,16 @@ const styles = StyleSheet.create({
 export default function CustomerNavigator() {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const hasHydrated = useAuthStore(state => state.hasHydrated);
+  const sessionChecked = useAuthStore(state => state.sessionChecked);
 
-  if (!hasHydrated) {
+  // Two-phase gate:
+  //   1. Wait for zustand-persist to rehydrate AsyncStorage (so the token
+  //      we read is the real one the user had, not null).
+  //   2. Wait for the startup validateSession() call (in App.js) to finish
+  //      confirming the token against /auth/me. Without this gate the user
+  //      would see the home tabs flash for a frame with a token that is
+  //      about to be wiped by the validator.
+  if (!hasHydrated || !sessionChecked) {
     return (
       <View style={styles.bootScreen}>
         <ActivityIndicator size="small" color={colors.primary} />

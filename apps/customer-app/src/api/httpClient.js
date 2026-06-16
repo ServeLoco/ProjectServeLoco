@@ -2,6 +2,17 @@ import { ApiError, getErrorMessage } from './apiError';
 import { getApiBaseUrl } from './config';
 import { getCustomerToken } from './sessionTokens';
 
+// Defer the auth-store import to break a require cycle: useAuthStore pulls in
+// authApi, which pulls in this file. We only need the store at request time
+// for the 401 -> logout path, so a lazy registration from App.js is fine.
+let _logoutHandler = null;
+export function setCustomerLogoutHandler(handler) {
+  _logoutHandler = typeof handler === 'function' ? handler : null;
+}
+function triggerLogout() {
+  try { if (_logoutHandler) _logoutHandler(); } catch (_) {}
+}
+
 const REQUEST_TIMEOUT_MS = 15000;
 
 function isFormData(body) {
@@ -111,6 +122,13 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
+    // 401 means the server has rejected our token. Auto-logout so the UI
+    // bounces the user to the Auth screen instead of letting screens render
+    // with a token that no longer works. CustomerNavigator reacts to
+    // isAuthenticated flipping back to false and re-renders Auth automatically.
+    if (response.status === 401) {
+      triggerLogout();
+    }
     throw new ApiError(
       getErrorMessage(payload, 'Request failed. Please try again.'),
       {
