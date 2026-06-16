@@ -1,0 +1,222 @@
+VillKro Deployment — Full Summary
+Project Overview
+App: VillKro — a food/grocery delivery platform
+Stack: Node.js/Express API + React admin panel + React PWA + React Native Expo customer app
+Repo: Monorepo at c:\Users\yashs\OneDrive\Pictures\Documents\ProjectServeLoco
+Domain: serveloco.app (registered on Name.com)
+Target: Deploy to AWS Lightsail instance (VM) at 13.207.236.156
+PART A — Code Changes (DONE ✅)
+All changes are in the repo, 185 tests pass, 0 lint errors.
+
+1. S3 Image Storage (was local disk, now AWS S3)
+Problem: The original code saved uploaded images to the container's local disk (multer.diskStorage). On a server, every redeploy wipes the disk — all images would disappear.
+
+What we changed:
+
+apps/api/src/config/s3.js (new file)
+
+Creates an AWS S3 client using S3_REGION + AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY
+Exports uploadBuffer(key, buffer, mimeType) → uploads bytes to S3, returns public URL
+Exports deleteObject(key) → deletes from S3 (fire-and-forget, never throws)
+apps/api/src/routes/imageRoutes.js (modified)
+
+Switched multer.diskStorage → multer.memoryStorage() (file stays in RAM, never touches disk)
+Magic-byte security check (detects real file type from bytes, blocks spoofed extensions) now runs on req.file.buffer instead of a disk path
+Attaches req.file.detectedExt for the controller to use
+apps/api/src/controllers/imageController.js (modified)
+
+Added STORAGE_DRIVER switch: if s3 → call s3.uploadBuffer(), store S3 URL + storageType:'s3'; if disk → write to local disk as before
+deleteImage now deletes from S3 when storageType==='s3', disk otherwise
+Local dev unchanged — STORAGE_DRIVER defaults to disk
+**`apps/api/src/controllers/bulkImportController.js
+
+continue
+apps/api/src/controllers/bulkImportController.js (modified)
+
+Added saveImage(buffer, originalFilename, mimetype) helper → writes to S3 or disk based on STORAGE_DRIVER
+Added deleteStoredImage(filename) helper → deletes from S3 or disk
+Rollback on transaction failure now cleans up S3 objects (not just disk files)
+cleanupFiles() is now async to handle S3 deletes
+apps/api/src/app.js (modified)
+
+/uploads static file serving only mounts when STORAGE_DRIVER !== 's3' — in production S3 serves images directly, no need for the server to serve them
+apps/api/src/config/env.js (modified)
+
+Added: STORAGE_DRIVER, S3_BUCKET, S3_REGION, S3_PUBLIC_URL, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+Validation: if STORAGE_DRIVER=s3, boots fails immediately if S3_BUCKET or S3_REGION are missing
+apps/api/package.json (modified)
+
+Added @aws-sdk/client-s3 v3 dependency (306 MB final Docker image)
+2. Web PWA Container (new files)
+apps/web/Dockerfile (new)
+
+Two-stage build: node:20-alpine builds the Vite app → nginx:alpine serves the static output
+Accepts VITE_API_BASE_URL as a build-time arg (Vite bakes it in at build time)
+apps/web/nginx.conf (new)
+
+SPA fallback (try_files $uri /index.html) for React Router
+PWA-safe caching: service-worker.js and manifest.webmanifest get no-cache headers (so PWA updates reach users immediately)
+Hashed /assets/ get 6-month immutable cache
+apps/web/.dockerignore (new)
+
+Excludes node_modules, dist, .env*, .git
+3. Production Configuration
+apps/api/.env.production.example (updated)
+
+Full template for Azure MySQL + S3 + serveloco.app
+MYSQL_SSL_CA_PATH= left empty (Option A: encrypted without cert verification — simpler for first deploy)
+STORAGE_DRIVER=s3 set as default in production template
+apps/api/.env.production (created, gitignored)
+
+The real file with all actual values filled in (never committed)
+4. Docker Compose Production Stack
+docker-compose.prod.yml (new, repo root)
+
+Runs 4 containers together:
+api — Node.js backend (port 3000, reads .env.production)
+admin — React admin panel (nginx, port 80)
+web — Customer PWA (nginx, port 80)
+proxy — nginx router (port 80 exposed to internet)
+All have restart: always (auto-start on reboot/crash)
+Databases NOT in this file — they're managed (Azure MySQL + MongoDB Atlas)
+deploy/nginx-proxy.conf (new)
+
+Routes by subdomain inside Docker network:
+api.serveloco.app → http://api:3000 (with WebSocket upgrade for Socket.IO)
+admin.serveloco.app → http://admin:80
+app.serveloco.app → http://web:80
+client_max_body_size 12M for image uploads
+deploy/aws/s3-bucket-policy.json + s3-cors.json (new)
+
+JSON files used to configure the S3 bucket (public-read policy + CORS rules)
+PART B — Infrastructure Setup (DONE ✅)
+Step 1 — Tools
+AWS CLI, Docker Desktop, Node 20, Git all verified on laptop
+Step 2 — AWS CLI configured
+aws configure with IAM admin keys, region ap-south-1
+Step 3 — S3 Bucket created
+Bucket: villkro-images-prod in Mumbai (ap-south-1)
+Public-read bucket policy applied
+CORS rules applied
+Public URL: https://villkro-images-prod.s3.ap-south-1.amazonaws.com
+Step 4 — IAM user villkro-api-s3 created
+Policy: AmazonS3FullAccess
+Access Key ID + Secret saved to .env.production
+These are the keys the API uses to upload images
+Step 5 — Azure MySQL
+Existing server: servelocoserver.mysql.database.azure.com
+Database: serveloco
+SSL: enabled, cert verification skipped (Option A — MYSQL_SSL_CA_PATH= empty)
+Lightsail instance IP (13.207.236.156) added to Azure firewall
+Step 6 — MongoDB Atlas
+Free M0 cluster, Mumbai region
+Connection string: mongodb+srv://servelocoadmin:...@main.ukhxwho.mongodb.net
+Database: serveloco_images
+Network access: 0.0.0.0/0 (open, password-protected)
+Step 7 — Secrets generated
+JWT_SECRET — 32-byte random hex
+ADMIN_PASSWORD_HASH — bcrypt hash ($2b$12$...)
+ADMIN_OWNER_ID — admin phone/email
+Step 8 — .env.production complete
+All values filled in. Confirmed gitignored — will never be committed.
+
+Step 9 — Lightsail instance created
+Plan: $10/mo — 2 GB RAM / 1 vCPU / 60 GB SSD, Ubuntu 22.04 LTS
+Static IP: 13.207.236.156 (permanent, never changes)
+Port 80 opened in Lightsail firewall
+13.207.236.156 added to Azure MySQL firewall rules
+DNS — Cloudflare (partially done)
+Domain serveloco.app added to Cloudflare free plan
+Nameservers changed at Name.com → Cloudflare nameservers
+Cloudflare verified (pending gone ✅)
+DNS A records not added yet — waiting until server is fully running
+PART C — What's Left (TODO)
+Step 10 — Install Docker on the server
+SSH into the instance (Lightsail → Connect using SSH) and run:
+
+
+sudo apt-get update && sudo apt-get install -y git
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+Then reconnect SSH and verify docker --version + docker compose version.
+
+Step 11 — Deploy with Docker Compose
+
+cd ~
+git clone <repo-url> ProjectServeLoco
+cd ProjectServeLoco
+nano apps/api/.env.production   # paste the real env file
+docker compose -f docker-compose.prod.yml up -d --build
+First build takes ~5–8 min (builds all 3 app images). Then verify:
+
+
+docker compose -f docker-compose.prod.yml ps        # all Up
+curl http://localhost/health -H "Host: api.serveloco.app"
+# expect: {"status":"ok","databases":{"mysql":"ok","mongodb":"ok"}}
+Step 12 — Cloudflare DNS (finish)
+Add 3 A records in Cloudflare, all pointing to 13.207.236.156, all Proxied (orange cloud):
+
+Type	Name	Value	Proxy
+A	api	13.207.236.156	Proxied
+A	admin	13.207.236.156	Proxied
+A	app	13.207.236.156	Proxied
+Then: Cloudflare → SSL/TLS → set to Flexible.
+
+Step 13 — Smoke test
+
+https://api.serveloco.app/health       → mysql ok, mongodb ok
+https://admin.serveloco.app            → login page loads
+https://app.serveloco.app              → PWA loads
+Admin: upload image → URL starts with villkro-images-prod.s3...
+Place order → admin accepts → PWA shows Accepted within 2 seconds
+After launch — security hardening (do before real users)
+Rotate AWS keys (villkro-api-s3 → create new access key)
+Change MongoDB password (currently reused with MySQL)
+Rotate JWT secret (logs all sessions out once)
+Lock MongoDB Atlas network access to 13.207.236.156 only
+Add MYSQL_SSL_CA_PATH cert (Option B) for full TLS verification
+Architecture (final state)
+
+Customer App (APK/Play Store)
+        │ HTTPS
+        ▼
+   Cloudflare (free HTTPS + DNS)
+        │
+        ▼ port 80
+Lightsail Instance 13.207.236.156  $10/mo
+├── proxy (nginx) ──────────────────────────────┐
+│     api.serveloco.app → api:3000              │
+│     admin.serveloco.app → admin:80            │
+│     app.serveloco.app → web:80                │
+├── api (Node.js) ──────────────────────────────┤
+├── admin (nginx static)                        │
+└── web (nginx static PWA)                      │
+        │                                        │
+        ▼                                        ▼
+Azure MySQL $18/mo          MongoDB Atlas $0/mo
+(orders/products/users)     (image metadata)
+        │
+        ▼
+AWS S3 <$1/mo
+(product images, public CDN)
+
+Total: ~$29/mo (covered by $120 AWS + $150 Azure credits)
+Key Files Created/Modified
+File	What
+apps/api/src/config/s3.js	S3 upload/delete helper
+apps/api/src/config/env.js	+ S3 env vars + validation
+apps/api/src/routes/imageRoutes.js	memory storage + magic-byte check
+apps/api/src/controllers/imageController.js	S3/disk dual driver
+apps/api/src/controllers/bulkImportController.js	S3/disk dual driver
+apps/api/src/app.js	guard static serving
+apps/api/package.json	+ @aws-sdk/client-s3
+apps/web/Dockerfile + nginx.conf + .dockerignore	web PWA container
+apps/api/.env.production.example	safe template
+apps/api/.env.production	real values (gitignored)
+docker-compose.prod.yml	production 4-container stack
+deploy/nginx-proxy.conf	subdomain router
+deploy/aws/s3-*.json	S3 bucket config files
+plans/DEPLOY_RUNBOOK.md	step-by-step deployment guide

@@ -38,7 +38,10 @@ services:
       context: ./apps/web
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: https://api.serveloco.app/api
+        # Relative path — the web container's nginx proxies /api/ and
+        # /socket.io/ to the api service. This way the PWA works on any
+        # hostname without rebuilding, and we don't bake the public URL in.
+        VITE_API_URL: /api
     restart: always
     expose:
       - "80"
