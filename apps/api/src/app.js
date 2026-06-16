@@ -56,15 +56,18 @@ app.options('*', cors(corsOptions)); // Handling preflight OPTIONS requests for 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
-// Static file serving for images
-app.use(config.STATIC_UPLOAD_PATH, (req, res, next) => {
-  const ext = path.extname(req.path).toLowerCase();
-  const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.avif'];
-  if (!imageExts.includes(ext)) {
-    return res.status(403).json({ code: 'FORBIDDEN', message: 'Only image files are allowed' });
-  }
-  next();
-}, express.static(path.join(__dirname, '../', config.UPLOAD_DIR)));
+// Static file serving for images — only needed when images live on local disk.
+// In S3 mode, images are served directly from the bucket/CDN, so this is skipped.
+if (config.STORAGE_DRIVER !== 's3') {
+  app.use(config.STATIC_UPLOAD_PATH, (req, res, next) => {
+    const ext = path.extname(req.path).toLowerCase();
+    const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.avif'];
+    if (!imageExts.includes(ext)) {
+      return res.status(403).json({ code: 'FORBIDDEN', message: 'Only image files are allowed' });
+    }
+    next();
+  }, express.static(path.join(__dirname, '../', config.UPLOAD_DIR)));
+}
 
 // API Routes
 app.use('/api/auth', authRoutes);

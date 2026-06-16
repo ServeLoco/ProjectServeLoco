@@ -43,11 +43,19 @@ const config = {
   MONGODB_DATABASE: process.env.MONGODB_DATABASE,
 
   CORS_ORIGIN: getEnv('CORS_ORIGIN', localDefaults.CORS_ORIGIN),
-  
+
   PUBLIC_BASE_URL: getEnv('PUBLIC_BASE_URL', localDefaults.PUBLIC_BASE_URL),
   UPLOAD_DIR: process.env.UPLOAD_DIR || localDefaults.UPLOAD_DIR,
   MAX_IMAGE_SIZE_MB: process.env.MAX_IMAGE_SIZE_MB || localDefaults.MAX_IMAGE_SIZE_MB,
-  STATIC_UPLOAD_PATH: process.env.STATIC_UPLOAD_PATH || localDefaults.STATIC_UPLOAD_PATH
+  STATIC_UPLOAD_PATH: process.env.STATIC_UPLOAD_PATH || localDefaults.STATIC_UPLOAD_PATH,
+
+  // Image storage backend: 'disk' (local files, default for dev/tests) or 's3'.
+  STORAGE_DRIVER: process.env.STORAGE_DRIVER || 'disk',
+  S3_BUCKET: process.env.S3_BUCKET,
+  S3_REGION: process.env.S3_REGION,
+  S3_PUBLIC_URL: process.env.S3_PUBLIC_URL,
+  AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY
 };
 
 // Validation
@@ -75,6 +83,14 @@ if (missing.includes('ADMIN_PASSWORD') && hasAdminAuth) {
 }
 if (missing.length > 0) {
   throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+}
+
+// When S3 is the storage backend, its config must be complete.
+if (config.STORAGE_DRIVER === 's3') {
+  const s3Missing = ['S3_BUCKET', 'S3_REGION'].filter((key) => !config[key]);
+  if (s3Missing.length > 0) {
+    throw new Error(`STORAGE_DRIVER=s3 but missing: ${s3Missing.join(', ')}`);
+  }
 }
 
 // Safety check for JWT and CORS in production

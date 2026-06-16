@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const config = require('../config/env');
 const asyncHandler = require('../utils/asyncHandler');
 const { requireAdmin } = require('../middleware/authMiddleware');
@@ -15,22 +13,9 @@ const uploadLimiter = rateLimit({
   message: { code: 'TOO_MANY_REQUESTS', message: 'Too many uploads, please try again later.' }
 });
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../../', config.UPLOAD_DIR);
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-  }
-});
+// Keep the file in memory so the same buffer works for both storage backends
+// (disk in dev, S3 in prod). No file touches disk until the controller decides.
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {
@@ -46,12 +31,8 @@ const upload = multer({
   limits: { fileSize: parseInt(config.MAX_IMAGE_SIZE_MB) * 1024 * 1024 }
 });
 
-const checkMagicBytes = (filePath) => {
-  const fd = fs.openSync(filePath, 'r');
-  const buffer = Buffer.alloc(12);
-  fs.readSync(fd, buffer, 0, 12, 0);
-  fs.closeSync(fd);
-  
+// Verify the real file type from its leading bytes, defeating extension/MIME spoofing.
+const checkMagicBytes = (buffer) => {
   if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) return 'jpg';
   if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) return 'png';
   if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
@@ -60,7 +41,8 @@ const checkMagicBytes = (filePath) => {
   return null;
 };
 
-// Admin-only upload wrapper handling Multer errors cleanly and verifying magic bytes
+// Admin-only upload wrapper: handles Multer errors and verifies magic bytes on the
+// in-memory buffer. Attaches the detected extension for the controller to use.
 const uploadMiddleware = (req, res, next) => {
   const uploader = upload.single('image');
   uploader(req, res, (err) => {
@@ -71,18 +53,11 @@ const uploadMiddleware = (req, res, next) => {
     }
 
     if (req.file) {
-      const ext = checkMagicBytes(req.file.path);
+      const ext = checkMagicBytes(req.file.buffer);
       if (!ext) {
-        fs.unlinkSync(req.file.path);
         return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid image format detected' });
       }
-      
-      const newPath = req.file.path.substring(0, req.file.path.lastIndexOf('.')) + '.' + ext;
-      if (req.file.path !== newPath) {
-        fs.renameSync(req.file.path, newPath);
-        req.file.path = newPath;
-        req.file.filename = req.file.filename.substring(0, req.file.filename.lastIndexOf('.')) + '.' + ext;
-      }
+      req.file.detectedExt = ext;
     }
     next();
   });

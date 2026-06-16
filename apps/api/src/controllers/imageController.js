@@ -4,6 +4,21 @@ const { ObjectId } = require('mongodb');
 const { getDb } = require('../db/mongodb');
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
+const s3 = require('../config/s3');
+
+const MIME_MAP = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' };
+
+// Resolve the absolute disk upload directory, creating it on first use (dev/disk mode).
+const uploadDir = path.join(__dirname, '../../', config.UPLOAD_DIR);
+const ensureUploadDir = () => {
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+};
+
+// Build a unique, collision-safe filename using the magic-byte-detected extension.
+const buildFilename = (fieldname, ext) => {
+  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+  return `${fieldname}-${uniqueSuffix}.${ext}`;
+};
 
 const getUsedImageIds = async () => {
   const [products] = await pool.query('SELECT DISTINCT image_id FROM products WHERE image_id IS NOT NULL AND deleted = 0');
@@ -61,20 +76,32 @@ const uploadImage = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No image file provided' });
   }
 
-  let { filename, originalname, mimetype, size } = req.file;
-  
-  originalname = path.basename(originalname).replace(/[^a-zA-Z0-9._-]/g, '');
-  const baseUrl = config.PUBLIC_BASE_URL;
-  const staticPath = config.STATIC_UPLOAD_PATH;
-  
-  const url = `${baseUrl}${staticPath}/${filename}`;
+  const { buffer, originalname, detectedExt } = req.file;
+  const ext = detectedExt || (path.extname(originalname || '').replace('.', '') || 'jpg');
+  const mimetype = MIME_MAP[ext] || req.file.mimetype || 'image/jpeg';
+  const size = buffer.length;
+  const filename = buildFilename('image', ext);
+  const safeOriginalName = path.basename(originalname || filename).replace(/[^a-zA-Z0-9._-]/g, '');
+
+  // Write to the configured backend and compute the public URL.
+  let url;
+  let storageType;
+  if (config.STORAGE_DRIVER === 's3') {
+    url = await s3.uploadBuffer(filename, buffer, mimetype);
+    storageType = 's3';
+  } else {
+    ensureUploadDir();
+    fs.writeFileSync(path.join(uploadDir, filename), buffer);
+    url = `${config.PUBLIC_BASE_URL}${config.STATIC_UPLOAD_PATH}/${filename}`;
+    storageType = 'disk';
+  }
 
   const imageDoc = {
     filename,
-    originalName: originalname,
+    originalName: safeOriginalName,
     mimeType: mimetype,
     size,
-    storageType: 'disk',
+    storageType,
     url,
     altText: req.body.altText || '',
     createdAt: new Date(),
@@ -130,8 +157,10 @@ const deleteImage = async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Image not found' });
   }
 
-  // Delete from disk if storage is disk
-  if (image.storageType === 'disk') {
+  // Delete the underlying object from whichever backend stored it.
+  if (image.storageType === 's3') {
+    await s3.deleteObject(image.filename);
+  } else if (image.storageType === 'disk') {
     const filePath = path.join(__dirname, '../../', config.UPLOAD_DIR, image.filename);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);

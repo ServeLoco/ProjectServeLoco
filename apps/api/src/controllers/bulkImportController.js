@@ -7,6 +7,7 @@ const { ObjectId } = require('mongodb');
 const { getDb } = require('../db/mongodb');
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
+const s3 = require('../config/s3');
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 const UPLOAD_DIR = path.join(__dirname, '../../', config.UPLOAD_DIR);
@@ -63,12 +64,28 @@ const buildFilename = (originalFilename) => {
   return `image-${uniqueSuffix}${ext}`;
 };
 
-const saveImageToDisk = (buffer, originalFilename) => {
-  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// Persist an image buffer to the configured backend (disk in dev, S3 in prod).
+// Returns { filename, url } so the caller can store metadata + roll back later.
+const saveImage = async (buffer, originalFilename, mimetype) => {
   const filename = buildFilename(originalFilename);
-  const filePath = path.join(UPLOAD_DIR, filename);
-  fs.writeFileSync(filePath, buffer);
-  return filename;
+  if (config.STORAGE_DRIVER === 's3') {
+    const url = await s3.uploadBuffer(filename, buffer, mimetype);
+    return { filename, url };
+  }
+  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  fs.writeFileSync(path.join(UPLOAD_DIR, filename), buffer);
+  const url = `${config.PUBLIC_BASE_URL}${config.STATIC_UPLOAD_PATH}/${filename}`;
+  return { filename, url };
+};
+
+// Delete a stored image from whichever backend holds it. Never throws.
+const deleteStoredImage = async (filename) => {
+  if (!filename) return;
+  if (config.STORAGE_DRIVER === 's3') {
+    await s3.deleteObject(filename);
+  } else {
+    safeDeleteFile(filename);
+  }
 };
 
 const safeDeleteFile = (filename) => {
@@ -81,7 +98,7 @@ const safeDeleteFile = (filename) => {
   }
 };
 
-const cleanupFiles = (filenames) => { for (const f of filenames) safeDeleteFile(f); };
+const cleanupFiles = async (filenames) => { for (const f of filenames) await deleteStoredImage(f); };
 
 /**
  * Validate all rows. Returns { validRows, skippedRows }.
@@ -450,8 +467,8 @@ const commitBulkImport = async (req, res) => {
         const imgType = detectImageType(imgBuffer);
         const mimetype = MIME_MAP[imgType] || 'image/jpeg';
 
-        // 2. Save to disk
-        const savedFilename = saveImageToDisk(imgBuffer, row.image_file);
+        // 2. Save to the configured backend (disk or S3)
+        const { filename: savedFilename, url: imageUrl } = await saveImage(imgBuffer, row.image_file, mimetype);
         savedFiles.push(savedFilename);
 
         // 3. Delete old image if updating
@@ -459,7 +476,7 @@ const commitBulkImport = async (req, res) => {
           try {
             const oldDoc = await db.collection('images').findOne({ _id: new ObjectId(row._existingImageId) });
             if (oldDoc) {
-              safeDeleteFile(oldDoc.filename);
+              await deleteStoredImage(oldDoc.filename);
               await db.collection('images').deleteOne({ _id: new ObjectId(row._existingImageId) });
             }
           } catch (e) {
@@ -468,15 +485,12 @@ const commitBulkImport = async (req, res) => {
         }
 
         // 4. Insert MongoDB doc
-        const baseUrl = config.PUBLIC_BASE_URL;
-        const staticPath = config.STATIC_UPLOAD_PATH;
-        const imageUrl = `${baseUrl}${staticPath}/${savedFilename}`;
         const imageDoc = {
           filename: savedFilename,
           originalName: path.basename(row.image_file).replace(/[^a-zA-Z0-9._-]/g, ''),
           mimeType: mimetype,
           size: imgBuffer.length,
-          storageType: 'disk',
+          storageType: config.STORAGE_DRIVER === 's3' ? 's3' : 'disk',
           url: imageUrl,
           altText: row.name,
           createdAt: new Date(),
@@ -529,7 +543,7 @@ const commitBulkImport = async (req, res) => {
       try { await connection.rollback(); } catch (e) { /* ignore */ }
       try { connection.release(); } catch (e) { /* ignore */ }
     }
-    cleanupFiles(savedFiles);
+    await cleanupFiles(savedFiles);
     // Clean up MongoDB docs inserted in this run
     try {
       const db = getDb();

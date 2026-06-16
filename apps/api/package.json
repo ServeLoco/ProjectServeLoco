@@ -16,6 +16,7 @@
     "seed": "node src/db/seed_demo.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.658.0",
     "adm-zip": "^0.5.17",
     "bcrypt": "^6.0.0",
     "compression": "^1.7.5",

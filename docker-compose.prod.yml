@@ -1,0 +1,56 @@
+# Production stack for the Lightsail instance.
+# Runs on the server with:  docker compose -f docker-compose.prod.yml up -d --build
+#
+# Databases are NOT here — they live on Azure MySQL + MongoDB Atlas (managed).
+# This file only builds and runs YOUR apps + an nginx router.
+#
+#   proxy (nginx, port 80)  ->  api:3000  (api.serveloco.app)
+#                           ->  admin:80  (admin.serveloco.app)
+#                           ->  web:80    (app.serveloco.app)
+#
+# HTTPS is provided by Cloudflare in front of port 80.
+
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    # Inject all secrets/config at runtime (file is NOT baked into the image).
+    env_file:
+      - ./apps/api/.env.production
+    restart: always
+    expose:
+      - "3000"
+
+  admin:
+    build:
+      context: ./apps/admin
+      dockerfile: Dockerfile
+      args:
+        # Vite inlines this at build time — must be the public API URL.
+        VITE_API_BASE_URL: https://api.serveloco.app/api
+    restart: always
+    expose:
+      - "80"
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.serveloco.app/api
+    restart: always
+    expose:
+      - "80"
+
+  proxy:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+      - admin
+      - web
