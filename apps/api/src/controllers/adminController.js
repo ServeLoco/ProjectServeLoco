@@ -28,11 +28,14 @@ const login = async (req, res) => {
   if (id === ownerId) {
     let isMatch = false;
 
-    if (ownerPasswordHash) {
-      isMatch = await bcrypt.compare(password, ownerPasswordHash);
-    } else if (ownerPassword) {
-      console.warn('WARNING: Using plaintext ADMIN_PASSWORD for admin login. This is for dev only and should not be used in production.');
+    // Prefer ADMIN_PASSWORD (plaintext env var). Simpler to manage than a
+    // hash for a single-admin setup, and the env file is gitignored + only
+    // readable on the server. ADMIN_PASSWORD_HASH is still accepted as a
+    // fallback for anyone who already set one up.
+    if (ownerPassword) {
       isMatch = (password === ownerPassword);
+    } else if (ownerPasswordHash) {
+      isMatch = await bcrypt.compare(password, ownerPasswordHash);
     }
 
     if (isMatch) {
