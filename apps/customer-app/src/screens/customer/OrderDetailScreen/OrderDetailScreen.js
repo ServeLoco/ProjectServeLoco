@@ -496,8 +496,8 @@ export default function OrderDetailScreen() {
                 variant="outline"
                 onPress={confirmCancel} 
                 disabled={isCancelling}
-                style={[styles.modalBtn, { borderColor: colors.error }]} 
-                textStyle={{ color: colors.error }}
+                style={[styles.modalBtn, { borderColor: colors.error }]}
+                labelStyle={{ color: colors.error }}
               />
             </View>
           </Animated.View>

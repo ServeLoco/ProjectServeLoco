@@ -183,15 +183,18 @@ export default function NotificationsScreen({ navigation }) {
 
   return (
     <AppScreen style={styles.container} safeAreaBottom>
-      <AppHeader 
-        title="Notifications" 
-        onBack={() => navigation.goBack()} 
-        rightElement={
-          notifications.some(n => !n.read) ? (
-            <TouchableOpacity onPress={markAllAsRead}>
-              <Text style={styles.headerRightText}>Read All</Text>
-            </TouchableOpacity>
-          ) : null
+      <AppHeader
+        title="Notifications"
+        onBack={() => navigation.goBack()}
+        rightActions={
+          notifications.some(n => !n.read)
+            ? [{
+                icon: <Text style={styles.headerRightText}>Read All</Text>,
+                onPress: markAllAsRead,
+                label: 'Mark all as read',
+                style: { width: 'auto', paddingHorizontal: 10 },
+              }]
+            : []
         }
       />
 

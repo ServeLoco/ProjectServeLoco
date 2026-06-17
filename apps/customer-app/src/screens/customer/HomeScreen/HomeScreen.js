@@ -658,11 +658,12 @@ export default function HomeScreen() {
         </Animated.ScrollView>
       )}
 
-      {/* Sticky Mini Cart */}
+      {/* Sticky Mini Cart — Home has the floating tab bar, so float above it */}
       <StickyMiniCart
         itemCount={cartItemCount}
         totalAmount={cartDisplayTotal}
         onPress={handleCartPress}
+        aboveTabBar
       />
     </AppScreen>
   );

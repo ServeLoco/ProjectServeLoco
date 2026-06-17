@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCartStore } from './useCartStore';
+import { authApi } from '../api/authApi';
+import { isJwtExpired } from '../utils/jwt';
 
 /**
  * useAuthStore

@@ -58,7 +58,11 @@ function QuantityStepper({
 
   if (normalizedQuantity === 0) {
     return (
-      <TouchableOpacity
+      <View
+        onStartShouldSetResponder={() => true}
+        onTouchEnd={(e) => { e.stopPropagation && e.stopPropagation(); }}
+      >
+        <TouchableOpacity
         onPress={onAdd}
         disabled={disabled}
         activeOpacity={0.78}
@@ -76,12 +80,17 @@ function QuantityStepper({
         >
           ADD
         </Text>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
     );
   }
 
   return (
-    <View style={[styles.stepper, compact && styles.stepperCompact, dense && styles.stepperDense]}>
+    <View
+      style={[styles.stepper, compact && styles.stepperCompact, dense && styles.stepperDense]}
+      onStartShouldSetResponder={() => true}
+      onTouchEnd={(e) => { e.stopPropagation && e.stopPropagation(); }}
+    >
       <TouchableOpacity
         onPress={onDecrement}
         disabled={disabled}

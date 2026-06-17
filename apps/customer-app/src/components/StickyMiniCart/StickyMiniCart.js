@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
+import { useSettingsStore } from '../../stores';
 import PressableScale from '../PressableScale';
 import AppIcon from '../AppIcon';
 
@@ -14,12 +15,25 @@ import AppIcon from '../AppIcon';
  *   onPress     - tap to open Cart screen
  *   visible     - controls visibility (parent animates show/hide)
  *   style       - container style
+ *   aboveTabBar - when true, sit ABOVE the floating bottom tab bar (used on
+ *                 tab screens like Home). When false (default), sit at the
+ *                 very bottom where the tab bar would be (used on stack
+ *                 screens like ProductList / Categories that have no tab bar).
  */
-function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = true, style }) {
+function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = true, style, aboveTabBar = false }) {
   const cartTotal = Number(total ?? totalAmount ?? 0);
   const displayTotal = Number.isFinite(cartTotal)
     ? (Number.isInteger(cartTotal) ? cartTotal.toFixed(0) : cartTotal.toFixed(2))
     : '0';
+
+  // Free-delivery progress hint. minimumOrder is the threshold the cart uses
+  // to waive the delivery fee (same value CartScreen checks against). Show how
+  // much more the user needs to add to cross it. Display-only; the backend
+  // re-verifies the fee at checkout.
+  const minimumOrder = useSettingsStore((s) => s.minimumOrder);
+  const amountToFreeDelivery = minimumOrder > 0 ? Math.max(0, minimumOrder - cartTotal) : 0;
+  const showFreeDeliveryHint = amountToFreeDelivery > 0;
+
   const isVisible = visible && itemCount > 0;
   const [shouldRender, setShouldRender] = useState(isVisible);
   const progress = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
@@ -74,6 +88,9 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
       pointerEvents={isVisible ? 'auto' : 'none'}
       style={[
         styles.container,
+        // Tab bar sits at bottom:16 with height 64; raise the cart above it
+        // (16 + 64 + 8 gap = 88) on tab screens, else dock at the bottom.
+        { bottom: aboveTabBar ? 88 : 16 },
         {
           opacity: progress,
           transform: [{ translateY }, { scale }],
@@ -97,9 +114,15 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
         {/* Center: label text */}
         <View style={styles.textContainer}>
           <Text style={styles.title}>View Cart</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {itemCount} item{itemCount !== 1 ? 's' : ''} added
-          </Text>
+          {showFreeDeliveryHint ? (
+            <Text style={styles.subtitleHint} numberOfLines={1}>
+              Add ₹{amountToFreeDelivery.toFixed(0)} more for FREE delivery
+            </Text>
+          ) : (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {itemCount} item{itemCount !== 1 ? 's' : ''} added
+            </Text>
+          )}
         </View>
 
         {/* Right: estimated total */}
@@ -117,11 +140,18 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: layout.bottomNavHeight + layout.stickyCartMarginBottom + 12,
+    // `bottom` is set inline based on the aboveTabBar prop.
     left: layout.stickyCartMarginH,
     right: layout.stickyCartMarginH,
     zIndex: 999,
     ...shadows.xl,
+  },
+  subtitleHint: {
+    ...typography.labelSmall,
+    color: '#FFE9A8', // warm highlight so the free-delivery nudge stands out on green
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 1,
   },
   bar: {
     backgroundColor: colors.success || '#1FB574', // Vibrant success green instead of black

@@ -76,6 +76,9 @@ function CustomerBottomTabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
+        // Always show the floating tab bar. When the cart has items, the
+        // mini-cart bar floats ABOVE it (aboveTabBar prop) instead of the tab
+        // bar hiding — so there is no box-over-box overlap.
         tabBarStyle: {
           position: 'absolute',
           bottom: 16,

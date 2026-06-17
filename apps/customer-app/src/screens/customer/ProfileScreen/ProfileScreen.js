@@ -361,7 +361,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
-    paddingBottom: spacing.xxxl * 2,
+    // Bottom padding needs to clear the floating tab bar in CustomerBottomTabs
+    // (height 64 + bottom offset 16 = 80px) plus some breathing room. The old
+    // value used spacing.xxxl which is undefined in this theme, so the result
+    // was NaN and React Native silently treated it as 0, hiding the last row.
+    paddingBottom: 120,
   },
   emptyState: {
     flex: 1,

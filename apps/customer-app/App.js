@@ -19,6 +19,12 @@ function App() {
     setCustomerLogoutHandler(() => {
       useAuthStore.getState().logout();
     });
+
+    // Tell the http client how to read the current customer token so it can
+    // attach the Authorization header on { auth: 'customer' } requests.
+    // Without this, every authenticated call goes out tokenless -> 401 ->
+    // the logout handler above fires and bounces the user to Auth.
+    setCustomerTokenProvider(() => useAuthStore.getState().token);
   }, []);
 
   // Startup session check. If there is a token in persisted storage but
