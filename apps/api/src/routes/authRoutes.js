@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
-const { register, login, me, updateProfile, requestPasswordReset } = require('../controllers/authController');
+const { register, login, me, updateProfile, requestPasswordReset, deleteAccount } = require('../controllers/authController');
 const { requireCustomer } = require('../middleware/authMiddleware');
 const { validate, isString, isPhone, normalizeField } = require('../validators');
 const rateLimit = require('express-rate-limit');
@@ -19,6 +19,7 @@ const makeAuthLimiter = () => rateLimit({
 const loginLimiter = makeAuthLimiter();
 const registerLimiter = makeAuthLimiter(); // shared by /register and its /signup alias (same flow)
 const passwordResetLimiter = makeAuthLimiter();
+const deleteAccountLimiter = makeAuthLimiter();
 
 // Schemas
 const registerSchema = (req) => {
@@ -92,5 +93,6 @@ router.post('/password-reset-requests', passwordResetLimiter, validate(passwordR
 router.get('/me', requireCustomer, asyncHandler(me));
 router.put('/profile', requireCustomer, validate(profileSchema), asyncHandler(updateProfile));
 router.patch('/profile', requireCustomer, validate(profileSchema), asyncHandler(updateProfile)); // PATCH alias
+router.delete('/me', deleteAccountLimiter, requireCustomer, asyncHandler(deleteAccount));
 
 module.exports = router;

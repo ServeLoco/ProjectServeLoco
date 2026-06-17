@@ -69,6 +69,14 @@ if (config.STORAGE_DRIVER !== 's3') {
   }, express.static(path.join(__dirname, '../', config.UPLOAD_DIR)));
 }
 
+// Public policy pages (privacy policy + terms of service) — required for Google Play listing.
+// Mounted before /api routes so a request to /policies/* resolves to a static HTML file.
+// index() is overridden so /policies (no trailing file) renders index.html.
+app.use('/policies', express.static(path.join(__dirname, '..', 'public', 'policies'), {
+  index: 'index.html',
+  fallthrough: false,
+}));
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);

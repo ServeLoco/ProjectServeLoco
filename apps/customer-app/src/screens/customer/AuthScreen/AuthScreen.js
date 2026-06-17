@@ -11,6 +11,8 @@ import {
   UIManager,
   Image,
   Keyboard,
+  TouchableOpacity,
+  Linking,
 } from 'react-native';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -22,11 +24,17 @@ import {
   TextInputField,
   Button,
   SegmentedControl,
+  AppIcon,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useAuthStore } from '../../../stores';
 import { authApi } from '../../../api';
 import { loginLogo } from '../../../assets';
+
+const POLICY_URLS = {
+  privacy: 'https://api.serveloco.app/policies/privacy',
+  terms: 'https://api.serveloco.app/policies/terms',
+};
 
 export default function AuthScreen() {
   const setSession = useAuthStore(state => state.setSession);
@@ -42,6 +50,7 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Input refs for keyboard "Next" chaining
   const phoneRef = useRef(null);
@@ -131,6 +140,11 @@ export default function AuthScreen() {
       triggerShake();
       return;
     }
+    if (!termsAccepted) {
+      setErrorMsg('Please accept the Terms of Service and Privacy Policy to continue');
+      triggerShake();
+      return;
+    }
     if (password !== confirmPassword) {
       setErrorMsg('Passwords do not match');
       triggerShake();
@@ -204,6 +218,7 @@ export default function AuthScreen() {
     setSuccessMsg('');
     setPassword('');
     setConfirmPassword('');
+    setTermsAccepted(false);
   };
 
   const renderLoginForm = () => (
@@ -293,6 +308,29 @@ export default function AuthScreen() {
         onSubmitEditing={submitSignup}
         inputRef={confirmPasswordRef}
       />
+      <TouchableOpacity
+        style={styles.termsRow}
+        onPress={() => setTermsAccepted(prev => !prev)}
+        activeOpacity={0.7}
+        disabled={isLoading}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: termsAccepted }}
+        accessibilityLabel="Accept Terms of Service and Privacy Policy"
+      >
+        <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+          {termsAccepted && <AppIcon name="check" size={13} color={colors.textInverse} />}
+        </View>
+        <Text style={styles.termsText}>
+          I agree to the{' '}
+          <Text style={styles.termsLink} onPress={() => Linking.openURL(POLICY_URLS.terms)}>
+            Terms of Service
+          </Text>
+          {' '}and{' '}
+          <Text style={styles.termsLink} onPress={() => Linking.openURL(POLICY_URLS.privacy)}>
+            Privacy Policy
+          </Text>
+        </Text>
+      </TouchableOpacity>
       {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
       <Button label="Create Account" onPress={submitSignup} loading={isLoading} style={styles.mainBtn} />
       <Button
@@ -463,6 +501,37 @@ const styles = StyleSheet.create({
   },
   mainBtn: {
     marginTop: spacing.md,
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.sm,
+    borderWidth: 2,
+    borderColor: colors.border,
+    backgroundColor: colors.bgApp,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  termsText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    flex: 1,
+    lineHeight: 18,
+  },
+  termsLink: {
+    color: colors.primary,
+    fontWeight: '700',
   },
   errorText: {
     ...typography.caption,

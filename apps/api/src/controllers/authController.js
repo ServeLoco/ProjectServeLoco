@@ -126,10 +126,47 @@ const requestPasswordReset = async (req, res) => {
   res.status(202).json(response);
 };
 
+// Soft-delete the customer account: wipe PII, block further logins, and
+// reject any pending password reset requests. Hard purge happens via a
+// separate cron job 30 days after the soft-delete (out of scope here).
+// The `requireCustomer` middleware already enforces the blocked flag on
+// every authenticated request, so any in-flight JWT becomes unusable
+// once the row is updated.
+const deleteAccount = async (req, res) => {
+  const userId = req.user.id;
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    await connection.query(
+      'UPDATE users SET name = ?, address = NULL, whatsapp_number = NULL, password_hash = NULL, blocked = 1 WHERE id = ?',
+      ['Deleted User', userId]
+    );
+
+    await connection.query(
+      `UPDATE password_reset_requests
+       SET status = 'rejected', reviewed_at = CURRENT_TIMESTAMP, reviewed_by_admin_id = 'system', review_note = 'Account deleted by user'
+       WHERE user_id = ? AND status = 'pending'`,
+      [userId]
+    );
+
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+
+  res.status(204).end();
+};
+
 module.exports = {
   register,
   login,
   me,
   updateProfile,
-  requestPasswordReset
+  requestPasswordReset,
+  deleteAccount,
 };

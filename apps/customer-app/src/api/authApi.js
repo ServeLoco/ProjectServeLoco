@@ -7,6 +7,7 @@ const authApi = {
   signup: payload => apiClient.post('/auth/signup', payload).then(normalizeSession),
   requestPasswordReset: payload => apiClient.post('/auth/password-reset-requests', payload),
   updateProfile: payload => apiClient.patch('/auth/profile', payload, { auth: 'customer' }).then(normalizeSession),
+  deleteAccount: () => apiClient.delete('/auth/me', { auth: 'customer' }),
 };
 
 export { authApi };

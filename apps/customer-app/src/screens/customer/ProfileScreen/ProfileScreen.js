@@ -9,6 +9,7 @@ import {
   Animated,
   Linking,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -21,6 +22,20 @@ import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useAuthStore, useCartStore, useSettingsStore } from '../../../stores';
 import { authApi } from '../../../api';
 
+// Policy pages are served by the API itself at /policies/* (see apps/api/src/app.js).
+// Both the customer app's Linking.openURL and any web/marketing link should use
+// the same path so there is one source of truth.
+const POLICY_URLS = {
+  privacy: 'https://api.serveloco.app/policies/privacy',
+  terms: 'https://api.serveloco.app/policies/terms',
+};
+
+// Brand-level contact links. Update these when social handles change.
+const BRAND_LINKS = {
+  instagram: 'https://instagram.com/villkro',
+  contactEmail: 'mailto:decodelabsofficial@gmail.com',
+};
+
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const user = useAuthStore(state => state.user);
@@ -31,11 +46,14 @@ export default function ProfileScreen() {
   const supportPhone = useSettingsStore(state => state.supportPhone);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const cardFade = useRef(new Animated.Value(0)).current;
   const cardSlide = useRef(new Animated.Value(10)).current;
   const listAnim1 = useRef(new Animated.Value(0)).current;
   const listAnim2 = useRef(new Animated.Value(0)).current;
+  const listAnim3 = useRef(new Animated.Value(0)).current;
 
   const loadProfile = React.useCallback((refresh = false) => {
     if (refresh) setIsRefreshing(true);
@@ -58,6 +76,7 @@ export default function ProfileScreen() {
       ]),
       Animated.timing(listAnim1, { toValue: 1, duration: 300, useNativeDriver: true }),
       Animated.timing(listAnim2, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(listAnim3, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
   }, [loadProfile]);
 
@@ -67,10 +86,33 @@ export default function ProfileScreen() {
     }
   };
 
+  const openLink = (url) => {
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Unable to open link', url);
+    });
+  };
+
   const handleLogout = () => {
     clearCart();
     logout();
     setShowLogoutConfirm(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      await authApi.deleteAccount();
+      clearCart();
+      logout();
+      setShowDeleteConfirm(false);
+    } catch (err) {
+      Alert.alert(
+        'Could not delete account',
+        err?.message || 'Please try again or contact support.'
+      );
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -86,7 +128,7 @@ export default function ProfileScreen() {
             onRefresh={() => loadProfile(true)}
             tintColor={colors.primary}
             colors={[colors.primary, colors.success, colors.saffron]}
-            title="Refreshing ServeLoco"
+            title="Refreshing VillKro"
             titleColor={colors.textSecondary}
           />
         }
@@ -105,7 +147,7 @@ export default function ProfileScreen() {
               <Text style={styles.profilePhone} numberOfLines={1}>{user?.phone || 'No phone added'}</Text>
               <View style={styles.memberChip}>
                 <AppIcon name="star" size={12} color={colors.warning} />
-                <Text style={styles.memberChipText}>ServeLoco Member</Text>
+                <Text style={styles.memberChipText}>VillKro Member</Text>
               </View>
             </View>
             <TouchableOpacity
@@ -128,11 +170,18 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.infoTile}>
               <View style={styles.infoTileIcon}>
-                <AppIcon name={profile?.whatsapp ? 'whatsapp' : 'location'} size={16} color={colors.success} />
+                <AppIcon name="orders" size={16} color={colors.primary} />
               </View>
-              <Text style={styles.infoTileLabel}>{profile?.whatsapp ? 'WhatsApp' : 'Address'}</Text>
+              <Text style={styles.infoTileLabel}>Orders</Text>
+              <Text style={styles.infoTileValue} numberOfLines={1}>{profile?.orderCount ?? 0}</Text>
+            </View>
+            <View style={styles.infoTile}>
+              <View style={styles.infoTileIcon}>
+                <AppIcon name="star" size={16} color={colors.primary} />
+              </View>
+              <Text style={styles.infoTileLabel}>Status</Text>
               <Text style={styles.infoTileValue} numberOfLines={1}>
-                {profile?.whatsapp || profile?.address || 'Not added'}
+                {profile?.status || (profile?.trusted ? 'Trusted' : 'Active')}
               </Text>
             </View>
           </View>
@@ -178,7 +227,7 @@ export default function ProfileScreen() {
         </Animated.View>
 
         <Animated.View style={[styles.menuGroup, { opacity: listAnim2, transform: [{ translateY: listAnim2.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }]}>
-          <Text style={styles.menuGroupTitle}>More</Text>
+          <Text style={styles.menuGroupTitle}>Support</Text>
           <View style={styles.menuCard}>
             <MenuOption
               icon="Help"
@@ -187,10 +236,53 @@ export default function ProfileScreen() {
               onPress={handleHelpSupport}
             />
             <MenuOption
+              icon="Privacy"
+              label="Privacy Policy"
+              caption="How we handle your data"
+              onPress={() => openLink(POLICY_URLS.privacy)}
+            />
+            <MenuOption
+              icon="Terms"
+              label="Terms of Service"
+              caption="Rules for using VillKro"
+              onPress={() => openLink(POLICY_URLS.terms)}
+            />
+            <MenuOption
+              icon="DataSafety"
+              label="Data Safety"
+              caption="Permissions, sharing and retention"
+              onPress={() => openLink(POLICY_URLS.privacy)}
+            />
+            <MenuOption
+              icon="Instagram"
+              label="Follow us on Instagram"
+              caption="@villkro"
+              onPress={() => openLink(BRAND_LINKS.instagram)}
+            />
+            <MenuOption
+              icon="Contact"
+              label="Contact us"
+              caption="decodelabsofficial@gmail.com"
+              onPress={() => openLink(BRAND_LINKS.contactEmail)}
+              isLast
+            />
+          </View>
+        </Animated.View>
+
+        <Animated.View style={[styles.menuGroup, { opacity: listAnim3, transform: [{ translateY: listAnim3.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }]}>
+          <Text style={styles.menuGroupTitle}>Account actions</Text>
+          <View style={styles.menuCard}>
+            <MenuOption
               icon="Logout"
               label="Logout"
               caption="Log out from this device."
               onPress={() => setShowLogoutConfirm(true)}
+            />
+            <MenuOption
+              icon="DeleteAccount"
+              label="Delete Account"
+              caption="Permanently delete your account and data"
+              onPress={() => setShowDeleteConfirm(true)}
               isDestructive
               isLast
             />
@@ -210,6 +302,18 @@ export default function ProfileScreen() {
         onConfirm={handleLogout}
       />
 
+      <ConfirmModal
+        visible={showDeleteConfirm}
+        title="Delete account?"
+        message="This permanently deletes your account, orders, and saved addresses. Continue?"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        confirmVariant="danger"
+        confirmLoading={isDeleting}
+        onCancel={() => (isDeleting ? null : setShowDeleteConfirm(false))}
+        onConfirm={handleDeleteAccount}
+      />
+
     </AppScreen>
   );
 }
@@ -220,7 +324,13 @@ function MenuOption({ icon, label, caption, onPress, isDestructive, isLast }) {
     Box: 'orders',
     Pin: 'location',
     Help: 'phone',
+    Privacy: 'lock',
+    Terms: 'settings',
+    DataSafety: 'check',
+    Instagram: 'atsign',
+    Contact: 'mail',
     Logout: 'logout',
+    DeleteAccount: 'delete',
   };
   const iconColor = isDestructive ? colors.error : colors.textSecondary;
 
