@@ -74,6 +74,11 @@ if (config.STORAGE_DRIVER !== 's3') {
 // index() is overridden so /policies (no trailing file) renders index.html.
 app.use('/policies', express.static(path.join(__dirname, '..', 'public', 'policies'), {
   index: 'index.html',
+  // extensions: ['html'] makes /policies/privacy resolve to /policies/privacy.html
+  // and /policies/terms resolve to /policies/terms.html. Without this,
+  // express.static looks for a file literally named privacy (no extension)
+  // and 404s. Same for /policies/terms.
+  extensions: ['html'],
   fallthrough: false,
 }));
 
