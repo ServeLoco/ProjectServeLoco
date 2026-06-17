@@ -37,15 +37,11 @@ What was done:
 - `apps/api/src/app.js` mounts `express.static('..', 'public', 'policies')` before the `/api` routes
 - `apps/customer-app/src/screens/customer/ProfileScreen/ProfileScreen.js` `POLICY_URLS` updated to `https://api.serveloco.app/policies/privacy` and `/terms`
 
-What you still need to do:
-- [ ] **Commit and push** the changes (see `DEPLOY_RUNBOOK.md` Step 11 redeploy flow)
-- [ ] **SSH into the Lightsail VM**, `cd ~/ProjectServeLoco`, `git pull`, then rebuild only the API container: `docker compose -f docker-compose.prod.yml up -d --build api`
-- [ ] **Verify in a browser** (in this order):
-  - [ ] `https://api.serveloco.app/policies/privacy` returns 200 and shows VillKro Privacy Policy
-  - [ ] `https://api.serveloco.app/policies/terms` returns 200 and shows VillKro Terms
-  - [ ] `https://api.serveloco.app/policies/` returns 200 and shows the index page
-
-> If any 404s: the new code did not make it into the image. SSH in, `git log -1` to confirm the latest commit, then `docker compose -f docker-compose.prod.yml restart api`.
+What was done (DONE 2026-06-17):
+- [x] **Committed and pushed** the `extensions: ['html']` fix to `app.js`
+- [x] **SSH + git pull + rebuild** completed on the Lightsail VM
+- [x] `https://api.serveloco.app/policies/privacy` → **HTTP/2 200** ✅
+- [x] `https://api.serveloco.app/policies/terms` → **HTTP/2 200** ✅
 
 ---
 

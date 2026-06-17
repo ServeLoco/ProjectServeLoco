@@ -4,9 +4,10 @@
 # Databases are NOT here — they live on Azure MySQL + MongoDB Atlas (managed).
 # This file only builds and runs YOUR apps + an nginx router.
 #
-#   proxy (nginx, port 80)  ->  api:3000  (api.serveloco.app)
-#                           ->  admin:80  (admin.serveloco.app)
-#                           ->  web:80    (app.serveloco.app)
+#   proxy (nginx, port 80)  ->  landing:80 (serveloco.app, www.serveloco.app)
+#                           ->  api:3000    (api.serveloco.app)
+#                           ->  admin:80    (admin.serveloco.app)
+#                           ->  web:80      (app.serveloco.app)
 #
 # HTTPS is provided by Cloudflare in front of port 80.
 
@@ -46,6 +47,14 @@ services:
     expose:
       - "80"
 
+  landing:
+    build:
+      context: ./apps/landing
+      dockerfile: Dockerfile
+    restart: always
+    expose:
+      - "80"
+
   proxy:
     image: nginx:alpine
     restart: always
@@ -57,3 +66,4 @@ services:
       - api
       - admin
       - web
+      - landing

@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FF6B35">
+  <meta name="description" content="VillKro - hyperlocal marketplace for fast home delivery in Gorakhpur, Haryana. Order from local shops, track in real time.">
+  <meta property="og:title" content="VillKro - Local delivery, made simple">
+  <meta property="og:description" content="Order groceries, food, and essentials from neighbourhood shops. Delivered to your door in minutes.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://serveloco.app/">
+  <title>VillKro - Local delivery, made simple</title>
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="canonical" href="https://serveloco.app/">
+  <meta name="robots" content="index, follow">
+  <style>
+    :root {
+      --orange: #FF6B35;
+      --orange-dark: #E5562A;
+      --orange-soft: #FFF1EA;
+      --ink: #1F2937;
+      --ink-soft: #6B7280;
+      --bg: #FFFFFF;
+      --bg-soft: #FAFAF8;
+      --border: #E5E7EB;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
+      --shadow-pop: 0 8px 24px rgba(255,107,53,0.25);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      --radius-pill: 999px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: 1.55;
+    }
+
+    a { color: var(--orange); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Top nav ─────────────────────────────────────────────── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: saturate(180%) blur(12px);
+      -webkit-backdrop-filter: saturate(180%) blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--ink);
+    }
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--orange);
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 900;
+      font-size: 16px;
+      box-shadow: 0 2px 8px rgba(255,107,53,0.3);
+    }
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      align-items: center;
+    }
+    .nav-links a {
+      color: var(--ink-soft);
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .nav-links a:hover { color: var(--ink); text-decoration: none; }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: var(--radius-pill);
+      font-weight: 700;
+      font-size: 15px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      border: 0;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--orange);
+      color: white;
+      box-shadow: var(--shadow-pop);
+    }
+    .btn-primary:hover { transform: translateY(-1px); text-decoration: none; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink);
+    }
+    .btn-ghost:hover { background: var(--bg-soft); text-decoration: none; }
+
+    @media (max-width: 640px) {
+      .nav-links .hide-sm { display: none; }
+    }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      padding: 80px 0 96px;
+      background: linear-gradient(180deg, var(--orange-soft) 0%, var(--bg) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-inner {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 64px;
+      align-items: center;
+    }
+    @media (max-width: 860px) {
+      .hero-inner { grid-template-columns: 1fr; gap: 40px; }
+      .hero { padding: 48px 0 64px; }
+    }
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 14px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      color: var(--orange-dark);
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 56px;
+      line-height: 1.05;
+      margin: 0 0 20px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .hero p.lead {
+      font-size: 19px;
+      color: var(--ink-soft);
+      margin: 0 0 32px;
+      max-width: 520px;
+    }
+    .hero-cta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .store-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .store-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      background: var(--ink);
+      color: white;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .store-btn small {
+      display: block;
+      font-size: 11px;
+      opacity: 0.8;
+      font-weight: 500;
+    }
+    .store-btn strong { font-size: 16px; font-weight: 700; }
+    .store-btn:hover { background: #000; text-decoration: none; }
+
+    .phone-mock {
+      position: relative;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+    .phone-frame {
+      background: var(--ink);
+      border-radius: 36px;
+      padding: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .phone-screen {
+      background: var(--bg-soft);
+      border-radius: 26px;
+      aspect-ratio: 9/19;
+      padding: 24px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow: hidden;
+    }
+    .phone-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink);
+      padding: 0 4px;
+    }
+    .phone-greeting { font-size: 13px; color: var(--ink-soft); font-weight: 600; }
+    .phone-title { font-size: 22px; font-weight: 900; color: var(--ink); margin-top: 2px; }
+    .phone-search {
+      background: white;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--ink-soft);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: var(--shadow-card);
+    }
+    .phone-card {
+      background: white;
+      border-radius: var(--radius-md);
+      padding: 12px;
+      box-shadow: var(--shadow-card);
+    }
+    .phone-card-img {
+      background: var(--orange-soft);
+      border-radius: 8px;
+      height: 90px;
+      display: grid;
+      place-items: center;
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+    .phone-card-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .phone-card-price { font-size: 12px; color: var(--orange); font-weight: 800; margin-top: 2px; }
+    .phone-fab {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      width: 48px;
+      height: 48px;
+      background: var(--orange);
+      color: white;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      box-shadow: var(--shadow-pop);
+      font-size: 20px;
+    }
+
+    /* ── Section common ─────────────────────────────────────────────── */
+    section { padding: 80px 0; }
+    section.alt { background: var(--bg-soft); }
+    h2 {
+      font-size: 40px;
+      line-height: 1.15;
+      margin: 0 0 12px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .section-lead {
+      font-size: 18px;
+      color: var(--ink-soft);
+      max-width: 600px;
+      margin: 0 0 48px;
+    }
+    .section-head { text-align: center; }
+    .section-head .section-lead { margin-left: auto; margin-right: auto; }
+    @media (max-width: 640px) {
+      h1 { font-size: 38px; }
+      h2 { font-size: 28px; }
+      section { padding: 56px 0; }
+    }
+
+    /* ── Features grid ─────────────────────────────────────────────── */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    @media (max-width: 860px) { .features { grid-template-columns: 1fr; } }
+    .feature {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: var(--shadow-card);
+    }
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: var(--orange-soft);
+      color: var(--orange);
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      margin-bottom: 18px;
+    }
+    .feature h3 {
+      font-size: 19px;
+      font-weight: 800;
+      margin: 0 0 8px;
+      color: var(--ink);
+    }
+    .feature p {
+      font-size: 15px;
+      color: var(--ink-soft);
+      margin: 0;
+    }
+
+    /* ── How it works ─────────────────────────────────────────────── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      counter-reset: step;
+    }
+    @media (max-width: 860px) { .steps { grid-template-columns: 1fr; gap: 24px; } }
+    .step {
+      position: relative;
+      padding: 28px 24px 28px 80px;
+      background: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      counter-increment: step;
+    }
+    .step::before {
+      content: counter(step);
+      position: absolute;
+      left: 24px;
+      top: 24px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--orange);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 18px;
+    }
+    .step h3 {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0 0 6px;
+      color: var(--ink);
+    }
+    .step p {
+      font-size: 15px;
+      color: var(--ink-soft);
+      margin: 0;
+    }
+
+    /* ── CTA banner ─────────────────────────────────────────────── */
+    .cta {
+      background: var(--ink);
+      color: white;
+      padding: 72px 0;
+      text-align: center;
+    }
+    .cta h2 { color: white; }
+    .cta .section-lead { color: rgba(255,255,255,0.7); }
+    .cta .btn-primary {
+      background: var(--orange);
+      box-shadow: 0 8px 24px rgba(255,107,53,0.5);
+    }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    footer {
+      background: var(--bg-soft);
+      border-top: 1px solid var(--border);
+      padding: 48px 0 32px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      gap: 32px;
+      margin-bottom: 32px;
+    }
+    @media (max-width: 860px) {
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 480px) {
+      .footer-grid { grid-template-columns: 1fr; }
+    }
+    footer h4 {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--ink);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0 0 14px;
+    }
+    footer ul { list-style: none; padding: 0; margin: 0; }
+    footer li { margin-bottom: 8px; }
+    footer a {
+      color: var(--ink-soft);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    footer a:hover { color: var(--ink); }
+    .footer-about p {
+      font-size: 14px;
+      color: var(--ink-soft);
+      margin: 0 0 12px;
+      max-width: 320px;
+    }
+    .footer-bottom {
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top navigation -->
+  <header class="nav">
+    <div class="container nav-inner">
+      <a href="/" class="brand">
+        <span class="brand-mark">V</span>
+        <span>VillKro</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#features" class="hide-sm">Features</a>
+        <a href="#how" class="hide-sm">How it works</a>
+        <a href="#contact" class="hide-sm">Contact</a>
+        <a href="#download" class="btn btn-primary">Get the app</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div>
+        <span class="eyebrow">Hyperlocal &middot; Gorakhpur, India</span>
+        <h1>Local delivery,<br>made simple.</h1>
+        <p class="lead">Order groceries, fresh food, and everyday essentials from neighbourhood shops you already trust. VillKro brings the market to your door &mdash; in minutes, not hours.</p>
+        <div class="hero-cta" id="download">
+          <a href="#coming-soon" class="btn btn-primary" onclick="document.getElementById('coming-soon-msg').style.display='block';return false;">Download for Android</a>
+          <a href="#how" class="btn btn-ghost">How it works</a>
+        </div>
+        <p id="coming-soon-msg" style="display:none; margin-top:12px; font-size:13px; color:var(--orange); font-weight:700;">Coming soon to Google Play — drop us a message on Instagram to be notified first.</p>
+        <p style="margin-top: 20px; font-size: 13px; color: var(--ink-soft);">Free to use &middot; No subscription &middot; Pay on delivery</p>
+      </div>
+      <div class="phone-mock" aria-hidden="true">
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <div class="phone-status">
+              <span>9:41</span>
+              <span>&#9679;&#9679;&#9679;&#9679;</span>
+            </div>
+            <div>
+              <div class="phone-greeting">Good morning</div>
+              <div class="phone-title">What do you need today?</div>
+            </div>
+            <div class="phone-search">&#128269;&nbsp; Search shops, products&hellip;</div>
+            <div class="phone-card">
+              <div class="phone-card-img">&#127823;</div>
+              <div class="phone-card-title">Fresh Tomatoes &middot; 1 kg</div>
+              <div class="phone-card-price">&#8377;40</div>
+            </div>
+            <div class="phone-card">
+              <div class="phone-card-img">&#128722;</div>
+              <div class="phone-card-title">Amul Toned Milk &middot; 500 ml</div>
+              <div class="phone-card-price">&#8377;27</div>
+            </div>
+            <div class="phone-card">
+              <div class="phone-card-img">&#127839;</div>
+              <div class="phone-card-title">Whole Wheat Atta &middot; 5 kg</div>
+              <div class="phone-card-price">&#8377;235</div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-fab">&#128722;</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="alt">
+    <div class="container">
+      <div class="section-head">
+        <h2>Why VillKro</h2>
+        <p class="section-lead">Built for our town. Made for the people who already live here.</p>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">&#128722;</div>
+          <h3>Real local shops</h3>
+          <p>Order from the kirana stores, dairies, and eateries you already visit &mdash; not faraway warehouses.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128666;</div>
+          <h3>Delivered in minutes</h3>
+          <p>Most orders reach your door within 30&ndash;45 minutes. Track the rider in real time from the app.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128176;</div>
+          <h3>Cash on delivery</h3>
+          <p>No card, no wallet, no hassle. Pay the rider in cash when your order arrives.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128222;</div>
+          <h3>Live order updates</h3>
+          <p>Push notifications for every step &mdash; accepted, packed, out for delivery, delivered.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128230;</div>
+          <h3>Save your address</h3>
+          <p>Set your delivery location once. Re-order with a single tap next time.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128737;</div>
+          <h3>Your data stays yours</h3>
+          <p>We only collect what we need to deliver. Delete your account anytime from the app.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how">
+    <div class="container">
+      <div class="section-head">
+        <h2>How it works</h2>
+        <p class="section-lead">Three taps from craving to doorstep.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <h3>Browse local shops</h3>
+          <p>Open the app, pick a category, and see what is available right now in your area.</p>
+        </div>
+        <div class="step">
+          <h3>Place your order</h3>
+          <p>Add items to your cart, choose your delivery address, and confirm. The vendor accepts within minutes.</p>
+        </div>
+        <div class="step">
+          <h3>Pay on delivery</h3>
+          <p>Track your rider live. Hand over cash when the order arrives. Done.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="container">
+      <h2>Coming to Google Play soon.</h2>
+      <p class="section-lead">VillKro is launching in Gorakhpur. Follow us on Instagram to be the first to know when it is live.</p>
+      <a href="https://instagram.com/villkro" target="_blank" rel="noopener" class="btn btn-primary">Follow @villkro</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer id="contact">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <a href="/" class="brand" style="margin-bottom: 14px;">
+            <span class="brand-mark">V</span>
+            <span>VillKro</span>
+          </a>
+          <p>Hyperlocal marketplace for fast home delivery in Gorakhpur, India.</p>
+        </div>
+        <div>
+          <h4>Product</h4>
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how">How it works</a></li>
+            <li><a href="#download">Download</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="https://api.serveloco.app/policies/privacy">Privacy Policy</a></li>
+            <li><a href="https://api.serveloco.app/policies/terms">Terms of Service</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <ul>
+            <li><a href="mailto:decodelabsofficial@gmail.com">decodelabsofficial@gmail.com</a></li>
+            <li><a href="https://instagram.com/villkro" target="_blank" rel="noopener">Instagram &middot; @villkro</a></li>
+            <li>Gorakhpur, Haryana 125047</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 VillKro. Operated by Yash Siwach.</span>
+        <span>Made in Gorakhpur, Haryana.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
