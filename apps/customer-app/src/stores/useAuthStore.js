@@ -88,7 +88,7 @@ export const useAuthStore = create(
       logout: () => {
         try {
           useCartStore.getState()?.clearCart?.();
-        } catch (_) {}
+        } catch (_) { /* ignore cart clear errors on logout */ }
         set({
           token: null,
           user: null,

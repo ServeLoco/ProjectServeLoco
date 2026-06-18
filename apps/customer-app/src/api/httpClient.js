@@ -10,7 +10,7 @@ export function setCustomerLogoutHandler(handler) {
   _logoutHandler = typeof handler === 'function' ? handler : null;
 }
 function triggerLogout() {
-  try { if (_logoutHandler) _logoutHandler(); } catch (_) {}
+  try { if (_logoutHandler) _logoutHandler(); } catch (_) { /* ignore logout errors */ }
 }
 
 const REQUEST_TIMEOUT_MS = 15000;
