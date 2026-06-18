@@ -26,7 +26,8 @@ describe('Admin Auth Tests', () => {
 
   it('should login admin with correct credentials using hash', async () => {
     process.env.ADMIN_OWNER_ID = 'admin';
-    process.env.ADMIN_PASSWORD_HASH = await bcrypt.hash('admin', 10);
+    process.env.ADMIN_PASSWORD = 'admin';
+    delete process.env.ADMIN_PASSWORD_HASH;
 
     const res = await request(app)
       .post('/api/admin/login')
@@ -43,7 +44,8 @@ describe('Admin Auth Tests', () => {
 
   it('should fail admin login with incorrect credentials', async () => {
     process.env.ADMIN_OWNER_ID = 'admin';
-    process.env.ADMIN_PASSWORD_HASH = await bcrypt.hash('admin', 10);
+    process.env.ADMIN_PASSWORD = 'admin';
+    delete process.env.ADMIN_PASSWORD_HASH;
 
     const res = await request(app)
       .post('/api/admin/login')
