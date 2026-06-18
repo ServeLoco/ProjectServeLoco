@@ -4,6 +4,23 @@ const { ObjectId } = require('mongodb');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { validatePagination } = require('../validators');
 
+const isWithinTimeWindow = (from, until) => {
+  // Both null means always available in the time sense.
+  if (!from || !until) return true;
+  const now = new Date();
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const [fh, fm] = String(from).split(':').map(Number);
+  const [uh, um] = String(until).split(':').map(Number);
+  const start = fh * 60 + (fm || 0);
+  const end = uh * 60 + (um || 0);
+  if (start === end) return true; // no real window
+  if (start < end) {
+    return cur >= start && cur < end;
+  }
+  // Window crosses midnight (e.g. 22:00 -> 02:00)
+  return cur >= start || cur < end;
+};
+
 const resolveImageUrls = async (rows) => {
   const imageIds = rows
     .map(r => r.image_id)
@@ -105,7 +122,7 @@ const getProducts = async (req, res) => {
 
     // 2. Fetch products attached to offer
     let query = `
-      SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order
+      SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order
       FROM offer_products op
       JOIN products p ON op.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
@@ -127,7 +144,8 @@ const getProducts = async (req, res) => {
 
     const [rows] = await pool.query(query, params);
     await resolveImageUrls(rows);
-    return res.status(200).json({ data: { products: rows }, products: rows });
+    const filteredRows = rows.filter(r => isWithinTimeWindow(r.available_from_time, r.available_until_time));
+    return res.status(200).json({ data: { products: filteredRows }, products: filteredRows });
   }
 
   // If filtering by category/categoryType/categoryId and isCombo isn't explicitly set, default to false (exclude combos)
@@ -135,7 +153,7 @@ const getProducts = async (req, res) => {
     finalIsCombo = 'false';
   }
 
-  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order
+  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order
     FROM products p LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0`;
   
@@ -177,7 +195,9 @@ const getProducts = async (req, res) => {
   await resolveImageUrls(rows);
   await attachComboItems(rows);
 
-  res.status(200).json({ data: { products: rows }, products: rows });
+  const filteredRows = rows.filter(r => isWithinTimeWindow(r.available_from_time, r.available_until_time));
+
+  res.status(200).json({ data: { products: filteredRows }, products: filteredRows });
 };
 
 const getProductById = async (req, res) => {
@@ -217,13 +237,18 @@ const getProductById = async (req, res) => {
   await resolveImageUrls([product]);
   await attachComboItems([product]);
 
+  // Annotate the response with whether the product is in its daily time window.
+  // The product is still returned so the customer app can show an
+  // "available from 09:00 to 18:00" hint instead of a hard 404.
+  product.in_time_window = isWithinTimeWindow(product.available_from_time, product.available_until_time);
+
   res.status(200).json({ data: product });
 };
 
 const createProduct = async (req, res) => {
   // Normal products require category. Combos are bundles and do not require category.
-  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label } = req.validatedData;
-  
+  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time } = req.validatedData;
+
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
   if (finalDisplayOrder > 0) {
     const [existing] = await pool.query('SELECT name FROM products WHERE category_id = ? AND display_order = ? AND deleted = 0 LIMIT 1', [category_id, finalDisplayOrder]);
@@ -233,7 +258,7 @@ const createProduct = async (req, res) => {
   }
 
   const [result] = await pool.query(
-    'INSERT INTO products (name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO products (name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label, available_from_time, available_until_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       name, price, category_id, unit, description, image_id, 
       available !== undefined ? available : true,
@@ -241,7 +266,9 @@ const createProduct = async (req, res) => {
       featured !== undefined ? featured : false,
       finalDisplayOrder,
       original_price || null,
-      discount_label || null
+      discount_label || null,
+      available_from_time || null,
+      available_until_time || null
     ]
   );
   res.status(201).json({ message: 'Product created', id: result.insertId });
@@ -250,7 +277,7 @@ const createProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   // Normal products require category. Combos are bundles and do not require category.
   const { id } = req.params;
-  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time } = req.validatedData;
 
   const [existing] = await pool.query('SELECT id FROM products WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
@@ -266,7 +293,7 @@ const updateProduct = async (req, res) => {
   }
 
   await pool.query(
-    'UPDATE products SET name = ?, price = ?, category_id = ?, unit = ?, description = ?, image_id = ?, available = ?, is_combo = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ? WHERE id = ?',
+    'UPDATE products SET name = ?, price = ?, category_id = ?, unit = ?, description = ?, image_id = ?, available = ?, is_combo = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ?, available_from_time = ?, available_until_time = ? WHERE id = ?',
     [
       name, price, category_id, unit, description, image_id, available,
       false,
@@ -274,6 +301,8 @@ const updateProduct = async (req, res) => {
       finalDisplayOrder,
       original_price || null,
       discount_label || null,
+      available_from_time || null,
+      available_until_time || null,
       id
     ]
   );

@@ -151,6 +151,8 @@ const productSchema = (req) => {
     display_order: normalizeField(req, 'displayOrder', 'display_order'),
     original_price: normalizeField(req, 'originalPrice', 'original_price'),
     discount_label: normalizeField(req, 'discountLabel', 'discount_label'),
+    available_from_time: normalizeField(req, 'availableFromTime', 'available_from_time'),
+    available_until_time: normalizeField(req, 'availableUntilTime', 'available_until_time'),
     combo_items: Array.isArray(rawComboItems) ? rawComboItems.map((item, index) => ({
       product_id: item.productId || item.product_id || item.id,
       quantity: item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1),
@@ -161,6 +163,15 @@ const productSchema = (req) => {
   if (!isString(data.name)) errors.name = 'Name is required';
   if (!isNumericAmount(data.price)) errors.price = 'Valid price is required';
   if (!isId(data.category_id)) errors.category_id = 'Category ID is required';
+  const isTimeString = (v) => typeof v === 'string' && /^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(v);
+  if (data.available_from_time !== undefined && data.available_from_time !== null && data.available_from_time !== '' && !isTimeString(data.available_from_time)) {
+    errors.available_from_time = 'Available from time must be in HH:MM or HH:MM:SS format';
+  }
+  if (data.available_until_time !== undefined && data.available_until_time !== null && data.available_until_time !== '' && !isTimeString(data.available_until_time)) {
+    errors.available_until_time = 'Available until time must be in HH:MM or HH:MM:SS format';
+  }
+  if (data.available_from_time === '' || data.available_from_time === null) data.available_from_time = null;
+  if (data.available_until_time === '' || data.available_until_time === null) data.available_until_time = null;
   if (data.original_price !== undefined && data.original_price !== null && data.original_price !== '') {
     if (!isNumericAmount(data.original_price)) {
       errors.original_price = 'Original price must be a valid amount';

@@ -147,6 +147,8 @@ const migrate = async () => {
     await ensureColumn('products', 'original_price', 'original_price DECIMAL(10, 2) AFTER display_order');
     await ensureColumn('products', 'discount_label', 'discount_label VARCHAR(50) AFTER original_price');
     await ensureColumn('products', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER discount_label');
+    await ensureColumn('products', 'available_from_time', 'available_from_time TIME NULL AFTER deleted');
+    await ensureColumn('products', 'available_until_time', 'available_until_time TIME NULL AFTER available_from_time');
     console.log('Products table ready.');
 
     await connection.query(`

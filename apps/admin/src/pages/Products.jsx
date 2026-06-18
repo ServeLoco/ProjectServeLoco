@@ -305,6 +305,11 @@ export default function Products() {
                     >
                       {p.available ? 'In Stock' : 'Out of Stock'}
                     </button>
+                    {(p.available_from_time || p.available_until_time) && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                        ⏰ {(p.available_from_time || '').toString().slice(0, 5)} – {(p.available_until_time || '').toString().slice(0, 5)}
+                      </div>
+                    )}
                   </td>
                   <td>
                     <button className="action-link" onClick={() => openEditDrawer(p)}>Edit</button>
@@ -340,10 +345,32 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
   const isEdit = !!product;
   const initialMode = product?.category_type || categories.find(c => String(c.id) === String(product?.category_id))?.type || currentMode || 'packed';
   const [productMode, setProductMode] = useState(initialMode);
-  const [formData, setFormData] = useState(product || {
-    name: '', description: '', price: '', original_price: '', unit: '',
-    category_id: '', display_order: 0, available: true, featured: false,
-    discount_label: '', image_id: '', image_url: ''
+  const [formData, setFormData] = useState(() => {
+    if (product) {
+      // MySQL TIME fields come back as strings like '09:00:00' or as Date objects depending on driver config.
+      // Normalize them to HH:MM so the <input type="time"> works correctly.
+      const formatTime = (v) => {
+        if (!v) return '';
+        if (typeof v === 'string') return v.length >= 5 ? v.slice(0, 5) : v;
+        if (v instanceof Date) {
+          const hh = String(v.getHours()).padStart(2, '0');
+          const mm = String(v.getMinutes()).padStart(2, '0');
+          return `${hh}:${mm}`;
+        }
+        return '';
+      };
+      return {
+        ...product,
+        available_from_time: formatTime(product.available_from_time),
+        available_until_time: formatTime(product.available_until_time)
+      };
+    }
+    return {
+      name: '', description: '', price: '', original_price: '', unit: '',
+      category_id: '', display_order: 0, available: true, featured: false,
+      discount_label: '', image_id: '', image_url: '',
+      available_from_time: '', available_until_time: ''
+    };
   });
 
   const [saving, setSaving] = useState(false);
@@ -409,7 +436,20 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
         setSaving(false);
         return;
       }
-      const payload = { ...formData, price, original_price: originalPrice, display_order: Number(formData.display_order) || 0, imageId: formData.image_id, image_id: formData.image_id };
+      const fromTime = formData.available_from_time || null;
+      const untilTime = formData.available_until_time || null;
+      const payload = {
+        ...formData,
+        price,
+        original_price: originalPrice,
+        display_order: Number(formData.display_order) || 0,
+        imageId: formData.image_id,
+        image_id: formData.image_id,
+        available_from_time: fromTime,
+        available_until_time: untilTime,
+        availableFromTime: fromTime,
+        availableUntilTime: untilTime,
+      };
       const selectedCat = categories.find(c => c.id.toString() === formData.category_id.toString());
       if (!selectedCat) { alert('Please select a category for this product.'); setSaving(false); return; }
       if (selectedCat.type !== productMode) { alert('Selected category does not match the chosen product mode.'); setSaving(false); return; }
@@ -535,6 +575,43 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
                 <input type="checkbox" name="featured" checked={formData.featured} onChange={handleChange} />
                 Featured Product
               </label>
+            </div>
+            <div className="form-group" style={{ marginTop: '1rem' }}>
+              <label className="form-label">Daily availability window (optional)</label>
+              <p className="form-hint" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem 0' }}>
+                Restrict this product to a specific time of day. Leave both empty to make it available all day.
+              </p>
+              <div className="form-row" style={{ alignItems: 'flex-end' }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label" style={{ fontSize: '0.85rem' }}>Available from</label>
+                  <input
+                    type="time"
+                    name="available_from_time"
+                    className="form-input"
+                    value={formData.available_from_time || ''}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label" style={{ fontSize: '0.85rem' }}>Available until</label>
+                  <input
+                    type="time"
+                    name="available_until_time"
+                    className="form-input"
+                    value={formData.available_until_time || ''}
+                    onChange={handleChange}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ alignSelf: 'flex-end' }}
+                  onClick={() => setFormData(prev => ({ ...prev, available_from_time: '', available_until_time: '' }))}
+                  disabled={!formData.available_from_time && !formData.available_until_time}
+                >
+                  Clear window
+                </button>
+              </div>
             </div>
           </div>
           <div className="drawer-footer">
