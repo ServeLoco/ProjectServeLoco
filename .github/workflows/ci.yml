@@ -18,6 +18,31 @@ jobs:
       run:
         working-directory: ./apps/api
 
+    # Spin up real MySQL + MongoDB so integration tests pass
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: serveloco_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -37,3 +62,12 @@ jobs:
 
     - name: Run Tests
       run: npm test
+      env:
+        MYSQL_HOST: 127.0.0.1
+        MYSQL_PORT: 3306
+        MYSQL_DATABASE: serveloco_test
+        MYSQL_USER: root
+        MYSQL_PASSWORD: test
+        MYSQL_SSL: false
+        MONGODB_URI: mongodb://localhost:27017/
+        MONGODB_DATABASE: serveloco_images_test
