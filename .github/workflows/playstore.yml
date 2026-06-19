@@ -23,6 +23,10 @@ env:
   EAS_PROJECT_ID: 1df5a9bf-de34-48ea-96f4-68f598d7d318
   GRADLE_OPTS: "-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8"
   EAS_BUILD_NO_EXPO_GO_WARNING: "true"
+  # Move EAS local build temp out of small tmpfs (/tmp = 7.4GB) to home (402GB free)
+  TMPDIR: /home/linux-server/Documents/builds/.tmp
+  EAS_LOCAL_BUILD_WORKINGDIR: /home/linux-server/Documents/builds/.tmp/eas-build
+  EAS_LOCAL_BUILD_ARTIFACT_PATH: /home/linux-server/Documents/builds/.tmp/eas-build-artifact
 
 jobs:
   # ── 1. CI gate: lint + tests must pass before we build or update. ───────────
@@ -214,10 +218,23 @@ jobs:
           EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
         run: |
           set -euo pipefail
+          # Find the .aab (could be in TMPDIR or /tmp depending on EAS version)
+          AAB_PATH=""
+          for candidate in "$EAS_LOCAL_BUILD_ARTIFACT_PATH" /tmp/villkro.aab /tmp/linux-server/eas-build-local-nodejs/*/build/apps/customer-app/android/app/build/outputs/bundle/release/app-release.aab; do
+            if [ -f "$candidate" ]; then
+              AAB_PATH="$candidate"
+              break
+            fi
+          done
+          if [ -z "$AAB_PATH" ]; then
+            echo "ERROR: no .aab found"
+            exit 1
+          fi
+          echo "Using .aab at: $AAB_PATH"
           # Retry submit up to 3 times — EAS Submit's GraphQL call sometimes flakes
           for attempt in 1 2 3; do
             echo "Submit attempt $attempt..."
-            if eas submit --platform android --path /tmp/villkro.aab --non-interactive; then
+            if eas submit --platform android --path "$AAB_PATH" --non-interactive; then
               echo "✓ Submit succeeded"
               break
             fi
@@ -252,7 +269,15 @@ jobs:
           VERSIONCODE=$(date +%s | tail -c 5)
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           ARCHIVE="/home/linux-server/Documents/builds/villkro-${VERSION}-${TIMESTAMP}.aab"
-          cp /tmp/villkro.aab "$ARCHIVE"
+          # Build artifact may be in TMPDIR or /tmp depending on EAS version
+          if [ -f "$EAS_LOCAL_BUILD_ARTIFACT_PATH" ]; then
+            cp "$EAS_LOCAL_BUILD_ARTIFACT_PATH" "$ARCHIVE"
+          elif [ -f /tmp/villkro.aab ]; then
+            cp /tmp/villkro.aab "$ARCHIVE"
+          else
+            echo "WARNING: no .aab found to archive"
+            exit 0
+          fi
           echo "✓ Archived build to: $ARCHIVE"
           ls -lh "$ARCHIVE"
 
