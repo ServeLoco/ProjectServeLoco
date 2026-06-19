@@ -1,0 +1,206 @@
+name: Play Store (VillKro customer app)
+
+# Triggered only when the customer app changes AND only on main.
+# Manual trigger is available for emergency rebuilds.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "apps/customer-app/**"
+      - ".github/workflows/playstore.yml"
+  workflow_dispatch:
+
+# Cancel in-progress runs for the same branch on a new push.
+concurrency:
+  group: playstore-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: apps/customer-app
+  EAS_PROJECT_ID: 1df5a9bf-de34-48ea-96f4-68f598d7d318
+
+jobs:
+  # ── 1. CI gate: lint + tests must pass before we build or update. ───────────
+  ci:
+    name: Lint & Test
+    runs-on: [self-hosted, linux, x64, villkro-android]
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test -- --ci
+
+  # ── 2. Decide whether this merge is a major (native changed) or minor. ─────
+  detect-bump:
+    name: Detect bump (major vs minor)
+    runs-on: [self-hosted, linux, x64, villkro-android]
+    needs: ci
+    env:
+      FORCE_MAJOR: ${{ vars.FORCE_MAJOR }}
+    outputs:
+      bump: ${{ steps.decide.outputs.bump }}
+      message: ${{ steps.decide.outputs.message }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: Determine baseline range since last successful run
+        id: baseline
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          PREV_SHA="$(gh run list --workflow playstore.yml --status success --limit 1 --json headSha -q '.[0].headSha' 2>/dev/null || echo "")"
+          if [ -z "$PREV_SHA" ]; then
+            RANGE="HEAD~5..HEAD"
+            echo "No previous run found; comparing HEAD~5..HEAD"
+          else
+            RANGE="${PREV_SHA}..HEAD"
+            echo "Comparing $RANGE"
+          fi
+          echo "range=$RANGE" >> "$GITHUB_OUTPUT"
+
+      - name: Read commit messages in range
+        id: msgs
+        run: |
+          set -euo pipefail
+          MSGS="$(git log --pretty=format:'%s' ${{ steps.baseline.outputs.range }} | head -20 || true)"
+          {
+            echo "msgs<<EOF"
+            echo "$MSGS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check if customer-app package.json changed
+        id: pkg
+        run: |
+          set -euo pipefail
+          CHANGED="$(git diff --name-only ${{ steps.baseline.outputs.range }} -- ${{ env.APP_DIR }}/package.json || true)"
+          echo "package.json changed files: $CHANGED"
+          if [ -n "$CHANGED" ]; then
+            echo "pkg_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pkg_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Decide bump type
+        id: decide
+        run: |
+          set -euo pipefail
+          MSGS='${{ steps.msgs.outputs.msgs }}'
+          PKG_CHANGED='${{ steps.pkg.outputs.pkg_changed }}'
+
+          BUMP="minor"
+          REASON="no native dep change detected"
+
+          # First-deploy bootstrap: when .deploy-bootstrap is missing from the
+          # working tree at workflow runtime, force ONE major build (full .aab
+          # + Play Store upload + OTA). The workflow re-creates the file on the
+          # runner, so only the first run after a fresh deploy picks "major".
+          # Override: set the repo variable FORCE_MAJOR=true to force a major build.
+          if [ "${FORCE_MAJOR:-false}" = "true" ]; then
+            BUMP="major"
+            REASON="FORCE_MAJOR=true set on the repo"
+          fi
+
+          if [ ! -f .deploy-bootstrap ]; then
+            BUMP="major"
+            REASON="first deploy bootstrap (.deploy-bootstrap missing -> upload .aab once)"
+            touch .deploy-bootstrap
+          fi
+
+          if [ "$PKG_CHANGED" = "true" ]; then
+            BUMP="major"
+            REASON="package.json changed in apps/customer-app"
+          fi
+          if echo "$MSGS" | grep -Eqi '^(feat|breaking)(\(.+\))?!?:'; then
+            BUMP="major"
+            REASON="commit prefix is feat: or BREAKING"
+          fi
+
+          echo "Decision: $BUMP ($REASON)"
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+          echo "message=$MSGS" >> "$GITHUB_OUTPUT"
+
+  # ── 3. Build + Submit + Update on the user's Linux PC. ─────────────────────
+  build-submit-update:
+    name: Build / Submit / Update
+    runs-on: [self-hosted, linux, x64, villkro-android]
+    needs: detect-bump
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
+
+      - name: Install app deps
+        working-directory: ${{ env.APP_DIR }}
+        run: npm ci
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: Materialize Play Store service account key
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is empty" >&2
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > /tmp/play-store-key.json
+          ls -la /tmp/play-store-key.json
+
+      - name: Login to EAS non-interactively
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas login --non-interactive
+
+      - name: Configure git for EAS
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name  "github-actions[bot]"
+
+      # ─── MAJOR PATH: full .aab build + Play Store submit + OTA ────────────
+      - name: Build Android .aab locally
+        if: needs.detect-bump.outputs.bump == 'major'
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+        run: eas build --platform android --local --non-interactive --profile production --output /tmp/villkro.aab
+
+      - name: Submit .aab to Google Play (Internal testing)
+        if: needs.detect-bump.outputs.bump == 'major'
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+        run: eas submit --platform android --path /tmp/villkro.aab --key /tmp/play-store-key.json --non-interactive
+
+      # ─── MINOR PATH: skip the build, just publish the OTA ──────────────────
+      - name: Publish EAS Update (production channel)
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+        run: |
+          MSG=$(printf '%s' '${{ needs.detect-bump.outputs.message }}' | head -1)
+          if [ -z "$MSG" ]; then MSG="auto-update from main"; fi
+          eas update --branch production --message "$MSG" --non-interactive
+
+      - name: Clean up service account key
+        if: always()
+        run: rm -f /tmp/play-store-key.json

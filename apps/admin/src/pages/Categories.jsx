@@ -28,7 +28,7 @@ export default function Categories() {
       setCategories(readList(res, ['categories']));
     } catch (err) {
       console.error(err);
-      setError(GENERIC_ERROR);
+      setError(err.message || GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -67,7 +67,7 @@ export default function Categories() {
       fetchCategories();
     } catch (err) {
       console.error(err);
-      setError(GENERIC_ERROR);
+      setError(err.message || GENERIC_ERROR);
     }
   };
 
@@ -210,7 +210,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the category to apply it.' });
     } catch (err) {
       console.error(err);
-      setUploadMessage({ type: 'error', text: GENERIC_ERROR });
+      setUploadMessage({ type: 'error', text: err.message || GENERIC_ERROR });
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -238,7 +238,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
       onSave();
     } catch (err) {
       console.error(err);
-      setFormError(GENERIC_ERROR);
+      setFormError(err.message || GENERIC_ERROR);
       setSaving(false);
     }
   };
@@ -252,7 +252,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
       onSave();
     } catch (err) {
       console.error(err);
-      setFormError(GENERIC_ERROR);
+      setFormError(err.message || GENERIC_ERROR);
       setSaving(false);
     }
   };
