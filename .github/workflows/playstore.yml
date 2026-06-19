@@ -181,7 +181,7 @@ jobs:
           echo "npm prefix -g: $(npm prefix -g 2>&1 || echo 'CANNOT')"
           echo "=== End diagnostics ==="
           # With EXPO_TOKEN env var set, EAS CLI authenticates automatically.
-          eas whoami
+          eas whoami 2>&1 || echo "eas whoami failed"
 
       - name: Configure git for EAS
         run: |
@@ -194,7 +194,16 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         env:
           EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
-        run: eas build --platform android --local --non-interactive --profile production --output /tmp/villkro.aab
+        run: |
+          set -euo pipefail
+          echo "=== Build step diagnostics ==="
+          echo "PWD=$(pwd)"
+          echo "eas: $(which eas 2>&1 || echo NOT FOUND)"
+          echo "node: $(which node)"
+          echo "=== Starting build ==="
+          eas build --platform android --local --non-interactive --profile production --output /tmp/villkro.aab 2>&1 | tee /tmp/eas-build.log
+          echo "=== Build complete, output: ==="
+          ls -la /tmp/villkro.aab 2>&1 || echo "NO .aab file produced"
 
       - name: Submit .aab to Google Play (Internal testing)
         if: needs.detect-bump.outputs.bump == 'major'
