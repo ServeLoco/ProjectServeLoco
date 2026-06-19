@@ -154,6 +154,21 @@ jobs:
           cache: "npm"
           cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
 
+      - name: Setup build directory in Documents (no /tmp usage)
+        run: |
+          set -euo pipefail
+          # All build artifacts go to Documents/builds/.tmp — zero /tmp usage
+          mkdir -p /home/linux-server/Documents/builds/.tmp
+          # Symlinks: EAS CLI hardcodes /tmp paths, redirect them to Documents
+          ln -sf /home/linux-server/Documents/builds/.tmp/villkro.aab /tmp/villkro.aab
+          ln -sf /home/linux-server/Documents/builds/.tmp/play-store-key.json /tmp/play-store-key.json
+          # Clean any leftover from previous runs
+          rm -f /home/linux-server/Documents/builds/.tmp/villkro.aab
+          rm -f /home/linux-server/Documents/builds/.tmp/play-store-key.json
+          echo "✓ Build dir: /home/linux-server/Documents/builds/.tmp/"
+          ls -la /home/linux-server/Documents/builds/.tmp/
+          ls -la /tmp/villkro.aab /tmp/play-store-key.json
+
       - name: Install app deps
         working-directory: ${{ env.APP_DIR }}
         run: npm ci
@@ -170,8 +185,8 @@ jobs:
             echo "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is empty" >&2
             exit 1
           fi
-          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > /tmp/play-store-key.json
-          ls -la /tmp/play-store-key.json
+          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > /home/linux-server/Documents/builds/.tmp/play-store-key.json
+          ls -la /home/linux-server/Documents/builds/.tmp/play-store-key.json
 
       - name: Verify EAS authentication
         env:
@@ -207,9 +222,10 @@ jobs:
           echo "eas: $(which eas 2>&1 || echo NOT FOUND)"
           echo "node: $(which node)"
           echo "=== Starting build ==="
-          eas build --platform android --local --non-interactive --profile production --output /tmp/villkro.aab 2>&1 | tee /tmp/eas-build.log
+          # Write to Documents/builds/.tmp/villkro.aab (via symlink) — zero /tmp usage
+          eas build --platform android --local --non-interactive --profile production --output /home/linux-server/Documents/builds/.tmp/villkro.aab 2>&1 | tee /home/linux-server/Documents/builds/.tmp/eas-build.log
           echo "=== Build complete, output: ==="
-          ls -la /tmp/villkro.aab 2>&1 || echo "NO .aab file produced"
+          ls -la /home/linux-server/Documents/builds/.tmp/villkro.aab 2>&1 || echo "NO .aab file produced"
 
       - name: Submit .aab to Google Play (Internal testing)
         if: needs.detect-bump.outputs.bump == 'major'
@@ -218,29 +234,24 @@ jobs:
           EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
         run: |
           set -euo pipefail
-          # Find the .aab (could be in TMPDIR or /tmp depending on EAS version)
+          # Find the .aab in Documents (zero /tmp usage)
           AAB_PATH=""
-          for candidate in "$EAS_LOCAL_BUILD_ARTIFACT_PATH" /tmp/villkro.aab /tmp/linux-server/eas-build-local-nodejs/*/build/apps/customer-app/android/app/build/outputs/bundle/release/app-release.aab; do
+          for candidate in \
+            /home/linux-server/Documents/builds/.tmp/villkro.aab \
+            /home/linux-server/Documents/builds/.tmp/eas-build/build/apps/customer-app/android/app/build/outputs/bundle/release/app-release.aab; do
             if [ -f "$candidate" ]; then
               AAB_PATH="$candidate"
               break
             fi
           done
           if [ -z "$AAB_PATH" ]; then
-            echo "ERROR: no .aab found"
+            echo "❌ FAIL TO SUBMIT: no .aab found in Documents/builds/.tmp/"
             exit 1
           fi
-          echo "Using .aab at: $AAB_PATH"
-          # Retry submit up to 3 times — EAS Submit's GraphQL call sometimes flakes
-          for attempt in 1 2 3; do
-            echo "Submit attempt $attempt..."
-            if eas submit --platform android --path "$AAB_PATH" --non-interactive; then
-              echo "✓ Submit succeeded"
-              break
-            fi
-            echo "✗ Submit failed (attempt $attempt), waiting 30s..."
-            sleep 30
-          done
+          echo "Submitting .aab at: $AAB_PATH"
+          # Single attempt only — no retries. Fails fast and loud if EAS flakes.
+          eas submit --platform android --path "$AAB_PATH" --non-interactive
+          echo "✓ Submit succeeded"
 
       # ─── MINOR PATH: skip the build, just publish the OTA ──────────────────
       - name: Publish EAS Update (production channel)
@@ -254,30 +265,38 @@ jobs:
 
       - name: Clean up service account key
         if: always()
-        run: rm -f /tmp/play-store-key.json
+        run: rm -f /home/linux-server/Documents/builds/.tmp/play-store-key.json
 
       # ─── ARCHIVE BUILD ARTIFACT ────────────────────────────────────────────────
-      # Always run after build (success or failure) to preserve the latest .aab
+      # Always run after build (success or failure) to preserve the latest .aab.
+      # Uses `test -f` instead of `hashFiles` because hashFiles is evaluated at
+      # JOB START before the .aab is created — would always be empty.
+      # Zero /tmp usage — everything stays in Documents/builds/
       - name: Archive .aab to Documents/builds
-        if: always() && hashFiles('/tmp/villkro.aab') != ''
+        if: always()
         run: |
           set -euo pipefail
-          mkdir -p /home/linux-server/Documents/builds
-          # Find current version from app.json
           VERSION=$(node -p "require('./${{ env.APP_DIR }}/app.json').expo.version" 2>/dev/null || echo "1.0.0")
-          # Find current versionCode from build (use file size or timestamp as proxy)
-          VERSIONCODE=$(date +%s | tail -c 5)
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           ARCHIVE="/home/linux-server/Documents/builds/villkro-${VERSION}-${TIMESTAMP}.aab"
-          # Build artifact may be in TMPDIR or /tmp depending on EAS version
-          if [ -f "$EAS_LOCAL_BUILD_ARTIFACT_PATH" ]; then
-            cp "$EAS_LOCAL_BUILD_ARTIFACT_PATH" "$ARCHIVE"
-          elif [ -f /tmp/villkro.aab ]; then
-            cp /tmp/villkro.aab "$ARCHIVE"
-          else
-            echo "WARNING: no .aab found to archive"
+
+          # Find the .aab in Documents (never in /tmp)
+          AAB=""
+          for candidate in \
+            /home/linux-server/Documents/builds/.tmp/villkro.aab \
+            /home/linux-server/Documents/builds/.tmp/eas-build/build/apps/customer-app/android/app/build/outputs/bundle/release/app-release.aab; do
+            if [ -f "$candidate" ]; then
+              AAB="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$AAB" ]; then
+            echo "WARNING: no .aab found to archive (build may have failed)"
             exit 0
           fi
+
+          cp "$AAB" "$ARCHIVE"
           echo "✓ Archived build to: $ARCHIVE"
           ls -lh "$ARCHIVE"
 
