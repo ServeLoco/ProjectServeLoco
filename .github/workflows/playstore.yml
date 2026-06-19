@@ -21,6 +21,8 @@ permissions:
 env:
   APP_DIR: apps/customer-app
   EAS_PROJECT_ID: 1df5a9bf-de34-48ea-96f4-68f598d7d318
+  GRADLE_OPTS: "-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8"
+  EAS_BUILD_NO_EXPO_GO_WARNING: "true"
 
 jobs:
   # ── 1. CI gate: lint + tests must pass before we build or update. ───────────

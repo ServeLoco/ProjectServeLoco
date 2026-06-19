@@ -37,7 +37,6 @@
       ],
       "package": "com.yashsiwach.villkro",
       "versionCode": 1,
-      "targetSdkVersion": 35,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/icon/adaptive-icon-background.png",
