@@ -239,4 +239,21 @@ jobs:
         if: always()
         run: rm -f /tmp/play-store-key.json
 
+      # ─── ARCHIVE BUILD ARTIFACT ────────────────────────────────────────────────
+      # Always run after build (success or failure) to preserve the latest .aab
+      - name: Archive .aab to Documents/builds
+        if: always() && hashFiles('/tmp/villkro.aab') != ''
+        run: |
+          set -euo pipefail
+          mkdir -p /home/linux-server/Documents/builds
+          # Find current version from app.json
+          VERSION=$(node -p "require('./${{ env.APP_DIR }}/app.json').expo.version" 2>/dev/null || echo "1.0.0")
+          # Find current versionCode from build (use file size or timestamp as proxy)
+          VERSIONCODE=$(date +%s | tail -c 5)
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          ARCHIVE="/home/linux-server/Documents/builds/villkro-${VERSION}-${TIMESTAMP}.aab"
+          cp /tmp/villkro.aab "$ARCHIVE"
+          echo "✓ Archived build to: $ARCHIVE"
+          ls -lh "$ARCHIVE"
+
 
