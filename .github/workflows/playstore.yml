@@ -160,10 +160,14 @@ jobs:
           printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > /tmp/play-store-key.json
           ls -la /tmp/play-store-key.json
 
-      - name: Login to EAS non-interactively
+      - name: Verify EAS authentication
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas login --non-interactive
+        run: |
+          set -euo pipefail
+          # With EXPO_TOKEN env var set, EAS CLI authenticates automatically.
+          # `eas whoami` confirms the token is valid without needing login.
+          eas whoami
 
       - name: Configure git for EAS
         run: |
