@@ -212,7 +212,18 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         env:
           EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
-        run: eas submit --platform android --path /tmp/villkro.aab --non-interactive --latest=false 2>&1 | tee /tmp/eas-submit.log
+        run: |
+          set -euo pipefail
+          # Retry submit up to 3 times — EAS Submit's GraphQL call sometimes flakes
+          for attempt in 1 2 3; do
+            echo "Submit attempt $attempt..."
+            if eas submit --platform android --path /tmp/villkro.aab --non-interactive; then
+              echo "✓ Submit succeeded"
+              break
+            fi
+            echo "✗ Submit failed (attempt $attempt), waiting 30s..."
+            sleep 30
+          done
 
       # ─── MINOR PATH: skip the build, just publish the OTA ──────────────────
       - name: Publish EAS Update (production channel)
