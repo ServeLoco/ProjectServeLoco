@@ -209,3 +209,4 @@ jobs:
       - name: Clean up service account key
         if: always()
         run: rm -f /tmp/play-store-key.json
+
