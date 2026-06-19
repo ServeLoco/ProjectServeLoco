@@ -22,7 +22,13 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed",
+        "serviceAccountKeyPath": "/tmp/play-store-key.json"
+      }
+    }
   }
 }
 

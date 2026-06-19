@@ -212,7 +212,7 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         env:
           EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
-        run: eas submit --platform android --path /tmp/villkro.aab --key /tmp/play-store-key.json --non-interactive
+        run: eas submit --platform android --path /tmp/villkro.aab --non-interactive --latest=false 2>&1 | tee /tmp/eas-submit.log
 
       # ─── MINOR PATH: skip the build, just publish the OTA ──────────────────
       - name: Publish EAS Update (production channel)
