@@ -56,20 +56,14 @@ jobs:
         with:
           fetch-depth: 50
 
-      - name: Determine baseline range since last successful run
+      - name: Determine baseline range (HEAD~1..HEAD)
         id: baseline
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          PREV_SHA="$(gh run list --workflow playstore.yml --status success --limit 1 --json headSha -q '.[0].headSha' 2>/dev/null || echo "")"
-          if [ -z "$PREV_SHA" ]; then
-            RANGE="HEAD~5..HEAD"
-            echo "No previous run found; comparing HEAD~5..HEAD"
-          else
-            RANGE="${PREV_SHA}..HEAD"
-            echo "Comparing $RANGE"
-          fi
+          # Compare this commit against its immediate parent. The bump detector
+          # decides major/minor from this single-commit delta.
+          RANGE="HEAD~1..HEAD"
+          echo "Comparing $RANGE"
           echo "range=$RANGE" >> "$GITHUB_OUTPUT"
 
       - name: Read commit messages in range
