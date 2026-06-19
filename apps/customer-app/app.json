@@ -11,7 +11,7 @@
     "icon": "./assets/icon/icon.png",
     "splash": {
       "image": "./assets/icon/splash.png",
-      "resizeMode": "contain",
+      "resizeMode": "cover",
       "backgroundColor": "#FF6B35"
     },
     "plugins": [
@@ -33,6 +33,8 @@
     "android": {
       "permissions": [
         "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "ACCESS_FINE_LOCATION",
         "POST_NOTIFICATIONS"
       ],
       "package": "com.yashsiwach.villkro",
@@ -48,6 +50,12 @@
         "projectId": "1df5a9bf-de34-48ea-96f4-68f598d7d318"
       }
     },
-    "owner": "yashsiwch"
+    "owner": "yashsiwch",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/1df5a9bf-de34-48ea-96f4-68f598d7d318"
+    }
   }
 }
