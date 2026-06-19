@@ -126,7 +126,14 @@ jobs:
 
           echo "Decision: $BUMP ($REASON)"
           echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
-          echo "message=$MSGS" >> "$GITHUB_OUTPUT"
+
+          # Use heredoc to safely write multi-line commit messages with
+          # special characters (parens, colons) to GITHUB_OUTPUT.
+          {
+            echo "message<<EOF"
+            echo "$MSGS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
   # ── 3. Build + Submit + Update on the user's Linux PC. ─────────────────────
   build-submit-update:
