@@ -172,8 +172,15 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           set -euo pipefail
+          # Debug: show PATH and eas location
+          echo "=== Diagnostics ==="
+          echo "PATH=$PATH"
+          echo "eas location: $(which eas 2>&1 || echo 'NOT FOUND')"
+          echo "eas version: $(eas --version 2>&1 || echo 'CANNOT RUN')"
+          echo "node version: $(node --version)"
+          echo "npm prefix -g: $(npm prefix -g 2>&1 || echo 'CANNOT')"
+          echo "=== End diagnostics ==="
           # With EXPO_TOKEN env var set, EAS CLI authenticates automatically.
-          # `eas whoami` confirms the token is valid without needing login.
           eas whoami
 
       - name: Configure git for EAS
