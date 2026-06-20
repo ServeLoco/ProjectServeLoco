@@ -294,7 +294,8 @@ describe('Dashboard Public and Admin API Tests', () => {
 
     it('should delete a section', async () => {
       pool.query.mockResolvedValueOnce([[{ id: 1 }]]); // exists
-      pool.query.mockResolvedValueOnce([{}]); // update soft delete
+      pool.query.mockResolvedValueOnce([{}]); // soft-delete section
+      pool.query.mockResolvedValueOnce([{}]); // soft-delete its items
 
       const res = await request(app)
         .delete('/api/admin/dashboard-sections/1')

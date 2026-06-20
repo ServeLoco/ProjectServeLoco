@@ -67,7 +67,7 @@ const rehydratePendingOrders = async () => {
   try {
     const [rows] = await pool.query(
       `SELECT id FROM orders
-        WHERE status = 'Pending' AND deleted = 0
+        WHERE status = 'Pending'
           AND created_at < (NOW() - INTERVAL ? SECOND)`,
       [Math.ceil(AUTO_ACCEPT_MS / 1000)]
     );

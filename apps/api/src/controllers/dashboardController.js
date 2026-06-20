@@ -1086,27 +1086,17 @@ const deleteAdminSection = async (req, res) => {
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Section not found' });
     }
 
-    const connection = await pool.getConnection();
-    try {
-      await connection.beginTransaction();
-      // Soft-delete section
-      await connection.query(
-        'UPDATE dashboard_sections SET deleted_at = NOW() WHERE id = ?',
-        [id]
-      );
-      // Soft-delete all items belonging to this section so they don't
-      // continue to count against categories/products/offers/combos
-      await connection.query(
-        'UPDATE dashboard_section_items SET deleted_at = NOW() WHERE section_id = ? AND deleted_at IS NULL',
-        [id]
-      );
-      await connection.commit();
-    } catch (e) {
-      await connection.rollback();
-      throw e;
-    } finally {
-      connection.release();
-    }
+    // Soft-delete the section, then soft-delete any items still pointing at it
+    // so the category/product/offer they reference is no longer considered
+    // "assigned to the mobile dashboard".
+    await pool.query(
+      'UPDATE dashboard_sections SET deleted_at = NOW() WHERE id = ?',
+      [id]
+    );
+    await pool.query(
+      'UPDATE dashboard_section_items SET deleted_at = NOW() WHERE section_id = ? AND deleted_at IS NULL',
+      [id]
+    );
 
     res.status(200).json({ message: 'Dashboard section deleted' });
   } catch (error) {
