@@ -150,14 +150,19 @@ const deleteImage = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Cannot delete image in use by: ${usages}` });
   }
 
+  await deleteImageDocAndFile(id);
+  res.status(200).json({ message: 'Image deleted successfully' });
+};
+
+// Internal: removes the MongoDB doc + underlying S3/disk object for a single image.
+// Throws if the doc or object removal fails.
+const deleteImageDocAndFile = async (id) => {
+  if (!ObjectId.isValid(id)) return;
+
   const db = getDb();
   const image = await db.collection('images').findOne({ _id: new ObjectId(id) });
-  
-  if (!image) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Image not found' });
-  }
+  if (!image) return;
 
-  // Delete the underlying object from whichever backend stored it.
   if (image.storageType === 's3') {
     await s3.deleteObject(image.filename);
   } else if (image.storageType === 'disk') {
@@ -168,8 +173,29 @@ const deleteImage = async (req, res) => {
   }
 
   await db.collection('images').deleteOne({ _id: new ObjectId(id) });
+};
 
-  res.status(200).json({ message: 'Image deleted successfully' });
+// Public helper for other controllers: after soft-deleting an entity that
+// references an image, call this with the imageId. If no active product /
+// category / combo / offer / settings row still references it, the underlying
+// file and MongoDB doc are removed. Errors are swallowed (and logged) so the
+// parent delete response isn't blocked by image-storage failures.
+const cleanupOrphanedImage = async (imageId) => {
+  if (!imageId) return { deleted: false, reason: 'no-image-id' };
+  const idStr = String(imageId);
+  if (!ObjectId.isValid(idStr)) return { deleted: false, reason: 'invalid-id' };
+
+  try {
+    const { used } = await getUsedImageIds();
+    if (used.has(idStr)) {
+      return { deleted: false, reason: 'still-in-use' };
+    }
+    await deleteImageDocAndFile(idStr);
+    return { deleted: true };
+  } catch (e) {
+    console.error('[images] cleanupOrphanedImage failed for', idStr, e.message);
+    return { deleted: false, reason: 'error', error: e.message };
+  }
 };
 
 const getImages = async (req, res) => {
@@ -207,5 +233,6 @@ module.exports = {
   uploadImage,
   deleteImage,
   getImages,
-  getImage
+  getImage,
+  cleanupOrphanedImage
 };

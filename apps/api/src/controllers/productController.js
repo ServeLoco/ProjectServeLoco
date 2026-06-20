@@ -3,6 +3,7 @@ const { getDb } = require('../db/mongodb');
 const { ObjectId } = require('mongodb');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { validatePagination } = require('../validators');
+const { cleanupOrphanedImage } = require('./imageController');
 
 const isWithinTimeWindow = (from, until) => {
   // Both null means always available in the time sense.
@@ -403,12 +404,13 @@ const getAdminProductById = async (req, res) => {
 
 const deleteProduct = async (req, res) => {
   const { id } = req.params;
-  const [existing] = await pool.query('SELECT id FROM products WHERE id = ? AND deleted = 0', [id]);
-  if (existing.length === 0) {
+  const [rows] = await pool.query('SELECT id, image_id FROM products WHERE id = ? AND deleted = 0', [id]);
+  if (rows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
   await pool.query('UPDATE products SET deleted = 1 WHERE id = ?', [id]);
+  await cleanupOrphanedImage(rows[0].image_id);
   res.status(200).json({ message: 'Product soft deleted' });
 };
 
@@ -542,6 +544,23 @@ const bulkDeleteProducts = async (req, res) => {
   const [result] = await pool.query('UPDATE products SET deleted = 1 WHERE id IN (?) AND deleted = 0', [numericIds]);
   const deleted = result.affectedRows;
   const skipped = numericIds.length - deleted;
+
+  // Collect image_ids from rows we actually soft-deleted, then clean up any
+  // images that are no longer referenced by any active record.
+  if (deleted > 0) {
+    try {
+      const [softDeleted] = await pool.query(
+        'SELECT DISTINCT image_id FROM products WHERE id IN (?) AND image_id IS NOT NULL',
+        [numericIds]
+      );
+      const imageIds = softDeleted.map(r => r.image_id).filter(Boolean);
+      for (const imageId of imageIds) {
+        await cleanupOrphanedImage(imageId);
+      }
+    } catch (e) {
+      console.error('[bulkDeleteProducts] image cleanup error:', e.message);
+    }
+  }
 
   return res.status(200).json({ deleted, skipped, errors: [] });
 };

@@ -677,7 +677,7 @@ function OfferBannerCarousel({ offers = [], windowWidth, onOfferPress }) {
   const [imageErrors, setImageErrors] = useState({});
   const itemWidth = windowWidth - (spacing.md * 2);
   const bannerWidth = windowWidth - (spacing.md * 2);
-  const bannerHeight = Math.round(bannerWidth / 2);
+  const bannerHeight = Math.round((bannerWidth * 9) / 16);
   const visibleOffers = offers.filter(offer => {
     const imageUri = normalizeImageUrl(offer?.imageUrl || offer?.image_url || offer?.imageUri);
     return Boolean(imageUri);

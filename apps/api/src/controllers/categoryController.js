@@ -3,6 +3,7 @@ const { getDb } = require('../db/mongodb');
 const { ObjectId } = require('mongodb');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { createTtlCache } = require('../utils/ttlCache');
+const { cleanupOrphanedImage } = require('./imageController');
 
 // Categories are read on every customer home/open. 60-second cache eliminates
 // the bulk of repeated SELECTs. Invalidated on any CRUD.
@@ -149,7 +150,7 @@ const updateCategory = async (req, res) => {
 
 const deleteCategory = async (req, res) => {
   const { id } = req.params;
-  const [currentRows] = await pool.query('SELECT id FROM categories WHERE id = ? AND deleted = 0', [id]);
+  const [currentRows] = await pool.query('SELECT id, image_id FROM categories WHERE id = ? AND deleted = 0', [id]);
   if (currentRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Category not found' });
   }
@@ -179,6 +180,7 @@ const deleteCategory = async (req, res) => {
   }
 
   await pool.query('UPDATE categories SET deleted = 1 WHERE id = ?', [id]);
+  await cleanupOrphanedImage(currentRows[0].image_id);
   categoriesCache.del();
   res.status(200).json({ message: 'Category soft deleted' });
 };

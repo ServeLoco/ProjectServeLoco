@@ -4,6 +4,7 @@ const { ObjectId } = require('mongodb');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { createTtlCache } = require('../utils/ttlCache');
 const config = require('../config/env');
+const { cleanupOrphanedImage } = require('./imageController');
 
 // Settings is a singleton (1 row), read by every app open and every public
 // endpoint. 60-second cache eliminates 99%+ of SELECTs in a 500-user app.
@@ -396,10 +397,12 @@ const getAdminOffers = async (req, res) => {
 
 const deleteOffer = async (req, res) => {
   const { id } = req.params;
-  const [result] = await pool.query('UPDATE offers SET deleted = 1 WHERE id = ? AND deleted = 0', [id]);
-  if (result.affectedRows === 0) {
+  const [rows] = await pool.query('SELECT id, image_id FROM offers WHERE id = ? AND deleted = 0', [id]);
+  if (rows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
   }
+  await pool.query('UPDATE offers SET deleted = 1 WHERE id = ? AND deleted = 0', [id]);
+  await cleanupOrphanedImage(rows[0].image_id);
   res.status(200).json({ message: 'Offer soft deleted' });
 };
 

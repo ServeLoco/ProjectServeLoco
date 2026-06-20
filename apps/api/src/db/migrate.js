@@ -9,6 +9,12 @@ const migrate = async () => {
       throw new Error('MYSQL_DATABASE must contain only letters, numbers, and underscores');
     }
 
+    // Honor SKIP_SEED_DEFAULTS to leave the database empty after a wipe.
+    // Set this in .env to suppress all auto-seeded rows (settings, default
+    // categories, sample products, default dashboard sections/items, and the
+    // default notification templates).
+    const skipSeed = String(process.env.SKIP_SEED_DEFAULTS || '').toLowerCase() === 'true';
+
     const ssl = getMysqlSslOptions();
     const serverConnection = await mysql.createConnection({
       host: config.MYSQL_HOST,
@@ -482,6 +488,9 @@ const migrate = async () => {
     // ---------------------------------------------------------
     // SEED DATA (Idempotent)
     // ---------------------------------------------------------
+    if (skipSeed) {
+      console.log('SKIP_SEED_DEFAULTS=true — skipping all seed data.');
+    } else {
     console.log('Seeding data...');
 
     // Seed Settings
@@ -570,7 +579,7 @@ const migrate = async () => {
         SELECT ?, 'offer', ?, 0 FROM DUAL
         WHERE NOT EXISTS (
           SELECT 1 FROM dashboard_section_items
-          WHERE section_id = ? AND item_type = 'offer' AND item_id = ? AND deleted_at IS NULL
+          WHERE section_id = ? AND item_type = 'offer' AND item_id = ?
         )
       `, [offerSectionId, activeOffers[0].id, offerSectionId, activeOffers[0].id]);
     }
@@ -591,7 +600,7 @@ const migrate = async () => {
         SELECT ?, 'category', ?, ? FROM DUAL
         WHERE NOT EXISTS (
           SELECT 1 FROM dashboard_section_items
-          WHERE section_id = ? AND item_type = 'category' AND item_id = ? AND deleted_at IS NULL
+          WHERE section_id = ? AND item_type = 'category' AND item_id = ?
         )
       `, [catSectionId, cat.id, cat.display_order, catSectionId, cat.id]);
     }
@@ -613,11 +622,12 @@ const migrate = async () => {
         SELECT ?, 'combo', ?, ? FROM DUAL
         WHERE NOT EXISTS (
           SELECT 1 FROM dashboard_section_items
-          WHERE section_id = ? AND item_type = 'combo' AND item_id = ? AND deleted_at IS NULL
+          WHERE section_id = ? AND item_type = 'combo' AND item_id = ?
         )
       `, [comboSectionId, combo.id, comboOrder++, comboSectionId, combo.id]);
     }
     console.log('Default dashboard sections and items ready.');
+    } // end if (!skipSeed)
 
     // Notification Batches Table (for Admin broadcasts)
     await connection.query(`
@@ -731,6 +741,7 @@ const migrate = async () => {
       );
     `);
 
+    if (!skipSeed) {
     const defaultTemplates = [
       { event_key: 'order_placed',            title: '🎉 Order Confirmed!',        body: "Your order has been placed successfully. We'll notify you once it's accepted." },
       { event_key: 'status_accepted',          title: '✅ Order Accepted!',          body: 'Great news! Your order has been accepted and will be prepared shortly.' },
@@ -750,6 +761,7 @@ const migrate = async () => {
         [t.event_key, t.title, t.body]
       );
     }
+    } // end if (!skipSeed) for notification_templates
     console.log('Notification templates table ready.');
 
     console.log('Migration and seeding completed successfully!');

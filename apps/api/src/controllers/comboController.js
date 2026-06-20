@@ -4,6 +4,7 @@ const { ObjectId } = require('mongodb');
 const { validatePagination } = require('../validators');
 const { isPositiveInteger } = require('../validators');
 const { normalizeStoreType } = require('../utils/storeMode');
+const { cleanupOrphanedImage } = require('./imageController');
 
 const resolveImageUrls = async (rows) => {
   const imageIds = rows
@@ -342,12 +343,13 @@ const updateCombo = async (req, res) => {
 
 const deleteCombo = async (req, res) => {
   const { id } = req.params;
-  const [existing] = await pool.query('SELECT id FROM combos WHERE id = ? AND deleted = 0', [id]);
+  const [existing] = await pool.query('SELECT id, image_id FROM combos WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Combo not found' });
   }
 
   await pool.query('UPDATE combos SET deleted = 1 WHERE id = ?', [id]);
+  await cleanupOrphanedImage(existing[0].image_id);
   res.status(200).json({ message: 'Combo soft deleted' });
 };
 
