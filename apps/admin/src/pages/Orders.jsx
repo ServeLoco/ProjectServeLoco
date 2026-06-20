@@ -267,7 +267,7 @@ export default function Orders() {
     // passed.
     let latest;
     try {
-      const res = await OrdersApi.getById(selectedOrder.id);
+      const res = await OrdersApi.get(selectedOrder.id);
       latest = res?.data || res;
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || GENERIC_ERROR);
@@ -309,7 +309,7 @@ export default function Orders() {
     // server state before mutating.
     let latest;
     try {
-      const res = await OrdersApi.getById(selectedOrder.id);
+      const res = await OrdersApi.get(selectedOrder.id);
       latest = res?.data || res;
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || GENERIC_ERROR);
