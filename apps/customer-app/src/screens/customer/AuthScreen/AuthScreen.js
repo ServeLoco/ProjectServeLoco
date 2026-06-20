@@ -30,6 +30,7 @@ import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useAuthStore } from '../../../stores';
 import { authApi } from '../../../api';
 import { loginLogo } from '../../../assets';
+import { requestNotificationPermission } from '../../../hooks/useLocalNotifications';
 
 const POLICY_URLS = {
   privacy: 'https://api.serveloco.app/policies/privacy',
@@ -112,6 +113,14 @@ export default function AuthScreen() {
 
   const handleSuccess = (token, user) => {
     setSession(token, user);
+    // Ask for notification permission right after a successful login or signup
+    // so order-status updates can surface as native banners. The hook is
+    // idempotent (it short-circuits if already asked/decided) and handles the
+    // system prompt on both iOS and Android 13+. Delaying by 800ms lets the
+    // navigation transition + tab bar settle before the system dialog appears.
+    setTimeout(() => {
+      requestNotificationPermission().catch(() => {});
+    }, 800);
   };
 
   const submitLogin = async () => {

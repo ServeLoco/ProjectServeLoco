@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { subscribeNotificationEvents } from '../api/realtimeClient';
 import { useAuthStore } from '../stores';
 
@@ -15,22 +16,82 @@ Notifications.setNotificationHandler({
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-export async function requestNotificationPermission() {
-  if (Platform.OS === 'android' && Platform.Version < 33) {
-    // Android < 13 doesn't need runtime permission for notifications
-    return true;
+const PERMISSION_ASKED_KEY = 'serveloco:notifPermissionAsked';
+
+// Module-level cache so we only hit AsyncStorage once per process.
+let askedStateCache = null;
+const readAskedState = async () => {
+  if (askedStateCache !== null) return askedStateCache;
+  try {
+    const raw = await AsyncStorage.getItem(PERMISSION_ASKED_KEY);
+    askedStateCache = raw ? JSON.parse(raw) : { asked: false, decided: false };
+  } catch {
+    askedStateCache = { asked: false, decided: false };
   }
-
-  const { status: existing } = await Notifications.getPermissionsAsync();
-  if (existing === 'granted') return true;
-
-  const { status } = await Notifications.requestPermissionsAsync();
-  return status === 'granted';
-}
+  return askedStateCache;
+};
+const writeAskedState = async (next) => {
+  askedStateCache = next;
+  try {
+    await AsyncStorage.setItem(PERMISSION_ASKED_KEY, JSON.stringify(next));
+  } catch { /* best-effort */ }
+};
 
 export async function checkNotificationPermission() {
   const { status } = await Notifications.getPermissionsAsync();
   return status === 'granted';
+}
+
+/**
+ * Request notification permission exactly once per install/session, while the
+ * app is authenticated. Idempotent — safe to call from multiple places
+ * (login, signup, order-detail screen).
+ *
+ * Returns one of:
+ *   'granted' | 'denied' | 'undetermined' | 'unsupported'
+ *
+ * Never throws. Never shows a custom UI; iOS and Android 13+ show their own
+ * native system dialogs.
+ */
+export async function requestNotificationPermission() {
+  // Android <13 doesn't need a runtime grant — auto-granted at install.
+  if (Platform.OS === 'android' && Platform.Version < 33) {
+    return 'granted';
+  }
+
+  try {
+    const existing = await Notifications.getPermissionsAsync();
+    const state = await readAskedState();
+
+    // If the user already responded to the prompt, respect that decision and
+    // only re-check the live status (which can change via system Settings).
+    if (state.asked) {
+      return existing.status === 'granted' ? 'granted'
+           : existing.status === 'denied'  ? 'denied'
+           : 'undetermined';
+    }
+
+    // First time — record that we're about to ask so we don't ask again even
+    // if the user dismisses without choosing.
+    await writeAskedState({ asked: true, decided: false });
+
+    const { status } = await Notifications.requestPermissionsAsync();
+    await writeAskedState({ asked: true, decided: status !== 'undetermined' });
+    return status === 'granted' ? 'granted'
+         : status === 'denied'  ? 'denied'
+         : 'undetermined';
+  } catch (err) {
+    console.warn('[notifications] requestNotificationPermission failed:', err?.message || err);
+    return 'unsupported';
+  }
+}
+
+/**
+ * Reset the "asked" flag — used by Settings / a future "enable notifications" CTA
+ * so a user who previously declined can re-trigger the system prompt.
+ */
+export async function resetNotificationAskedFlag() {
+  await writeAskedState({ asked: false, decided: false });
 }
 
 async function createAndroidChannel() {
