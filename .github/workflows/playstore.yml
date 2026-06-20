@@ -105,20 +105,24 @@ jobs:
           BUMP="minor"
           REASON="no native dep change detected"
 
-          # First-deploy bootstrap: when .deploy-bootstrap is missing from the
-          # working tree at workflow runtime, force ONE major build (full .aab
-          # + Play Store upload + OTA). The workflow re-creates the file on the
-          # runner, so only the first run after a fresh deploy picks "major".
           # Override: set the repo variable FORCE_MAJOR=true to force a major build.
           if [ "${FORCE_MAJOR:-false}" = "true" ]; then
             BUMP="major"
             REASON="FORCE_MAJOR=true set on the repo"
           fi
 
-          if [ ! -f .deploy-bootstrap ]; then
+          # First-deploy bootstrap: check for a persistent local marker file at
+          # ~/Documents/builds/.first-deploy. If it doesn't exist, force ONE
+          # major build and create the marker so future runs are not "first deploy".
+          # The marker lives OUTSIDE the workspace so it survives runner
+          # restarts and workspace cleanups (unlike a file in the repo).
+          FIRST_DEPLOY_MARKER="/home/linux-server/Documents/builds/.first-deploy"
+          mkdir -p /home/linux-server/Documents/builds
+          if [ ! -f "$FIRST_DEPLOY_MARKER" ]; then
             BUMP="major"
-            REASON="first deploy bootstrap (.deploy-bootstrap missing -> upload .aab once)"
-            touch .deploy-bootstrap
+            REASON="first deploy bootstrap (.first-deploy missing -> upload .aab once)"
+            touch "$FIRST_DEPLOY_MARKER"
+            echo "✓ Created first-deploy marker at $FIRST_DEPLOY_MARKER"
           fi
 
           if [ "$PKG_CHANGED" = "true" ]; then
