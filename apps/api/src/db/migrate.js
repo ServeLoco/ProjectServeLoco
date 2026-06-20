@@ -764,6 +764,25 @@ const migrate = async () => {
     } // end if (!skipSeed) for notification_templates
     console.log('Notification templates table ready.');
 
+    // Admin Inbox — notifications shown in the admin panel bell.
+    // Separate from `notifications` (customer-facing) because admin ids are
+    // strings (owner id) and `notifications.user_id` is INT FK → users(id).
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS admin_notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        type VARCHAR(50) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        related_url VARCHAR(255) NULL,
+        related_id VARCHAR(64) NULL,
+        read_at TIMESTAMP NULL DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_admin_notifications_unread (read_at, created_at),
+        INDEX idx_admin_notifications_type (type, created_at)
+      );
+    `);
+    console.log('Admin inbox table ready.');
+
     console.log('Migration and seeding completed successfully!');
   } catch (error) {
     console.error('Migration failed:', error);

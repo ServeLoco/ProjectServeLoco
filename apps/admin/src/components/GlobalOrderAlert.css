@@ -303,6 +303,102 @@
   font-weight: 600;
 }
 
+/* ── Queue: non-active cards ─────────────────────────────────────────── */
+.order-alert-modal.queued {
+  opacity: 0.78;
+  filter: saturate(0.7);
+}
+.order-alert-modal.queued .order-alert-header {
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+}
+
+/* ── Auto-acknowledged state ─────────────────────────────────────────── */
+.order-alert-modal.auto-accepted .order-alert-header {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+.order-alert-info {
+  margin-top: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md, 8px);
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1px solid #fde68a;
+}
+
+/* ── Countdown ring ──────────────────────────────────────────────────── */
+.order-alert-countdown {
+  width: 48px;
+  height: 48px;
+  position: relative;
+  flex-shrink: 0;
+}
+.order-alert-countdown-ring {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.order-alert-countdown-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.order-alert-countdown-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.25);
+  stroke-width: 3;
+}
+.order-alert-countdown-fill {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: calc(100 - var(--ring-pct, 100));
+  transition: stroke-dashoffset 100ms linear;
+}
+.order-alert-countdown-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ── Skip / footer ───────────────────────────────────────────────────── */
+.order-alert-footer {
+  display: flex;
+  justify-content: center;
+  padding: 0 16px 14px;
+  background: var(--bg-color, #fafafa);
+}
+.order-alert-skip {
+  background: transparent;
+  border: 1px dashed var(--border-color, #d1d5db);
+  color: var(--text-secondary, #6b7280);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.order-alert-skip:hover:not(:disabled) {
+  background: var(--surface-color, #fff);
+  color: var(--primary-color, #0f8a5a);
+  border-color: var(--primary-color, #0f8a5a);
+}
+.order-alert-skip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ── Responsive: full-width on small screens ─────────────────────────── */
 @media (max-width: 600px) {
   .order-alert-overlay {

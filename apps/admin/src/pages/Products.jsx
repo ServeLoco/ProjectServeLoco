@@ -5,6 +5,8 @@ import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
+import { useImageCropper } from '../hooks/useImageCropper';
+import ImageCropper from '../components/ImageCropper/ImageCropper';
 import './Products.css';
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
@@ -379,27 +381,10 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
   const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
-  };
-
-  const handleModeChange = (e) => {
-    const nextMode = e.target.value;
-    setProductMode(nextMode);
-    setFormData(prev => {
-      const selectedCategory = categories.find(c => String(c.id) === String(prev.category_id));
-      return { ...prev, category_id: selectedCategory?.type === nextMode ? prev.category_id : '' };
-    });
-  };
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const uploadImageFile = async (file) => {
     const sizeError = getImageUploadError(file);
     if (sizeError) {
       setUploadMessage({ type: 'error', text: sizeError });
-      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
     const data = new FormData();
@@ -416,8 +401,27 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       setUploadMessage({ type: 'error', text: GENERIC_ERROR });
     } finally {
       setUploadingImage(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const { fileInputProps, cropperProps } = useImageCropper({
+    type: 'product',
+    defaultAspect: 1,
+    onCropped: uploadImageFile,
+  });
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleModeChange = (e) => {
+    const nextMode = e.target.value;
+    setProductMode(nextMode);
+    setFormData(prev => {
+      const selectedCategory = categories.find(c => String(c.id) === String(prev.category_id));
+      return { ...prev, category_id: selectedCategory?.type === nextMode ? prev.category_id : '' };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -551,7 +555,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
               <p className="image-dimension-hint">{IMAGE_GUIDANCE.product.label}</p>
               {(formData.image_url || formData.imageUrl) && <img src={normalizeImageUrl(formData.image_url || formData.imageUrl)} alt="Preview" className="image-preview" />}
               <div className="image-upload-zone" onClick={() => fileInputRef.current?.click()}>
-                <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
+                <input type="file" hidden ref={fileInputRef} {...fileInputProps} accept="image/*" />
                 {uploadingImage ? 'Uploading...' : 'Click to Upload Image'}
               </div>
               {uploadMessage && <p className={`upload-message ${uploadMessage.type}`}>{uploadMessage.text}</p>}
@@ -623,6 +627,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
           </div>
         </form>
       </div>
+      <ImageCropper {...cropperProps} />
     </div>
   );
 }

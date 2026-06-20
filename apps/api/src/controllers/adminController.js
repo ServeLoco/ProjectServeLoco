@@ -4,6 +4,8 @@ const { pool } = require('../db/mysql');
 const { validatePagination } = require('../validators');
 const notificationService = require('../utils/notificationService');
 const realtimeEvents = require('../realtime/orderEvents');
+const orderAutoAccept = require('../realtime/orderAutoAccept');
+const adminInbox = require('../utils/adminNotifications');
 const bcrypt = require('bcrypt');
 
 const ORDER_STATUS_VALUES = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
@@ -546,6 +548,11 @@ const updateOrderStatus = async (req, res) => {
   }
   const currentStatus = orderRows[0].status;
 
+  // Cancel the pending auto-accept (if any) the moment an admin acts on this order.
+  if (currentStatus === 'Pending') {
+    orderAutoAccept.cancel(parseInt(id, 10));
+  }
+
   // Terminal states cannot be changed
   if (currentStatus === 'Delivered' || currentStatus === 'Cancelled') {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot change status of a delivered or cancelled order' });
@@ -790,3 +797,83 @@ module.exports = {
   getAdminNotificationById,
   deleteAdminNotification
 };
+
+// ──────────────────────────────────────────────────────────────────────────
+// Admin Inbox (bell icon). Distinct from the broadcast composer at
+// /api/admin/notifications which targets customers.
+// ──────────────────────────────────────────────────────────────────────────
+
+const getInbox = async (req, res) => {
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, type, title, body, related_url, related_id, read_at, created_at
+         FROM admin_notifications
+        ORDER BY created_at DESC, id DESC
+        LIMIT ?`,
+      [limit]
+    );
+    const [[count]] = await pool.query(
+      'SELECT COUNT(*) AS n FROM admin_notifications WHERE read_at IS NULL'
+    );
+    res.status(200).json({ data: rows, unread_count: Number(count.n) || 0 });
+  } catch (e) {
+    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+};
+
+const getInboxUnreadCount = async (req, res) => {
+  try {
+    const count = await adminInbox.getUnreadCount();
+    res.status(200).json({ count });
+  } catch (e) {
+    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+};
+
+const markInboxRead = async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id) || id <= 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid id' });
+  }
+  try {
+    await pool.query(
+      'UPDATE admin_notifications SET read_at = NOW() WHERE id = ? AND read_at IS NULL',
+      [id]
+    );
+    adminInbox.broadcastUnreadCount();
+    res.status(200).json({ message: 'Marked as read' });
+  } catch (e) {
+    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+};
+
+const markAllInboxRead = async (req, res) => {
+  try {
+    await pool.query('UPDATE admin_notifications SET read_at = NOW() WHERE read_at IS NULL');
+    adminInbox.broadcastUnreadCount();
+    res.status(200).json({ message: 'All marked as read' });
+  } catch (e) {
+    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+};
+
+const dismissInbox = async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id) || id <= 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid id' });
+  }
+  try {
+    await pool.query('DELETE FROM admin_notifications WHERE id = ?', [id]);
+    adminInbox.broadcastUnreadCount();
+    res.status(200).json({ message: 'Dismissed' });
+  } catch (e) {
+    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+};
+
+module.exports.getInbox = getInbox;
+module.exports.getInboxUnreadCount = getInboxUnreadCount;
+module.exports.markInboxRead = markInboxRead;
+module.exports.markAllInboxRead = markAllInboxRead;
+module.exports.dismissInbox = dismissInbox;

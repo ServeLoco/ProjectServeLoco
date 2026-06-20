@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
 import { useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
+import AdminNotificationsBell from './AdminNotificationsBell';
 import './Header.css';
 
 const PAGE_META = {
@@ -77,6 +78,9 @@ export default function Header() {
         </div>
 
         <ThemeToggle />
+
+        {/* Admin notifications bell */}
+        <AdminNotificationsBell />
 
         {/* User badge */}
         <div className="header-user-badge">

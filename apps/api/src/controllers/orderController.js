@@ -1,7 +1,9 @@
 const { pool } = require('../db/mysql');
-// Location-based pricing is removed, so calculateDeliveryPricing is no longer imported
+
 const notificationService = require('../utils/notificationService');
 const realtimeEvents = require('../realtime/orderEvents');
+const adminInbox = require('../utils/adminNotifications');
+const orderAutoAccept = require('../realtime/orderAutoAccept');
 const { calculateThresholdDeliveryCharge } = require('../utils/thresholdDelivery');
 const { roundMoney, toMoney } = require('../utils/money');
 const { calculateNightCharge, isCodBlockedDuringNight } = require('../utils/nightDelivery');
@@ -233,6 +235,19 @@ const createOrder = async (req, res) => {
     }).then(result => realtimeEvents.emitNotificationCreated(userId, result));
 
     realtimeEvents.emitOrderCreated(order);
+
+    // Admin inbox — persist a row so the bell has history. Realtime push
+    // already happens via emitOrderCreated above (GlobalOrderAlert uses it).
+    adminInbox.createAdminNotification({
+      type: adminInbox.TYPES.NEW_ORDER,
+      title: `New order #${orderNumber}`,
+      body: `${order.customer_name || 'Customer'} placed an order — ₹${Number(order.total).toFixed(0)}`,
+      relatedUrl: `/orders?id=${orderId}`,
+      relatedId: String(orderId),
+    });
+
+    // Server-side auto-accept: if no admin accepts within 10s, auto-accept.
+    orderAutoAccept.schedule(orderId, orderNumber);
 
     res.status(201).json({
       message: 'Order placed successfully',

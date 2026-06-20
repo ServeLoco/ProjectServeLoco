@@ -3,6 +3,8 @@ import { SettingsApi, ImagesApi } from '../api';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
+import { useImageCropper } from '../hooks/useImageCropper';
+import ImageCropper from '../components/ImageCropper/ImageCropper';
 import './Settings.css';
 
 const DEFAULT_SETTINGS = {
@@ -67,14 +69,10 @@ export default function Settings() {
     }));
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
+  const uploadImageFile = async (file) => {
     const sizeError = getImageUploadError(file);
     if (sizeError) {
       setUploadMessage({ type: 'error', text: sizeError });
-      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
@@ -97,9 +95,14 @@ export default function Settings() {
       setUploadMessage({ type: 'error', text: GENERIC_ERROR });
     } finally {
       setUploadingImage(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
+
+  const { fileInputProps, cropperProps } = useImageCropper({
+    type: 'qr',
+    defaultAspect: 1,
+    onCropped: uploadImageFile,
+  });
 
   const handleSave = async () => {
     try {
@@ -460,7 +463,7 @@ export default function Settings() {
               style={{ border: '2px dashed var(--border-color)', padding: '2rem', textAlign: 'center', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--bg-color)' }}
               onClick={() => fileInputRef.current?.click()}
             >
-              <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
+              <input type="file" hidden ref={fileInputRef} {...fileInputProps} accept="image/*" />
               {uploadingImage ? 'Uploading...' : 'Click to Upload new QR Code'}
             </div>
             {uploadMessage && (
@@ -475,7 +478,7 @@ export default function Settings() {
           {saving ? 'Saving...' : 'Save All Changes'}
         </button>
       </div>
-
+      <ImageCropper {...cropperProps} />
     </div>
   );
 }

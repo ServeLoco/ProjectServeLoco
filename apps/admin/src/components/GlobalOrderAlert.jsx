@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { subscribeAdminOrderEvents } from '../api';
+import { subscribeAdminOrderEvents, subscribeRealtime } from '../api';
 import { apiClient } from '../api/client';
 import './GlobalOrderAlert.css';
 
 const MAX_VISIBLE = 5;
 const SOUND_LOOP_INTERVAL_MS = 8000;
+const AUTO_ACCEPT_SECONDS = 10;
 
 function formatPlacedAt(iso) {
   if (!iso) return 'Just now';
@@ -26,12 +27,44 @@ function formatCurrency(value) {
   return `₹${n}`;
 }
 
+// Single countdown that ticks down from AUTO_ACCEPT_SECONDS for whichever
+// order is currently at the head of the queue. Tracks the active order's id
+// so the timer resets whenever a new order becomes active.
+function useHeadCountdown(activeId, paused) {
+  const [seconds, setSeconds] = useState(AUTO_ACCEPT_SECONDS);
+  useEffect(() => {
+    if (paused || !activeId) {
+      setSeconds(AUTO_ACCEPT_SECONDS);
+      return undefined;
+    }
+    setSeconds(AUTO_ACCEPT_SECONDS);
+    const start = Date.now();
+    const id = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      const remaining = Math.max(0, AUTO_ACCEPT_SECONDS - elapsed);
+      setSeconds(remaining);
+      if (remaining <= 0) clearInterval(id);
+    }, 100);
+    return () => clearInterval(id);
+  }, [activeId, paused]);
+  return seconds;
+}
+
 export default function GlobalOrderAlert() {
   const [modals, setModals] = useState([]);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [busy, setBusy] = useState({});
   const [errors, setErrors] = useState({});
+  const [autoAcknowledged, setAutoAcknowledged] = useState({});
   const audioCtxRef = useRef(null);
   const soundLoopRef = useRef(null);
+
+  const current = modals.length > 0 ? modals[Math.min(activeIndex, modals.length - 1)] : null;
+  const currentId = current ? current.id : null;
+  const currentBusy = current ? Boolean(busy[current.id]) : false;
+  const currentAutoAccepted = current ? Boolean(autoAcknowledged[current.payload?.orderId]) : false;
+  const countdownPaused = !current || currentBusy || currentAutoAccepted;
+  const secondsLeft = useHeadCountdown(currentId, countdownPaused);
 
   // ── Audio ────────────────────────────────────────────────────────────
   const playAlertSound = useCallback(async () => {
@@ -77,7 +110,6 @@ export default function GlobalOrderAlert() {
       }
       return undefined;
     }
-    // Play once immediately on first arrival
     playAlertSound();
     soundLoopRef.current = setInterval(() => {
       playAlertSound();
@@ -100,27 +132,47 @@ export default function GlobalOrderAlert() {
       const id = `${orderId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       setModals(prev => {
-        // De-dupe: if a modal for this order is already showing, do not add another
         if (prev.some(m => m.payload?.orderId === orderId)) return prev;
         return [...prev, { id, payload, addedAt: Date.now() }];
       });
     };
 
     const unsubscribe = subscribeAdminOrderEvents(handleEvent);
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
-  // ── Esc to close the top modal ───────────────────────────────────────
+  // ── Auto-acknowledgement: when server emits admin.order.auto_accepted ─
+  useEffect(() => {
+    const off = subscribeRealtime('admin.order.auto_accepted', (payload) => {
+      if (!payload || !payload.orderId) return;
+      setAutoAcknowledged(prev => ({ ...prev, [payload.orderId]: true }));
+    });
+    return off;
+  }, []);
+
+  // ── Clamp activeIndex when the queue shrinks ─────────────────────────
+  useEffect(() => {
+    if (activeIndex >= modals.length && modals.length > 0) {
+      setActiveIndex(modals.length - 1);
+    }
+  }, [modals.length, activeIndex]);
+
+  // ── Esc to skip to the next order ────────────────────────────────────
   useEffect(() => {
     if (modals.length === 0) return undefined;
     const onKey = (e) => {
       if (e.key === 'Escape') {
-        setModals(prev => prev.slice(0, -1));
+        // Skip = dismiss current alert (admin saw it) and show the next.
+        const current = modals[activeIndex];
+        if (current && !busy[current.id]) {
+          removeModal(current.id);
+        }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [modals.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modals.length, activeIndex, busy]);
 
   // ── Actions ──────────────────────────────────────────────────────────
   const removeModal = useCallback((id) => {
@@ -139,42 +191,38 @@ export default function GlobalOrderAlert() {
     try { window.dispatchEvent(new CustomEvent('admin:close-order-drawer')); } catch (_) { /* noop */ }
   }, []);
 
-  const handleAccept = useCallback(async (id, orderId) => {
+  const submitStatus = useCallback(async (id, orderId, status, reason) => {
     setBusy(prev => ({ ...prev, [id]: true }));
     setErrors(prev => ({ ...prev, [id]: null }));
     try {
       await apiClient(`/admin/orders/${orderId}/status`, {
         method: 'PATCH',
-        body: { status: 'Accepted' },
+        body: reason ? { status, cancel_reason: reason } : { status },
       });
       closeDrawerAndNavigate();
       removeModal(id);
     } catch (err) {
-      setErrors(prev => ({ ...prev, [id]: err?.message || 'Failed to accept order' }));
+      setErrors(prev => ({ ...prev, [id]: err?.message || `Failed to ${status === 'Accepted' ? 'accept' : 'cancel'} order` }));
       setBusy(prev => ({ ...prev, [id]: false }));
     }
   }, [closeDrawerAndNavigate, removeModal]);
 
-  const handleCancel = useCallback(async (id, orderId) => {
-    setBusy(prev => ({ ...prev, [id]: true }));
-    setErrors(prev => ({ ...prev, [id]: null }));
-    try {
-      await apiClient(`/admin/orders/${orderId}/status`, {
-        method: 'PATCH',
-        body: { status: 'Cancelled', cancel_reason: 'Cancelled by admin' },
-      });
-      closeDrawerAndNavigate();
-      removeModal(id);
-    } catch (err) {
-      setErrors(prev => ({ ...prev, [id]: err?.message || 'Failed to cancel order' }));
-      setBusy(prev => ({ ...prev, [id]: false }));
-    }
-  }, [closeDrawerAndNavigate, removeModal]);
+  const handleAccept = useCallback((id, orderId) => submitStatus(id, orderId, 'Accepted'), [submitStatus]);
+  const handleCancel = useCallback((id, orderId) => submitStatus(id, orderId, 'Cancelled', 'Cancelled by admin'), [submitStatus]);
+
+  const handleSkip = useCallback(() => {
+    const current = modals[activeIndex];
+    if (current && !busy[current.id]) removeModal(current.id);
+  }, [modals, activeIndex, busy, removeModal]);
 
   if (modals.length === 0) return null;
 
+  const total = modals.length;
+  const position = activeIndex + 1;
   const visible = modals.slice(0, MAX_VISIBLE);
   const hiddenCount = modals.length - visible.length;
+  const countdownCeil = Math.ceil(secondsLeft);
+  const ringPct = (secondsLeft / AUTO_ACCEPT_SECONDS) * 100;
 
   return (
     <div className="order-alert-overlay" role="presentation">
@@ -191,38 +239,62 @@ export default function GlobalOrderAlert() {
           const customerName = payload?.customerName || 'Customer';
           const address = payload?.address || '';
           const paymentMethod = payload?.paymentMethod || 'Cash';
-          const total = payload?.total;
+          const totalAmount = payload?.total;
           const createdAt = payload?.createdAt;
           const isBusy = Boolean(busy[id]);
           const error = errors[id];
           const isPaymentUpi = paymentMethod === 'UPI';
+          const isActive = index === activeIndex;
+          const wasAutoAccepted = Boolean(autoAcknowledged[orderId]);
 
           return (
             <div
               key={id}
-              className="order-alert-modal"
+              className={`order-alert-modal${isActive ? ' active' : ' queued'}${wasAutoAccepted ? ' auto-accepted' : ''}`}
               role="alertdialog"
-              aria-modal="true"
+              aria-modal={isActive ? 'true' : 'false'}
               aria-labelledby={`order-alert-title-${id}`}
-              style={{ '--stack-index': index }}
+              style={{ '--stack-index': index, '--ring-pct': `${ringPct}%` }}
             >
               <div className="order-alert-header">
                 <div className="order-alert-bell">
-                  <span aria-hidden="true">🔔</span>
+                  <span aria-hidden="true">{isActive ? '🔔' : '📦'}</span>
                 </div>
                 <div className="order-alert-header-text">
-                  <strong id={`order-alert-title-${id}`}>New Order Received!</strong>
-                  <span className="order-alert-order-number">#{orderNumber}</span>
+                  <strong id={`order-alert-title-${id}`}>
+                    {wasAutoAccepted
+                      ? `Order #${orderNumber} auto-accepted`
+                      : isActive
+                        ? 'New Order Received!'
+                        : `Order #${orderNumber} queued`}
+                  </strong>
+                  <span className="order-alert-order-number">
+                    #{orderNumber} · Order {index + 1} of {total}
+                  </span>
                 </div>
-                <button
-                  type="button"
-                  className="order-alert-close"
-                  onClick={() => removeModal(id)}
-                  disabled={isBusy}
-                  aria-label="Dismiss alert"
-                >
-                  ✕
-                </button>
+                {isActive ? (
+                  <div className="order-alert-countdown" aria-live="polite">
+                    <div className="order-alert-countdown-ring">
+                      <svg viewBox="0 0 36 36" aria-hidden="true">
+                        <circle cx="18" cy="18" r="16" className="order-alert-countdown-track" />
+                        <circle cx="18" cy="18" r="16" className="order-alert-countdown-fill" />
+                      </svg>
+                      <span className="order-alert-countdown-text">{countdownCeil}s</span>
+                    </div>
+                  </div>
+                ) : null}
+                {isActive ? (
+                  <button
+                    type="button"
+                    className="order-alert-close"
+                    onClick={handleSkip}
+                    disabled={isBusy}
+                    aria-label="Skip to next order"
+                    title="Skip (Esc)"
+                  >
+                    ▶
+                  </button>
+                ) : null}
               </div>
 
               <div className="order-alert-body">
@@ -252,13 +324,19 @@ export default function GlobalOrderAlert() {
                 <div className="order-alert-row">
                   <span className="order-alert-label">Total</span>
                   <span className="order-alert-value order-alert-total">
-                    {formatCurrency(total)}
+                    {formatCurrency(totalAmount)}
                   </span>
                 </div>
 
                 <div className="order-alert-meta">
                   Placed {formatPlacedAt(createdAt)}
                 </div>
+
+                {wasAutoAccepted ? (
+                  <div className="order-alert-info" role="status">
+                    Auto-accepted after 10s with no admin action. You can still cancel below.
+                  </div>
+                ) : null}
 
                 {error ? (
                   <div className="order-alert-error" role="alert">
@@ -285,13 +363,26 @@ export default function GlobalOrderAlert() {
                   {isBusy ? <span className="order-alert-spinner" aria-hidden="true" /> : 'Accept'}
                 </button>
               </div>
+
+              {total > 1 && isActive ? (
+                <div className="order-alert-footer">
+                  <button
+                    type="button"
+                    className="order-alert-skip"
+                    onClick={handleSkip}
+                    disabled={isBusy}
+                  >
+                    Skip to next ({position + 1}/{total}) ▶
+                  </button>
+                </div>
+              ) : null}
             </div>
           );
         })}
 
         {hiddenCount > 0 ? (
           <div className="order-alert-more" aria-live="polite">
-            +{hiddenCount} more new order{hiddenCount === 1 ? '' : 's'}
+            +{hiddenCount} more new order{hiddenCount === 1 ? '' : 's'} in queue
           </div>
         ) : null}
       </div>

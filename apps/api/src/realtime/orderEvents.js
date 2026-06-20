@@ -74,6 +74,13 @@ const emitOrderPaymentUpdated = (order) => {
   return payload;
 };
 
+const emitOrderAutoAccepted = (order) => {
+  const payload = toOrderEventPayload(order);
+  emitToAdmins('admin.order.updated', payload);
+  emitToAdmins('admin.order.auto_accepted', payload);
+  return payload;
+};
+
 const emitNotificationCreated = async (userId, notificationResult) => {
   if (!userId || !notificationResult?.insertId) return null;
 
@@ -115,5 +122,6 @@ module.exports = {
   emitOrderCreated,
   emitOrderPaymentUpdated,
   emitOrderStatusUpdated,
+  emitOrderAutoAccepted,
   toOrderEventPayload,
 };

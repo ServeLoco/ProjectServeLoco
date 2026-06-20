@@ -140,3 +140,11 @@ export const NotificationsApi = {
   create: (data) => apiClient('/admin/notifications', { method: 'POST', body: data }),
   delete: (id) => apiClient(`/admin/notifications/${id}`, { method: 'DELETE' }),
 };
+
+export const AdminInboxApi = {
+  list: (params = {}) => apiClient(withQuery('/admin/inbox', params), { method: 'GET' }),
+  unreadCount: () => apiClient('/admin/inbox/unread-count', { method: 'GET' }),
+  markRead: (id) => apiClient(`/admin/inbox/${id}/read`, { method: 'PATCH' }),
+  markAllRead: () => apiClient('/admin/inbox/read-all', { method: 'POST' }),
+  dismiss: (id) => apiClient(`/admin/inbox/${id}`, { method: 'DELETE' }),
+};

@@ -1,5 +1,6 @@
 const { pool } = require('../db/mysql');
 const { hashPassword, comparePassword, signCustomerToken } = require('../utils/auth');
+const adminInbox = require('../utils/adminNotifications');
 
 const register = async (req, res) => {
   const { name, phone, password, address, whatsapp_number } = req.validatedData;
@@ -19,6 +20,15 @@ const register = async (req, res) => {
 
   const userId = result.insertId;
   const token = signCustomerToken(userId);
+
+  // Admin inbox — fire-and-forget notification on new customer signup.
+  adminInbox.createAdminNotification({
+    type: adminInbox.TYPES.NEW_CUSTOMER,
+    title: 'New customer signed up',
+    body: `${name || phone} just created an account`,
+    relatedUrl: `/customers?id=${userId}`,
+    relatedId: String(userId),
+  });
 
   res.status(201).json({
     message: 'Registration successful',
@@ -118,10 +128,19 @@ const requestPasswordReset = async (req, res) => {
     [userId]
   );
 
-  await pool.query(
+  const [resetResult] = await pool.query(
     'INSERT INTO password_reset_requests (user_id, password_hash) VALUES (?, ?)',
     [userId, hashedPassword]
   );
+
+  // Admin inbox — notify all admins a password reset is awaiting approval.
+  adminInbox.createAdminNotification({
+    type: adminInbox.TYPES.PASSWORD_RESET_REQUESTED,
+    title: 'Password reset requested',
+    body: `Customer ID ${userId} (${phone}) requested a password reset and is awaiting approval`,
+    relatedUrl: `/customers`,
+    relatedId: String(resetResult.insertId),
+  });
 
   res.status(202).json(response);
 };

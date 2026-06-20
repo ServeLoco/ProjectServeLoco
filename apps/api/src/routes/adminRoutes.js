@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getPasswordResetRequests, approvePasswordResetRequest, rejectPasswordResetRequest, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification } = require('../controllers/adminController');
+const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getPasswordResetRequests, approvePasswordResetRequest, rejectPasswordResetRequest, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage, bulkUpdateProducts, bulkDeleteProducts } = require('../controllers/productController');
@@ -413,8 +413,15 @@ router.get('/audit', requireAdmin, asyncHandler(getAuditLogs));
 // Notifications
 router.get('/notifications', requireAdmin, asyncHandler(getAdminNotifications));
 router.post('/notifications', requireAdmin, auditLog, asyncHandler(createAdminNotification));
-router.get('/notifications/:id', requireAdmin, asyncHandler(getAdminNotificationById));
-router.delete('/notifications/:id', requireAdmin, auditLog, asyncHandler(deleteAdminNotification));
+  router.get('/notifications/:id', requireAdmin, asyncHandler(getAdminNotificationById));
+  router.delete('/notifications/:id', requireAdmin, auditLog, asyncHandler(deleteAdminNotification));
+
+  // Admin inbox (bell icon). Distinct from the broadcast composer above.
+  router.get('/inbox', requireAdmin, asyncHandler(getInbox));
+  router.get('/inbox/unread-count', requireAdmin, asyncHandler(getInboxUnreadCount));
+  router.patch('/inbox/:id/read', requireAdmin, asyncHandler(markInboxRead));
+  router.post('/inbox/read-all', requireAdmin, asyncHandler(markAllInboxRead));
+  router.delete('/inbox/:id', requireAdmin, asyncHandler(dismissInbox));
 
 // Notification Templates
 router.get('/notification-templates', requireAdmin, asyncHandler(getNotificationTemplates));

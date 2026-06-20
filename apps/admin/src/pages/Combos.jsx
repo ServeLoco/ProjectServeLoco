@@ -4,6 +4,8 @@ import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
+import { useImageCropper } from '../hooks/useImageCropper';
+import ImageCropper from '../components/ImageCropper/ImageCropper';
 import './Products.css';
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
@@ -347,22 +349,10 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
   const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
+  const uploadImageFile = async (file) => {
     const sizeError = getImageUploadError(file);
     if (sizeError) {
       setUploadMessage({ type: 'error', text: sizeError });
-      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
@@ -385,8 +375,21 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
       setUploadMessage({ type: 'error', text: GENERIC_ERROR });
     } finally {
       setUploadingImage(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const { fileInputProps, cropperProps } = useImageCropper({
+    type: 'combo',
+    defaultAspect: 1,
+    onCropped: uploadImageFile,
+  });
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
   const addComboItem = () => {
@@ -619,7 +622,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
               <p className="image-dimension-hint">{IMAGE_GUIDANCE.combo.label}</p>
               {(formData.image_url || formData.imageUrl) && <img src={normalizeImageUrl(formData.image_url || formData.imageUrl)} alt="Preview" className="image-preview" />}
               <div className="image-upload-zone" onClick={() => fileInputRef.current?.click()}>
-                <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
+                <input type="file" hidden ref={fileInputRef} {...fileInputProps} accept="image/*" />
                 {uploadingImage ? 'Uploading...' : 'Click to Upload Image'}
               </div>
               {uploadMessage && (
@@ -664,6 +667,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
           </div>
         </form>
       </div>
+      <ImageCropper {...cropperProps} />
     </div>
   );
 }

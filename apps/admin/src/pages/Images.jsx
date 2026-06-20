@@ -3,6 +3,8 @@ import { ImagesApi } from '../api';
 import { normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
+import { useImageCropper } from '../hooks/useImageCropper';
+import ImageCropper from '../components/ImageCropper/ImageCropper';
 import './Images.css';
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
@@ -33,14 +35,10 @@ export default function Images() {
     }
   };
 
-  const handleUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
+  const uploadImageFile = async (file) => {
     const sizeError = getImageUploadError(file);
     if (sizeError) {
       setUploadMessage({ type: 'error', text: sizeError });
-      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
@@ -58,9 +56,14 @@ export default function Images() {
       setUploadMessage({ type: 'error', text: GENERIC_ERROR });
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
+
+  const { fileInputProps, cropperProps } = useImageCropper({
+    type: 'library',
+    defaultAspect: 1,
+    onCropped: uploadImageFile,
+  });
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this image permanently? It will fail if currently in use.')) return;
@@ -99,7 +102,7 @@ export default function Images() {
       </header>
 
       <div className="image-upload-area" onClick={() => fileInputRef.current?.click()}>
-        <input type="file" hidden ref={fileInputRef} onChange={handleUpload} accept="image/*" />
+        <input type="file" hidden ref={fileInputRef} {...fileInputProps} accept="image/*" />
         <h3 style={{ color: 'var(--primary-color)', marginBottom: '0.5rem' }}>{uploading ? 'Uploading...' : 'Click to Upload New Image'}</h3>
         <p style={{ color: 'var(--text-secondary)' }}>Supported formats: JPG, PNG, WebP. Max size: 5MB.</p>
         <p className="image-dimension-hint">{IMAGE_GUIDANCE.library.label}</p>
@@ -148,6 +151,7 @@ export default function Images() {
           ))}
         </div>
       )}
+      <ImageCropper {...cropperProps} />
     </div>
   );
 }

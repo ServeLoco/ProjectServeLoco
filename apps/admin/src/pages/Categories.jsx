@@ -4,6 +4,8 @@ import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
+import { useImageCropper } from '../hooks/useImageCropper';
+import ImageCropper from '../components/ImageCropper/ImageCropper';
 import './Categories.css';
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
@@ -172,7 +174,6 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
     const { name, value, type, checked } = e.target;
     setFormData(prev => {
       const updates = { [name]: type === 'checkbox' ? checked : value };
-      // Auto-generate slug if name changes and we're creating
       if (name === 'name' && !isEdit && !prev.slug_manually_edited) {
         updates.slug = generateSlug(value);
       }
@@ -183,14 +184,10 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
     });
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
+  const uploadImageFile = async (file) => {
     const sizeError = getImageUploadError(file);
     if (sizeError) {
       setUploadMessage({ type: 'error', text: sizeError });
-      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
@@ -213,9 +210,14 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
       setUploadMessage({ type: 'error', text: err.message || GENERIC_ERROR });
     } finally {
       setUploadingImage(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
+
+  const { fileInputProps, cropperProps } = useImageCropper({
+    type: 'category',
+    defaultAspect: 1,
+    onCropped: uploadImageFile,
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -297,7 +299,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
               <p className="image-dimension-hint">{IMAGE_GUIDANCE.category.label}</p>
               {(formData.image_url || formData.imageUrl) && <img src={normalizeImageUrl(formData.image_url || formData.imageUrl)} alt="Preview" className="image-preview" />}
               <div className="image-upload-zone" onClick={() => fileInputRef.current?.click()}>
-                <input type="file" hidden ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
+                <input type="file" hidden ref={fileInputRef} {...fileInputProps} accept="image/*" />
                 {uploadingImage ? 'Uploading...' : 'Click to Upload Image'}
               </div>
               {uploadMessage && (
@@ -332,6 +334,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
           </div>
         </form>
       </div>
+      <ImageCropper {...cropperProps} />
     </div>
   );
 }
