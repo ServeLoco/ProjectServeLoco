@@ -98,6 +98,13 @@ export default function AdminNotificationsBell() {
     };
   }, [open]);
 
+  // Reset the "marked" guard whenever the dropdown closes so the next open can
+  // auto-mark again. Without this, a fresh notification arriving while the
+  // bell was closed would never get marked as read until a manual reload.
+  useEffect(() => {
+    if (!open) setAutoMarked(false);
+  }, [open]);
+
   // Auto-mark all as read when dropdown opens (per UX spec)
   useEffect(() => {
     if (!open || autoMarked || unread === 0) return;

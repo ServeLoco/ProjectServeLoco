@@ -30,6 +30,23 @@ export default function Customers() {
     fetchPasswordResetRequests();
   }, []);
 
+  // Close the reset-request dropdown when clicking outside or pressing Escape.
+  useEffect(() => {
+    if (!showResetMenu) return undefined;
+    const handleDown = (e) => {
+      if (!e.target.closest('.reset-request-pill') && !e.target.closest('.reset-request-menu')) {
+        setShowResetMenu(false);
+      }
+    };
+    const handleKey = (e) => { if (e.key === 'Escape') setShowResetMenu(false); };
+    document.addEventListener('mousedown', handleDown);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleDown);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [showResetMenu]);
+
   const fetchCustomers = async (page = 1) => {
     try {
       setLoading(true);
@@ -78,10 +95,16 @@ export default function Customers() {
     }
   };
 
+  const [showResetMenu, setShowResetMenu] = useState(false);
+
   const handlePendingResetClick = () => {
-    const [request] = resetRequests;
-    if (!request) return;
-    handleRowClick(request.user_id);
+    // Toggle a small dropdown listing every pending request so the admin can
+    // pick which one to action. Previous behaviour opened only the first.
+    if (resetRequests.length === 1) {
+      handleRowClick(resetRequests[0].user_id);
+      return;
+    }
+    setShowResetMenu(prev => !prev);
   };
 
   const getPendingResetForCustomer = (customerId) => (
@@ -162,14 +185,64 @@ export default function Customers() {
       <header className="customers-header">
         <h1 className="customers-title">Customers</h1>
         {resetRequests.length > 0 && (
-          <button
-            type="button"
-            className="reset-request-pill"
-            onClick={handlePendingResetClick}
-            disabled={updating}
-          >
-            {resetRequests.length} pending password reset{resetRequests.length === 1 ? '' : 's'}
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="reset-request-pill"
+              onClick={handlePendingResetClick}
+              disabled={updating}
+              aria-haspopup={resetRequests.length > 1 ? 'true' : undefined}
+              aria-expanded={showResetMenu ? 'true' : 'false'}
+            >
+              {resetRequests.length} pending password reset{resetRequests.length === 1 ? '' : 's'} {resetRequests.length > 1 ? '▾' : ''}
+            </button>
+            {showResetMenu && resetRequests.length > 1 && (
+              <div
+                className="reset-request-menu"
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: 6,
+                  background: 'var(--surface-color, #fff)',
+                  border: '1px solid var(--border-color, #e5e7eb)',
+                  borderRadius: 8,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                  minWidth: 280,
+                  zIndex: 50,
+                  padding: 4,
+                }}
+                role="menu"
+              >
+                {resetRequests.map(r => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => { setShowResetMenu(false); handleRowClick(r.user_id); }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: '8px 12px',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      color: 'var(--text-primary, #111)',
+                      fontSize: '0.9rem',
+                    }}
+                    role="menuitem"
+                  >
+                    User #{r.user_id}
+                    {r.user_name ? ` · ${r.user_name}` : ''}
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #666)' }}>
+                      Tap to review
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </header>
 

@@ -305,12 +305,18 @@ export default function Combos() {
       </section>
 
       {drawerOpen && (
-        <ProductFormDrawer 
-          product={editingProduct} 
+        <ProductFormDrawer
+          product={editingProduct}
           products={comboProducts}
           currentMode={filters.store_type}
-          onClose={closeDrawer} 
-          onSave={() => { closeDrawer(); fetchProducts(pagination.page); }}
+          onClose={closeDrawer}
+          onSave={() => {
+            closeDrawer();
+            // Refresh the candidate-product list so newly-created products
+            // can be added to subsequent combos without a full page reload.
+            fetchProducts(pagination.page);
+            fetchComboProducts();
+          }}
         />
       )}
     </div>
@@ -432,10 +438,25 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
         return;
       }
     }
-    if (selectedProductIds.size === 0) {
-      alert('Please add at least one product to the combo.');
-      return;
-    }
+      if (selectedProductIds.size === 0) {
+        alert('Please add at least one product to the combo.');
+        return;
+      }
+      // When editing an existing combo and switching its store_type, warn
+      // that current items may become invalid before the user submits.
+      if (isEdit && product.store_type && formData.store_type && product.store_type !== formData.store_type) {
+        const wouldBreak = comboItems.some(item => {
+          const p = productById.get(String(item.product_id));
+          return p && p.category_type !== formData.store_type;
+        });
+        if (wouldBreak) {
+          const msg = `Heads up — this combo currently contains products that don't match the new store type "${formData.store_type}". The backend will reject the save until you remove them.\n\nContinue anyway?`;
+          if (!window.confirm(msg)) {
+            setSaving(false);
+            return;
+          }
+        }
+      }
     const price = Number(formData.price);
     const originalPrice = formData.original_price ? Number(formData.original_price) : null;
     if (!Number.isFinite(price) || price <= 0) {
@@ -475,12 +496,9 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
       };
 
       if (isEdit) {
-        if (product.store_type && formData.store_type && product.store_type !== formData.store_type) {
-          if (!window.confirm(`Warning: You are moving this combo from ${product.store_type} to ${formData.store_type}. Some member products might become invalid. Are you sure?`)) {
-            setSaving(false);
-            return;
-          }
-        }
+        // The "store_type change" warning already fired earlier in the
+        // validation block, so we just submit here. Backend enforces the
+        // member-store-type match, so any stale items will surface as a 400.
         await CombosApi.update(product.id, payload);
       } else {
         await CombosApi.create(payload);
@@ -488,7 +506,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
       onSave();
     } catch (err) {
       console.error(err);
-      setFormError(GENERIC_ERROR);
+      setFormError(err?.response?.data?.message || GENERIC_ERROR);
       setSaving(false);
     }
   };

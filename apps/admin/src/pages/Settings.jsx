@@ -113,6 +113,7 @@ export default function Settings() {
         ['delivery_charge', 'Standard delivery charge'],
         ['night_charge', 'Night delivery surcharge'],
         ['below_threshold_delivery_charge', 'Below-threshold delivery charge'],
+        ['fast_delivery_charge', 'Fast delivery surcharge'],
       ];
 
       for (const [field, label] of nonNegativeFields) {

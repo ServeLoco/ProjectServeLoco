@@ -161,7 +161,7 @@ export default function Dashboard() {
                     <td>{order.customer_name}</td>
                     <td style={{ fontWeight: 700 }}>₹{Number(order.total).toLocaleString('en-IN')}</td>
                     <td>
-                      <span className={`status-badge ${order.status.toLowerCase().replace(/ /g, '-')}`}>
+                      <span className={`status-badge ${(order.status || 'unknown').toLowerCase().replace(/ /g, '-')}`}>
                         {getOrderStatusLabel(order.status)}
                       </span>
                     </td>

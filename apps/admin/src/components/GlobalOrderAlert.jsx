@@ -33,10 +33,15 @@ function formatCurrency(value) {
 function useHeadCountdown(activeId, paused) {
   const [seconds, setSeconds] = useState(AUTO_ACCEPT_SECONDS);
   useEffect(() => {
-    if (paused || !activeId) {
+    // If paused while a countdown was already running, freeze the displayed
+    // value at 0 instead of snapping back to AUTO_ACCEPT_SECONDS. The latter
+    // visually contradicts the "Auto-accepted" banner that just appeared
+    // and confuses admins into thinking the auto-accept didn't actually fire.
+    if (paused && !activeId) {
       setSeconds(AUTO_ACCEPT_SECONDS);
       return undefined;
     }
+    if (paused) return undefined;
     setSeconds(AUTO_ACCEPT_SECONDS);
     const start = Date.now();
     const id = setInterval(() => {
@@ -77,7 +82,13 @@ export default function GlobalOrderAlert() {
       }
 
       const ctx = audioCtxRef.current;
+      // AudioContexts created outside a user gesture start in 'suspended'
+      // state. Browsers (Chrome/Safari/Firefox) will only resume from inside
+      // a user-initiated event handler — the unlockAudio effect below wires
+      // pointerdown/keydown to call this. If we're still suspended here it's
+      // because the admin hasn't interacted with the page yet.
       if (ctx.state === 'suspended') { await ctx.resume(); }
+      if (ctx.state !== 'running') return;
 
       const playTone = (freq, startTime, duration) => {
         const osc = ctx.createOscillator();
@@ -101,16 +112,54 @@ export default function GlobalOrderAlert() {
     }
   }, []);
 
-  // Loop the sound every 8s while any modal is open
+  // Unlock the AudioContext on the first user gesture. Without this, modern
+  // browsers block AudioContext.resume() when called from a non-user-initiated
+  // event (e.g. the socket.io `admin.order.created` callback). The very first
+  // alert sound would then never play.
+  useEffect(() => {
+    const unlock = () => {
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {});
+      } else {
+        // Trigger context creation on the first gesture so a later call to
+        // playAlertSound from a socket callback has a non-suspended context.
+        try {
+          if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+          audioCtxRef.current.resume().catch(() => {});
+        } catch (_) { /* noop */ }
+      }
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close().catch(() => {});
+        audioCtxRef.current = null;
+      }
+    };
+  }, []);
+
+  // Loop the sound every 8s while a NEW alert is sitting on top. Track queue
+  // growth so the loop only starts on actual arrivals (not on dismissals —
+  // which shrink the queue and used to re-fire the sound every time the
+  // admin dismissed one).
+  const prevQueueLengthRef = useRef(0);
   useEffect(() => {
     if (modals.length === 0) {
       if (soundLoopRef.current) {
         clearInterval(soundLoopRef.current);
         soundLoopRef.current = null;
       }
+      prevQueueLengthRef.current = 0;
       return undefined;
     }
-    playAlertSound();
+    const grew = modals.length > prevQueueLengthRef.current;
+    prevQueueLengthRef.current = modals.length;
+    if (grew) playAlertSound();
     soundLoopRef.current = setInterval(() => {
       playAlertSound();
     }, SOUND_LOOP_INTERVAL_MS);

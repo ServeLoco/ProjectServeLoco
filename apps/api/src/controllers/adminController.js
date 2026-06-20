@@ -204,7 +204,7 @@ const getDashboard = async (req, res) => {
 
 const getSalesReport = async (req, res) => {
   const { period } = req.query;
-  const allowedPeriods = ['today', 'week', 'month'];
+  const allowedPeriods = ['today', 'week', 'month', 'all'];
   if (period && !allowedPeriods.includes(period)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid period parameter' });
   }
@@ -364,7 +364,7 @@ const rejectPasswordResetRequest = async (req, res) => {
 
 const getTopProductsReport = async (req, res) => {
   const { period } = req.query;
-  const allowedPeriods = ['today', 'week', 'month'];
+  const allowedPeriods = ['today', 'week', 'month', 'all'];
   if (period && !allowedPeriods.includes(period)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid period parameter' });
   }
@@ -392,7 +392,7 @@ const getTopProductsReport = async (req, res) => {
 
 const getCustomersReport = async (req, res) => {
   const { period } = req.query;
-  const allowedPeriods = ['today', 'week', 'month'];
+  const allowedPeriods = ['today', 'week', 'month', 'all'];
   if (period && !allowedPeriods.includes(period)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid period parameter' });
   }

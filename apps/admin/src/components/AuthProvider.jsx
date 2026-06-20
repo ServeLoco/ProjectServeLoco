@@ -9,21 +9,37 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let alive = true;
     const initAuth = async () => {
       const token = storage.getToken();
       if (token) {
         try {
           const userData = await AuthApi.me();
+          if (!alive) return;
           setUser(userData.user || userData.data || userData);
           connectAdminRealtime();
         } catch (error) {
-          storage.clearToken();
-          disconnectAdminRealtime();
+          if (!alive) return;
+          // Only destroy local state on an explicit auth failure. Network blips,
+          // server downtime, CORS errors, or 5xx responses should NOT wipe a
+          // valid token — the next API call will get a fresh 401 if the token
+          // really is dead, and the unauthorized listener below handles it.
+          const isAuthError = /Unauthorized/i.test(error?.message || '');
+          if (isAuthError) {
+            storage.clearToken();
+            disconnectAdminRealtime();
+            setUser(null);
+          } else {
+            // Keep the user state untouched so the admin's session survives a
+            // network blip. Show a console warning for diagnostics.
+            console.warn('[AuthProvider] init /me failed (keeping token):', error?.message || error);
+          }
         }
       }
-      setLoading(false);
+      if (alive) setLoading(false);
     };
     initAuth();
+    return () => { alive = false; };
   }, []);
 
   // Listen for 401s dispatched by the API client. Clear local auth state and

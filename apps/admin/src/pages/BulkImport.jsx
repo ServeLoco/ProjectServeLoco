@@ -134,7 +134,7 @@ export default function BulkImport() {
       setStep(2);
     } catch (err) {
       console.error('[BulkImport] preview error:', err);
-      setError(GENERIC_ERROR);
+      setError(err?.response?.data?.message || err?.message || GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
@@ -154,7 +154,7 @@ export default function BulkImport() {
       setStep(3);
     } catch (err) {
       console.error('[BulkImport] commit error:', err);
-      setError(GENERIC_ERROR);
+      setError(err?.response?.data?.message || err?.message || GENERIC_ERROR);
     } finally {
       setLoading(false);
     }

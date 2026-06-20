@@ -26,6 +26,7 @@ export default function MobileDashboard() {
   const [savingSection, setSavingSection] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
   const [error, setError] = useState(null);
+  const [successSection, setSuccessSection] = useState(null);
 
   // New section modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,10 +50,28 @@ export default function MobileDashboard() {
 
   // Item picker states
   const [candidates, setCandidates] = useState([]);
+  const [allCategories, setAllCategories] = useState([]);
+  const [allOffers, setAllOffers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [addingItemId, setAddingItemId] = useState(null);
   const addingItemRef = useRef(false);
+
+  // Load categories and offers once for the linked_*_id selects.
+  useEffect(() => {
+    (async () => {
+      try {
+        const [catRes, offRes] = await Promise.all([
+          CategoriesApi.list({}),
+          OffersApi.list({}),
+        ]);
+        setAllCategories(readList(catRes, 'categories'));
+        setAllOffers(readList(offRes, 'offers'));
+      } catch (err) {
+        console.warn('MobileDashboard: failed to preload categories/offers', err);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     fetchSections();
@@ -139,12 +158,24 @@ export default function MobileDashboard() {
     }
   };
 
+  // <input type="datetime-local"> emits "YYYY-MM-DDTHH:MM" with no timezone info.
+  // We store in UTC ISO so the backend (and the customer app's Date parsing)
+  // see the same wall-clock instant regardless of admin timezone. Server is
+  // assumed to be UTC (matches the rest of the app).
   const formatDateToLocalInput = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return '';
     const pad = (n) => String(n).padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  // Convert the datetime-local string (admin local) to a UTC ISO string.
+  const localInputToUtcIso = (local) => {
+    if (!local) return null;
+    const d = new Date(local);  // parsed as admin's local time
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
   };
 
   const generateSlug = (name) => {
@@ -185,7 +216,7 @@ export default function MobileDashboard() {
     try {
       setSavingSection(true);
       setError(null);
-      
+
       const payload = {
         ...newSectionForm,
         active: Number(newSectionForm.active),
@@ -194,13 +225,13 @@ export default function MobileDashboard() {
         show_see_all: Number(newSectionForm.show_see_all),
         linked_category_id: newSectionForm.linked_category_id ? Number(newSectionForm.linked_category_id) : null,
         linked_offer_id: newSectionForm.linked_offer_id ? Number(newSectionForm.linked_offer_id) : null,
-        starts_at: newSectionForm.starts_at || null,
-        ends_at: newSectionForm.ends_at || null
+        starts_at: localInputToUtcIso(newSectionForm.starts_at),
+        ends_at: localInputToUtcIso(newSectionForm.ends_at)
       };
 
       await MobileDashboardApi.createSection(payload);
       setIsModalOpen(false);
-      
+
       // Reset form
       setNewSectionForm({
         title: '',
@@ -220,7 +251,7 @@ export default function MobileDashboard() {
       await fetchSections();
     } catch (err) {
       console.error(err);
-      setError(GENERIC_ERROR);
+      setError(err?.response?.data?.message || GENERIC_ERROR);
     } finally {
       setSavingSection(false);
     }
@@ -234,11 +265,11 @@ export default function MobileDashboard() {
       setError(null);
 
       if (selectedSection.section_type === 'offer_banner' && editForm.store_type === 'all') {
-        alert('Please convert "all" store mode offer banners to specific "packed" or "fast_food" mode before saving.');
+        setError('Please convert "all" store mode offer banners to specific "packed" or "fast_food" mode before saving.');
         setSavingSection(false);
         return;
       }
-      
+
       const payload = {
         ...editForm,
         active: Number(editForm.active),
@@ -247,19 +278,28 @@ export default function MobileDashboard() {
         show_see_all: Number(editForm.show_see_all),
         linked_category_id: editForm.linked_category_id ? Number(editForm.linked_category_id) : null,
         linked_offer_id: editForm.linked_offer_id ? Number(editForm.linked_offer_id) : null,
-        starts_at: editForm.starts_at || null,
-        ends_at: editForm.ends_at || null
+        starts_at: localInputToUtcIso(editForm.starts_at),
+        ends_at: localInputToUtcIso(editForm.ends_at)
       };
 
       const res = await MobileDashboardApi.updateSection(selectedSection.id, payload);
-      alert('Section updated successfully');
-      
+      setSuccessSection('Section updated successfully');
+
       // Refresh section detail to get next version
       await fetchSectionDetail(selectedSection.id);
       await fetchSections();
     } catch (err) {
       console.error(err);
-      setError(GENERIC_ERROR);
+      // Surface the backend's specific message — 409 version conflicts are
+      // important to distinguish from generic failures.
+      const code = err?.response?.data?.code;
+      const msg = err?.response?.data?.message || err?.message;
+      if (code === 'CONCURRENCY_CONFLICT') {
+        setError('This section was updated by another admin. Reloading the latest version…');
+        await fetchSectionDetail(selectedSection.id);
+      } else {
+        setError(msg || GENERIC_ERROR);
+      }
     } finally {
       setSavingSection(false);
     }
@@ -570,6 +610,43 @@ export default function MobileDashboard() {
                 </div>
 
                 <div className="form-grid-2">
+                  {editForm.section_type === 'category_grid' && (
+                    <div className="form-group">
+                      <label className="form-label">Linked Category (optional)</label>
+                      <select
+                        name="linked_category_id"
+                        className="form-select"
+                        value={editForm.linked_category_id}
+                        onChange={handleEditFormChange}
+                      >
+                        <option value="">— None —</option>
+                        {allCategories.map(c => (
+                          <option key={c.id} value={c.id}>{c.name} ({c.type === 'fast_food' ? 'Fast Food' : 'Packed'})</option>
+                        ))}
+                      </select>
+                      <div className="form-hint">When set, the customer app auto-pins this section to the chosen category and jumps straight to its products.</div>
+                    </div>
+                  )}
+                  {editForm.section_type === 'offer_banner' && (
+                    <div className="form-group">
+                      <label className="form-label">Linked Offer (optional)</label>
+                      <select
+                        name="linked_offer_id"
+                        className="form-select"
+                        value={editForm.linked_offer_id}
+                        onChange={handleEditFormChange}
+                      >
+                        <option value="">— None —</option>
+                        {allOffers.map(o => (
+                          <option key={o.id} value={o.id}>{o.title || `Offer #${o.id}`} ({o.store_type === 'fast_food' ? 'Fast Food' : o.store_type === 'packed' ? 'Packed' : 'All'})</option>
+                        ))}
+                      </select>
+                      <div className="form-hint">When set, the banner is the dedicated rotation for this single offer instead of a multi-offer carousel.</div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label">Scheduled Start Time</label>
                     <input 
@@ -794,10 +871,10 @@ export default function MobileDashboard() {
 
                 <div className="form-group">
                   <label className="form-label">Section Type</label>
-                  <select 
-                    name="section_type" 
-                    className="form-select" 
-                    value={newSectionForm.section_type} 
+                  <select
+                    name="section_type"
+                    className="form-select"
+                    value={newSectionForm.section_type}
                     onChange={handleModalFormChange}
                   >
                     <option value="offer_banner">Offer Banner</option>
@@ -806,6 +883,42 @@ export default function MobileDashboard() {
                     <option value="combo_block">Combo Block</option>
                   </select>
                 </div>
+
+                {newSectionForm.section_type === 'category_grid' && (
+                  <div className="form-group">
+                    <label className="form-label">Linked Category (optional)</label>
+                    <select
+                      name="linked_category_id"
+                      className="form-select"
+                      value={newSectionForm.linked_category_id}
+                      onChange={handleModalFormChange}
+                    >
+                      <option value="">— None —</option>
+                      {allCategories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} ({c.type === 'fast_food' ? 'Fast Food' : 'Packed'})</option>
+                      ))}
+                    </select>
+                    <div className="form-hint">When set, the customer app auto-pins this section to the chosen category and jumps straight to its products.</div>
+                  </div>
+                )}
+
+                {newSectionForm.section_type === 'offer_banner' && (
+                  <div className="form-group">
+                    <label className="form-label">Linked Offer (optional)</label>
+                    <select
+                      name="linked_offer_id"
+                      className="form-select"
+                      value={newSectionForm.linked_offer_id}
+                      onChange={handleModalFormChange}
+                    >
+                      <option value="">— None —</option>
+                      {allOffers.map(o => (
+                        <option key={o.id} value={o.id}>{o.title || `Offer #${o.id}`} ({o.store_type === 'fast_food' ? 'Fast Food' : o.store_type === 'packed' ? 'Packed' : 'All'})</option>
+                      ))}
+                    </select>
+                    <div className="form-hint">When set, the banner is the dedicated rotation for this single offer instead of a multi-offer carousel.</div>
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label className="form-label">Store Visibility</label>

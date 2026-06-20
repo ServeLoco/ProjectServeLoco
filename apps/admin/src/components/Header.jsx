@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthProvider';
 import { useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
@@ -23,19 +23,26 @@ const PAGE_META = {
   '/bulk-import': { title: 'Bulk Import', subtitle: 'CSV + ZIP product import' },
 };
 
-function useLiveClock() {
-  const [time, setTime] = useState(() => new Date());
+// Isolated component so its 1Hz tick doesn't re-render the whole Header tree.
+function LiveClock() {
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const id = setInterval(() => setTime(new Date()), 1000);
+    const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-  return time;
+  const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+  const dateStr = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+  return (
+    <div className="header-clock">
+      <span className="header-clock-time">{timeStr}</span>
+      <span className="header-clock-date">{dateStr}</span>
+    </div>
+  );
 }
 
 export default function Header() {
   const { logout, user } = useAuth();
   const location = useLocation();
-  const now = useLiveClock();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -54,9 +61,6 @@ export default function Header() {
   const userLabel = user?.id || user?.ownerId || 'Admin';
   const avatarChar = String(userLabel).charAt(0).toUpperCase();
 
-  const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-  const dateStr = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
-
   return (
     <header className="admin-header">
       <div className="header-page-meta">
@@ -65,11 +69,8 @@ export default function Header() {
       </div>
 
       <div className="header-actions">
-        {/* Live clock */}
-        <div className="header-clock">
-          <span className="header-clock-time">{timeStr}</span>
-          <span className="header-clock-date">{dateStr}</span>
-        </div>
+        {/* Live clock (isolated to avoid re-rendering the whole Header) */}
+        <LiveClock />
 
         {/* Online indicator */}
         <div className={`header-online-badge ${isOnline ? 'online' : 'offline'}`}>
@@ -88,15 +89,8 @@ export default function Header() {
           <span className="user-name">{userLabel}</span>
         </div>
 
-        {/* Refresh — icon only */}
-        <button
-          onClick={() => window.location.reload()}
-          className="btn-header-icon"
-          title="Refresh page"
-          aria-label="Refresh"
-        >
-          ↺
-        </button>
+        {/* Refresh — uses SPA navigation so unsaved form state is preserved */}
+        <RefreshButton />
 
         {/* Logout */}
         <button onClick={logout} className="btn-header-action logout">
@@ -104,5 +98,34 @@ export default function Header() {
         </button>
       </div>
     </header>
+  );
+}
+
+function RefreshButton() {
+  // Emit a custom event so active pages can refetch their own data without a
+  // full reload (which would wipe forms, scroll, undo, debounce timers).
+  // Falls back to window.location.reload() if no listener responds.
+  const tick = useRef(0);
+  const handleClick = () => {
+    tick.current += 1;
+    let handled = false;
+    const handler = () => { handled = true; };
+    window.addEventListener('admin:refresh', handler, { once: true });
+    window.dispatchEvent(new CustomEvent('admin:refresh-request'));
+    // If no listener ran synchronously, fall back to the previous behaviour.
+    setTimeout(() => {
+      window.removeEventListener('admin:refresh', handler);
+      if (!handled) window.location.reload();
+    }, 0);
+  };
+  return (
+    <button
+      onClick={handleClick}
+      className="btn-header-icon"
+      title="Refresh page"
+      aria-label="Refresh"
+    >
+      ↺
+    </button>
   );
 }

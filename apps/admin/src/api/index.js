@@ -31,7 +31,10 @@ export const DashboardApi = {
 export const OrdersApi = {
   list: (params) => apiClient(withQuery('/admin/orders', params), { method: 'GET' }),
   get: (id) => apiClient(`/admin/orders/${id}`, { method: 'GET' }),
-  updateStatus: (id, status) => apiClient(`/admin/orders/${id}/status`, { method: 'PATCH', body: { status } }),
+  updateStatus: (id, status, cancel_reason) => apiClient(`/admin/orders/${id}/status`, {
+    method: 'PATCH',
+    body: cancel_reason ? { status, cancel_reason } : { status },
+  }),
   updatePayment: (id, paymentStatus) => apiClient(
     `/admin/orders/${id}/payment`,
     { method: 'PATCH', body: { paymentStatus, payment_status: paymentStatus } }

@@ -74,6 +74,11 @@ export default function Notifications() {
       return;
     }
 
+    if (title.length > 80) {
+      setErrorMsg('Title must be 80 characters or less');
+      return;
+    }
+
     if (body.length > 240) {
       setErrorMsg('Body must be 240 characters or less');
       return;
@@ -121,14 +126,19 @@ export default function Notifications() {
     }
   };
 
+  const [deletingId, setDeletingId] = useState(null);
+
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this broadcast? It will be removed from customer inboxes.')) return;
+    setDeletingId(id);
     try {
       await NotificationsApi.delete(id);
-      fetchBroadcasts();
+      setBroadcasts(prev => prev.filter(b => b.id !== id));
     } catch (err) {
       console.error(err);
-      setErrorMsg(GENERIC_ERROR);
+      setErrorMsg(err?.response?.data?.message || err?.message || GENERIC_ERROR);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -142,9 +152,12 @@ export default function Notifications() {
   };
 
   const applyTemplate = (template) => {
+    if ((title || body) && !window.confirm('Replace your current message with this template?')) return;
     setTitle(template.title);
     setBody(template.body);
     setType(template.type);
+    setErrorMsg('');
+    setSuccessMsg('');
   };
 
   return (
@@ -353,8 +366,9 @@ export default function Notifications() {
                         <button
                           className="btn btn-sm btn-danger-text"
                           onClick={() => handleDelete(b.id)}
+                          disabled={deletingId === b.id}
                         >
-                          🗑️ Delete
+                          {deletingId === b.id ? '⏳ Deleting…' : '🗑️ Delete'}
                         </button>
                       </td>
                     </tr>

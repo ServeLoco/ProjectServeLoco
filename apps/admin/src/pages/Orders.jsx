@@ -247,29 +247,54 @@ export default function Orders() {
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
-    // Snapshot the order at the moment the admin opened the dropdown so we can
-    // detect if a realtime event or another admin mutated it underneath.
-    const expectedStatus = selectedOrder?.status;
-    const expectedUpdatedAt = selectedOrder?.updated_at;
+    if (!selectedOrder) return;
+
+    // Cancellation needs a reason so audit logs and customer notifications
+    // explain what happened. Surface a small prompt before the confirm.
+    let cancelReason = null;
+    if (newStatus === 'Cancelled') {
+      const reason = window.prompt('Optional — reason for cancellation (will be sent to the customer):', '');
+      if (reason === null) return; // user pressed cancel
+      cancelReason = reason.trim() || 'Cancelled by admin';
+    }
+
     if (!window.confirm(`Change order status to ${getOrderStatusLabel(newStatus)}?`)) return;
 
-    // Re-check after the confirm dialog: state may have changed via realtime
-    // while the dialog was open.
-    if (selectedOrder?.status !== expectedStatus || selectedOrder?.updated_at !== expectedUpdatedAt) {
-      setError('Order was updated by someone else. Please review the new state and try again.');
-      fetchSelectedOrder(selectedOrder.id);
+    // Refetch the latest order from the server BEFORE submitting so we
+    // never overwrite a concurrent change (e.g. the customer cancelled via
+    // the app while the confirm dialog was open). The previous closure-based
+    // snapshot check was guaranteed to compare against itself and so always
+    // passed.
+    let latest;
+    try {
+      const res = await OrdersApi.getById(selectedOrder.id);
+      latest = res?.data || res;
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || GENERIC_ERROR);
+      return;
+    }
+    if (!latest || latest.status !== selectedOrder.status) {
+      setError(`Order was updated by someone else (current status: ${getOrderStatusLabel(latest?.status)}). Please review.`);
+      setSelectedOrder(latest);
+      fetchOrders(pagination.page);
       return;
     }
 
     try {
       setUpdating(true);
-      await OrdersApi.updateStatus(selectedOrder.id, newStatus);
+      const body = cancelReason ? { status: newStatus, cancel_reason: cancelReason } : { status: newStatus };
+      await OrdersApi.updateStatus(selectedOrder.id, newStatus, cancelReason);
       setSelectedOrder(prev => ({ ...prev, status: newStatus }));
       fetchOrders(pagination.page); // Refresh list
     } catch (err) {
       console.error(err);
-      setError(GENERIC_ERROR);
-      fetchSelectedOrder(selectedOrder.id);
+      const apiMsg = err?.response?.data?.message;
+      if (err?.response?.status === 409) {
+        setError(apiMsg || 'This order was updated by someone else.');
+        await fetchSelectedOrder(selectedOrder.id);
+      } else {
+        setError(apiMsg || GENERIC_ERROR);
+      }
     } finally {
       setUpdating(false);
     }
@@ -277,13 +302,22 @@ export default function Orders() {
 
   const handlePaymentChange = async (e) => {
     const newPayment = e.target.value;
-    const expectedPayment = selectedOrder?.payment_status;
-    const expectedUpdatedAt = selectedOrder?.updated_at;
+    if (!selectedOrder) return;
     if (!window.confirm(`Change payment status to ${newPayment}?`)) return;
 
-    if (selectedOrder?.payment_status !== expectedPayment || selectedOrder?.updated_at !== expectedUpdatedAt) {
-      setError('Order was updated by someone else. Please review the new state and try again.');
-      fetchSelectedOrder(selectedOrder.id);
+    // Same race-condition fix as handleStatusChange — refetch the latest
+    // server state before mutating.
+    let latest;
+    try {
+      const res = await OrdersApi.getById(selectedOrder.id);
+      latest = res?.data || res;
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || GENERIC_ERROR);
+      return;
+    }
+    if (!latest || latest.payment_status !== selectedOrder.payment_status) {
+      setError(`Order payment status was updated by someone else (current: ${latest?.payment_status}). Please review.`);
+      setSelectedOrder(latest);
       return;
     }
 
@@ -294,8 +328,13 @@ export default function Orders() {
       fetchOrders(pagination.page); // Refresh list
     } catch (err) {
       console.error(err);
-      setError(GENERIC_ERROR);
-      fetchSelectedOrder(selectedOrder.id);
+      const apiMsg = err?.response?.data?.message;
+      if (err?.response?.status === 409) {
+        setError(apiMsg || 'This order was updated by someone else.');
+        await fetchSelectedOrder(selectedOrder.id);
+      } else {
+        setError(apiMsg || GENERIC_ERROR);
+      }
     } finally {
       setUpdating(false);
     }

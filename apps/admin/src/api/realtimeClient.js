@@ -105,7 +105,18 @@ function bindSocketEvents(nextSocket) {
   });
 
   nextSocket.on('connect_error', error => {
-    debugLog('connect_error', error?.message || error);
+    const msg = String(error?.message || error || '');
+    debugLog('connect_error', msg);
+    // If the server rejects the socket handshake because the token is dead
+    // or revoked, the admin must know — the socket will keep retrying
+    // forever otherwise. The HTTP layer dispatches `admin:unauthorized`
+    // on 401s, but the WebSocket transport has no equivalent.
+    if (/token|unauthorized|auth|invalid|expired/i.test(msg)) {
+      try {
+        storage.clearToken();
+        window.dispatchEvent(new CustomEvent('admin:unauthorized'));
+      } catch (_) { /* noop */ }
+    }
   });
 }
 
