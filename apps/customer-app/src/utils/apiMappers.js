@@ -141,6 +141,9 @@ function normalizeProduct(item = {}) {
     is_combo: isCombo,
     comboItems,
     combo_items: comboItems,
+    inTimeWindow: item.in_time_window !== undefined ? Boolean(item.in_time_window) : true,
+    availableFromTime: item.available_from_time || null,
+    availableUntilTime: item.available_until_time || null,
     relatedProducts: asArray(item.relatedProducts || item.related_products || item.related, ['products']).map(normalizeProduct),
   };
 }

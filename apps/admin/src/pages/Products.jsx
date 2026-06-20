@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ProductsApi, CategoriesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
-import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
+import { IMAGE_GUIDANCE, isWithinTimeWindow, formatTimeWindow } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
 import { useImageCropper } from '../hooks/useImageCropper';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
@@ -307,11 +307,29 @@ export default function Products() {
                     >
                       {p.available ? 'In Stock' : 'Out of Stock'}
                     </button>
-                    {(p.available_from_time || p.available_until_time) && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                        ⏰ {(p.available_from_time || '').toString().slice(0, 5)} – {(p.available_until_time || '').toString().slice(0, 5)}
+                    {(p.available_from_time || p.available_until_time) ? (
+                      <div style={{ marginTop: '0.25rem' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: 10,
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          background: isWithinTimeWindow(p.available_from_time, p.available_until_time)
+                            ? 'rgba(34, 197, 94, 0.15)'
+                            : 'rgba(239, 68, 68, 0.15)',
+                          color: isWithinTimeWindow(p.available_from_time, p.available_until_time)
+                            ? '#15803d'
+                            : '#b91c1c',
+                          marginRight: 6,
+                        }}>
+                          {isWithinTimeWindow(p.available_from_time, p.available_until_time) ? '✓ Visible now' : '✗ Hidden now'}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          ⏰ {formatTimeWindow(p.available_from_time, p.available_until_time)}
+                        </span>
                       </div>
-                    )}
+                    ) : null}
                   </td>
                   <td>
                     <button className="action-link" onClick={() => openEditDrawer(p)}>Edit</button>
@@ -585,6 +603,33 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
               <p className="form-hint" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem 0' }}>
                 Restrict this product to a specific time of day. Leave both empty to make it available all day.
               </p>
+              {(formData.available_from_time || formData.available_until_time) && (
+                <div style={{
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  marginBottom: 8,
+                  fontSize: '0.8rem',
+                  background: isWithinTimeWindow(formData.available_from_time, formData.available_until_time)
+                    ? 'rgba(34, 197, 94, 0.1)'
+                    : 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid ' + (isWithinTimeWindow(formData.available_from_time, formData.available_until_time)
+                    ? 'rgba(34, 197, 94, 0.3)'
+                    : 'rgba(239, 68, 68, 0.3)'),
+                  color: isWithinTimeWindow(formData.available_from_time, formData.available_until_time)
+                    ? '#15803d'
+                    : '#b91c1c',
+                }}>
+                  <strong>
+                    {isWithinTimeWindow(formData.available_from_time, formData.available_until_time)
+                      ? '✓ Customers can see this product right now'
+                      : '✗ Customers cannot see this product right now'}
+                  </strong>
+                  <div style={{ marginTop: 2, opacity: 0.85 }}>
+                    Window: {formatTimeWindow(formData.available_from_time, formData.available_until_time)}
+                    {' · '}Server time: {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                  </div>
+                </div>
+              )}
               <div className="form-row" style={{ alignItems: 'flex-end' }}>
                 <div className="form-group" style={{ flex: 1 }}>
                   <label className="form-label" style={{ fontSize: '0.85rem' }}>Available from</label>

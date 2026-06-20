@@ -1,6 +1,7 @@
 import {
   normalizeCartCalculation,
   normalizeOrder,
+  normalizeProduct,
 } from '../src/utils/apiMappers';
 
 describe('api mappers', () => {
@@ -41,6 +42,37 @@ describe('api mappers', () => {
     expect(result.deliveryRadiusKmSnapshot).toBe(8);
     expect(result.deliveryCostPerKmSnapshot).toBe(10);
     expect(result.freeDeliveryOfferSnapshot).toBe(true);
+  });
+
+  it('maps time-window fields on a product (in-window case)', () => {
+    const result = normalizeProduct({
+      id: 1, name: 'Burger', price: '100',
+      in_time_window: true,
+      available_from_time: '10:00:00',
+      available_until_time: '18:00:00',
+    });
+    expect(result.inTimeWindow).toBe(true);
+    expect(result.availableFromTime).toBe('10:00:00');
+    expect(result.availableUntilTime).toBe('18:00:00');
+  });
+
+  it('maps time-window fields on a product (out-of-window case)', () => {
+    const result = normalizeProduct({
+      id: 2, name: 'Late-Night Burger', price: '150',
+      in_time_window: false,
+      available_from_time: '22:00:00',
+      available_until_time: '02:00:00',
+    });
+    expect(result.inTimeWindow).toBe(false);
+    expect(result.availableFromTime).toBe('22:00:00');
+    expect(result.availableUntilTime).toBe('02:00:00');
+  });
+
+  it('defaults inTimeWindow to true when field is missing (no window set)', () => {
+    const result = normalizeProduct({ id: 3, name: 'Always Available', price: '50' });
+    expect(result.inTimeWindow).toBe(true);
+    expect(result.availableFromTime).toBeNull();
+    expect(result.availableUntilTime).toBeNull();
   });
 });
 

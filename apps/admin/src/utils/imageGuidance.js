@@ -19,3 +19,28 @@ export const IMAGE_GUIDANCE = {
   },
 };
 
+// Time-window preview helper used by the Products page so admins can see at
+// a glance whether a product is currently visible to customers. The logic
+// mirrors apps/api/src/utils/timeWindow.js exactly.
+export const isWithinTimeWindow = (from, until, now = new Date()) => {
+  if (!from || !until) return true;
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const [fh, fm] = String(from).split(':').map(Number);
+  const [uh, um] = String(until).split(':').map(Number);
+  const start = fh * 60 + (fm || 0);
+  const end = uh * 60 + (um || 0);
+  if (start === end) return true;
+  if (start < end) return cur >= start && cur < end;
+  return cur >= start || cur < end;
+};
+
+export const formatTimeWindow = (from, until) => {
+  if (!from && !until) return '';
+  const f = String(from || '').slice(0, 5);
+  const u = String(until || '').slice(0, 5);
+  if (f && u) return `${f} – ${u}`;
+  if (f) return `from ${f}`;
+  if (u) return `until ${u}`;
+  return '';
+};
+

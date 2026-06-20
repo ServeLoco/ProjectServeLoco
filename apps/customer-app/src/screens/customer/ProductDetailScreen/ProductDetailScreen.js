@@ -200,6 +200,17 @@ export default function ProductDetailScreen() {
 
           <Text style={styles.name}>{product.name}</Text>
 
+          {product.inTimeWindow === false && (product.availableFromTime || product.availableUntilTime) && (
+            <View style={styles.availabilityBanner}>
+              <Text style={styles.availabilityBannerTitle}>🕐 Not available right now</Text>
+              <Text style={styles.availabilityBannerText}>
+                Available {product.availableFromTime ? `from ${String(product.availableFromTime).slice(0, 5)}` : ''}
+                {product.availableFromTime && product.availableUntilTime ? ' – ' : ''}
+                {product.availableUntilTime ? `until ${String(product.availableUntilTime).slice(0, 5)}` : ''}
+              </Text>
+            </View>
+          )}
+
           <View style={styles.priceRow}>
             <Text style={styles.price}>Rs. {product.price}</Text>
             {!!product.originalPrice && (
@@ -367,6 +378,24 @@ const styles = StyleSheet.create({
   outOfStockText: {
     ...typography.h3,
     color: colors.textInverse,
+  },
+  availabilityBanner: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  availabilityBannerTitle: {
+    ...typography.bodyStrong,
+    color: '#92400e',
+  },
+  availabilityBannerText: {
+    ...typography.bodySm,
+    color: '#92400e',
+    marginTop: 2,
+    opacity: 0.9,
   },
   detailsContainer: {
     backgroundColor: colors.bgSurface,
