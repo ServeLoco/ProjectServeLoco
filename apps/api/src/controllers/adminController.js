@@ -671,7 +671,7 @@ const getAdminNotifications = async (req, res) => {
 };
 
 const createAdminNotification = async (req, res) => {
-  const { title, body, type, target } = req.body;
+  const { title, body, type, target, phones } = req.body;
   const adminId = req.admin.id;
 
   if (!title || !body || !type || !target) {
@@ -682,11 +682,83 @@ const createAdminNotification = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Body too long (max 240 characters)' });
   }
 
+  // Normalise a free-form phone entry — each top-level token (comma/semicolon/newline
+  // separated) is one number. Internal whitespace, dashes, parens are stripped so
+  // "+91 99999-90002" matches the stored "9199999002".
+  const sanitizePhones = (raw) => {
+    if (!Array.isArray(raw) && typeof raw !== 'string') return [];
+    const list = Array.isArray(raw)
+      ? raw
+      : String(raw).split(/[,;\n\r]+/);
+    const seen = new Set();
+    const out = [];
+    for (const entry of list) {
+      if (entry == null) continue;
+      const cleaned = String(entry).replace(/[^\d+]/g, '');
+      if (!cleaned) continue;
+      // Preserve a single leading + then digits only.
+      const hasPlus = cleaned.startsWith('+');
+      const digits = cleaned.replace(/\D/g, '');
+      const normalized = (hasPlus ? '+' : '') + digits;
+      if (digits.length < 7) continue;
+      if (seen.has(normalized)) continue;
+      seen.add(normalized);
+      out.push(normalized);
+    }
+    return out;
+  };
+
   let targetUserIds = [];
+  let resolvedPhones = [];
 
   if (target === 'everyone') {
     const [users] = await pool.query('SELECT id FROM users WHERE blocked = 0');
     targetUserIds = users.map(u => u.id);
+  } else if (target === 'phones') {
+    const sanitized = sanitizePhones(phones);
+    if (sanitized.length === 0) {
+      return res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: 'Provide at least one phone number (comma- or newline-separated).',
+      });
+    }
+
+    // Generate digit-only variants for every input so a few common formats
+    // match the same DB row:
+    //   "9999999002"          → "9999999002"
+    //   "+91 99999-9002"      → "9999999002", "9199999002", "9999999002"
+    //   "9199999002"          → "9199999002", "9999999002"
+    // We then query with REGEXP_REPLACE so DB-side phones get digit-stripped too.
+    const digitVariants = new Set();
+    for (const raw of sanitized) {
+      const digitsOnly = raw.replace(/\D/g, '');
+      if (!digitsOnly) continue;
+      digitVariants.add(digitsOnly);
+      if (digitsOnly.length > 10) digitVariants.add(digitsOnly.slice(-10));
+    }
+    const variants = Array.from(digitVariants);
+    if (variants.length === 0) {
+      return res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: 'Phone numbers must contain at least 7 digits.',
+      });
+    }
+
+    const [users] = await pool.query(
+      `SELECT id, phone FROM users
+        WHERE blocked = 0
+          AND REGEXP_REPLACE(phone, '[^0-9]', '') IN (?)`,
+      [variants]
+    );
+
+    if (users.length === 0) {
+      return res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: 'No active customers matched any of the supplied phone numbers.',
+      });
+    }
+    targetUserIds = users.map(u => u.id);
+    resolvedPhones = users.map(u => u.phone);
   } else {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Unsupported target' });
   }
@@ -701,7 +773,7 @@ const createAdminNotification = async (req, res) => {
     type,
     createdByAdminId: adminId,
     targetUserIds,
-    targetName: target
+    targetName: target === 'phones' ? `phones:${resolvedPhones.join(',')}` : target
   });
 
   if (!result) {
@@ -743,7 +815,8 @@ const createAdminNotification = async (req, res) => {
     message: 'Broadcast sent successfully',
     data: {
       batchId: result.batchId,
-      recipientCount: result.count
+      recipientCount: result.count,
+      ...(target === 'phones' ? { matchedPhones: resolvedPhones } : {}),
     }
   });
 };

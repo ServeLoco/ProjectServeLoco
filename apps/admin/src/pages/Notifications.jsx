@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { NotificationsApi } from '../api';
 import './Notifications.css';
 
@@ -28,11 +28,28 @@ export default function Notifications() {
   const [body, setBody] = useState('');
   const [type, setType] = useState('info');
   const [target, setTarget] = useState('everyone');
+  const [phonesInput, setPhonesInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [emojiTarget, setEmojiTarget] = useState('title'); // 'title' or 'body'
+
+  // Parse + normalise the phones textarea so we can preview how many will be sent.
+  const parsedPhones = useMemo(() => {
+    if (target !== 'phones') return [];
+    const seen = new Set();
+    const out = [];
+    for (const raw of String(phonesInput || '').split(/[\s,;]+/)) {
+      const cleaned = String(raw || '').replace(/[^\d+]/g, '');
+      const normalized = cleaned.startsWith('+') ? `+${cleaned.slice(1).replace(/\D/g, '')}` : cleaned.replace(/\D/g, '');
+      if (!normalized || normalized.length < 7) continue;
+      if (seen.has(normalized)) continue;
+      seen.add(normalized);
+      out.push(normalized);
+    }
+    return out;
+  }, [phonesInput, target]);
 
   useEffect(() => {
     fetchBroadcasts();
@@ -62,7 +79,17 @@ export default function Notifications() {
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to send this broadcast to ${target}?`)) {
+    if (target === 'phones' && parsedPhones.length === 0) {
+      setErrorMsg('Enter at least one phone number to send to specific customers');
+      return;
+    }
+
+    const targetDescription =
+      target === 'everyone'
+        ? 'all active customers'
+        : `${parsedPhones.length} customer${parsedPhones.length === 1 ? '' : 's'} by phone`;
+
+    if (!window.confirm(`Are you sure you want to send this broadcast to ${targetDescription}?`)) {
       return;
     }
 
@@ -71,15 +98,24 @@ export default function Notifications() {
     setSuccessMsg('');
 
     try {
-      const res = await NotificationsApi.create({ title, body, type, target });
+      const payload = { title, body, type, target };
+      if (target === 'phones') payload.phones = parsedPhones;
+
+      const res = await NotificationsApi.create(payload);
       const recipientCount = res?.data?.recipientCount ?? 'all';
-      setSuccessMsg(`✅ Sent successfully to ${recipientCount} customers!`);
+      const matched = res?.data?.matchedPhones;
+      const matchedHint = Array.isArray(matched) && matched.length
+        ? ` (matched: ${matched.join(', ')})`
+        : '';
+      setSuccessMsg(`✅ Sent successfully to ${recipientCount} customer${recipientCount === 1 ? '' : 's'}!${matchedHint}`);
       setTitle('');
       setBody('');
+      setPhonesInput('');
       fetchBroadcasts();
     } catch (err) {
       console.error(err);
-      setErrorMsg(GENERIC_ERROR);
+      const apiMsg = err?.response?.data?.message;
+      setErrorMsg(apiMsg || GENERIC_ERROR);
     } finally {
       setIsSending(false);
     }
@@ -149,6 +185,7 @@ export default function Notifications() {
                 <label>Target Audience</label>
                 <select value={target} onChange={e => setTarget(e.target.value)}>
                   <option value="everyone">👥 All Active Customers</option>
+                  <option value="phones">📱 Specific Phone Numbers</option>
                 </select>
               </div>
 
@@ -163,6 +200,33 @@ export default function Notifications() {
                 </select>
               </div>
             </div>
+
+            {target === 'phones' && (
+              <div className="form-group phones-target-group">
+                <label>
+                  Phone Numbers
+                  <small>
+                    {parsedPhones.length === 0
+                      ? ' — enter at least one phone, separated by commas or new lines'
+                      : ` — ${parsedPhones.length} valid phone${parsedPhones.length === 1 ? '' : 's'} parsed`}
+                  </small>
+                </label>
+                <textarea
+                  className="phones-textarea"
+                  rows={4}
+                  value={phonesInput}
+                  onChange={e => setPhonesInput(e.target.value)}
+                  placeholder={'9999999001, 9999999002\n+91 9999999003'}
+                />
+                <div className="phones-preview">
+                  {parsedPhones.length > 0 ? (
+                    <span>Will send to: <strong>{parsedPhones.join(', ')}</strong></span>
+                  ) : (
+                    <span className="muted">No valid numbers yet — they must be 7+ digits.</span>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="form-group">
               <label>Title <small>(Max 80 chars)</small></label>

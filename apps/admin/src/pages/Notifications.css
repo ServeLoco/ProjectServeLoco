@@ -441,3 +441,58 @@
   padding: 40px 20px;
   font-size: 14px;
 }
+
+.phones-target-group {
+  background: var(--bg-app, #f7f7f8);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.phones-target-group label {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary, #111);
+  margin-bottom: 8px;
+}
+
+.phones-target-group label small {
+  font-weight: 400;
+  color: var(--text-secondary, #555);
+  margin-left: 6px;
+}
+
+.phones-textarea {
+  width: 100%;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary, #111);
+  resize: vertical;
+  min-height: 90px;
+}
+
+.phones-textarea:focus {
+  outline: 2px solid var(--primary-color, #2563eb);
+  outline-offset: -1px;
+}
+
+.phones-preview {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--bg-surface, #fff);
+  border: 1px dashed var(--border-color, #d1d5db);
+  font-size: 13px;
+  color: var(--text-primary, #111);
+  word-break: break-all;
+}
+
+.phones-preview .muted {
+  color: var(--text-secondary, #888);
+}
