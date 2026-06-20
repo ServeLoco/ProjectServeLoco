@@ -20,6 +20,7 @@ export default function Customers() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [resetRequests, setResetRequests] = useState([]);
+  const [showResetMenu, setShowResetMenu] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => fetchCustomers(1), 500);
@@ -94,8 +95,6 @@ export default function Customers() {
       setUpdating(false);
     }
   };
-
-  const [showResetMenu, setShowResetMenu] = useState(false);
 
   const handlePendingResetClick = () => {
     // Toggle a small dropdown listing every pending request so the admin can
