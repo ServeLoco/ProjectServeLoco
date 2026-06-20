@@ -24,7 +24,6 @@ import { useSettingsStore } from '../../../stores';
 import { ordersApi, subscribeOrderEvents, subscribeRealtimeLifecycle } from '../../../api';
 import { normalizeOrder } from '../../../utils';
 import { requestNotificationPermission, checkNotificationPermission } from '../../../hooks/useLocalNotifications';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getRealtimeOrderId,
   getRealtimeOrderKey,
@@ -118,30 +117,21 @@ export default function OrderDetailScreen() {
     loadOrder();
   }, [loadOrder]);
 
-  // Check if we should show notification permission modal
+  // Check if we should show notification permission modal. Hooks are the single
+  // source of truth for permission state and the AsyncStorage flag — we no
+  // longer touch storage directly here (previous key collided with the hook's
+  // key, causing the modal to re-appear after the hook had already asked).
   useEffect(() => {
     const checkNotificationPermissionStatus = async () => {
       try {
-        // Check if user has already been asked
-        const hasBeenAsked = await AsyncStorage.getItem('notification_permission_asked');
-        if (hasBeenAsked === 'true') return;
-
-        // Check if permission is already granted
         const isGranted = await checkNotificationPermission();
-        if (isGranted) {
-          await AsyncStorage.setItem('notification_permission_asked', 'true');
-          return;
-        }
-
-        // Show modal after a short delay (let user see their order first)
-        setTimeout(() => {
-          setShowNotificationModal(true);
-        }, 2000);
+        if (isGranted) return;
+        const t = setTimeout(() => setShowNotificationModal(true), 2000);
+        return () => clearTimeout(t);
       } catch (error) {
         // Silently fail - not critical
       }
     };
-
     checkNotificationPermissionStatus();
   }, []);
 
@@ -236,26 +226,17 @@ export default function OrderDetailScreen() {
 
   const handleAllowNotifications = async () => {
     try {
-      const granted = await requestNotificationPermission();
-      await AsyncStorage.setItem('notification_permission_asked', 'true');
+      // The hook handles the AsyncStorage dedup internally — we only need
+      // to close the local modal. Calling the hook twice is a noop.
+      await requestNotificationPermission();
       setShowNotificationModal(false);
-
-      if (!granted) {
-        // User denied - could show a message here if needed
-      }
     } catch (error) {
-      // Silently fail
       setShowNotificationModal(false);
     }
   };
 
   const handleDismissNotificationModal = async () => {
-    try {
-      await AsyncStorage.setItem('notification_permission_asked', 'true');
-      setShowNotificationModal(false);
-    } catch (error) {
-      setShowNotificationModal(false);
-    }
+    setShowNotificationModal(false);
   };
 
   if (isLoading) {

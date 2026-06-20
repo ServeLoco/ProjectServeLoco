@@ -15,11 +15,18 @@ const TYPES = {
  */
 const createAdminNotification = async ({ type, title, body, relatedUrl = null, relatedId = null }) => {
   try {
+    // Skip rows that would collide with an existing un-acknowledged event for
+    // the same business entity (e.g. duplicate signup/order retries).
     const [result] = await pool.query(
-      `INSERT INTO admin_notifications (type, title, body, related_url, related_id)
+      `INSERT IGNORE INTO admin_notifications (type, title, body, related_url, related_id)
        VALUES (?, ?, ?, ?, ?)`,
       [type, title, body, relatedUrl, relatedId]
     );
+    if (result.affectedRows === 0) {
+      // Duplicate — don't emit a realtime event, the original is already
+      // pending in the admin's inbox.
+      return null;
+    }
     const [rows] = await pool.query(
       `SELECT id, type, title, body, related_url, related_id, read_at, created_at
          FROM admin_notifications

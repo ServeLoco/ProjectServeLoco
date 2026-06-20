@@ -6,20 +6,27 @@ const AUTO_ACCEPT_MS = 10_000;
 // In-memory map of orderId → Node Timeout handle. Cleared on cancel/completion.
 const timers = new Map();
 
+// Process-wide shutdown flag. Once set, any in-flight timer callback skips
+// its DB write (the pool may already be closed during graceful shutdown).
+let shuttingDown = false;
+
+// Orders claimed by THIS process via schedule(). The rehydrate path skips
+// them so a restart doesn't double-emit admin.order.auto_accepted events.
+const claimedOrders = new Set();
+
 /**
  * Schedule an auto-accept for a newly created order. If no admin accepts
  * (or cancels) within AUTO_ACCEPT_MS, the order moves to 'Accepted' and a
  * Socket.IO event is emitted so all admin clients refresh their views.
- *
- * The timer is best-effort: if the API restarts, any in-flight timers are
- * lost. On startup, callers can call `rehydratePendingOrders()` to auto-accept
- * any orders that were already past the threshold.
  */
 const schedule = (orderId, orderNumber) => {
   if (!Number.isFinite(orderId)) return;
   cancel(orderId); // ensure no duplicate
+  claimedOrders.add(orderId);
   const t = setTimeout(async () => {
     timers.delete(orderId);
+    if (shuttingDown) return; // pool may be closed; skip silently
+
     try {
       const [rows] = await pool.query(
         'SELECT id, status FROM orders WHERE id = ? AND deleted = 0',
@@ -40,6 +47,8 @@ const schedule = (orderId, orderNumber) => {
       }
     } catch (e) {
       console.error('[auto-accept] failed for order', orderId, e.message);
+    } finally {
+      claimedOrders.delete(orderId);
     }
   }, AUTO_ACCEPT_MS);
   timers.set(orderId, t);
@@ -51,9 +60,11 @@ const cancel = (orderId) => {
     clearTimeout(t);
     timers.delete(orderId);
   }
+  claimedOrders.delete(orderId);
 };
 
 const clearAll = () => {
+  shuttingDown = true;
   for (const t of timers.values()) clearTimeout(t);
   timers.clear();
 };
@@ -61,7 +72,8 @@ const clearAll = () => {
 /**
  * On API startup, auto-accept any orders that were created more than
  * AUTO_ACCEPT_MS ago and are still Pending. Keeps behaviour consistent
- * across restarts.
+ * across restarts. Skips orders already claimed by this process (their
+ * live schedule() will fire in 10s).
  */
 const rehydratePendingOrders = async () => {
   try {
@@ -72,6 +84,7 @@ const rehydratePendingOrders = async () => {
       [Math.ceil(AUTO_ACCEPT_MS / 1000)]
     );
     for (const r of rows) {
+      if (claimedOrders.has(r.id)) continue; // live timer in this process will handle it
       await pool.query(
         "UPDATE orders SET status = 'Accepted' WHERE id = ? AND status = 'Pending'",
         [r.id]

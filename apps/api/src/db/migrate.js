@@ -781,6 +781,16 @@ const migrate = async () => {
         INDEX idx_admin_notifications_type (type, created_at)
       );
     `);
+    // Deduplicate retry-prone events. Customer signups and order creates that
+    // get retried by the client produce two fire-and-forget notifications;
+    // this UNIQUE KEY + INSERT IGNORE makes them collapse to one row.
+    try {
+      await connection.query(
+        'ALTER TABLE admin_notifications ADD UNIQUE KEY uniq_admin_inbox_event (type, related_id)'
+      );
+    } catch (e) {
+      // Index already exists — fine.
+    }
     console.log('Admin inbox table ready.');
 
     console.log('Migration and seeding completed successfully!');

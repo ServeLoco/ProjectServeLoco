@@ -52,15 +52,24 @@ export const apiClient = async (endpoint, options = {}) => {
         // Last-resort fallback if CustomEvent isn't available.
         window.location.href = '/login';
       }
-      return Promise.reject(new Error('Unauthorized'));
+      const err = new Error('Unauthorized');
+      err.response = { status: 401, data: null };
+      return Promise.reject(err);
     }
 
     const isJson = response.headers.get('content-type')?.includes('application/json');
     const data = isJson ? await response.json() : await response.text();
 
     if (!response.ok) {
-      const errorMsg = data?.message || data?.error || response.statusText || 'API request failed';
-      return Promise.reject(new Error(errorMsg));
+      // Attach a `.response` so callers can branch on status code (e.g. 409
+      // CONCURRENCY_CONFLICT, 429 rate-limit). Without this every `err.response`
+      // access in the admin is dead code.
+      const errorMsg = (data && typeof data === 'object' && (data.message || data.error))
+        || response.statusText
+        || 'API request failed';
+      const err = new Error(errorMsg);
+      err.response = { status: response.status, data };
+      return Promise.reject(err);
     }
 
     return data;

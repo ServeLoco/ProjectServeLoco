@@ -192,6 +192,11 @@ export default function MobileDashboard() {
         if (value === 'offer_banner') {
           updates.show_see_all = 0;
         }
+        // Reset the linkage fields — a category_grid that switches to
+        // product_block must not carry a stale linked_category_id (the
+        // backend would accept the value and attach a meaningless link).
+        updates.linked_category_id = '';
+        updates.linked_offer_id = '';
       }
       if (name === 'title' && !prev.slug_manually_edited) {
         updates.slug = generateSlug(value);
@@ -209,6 +214,9 @@ export default function MobileDashboard() {
       ...prev,
       [name]: type === 'checkbox' ? (checked ? 1 : 0) : value
     }));
+    // Clear stale success banner so a re-edit doesn't show "saved" for an
+    // old state.
+    setSuccessSection(null);
   };
 
   const handleCreateSection = async (e) => {
@@ -447,6 +455,28 @@ export default function MobileDashboard() {
 
   return (
     <div className="dashboard-workspace">
+      {/* Status banners */}
+      {error && (
+        <div className="error-container" style={{ marginBottom: '1rem' }}>{error}</div>
+      )}
+      {successSection && (
+        <div
+          role="status"
+          style={{
+            marginBottom: '1rem',
+            padding: '10px 14px',
+            background: 'rgba(34, 197, 94, 0.1)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+            color: '#15803d',
+            borderRadius: 8,
+            fontSize: '0.9rem',
+            fontWeight: 600,
+          }}
+        >
+          ✅ {successSection}
+        </div>
+      )}
+
       {/* Left Panel: Section Selector */}
       <aside className="sections-panel">
         <header className="panel-header">

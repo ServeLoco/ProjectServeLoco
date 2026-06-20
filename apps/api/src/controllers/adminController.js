@@ -744,12 +744,33 @@ const createAdminNotification = async (req, res) => {
       });
     }
 
-    const [users] = await pool.query(
-      `SELECT id, phone FROM users
-        WHERE blocked = 0
-          AND REGEXP_REPLACE(phone, '[^0-9]', '') IN (?)`,
-      [variants]
+    // Generate a digit-only form for every variant so we can compare against
+    // the DB's `phone` column after stripping non-digits. Doing this in JS
+    // avoids a function-on-column predicate (REGEXP_REPLACE is MySQL 8.0+
+    // AND makes the WHERE non-sargable, full-scanning the users table).
+    const [allUsers] = await pool.query(
+      'SELECT id, phone FROM users WHERE blocked = 0 AND phone IS NOT NULL'
     );
+
+    const stripDigits = (s) => String(s || '').replace(/\D/g, '');
+    const userDigitSet = new Map();   // digits-only → id
+    for (const u of allUsers) {
+      const d = stripDigits(u.phone);
+      if (d) userDigitSet.set(d, u);
+    }
+
+    const users = [];
+    const seenIds = new Set();
+    for (const variant of variants) {
+      // Exact match against the full digit form, then last-10 variant for
+      // mismatches caused by leading country codes.
+      let u = userDigitSet.get(variant);
+      if (!u && variant.length > 10) u = userDigitSet.get(variant.slice(-10));
+      if (u && !seenIds.has(u.id)) {
+        seenIds.add(u.id);
+        users.push(u);
+      }
+    }
 
     if (users.length === 0) {
       return res.status(400).json({

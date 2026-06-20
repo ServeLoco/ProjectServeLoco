@@ -260,6 +260,10 @@ export default function Orders() {
 
     if (!window.confirm(`Change order status to ${getOrderStatusLabel(newStatus)}?`)) return;
 
+    // Disable the dropdowns immediately so the admin can't race against
+    // the GET-then-PATCH sequence below.
+    setUpdating(true);
+
     // Refetch the latest order from the server BEFORE submitting so we
     // never overwrite a concurrent change (e.g. the customer cancelled via
     // the app while the confirm dialog was open). The previous closure-based
@@ -271,21 +275,30 @@ export default function Orders() {
       latest = res?.data || res;
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || GENERIC_ERROR);
+      setUpdating(false);
       return;
     }
     if (!latest || latest.status !== selectedOrder.status) {
       setError(`Order was updated by someone else (current status: ${getOrderStatusLabel(latest?.status)}). Please review.`);
-      setSelectedOrder(latest);
-      fetchOrders(pagination.page);
+      // Don't re-open the drawer if the admin closed it during the await.
+      setSelectedOrder(prev => prev && prev.id === latest?.id ? latest : prev);
+      fetchOrders(paginationRef.current.page || 1);
+      setUpdating(false);
       return;
     }
 
     try {
-      setUpdating(true);
       const body = cancelReason ? { status: newStatus, cancel_reason: cancelReason } : { status: newStatus };
-      await OrdersApi.updateStatus(selectedOrder.id, newStatus, cancelReason);
-      setSelectedOrder(prev => ({ ...prev, status: newStatus }));
-      fetchOrders(pagination.page); // Refresh list
+      const patchRes = await OrdersApi.updateStatus(selectedOrder.id, newStatus, cancelReason);
+      // Use the canonical server state from the PATCH response so updated_at,
+      // cancel_reason, and (for cancels) the recomputed payment_status are
+      // all up-to-date in the open drawer. Guard against the drawer having
+      // been closed mid-flight.
+      const serverOrder = patchRes?.order;
+      if (serverOrder) {
+        setSelectedOrder(prev => prev && prev.id === serverOrder.id ? serverOrder : prev);
+      }
+      fetchOrders(paginationRef.current.page || 1);
     } catch (err) {
       console.error(err);
       const apiMsg = err?.response?.data?.message;
@@ -305,6 +318,8 @@ export default function Orders() {
     if (!selectedOrder) return;
     if (!window.confirm(`Change payment status to ${newPayment}?`)) return;
 
+    setUpdating(true);
+
     // Same race-condition fix as handleStatusChange — refetch the latest
     // server state before mutating.
     let latest;
@@ -313,19 +328,24 @@ export default function Orders() {
       latest = res?.data || res;
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || GENERIC_ERROR);
+      setUpdating(false);
       return;
     }
     if (!latest || latest.payment_status !== selectedOrder.payment_status) {
       setError(`Order payment status was updated by someone else (current: ${latest?.payment_status}). Please review.`);
-      setSelectedOrder(latest);
+      setSelectedOrder(prev => prev && prev.id === latest?.id ? latest : prev);
+      fetchOrders(paginationRef.current.page || 1);
+      setUpdating(false);
       return;
     }
 
     try {
-      setUpdating(true);
-      await OrdersApi.updatePayment(selectedOrder.id, newPayment);
-      setSelectedOrder(prev => ({ ...prev, payment_status: newPayment }));
-      fetchOrders(pagination.page); // Refresh list
+      const patchRes = await OrdersApi.updatePayment(selectedOrder.id, newPayment);
+      const serverOrder = patchRes?.order;
+      if (serverOrder) {
+        setSelectedOrder(prev => prev && prev.id === serverOrder.id ? serverOrder : prev);
+      }
+      fetchOrders(paginationRef.current.page || 1);
     } catch (err) {
       console.error(err);
       const apiMsg = err?.response?.data?.message;

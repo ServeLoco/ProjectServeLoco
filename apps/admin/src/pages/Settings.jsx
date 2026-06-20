@@ -117,6 +117,9 @@ export default function Settings() {
       ];
 
       for (const [field, label] of nonNegativeFields) {
+        // Skip fields that aren't active — a stale negative value hidden in
+        // the DB must not block save (the input isn't even rendered).
+        if (field === 'fast_delivery_charge' && !settings.fast_delivery_enabled) continue;
         const value = settings[field];
         const numeric = Number(value);
         if (!Number.isFinite(numeric) || numeric < 0) {

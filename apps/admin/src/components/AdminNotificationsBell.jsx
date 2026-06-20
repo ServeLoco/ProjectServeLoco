@@ -37,7 +37,8 @@ export default function AdminNotificationsBell() {
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [autoMarked, setAutoMarked] = useState(false);
+  // autoMarked ref is declared below (next to its consumers). State kept for
+  // any future render-time UI hint if needed.
   const wrapperRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -101,15 +102,21 @@ export default function AdminNotificationsBell() {
   // Reset the "marked" guard whenever the dropdown closes so the next open can
   // auto-mark again. Without this, a fresh notification arriving while the
   // bell was closed would never get marked as read until a manual reload.
+  // Use a ref (not state) for the in-flight guard: a setAutoMarked(true)
+  // inside the effect would re-render → the effect's cleanup fires
+  // (cancelled = true) → the IIFE bails before updating state. State-as-guard
+  // makes the auto-mark self-cancelling.
+  const autoMarkedRef = useRef(false);
+
   useEffect(() => {
-    if (!open) setAutoMarked(false);
+    if (!open) autoMarkedRef.current = false;
   }, [open]);
 
   // Auto-mark all as read when dropdown opens (per UX spec)
   useEffect(() => {
-    if (!open || autoMarked || unread === 0) return;
+    if (!open || autoMarkedRef.current || unread === 0) return;
+    autoMarkedRef.current = true;
     let cancelled = false;
-    setAutoMarked(true);
     (async () => {
       try {
         await AdminInboxApi.markAllRead();
@@ -118,11 +125,11 @@ export default function AdminNotificationsBell() {
         setItems(prev => prev.map(n => n.read_at ? n : { ...n, read_at: new Date().toISOString() }));
       } catch (e) {
         // undo optimistic guard so next open retries
-        setAutoMarked(false);
+        autoMarkedRef.current = false;
       }
     })();
     return () => { cancelled = true; };
-  }, [open, autoMarked, unread]);
+  }, [open, unread]);
 
   const handleOpen = () => {
     setOpen(prev => !prev);
