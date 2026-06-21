@@ -225,6 +225,10 @@ function normalizeProfile(user = {}) {
     whatsapp: pickFirst(user.whatsapp, user.whatsappNumber, user.whatsapp_number, ''),
     address: pickFirst(user.address, user.deliveryAddress, user.delivery_address, ''),
     email: pickFirst(user.email, user.emailAddress, user.email_address, ''),
+    // Soft-delete state — non-null means the user scheduled deletion; the
+    // grace period ends at deletionScheduledFor. Frontend shows a banner +
+    // Cancel button.
+    deletionRequestedAt: user.deletion_requested_at || user.deletionRequestedAt || null,
   };
 }
 

@@ -34,6 +34,7 @@ function ConfirmModal({
   onCancel,
   confirmVariant = 'primary',
   confirmLoading = false,
+  children,
 }) {
   const confirmBg = confirmVariant === 'danger' ? colors.error : colors.primary;
 
@@ -58,17 +59,21 @@ function ConfirmModal({
                 <Text style={styles.message}>{message}</Text>
               ) : null}
 
+              {children}
+
               <View style={styles.actions}>
-                {/* Cancel */}
-                <TouchableOpacity
-                  onPress={onCancel}
-                  style={[styles.btn, styles.cancelBtn]}
-                  activeOpacity={0.78}
-                  accessibilityRole="button"
-                  accessibilityLabel={cancelLabel}
-                >
-                  <Text style={styles.cancelLabel}>{cancelLabel}</Text>
-                </TouchableOpacity>
+                {/* Cancel — pass null/false to hide (used for "Got it" modals). */}
+                {cancelLabel !== null && cancelLabel !== false ? (
+                  <TouchableOpacity
+                    onPress={onCancel}
+                    style={[styles.btn, styles.cancelBtn]}
+                    activeOpacity={0.78}
+                    accessibilityRole="button"
+                    accessibilityLabel={cancelLabel}
+                  >
+                    <Text style={styles.cancelLabel}>{cancelLabel}</Text>
+                  </TouchableOpacity>
+                ) : null}
 
                 {/* Confirm */}
                 <TouchableOpacity

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
-const { register, login, me, updateProfile, requestPasswordReset, deleteAccount } = require('../controllers/authController');
+const { register, login, me, updateProfile, requestPasswordReset, requestAccountDeletion, cancelAccountDeletion } = require('../controllers/authController');
 const { requireCustomer } = require('../middleware/authMiddleware');
 const { validate, isString, isPhone, normalizeField } = require('../validators');
 const rateLimit = require('express-rate-limit');
@@ -93,6 +93,8 @@ router.post('/password-reset-requests', passwordResetLimiter, validate(passwordR
 router.get('/me', requireCustomer, asyncHandler(me));
 router.put('/profile', requireCustomer, validate(profileSchema), asyncHandler(updateProfile));
 router.patch('/profile', requireCustomer, validate(profileSchema), asyncHandler(updateProfile)); // PATCH alias
-router.delete('/me', deleteAccountLimiter, requireCustomer, asyncHandler(deleteAccount));
+// Soft-delete with a 30-day grace period — see authController.requestAccountDeletion.
+router.post('/me/request-deletion', deleteAccountLimiter, requireCustomer, asyncHandler(requestAccountDeletion));
+router.post('/me/cancel-deletion', deleteAccountLimiter, requireCustomer, asyncHandler(cancelAccountDeletion));
 
 module.exports = router;

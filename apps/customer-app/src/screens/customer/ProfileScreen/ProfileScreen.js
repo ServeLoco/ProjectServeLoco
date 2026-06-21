@@ -17,6 +17,7 @@ import {
   AppHeader,
   AppIcon,
   ConfirmModal,
+  TextInputField,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useAuthStore, useCartStore, useSettingsStore } from '../../../stores';
@@ -46,8 +47,12 @@ export default function ProfileScreen() {
   const supportPhone = useSettingsStore(state => state.supportPhone);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Three-step soft-delete flow: 'password' (ask for current password) →
+  // 'confirm' (inform user about 30-day grace, ask to proceed) →
+  // 'pending' (deletion scheduled, show banner with Cancel button).
+  const [deleteStep, setDeleteStep] = useState(null);
+  const [deletePassword, setDeletePassword] = useState('');
 
   const cardFade = useRef(new Animated.Value(0)).current;
   const cardSlide = useRef(new Animated.Value(10)).current;
@@ -101,14 +106,32 @@ export default function ProfileScreen() {
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      await authApi.deleteAccount();
-      clearCart();
-      logout();
-      setShowDeleteConfirm(false);
+      await authApi.requestAccountDeletion({ password: deletePassword });
+      // Reload profile so the banner with the scheduled-delete date appears.
+      loadProfile(true);
+      setDeleteStep('pending');
     } catch (err) {
       Alert.alert(
-        'Could not delete account',
-        err?.message || 'Please try again or contact support.'
+        'Could not schedule account deletion',
+        err?.response?.data?.message || err?.message || 'Please try again or contact support.'
+      );
+      setDeleteStep('confirm');
+    } finally {
+      setIsDeleting(false);
+      setDeletePassword('');
+    }
+  };
+
+  const handleCancelDeletion = async () => {
+    setIsDeleting(true);
+    try {
+      await authApi.cancelAccountDeletion();
+      loadProfile(true);
+      setDeleteStep('confirm');
+    } catch (err) {
+      Alert.alert(
+        'Could not cancel account deletion',
+        err?.response?.data?.message || err?.message || 'Please try again.'
       );
     } finally {
       setIsDeleting(false);
@@ -198,6 +221,32 @@ export default function ProfileScreen() {
               <Text style={styles.blockedText}>Your account is currently restricted. Contact support.</Text>
             </View>
           )}
+
+          {profile?.deletionRequestedAt && (
+            <View style={styles.deletionBanner}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <AppIcon name="warning" size={18} color={colors.error} />
+                <Text style={styles.deletionBannerTitle}>Account deletion scheduled</Text>
+              </View>
+              <Text style={styles.deletionBannerBody}>
+                Your account and data will be permanently deleted on{' '}
+                <Text style={{ fontWeight: '700' }}>
+                  {new Date(new Date(profile.deletionRequestedAt).getTime() + 30 * 24 * 60 * 60 * 1000)
+                    .toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </Text>{' '}
+                (30 days from when you confirmed).
+              </Text>
+              <TouchableOpacity
+                style={styles.cancelDeleteBtn}
+                onPress={handleCancelDeletion}
+                disabled={isDeleting}
+              >
+                <Text style={styles.cancelDeleteBtnText}>
+                  {isDeleting ? 'Cancelling…' : 'Cancel deletion'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </Animated.View>
 
         {/* Menu Options */}
@@ -281,8 +330,8 @@ export default function ProfileScreen() {
             <MenuOption
               icon="DeleteAccount"
               label="Delete Account"
-              caption="Permanently delete your account and data"
-              onPress={() => setShowDeleteConfirm(true)}
+              caption="Scheduled deletion with a 30-day grace period"
+              onPress={() => { setDeletePassword(''); setDeleteStep('password'); }}
               isDestructive
               isLast
             />
@@ -302,19 +351,88 @@ export default function ProfileScreen() {
         onConfirm={handleLogout}
       />
 
+      {/* Soft-delete flow — step 1: ask for current password to verify identity. */}
+      <DeletePasswordModal
+        visible={deleteStep === 'password'}
+        password={deletePassword}
+        onChangePassword={setDeletePassword}
+        loading={isDeleting}
+        onCancel={() => { setDeleteStep(null); setDeletePassword(''); }}
+        onConfirm={() => setDeleteStep('confirm')}
+      />
+
+      {/* Soft-delete flow — step 2: warn + confirm. */}
       <ConfirmModal
-        visible={showDeleteConfirm}
-        title="Delete account?"
-        message="This permanently deletes your account, orders, and saved addresses. Continue?"
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        visible={deleteStep === 'confirm'}
+        title="Schedule account deletion?"
+        message="Your account and data will be permanently deleted 30 days from now. You can cancel anytime in this Profile screen during the grace period — just tap 'Cancel deletion' on the red banner."
+        confirmLabel="Schedule deletion"
+        cancelLabel="Keep account"
         confirmVariant="danger"
         confirmLoading={isDeleting}
-        onCancel={() => (isDeleting ? null : setShowDeleteConfirm(false))}
+        onCancel={() => setDeleteStep('password')}
         onConfirm={handleDeleteAccount}
       />
 
+      {/* Soft-delete flow — step 3: success, show info card with close button. */}
+      <ConfirmModal
+        visible={deleteStep === 'pending'}
+        title="Deletion scheduled"
+        message="Your account will be permanently deleted in 30 days. You can keep using the app until then. To undo, tap 'Cancel deletion' on the red banner above — your account and data will be fully restored."
+        confirmLabel="Got it"
+        cancelLabel={false}
+        confirmVariant="primary"
+        onCancel={null}
+        onConfirm={() => setDeleteStep(null)}
+      />
     </AppScreen>
+  );
+}
+
+/**
+ * Step-1 modal for the soft-delete flow. Reuses ConfirmModal (which now
+ * accepts children) so the password input sits between the message and the
+ * action row. The eye toggle is local to this component.
+ */
+function DeletePasswordModal({ visible, password, onChangePassword, loading, onCancel, onConfirm }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const confirmDisabled = loading || !password;
+
+  return (
+    <ConfirmModal
+      visible={visible}
+      title="Delete account?"
+      message="To confirm, enter your current password. We'll mark your account for permanent deletion in 30 days — you can cancel anytime before then."
+      confirmLabel="Continue"
+      cancelLabel="Cancel"
+      confirmVariant="danger"
+      confirmLoading={loading}
+      onCancel={onCancel}
+      onConfirm={confirmDisabled ? undefined : onConfirm}
+    >
+      <View style={styles.passwordWrap}>
+        <Text style={styles.passwordLabel}>Your password</Text>
+        <View style={styles.passwordRow}>
+          <TextInputField
+            placeholder="••••••••"
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={onChangePassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoFocus
+            editable={!loading}
+          />
+          <TouchableOpacity
+            style={styles.eyeBtn}
+            onPress={() => setShowPassword(s => !s)}
+            accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+          >
+            <AppIcon name={showPassword ? 'Hide' : 'Show'} size={16} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ConfirmModal>
   );
 }
 
@@ -527,6 +645,58 @@ const styles = StyleSheet.create({
     color: colors.error,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  deletionBanner: {
+    marginTop: spacing.md,
+    backgroundColor: '#fef3c7',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+    padding: spacing.md,
+    gap: 4,
+  },
+  deletionBannerTitle: {
+    ...typography.bodyStrong,
+    color: '#92400e',
+  },
+  deletionBannerBody: {
+    ...typography.caption,
+    color: '#78350f',
+    lineHeight: 18,
+    marginBottom: spacing.sm,
+  },
+  cancelDeleteBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.sm,
+    backgroundColor: '#92400e',
+  },
+  cancelDeleteBtnText: {
+    ...typography.caption,
+    color: '#fff7ed',
+    fontWeight: '700',
+  },
+  passwordWrap: {
+    marginBottom: spacing.md,
+  },
+  passwordLabel: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    marginBottom: 4,
+    textAlign: 'left',
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  eyeBtn: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
   },
   menuGroup: {
     marginBottom: spacing.md,

@@ -77,6 +77,13 @@ const migrate = async () => {
     if (shortAddressColumns.length === 0) {
       await connection.query('ALTER TABLE users ADD COLUMN short_address VARCHAR(255) AFTER address');
     }
+    // Soft-delete (30-day grace) tracking. When deletion_requested_at is set,
+    // a daily sweep hard-deletes the user after 30 days. The user can cancel
+    // anytime via cancelAccountDeletion.
+    await ensureColumn('users', 'deletion_requested_at',
+      'deletion_requested_at TIMESTAMP NULL DEFAULT NULL AFTER blocked');
+    await ensureColumn('users', 'deletion_reason',
+      'deletion_reason VARCHAR(255) NULL DEFAULT NULL AFTER deletion_requested_at');
     console.log('Users table ready.');
 
     // Password Reset Requests Table

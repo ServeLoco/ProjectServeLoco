@@ -78,7 +78,10 @@ const login = async (req, res) => {
 const me = async (req, res) => {
   const userId = req.user.id;
 
-  const [rows] = await pool.query('SELECT id, name, phone, whatsapp_number, address, trusted, blocked, created_at FROM users WHERE id = ?', [userId]);
+  const [rows] = await pool.query(
+    'SELECT id, name, phone, whatsapp_number, address, trusted, blocked, deletion_requested_at, created_at FROM users WHERE id = ?',
+    [userId]
+  );
   if (rows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
   }
@@ -147,38 +150,61 @@ const requestPasswordReset = async (req, res) => {
 
 // Soft-delete the customer account: wipe PII, block further logins, and
 // reject any pending password reset requests. Hard purge happens via a
-// separate cron job 30 days after the soft-delete (out of scope here).
-// The `requireCustomer` middleware already enforces the blocked flag on
-// every authenticated request, so any in-flight JWT becomes unusable
-// once the row is updated.
-const deleteAccount = async (req, res) => {
+// Soft-delete with a 30-day grace period. Verifies the user's current password,
+// marks the account for deletion, and signs the user out. A separate cron
+// (see server.js) hard-deletes accounts where deletion_requested_at is older
+// than 30 days. The `requireCustomer` middleware also blocks any token
+// whose user has blocked=1, so any in-flight JWT becomes unusable once we
+// flip the flag — but we deliberately do NOT flip blocked=1 here, so the
+// user can keep using the app during the grace period to change their mind.
+const DELETION_GRACE_DAYS = 30;
+
+const requestAccountDeletion = async (req, res) => {
   const userId = req.user.id;
+  const { password } = req.body || {};
 
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-
-    await connection.query(
-      'UPDATE users SET name = ?, address = NULL, whatsapp_number = NULL, password_hash = NULL, blocked = 1 WHERE id = ?',
-      ['Deleted User', userId]
-    );
-
-    await connection.query(
-      `UPDATE password_reset_requests
-       SET status = 'rejected', reviewed_at = CURRENT_TIMESTAMP, reviewed_by_admin_id = 'system', review_note = 'Account deleted by user'
-       WHERE user_id = ? AND status = 'pending'`,
-      [userId]
-    );
-
-    await connection.commit();
-  } catch (err) {
-    await connection.rollback();
-    throw err;
-  } finally {
-    connection.release();
+  if (!password || typeof password !== 'string') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Password is required' });
   }
 
-  res.status(204).end();
+  const [rows] = await pool.query(
+    'SELECT id, password_hash, deletion_requested_at FROM users WHERE id = ?',
+    [userId]
+  );
+  if (rows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Account not found' });
+  }
+
+  // Verify the entered password against the stored hash.
+  const ok = await comparePassword(password, rows[0].password_hash || '');
+  if (!ok) {
+    return res.status(401).json({ code: 'INVALID_PASSWORD', message: 'Incorrect password' });
+  }
+
+  // Allow re-confirmation — overwrites the previous timestamp (grace period
+  // restarts from "now"). The user explicitly asked for 30 days, so we honour
+  // that even if they previously scheduled then cancelled.
+  await pool.query(
+    'UPDATE users SET deletion_requested_at = NOW() WHERE id = ?',
+    [userId]
+  );
+
+  res.status(200).json({
+    success: true,
+    message: `Your account will be deleted automatically in ${DELETION_GRACE_DAYS} days. You can cancel anytime from your Profile.`,
+    graceDays: DELETION_GRACE_DAYS,
+    deletionRequestedAt: new Date().toISOString(),
+  });
+};
+
+// Cancel a previously scheduled deletion (used by the "Cancel deletion" UI).
+const cancelAccountDeletion = async (req, res) => {
+  const userId = req.user.id;
+  await pool.query(
+    'UPDATE users SET deletion_requested_at = NULL, deletion_reason = NULL WHERE id = ?',
+    [userId]
+  );
+  res.status(200).json({ success: true, message: 'Account deletion cancelled.' });
 };
 
 module.exports = {
@@ -187,5 +213,6 @@ module.exports = {
   me,
   updateProfile,
   requestPasswordReset,
-  deleteAccount,
+  requestAccountDeletion,
+  cancelAccountDeletion,
 };
