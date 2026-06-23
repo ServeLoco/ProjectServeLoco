@@ -27,7 +27,8 @@ const DEFAULT_SETTINGS = {
   upi_qr_image_url: '',
   free_delivery_above_minimum_active: true,
   free_delivery_offer_active: false,
-  minimum_version: ''
+  minimum_version: '',
+  current_version: ''
   // Location-based distance pricing is removed, so latitude/longitude/radius are obsolete.
 };
 
@@ -148,6 +149,12 @@ export default function Settings() {
         setSaving(false);
         return;
       }
+      const curVer = (settings.current_version || '').trim();
+      if (curVer && !/^\d+\.\d+\.\d+$/.test(curVer)) {
+        alert('Current version must be in semver format: e.g. 1.1.1');
+        setSaving(false);
+        return;
+      }
 
       const payload = {
         ...settings,
@@ -163,6 +170,7 @@ export default function Settings() {
         fast_delivery_minutes: Number.parseInt(settings.fast_delivery_minutes, 10) || 30,
         upi_qr_image_id: settings.upi_qr_image_id,
         minimum_version: minVer || null,
+        current_version: curVer || null,
       };
       const response = await SettingsApi.update(payload);
       if (response.data) {
@@ -491,23 +499,19 @@ export default function Settings() {
       <section className="settings-section">
         <h2 className="settings-section-title">📱 App Version Control</h2>
         <div className="settings-form-grid">
-          {/* Info: current published version */}
+          {/* Editable: current published version (stored in DB, not hardcoded) */}
           <div className="settings-form-group">
             <label className="settings-label">Current App Version (Play Store)</label>
-            <div style={{
-              padding: '0.75rem 1rem',
-              background: 'var(--overlay-dark)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '0.95rem',
-              fontWeight: 600,
-              color: 'var(--text-primary)',
-              letterSpacing: '0.02em',
-            }}>
-              1.1.1
-            </div>
+            <input
+              type="text"
+              name="current_version"
+              className="settings-input"
+              placeholder="e.g. 1.1.1"
+              value={settings.current_version || ''}
+              onChange={handleChange}
+            />
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              The version currently live on the Play Store (from app.json). Update this note after each release.
+              The version currently live on the Play Store. Update this after each release so you know what to set the minimum version to.
             </span>
           </div>
 

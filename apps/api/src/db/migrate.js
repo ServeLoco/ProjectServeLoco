@@ -385,6 +385,11 @@ const migrate = async () => {
     // "Update required" modal on launch. Null means no minimum enforced.
     await ensureColumn('settings', 'minimum_version', 'minimum_version VARCHAR(20) NULL DEFAULT NULL AFTER fast_delivery_minutes');
 
+    // current_version: the app version currently live on the Play Store. Purely
+    // informational — shown in the admin panel so the admin knows what value to
+    // set minimum_version to. Admin-editable; not enforced anywhere.
+    await ensureColumn('settings', 'current_version', 'current_version VARCHAR(20) NULL DEFAULT NULL AFTER minimum_version');
+
     // Drop free_delivery_above column if it exists (Task 1.1)
     try {
       await connection.query('ALTER TABLE settings DROP COLUMN free_delivery_above');

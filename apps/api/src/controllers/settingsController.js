@@ -138,6 +138,7 @@ const getSettings = async (req, res) => {
       free_delivery_offer_active: 0,
       upi_qr_image_id: null,
       minimum_version: null,
+      current_version: null,
     };
     return attachSettingsImageUrls(s);
   });
@@ -179,6 +180,7 @@ const updateSettings = async (req, res) => {
     'free_delivery_offer_active', 'fast_delivery_enabled', 'fast_delivery_charge',
     'standard_delivery_minutes', 'fast_delivery_minutes',
     'minimum_version',
+    'current_version',
     // DEPRECATED (no longer used): free_delivery_above, shop_latitude, shop_longitude,
     // delivery_radius_km, delivery_cost_per_km
   ];
