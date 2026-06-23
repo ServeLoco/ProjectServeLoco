@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
-const { register, login, me, updateProfile, requestPasswordReset, requestAccountDeletion, cancelAccountDeletion } = require('../controllers/authController');
+const { register, login, me, updateProfile, requestPasswordReset, requestAccountDeletion, cancelAccountDeletion, registerPushToken } = require('../controllers/authController');
 const { requireCustomer } = require('../middleware/authMiddleware');
 const { validate, isString, isPhone, normalizeField } = require('../validators');
 const rateLimit = require('express-rate-limit');
@@ -96,5 +96,7 @@ router.patch('/profile', requireCustomer, validate(profileSchema), asyncHandler(
 // Soft-delete with a 30-day grace period — see authController.requestAccountDeletion.
 router.post('/me/request-deletion', deleteAccountLimiter, requireCustomer, asyncHandler(requestAccountDeletion));
 router.post('/me/cancel-deletion', deleteAccountLimiter, requireCustomer, asyncHandler(cancelAccountDeletion));
+// Register / refresh Expo push token. Called by the app on every login and startup.
+router.post('/me/push-token', requireCustomer, asyncHandler(registerPushToken));
 
 module.exports = router;

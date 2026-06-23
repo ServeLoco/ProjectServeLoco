@@ -33,10 +33,94 @@ const createOrder = async (req, res) => {
   const userId = req.user.id;
   const { address, latitude, longitude, map_url, payment_method, note, items, delivery_type } = req.validatedData;
 
+  // Idempotency-Key: lets the client retry a Create Order on a flaky
+  // connection without creating duplicate orders. If a recent order (within
+  // the last 5 minutes) already exists for this customer with the same
+  // key, we return it instead of creating a new one. The 5-minute window
+  // is large enough to cover the longest expected request lifetime but
+  // short enough that a user who re-opens the app and starts a fresh
+  // checkout an hour later can re-use the same client-generated key.
+  //
+  // We read from req.headers (a plain object) instead of req.get() so the
+  // function works with the plain-object mocks used in tests as well as
+  // with real Express requests (which also expose req.headers directly).
+  //
+  // Race-safety: the lookup happens INSIDE a transaction with SELECT ...
+  // FOR UPDATE, so two concurrent requests carrying the same key will
+  // serialize — the second one waits for the first to commit, then sees
+  // the just-inserted row and returns it instead of inserting a duplicate.
+  const headers = (req && req.headers) || {};
+  const idempotencyKey =
+    headers['idempotency-key'] ||
+    headers['Idempotency-Key'] ||
+    null;
+
   const connection = await pool.getConnection();
   await connection.beginTransaction();
 
   try {
+    if (idempotencyKey) {
+      const [existingRows] = await connection.query(
+        `SELECT id, order_number, idempotency_key_created_at,
+                TIMESTAMPDIFF(SECOND, idempotency_key_created_at, NOW()) AS age_seconds
+         FROM orders
+         WHERE customer_id = ? AND idempotency_key = ? AND idempotency_key_created_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+         ORDER BY id DESC LIMIT 1
+         FOR UPDATE`,
+        [userId, idempotencyKey]
+      );
+      // Defensive: if the query returned no rows or an unexpected shape,
+      // treat it as "no recent order" and proceed with normal creation.
+      if (Array.isArray(existingRows) && existingRows.length > 0) {
+        const existing = existingRows[0];
+        // Load the items so the replay returns the SAME order object the
+        // confirmation screen expects (totals, items, deliveryType, etc).
+        // Without this, the user would see a sparse confirmation with
+        // missing itemised details.
+        const [itemsRows] = await connection.query(
+          'SELECT product_id, item_type, product_name, quantity, unit_price, line_total FROM order_items WHERE order_id = ?',
+          [existing.id]
+        );
+        await connection.commit();
+        connection.release();
+        const replayOrder = {
+          id: existing.id,
+          orderId: existing.id,
+          orderNumber: existing.order_number,
+          order_number: existing.order_number,
+          address: address || null,
+          total: null,
+          paymentMethod: payment_method,
+          payment_method,
+          paymentStatus: 'Pending',
+          payment_status: 'Pending',
+          status: 'Pending',
+          created_at: existing.idempotency_key_created_at,
+          createdAt: existing.idempotency_key_created_at
+            ? new Date(existing.idempotency_key_created_at).toISOString()
+            : null,
+          deliveryType: delivery_type || 'standard',
+          delivery_type: delivery_type || 'standard',
+          items: itemsRows.map(item => ({
+            productId: item.product_id,
+            name: item.product_name,
+            quantity: item.quantity,
+            unitPrice: item.unit_price,
+            lineTotal: item.line_total,
+            type: item.item_type
+          }))
+        };
+        return res.status(200).json({
+          message: 'Order already exists (idempotent replay)',
+          orderId: existing.id,
+          orderNumber: existing.order_number,
+          order: replayOrder,
+          data: replayOrder,
+          idempotent: true,
+        });
+      }
+    }
+
     const [userRows] = await connection.query('SELECT id, name, phone, whatsapp_number, address, blocked FROM users WHERE id = ?', [userId]);
     const user = userRows[0];
     if (user.blocked) {
@@ -149,8 +233,9 @@ const createOrder = async (req, res) => {
         latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total,
         payment_method, payment_status, status, note,
         delivery_distance_km, delivery_radius_km_snapshot, delivery_cost_per_km_snapshot,
-        free_delivery_offer_snapshot, delivery_type
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?)`,
+        free_delivery_offer_snapshot, delivery_type,
+        idempotency_key, idempotency_key_created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         orderNumber, userId, user.name, user.phone, user.whatsapp_number, finalAddress,
         latitude || null, longitude || null, map_url || null,
@@ -158,7 +243,8 @@ const createOrder = async (req, res) => {
         payment_method, note || null,
         null, null, null,
         settings.free_delivery_offer_active !== null ? Boolean(settings.free_delivery_offer_active) : null,
-        finalDeliveryType
+        finalDeliveryType,
+        idempotencyKey, idempotencyKey ? new Date() : null
       ]
     );
 

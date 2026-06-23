@@ -1,5 +1,6 @@
 const { pool } = require('../db/mysql');
 const realtimeEvents = require('./orderEvents');
+const notificationService = require('../utils/notificationService');
 
 const AUTO_ACCEPT_MS = 10_000;
 
@@ -43,6 +44,18 @@ const schedule = (orderId, orderNumber) => {
       const order = updated[0];
       if (order) {
         realtimeEvents.emitOrderAutoAccepted(order);
+
+        // Notify the customer — same path as manual admin accept.
+        // Fire-and-forget; the result is passed to emitNotificationCreated
+        // so the customer's bell icon and socket update in real-time too.
+        notificationService.createOrderNotification({
+          userId: order.customer_id,
+          order,
+          event: 'status_accepted',
+        }).then(result =>
+          realtimeEvents.emitNotificationCreated(order.customer_id, result)
+        ).catch(() => {});
+
         console.log(`[auto-accept] order #${orderNumber} (id=${orderId}) auto-accepted after ${AUTO_ACCEPT_MS}ms`);
       }
     } catch (e) {
@@ -91,7 +104,16 @@ const rehydratePendingOrders = async () => {
       );
       const [updated] = await pool.query('SELECT * FROM orders WHERE id = ?', [r.id]);
       const order = updated[0];
-      if (order) realtimeEvents.emitOrderAutoAccepted(order);
+      if (order) {
+        realtimeEvents.emitOrderAutoAccepted(order);
+        notificationService.createOrderNotification({
+          userId: order.customer_id,
+          order,
+          event: 'status_accepted',
+        }).then(result =>
+          realtimeEvents.emitNotificationCreated(order.customer_id, result)
+        ).catch(() => {});
+      }
       console.log(`[auto-accept] rehydrated order id=${r.id}`);
     }
   } catch (e) {

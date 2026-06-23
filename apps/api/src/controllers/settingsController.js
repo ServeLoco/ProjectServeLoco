@@ -136,7 +136,8 @@ const getSettings = async (req, res) => {
       below_threshold_delivery_charge: 20.00,
       free_delivery_above_minimum_active: 1,
       free_delivery_offer_active: 0,
-      upi_qr_image_id: null
+      upi_qr_image_id: null,
+      minimum_version: null,
     };
     return attachSettingsImageUrls(s);
   });
@@ -176,7 +177,8 @@ const updateSettings = async (req, res) => {
     'whatsapp_number', 'support_phone', 'upi_id', 'upi_qr_image_id',
     'below_threshold_delivery_charge', 'free_delivery_above_minimum_active',
     'free_delivery_offer_active', 'fast_delivery_enabled', 'fast_delivery_charge',
-    'standard_delivery_minutes', 'fast_delivery_minutes'
+    'standard_delivery_minutes', 'fast_delivery_minutes',
+    'minimum_version',
     // DEPRECATED (no longer used): free_delivery_above, shop_latitude, shop_longitude,
     // delivery_radius_km, delivery_cost_per_km
   ];

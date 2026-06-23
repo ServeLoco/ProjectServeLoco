@@ -564,6 +564,7 @@ const getDashboard = async (req, res) => {
         ? Math.max(Number(section.max_visible_items || 0), items.length)
         : section.max_visible_items || 6;
       const visibleItems = items.slice(0, maxVisible);
+      const totalItems = items.length;
 
       // Hide empty sections by default
       if (visibleItems.length > 0) {
@@ -576,13 +577,16 @@ const getDashboard = async (req, res) => {
           displayOrder: section.display_order,
           maxVisibleItems: section.max_visible_items,
           showSeeAll: section.show_see_all === 1 || section.show_see_all === true,
+          totalItems,
+          hasMore: totalItems > visibleItems.length,
           items: visibleItems
         });
       }
     }
 
     if (!configuredTypes.has('category_grid')) {
-      const categoryItems = await getDefaultCategoryItems(expectedStoreType, 8);
+      const categoryMaxVisible = 8;
+      const categoryItems = await getDefaultCategoryItems(expectedStoreType, categoryMaxVisible);
       if (categoryItems.length > 0) {
         resultSections.push({
           id: 'default-categories-grid',
@@ -591,15 +595,18 @@ const getDashboard = async (req, res) => {
           sectionType: 'category_grid',
           storeType: expectedStoreType || 'packed',
           displayOrder: 1,
-          maxVisibleItems: 8,
+          maxVisibleItems: categoryMaxVisible,
           showSeeAll: false,
+          totalItems: categoryItems.length,
+          hasMore: categoryItems.length >= categoryMaxVisible,
           items: categoryItems
         });
       }
     }
 
     if (!configuredTypes.has('combo_block')) {
-      const comboItems = await getDefaultComboItems(expectedStoreType, 6);
+      const comboMaxVisible = 6;
+      const comboItems = await getDefaultComboItems(expectedStoreType, comboMaxVisible);
       if (comboItems.length > 0) {
         resultSections.push({
           id: 'default-popular-combos',
@@ -608,8 +615,10 @@ const getDashboard = async (req, res) => {
           sectionType: 'combo_block',
           storeType: expectedStoreType || 'packed',
           displayOrder: 2,
-          maxVisibleItems: 6,
+          maxVisibleItems: comboMaxVisible,
           showSeeAll: true,
+          totalItems: comboItems.length,
+          hasMore: comboItems.length >= comboMaxVisible,
           items: comboItems
         });
       }
