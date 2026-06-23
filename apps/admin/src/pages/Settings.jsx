@@ -26,7 +26,8 @@ const DEFAULT_SETTINGS = {
   upi_qr_image_id: '',
   upi_qr_image_url: '',
   free_delivery_above_minimum_active: true,
-  free_delivery_offer_active: false
+  free_delivery_offer_active: false,
+  minimum_version: ''
   // Location-based distance pricing is removed, so latitude/longitude/radius are obsolete.
 };
 
@@ -140,6 +141,14 @@ export default function Settings() {
       }
 
       // Ensure numeric fields are numbers
+      // Validate minimum_version format if provided
+      const minVer = (settings.minimum_version || '').trim();
+      if (minVer && !/^\d+\.\d+\.\d+$/.test(minVer)) {
+        alert('Minimum version must be in semver format: e.g. 1.2.0');
+        setSaving(false);
+        return;
+      }
+
       const payload = {
         ...settings,
         minimum_order_amount: Number(settings.minimum_order_amount),
@@ -153,6 +162,7 @@ export default function Settings() {
         standard_delivery_minutes: Number.parseInt(settings.standard_delivery_minutes, 10) || 60,
         fast_delivery_minutes: Number.parseInt(settings.fast_delivery_minutes, 10) || 30,
         upi_qr_image_id: settings.upi_qr_image_id,
+        minimum_version: minVer || null,
       };
       const response = await SettingsApi.update(payload);
       if (response.data) {
@@ -473,6 +483,89 @@ export default function Settings() {
             {uploadMessage && (
               <p className={`upload-message ${uploadMessage.type}`}>{uploadMessage.text}</p>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 7. App Version Control ──────────────────────────────────────── */}
+      <section className="settings-section">
+        <h2 className="settings-section-title">📱 App Version Control</h2>
+        <div className="settings-form-grid">
+          {/* Info: current published version */}
+          <div className="settings-form-group">
+            <label className="settings-label">Current App Version (Play Store)</label>
+            <div style={{
+              padding: '0.75rem 1rem',
+              background: 'var(--overlay-dark)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+              letterSpacing: '0.02em',
+            }}>
+              1.1.0
+            </div>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              The version currently live on the Play Store (from app.json). Update this note after each release.
+            </span>
+          </div>
+
+          {/* Control: minimum_version input */}
+          <div className="settings-form-group">
+            <label className="settings-label">Minimum Required Version</label>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <input
+                type="text"
+                name="minimum_version"
+                className="settings-input"
+                style={{ flex: 1 }}
+                placeholder="e.g. 1.1.0  (leave blank to disable)"
+                value={settings.minimum_version || ''}
+                onChange={handleChange}
+              />
+              {settings.minimum_version && (
+                <button
+                  type="button"
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--overlay-dark)',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onClick={() => setSettings(prev => ({ ...prev, minimum_version: '' }))}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              Users with an older version will see a <strong>blocking update prompt</strong> and cannot use the app until they update from the Play Store. Leave blank to disable.
+            </span>
+          </div>
+
+          {/* Live status badge */}
+          <div className="settings-form-group full-width">
+            <div style={{
+              padding: '0.85rem 1rem',
+              borderRadius: 'var(--radius-md)',
+              border: `1px solid ${settings.minimum_version ? 'var(--warning-border, #f59e0b)' : 'var(--border-color)'}`,
+              background: settings.minimum_version ? 'var(--warning-bg, #fffbeb)' : 'var(--overlay-dark)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              fontSize: '0.88rem',
+              color: settings.minimum_version ? 'var(--warning-text, #92400e)' : 'var(--text-secondary)',
+            }}>
+              <span style={{ fontSize: '1rem' }}>{settings.minimum_version ? '⚠️' : '✅'}</span>
+              {settings.minimum_version
+                ? `Force update is ACTIVE — users on versions older than ${settings.minimum_version} will be blocked.`
+                : 'Force update is OFF — all app versions are allowed.'}
+            </div>
           </div>
         </div>
       </section>

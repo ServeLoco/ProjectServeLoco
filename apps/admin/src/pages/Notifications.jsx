@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { NotificationsApi } from '../api';
+import { NotificationsApi, NotificationTemplatesApi } from '../api';
 import './Notifications.css';
 
 const EMOJI_SUGGESTIONS = {
@@ -19,6 +19,18 @@ const QUICK_TEMPLATES = [
 ];
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+
+const EVENT_LABELS = {
+  order_placed:           { label: 'Order Placed',        icon: '🎉', trigger: 'When customer places an order' },
+  status_accepted:        { label: 'Order Accepted',       icon: '✅', trigger: 'When admin accepts an order' },
+  status_preparing:       { label: 'Preparing',            icon: '👨‍🍳', trigger: 'When admin marks as Preparing' },
+  status_out_for_delivery:{ label: 'Out for Delivery',     icon: '🚚', trigger: 'When admin marks as Out for Delivery' },
+  status_delivered:       { label: 'Delivered',            icon: '🎊', trigger: 'When admin marks as Delivered' },
+  status_cancelled:       { label: 'Order Cancelled',      icon: '❌', trigger: 'When order is cancelled (by admin or customer)' },
+  payment_paid:           { label: 'Payment Received',     icon: '💰', trigger: 'When admin marks payment as Paid' },
+  payment_failed:         { label: 'Payment Failed',       icon: '⚠️', trigger: 'When admin marks payment as Failed' },
+  payment_refunded:       { label: 'Payment Refunded',     icon: '💸', trigger: 'When admin marks payment as Refunded' },
+};
 
 export default function Notifications() {
   const [broadcasts, setBroadcasts] = useState([]);
@@ -53,6 +65,7 @@ export default function Notifications() {
 
   useEffect(() => {
     fetchBroadcasts();
+    fetchTemplates();
   }, []);
 
   const fetchBroadcasts = async () => {
@@ -64,6 +77,18 @@ export default function Notifications() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    setTemplatesLoading(true);
+    try {
+      const res = await NotificationTemplatesApi.list();
+      setTemplates(res.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setTemplatesLoading(false);
     }
   };
 
@@ -128,6 +153,15 @@ export default function Notifications() {
 
   const [deletingId, setDeletingId] = useState(null);
 
+  // ── Notification templates ──────────────────────────────────────────────
+  const [templates, setTemplates] = useState([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
+  const [editingTemplateId, setEditingTemplateId] = useState(null);
+  const [editForm, setEditForm] = useState({ title: '', body: '' });
+  const [savingTemplateId, setSavingTemplateId] = useState(null);
+  const [resettingTemplateId, setResettingTemplateId] = useState(null);
+  const [togglingTemplateId, setTogglingTemplateId] = useState(null);
+
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this broadcast? It will be removed from customer inboxes.')) return;
     setDeletingId(id);
@@ -158,6 +192,64 @@ export default function Notifications() {
     setType(template.type);
     setErrorMsg('');
     setSuccessMsg('');
+  };
+
+  const handleTemplateEditStart = (tmpl) => {
+    setEditingTemplateId(tmpl.id);
+    setEditForm({ title: tmpl.title, body: tmpl.body });
+  };
+
+  const handleTemplateEditCancel = () => {
+    setEditingTemplateId(null);
+    setEditForm({ title: '', body: '' });
+  };
+
+  const handleTemplateEditSave = async (tmpl) => {
+    if (!editForm.title.trim() || !editForm.body.trim()) return;
+    setSavingTemplateId(tmpl.id);
+    try {
+      const res = await NotificationTemplatesApi.update(tmpl.id, {
+        title: editForm.title.trim(),
+        body: editForm.body.trim(),
+        enabled: tmpl.enabled,
+      });
+      setTemplates(prev => prev.map(t => t.id === tmpl.id ? res.data : t));
+      setEditingTemplateId(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingTemplateId(null);
+    }
+  };
+
+  const handleTemplateReset = async (tmpl) => {
+    if (!window.confirm(`Reset "${EVENT_LABELS[tmpl.event_key]?.label}" to its default text?`)) return;
+    setResettingTemplateId(tmpl.id);
+    try {
+      const res = await NotificationTemplatesApi.reset(tmpl.id);
+      setTemplates(prev => prev.map(t => t.id === tmpl.id ? res.data : t));
+      if (editingTemplateId === tmpl.id) setEditingTemplateId(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setResettingTemplateId(null);
+    }
+  };
+
+  const handleTemplateToggle = async (tmpl) => {
+    setTogglingTemplateId(tmpl.id);
+    try {
+      const res = await NotificationTemplatesApi.update(tmpl.id, {
+        title: tmpl.title,
+        body: tmpl.body,
+        enabled: tmpl.enabled ? 0 : 1,
+      });
+      setTemplates(prev => prev.map(t => t.id === tmpl.id ? res.data : t));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setTogglingTemplateId(null);
+    }
   };
 
   return (
@@ -378,6 +470,133 @@ export default function Notifications() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Auto-send notification templates ──────────────────────────── */}
+      <div className="templates-section card">
+        <h2>⚙️ Auto-Send Notification Templates</h2>
+        <p className="templates-subtitle">
+          These messages are sent automatically when order or payment status changes.
+          Edit the text, toggle them on/off, or reset to the original default.
+        </p>
+
+        {templatesLoading ? (
+          <p>Loading templates…</p>
+        ) : (
+          <div className="templates-list">
+            {templates.map(tmpl => {
+              const meta = EVENT_LABELS[tmpl.event_key] || { label: tmpl.event_key, icon: '🔔', trigger: '' };
+              const isEditing = editingTemplateId === tmpl.id;
+              const isSaving = savingTemplateId === tmpl.id;
+              const isResetting = resettingTemplateId === tmpl.id;
+              const isToggling = togglingTemplateId === tmpl.id;
+
+              return (
+                <div key={tmpl.id} className={`template-row${!tmpl.enabled ? ' template-disabled' : ''}`}>
+                  <div className="template-header">
+                    <div className="template-identity">
+                      <span className="template-icon">{meta.icon}</span>
+                      <div className="template-meta">
+                        <span className="template-event-name">{meta.label}</span>
+                        <span className="template-trigger">{meta.trigger}</span>
+                        {!isEditing && (
+                          <div className="template-preview">
+                            <strong>{tmpl.title}</strong>
+                            <span className="template-preview-body"> — {tmpl.body}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="template-actions">
+                      <label className={`toggle-switch${isToggling ? ' toggle-busy' : ''}`} title={tmpl.enabled ? 'Disable this notification' : 'Enable this notification'}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(tmpl.enabled)}
+                          onChange={() => handleTemplateToggle(tmpl)}
+                          disabled={isToggling}
+                        />
+                        <span className="toggle-slider" />
+                      </label>
+
+                      {isEditing ? (
+                        <button className="btn btn-sm btn-secondary" onClick={handleTemplateEditCancel}>
+                          Cancel
+                        </button>
+                      ) : (
+                        <button className="btn btn-sm btn-outline" onClick={() => handleTemplateEditStart(tmpl)}>
+                          ✏️ Edit
+                        </button>
+                      )}
+
+                      <button
+                        className="btn btn-sm btn-ghost-warning"
+                        onClick={() => handleTemplateReset(tmpl)}
+                        disabled={isResetting}
+                        title="Reset to default text"
+                      >
+                        {isResetting ? '⏳' : '↺ Default'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {isEditing && (
+                    <div className="template-edit-form">
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Title <small>(Max 80 chars — {editForm.title.length}/80)</small></label>
+                          <input
+                            type="text"
+                            value={editForm.title}
+                            onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                            maxLength={80}
+                            placeholder="Notification title"
+                          />
+                        </div>
+                        <div className="form-group template-preview-phone-wrap">
+                          <label>📱 Preview</label>
+                          <div className="preview-phone template-preview-phone">
+                            <div className="preview-notification">
+                              <div className="preview-app-icon">🍽️</div>
+                              <div className="preview-content">
+                                <div className="preview-title">{editForm.title || 'Title'}</div>
+                                <div className="preview-body">{editForm.body || 'Body…'}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Body <small>({editForm.body.length}/240 chars)</small></label>
+                        <textarea
+                          value={editForm.body}
+                          onChange={e => setEditForm(prev => ({ ...prev, body: e.target.value }))}
+                          maxLength={240}
+                          rows={3}
+                          placeholder="Notification body"
+                        />
+                      </div>
+
+                      <div className="template-edit-actions">
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleTemplateEditSave(tmpl)}
+                          disabled={isSaving || !editForm.title.trim() || !editForm.body.trim()}
+                        >
+                          {isSaving ? '⏳ Saving…' : '💾 Save'}
+                        </button>
+                        <button className="btn btn-sm btn-secondary" onClick={handleTemplateEditCancel}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
