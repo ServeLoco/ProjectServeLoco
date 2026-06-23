@@ -753,17 +753,27 @@ const createAdminNotification = async (req, res) => {
     );
 
     const stripDigits = (s) => String(s || '').replace(/\D/g, '');
-    const userDigitSet = new Map();   // digits-only → id
+    // Index each user under BOTH their full digit form AND their last-10 digits.
+    // This makes matching symmetric: a plain 10-digit input matches a stored
+    // number that has a country code (e.g. typed "9999999002" vs stored
+    // "+919999999002"), and vice-versa. First write wins on collisions.
+    const userDigitSet = new Map();   // digits-only key → user
     for (const u of allUsers) {
       const d = stripDigits(u.phone);
-      if (d) userDigitSet.set(d, u);
+      if (!d) continue;
+      if (!userDigitSet.has(d)) userDigitSet.set(d, u);
+      if (d.length > 10) {
+        const last10 = d.slice(-10);
+        if (!userDigitSet.has(last10)) userDigitSet.set(last10, u);
+      }
     }
 
     const users = [];
     const seenIds = new Set();
     for (const variant of variants) {
-      // Exact match against the full digit form, then last-10 variant for
-      // mismatches caused by leading country codes.
+      // Try the full digit form first, then the last-10 form. Because users are
+      // now indexed both ways, this matches regardless of which side carries the
+      // country code.
       let u = userDigitSet.get(variant);
       if (!u && variant.length > 10) u = userDigitSet.get(variant.slice(-10));
       if (u && !seenIds.has(u.id)) {
