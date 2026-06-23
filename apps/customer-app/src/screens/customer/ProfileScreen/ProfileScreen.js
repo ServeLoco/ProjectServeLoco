@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef, useState } from 'react';
+import appJson from '../../../../app.json';
 import {
   View,
   Text,
@@ -542,6 +543,7 @@ export default function ProfileScreen() {
             <Text style={styles.footerHeart}>❤️</Text>
             <Text style={styles.footerBrand}> (Haryana)</Text>
           </View>
+          <Text style={styles.footerVersion}>v{appJson?.expo?.version ?? '1.1.1'}</Text>
         </View>
       </ScrollView>
 
@@ -1199,5 +1201,11 @@ const styles = StyleSheet.create({
   footerTag: {
     ...typography.caption,
     color: colors.textTertiary,
+  },
+  footerVersion: {
+    ...typography.caption,
+    color: colors.textTertiary,
+    marginTop: 4,
+    letterSpacing: 0.3,
   },
 });
