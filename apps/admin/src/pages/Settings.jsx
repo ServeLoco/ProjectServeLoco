@@ -504,7 +504,7 @@ export default function Settings() {
               color: 'var(--text-primary)',
               letterSpacing: '0.02em',
             }}>
-              1.1.0
+              1.1.1
             </div>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
               The version currently live on the Play Store (from app.json). Update this note after each release.
