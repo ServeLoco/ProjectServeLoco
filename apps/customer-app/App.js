@@ -42,7 +42,7 @@ function App() {
     let cancelled = false;
     settingsApi.getSettings().then((res) => {
       if (cancelled) return;
-      const minimumVersion = res?.data?.data?.minimum_version ?? null;
+      const minimumVersion = res?.data?.minimum_version ?? null;
       const installedVersion = appJson?.expo?.version ?? '0.0.0';
       if (isUpdateRequired(installedVersion, minimumVersion)) {
         setForceUpdate(true);
