@@ -12,6 +12,7 @@ import {
   Eye,
   EyeOff,
   Home,
+  Heart,
   AtSign,
   Image as ImageIcon,
   IndianRupee,
@@ -54,6 +55,7 @@ const ICONS = {
   eye: Eye,
   eyeOff: EyeOff,
   home: Home,
+  heart: Heart,
   atsign: AtSign,
   mail: Mail,
   image: ImageIcon,
@@ -81,6 +83,7 @@ function AppIcon({
   color = colors.textPrimary,
   size = 20,
   strokeWidth,
+  fill,
   style,
 }) {
   const Icon = ICONS[name] || Box;
@@ -99,6 +102,7 @@ function AppIcon({
       color={color}
       size={size}
       strokeWidth={resolvedStrokeWidth}
+      fill={fill !== undefined ? fill : 'none'}
       style={style}
     />
   );

@@ -84,6 +84,10 @@ const migrate = async () => {
       'deletion_requested_at TIMESTAMP NULL DEFAULT NULL AFTER blocked');
     await ensureColumn('users', 'deletion_reason',
       'deletion_reason VARCHAR(255) NULL DEFAULT NULL AFTER deletion_requested_at');
+    // Expo push token registered by the customer app on login/startup.
+    // Used to send real push notifications when the app is in the background.
+    await ensureColumn('users', 'push_token',
+      'push_token VARCHAR(255) NULL DEFAULT NULL AFTER deletion_reason');
     console.log('Users table ready.');
 
     // Password Reset Requests Table
@@ -278,6 +282,12 @@ const migrate = async () => {
     await ensureColumn('orders', 'delivery_cost_per_km_snapshot', 'delivery_cost_per_km_snapshot DECIMAL(10, 2) DEFAULT NULL AFTER delivery_radius_km_snapshot');
     await ensureColumn('orders', 'free_delivery_offer_snapshot', 'free_delivery_offer_snapshot BOOLEAN DEFAULT NULL AFTER delivery_cost_per_km_snapshot');
     await ensureColumn('orders', 'delivery_type', "delivery_type ENUM('standard', 'fast') DEFAULT 'standard' AFTER free_delivery_offer_snapshot");
+    // Idempotency-Key support: lets the client safely retry a Create Order
+    // request on a flaky connection without creating duplicate orders. The
+    // controller looks up by (customer_id, idempotency_key) within a 5-minute
+    // window and returns the existing order instead of inserting a new row.
+    await ensureColumn('orders', 'idempotency_key', 'idempotency_key VARCHAR(64) DEFAULT NULL AFTER delivery_type');
+    await ensureColumn('orders', 'idempotency_key_created_at', 'idempotency_key_created_at DATETIME DEFAULT NULL AFTER idempotency_key');
 
     // Performance indexes for common order filter queries
     const ensureIndex = async (tableName, indexName, columns) => {
@@ -294,6 +304,7 @@ const migrate = async () => {
     await ensureIndex('orders', 'idx_orders_status_created', 'status, created_at');
     await ensureIndex('orders', 'idx_orders_payment_status_created', 'payment_status, created_at');
     await ensureIndex('orders', 'idx_orders_customer_created', 'customer_id, created_at');
+    await ensureIndex('orders', 'idx_orders_idempotency', 'customer_id, idempotency_key');
     await ensureIndex('products', 'idx_products_available_deleted', 'available, deleted');
     // NOTE: indexes for `notifications` and `offer_products` are added after
     // those tables are created later in this file (a fresh DB has no such
@@ -369,7 +380,11 @@ const migrate = async () => {
     await ensureColumn('settings', 'fast_delivery_charge', 'fast_delivery_charge DECIMAL(10, 2) DEFAULT 0.00 AFTER fast_delivery_enabled');
     await ensureColumn('settings', 'standard_delivery_minutes', 'standard_delivery_minutes INT DEFAULT 60 AFTER fast_delivery_charge');
     await ensureColumn('settings', 'fast_delivery_minutes', 'fast_delivery_minutes INT DEFAULT 30 AFTER standard_delivery_minutes');
-    
+    // Minimum app version required to use the app. When set (e.g. "1.2.0"),
+    // any client whose app.json version is lower will see a blocking
+    // "Update required" modal on launch. Null means no minimum enforced.
+    await ensureColumn('settings', 'minimum_version', 'minimum_version VARCHAR(20) NULL DEFAULT NULL AFTER fast_delivery_minutes');
+
     // Drop free_delivery_above column if it exists (Task 1.1)
     try {
       await connection.query('ALTER TABLE settings DROP COLUMN free_delivery_above');

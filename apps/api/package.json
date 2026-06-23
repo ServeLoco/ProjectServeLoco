@@ -24,6 +24,7 @@
     "cross-env": "^10.1.0",
     "csv-parse": "^6.2.1",
     "dotenv": "^16.4.5",
+    "expo-server-sdk": "^6.1.0",
     "express": "^4.19.2",
     "express-rate-limit": "^8.5.2",
     "express-validator": "^7.3.2",

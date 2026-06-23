@@ -21,8 +21,9 @@ import {
   ProductCard,
   AppIcon,
   StickyMiniCart,
-  Button,
   SkeletonRow,
+  EmptyState,
+  ErrorState,
 } from '../../../components';
 import { colors, typography, spacing, radius, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
@@ -49,6 +50,7 @@ export default function ProductListScreen() {
   const sectionSlug = route.params?.sectionSlug || null;
   const sectionTitle = route.params?.sectionTitle || null;
   const sectionStoreType = route.params?.storeType || 'all';
+  const initialQuery = route.params?.initialQuery || '';
 
   const { width: windowWidth } = useWindowDimensions();
   const cardWidth = Math.floor((windowWidth - (spacing.lg * 2) - spacing.md) / 2);
@@ -63,7 +65,7 @@ export default function ProductListScreen() {
   const removeItem = useCartStore(state => state.removeItem);
 
   // State
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
   const [sortBy, setSortBy] = useState('Popular');
@@ -274,38 +276,31 @@ export default function ProductListScreen() {
   );
 
   const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <AppIcon name="search" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
-      <Text style={styles.emptyTitle}>
-        {mode === 'offer' ? 'No offer products available' : 'No products found'}
-      </Text>
-      <Text style={styles.emptyDesc}>
-        {mode === 'offer'
-          ? 'No products are currently available for this offer.'
-          : "Try adjusting your search or filters to find what you're looking for."}
-      </Text>
-      {mode !== 'offer' && (
-        <Button
-          label="Clear Search & Filters"
-          onPress={() => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setSearchQuery('');
-            setActiveCategory('All');
-            setShowAvailableOnly(false);
-            setSortBy('Popular');
-          }}
-        />
-      )}
-    </View>
+    <EmptyState
+      icon={<AppIcon name="search" size={56} color={colors.textTertiary} />}
+      title={mode === 'offer' ? 'No offer products available' : 'No products found'}
+      subtitle={mode === 'offer'
+        ? 'No products are currently available for this offer.'
+        : "Try adjusting your search or filters to find what you're looking for."}
+      actionLabel={mode === 'offer' ? null : 'Clear Search & Filters'}
+      onAction={mode === 'offer' ? undefined : () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setSearchQuery('');
+        setActiveCategory('All');
+        setShowAvailableOnly(false);
+        setSortBy('Popular');
+      }}
+      style={styles.emptyState}
+    />
   );
 
   const renderErrorState = () => (
-    <View style={styles.emptyState}>
-      <AppIcon name="close" size={48} color={colors.error} style={styles.emptyEmoji} />
-      <Text style={styles.emptyTitle}>Oops, something went wrong</Text>
-      <Text style={styles.emptyDesc}>We couldn't load the products. Please check your connection and try again.</Text>
-      <Button label="Retry" onPress={() => fetchProducts()} />
-    </View>
+    <ErrorState
+      icon={<AppIcon name="close" size={48} color={colors.error} />}
+      message="We couldn't load the products. Please check your connection and try again."
+      onRetry={() => fetchProducts()}
+      style={styles.emptyState}
+    />
   );
 
   return (
@@ -372,6 +367,14 @@ export default function ProductListScreen() {
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.flatListContent}
             showsVerticalScrollIndicator={false}
+            // removeClippedSubviews + windowSize tuning dramatically improves
+            // scroll FPS on long Android lists by detaching off-screen rows
+            // from the native view hierarchy. Has no effect on iOS but is
+            // free perf on Android.
+            removeClippedSubviews
+            initialNumToRender={6}
+            maxToRenderPerBatch={6}
+            windowSize={7}
             refreshControl={
               <RefreshControl
                 refreshing={isRefreshing}

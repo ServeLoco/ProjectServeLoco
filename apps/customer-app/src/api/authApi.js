@@ -12,6 +12,7 @@ const authApi = {
   // sweep hard-deletes the row.
   requestAccountDeletion: payload => apiClient.post('/auth/me/request-deletion', payload, { auth: 'customer' }),
   cancelAccountDeletion: () => apiClient.post('/auth/me/cancel-deletion', {}, { auth: 'customer' }),
+  registerPushToken: (push_token) => apiClient.post('/auth/me/push-token', { push_token }, { auth: 'customer' }),
 };
 
 export { authApi };

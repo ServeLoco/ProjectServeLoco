@@ -151,3 +151,9 @@ export const AdminInboxApi = {
   markAllRead: () => apiClient('/admin/inbox/read-all', { method: 'POST' }),
   dismiss: (id) => apiClient(`/admin/inbox/${id}`, { method: 'DELETE' }),
 };
+
+export const NotificationTemplatesApi = {
+  list: () => apiClient('/admin/notification-templates', { method: 'GET' }),
+  update: (id, data) => apiClient(`/admin/notification-templates/${id}`, { method: 'PATCH', body: data }),
+  reset: (id) => apiClient(`/admin/notification-templates/${id}/reset`, { method: 'POST' }),
+};

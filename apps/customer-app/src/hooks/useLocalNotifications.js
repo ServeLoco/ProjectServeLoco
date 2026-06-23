@@ -2,16 +2,31 @@ import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { subscribeNotificationEvents } from '../api/realtimeClient';
+import { authApi } from '../api/authApi';
 import { useAuthStore } from '../stores';
 
-// Configure how notifications are presented when the app is in the foreground
+// Expo project ID from app.json — used to get a valid push token.
+const EXPO_PROJECT_ID =
+  Constants.expoConfig?.extra?.eas?.projectId ??
+  '1df5a9bf-de34-48ea-96f4-68f598d7d318';
+
+// When the app is in the foreground, suppress remote push banners (APNs/FCM)
+// but allow local scheduled notifications (from the socket path) through.
+// trigger.type === 'push' means the OS delivered it via APNs/FCM; local ones
+// scheduled via scheduleNotificationAsync have trigger === null.
+// When the app is backgrounded/closed the OS delivers push directly without
+// calling this handler at all, so the banner always appears.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,   // show banner even when app is open
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async (notification) => {
+    const isRemotePush = notification?.request?.trigger?.type === 'push';
+    return {
+      shouldShowAlert: !isRemotePush,
+      shouldPlaySound: !isRemotePush,
+      shouldSetBadge: true,
+    };
+  },
 });
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -20,7 +35,7 @@ const PERMISSION_ASKED_KEY = 'serveloco:notifPermissionAsked';
 
 // Module-level cache so we only hit AsyncStorage once per process.
 let askedStateCache = null;
-const readAskedState = async () => {
+export const readAskedState = async () => {
   if (askedStateCache !== null) return askedStateCache;
   try {
     const raw = await AsyncStorage.getItem(PERMISSION_ASKED_KEY);
@@ -94,6 +109,8 @@ export async function resetNotificationAskedFlag() {
   await writeAskedState({ asked: false, decided: false });
 }
 
+const BRAND_COLOR = '#FF7A3A';
+
 async function createAndroidChannel() {
   if (Platform.OS !== 'android') return;
 
@@ -102,10 +119,27 @@ async function createAndroidChannel() {
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     sound: 'default',
-    lightColor: '#FF6B35',
+    lightColor: BRAND_COLOR,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     bypassDnd: false,
   });
+}
+
+// Register the "order_update" category so Android and iOS show a
+// "View Order" action button in the expanded notification without the
+// user having to open the app first.
+async function registerNotificationCategories() {
+  try {
+    await Notifications.setNotificationCategoryAsync('order_update', [
+      {
+        identifier: 'view_order',
+        buttonTitle: '📦 View Order',
+        options: { opensAppToForeground: true },
+      },
+    ]);
+  } catch {
+    // Not all environments support categories (e.g. Expo Go on Android < 8).
+  }
 }
 
 function parseActionPayload(value) {
@@ -149,21 +183,49 @@ export function useLocalNotifications(navigationRef) {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const permissionGranted = useRef(false);
 
-  // ── 1. One-time setup: Android channel only (no permission request) ─────
+  // ── 1. One-time setup: Android channel, notification categories ──────────
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      // Check if permission is already granted
       const granted = await checkNotificationPermission();
       if (!cancelled) permissionGranted.current = granted;
       await createAndroidChannel();
+      await registerNotificationCategories();
     })();
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
+
+  // ── 1b. On login: request permission (shows system dialog first time) then
+  //        register / refresh the Expo push token with the server.
+  // Runs every time isAuthenticated flips to true (login, app reopen).
+  // requestNotificationPermission is idempotent — it only calls the system
+  // dialog once; subsequent calls just return the current status.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const status = await requestNotificationPermission();
+        if (status !== 'granted' || cancelled) return;
+
+        const tokenObj = await Notifications.getExpoPushTokenAsync({
+          projectId: EXPO_PROJECT_ID,
+        });
+        const token = tokenObj?.data;
+        if (!token || cancelled) return;
+
+        await authApi.registerPushToken(token);
+      } catch (err) {
+        // Non-fatal — the app works fine without push tokens registered.
+        console.warn('[useLocalNotifications] push token registration failed:', err?.message || err);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
 
   // ── 2. Listen for realtime "notification.created" events ─────────────────
   useEffect(() => {
@@ -194,8 +256,13 @@ export function useLocalNotifications(navigationRef) {
           body,
           sound: 'default',
           data: { orderId },
+          // Show "View Order" action button in the expanded notification
+          // when the notification relates to an order.
+          ...(orderId ? { categoryIdentifier: 'order_update' } : {}),
           ...(Platform.OS === 'android' && {
             channelId: 'serveloco-orders',
+            // Tint the notification icon with the brand saffron color.
+            color: BRAND_COLOR,
           }),
         },
         trigger: null, // fire immediately
@@ -207,11 +274,14 @@ export function useLocalNotifications(navigationRef) {
     return () => unsubscribe();
   }, [isAuthenticated]);
 
-  // ── 3. Handle tap on notification → navigate to OrderDetail ──────────────
+  // ── 3. Handle tap / action button → navigate to OrderDetail ─────────────
+  // Fires for both a direct tap (DEFAULT_ACTION_IDENTIFIER) and the
+  // "View Order" action button ('view_order'). Any other future actions
+  // (e.g. "Dismiss") that set opensAppToForeground=false would need a
+  // separate check here before navigating.
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(response => {
       const orderId = response.notification.request.content.data?.orderId;
-
       if (!orderId) return;
 
       // Wait for navigator to be ready before navigating

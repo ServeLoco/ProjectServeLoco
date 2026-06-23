@@ -76,6 +76,9 @@ const emitOrderPaymentUpdated = (order) => {
 
 const emitOrderAutoAccepted = (order) => {
   const payload = toOrderEventPayload(order);
+  // Notify the customer so the tracking screen updates without a manual refresh.
+  emitToCustomer(payload.customerId, 'order.status.updated', payload);
+  emitToCustomer(payload.customerId, 'order.updated', payload);
   emitToAdmins('admin.order.updated', payload);
   emitToAdmins('admin.order.auto_accepted', payload);
   return payload;

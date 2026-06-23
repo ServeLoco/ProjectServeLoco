@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
   Animated,
@@ -153,21 +154,31 @@ export default function EditProfileScreen() {
             />
           </Animated.View>
 
+          {/* Form-level error (e.g. network failure on save) */}
+          {errors.form ? (
+            <View style={styles.formErrorBox}>
+              <Text style={styles.formErrorText} numberOfLines={3}>
+                {errors.form}
+              </Text>
+            </View>
+          ) : null}
+
         </ScrollView>
 
         <View style={styles.bottomBar}>
           <Animated.View style={{ transform: [{ scale: btnScale }] }}>
-            <Button 
+            <Button
               label={isSaving ? "Saving..." : isSuccess ? "Saved Successfully! Done" : "Save Changes"}
               onPress={handleSave}
               disabled={isSaving || isSuccess}
+              loading={isSaving}
               style={[styles.saveBtn, isSuccess && { backgroundColor: colors.success, borderColor: colors.success }]}
             />
           </Animated.View>
-          <Button 
-            label="Cancel" 
-            variant="ghost" 
-            onPress={() => navigation.goBack()} 
+          <Button
+            label="Cancel"
+            variant="ghost"
+            onPress={() => navigation.goBack()}
             disabled={isSaving || isSuccess}
           />
         </View>
@@ -199,5 +210,19 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     marginBottom: spacing.xs,
+  },
+  formErrorBox: {
+    backgroundColor: 'rgba(229, 57, 53, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 57, 53, 0.35)',
+    borderRadius: 10,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  formErrorText: {
+    color: '#C62828',
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

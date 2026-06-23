@@ -207,6 +207,24 @@ const cancelAccountDeletion = async (req, res) => {
   res.status(200).json({ success: true, message: 'Account deletion cancelled.' });
 };
 
+const { Expo } = require('expo-server-sdk');
+
+const registerPushToken = async (req, res) => {
+  const userId = req.user.id;
+  const token = req.body?.push_token || req.body?.pushToken;
+
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'push_token is required' });
+  }
+
+  if (!Expo.isExpoPushToken(token)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid Expo push token format' });
+  }
+
+  await pool.query('UPDATE users SET push_token = ? WHERE id = ?', [token, userId]);
+  res.json({ success: true });
+};
+
 module.exports = {
   register,
   login,
@@ -215,4 +233,5 @@ module.exports = {
   requestPasswordReset,
   requestAccountDeletion,
   cancelAccountDeletion,
+  registerPushToken,
 };

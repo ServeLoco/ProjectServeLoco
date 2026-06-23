@@ -1,4 +1,5 @@
 const { pool } = require('../db/mysql');
+const expoPush = require('./expoPush');
 
 /**
  * Utility service to handle notifications and batches.
@@ -23,6 +24,23 @@ const createNotification = async ({
       userId, title, body, type, sourceType, sourceId, eventKey,
       batchId, actionType, actionPayload ? JSON.stringify(actionPayload) : null, createdByAdminId
     ]);
+
+    // Fire real push notification so it arrives even when the app is closed.
+    // Always uses pool (never the transaction connection) so the token lookup
+    // doesn't block or get rolled back with the outer transaction.
+    // data.orderId lets the client navigate directly to the order when the user
+    // taps the notification from a killed app. categoryId wires up the
+    // "View Order" action button registered on the client.
+    const pushData = { type: type || 'info' };
+    if (sourceType === 'order' && sourceId) pushData.orderId = String(sourceId);
+
+    expoPush.sendPushToUser(pool, userId, {
+      title,
+      body,
+      data: pushData,
+      ...(sourceType === 'order' ? { categoryId: 'order_update' } : {}),
+    }).catch(() => {});
+
     return firstQueryResult(queryResult);
   } catch (error) {
     console.error('Error creating notification:', error);
@@ -206,6 +224,10 @@ const createBroadcastNotification = async ({
     if (ownsConnection) {
       await tx.commit();
     }
+
+    // Batch push — fire after commit so tokens are read from a stable DB state.
+    expoPush.sendPushToMany(pool, targetUserIds, { title, body }).catch(() => {});
+
     return { batchId, count: targetUserIds.length };
   } catch (error) {
     if (ownsConnection) {
