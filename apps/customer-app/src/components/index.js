@@ -31,3 +31,8 @@ export { default as AnimatedTabItem } from './AnimatedTabItem';
 export { default as AnimatedModalView } from './AnimatedModalView';
 export { default as ValidationMessage } from './ValidationMessage';
 export { default as NotificationPermissionModal } from './NotificationPermissionModal';
+export { default as ErrorBoundary } from './ErrorBoundary';
+export { default as OfflineBanner } from './OfflineBanner';
+export { default as ReconnectingPill } from './ConnectionStatus';
+export { default as ExitAppModal } from './ExitAppModal';
+export { default as ForceUpdateModal } from './ForceUpdateModal';

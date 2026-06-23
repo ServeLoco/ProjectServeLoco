@@ -16,8 +16,10 @@ import {
   AppHeader,
   AppIcon,
   ProductImage,
+  EmptyState,
+  ErrorState,
+  LoadingSkeleton,
   QuantityStepper,
-  Button,
   PressableScale,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
@@ -136,16 +138,14 @@ export default function CartScreen() {
   };
 
   const renderEmptyState = () => (
-    <Animated.View style={[styles.emptyState, { opacity: fadeAnim }]}>
-      <AppIcon name="cart" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
-      <Text style={styles.emptyTitle}>Your cart is empty</Text>
-      <Text style={styles.emptyDesc}>Looks like you haven't added anything to your cart yet.</Text>
-      <Button 
-        label="Start Shopping" 
-        onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
-        style={styles.emptyBtn}
-      />
-    </Animated.View>
+    <EmptyState
+      icon={<AppIcon name="cart" size={56} color={colors.textTertiary} />}
+      title="Your cart is empty"
+      subtitle="Looks like you haven't added anything to your cart yet."
+      actionLabel="Start Shopping"
+      onAction={() => navigation.navigate('MainTabs', { screen: 'Home' })}
+      style={styles.emptyState}
+    />
   );
 
   const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
@@ -239,12 +239,19 @@ export default function CartScreen() {
               <Text style={styles.billTitle}>Bill Summary</Text>
               
               {isCalculating ? (
-                <Text style={styles.calcText}>Calculating totals...</Text>
-              ) : calcError ? (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>{calcError}</Text>
-                  <Button label="Retry" size="small" variant="outline" onPress={calculateBill} />
+                <View style={styles.calcSkeleton}>
+                  <LoadingSkeleton style={{ height: 18, width: '60%', marginBottom: 10 }} />
+                  <LoadingSkeleton style={{ height: 14, width: '40%', marginBottom: 10 }} />
+                  <LoadingSkeleton style={{ height: 14, width: '50%', marginBottom: 10 }} />
+                  <LoadingSkeleton style={{ height: 22, width: '70%', marginTop: 6 }} />
                 </View>
+              ) : calcError ? (
+                <ErrorState
+                  message={calcError}
+                  onRetry={calculateBill}
+                  retryLabel="Retry"
+                  style={styles.calcError}
+                />
               ) : bill ? (
                 <View style={styles.billDetails}>
                   <View style={styles.billRow}>

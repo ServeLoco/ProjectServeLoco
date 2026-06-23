@@ -4,6 +4,8 @@
  * Shared screen padding, safe-area constants, and min touch targets.
  */
 
+import { Platform } from 'react-native';
+
 export const layout = {
   // Screen horizontal padding (consistent gutter across all screens)
   screenPaddingH: 16,
@@ -20,8 +22,8 @@ export const layout = {
   minTouchTarget: 44,
 
   // Bottom navigation bar
-  bottomNavHeight: 60,
-  bottomNavPaddingBottom: 8,
+  bottomNavHeight: Platform.OS === 'ios' ? 80 : 62,
+  bottomNavPaddingBottom: 0,
 
   // App header
   headerHeight: 56,

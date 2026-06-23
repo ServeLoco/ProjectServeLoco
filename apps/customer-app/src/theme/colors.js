@@ -10,7 +10,7 @@
 const palette = {
   // Neutrals
   white: '#FFFFFF',
-  offWhite: '#EEF0F3',    // Base background
+  offWhite: '#F9F4E6',    // Base background (subtle warm cream / golden tint)
   grey50: '#E6E8EC',      // Inset inputs / fallback canvas background
   grey100: '#DFE2E6',     // Disabled / borders
   grey200: '#C7CCD4',     // Soft borders
@@ -147,6 +147,16 @@ export const colors = {
   saffron: palette.saffron500,
   saffronLight: '#FFF2EB',
   saffronDark: palette.saffron600,
+
+  // --- Dashboard / Home hero header (added) ---
+  brandGradientStart: '#FFB07A',   // Soft saffron top of header
+  brandGradientEnd:   '#FF7A3A',   // Saffron bottom
+  brandInk:           '#1A1F2B',   // Deep ink for header text on brand
+  glassOverlay:       'rgba(255,255,255,0.18)',
+  glassBorder:        'rgba(255,255,255,0.28)',
+  surfaceMuted:       '#F5F6F9',   // Soft inner surface for skeleton / search bg
+  badgeHotBg:         'rgba(255, 122, 58, 0.12)',
+  badgeHotText:       '#C8490F',   // Deep saffron for HOT pill
 
   // Raw palette for edge cases
   palette,

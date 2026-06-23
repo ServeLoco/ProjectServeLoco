@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
 import { useSettingsStore } from '../../stores';
 import PressableScale from '../PressableScale';
@@ -36,26 +36,51 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
 
   const isVisible = visible && itemCount > 0;
   const [shouldRender, setShouldRender] = useState(isVisible);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const progress = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
   const badgeScale = useRef(new Animated.Value(1)).current;
   const prevCount = useRef(itemCount);
 
+  // Effective visibility — hide entirely while the keyboard is up so the
+  // popup stays docked at its resting position above the tab bar instead of
+  // fighting fragile keyboard-height math across iOS / Android / iPad split.
+  const effectiveVisible = isVisible && !keyboardVisible;
+
   useEffect(() => {
-    if (isVisible) {
+    if (effectiveVisible) {
       setShouldRender(true);
     }
 
     Animated.spring(progress, {
-      toValue: isVisible ? 1 : 0,
+      toValue: effectiveVisible ? 1 : 0,
       friction: 7,
       tension: 90,
       useNativeDriver: true,
     }).start(({ finished }) => {
-      if (finished && !isVisible) {
+      if (finished && !effectiveVisible) {
         setShouldRender(false);
       }
     });
-  }, [isVisible, progress]);
+  }, [effectiveVisible, progress]);
+
+  // Hide the cart when the keyboard opens. Only wired on tab screens (Home)
+  // since stack screens (ProductList, Categories) don't have the bottom tab
+  // bar overlap that the original logic was guarding against.
+  useEffect(() => {
+    if (!aboveTabBar) return undefined;
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [aboveTabBar]);
 
   useEffect(() => {
     if (itemCount > 0 && prevCount.current !== itemCount) {
@@ -85,12 +110,16 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
 
   return (
     <Animated.View
-      pointerEvents={isVisible ? 'auto' : 'none'}
+      pointerEvents={effectiveVisible ? 'auto' : 'none'}
       style={[
         styles.container,
-        // Tab bar sits at bottom:16 with height 64; raise the cart above it
-        // (16 + 64 + 8 gap = 88) on tab screens, else dock at the bottom.
-        { bottom: aboveTabBar ? 88 : 16 },
+        // Resting position only — above the tab bar on tab screens
+        // (60 height + 14 bottom gap = 74), at the bottom inset on stack
+        // screens that have no tab bar. The popup hides entirely while the
+        // keyboard is open (see effectiveVisible above).
+        {
+          bottom: aboveTabBar ? 74 : 16,
+        },
         {
           opacity: progress,
           transform: [{ translateY }, { scale }],

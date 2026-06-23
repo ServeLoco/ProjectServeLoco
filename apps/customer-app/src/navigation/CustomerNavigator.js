@@ -1,8 +1,16 @@
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  Keyboard,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { colors, typography, radius, shadows } from '../theme';
+import { colors } from '../theme';
 import { AppIcon } from '../components';
 import { useAuthStore } from '../stores';
 
@@ -25,103 +33,163 @@ import {
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-function AnimatedTabIcon({ name, focused }) {
-  const scale = useRef(new Animated.Value(focused ? 1 : 0.9)).current;
-  const opacity = useRef(new Animated.Value(focused ? 1 : 0)).current;
-  
+const TABS = [
+  { name: 'Home',    icon: 'home',    label: 'Home' },
+  { name: 'Orders',  icon: 'orders',  label: 'Orders' },
+  { name: 'Profile', icon: 'profile', label: 'Profile' },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TabItem
+// Keeps native-driver and non-native-driver animations strictly separate.
+// ─────────────────────────────────────────────────────────────────────────────
+function TabItem({ tab, focused, onPress }) {
+  // Native-driver only — transform
+  const iconScale  = useRef(new Animated.Value(1)).current;
+  // Non-native-driver only — width (layout property)
+  const dotWidth   = useRef(new Animated.Value(focused ? 16 : 0)).current;
+
   useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scale, {
-        toValue: focused ? 1 : 0.9,
+    // ── Native driver: icon scale bounce ──────────────────────────────────
+    Animated.sequence([
+      Animated.spring(iconScale, {
+        toValue: 0.85,
+        friction: 4,
+        tension: 250,
         useNativeDriver: true,
-        friction: 6,
       }),
-      Animated.timing(opacity, {
-        toValue: focused ? 1 : 0,
-        duration: 150,
+      Animated.spring(iconScale, {
+        toValue: 1,
+        friction: 5,
+        tension: 180,
         useNativeDriver: true,
       }),
     ]).start();
-  }, [focused]);
+
+    // ── Non-native driver: dot width ──────────────────────────────────────
+    Animated.spring(dotWidth, {
+      toValue: focused ? 16 : 0,
+      friction: 7,
+      tension: 160,
+      useNativeDriver: false,
+    }).start();
+  }, [focused, iconScale, dotWidth]);
 
   return (
-    <View style={styles.tabIconContainer}>
-      <Animated.View
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.75}
+      style={styles.tabItem}
+      accessibilityRole="button"
+      accessibilityState={{ selected: focused }}
+      accessibilityLabel={tab.label}
+    >
+      {/* Icon */}
+      <Animated.View style={{ transform: [{ scale: iconScale }] }}>
+        <AppIcon
+          name={tab.icon}
+          color={focused ? colors.saffron : colors.navInactive}
+          size={22}
+          strokeWidth={focused ? 2.4 : 1.8}
+        />
+      </Animated.View>
+
+      {/* Label */}
+      <Animated.Text
         style={[
-          styles.activePill,
-          {
-            opacity,
-            transform: [{ scale }],
-          },
+          styles.tabLabel,
+          { color: focused ? colors.saffron : colors.navInactive },
         ]}
-      />
-      <AppIcon
-        name={name}
-        color={focused ? colors.primaryText : colors.navInactive}
-        size={20}
-      />
+        numberOfLines={1}
+        allowFontScaling={false}
+      >
+        {tab.label}
+      </Animated.Text>
+
+      {/* Saffron dot — expands horizontally when focused */}
+      <Animated.View style={[styles.dotIndicator, { width: dotWidth }]} />
+    </TouchableOpacity>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CustomTabBar
+// ─────────────────────────────────────────────────────────────────────────────
+function CustomTabBar({ state, navigation }) {
+  // Render-driven hide: when the keyboard opens, unmount the tab bar
+  // immediately so it never "flashes" upward. No translate animation
+  // (those always have a visible first frame at the wrong position).
+  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  if (keyboardVisible) return null;
+
+  return (
+    <View style={styles.tabBarOuter}>
+      <View style={styles.tabBarCard}>
+        {state.routes.map((route, index) => {
+          const tab     = TABS[index] || { name: route.name, icon: 'home', label: route.name };
+          const focused = state.index === index;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+            if (!focused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
+          return (
+            <TabItem
+              key={route.key}
+              tab={tab}
+              focused={focused}
+              onPress={onPress}
+            />
+          );
+        })}
+      </View>
     </View>
   );
 }
 
-/**
- * CustomerBottomTabs
- * Main tabs for customer (Home, Orders, Profile).
- * Cart is specifically excluded from tabs.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// CustomerBottomTabs
+// ─────────────────────────────────────────────────────────────────────────────
 function CustomerBottomTabs() {
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
-        // Always show the floating tab bar. When the cart has items, the
-        // mini-cart bar floats ABOVE it (aboveTabBar prop) instead of the tab
-        // bar hiding — so there is no box-over-box overlap.
-        tabBarStyle: {
-          position: 'absolute',
-          bottom: 16,
-          left: 72,
-          right: 72,
-          borderRadius: 30,
-          backgroundColor: colors.bgSurface,
-          height: 64,
-          elevation: 8,
-          ...shadows.lg,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderTopWidth: 1, // enforce consistent border styling around the floating bar
-          paddingBottom: 4,
-        },
-        tabBarLabelStyle: {
-          ...typography.caption,
-          fontWeight: '600',
-          marginTop: 2,
-        },
-        tabBarIcon: ({ focused }) => (
-          <AnimatedTabIcon name="home" focused={focused} />
-        ),
-      }}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon name="home" focused={focused} /> }}
-      />
-      <Tab.Screen
-        name="Orders"
-        component={OrdersScreen}
-        options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon name="orders" focused={focused} /> }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ tabBarIcon: ({ focused }) => <AnimatedTabIcon name="profile" focused={focused} /> }}
-      />
+      <Tab.Screen name="Home"    component={HomeScreen} />
+      <Tab.Screen name="Orders"  component={OrdersScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Styles
+// ─────────────────────────────────────────────────────────────────────────────
+const CARD_HEIGHT = Platform.OS === 'ios' ? 80 : 62;
 
 const styles = StyleSheet.create({
   bootScreen: {
@@ -130,41 +198,80 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.bgApp,
   },
-  tabIconContainer: {
-    width: 48,
-    height: 32,
+
+  // Outer wrapper — flush to screen bottom
+  tabBarOuter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+
+  // White card — full width, rounded top corners only
+  tabBarCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    height: CARD_HEIGHT,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: 'rgba(0,0,0,0.09)',
+    paddingHorizontal: 8,
+    // Safe-area space for iOS home indicator
+    paddingBottom: Platform.OS === 'ios' ? 18 : 0,
+    // Shadow cast upward (iOS only — avoids Android square bug)
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 0 },
+    }),
+  },
+
+  // Each tab — equal width, items stacked and centered
+  tabItem: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-    marginTop: 4,
+    paddingTop: 10,
+    paddingBottom: 4,
+    gap: 2,
   },
-  activePill: {
-    position: 'absolute',
-    width: 48,
-    height: 32,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary,
+
+  // Label
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.1,
+    includeFontPadding: false,
+    lineHeight: 12,
+  },
+
+  // Active dot
+  dotIndicator: {
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.saffron,
+    overflow: 'hidden',
   },
 });
 
-
-
-/**
- * CustomerNavigator
- * Main customer stack holding tabs and sub-screens.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// CustomerNavigator — root navigator
+// ─────────────────────────────────────────────────────────────────────────────
 export default function CustomerNavigator() {
-  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
-  const hasHydrated = useAuthStore(state => state.hasHydrated);
-  const sessionChecked = useAuthStore(state => state.sessionChecked);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated     = useAuthStore((s) => s.hasHydrated);
+  const sessionChecked  = useAuthStore((s) => s.sessionChecked);
 
-  // Two-phase gate:
-  //   1. Wait for zustand-persist to rehydrate AsyncStorage (so the token
-  //      we read is the real one the user had, not null).
-  //   2. Wait for the startup validateSession() call (in App.js) to finish
-  //      confirming the token against /auth/me. Without this gate the user
-  //      would see the home tabs flash for a frame with a token that is
-  //      about to be wiped by the validator.
   if (!hasHydrated || !sessionChecked) {
     return (
       <View style={styles.bootScreen}>
@@ -174,8 +281,8 @@ export default function CustomerNavigator() {
   }
 
   return (
-    <Stack.Navigator 
-      screenOptions={{ 
+    <Stack.Navigator
+      screenOptions={{
         headerShown: false,
         animation: 'fade_from_bottom',
         animationDuration: 200,
@@ -184,20 +291,20 @@ export default function CustomerNavigator() {
       {isAuthenticated ? (
         <>
           <Stack.Screen name="MainTabs" component={CustomerBottomTabs} />
-          
+
           {/* Product Flow */}
-          <Stack.Screen name="Categories" component={CategoriesScreen} />
-          <Stack.Screen name="ProductList" component={ProductListScreen} />
+          <Stack.Screen name="Categories"    component={CategoriesScreen} />
+          <Stack.Screen name="ProductList"   component={ProductListScreen} />
           <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
-          
+
           {/* Checkout Flow */}
-          <Stack.Screen name="Cart" component={CartScreen} />
-          <Stack.Screen name="Checkout" component={CheckoutScreen} />
+          <Stack.Screen name="Cart"              component={CartScreen} />
+          <Stack.Screen name="Checkout"          component={CheckoutScreen} />
           <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen} />
-          
+
           {/* Account / Misc Flow */}
-          <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
-          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+          <Stack.Screen name="OrderDetail"   component={OrderDetailScreen} />
+          <Stack.Screen name="EditProfile"   component={EditProfileScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
         </>
       ) : (

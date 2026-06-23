@@ -2,7 +2,10 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore, selectCartTotalItems, selectCartDisplayTotal } from '../stores/cartStore';
 import { formatPrice } from '../utils/formatters';
+import useKeyboardInset from '../hooks/useKeyboardInset';
 import './StickyMiniCart.css';
+
+const KEYBOARD_GAP = 8;
 
 const CartIcon = () => (
   <svg className="cart-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -20,11 +23,16 @@ export default function StickyMiniCart() {
   const navigate = useNavigate();
   const totalItems = useCartStore(selectCartTotalItems);
   const displayTotal = useCartStore(selectCartDisplayTotal);
+  const keyboardInset = useKeyboardInset();
 
   if (totalItems === 0) return null;
 
+  const style = keyboardInset > 0
+    ? { bottom: `calc(${keyboardInset}px + ${KEYBOARD_GAP}px + env(safe-area-inset-bottom, 0px))` }
+    : undefined;
+
   return (
-    <div className="sticky-mini-cart" onClick={() => navigate('/cart')}>
+    <div className="sticky-mini-cart" style={style} onClick={() => navigate('/cart')}>
       <div className="cart-left">
         <CartIcon />
         <span className="cart-count">{totalItems} {totalItems === 1 ? 'item' : 'items'}</span>

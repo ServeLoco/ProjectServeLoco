@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import {
   AppScreen,
@@ -20,6 +21,8 @@ import {
   Button,
   AppIcon,
   SkeletonRow,
+  EmptyState,
+  ErrorState,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { ordersApi, subscribeOrderEvents, subscribeRealtimeLifecycle } from '../../../api';
@@ -90,6 +93,98 @@ const getCancelledPaymentStatus = (paymentMethod) => (
   paymentMethod === 'UPI' ? 'Refunded' : 'Failed'
 );
 
+// Per-status visual tokens. Kept in one map so the chip / accent bar /
+// status icon all stay in sync.
+const STATUS_VISUALS = {
+  Pending: {
+    color: '#0E1116',
+    colorAlt: '#374151',
+    bg: '#F3F4F6',
+    iconBg: '#E5E7EB',
+    icon: 'orders',
+    gradientStart: '#2A303D',
+    gradientEnd: '#0E1116',
+    glowColor: 'rgba(14,17,22,0.28)',
+    step: 0,
+  },
+  Accepted: {
+    color: '#1D4ED8',
+    colorAlt: '#3B82F6',
+    bg: '#EFF6FF',
+    iconBg: '#DBEAFE',
+    icon: 'check',
+    gradientStart: '#3B82F6',
+    gradientEnd: '#1D4ED8',
+    glowColor: 'rgba(59,130,246,0.30)',
+    step: 1,
+  },
+  Preparing: {
+    color: '#C2410C',
+    colorAlt: '#FF7A3A',
+    bg: '#FFF2EB',
+    iconBg: '#FFE0CC',
+    icon: 'box',
+    gradientStart: '#FF9A66',
+    gradientEnd: '#E05A1A',
+    glowColor: 'rgba(224,90,26,0.30)',
+    step: 2,
+  },
+  'Out for Delivery': {
+    color: '#B45309',
+    colorAlt: '#F59E0B',
+    bg: '#FFFBEB',
+    iconBg: '#FEF3C7',
+    icon: 'navigation',
+    gradientStart: '#FBBF24',
+    gradientEnd: '#D97706',
+    glowColor: 'rgba(245,158,11,0.30)',
+    step: 3,
+  },
+  Delivered: {
+    color: '#065F46',
+    colorAlt: '#1FB574',
+    bg: '#EAFDF5',
+    iconBg: '#C6F4DF',
+    icon: 'check',
+    gradientStart: '#3FE09D',
+    gradientEnd: '#179E62',
+    glowColor: 'rgba(31,181,116,0.28)',
+    step: 4,
+  },
+  Cancelled: {
+    color: '#9B1C1C',
+    colorAlt: '#E5484D',
+    bg: '#FFF0F0',
+    iconBg: '#FCA5A5',
+    icon: 'close',
+    gradientStart: '#F87171',
+    gradientEnd: '#C93B40',
+    glowColor: 'rgba(229,72,77,0.28)',
+    step: -1,
+  },
+};
+
+const getStatusVisual = (statusLabel) => STATUS_VISUALS[statusLabel] || {
+  color: colors.textSecondary,
+  colorAlt: colors.textTertiary,
+  bg: colors.bgApp,
+  iconBg: colors.bgApp,
+  icon: 'orders',
+  gradientStart: '#6B7280',
+  gradientEnd: '#374151',
+  glowColor: 'rgba(107,114,128,0.20)',
+  step: 0,
+};
+
+// Order lifecycle steps for the progress stepper
+const ORDER_STEPS = [
+  { label: 'Placed', icon: 'orders' },
+  { label: 'Accepted', icon: 'check' },
+  { label: 'Packing', icon: 'box' },
+  { label: 'On way', icon: 'navigation' },
+  { label: 'Done', icon: 'check' },
+];
+
 // Defined at module scope so its hook identities and component reference are
 // stable across OrdersScreen renders. Previously this lived inside the parent
 // function and forced every card to unmount/remount on each parent render.
@@ -157,7 +252,7 @@ const FadeInItem = ({ children, index, status }) => {
     <Animated.View
       style={{
         backgroundColor: highlightColor,
-        borderRadius: radius.md,
+        borderRadius: radius.xl,
       }}
     >
       <Animated.View
@@ -339,18 +434,6 @@ export default function OrdersScreen() {
       .finally(() => setCancellingId(null));
   };
 
-  const getStatusColor = (status) => {
-    switch(formatStatus(status)) {
-      case 'Delivered': return colors.success;
-      case 'Cancelled': return colors.error;
-      case 'Accepted':
-      case 'Pending':
-      case 'Preparing': return colors.primary;
-      case 'Out for Delivery': return colors.warning || '#F59E0B';
-      default: return colors.textSecondary;
-    }
-  };
-
   const getPaymentStatusColor = (status) => {
     switch (status) {
       case 'Paid':
@@ -360,9 +443,23 @@ export default function OrdersScreen() {
         return colors.error;
       case 'Pending':
       default:
-        return colors.warning || '#F59E0B';
+        return '#F59E0B';
     }
   };
+
+  const summary = useMemo(() => {
+    const total = orders.length;
+    let active = 0;
+    let delivered = 0;
+    let cancelled = 0;
+    orders.forEach((o) => {
+      const s = formatStatus(o.status);
+      if (s === 'Delivered') delivered += 1;
+      else if (s === 'Cancelled') cancelled += 1;
+      else active += 1;
+    });
+    return { total, active, delivered, cancelled };
+  }, [orders]);
 
   const renderItem = ({ item, index }) => {
     const statusLabel = formatStatus(item.status);
@@ -371,64 +468,156 @@ export default function OrdersScreen() {
     const paymentStatus = statusLabel === 'Cancelled'
       ? getCancelledPaymentStatus(item.paymentMethod)
       : item.paymentStatus;
+    const visual = getStatusVisual(statusLabel);
+    const payColor = getPaymentStatusColor(paymentStatus);
+    const isCancelled = statusLabel === 'Cancelled';
+    const activeStep = visual.step;
 
     return (
     <FadeInItem index={index} status={statusLabel}>
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.orderTitleBlock}>
-            <Text style={styles.orderId} numberOfLines={1}>Order #{orderLabel}</Text>
-            <Text style={styles.orderDate}>{formatDate(item.date)}</Text>
+      <View style={[
+        styles.card,
+        { shadowColor: visual.glowColor, borderColor: visual.colorAlt + '33' },
+      ]}>
+
+        {/* ── Gradient Header ── */}
+        <LinearGradient
+          colors={[visual.gradientStart, visual.gradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.cardHeader}
+        >
+          {/* Decorative blob */}
+          <View style={styles.cardHeaderBlob} pointerEvents="none" />
+          <View style={styles.cardHeaderBlob2} pointerEvents="none" />
+
+          {/* Order ID + Date */}
+          <View style={styles.cardHeaderLeft}>
+            <View style={[styles.cardIconBubble, styles.cardIconBubbleGlass]}>
+              <AppIcon name={visual.icon} size={16} color={'#FFFFFF'} strokeWidth={2.6} />
+            </View>
+            <View style={styles.cardMeta}>
+              <Text style={styles.orderId} numberOfLines={1}>#{orderLabel}</Text>
+              <Text style={styles.orderDate} numberOfLines={1}>{formatDate(item.date)}</Text>
+            </View>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(statusLabel) + '1A' }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(statusLabel) }]} numberOfLines={1}>
+
+          {/* Status pill */}
+          <View style={styles.statusPillGlass}>
+            <View style={styles.statusPillGlassDot} />
+            <Text style={styles.statusPillGlassText} numberOfLines={1}>
               {displayStatus}
             </Text>
           </View>
-        </View>
-        
+        </LinearGradient>
+
+        {/* ── Card Body ── */}
         <View style={styles.cardBody}>
-          <View style={styles.cardDetails}>
-            <View style={styles.infoBadgeRow}>
-              <View style={styles.infoBadge}>
-                <AppIcon name="orders" size={13} color={colors.textSecondary} />
-                <Text style={styles.infoBadgeText}>{item.itemCount} Item{item.itemCount > 1 ? 's' : ''}</Text>
-              </View>
-              <View style={styles.infoBadge}>
-                <AppIcon name="creditCard" size={13} color={colors.textSecondary} />
-                <Text style={styles.infoBadgeText} numberOfLines={1}>{item.paymentMethod}</Text>
-              </View>
-              <View style={[styles.infoBadge, { borderColor: getPaymentStatusColor(paymentStatus) + '40', backgroundColor: getPaymentStatusColor(paymentStatus) + '12' }]}>
-                <View style={[styles.paymentDot, { backgroundColor: getPaymentStatusColor(paymentStatus) }]} />
-                <Text style={[styles.infoBadgeText, { color: getPaymentStatusColor(paymentStatus) }]} numberOfLines={1}>{paymentStatus}</Text>
-              </View>
+
+          {/* Progress stepper (hidden for Cancelled) */}
+          {!isCancelled && (
+            <View style={styles.stepperRow}>
+              {ORDER_STEPS.map((step, si) => {
+                const isCompleted = si <= activeStep;
+                const isActive = si === activeStep;
+                return (
+                  <React.Fragment key={step.label}>
+                    <View style={styles.stepItem}>
+                      <View style={[
+                        styles.stepDot,
+                        isCompleted ? { backgroundColor: visual.colorAlt } : styles.stepDotInactive,
+                        isActive && styles.stepDotActive,
+                      ]}>
+                        {isCompleted && (
+                          <AppIcon
+                            name={isActive ? visual.icon : 'check'}
+                            size={isActive ? 9 : 8}
+                            color="#FFF"
+                            strokeWidth={3}
+                          />
+                        )}
+                      </View>
+                      <Text style={[
+                        styles.stepLabel,
+                        isCompleted ? { color: visual.colorAlt, fontWeight: '700' } : {},
+                        isActive ? { fontWeight: '800' } : {},
+                      ]} numberOfLines={1}>
+                        {step.label}
+                      </Text>
+                    </View>
+                    {si < ORDER_STEPS.length - 1 && (
+                      <View style={[
+                        styles.stepLine,
+                        si < activeStep ? { backgroundColor: visual.colorAlt } : {},
+                      ]} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Cancelled banner */}
+          {isCancelled && (
+            <View style={styles.cancelledBanner}>
+              <AppIcon name="close" size={13} color={colors.error} strokeWidth={2.8} />
+              <Text style={styles.cancelledBannerText}>This order was cancelled</Text>
+            </View>
+          )}
+
+          {/* Info tags row */}
+          <View style={styles.tagsRow}>
+            <View style={styles.tag}>
+              <Text style={styles.tagText}>
+                {item.itemCount} Item{item.itemCount > 1 ? 's' : ''}
+              </Text>
+            </View>
+            <View style={styles.tag}>
+              <Text style={styles.tagText}>{item.paymentMethod}</Text>
+            </View>
+            <View style={[styles.tag, { backgroundColor: payColor + '18', borderColor: payColor + '40' }]}>
+              <View style={[styles.payDot, { backgroundColor: payColor }]} />
+              <Text style={[styles.tagText, { color: payColor, fontWeight: '800' }]}>{paymentStatus}</Text>
             </View>
           </View>
-          <View style={styles.amountBlock}>
-            <Text style={styles.totalLabel} numberOfLines={1}>TOTAL</Text>
-            <Text style={styles.totalAmount} numberOfLines={1}>Rs. {item.total}</Text>
+
+          {/* Bottom row: price + actions */}
+          <View style={styles.cardRowBottom}>
+            <View>
+              <Text style={styles.totalLabel}>Order Total</Text>
+              <Text style={styles.totalAmount}>Rs. {item.total}</Text>
+            </View>
+            <View style={styles.actionsRow}>
+              {item.canCancel && (
+                <Button
+                  label={cancellingId === item.id ? 'Cancelling…' : 'Cancel'}
+                  variant="outline"
+                  size="small"
+                  onPress={() => handleCancelOrder(item.id)}
+                  disabled={cancellingId === item.id}
+                  style={styles.cancelBtn}
+                />
+              )}
+              <LinearGradient
+                colors={[visual.gradientStart, visual.gradientEnd]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.detailsBtnGradient}
+              >
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
+                  style={styles.detailsBtn}
+                  activeOpacity={0.80}
+                  accessibilityRole="button"
+                  accessibilityLabel="View order details"
+                >
+                  <Text style={styles.detailsBtnText}>Details</Text>
+                  <AppIcon name="chevronRight" size={13} color={'#FFF'} strokeWidth={2.8} />
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
           </View>
-        </View>
 
-        <View style={styles.divider} />
-
-        <View style={styles.cardActions}>
-          {item.canCancel && (
-            <Button 
-              label={cancellingId === item.id ? "Cancelling..." : "Cancel Order"} 
-              variant="outline" 
-              size="small" 
-              onPress={() => handleCancelOrder(item.id)}
-              disabled={cancellingId === item.id}
-              style={styles.cancelBtn}
-            />
-          )}
-          <View style={{ flex: 1 }} />
-          <Button 
-            label="View Details" 
-            size="small" 
-            onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
-          />
         </View>
       </View>
     </FadeInItem>
@@ -439,58 +628,100 @@ export default function OrdersScreen() {
     <View style={styles.skeletonContainer}>
       {[1, 2, 3].map((k) => (
         <View key={k} style={styles.card}>
-          <SkeletonRow />
-          <View style={{ height: spacing.lg }} />
-          <SkeletonRow />
+          <View style={styles.cardBody}>
+            <View style={styles.cardRow}>
+              <SkeletonRow style={{ width: '70%' }} />
+            </View>
+            <View style={{ height: 8 }} />
+            <SkeletonRow style={{ width: '90%' }} />
+            <View style={{ height: 8 }} />
+            <SkeletonRow style={{ width: '40%' }} />
+          </View>
         </View>
       ))}
     </View>
   );
 
   const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <AppIcon name="orders" size={48} color={colors.textTertiary} style={styles.emptyEmoji} />
-      <Text style={styles.emptyTitle}>No orders found</Text>
-      <Text style={styles.emptyDesc}>
-        {activeFilter === 'All' 
-          ? "You haven't placed any orders yet. Start exploring our delicious menu!"
-          : `You don't have any ${(STATUS_DISPLAY_LABELS[activeFilter] || activeFilter).toLowerCase()} orders.`}
-      </Text>
-      <Button 
-        label="Start Shopping" 
-        onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })} 
-      />
-    </View>
+    <EmptyState
+      icon={<AppIcon name="orders" size={56} color={colors.textTertiary} />}
+      title="No orders found"
+      subtitle={activeFilter === 'All'
+        ? "You haven't placed any orders yet. Start exploring our delicious menu!"
+        : `You don't have any ${(STATUS_DISPLAY_LABELS[activeFilter] || activeFilter).toLowerCase()} orders.`}
+      actionLabel="Start Shopping"
+      onAction={() => navigation.navigate('MainTabs', { screen: 'Home' })}
+      style={styles.emptyState}
+    />
   );
 
   const renderErrorState = () => (
-    <View style={styles.emptyState}>
-      <AppIcon name="close" size={48} color={colors.error} style={styles.emptyEmoji} />
-      <Text style={styles.emptyTitle}>Could not load orders</Text>
-      <Text style={styles.emptyDesc}>{errorMessage}</Text>
-      <Button label="Retry" onPress={() => fetchOrders()} />
-    </View>
+    <ErrorState
+      icon={<AppIcon name="close" size={48} color={colors.error} />}
+      title="Could not load orders"
+      message={errorMessage}
+      onRetry={() => fetchOrders()}
+      style={styles.emptyState}
+    />
   );
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
       <AppHeader title="My Orders" />
 
+      {/* Summary hero (only shown when we actually have orders) */}
+      {!isLoading && !isError && orders.length > 0 && (
+        <View style={styles.summaryWrap}>
+          <LinearGradient
+            colors={[colors.brandGradientStart, colors.brandGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.summaryGradient}
+          >
+            <View style={styles.summaryBlob} pointerEvents="none" />
+            <View style={styles.summaryContent}>
+              <View>
+                <Text style={styles.summaryLabel}>Total orders</Text>
+                <Text style={styles.summaryValue}>{summary.total}</Text>
+              </View>
+              <View style={styles.summaryStatsRow}>
+                <SummaryStat label="Active" value={summary.active} color="#FFFFFF" bg="rgba(255,255,255,0.25)" />
+                <SummaryStat label="Delivered" value={summary.delivered} color="#FFFFFF" bg="rgba(255,255,255,0.25)" />
+                <SummaryStat label="Cancelled" value={summary.cancelled} color="#FFFFFF" bg="rgba(255,255,255,0.25)" />
+              </View>
+            </View>
+          </LinearGradient>
+        </View>
+      )}
+
       {/* Filter Chips */}
       <View style={styles.filterArea}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-          {FILTER_CHIPS.map(chip => (
-            <TouchableOpacity
-              key={chip.value}
-              style={[styles.chip, activeFilter === chip.value && styles.chipActive]}
-              onPress={() => {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setActiveFilter(chip.value);
-              }}
-            >
-              <Text style={[styles.chipText, activeFilter === chip.value && styles.chipTextActive]}>{chip.label}</Text>
-            </TouchableOpacity>
-          ))}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}
+        >
+          {FILTER_CHIPS.map(chip => {
+            const isActive = activeFilter === chip.value;
+            return (
+              <TouchableOpacity
+                key={chip.value}
+                style={[styles.chip, isActive && styles.chipActive]}
+                onPress={() => {
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  setActiveFilter(chip.value);
+                }}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={chip.label}
+                accessibilityState={{ selected: isActive }}
+              >
+                <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                  {chip.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -508,8 +739,13 @@ export default function OrdersScreen() {
             renderItem={renderItem}
             contentContainerStyle={styles.flatListContent}
             showsVerticalScrollIndicator={false}
-            ItemSeparatorComponent={() => <View style={{ height: spacing.lg }} />}
+            ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
             style={{ opacity: listOpacity }}
+            // removeClippedSubviews + windowSize tuning — see ProductListScreen.
+            removeClippedSubviews
+            initialNumToRender={6}
+            maxToRenderPerBatch={6}
+            windowSize={7}
             refreshControl={
               <RefreshControl
                 refreshing={isRefreshing}
@@ -528,25 +764,110 @@ export default function OrdersScreen() {
   );
 }
 
+function SummaryStat({ label, value, color, bg }) {
+  return (
+    <View style={styles.summaryStat}>
+      <View style={[styles.summaryStatBubble, { backgroundColor: bg }]}>
+        <Text style={[styles.summaryStatValue, { color }]}>{value}</Text>
+      </View>
+      <Text style={[styles.summaryStatLabel, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bgApp,
   },
+
+  /* ----- Summary hero ----- */
+  summaryWrap: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+  },
+  summaryGradient: {
+    borderRadius: radius.xxl,
+    padding: spacing.md,
+    overflow: 'hidden',
+    position: 'relative',
+    ...shadows.cardRaised,
+  },
+  summaryBlob: {
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  summaryContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  summaryLabel: {
+    ...typography.captionMedium,
+    color: 'rgba(26,31,43,0.7)',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  summaryValue: {
+    ...typography.hero,
+    color: colors.brandInk,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+    lineHeight: 32,
+  },
+  summaryStatsRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  summaryStat: {
+    alignItems: 'center',
+  },
+  summaryStatBubble: {
+    minWidth: 34,
+    height: 28,
+    paddingHorizontal: 8,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 3,
+  },
+  summaryStatValue: {
+    ...typography.labelLarge,
+    fontWeight: '900',
+  },
+  summaryStatLabel: {
+    ...typography.caption,
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    opacity: 0.85,
+  },
+
+  /* ----- Filter chips ----- */
   filterArea: {
     backgroundColor: colors.bgSurface,
     paddingBottom: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    marginTop: spacing.md,
   },
   filterScroll: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     gap: spacing.sm,
   },
   chip: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: 8,
     borderRadius: radius.pill,
     backgroundColor: colors.bgApp,
     borderWidth: 1,
@@ -555,138 +876,290 @@ const styles = StyleSheet.create({
   chipActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+    ...shadows.sm,
   },
   chipText: {
-    ...typography.label,
+    ...typography.labelSmall,
     color: colors.textSecondary,
+    fontWeight: '700',
   },
   chipTextActive: {
     color: colors.textInverse,
-    fontWeight: '600',
+    fontWeight: '800',
   },
+
+  /* ----- List ----- */
   listContainer: {
     flex: 1,
   },
   flatListContent: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
     paddingBottom: layout.bottomNavHeight + spacing.lg,
   },
+
+  /* ----- Skeleton ----- */
   skeletonContainer: {
-    padding: spacing.lg,
-    gap: spacing.lg,
+    padding: spacing.md,
+    gap: spacing.md,
   },
+
+  /* ----- Card (redesigned) ----- */
   card: {
     backgroundColor: colors.bgSurface,
-    padding: spacing.md,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.card,
+    overflow: 'hidden',
+    ...shadows.cardRaised,
   },
+
+  /* Gradient header */
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
-    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  orderTitleBlock: {
+  cardHeaderBlob: {
+    position: 'absolute',
+    top: -20,
+    right: -20,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    pointerEvents: 'none',
+  },
+  cardHeaderBlob2: {
+    position: 'absolute',
+    bottom: -15,
+    right: 70,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.09)',
+    pointerEvents: 'none',
+  },
+  cardHeaderLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minWidth: 0,
+  },
+  cardIconBubble: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  cardIconBubbleGlass: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  cardMeta: {
     flex: 1,
     minWidth: 0,
   },
   orderId: {
-    ...typography.labelLarge,
-    color: colors.textPrimary,
+    color: '#FFFFFF',
     fontWeight: '900',
-    marginBottom: 2,
+    fontSize: 15,
+    lineHeight: 19,
+    letterSpacing: -0.2,
   },
   orderDate: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 11,
+    fontWeight: '600',
+    lineHeight: 14,
+    marginTop: 1,
   },
-  statusBadge: {
-    maxWidth: 140,
-    paddingHorizontal: spacing.sm,
+  statusPillGlass: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.22)',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
+    borderColor: 'rgba(255,255,255,0.35)',
+    flexShrink: 0,
   },
-  statusText: {
-    ...typography.caption,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+  statusPillGlassDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+  },
+  statusPillGlassText: {
     fontSize: 10,
-    letterSpacing: 0.2,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    color: '#FFFFFF',
+    lineHeight: 13,
   },
+
+  /* Card body */
   cardBody: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm + 4,
+    paddingBottom: spacing.md,
+    gap: 12,
+  },
+
+  /* Progress stepper */
+  stepperRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
-    gap: spacing.md,
+    paddingVertical: 2,
   },
-  cardDetails: {
+  stepItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  stepDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepDotInactive: {
+    backgroundColor: colors.bgSkeletonBase,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  stepDotActive: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  stepLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: colors.textTertiary,
+    textAlign: 'center',
+    letterSpacing: 0.1,
+  },
+  stepLine: {
     flex: 1,
-    minWidth: 0,
+    height: 2.5,
+    backgroundColor: colors.border,
+    borderRadius: 2,
+    marginBottom: 14,
+    marginHorizontal: 2,
   },
-  infoBadgeRow: {
+
+  /* Cancelled banner */
+  cancelledBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.errorLight,
+    borderRadius: radius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: colors.error + '30',
+  },
+  cancelledBannerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.error,
+    letterSpacing: 0.1,
+  },
+
+  /* Info tag chips */
+  tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
+    gap: 6,
   },
-  infoBadge: {
+  tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.bgInput,
-    paddingHorizontal: spacing.sm,
+    gap: 4,
+    paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: radius.md,
-    gap: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  infoBadgeText: {
-    ...typography.caption,
-    color: colors.textSecondary,
+  tagText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: colors.textSecondary,
+    letterSpacing: 0.1,
   },
-  paymentDot: {
-    width: 7,
-    height: 7,
-    borderRadius: radius.circle,
+  payDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-  amountBlock: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    width: 90,
-    flexShrink: 0,
+
+  /* Bottom row */
+  cardRowBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    paddingTop: 2,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   totalLabel: {
-    ...typography.caption,
-    color: colors.textTertiary,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    color: colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
     marginBottom: 2,
   },
   totalAmount: {
-    ...typography.labelLarge,
     color: colors.textPrimary,
     fontWeight: '900',
-    fontSize: 16,
+    fontSize: 19,
+    lineHeight: 22,
+    letterSpacing: -0.5,
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  cardActions: {
+  actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   cancelBtn: {
-    borderColor: colors.error,
+    height: 36,
+    paddingHorizontal: spacing.md,
+  },
+  detailsBtnGradient: {
+    borderRadius: radius.md,
+    overflow: 'hidden',
+  },
+  detailsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 36,
+    paddingHorizontal: 14,
+  },
+  detailsBtnText: {
+    fontWeight: '800',
+    color: '#FFFFFF',
+    fontSize: 13,
+    letterSpacing: 0.1,
   },
   glowBorder: {
     position: 'absolute',
@@ -694,7 +1167,7 @@ const styles = StyleSheet.create({
     left: -2,
     right: -2,
     bottom: -2,
-    borderRadius: radius.lg + 2,
+    borderRadius: radius.xl + 2,
     borderWidth: 2,
     borderColor: '#FFEA00',
     ...shadows.md,
@@ -702,26 +1175,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 8,
   },
+
+  /* ----- Empty / error ----- */
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
     marginTop: spacing.xxl,
-  },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: spacing.md,
-  },
-  emptyTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  emptyDesc: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.xl,
   },
 });

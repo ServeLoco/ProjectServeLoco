@@ -9,7 +9,8 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { colors, typography, spacing, radius, shadows } from '../../theme';
+import AppIcon from '../AppIcon';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -26,6 +27,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
  *   onDecrement  - called to decrease qty (removes item when reaches 0)
  *   disabled     - disables all interactions (unavailable product)
  *   compact      - smaller variant for list cards
+ *   dense        - even smaller variant for compact grids
  */
 function QuantityStepper({
   quantity = 0,
@@ -45,7 +47,6 @@ function QuantityStepper({
     if ((previousQuantity === 0 && normalizedQuantity > 0) || (previousQuantity > 0 && normalizedQuantity === 0)) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     } else if (previousQuantity > 0 && normalizedQuantity > 0 && previousQuantity !== normalizedQuantity) {
-      // Scale bump on qty change
       scaleAnim.setValue(1.3);
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -61,25 +62,29 @@ function QuantityStepper({
       <View
         onStartShouldSetResponder={() => true}
         onTouchEnd={(e) => { e.stopPropagation && e.stopPropagation(); }}
+        style={styles.wrapper}
       >
         <TouchableOpacity
-        onPress={onAdd}
-        disabled={disabled}
-        activeOpacity={0.78}
-        style={[
-          styles.addBtn,
-          compact && styles.addBtnCompact,
-          dense && styles.addBtnDense,
-          disabled && styles.disabled,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel="Add to cart"
-      >
-        <Text
-          style={[styles.addLabel, compact && styles.addLabelCompact, dense && styles.addLabelDense]}
+          onPress={onAdd}
+          disabled={disabled}
+          activeOpacity={0.78}
+          style={[
+            styles.addBtn,
+            compact && styles.addBtnCompact,
+            dense && styles.addBtnDense,
+            disabled && styles.disabled,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Add to cart"
         >
-          ADD
-        </Text>
+          <View style={styles.addBtnInner}>
+            <AppIcon name="plus" size={compact ? 14 : 16} color={colors.textInverse} strokeWidth={2.6} />
+            <Text
+              style={[styles.addLabel, compact && styles.addLabelCompact, dense && styles.addLabelDense]}
+            >
+              ADD
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
     );
@@ -121,109 +126,125 @@ function QuantityStepper({
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flexShrink: 0,
+  },
+
   // ── Add button ───────────────────────────────────
   addBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.saffron,
     borderRadius: radius.md,
-    height: 36,
+    height: 40,
     paddingHorizontal: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 72,
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
+    minWidth: 96,
+    ...shadows.sm,
   },
   addBtnCompact: {
-    height: 26,
-    paddingHorizontal: spacing.xs,
-    minWidth: 44,
+    height: 34,
+    paddingHorizontal: spacing.sm,
+    minWidth: 60,
     width: '100%',
     borderRadius: radius.sm,
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#000000',
   },
   addBtnDense: {
-    height: 22,
-    minWidth: 38,
-    paddingHorizontal: spacing.xs,
+    height: 32,
+    minWidth: 52,
+    paddingHorizontal: 8,
+    borderRadius: radius.sm,
+  },
+  addBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
   },
   addLabel: {
     ...typography.button,
-    color: colors.primaryText,
+    color: colors.textInverse,
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
   addLabelCompact: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 0.3,
-    color: colors.primaryText,
+    letterSpacing: 0.5,
+    color: colors.textInverse,
   },
   addLabelDense: {
-    fontSize: 9.5,
-    lineHeight: 11,
+    fontSize: 11,
+    lineHeight: 13,
     fontWeight: '800',
-    color: colors.primaryText,
+    letterSpacing: 0.4,
+    color: colors.textInverse,
   },
 
   // ── Stepper ──────────────────────────────────────
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.saffron,
     borderRadius: radius.md,
-    height: 36,
+    height: 40,
     overflow: 'hidden',
-    minWidth: 104,
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
+    minWidth: 110,
+    ...shadows.sm,
   },
   stepperCompact: {
-    height: 26,
-    minWidth: 72,
+    height: 34,
+    minWidth: 80,
     width: '100%',
     borderRadius: radius.sm,
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#000000',
   },
   stepperDense: {
-    height: 22,
-    minWidth: 62,
+    height: 32,
+    minWidth: 68,
+    borderRadius: radius.sm,
   },
   stepBtn: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepBtnCompact: {
-    width: 24,
-    height: 26,
+    width: 26,
+    height: 34,
   },
   stepBtnDense: {
-    width: 20,
-    height: 22,
+    width: 22,
+    height: 32,
   },
   stepIcon: {
-    ...typography.h3,
-    color: colors.primaryText,
+    fontSize: 18,
     lineHeight: 20,
-    fontWeight: '700',
+    color: colors.textInverse,
+    fontWeight: '800',
     includeFontPadding: false,
   },
   qty: {
     flex: 1,
+    minWidth: 18,
     textAlign: 'center',
-    ...typography.labelLarge,
-    color: colors.primaryText,
-    fontWeight: '700',
+    color: colors.textInverse,
+    fontWeight: '800',
+    fontSize: 14,
+    lineHeight: 16,
   },
   qtyCompact: {
-    ...typography.label,
-    color: colors.primaryText,
-    fontWeight: '700',
+    color: colors.textInverse,
+    fontWeight: '800',
+    fontSize: 13,
+    lineHeight: 15,
+    minWidth: 18,
   },
   qtyDense: {
-    fontSize: 11,
-    lineHeight: 13,
+    fontSize: 12,
+    lineHeight: 14,
+    color: colors.textInverse,
+    fontWeight: '800',
+    minWidth: 16,
   },
 
   disabled: {
@@ -231,4 +252,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default QuantityStepper;
+export default React.memo(QuantityStepper);

@@ -1,0 +1,99 @@
+import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
+import { getApiBaseUrl } from '../api/config';
+
+/**
+ * useNetworkStatus
+ * Lightweight online/offline detection without adding @react-native-community/netinfo.
+ *
+ * Approach:
+ *   1. Periodically ping a lightweight endpoint to confirm the server is
+ *      reachable. The ping is cheap (HEAD /health) and throttled.
+ *   2. Treat consecutive failures as "offline"; a single success clears it.
+ *
+ * Returns:
+ *   { isOnline: boolean, isReachable: boolean, lastCheckedAt: number|null }
+ */
+const DEFAULT_CHECK_INTERVAL_MS = 30 * 1000;
+
+export function useNetworkStatus({
+  checkIntervalMs = DEFAULT_CHECK_INTERVAL_MS,
+  healthPath = '/health',
+  failureThreshold = 2,
+} = {}) {
+  // Best-effort: try the navigator.onLine hint when present. It works on web
+  // and is a partial signal on React Native. We treat it as a hint, not truth.
+  const initialOnline =
+    typeof globalThis !== 'undefined' &&
+    typeof globalThis.navigator !== 'undefined' &&
+    typeof globalThis.navigator.onLine === 'boolean'
+      ? globalThis.navigator.onLine
+      : true;
+  const [isReachable, setIsReachable] = useState(true);
+  const [lastCheckedAt, setLastCheckedAt] = useState(null);
+  const consecutiveFailuresRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const check = async () => {
+      if (cancelled) return;
+      const baseUrl = getApiBaseUrl();
+      if (!baseUrl) {
+        // No base URL configured — we can't ping. Stay optimistic.
+        return;
+      }
+      // The API base URL ends in '/api' (e.g. https://api.serveloco.app/api).
+      // The health endpoint is mounted at the root, NOT under /api
+      // (see apps/api/src/app.js:114 — `app.get('/health', ...)`).
+      // Strip the trailing /api so we ping the real health endpoint;
+      // otherwise we always 404 and falsely report the user as offline.
+      const rootBaseUrl = baseUrl.replace(/\/api\/?$/, '');
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 4000);
+        const res = await fetch(`${rootBaseUrl}${healthPath}`, {
+          method: 'HEAD',
+          signal: ctrl.signal,
+        });
+        clearTimeout(timer);
+        if (!mountedRef.current) return;
+        if (res.ok) {
+          consecutiveFailuresRef.current = 0;
+          setIsReachable(true);
+        } else {
+          consecutiveFailuresRef.current += 1;
+          if (consecutiveFailuresRef.current >= failureThreshold) setIsReachable(false);
+        }
+        setLastCheckedAt(Date.now());
+      } catch (_) {
+        if (!mountedRef.current) return;
+        consecutiveFailuresRef.current += 1;
+        if (consecutiveFailuresRef.current >= failureThreshold) setIsReachable(false);
+        setLastCheckedAt(Date.now());
+      }
+    };
+
+    // Kick off a check on app start and on every interval / foreground.
+    check();
+    const id = setInterval(check, checkIntervalMs);
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') check();
+    });
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      sub.remove();
+    };
+  }, [checkIntervalMs, healthPath, failureThreshold]);
+
+  // isOnline combines the (unreliable on RN) navigator.onLine hint with our
+  // own reachability check. The reachability check is the source of truth.
+  return { isOnline: initialOnline && isReachable, isReachable, lastCheckedAt };
+}

@@ -10,7 +10,9 @@ import {
   Linking,
   RefreshControl,
   Alert,
+  AppState,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import {
   AppScreen,
@@ -37,6 +39,115 @@ const BRAND_LINKS = {
   contactEmail: 'mailto:decodelabsofficial@gmail.com',
 };
 
+// Section configuration — kept in one place so the menu reads like a
+// declarative table of contents. Each row links to the original feature
+// with the same handler signature.
+const MENU_SECTIONS = [
+  {
+    key: 'account',
+    title: 'Account',
+    rows: [
+      {
+        key: 'edit',
+        iconBg: colors.saffronLight,
+        iconColor: colors.saffronDark,
+        icon: 'edit',
+        label: 'Edit Profile',
+        caption: 'Name, phone, address',
+        action: 'editProfile',
+      },
+      {
+        key: 'orders',
+        iconBg: colors.infoLight,
+        iconColor: colors.info,
+        icon: 'orders',
+        label: 'My Orders',
+        caption: 'Track current and past orders',
+        action: 'orders',
+        isLast: true,
+      },
+    ],
+  },
+  {
+    key: 'support',
+    title: 'Support & Legal',
+    rows: [
+      {
+        key: 'help',
+        iconBg: '#E8F8EF',
+        iconColor: '#1FB574',
+        icon: 'whatsapp',
+        label: 'Help & Support',
+        caption: 'supportPhone',
+        action: 'help',
+      },
+      {
+        key: 'privacy',
+        iconBg: colors.primaryLight,
+        iconColor: colors.primary,
+        icon: 'lock',
+        label: 'Privacy Policy',
+        caption: 'How we handle your data',
+        action: 'privacy',
+      },
+      {
+        key: 'terms',
+        iconBg: '#F1F5F9',
+        iconColor: '#475569',
+        icon: 'settings',
+        label: 'Terms of Service',
+        caption: 'Rules for using VillKro',
+        action: 'terms',
+      },
+      {
+        key: 'data',
+        iconBg: colors.saffronLight,
+        iconColor: colors.saffronDark,
+        icon: 'check',
+        label: 'Data Safety',
+        caption: 'Permissions, sharing and retention',
+        action: 'dataSafety',
+      },
+      {
+        key: 'contact',
+        iconBg: '#E0F2FE',
+        iconColor: '#0284C7',
+        icon: 'mail',
+        label: 'Contact us',
+        caption: 'decodelabsofficial@gmail.com',
+        action: 'contact',
+        isLast: true,
+      },
+    ],
+  },
+  {
+    key: 'actions',
+    title: 'Account actions',
+    rows: [
+      {
+        key: 'logout',
+        iconBg: '#FFF7ED',
+        iconColor: '#9A3412',
+        icon: 'logout',
+        label: 'Logout',
+        caption: 'Log out from this device',
+        action: 'logout',
+      },
+      {
+        key: 'delete',
+        iconBg: colors.errorLight,
+        iconColor: colors.error,
+        icon: 'delete',
+        label: 'Delete Account',
+        caption: '30-day grace period before permanent deletion',
+        action: 'delete',
+        isLast: true,
+        destructive: true,
+      },
+    ],
+  },
+];
+
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const user = useAuthStore(state => state.user);
@@ -54,11 +165,10 @@ export default function ProfileScreen() {
   const [deleteStep, setDeleteStep] = useState(null);
   const [deletePassword, setDeletePassword] = useState('');
 
-  const cardFade = useRef(new Animated.Value(0)).current;
-  const cardSlide = useRef(new Animated.Value(10)).current;
-  const listAnim1 = useRef(new Animated.Value(0)).current;
-  const listAnim2 = useRef(new Animated.Value(0)).current;
-  const listAnim3 = useRef(new Animated.Value(0)).current;
+  const heroFade = useRef(new Animated.Value(0)).current;
+  const heroSlide = useRef(new Animated.Value(16)).current;
+  const sectionsFade = useRef(new Animated.Value(0)).current;
+  const sectionsSlide = useRef(new Animated.Value(12)).current;
 
   const loadProfile = React.useCallback((refresh = false) => {
     if (refresh) setIsRefreshing(true);
@@ -74,20 +184,35 @@ export default function ProfileScreen() {
   useEffect(() => {
     loadProfile();
 
-    Animated.stagger(100, [
+    Animated.stagger(120, [
       Animated.parallel([
-        Animated.timing(cardFade, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.timing(cardSlide, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(heroFade, { toValue: 1, duration: 480, useNativeDriver: true }),
+        Animated.timing(heroSlide, { toValue: 0, duration: 480, useNativeDriver: true }),
       ]),
-      Animated.timing(listAnim1, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.timing(listAnim2, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.timing(listAnim3, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.parallel([
+        Animated.timing(sectionsFade, { toValue: 1, duration: 360, useNativeDriver: true }),
+        Animated.timing(sectionsSlide, { toValue: 0, duration: 360, useNativeDriver: true }),
+      ]),
     ]).start();
+  }, [loadProfile]);
+
+  // Refetch the profile whenever the app returns to the foreground
+  // (e.g. after the user opens WhatsApp from "Help & Support"). Without
+  // this the screen stays mounted with stale data and looks empty.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        loadProfile(true);
+      }
+    });
+    return () => subscription?.remove?.();
   }, [loadProfile]);
 
   const handleHelpSupport = () => {
     if (supportPhone) {
-      Linking.openURL(`tel:${supportPhone}`);
+      const digits = String(supportPhone).replace(/[^0-9]/g, '');
+      const withCountryCode = digits.length === 10 ? `91${digits}` : digits;
+      openLink(`https://wa.me/${withCountryCode}`);
     }
   };
 
@@ -138,6 +263,50 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleRowAction = (action) => {
+    switch (action) {
+      case 'editProfile':
+        navigation.navigate('EditProfile');
+        break;
+      case 'orders':
+        navigation.navigate('MainTabs', { screen: 'Orders' });
+        break;
+      case 'help':
+        handleHelpSupport();
+        break;
+      case 'privacy':
+        openLink(POLICY_URLS.privacy);
+        break;
+      case 'terms':
+        openLink(POLICY_URLS.terms);
+        break;
+      case 'dataSafety':
+        openLink(POLICY_URLS.privacy);
+        break;
+      case 'instagram':
+        openLink(BRAND_LINKS.instagram);
+        break;
+      case 'contact':
+        openLink(BRAND_LINKS.contactEmail);
+        break;
+      case 'logout':
+        setShowLogoutConfirm(true);
+        break;
+      case 'delete':
+        setDeletePassword('');
+        setDeleteStep('password');
+        break;
+      default:
+        break;
+    }
+  };
+
+  const statusLabel = profile?.status || (profile?.trusted ? 'Trusted' : 'Active');
+  const statusColor =
+    statusLabel === 'Blocked' ? colors.error :
+    statusLabel === 'Trusted' ? colors.success :
+    colors.primary;
+
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
       <AppHeader title="Profile" />
@@ -156,188 +325,224 @@ export default function ProfileScreen() {
           />
         }
       >
+        {/* Hero card with gradient + avatar + identity */}
+        <Animated.View
+          style={[
+            styles.hero,
+            { opacity: heroFade, transform: [{ translateY: heroSlide }] },
+          ]}
+        >
+          <LinearGradient
+            colors={[colors.brandGradientStart, colors.brandGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
+            {/* Decorative blobs */}
+            <View style={styles.heroBlobA} pointerEvents="none" />
+            <View style={styles.heroBlobB} pointerEvents="none" />
 
-        {/* Profile Card */}
-        <Animated.View style={[styles.profileCard, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>
-          <View style={styles.profileTopRow}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}
-              </Text>
-            </View>
-            <View style={styles.identityBlock}>
-              <Text style={styles.profileName} numberOfLines={1}>{profile?.name || 'User'}</Text>
-              <Text style={styles.profilePhone} numberOfLines={1}>{user?.phone || 'No phone added'}</Text>
-              <View style={styles.memberChip}>
-                <AppIcon name="star" size={12} color={colors.warning} />
-                <Text style={styles.memberChipText}>VillKro Member</Text>
+            <View style={styles.heroTopRow}>
+              <View style={styles.avatarRing}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}
+                  </Text>
+                </View>
+                <View style={styles.avatarBadge}>
+                  <AppIcon name="star" size={10} color={colors.textInverse} strokeWidth={3} />
+                </View>
               </View>
-            </View>
-            <TouchableOpacity
-              style={styles.editIconBtn}
-              onPress={() => navigation.navigate('EditProfile')}
-              accessibilityRole="button"
-              accessibilityLabel="Edit profile"
-            >
-              <AppIcon name="edit" size={17} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
 
-          <View style={styles.profileInfoGrid}>
-            <View style={styles.infoTile}>
-              <View style={styles.infoTileIcon}>
-                <AppIcon name="phone" size={16} color={colors.primary} />
-              </View>
-              <Text style={styles.infoTileLabel}>Phone</Text>
-              <Text style={styles.infoTileValue} numberOfLines={1}>{user?.phone || 'Not added'}</Text>
-            </View>
-            <View style={styles.infoTile}>
-              <View style={styles.infoTileIcon}>
-                <AppIcon name="orders" size={16} color={colors.primary} />
-              </View>
-              <Text style={styles.infoTileLabel}>Orders</Text>
-              <Text style={styles.infoTileValue} numberOfLines={1}>{profile?.orderCount ?? 0}</Text>
-            </View>
-            <View style={styles.infoTile}>
-              <View style={styles.infoTileIcon}>
-                <AppIcon name="star" size={16} color={colors.primary} />
-              </View>
-              <Text style={styles.infoTileLabel}>Status</Text>
-              <Text style={styles.infoTileValue} numberOfLines={1}>
-                {profile?.status || (profile?.trusted ? 'Trusted' : 'Active')}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.addressPanel}>
-            <AppIcon name="location" size={17} color={colors.textSecondary} />
-            <Text style={styles.addressText} numberOfLines={2}>
-              {profile?.address || 'No address added yet.'}
-            </Text>
-          </View>
-
-          {profile?.status === 'Blocked' && (
-            <View style={styles.blockedBanner}>
-              <Text style={styles.blockedText}>Your account is currently restricted. Contact support.</Text>
-            </View>
-          )}
-
-          {profile?.deletionRequestedAt && (
-            <View style={styles.deletionBanner}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <AppIcon name="warning" size={18} color={colors.error} />
-                <Text style={styles.deletionBannerTitle}>Account deletion scheduled</Text>
-              </View>
-              <Text style={styles.deletionBannerBody}>
-                Your account and data will be permanently deleted on{' '}
-                <Text style={{ fontWeight: '700' }}>
-                  {new Date(new Date(profile.deletionRequestedAt).getTime() + 30 * 24 * 60 * 60 * 1000)
-                    .toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </Text>{' '}
-                (30 days from when you confirmed).
-              </Text>
-              <TouchableOpacity
-                style={styles.cancelDeleteBtn}
-                onPress={handleCancelDeletion}
-                disabled={isDeleting}
-              >
-                <Text style={styles.cancelDeleteBtnText}>
-                  {isDeleting ? 'Cancelling…' : 'Cancel deletion'}
+              <View style={styles.heroIdentity}>
+                <Text style={styles.heroName} numberOfLines={1}>
+                  {profile?.name || 'Welcome to VillKro'}
                 </Text>
+                <Text style={styles.heroPhone} numberOfLines={1}>
+                  {user?.phone || 'No phone added'}
+                </Text>
+                <View style={styles.heroChipsRow}>
+                  <View style={styles.heroChip}>
+                    <AppIcon name="star" size={11} color={colors.warning} strokeWidth={2.6} />
+                    <Text style={styles.heroChipText}>VillKro Member</Text>
+                  </View>
+                  <View style={[styles.heroChip, styles.heroChipGhost]}>
+                    <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                    <Text style={[styles.heroChipGhostText, { color: statusColor }]}>
+                      {statusLabel}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.heroEditBtn}
+                onPress={() => navigation.navigate('EditProfile')}
+                accessibilityRole="button"
+                accessibilityLabel="Edit profile"
+                activeOpacity={0.78}
+              >
+                <AppIcon name="edit" size={16} color={colors.textInverse} strokeWidth={2.4} />
               </TouchableOpacity>
             </View>
-          )}
+          </LinearGradient>
         </Animated.View>
 
-        {/* Menu Options */}
-        <Animated.View style={[styles.menuGroup, { opacity: listAnim1, transform: [{ translateY: listAnim1.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }]}>
-          <Text style={styles.menuGroupTitle}>Account</Text>
-          <View style={styles.menuCard}>
-            <MenuOption
-              icon="Edit"
-              label="Edit Profile"
-              caption="Name, phone, address"
-              onPress={() => navigation.navigate('EditProfile')}
-            />
-            <MenuOption
-              icon="Box"
-              label="My Orders"
-              caption="Track current and past orders"
-              onPress={() => navigation.navigate('MainTabs', { screen: 'Orders' })}
-            />
-            <MenuOption
-              icon="Pin"
-              label="Saved Address"
-              caption="Delivery address details"
-              onPress={() => navigation.navigate('EditProfile')} // Route to EditProfile for now
-              isLast
-            />
+        {/* Instagram follow card */}
+        <TouchableOpacity
+          style={styles.igCard}
+          onPress={() => openLink(BRAND_LINKS.instagram)}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Follow us on Instagram"
+        >
+          <LinearGradient
+            colors={['#F58529', '#DD2A7B', '#8134AF', '#515BD4']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.igGradient}
+          >
+            {/* Decorative shapes */}
+            <View style={styles.igBlobA} pointerEvents="none" />
+            <View style={styles.igBlobB} pointerEvents="none" />
+            <View style={styles.igBlobC} pointerEvents="none" />
+
+            <View style={styles.igTopRow}>
+              <View style={styles.igIconBubble}>
+                <AppIcon name="atsign" size={20} color="#FFFFFF" strokeWidth={2.6} />
+              </View>
+              <View style={styles.igTag}>
+                <Text style={styles.igTagText}>SOCIAL</Text>
+              </View>
+            </View>
+
+            <View style={styles.igMiddle}>
+              <Text style={styles.igTitle}>Follow us on Instagram</Text>
+              <Text style={styles.igHandle}>@villkro</Text>
+              <Text style={styles.igSubtitle}>
+                Behind-the-scenes, offers and updates from your local shop
+              </Text>
+            </View>
+
+            <View style={styles.igBottomRow}>
+              <View style={styles.igFollowBtn}>
+                <Text style={styles.igFollowBtnText}>Follow</Text>
+              </View>
+              <View style={styles.igArrow}>
+                <AppIcon name="chevronRight" size={18} color="#FFFFFF" strokeWidth={2.6} />
+              </View>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Address / info panel */}
+        <View style={styles.addressCard}>
+          <View style={styles.addressIconBubble}>
+            <AppIcon name="location" size={16} color={colors.primary} />
           </View>
-        </Animated.View>
-
-        <Animated.View style={[styles.menuGroup, { opacity: listAnim2, transform: [{ translateY: listAnim2.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }]}>
-          <Text style={styles.menuGroupTitle}>Support</Text>
-          <View style={styles.menuCard}>
-            <MenuOption
-              icon="Help"
-              label="Help and Support"
-              caption={supportPhone ? `Call ${supportPhone}` : 'Contact shop support'}
-              onPress={handleHelpSupport}
-            />
-            <MenuOption
-              icon="Privacy"
-              label="Privacy Policy"
-              caption="How we handle your data"
-              onPress={() => openLink(POLICY_URLS.privacy)}
-            />
-            <MenuOption
-              icon="Terms"
-              label="Terms of Service"
-              caption="Rules for using VillKro"
-              onPress={() => openLink(POLICY_URLS.terms)}
-            />
-            <MenuOption
-              icon="DataSafety"
-              label="Data Safety"
-              caption="Permissions, sharing and retention"
-              onPress={() => openLink(POLICY_URLS.privacy)}
-            />
-            <MenuOption
-              icon="Instagram"
-              label="Follow us on Instagram"
-              caption="@villkro"
-              onPress={() => openLink(BRAND_LINKS.instagram)}
-            />
-            <MenuOption
-              icon="Contact"
-              label="Contact us"
-              caption="decodelabsofficial@gmail.com"
-              onPress={() => openLink(BRAND_LINKS.contactEmail)}
-              isLast
-            />
+          <View style={styles.addressContent}>
+            <Text style={styles.addressLabel}>Delivery address</Text>
+            <Text style={styles.addressText} numberOfLines={2}>
+              {profile?.address || 'No address added yet. Tap to set your delivery location.'}
+            </Text>
           </View>
-        </Animated.View>
+          <TouchableOpacity
+            style={styles.addressEditChip}
+            onPress={() => navigation.navigate('EditProfile')}
+            activeOpacity={0.78}
+            accessibilityRole="button"
+            accessibilityLabel="Edit address"
+          >
+            <AppIcon name="edit" size={13} color={colors.primary} strokeWidth={2.4} />
+            <Text style={styles.addressEditChipText}>Edit</Text>
+          </TouchableOpacity>
+        </View>
 
-        <Animated.View style={[styles.menuGroup, { opacity: listAnim3, transform: [{ translateY: listAnim3.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }]}>
-          <Text style={styles.menuGroupTitle}>Account actions</Text>
-          <View style={styles.menuCard}>
-            <MenuOption
-              icon="Logout"
-              label="Logout"
-              caption="Log out from this device."
-              onPress={() => setShowLogoutConfirm(true)}
-            />
-            <MenuOption
-              icon="DeleteAccount"
-              label="Delete Account"
-              caption="Scheduled deletion with a 30-day grace period"
-              onPress={() => { setDeletePassword(''); setDeleteStep('password'); }}
-              isDestructive
-              isLast
-            />
+        {/* Status banners (blocked / pending deletion) */}
+        {profile?.status === 'Blocked' && (
+          <View style={styles.blockedBanner}>
+            <View style={styles.blockedBannerIcon}>
+              <AppIcon name="close" size={14} color={colors.error} strokeWidth={2.6} />
+            </View>
+            <Text style={styles.blockedText}>
+              Your account is currently restricted. Contact support to restore access.
+            </Text>
           </View>
+        )}
+
+        {profile?.deletionRequestedAt && (
+          <View style={styles.deletionBanner}>
+            <View style={styles.deletionBannerHead}>
+              <View style={styles.deletionBannerIcon}>
+                <AppIcon name="warning" size={14} color="#B45309" strokeWidth={2.6} />
+              </View>
+              <Text style={styles.deletionBannerTitle}>Account deletion scheduled</Text>
+            </View>
+            <Text style={styles.deletionBannerBody}>
+              Your account and data will be permanently deleted on{' '}
+              <Text style={styles.deletionBannerDate}>
+                {new Date(new Date(profile.deletionRequestedAt).getTime() + 30 * 24 * 60 * 60 * 1000)
+                  .toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </Text>{' '}
+              (30 days from confirmation).
+            </Text>
+            <TouchableOpacity
+              style={styles.cancelDeleteBtn}
+              onPress={handleCancelDeletion}
+              disabled={isDeleting}
+              activeOpacity={0.78}
+            >
+              <AppIcon name="check" size={14} color="#FFFFFF" strokeWidth={2.6} />
+              <Text style={styles.cancelDeleteBtnText}>
+                {isDeleting ? 'Cancelling…' : 'Cancel deletion'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Menu sections */}
+        <Animated.View
+          style={[
+            styles.menuContainer,
+            { opacity: sectionsFade, transform: [{ translateY: sectionsSlide }] },
+          ]}
+        >
+          {MENU_SECTIONS.map((section) => (
+            <View key={section.key} style={styles.menuSection}>
+              <Text style={styles.menuSectionTitle}>{section.title}</Text>
+              <View style={styles.menuCard}>
+                {section.rows.map((row) => {
+                  const caption = row.caption === 'supportPhone'
+                    ? (supportPhone ? `Chat on WhatsApp (+91 ${supportPhone.replace(/[^0-9]/g, '').slice(-10)})` : 'Contact shop support')
+                    : row.caption;
+                  return (
+                    <MenuRow
+                      key={row.key}
+                      icon={row.icon}
+                      iconBg={row.iconBg}
+                      iconColor={row.iconColor}
+                      label={row.label}
+                      caption={caption}
+                      destructive={row.destructive}
+                      isLast={row.isLast}
+                      onPress={() => handleRowAction(row.action)}
+                    />
+                  );
+                })}
+              </View>
+            </View>
+          ))}
         </Animated.View>
 
+        {/* Footer */}
+        <View style={styles.footer}>
+          <View style={styles.footerDivider} />
+          <View style={styles.footerLine}>
+            <Text style={styles.footerBrand}>Made in Gorakhpur with </Text>
+            <Text style={styles.footerHeart}>❤️</Text>
+            <Text style={styles.footerBrand}> (Haryana)</Text>
+          </View>
+        </View>
       </ScrollView>
 
       <ConfirmModal
@@ -365,7 +570,7 @@ export default function ProfileScreen() {
       <ConfirmModal
         visible={deleteStep === 'confirm'}
         title="Schedule account deletion?"
-        message="Your account and data will be permanently deleted 30 days from now. You can cancel anytime in this Profile screen during the grace period — just tap 'Cancel deletion' on the red banner."
+        message="Your account and data will be permanently deleted 30 days from now. You can cancel anytime in this Profile screen during the grace period — just tap 'Cancel deletion' on the banner above."
         confirmLabel="Schedule deletion"
         cancelLabel="Keep account"
         confirmVariant="danger"
@@ -378,7 +583,7 @@ export default function ProfileScreen() {
       <ConfirmModal
         visible={deleteStep === 'pending'}
         title="Deletion scheduled"
-        message="Your account will be permanently deleted in 30 days. You can keep using the app until then. To undo, tap 'Cancel deletion' on the red banner above — your account and data will be fully restored."
+        message="Your account will be permanently deleted in 30 days. You can keep using the app until then. To undo, tap 'Cancel deletion' on the banner above — your account and data will be fully restored."
         confirmLabel="Got it"
         cancelLabel={false}
         confirmVariant="primary"
@@ -389,14 +594,53 @@ export default function ProfileScreen() {
   );
 }
 
+/* ------------------------------------------------------------------------- */
+/* Sub-components                                                              */
+/* ------------------------------------------------------------------------- */
+
+function MenuRow({ icon, iconBg, iconColor, label, caption, destructive, isLast, onPress }) {
+  return (
+    <TouchableOpacity
+      style={[styles.menuRow, isLast && styles.menuRowLast]}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <View style={[styles.menuRowIcon, { backgroundColor: iconBg }]}>
+        <AppIcon name={icon} size={17} color={iconColor} strokeWidth={2.2} />
+      </View>
+      <View style={styles.menuRowContent}>
+        <Text style={[styles.menuRowLabel, destructive && { color: colors.error }]} numberOfLines={1}>
+          {label}
+        </Text>
+        {caption ? (
+          <Text style={styles.menuRowCaption} numberOfLines={1}>{caption}</Text>
+        ) : null}
+      </View>
+      <View style={styles.menuRowChevron}>
+        <AppIcon name="chevronRight" size={16} color={colors.textTertiary} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 /**
- * Step-1 modal for the soft-delete flow. Reuses ConfirmModal (which now
- * accepts children) so the password input sits between the message and the
- * action row. The eye toggle is local to this component.
+ * Step-1 modal for the soft-delete flow. Reuses ConfirmModal (which
+ * accepts children) so the password input sits between the message and
+ * the action row. The eye toggle is built into TextInputField.
  */
 function DeletePasswordModal({ visible, password, onChangePassword, loading, onCancel, onConfirm }) {
-  const [showPassword, setShowPassword] = useState(false);
+  const passwordRef = useRef(null);
   const confirmDisabled = loading || !password;
+
+  useEffect(() => {
+    if (visible) {
+      const t = setTimeout(() => passwordRef.current?.focus?.(), 120);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [visible]);
 
   return (
     <ConfirmModal
@@ -411,66 +655,26 @@ function DeletePasswordModal({ visible, password, onChangePassword, loading, onC
       onConfirm={confirmDisabled ? undefined : onConfirm}
     >
       <View style={styles.passwordWrap}>
-        <Text style={styles.passwordLabel}>Your password</Text>
-        <View style={styles.passwordRow}>
-          <TextInputField
-            placeholder="••••••••"
-            secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={onChangePassword}
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoFocus
-            editable={!loading}
-          />
-          <TouchableOpacity
-            style={styles.eyeBtn}
-            onPress={() => setShowPassword(s => !s)}
-            accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-          >
-            <AppIcon name={showPassword ? 'Hide' : 'Show'} size={16} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
+        <TextInputField
+          label="Your password"
+          placeholder="Enter your password"
+          secureTextEntry
+          value={password}
+          onChangeText={onChangePassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!loading}
+          inputRef={passwordRef}
+          containerStyle={styles.passwordField}
+        />
       </View>
     </ConfirmModal>
   );
 }
 
-function MenuOption({ icon, label, caption, onPress, isDestructive, isLast }) {
-  const iconNameByLabel = {
-    Edit: 'edit',
-    Box: 'orders',
-    Pin: 'location',
-    Help: 'phone',
-    Privacy: 'lock',
-    Terms: 'settings',
-    DataSafety: 'check',
-    Instagram: 'atsign',
-    Contact: 'mail',
-    Logout: 'logout',
-    DeleteAccount: 'delete',
-  };
-  const iconColor = isDestructive ? colors.error : colors.textSecondary;
-
-  return (
-    <TouchableOpacity
-      style={styles.menuOption}
-      activeOpacity={0.7}
-      onPress={onPress}
-    >
-      <View style={styles.menuIconWrap}>
-        <AppIcon name={iconNameByLabel[icon] || 'box'} size={19} color={iconColor} />
-      </View>
-      <View style={[styles.menuTextBlock, isLast && styles.menuTextBlockLast]}>
-        <Text style={[styles.menuLabel, isDestructive && { color: colors.error }]}>
-          {label}
-        </Text>
-        {caption ? <Text style={styles.menuCaption} numberOfLines={1}>{caption}</Text> : null}
-      </View>
-      <AppIcon name="down" size={18} color={colors.textTertiary} style={styles.menuChevron} />
-    </TouchableOpacity>
-  );
-}
+/* ------------------------------------------------------------------------- */
+/* Styles                                                                     */
+/* ------------------------------------------------------------------------- */
 
 const styles = StyleSheet.create({
   container: {
@@ -478,237 +682,431 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgApp,
   },
   scrollContent: {
-    padding: spacing.md,
-    // Bottom padding needs to clear the floating tab bar in CustomerBottomTabs
-    // (height 64 + bottom offset 16 = 80px) plus some breathing room. The old
-    // value used spacing.xxxl which is undefined in this theme, so the result
-    // was NaN and React Native silently treated it as 0, hiding the last row.
     paddingBottom: 120,
   },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-    marginTop: spacing.xxl,
-  },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: spacing.md,
-  },
-  emptyTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  emptyDesc: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-  },
-  profileCard: {
-    backgroundColor: colors.bgSurface,
-    borderRadius: radius.xl,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+
+  /* ----- Hero ----- */
+  hero: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    borderRadius: radius.xxl,
+    overflow: 'hidden',
     ...shadows.cardRaised,
+  },
+  heroGradient: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    position: 'relative',
     overflow: 'hidden',
   },
-  profileTopRow: {
+  heroBlobA: {
+    position: 'absolute',
+    top: -60,
+    right: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  heroBlobB: {
+    position: 'absolute',
+    bottom: -70,
+    left: -30,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
     gap: spacing.md,
+    zIndex: 1,
+  },
+  avatarRing: {
+    width: 78,
+    height: 78,
+    borderRadius: 26,
+    padding: 4,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatar: {
-    width: 66,
-    height: 66,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
+    width: 70,
+    height: 70,
+    borderRadius: 22,
+    backgroundColor: colors.textInverse,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.md,
   },
   avatarText: {
-    ...typography.h2,
-    color: colors.textInverse,
+    ...typography.hero,
+    color: colors.saffronDark,
     fontWeight: '900',
   },
-  identityBlock: {
+  avatarBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.warning,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+  },
+  heroIdentity: {
     flex: 1,
     minWidth: 0,
   },
-  editIconBtn: {
-    width: 42,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bgSurface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.sm,
-  },
-  profileName: {
+  heroName: {
     ...typography.h2,
-    color: colors.textPrimary,
+    color: colors.brandInk,
     fontWeight: '900',
+    letterSpacing: -0.3,
     marginBottom: 2,
   },
-  profilePhone: {
+  heroPhone: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: 'rgba(26,31,43,0.7)',
+    fontWeight: '600',
     marginBottom: spacing.xs,
   },
-  memberChip: {
+  heroChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  heroChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
     gap: 4,
-    backgroundColor: colors.warningLight,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
   },
-  memberChipText: {
+  heroChipText: {
     ...typography.caption,
-    color: colors.successDark,
+    fontSize: 10,
+    fontWeight: '900',
+    color: colors.warning,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  heroChipGhost: {
+    backgroundColor: 'rgba(255,255,255,0.55)',
+  },
+  heroChipGhostText: {
+    ...typography.caption,
     fontSize: 10,
     fontWeight: '900',
     textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
-  profileInfoGrid: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 2,
   },
-  infoTile: {
-    flex: 1,
-    minHeight: 74,
+  heroEditBtn: {
+    width: 38,
+    height: 38,
     borderRadius: radius.lg,
-    backgroundColor: colors.bgApp,
+    backgroundColor: 'rgba(255,255,255,0.35)',
     borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.sm,
-  },
-  infoTileIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.md,
-    backgroundColor: colors.bgSurface,
+    borderColor: 'rgba(255,255,255,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xs,
   },
-  infoTileLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  infoTileValue: {
-    ...typography.label,
-    color: colors.textPrimary,
-    fontWeight: '800',
-    marginTop: 1,
-  },
-  addressPanel: {
+
+  /* ----- Address card ----- */
+  addressCard: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing.sm,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
     backgroundColor: colors.bgSurface,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: spacing.sm,
+    ...shadows.card,
   },
-  addressText: {
+  addressIconBubble: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  addressLabel: {
     ...typography.caption,
     color: colors.textSecondary,
-    flex: 1,
-    lineHeight: 17,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    marginBottom: 2,
   },
-  blockedBanner: {
+  addressText: {
+    ...typography.bodySmall,
+    color: colors.textPrimary,
+    lineHeight: 18,
+  },
+  addressEditChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primaryLight,
+  },
+  addressEditChipText: {
+    ...typography.caption,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+
+  /* ----- Instagram follow card ----- */
+  igCard: {
+    marginHorizontal: spacing.md,
     marginTop: spacing.md,
-    backgroundColor: colors.error + '1A',
-    padding: spacing.sm,
-    borderRadius: radius.md,
+    borderRadius: radius.xxl,
+    overflow: 'hidden',
+    ...shadows.cardRaised,
+  },
+  igGradient: {
+    padding: spacing.md,
+    position: 'relative',
+    overflow: 'hidden',
+    minHeight: 156,
+    justifyContent: 'space-between',
+  },
+  igBlobA: {
+    position: 'absolute',
+    top: -40,
+    right: -30,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
+  igBlobB: {
+    position: 'absolute',
+    bottom: -50,
+    left: -20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+  },
+  igBlobC: {
+    position: 'absolute',
+    top: 40,
+    right: 80,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  igTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 1,
+  },
+  igIconBubble: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255,255,255,0.22)',
     borderWidth: 1,
-    borderColor: colors.error + '40',
+    borderColor: 'rgba(255,255,255,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  igTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  igTagText: {
+    ...typography.caption,
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 1.2,
+  },
+  igMiddle: {
+    zIndex: 1,
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  igTitle: {
+    ...typography.labelLarge,
+    color: '#FFFFFF',
+    fontWeight: '900',
+    letterSpacing: -0.2,
+  },
+  igHandle: {
+    ...typography.h3,
+    color: '#FFFFFF',
+    fontWeight: '900',
+    letterSpacing: -0.3,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  igSubtitle: {
+    ...typography.caption,
+    color: 'rgba(255,255,255,0.92)',
+    lineHeight: 15,
+    fontWeight: '500',
+  },
+  igBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 1,
+  },
+  igFollowBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    backgroundColor: '#FFFFFF',
+    ...shadows.sm,
+  },
+  igFollowBtnText: {
+    ...typography.buttonSmall,
+    color: '#8134AF',
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  igArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.32)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  /* ----- Status banners ----- */
+  blockedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.errorLight,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.errorBorder,
+  },
+  blockedBannerIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(229,72,77,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   blockedText: {
-    ...typography.caption,
+    ...typography.bodySmall,
     color: colors.error,
     fontWeight: '600',
-    textAlign: 'center',
+    flex: 1,
+    lineHeight: 18,
   },
   deletionBanner: {
+    marginHorizontal: spacing.md,
     marginTop: spacing.md,
-    backgroundColor: '#fef3c7',
-    borderRadius: radius.md,
+    backgroundColor: '#FFFBEB',
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#f59e0b',
+    borderColor: '#FCD34D',
     padding: spacing.md,
-    gap: 4,
+    gap: 6,
+  },
+  deletionBannerHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  deletionBannerIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(180,83,9,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deletionBannerTitle: {
-    ...typography.bodyStrong,
-    color: '#92400e',
+    ...typography.labelLarge,
+    color: '#92400E',
+    fontWeight: '800',
+    flex: 1,
   },
   deletionBannerBody: {
-    ...typography.caption,
-    color: '#78350f',
+    ...typography.bodySmall,
+    color: '#78350F',
     lineHeight: 18,
-    marginBottom: spacing.sm,
+  },
+  deletionBannerDate: {
+    fontWeight: '800',
   },
   cancelDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     alignSelf: 'flex-start',
     paddingHorizontal: spacing.md,
     paddingVertical: 8,
-    borderRadius: radius.sm,
-    backgroundColor: '#92400e',
+    borderRadius: radius.pill,
+    backgroundColor: '#92400E',
+    marginTop: 4,
   },
   cancelDeleteBtnText: {
     ...typography.caption,
-    color: '#fff7ed',
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 12,
   },
-  passwordWrap: {
+
+  /* ----- Menu sections ----- */
+  menuContainer: {
+    marginTop: spacing.lg,
+  },
+  menuSection: {
+    marginHorizontal: spacing.md,
     marginBottom: spacing.md,
   },
-  passwordLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '600',
-    marginBottom: 4,
-    textAlign: 'left',
-  },
-  passwordRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  eyeBtn: {
-    width: 38,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 6,
-  },
-  menuGroup: {
-    marginBottom: spacing.md,
-  },
-  menuGroupTitle: {
-    ...typography.caption,
+  menuSectionTitle: {
+    ...typography.captionMedium,
     color: colors.textSecondary,
     marginBottom: spacing.xs,
     marginLeft: spacing.sm,
     fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.6,
   },
   menuCard: {
     backgroundColor: colors.bgSurface,
@@ -718,88 +1116,88 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...shadows.card,
   },
-  menuOption: {
+  menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 58,
-    paddingHorizontal: spacing.sm,
-    backgroundColor: colors.bgSurface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    gap: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  menuIconWrap: {
-    width: 36,
-    height: 36,
+  menuRowLast: {
+    borderBottomWidth: 0,
+  },
+  menuRowIcon: {
+    width: 38,
+    height: 38,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgApp,
-    marginRight: spacing.sm,
   },
-  menuTextBlock: {
+  menuRowContent: {
     flex: 1,
     minWidth: 0,
-    alignSelf: 'stretch',
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingRight: spacing.sm,
   },
-  menuTextBlockLast: {
-    borderBottomWidth: 0,
-  },
-  menuLabel: {
+  menuRowLabel: {
     ...typography.label,
     color: colors.textPrimary,
     fontWeight: '800',
     lineHeight: 18,
+    marginBottom: 2,
   },
-  menuCaption: {
+  menuRowCaption: {
     ...typography.caption,
     color: colors.textSecondary,
-    marginTop: 1,
-    lineHeight: 15,
+    lineHeight: 14,
   },
-  menuChevron: {
-    transform: [{ rotate: '-90deg' }],
-    marginLeft: spacing.xs,
-  },
-  modalOverlay: {
-    flex: 1,
+  menuRowChevron: {
+    width: 22,
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  /* ----- Password modal ----- */
+  passwordWrap: {
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
+    width: '100%',
+  },
+  passwordField: {
+    width: '100%',
+    marginBottom: 0,
+  },
+
+  /* ----- Footer ----- */
+  footer: {
     alignItems: 'center',
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
   },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    width: '85%',
-    backgroundColor: colors.bgSurface,
-    borderRadius: radius.lg,
-    padding: spacing.xl,
-    alignItems: 'center',
-    ...shadows.xl,
-  },
-  modalEmoji: {
-    fontSize: 48,
+  footerDivider: {
+    width: 40,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.borderStrong,
     marginBottom: spacing.md,
   },
-  modalTitle: {
-    ...typography.h2,
+  footerBrand: {
+    ...typography.h4,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
-    textAlign: 'center',
+    fontWeight: '900',
+    letterSpacing: 0.3,
+    marginBottom: 2,
   },
-  modalDesc: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.xl,
+  footerLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  modalActions: {
-    width: '100%',
-    gap: spacing.md,
+  footerHeart: {
+    fontSize: 16,
+    marginHorizontal: 2,
   },
-  modalBtn: {
-    width: '100%',
+  footerTag: {
+    ...typography.caption,
+    color: colors.textTertiary,
   },
 });

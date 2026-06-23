@@ -168,7 +168,7 @@ export default function ProductDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Large Product Image */}
         <Animated.View style={[styles.imageContainer, { opacity: imgFade }]}>
-          <ProductImage uri={product.imageUri} width="100%" height={300} borderRadius={0} style={styles.image} />
+          <ProductImage uri={product.imageUri} width="100%" height={300} borderRadius={0} style={styles.image} priority="high" />
           
           {/* Discount Badge on Image */}
           {product.discountLabel && (

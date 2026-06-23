@@ -24,7 +24,7 @@
   "submit": {
     "production": {
       "android": {
-        "track": "closed-beta",
+        "track": "alpha",
         "releaseStatus": "completed",
         "serviceAccountKeyPath": "/tmp/play-store-key.json"
       }

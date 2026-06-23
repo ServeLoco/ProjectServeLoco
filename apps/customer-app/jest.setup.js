@@ -56,3 +56,12 @@ jest.mock('expo-notifications', () => ({
   AndroidImportance: { MAX: 5 },
   addPushTokenListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
+
+// Mock expo-linear-gradient
+jest.mock('expo-linear-gradient', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    LinearGradient: React.forwardRef((props, ref) => <View ref={ref} {...props} />),
+  };
+});

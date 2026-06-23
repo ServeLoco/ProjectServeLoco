@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Image as ExpoImage } from 'expo-image';
 import {
   View,
   Text,
@@ -7,7 +8,6 @@ import {
   Animated,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   Linking,
   LayoutAnimation,
   Platform,
@@ -21,13 +21,15 @@ import {
   AppIcon,
   TextInputField,
   PressableScale,
+  LoadingSkeleton,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../../stores';
-import { cartApi, ordersApi, settingsApi, imagesApi } from '../../../api';
-import { normalizeCartCalculation, normalizeImageUrl, normalizeSettings } from '../../../utils';
+import { cartApi, ordersApi, imagesApi } from '../../../api';
+import { normalizeCartCalculation, normalizeImageUrl } from '../../../utils';
 import { isCodBlockedDuringNight } from '../../../utils/nightDelivery';
 import { formatEtaMinutes } from '../../../utils/formatEta';
+import { uuidv4 } from '../../../utils/uuid';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -107,6 +109,25 @@ export default function CheckoutScreen() {
   // Synchronous double-submit guard. React state is async, so isSubmitting alone
   // does not protect against a fast double-tap on Place Order.
   const isSubmittingRef = useRef(false);
+
+  // Idempotency-Key for this Place Order attempt. Kept across retries so
+  // the server can recognise "same attempt, please don't double-charge".
+  // Reset to null once the order is created so a fresh checkout session
+  // gets a fresh key.
+  const idempotencyKeyRef = useRef(null);
+
+  // Block hardware-back / gesture-back / programmatic navigation away
+  // while a Place Order is in flight. Without this, the user can swipe
+  // back or hit the system back button while the order is being created,
+  // unmount the screen, and end up with a "ghost" order on the server
+  // with no way to see it in the app.
+  useEffect(() => {
+    const unsub = navigation.addListener('beforeRemove', (e) => {
+      if (!isSubmittingRef.current) return;
+      e.preventDefault();
+    });
+    return unsub;
+  }, [navigation]);
 
   useEffect(() => {
     // Staggered entrance
@@ -256,9 +277,14 @@ export default function CheckoutScreen() {
         return;
       }
 
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
+      // 8s timeout — the device's GPS can hang on poor signal or
+      // when the user has location services half-on. A timeout lets
+      // the user proceed without GPS instead of staring at "Pinning
+      // Location..." forever.
+      const position = await Promise.race([
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('GPS request timed out. Please try again or proceed without location.')), 8000)),
+      ]);
 
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setBill(null);
@@ -314,6 +340,13 @@ export default function CheckoutScreen() {
     setSubmitError(null);
     setIsSubmitting(true);
 
+    // Generate a fresh Idempotency-Key for this Place Order attempt. If the
+    // request fails on a flaky connection and the user retries, we'll keep
+    // the SAME key (stored in this ref) so the server can recognise the
+    // retry and return the original order instead of creating a duplicate.
+    const idempotencyKey = idempotencyKeyRef.current || uuidv4();
+    idempotencyKeyRef.current = idempotencyKey;
+
     // Animate button loading state
     Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true }).start();
 
@@ -323,18 +356,21 @@ export default function CheckoutScreen() {
 
       // Location validation removed - backend will handle delivery availability
 
-      const orderResponse = await ordersApi.createOrder({
-        items: checkoutItems,
-        deliveryAddress: address.trim(),
-        address: address.trim(),
-        latitude: coordinates?.lat,
-        longitude: coordinates?.lng,
-        mapUrl: coordinates
-          ? `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`
-          : undefined,
-        paymentMethod,
-        delivery_type: deliveryType,
-      });
+      const orderResponse = await ordersApi.createOrder(
+        {
+          items: checkoutItems,
+          deliveryAddress: address.trim(),
+          address: address.trim(),
+          latitude: coordinates?.lat,
+          longitude: coordinates?.lng,
+          mapUrl: coordinates
+            ? `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`
+            : undefined,
+          paymentMethod,
+          delivery_type: deliveryType,
+        },
+        { headers: { 'Idempotency-Key': idempotencyKey } }
+      );
       const responseOrder = orderResponse?.order || orderResponse?.data || orderResponse;
       const orderId = responseOrder?.id || responseOrder?.orderId || orderResponse?.orderId;
       const confirmationParams = {
@@ -348,8 +384,11 @@ export default function CheckoutScreen() {
         },
       };
 
-      // Navigate first so we never end up with an empty cart on the Checkout screen
-      // if navigation throws synchronously. Cart is cleared right after.
+      // Clear the submit guard BEFORE dispatching the stack reset so the
+      // beforeRemove listener (which blocks back-gestures mid-submission)
+      // doesn't intercept and cancel this programmatic navigation.
+      isSubmittingRef.current = false;
+
       navigation.dispatch(
         CommonActions.reset({
           index: 1,
@@ -360,8 +399,12 @@ export default function CheckoutScreen() {
         })
       );
       clearCart();
+      // Order created successfully — clear the key so a future checkout
+      // session generates a fresh one.
+      idempotencyKeyRef.current = null;
     } catch (error) {
       setSubmitError(error.message || 'Unable to place order. Please try again.');
+      // Keep the key on failure so a retry reuses it (server will dedupe).
     } finally {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
@@ -618,10 +661,11 @@ export default function CheckoutScreen() {
               <View style={styles.upiQrWrap}>
                 <View style={styles.qrShell}>
                   {upiQrImageUrl ? (
-                    <Image
+                    <ExpoImage
                       source={{ uri: upiQrImageUrl }}
                       style={styles.qrImage}
-                      resizeMode="contain"
+                      contentFit="contain"
+                      transition={200}
                     />
                   ) : (
                     <View style={styles.qrPlaceholder}>
@@ -654,7 +698,12 @@ export default function CheckoutScreen() {
           
           <View style={styles.summaryBox}>
             {isCalculating ? (
-              <Text style={styles.calcText}>Calculating verified total...</Text>
+              <View style={styles.calcSkeleton}>
+                <LoadingSkeleton style={{ height: 18, width: '60%', marginBottom: 10 }} />
+                <LoadingSkeleton style={{ height: 14, width: '40%', marginBottom: 10 }} />
+                <LoadingSkeleton style={{ height: 14, width: '50%', marginBottom: 10 }} />
+                <LoadingSkeleton style={{ height: 22, width: '70%', marginTop: 6 }} />
+              </View>
             ) : calcError ? (
               <Text style={styles.calcErrorText}>{calcError}</Text>
             ) : bill ? (

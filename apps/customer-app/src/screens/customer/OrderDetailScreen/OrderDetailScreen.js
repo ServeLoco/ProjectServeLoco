@@ -23,7 +23,8 @@ import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useSettingsStore } from '../../../stores';
 import { ordersApi, subscribeOrderEvents, subscribeRealtimeLifecycle } from '../../../api';
 import { normalizeOrder } from '../../../utils';
-import { requestNotificationPermission, checkNotificationPermission } from '../../../hooks/useLocalNotifications';
+import * as Notifications from 'expo-notifications';
+import { requestNotificationPermission, checkNotificationPermission, readAskedState } from '../../../hooks/useLocalNotifications';
 import {
   getRealtimeOrderId,
   getRealtimeOrderKey,
@@ -117,22 +118,41 @@ export default function OrderDetailScreen() {
     loadOrder();
   }, [loadOrder]);
 
-  // Check if we should show notification permission modal. Hooks are the single
-  // source of truth for permission state and the AsyncStorage flag — we no
-  // longer touch storage directly here (previous key collided with the hook's
-  // key, causing the modal to re-appear after the hook had already asked).
+  // Show the in-app notification nudge only when:
+  //   1. OS has NOT granted permission, AND
+  //   2. The user has not yet been asked (login flow handles first-ask), OR
+  //      the user explicitly denied it (so we can send them to Settings).
+  // We deliberately skip the modal when the OS returns 'undetermined' after the
+  // system dialog was already shown — on some Android builds getPermissionsAsync
+  // returns 'undetermined' right after the user taps "Allow", which previously
+  // caused the modal to flash even for users who already granted access.
   useEffect(() => {
-    const checkNotificationPermissionStatus = async () => {
+    let timer;
+    (async () => {
       try {
         const isGranted = await checkNotificationPermission();
         if (isGranted) return;
-        const t = setTimeout(() => setShowNotificationModal(true), 2000);
-        return () => clearTimeout(t);
-      } catch (error) {
-        // Silently fail - not critical
+
+        const { status: osStatus } = await Notifications.getPermissionsAsync();
+        const askedState = await readAskedState();
+
+        // Only show the modal when we're confident the user denied access:
+        //   - OS explicitly reports 'denied', OR
+        //   - User was never asked at all (edge case: bypassed login flow).
+        // Skip when os returns 'undetermined' even after asking — some Android
+        // builds report this transiently after granting, and we don't want to
+        // falsely tell the user to "enable in Settings".
+        const explicitlyDenied = osStatus === 'denied';
+        const neverAsked = !askedState.asked;
+
+        if (explicitlyDenied || neverAsked) {
+          timer = setTimeout(() => setShowNotificationModal(true), 2000);
+        }
+      } catch {
+        // Non-critical; swallow silently.
       }
-    };
-    checkNotificationPermissionStatus();
+    })();
+    return () => clearTimeout(timer);
   }, []);
 
   const queueRealtimeLoad = React.useCallback(() => {
