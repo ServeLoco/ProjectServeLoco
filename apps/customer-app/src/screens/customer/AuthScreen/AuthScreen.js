@@ -274,12 +274,14 @@ export default function AuthScreen() {
     } catch (err) {
       setIsLoading(false);
       console.error('[firebase] verifyOtp error:', err);
-      if (err.code === 'auth/invalid-verification-code') {
+      if (err.code?.includes('invalid-verification-code') || err.message?.includes('invalid-verification-code')) {
         setErrorMsg('Incorrect OTP. Please try again.');
-      } else if (err.code === 'auth/code-expired') {
+      } else if (err.code?.includes('code-expired') || err.code?.includes('session-expired') || err.message?.includes('expired')) {
         setErrorMsg('OTP has expired. Please resend.');
       } else {
-        setErrorMsg(err.message || 'Failed to verify OTP');
+        // Strip the [auth/error-code] prefix if it exists
+        const cleanMsg = err.message?.includes(']') ? err.message.split('] ')[1] : err.message;
+        setErrorMsg(cleanMsg || 'Failed to verify OTP');
       }
       triggerShake();
     }
