@@ -72,6 +72,9 @@ export default function AuthScreen() {
   const phoneRef = useRef(null);
   const scrollRef = useRef(null);
   const otpRefs = useRef([]);
+  // Double-submit guard for verifyOtp (auto-submit on 6th digit + Verify OTP
+  // button tap can both fire within the same render cycle).
+  const submittingRef = useRef(false);
 
   /* Animated values */
   const heroFade = useAnimatedValue(0);
@@ -204,7 +207,8 @@ export default function AuthScreen() {
       } else if (err.code === 'auth/quota-exceeded') {
         setErrorMsg('SMS quota exceeded. Please try again later.');
       } else {
-        setErrorMsg(err.message || 'Failed to send OTP');
+        const cleanMsg = err.message?.includes(']') ? err.message.split('] ')[1] : err.message;
+        setErrorMsg(cleanMsg || 'Failed to send OTP');
       }
       triggerShake();
     }
@@ -216,6 +220,7 @@ export default function AuthScreen() {
    * fresh code directly instead of reading stale state from the closure.
    */
   const verifyOtp = async (codeOverride) => {
+    if (submittingRef.current) return;
     const code = typeof codeOverride === 'string' ? codeOverride : otp.join('');
     if (code.length !== OTP_LENGTH) {
       setErrorMsg(`Enter all ${OTP_LENGTH} digits`);
@@ -228,6 +233,7 @@ export default function AuthScreen() {
       return;
     }
 
+    submittingRef.current = true;
     setErrorMsg('');
     setIsLoading(true);
     try {
@@ -239,9 +245,15 @@ export default function AuthScreen() {
       } catch (confirmErr) {
         // Fallback for Android auto-verification
         // If Play Services auto-verified the SMS, the confirmation object is consumed
-        // and throws auth/code-expired, but the user is already signed in!
+        // and throws auth/code-expired (or auth/session-expired), but the user is
+        // already signed in. Only fall back in those specific cases — otherwise an
+        // unrelated error combined with a signed-in user from a previous session
+        // would mix two accounts.
         const currentUser = auth().currentUser;
-        if (currentUser) {
+        if (
+          currentUser &&
+          (confirmErr.code === 'auth/code-expired' || confirmErr.code === 'auth/session-expired')
+        ) {
           idToken = await currentUser.getIdToken(true);
         } else {
           throw confirmErr;
@@ -258,22 +270,26 @@ export default function AuthScreen() {
       try {
         const session = await authApi.firebaseVerify(payload);
         if (!session.token) throw new Error('Response did not include a session token');
-        setIsLoading(false);
         handleSuccess(session.token, session.user);
       } catch (backendErr) {
         // If backend says name is required (new user without name),
         // show the name step.
         if (backendErr.code === 'NAME_REQUIRED' ||
             backendErr.response?.code === 'NAME_REQUIRED') {
-          setIsLoading(false);
           animateToStep('name');
           return;
         }
         throw backendErr;
       }
     } catch (err) {
-      setIsLoading(false);
       console.error('[firebase] verifyOtp error:', err);
+      // Backend rate-limit (HTTP 429 / TOO_MANY_REQUESTS) — handled before
+      // Firebase error-code checks since it's a backend response shape.
+      if (err.status === 429 || err.code === 'TOO_MANY_REQUESTS') {
+        setErrorMsg('Too many attempts. Please try again later.');
+        triggerShake();
+        return;
+      }
       if (err.code?.includes('invalid-verification-code') || err.message?.includes('invalid-verification-code')) {
         setErrorMsg('Incorrect OTP. Please try again.');
       } else if (err.code?.includes('code-expired') || err.code?.includes('session-expired') || err.message?.includes('expired')) {
@@ -284,6 +300,9 @@ export default function AuthScreen() {
         setErrorMsg(cleanMsg || 'Failed to verify OTP');
       }
       triggerShake();
+    } finally {
+      setIsLoading(false);
+      submittingRef.current = false;
     }
   };
 
@@ -355,7 +374,7 @@ export default function AuthScreen() {
   const [resendTimer, setResendTimer] = useState(0);
   useEffect(() => {
     if (step === 'otp') {
-      setResendTimer(30);
+      setResendTimer(45);
     }
   }, [step]);
 
@@ -373,9 +392,10 @@ export default function AuthScreen() {
     try {
       const cleanPhone = phone.replace(/\D/g, '').slice(-10);
       const fullPhone = `${COUNTRY_CODE}${cleanPhone}`;
-      const result = await auth().signInWithPhoneNumber(fullPhone, true);
+      const forceResendingToken = confirmation?.verificationId || undefined;
+      const result = await auth().signInWithPhoneNumber(fullPhone, forceResendingToken);
       setConfirmation(result);
-      setResendTimer(30);
+      setResendTimer(45);
       setIsLoading(false);
       otpRefs.current[0]?.focus();
     } catch (err) {

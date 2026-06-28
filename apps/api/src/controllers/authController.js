@@ -321,6 +321,12 @@ const verifyFirebaseToken = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Firebase token does not contain a phone number' });
   }
 
+  // Only Indian (+91) phone numbers are supported. Reject anything else
+  // before we touch the database — including +1 (US), +44 (UK), etc.
+  if (!phone.startsWith('+91')) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Only Indian phone numbers (+91) are supported' });
+  }
+
   const firebaseUid = decoded.uid;
 
   // Normalize phone: strip +91 prefix if present, keep last 10 digits.
@@ -362,12 +368,61 @@ const verifyFirebaseToken = async (req, res) => {
     }
 
     const trimmedName = name.trim();
-    const [result] = await pool.query(
-      'INSERT INTO users (name, phone, firebase_uid) VALUES (?, ?, ?)',
-      [trimmedName, normalizedPhone, firebaseUid]
-    );
+    let userId;
+    try {
+      const [result] = await pool.query(
+        'INSERT INTO users (name, phone, firebase_uid) VALUES (?, ?, ?)',
+        [trimmedName, normalizedPhone, firebaseUid]
+      );
+      userId = result.insertId;
+    } catch (insertErr) {
+      // ER_DUP_ENTRY (MySQL errno 1062) can happen when two simultaneous
+      // OTP verifies for the same new phone race past the SELECT above.
+      // Re-query the existing user and continue the login flow instead of
+      // leaking the raw SQL error to the client.
+      const isDuplicate =
+        insertErr &&
+        (insertErr.code === 'ER_DUP_ENTRY' || insertErr.errno === 1062);
+      if (!isDuplicate) throw insertErr;
 
-    const userId = result.insertId;
+      const [raceWinner] = await pool.query(
+        'SELECT id, name, phone, whatsapp_number, address, trusted, blocked, firebase_uid, created_at FROM users WHERE phone = ?',
+        [normalizedPhone]
+      );
+      // Vanishingly unlikely (row deleted between the INSERT failure and the
+      // re-SELECT), but don't leak the raw MySQL error if it does happen.
+      if (raceWinner.length === 0) {
+        console.error('[auth] ER_DUP_ENTRY but row vanished on re-query:', insertErr.code || insertErr.message);
+        return res.status(409).json({ code: 'CONFLICT', message: 'Account state changed during request. Please try again.' });
+      }
+
+      const existingUser = raceWinner[0];
+      if (existingUser.blocked) {
+        return res.status(403).json({ code: 'FORBIDDEN', message: 'Your account is blocked' });
+      }
+      if (!existingUser.firebase_uid) {
+        await pool.query('UPDATE users SET firebase_uid = ? WHERE id = ?', [firebaseUid, existingUser.id]);
+      }
+
+      // Issue the session inline and return — we don't fall through to the
+      // new-user branch below since that would re-insert or fire a duplicate
+      // admin notification.
+      const raceToken = signCustomerToken(existingUser.id);
+      return res.status(200).json({
+        message: 'Login successful',
+        token: raceToken,
+        user: {
+          id: existingUser.id,
+          name: existingUser.name,
+          phone: existingUser.phone,
+          whatsapp_number: existingUser.whatsapp_number,
+          address: existingUser.address,
+          trusted: existingUser.trusted,
+          blocked: existingUser.blocked,
+          created_at: existingUser.created_at,
+        },
+      });
+    }
     isNewUser = true;
 
     // Admin inbox — fire-and-forget notification on new customer signup.

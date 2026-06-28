@@ -30,6 +30,7 @@ export default function AuthScreen() {
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   /* Firebase state */
   const [confirmation, setConfirmation] = useState(null);
@@ -69,6 +70,7 @@ export default function AuthScreen() {
       callback: () => {},
       'expired-callback': () => {
         setError('reCAPTCHA expired. Please try again.');
+        recaptchaRef.current = null;
       },
     });
 
@@ -90,6 +92,10 @@ export default function AuthScreen() {
       setError('Name is required');
       return;
     }
+    if (mode === 'signup' && !termsAccepted) {
+      setError('Please accept the Terms and Privacy Policy');
+      return;
+    }
 
     submittingRef.current = true;
     setLoading(true);
@@ -101,7 +107,7 @@ export default function AuthScreen() {
       const result = await signInWithPhoneNumber(auth, fullPhone, verifier);
       setConfirmation(result);
       setStep('otp');
-      setResendTimer(30);
+      setResendTimer(45);
       // Focus first OTP input
       setTimeout(() => otpRefs.current[0]?.focus(), 200);
     } catch (err) {
@@ -170,6 +176,12 @@ export default function AuthScreen() {
       }
     } catch (err) {
       console.error('[firebase] verifyOtp error:', err);
+      // Backend rate-limit (HTTP 429 / TOO_MANY_REQUESTS) — handled before
+      // Firebase error-code checks since the backend response wraps it.
+      if (err.status === 429 || err.code === 'TOO_MANY_REQUESTS' || err.data?.code === 'TOO_MANY_REQUESTS') {
+        setError('Too many attempts. Please try again later.');
+        return;
+      }
       if (err.code?.includes('invalid-verification-code') || err.message?.includes('invalid-verification-code')) {
         setError('Incorrect OTP. Please try again.');
       } else if (err.code?.includes('code-expired') || err.code?.includes('session-expired') || err.message?.includes('expired')) {
@@ -198,11 +210,14 @@ export default function AuthScreen() {
     setError(null);
 
     try {
-      // Re-get fresh token if needed
+      // Prefer the cached token captured at verify time; only force-refresh
+      // if we don't already have one (e.g. submitName called directly).
       let idToken = firebaseIdToken;
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        idToken = await currentUser.getIdToken(true);
+      if (!idToken) {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          idToken = await currentUser.getIdToken(true);
+        }
       }
 
       const res = await authApi.firebaseVerify({
@@ -239,7 +254,7 @@ export default function AuthScreen() {
       const fullPhone = `${COUNTRY_CODE}${cleanPhone}`;
       const result = await signInWithPhoneNumber(auth, fullPhone, verifier);
       setConfirmation(result);
-      setResendTimer(30);
+      setResendTimer(45);
       otpRefs.current[0]?.focus();
     } catch (err) {
       if (recaptchaRef.current) {
@@ -312,13 +327,13 @@ export default function AuthScreen() {
             <div className="auth-segmented">
               <button
                 className={`auth-seg-btn ${mode === 'login' ? 'active' : ''}`}
-                onClick={() => { setMode('login'); setError(null); }}
+                onClick={() => { setMode('login'); setError(null); setTermsAccepted(false); }}
               >
                 Log In
               </button>
               <button
                 className={`auth-seg-btn ${mode === 'signup' ? 'active' : ''}`}
-                onClick={() => { setMode('signup'); setError(null); }}
+                onClick={() => { setMode('signup'); setError(null); setTermsAccepted(false); }}
               >
                 Sign Up
               </button>
@@ -348,12 +363,23 @@ export default function AuthScreen() {
                     className="auth-input phone-input"
                     placeholder="10-digit mobile number"
                     value={phone}
-                    onChange={(e) => { setPhone(e.target.value); setError(null); }}
+                    onChange={(e) => { setPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setError(null); }}
                     maxLength={10}
                     required
                   />
                 </div>
               </div>
+
+              {mode === 'signup' && (
+                <label className="auth-terms-row">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => { setTermsAccepted(e.target.checked); setError(null); }}
+                  />
+                  <span>I agree to the <a href="/policies/terms" target="_blank" rel="noopener noreferrer">Terms</a> and <a href="/policies/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a></span>
+                </label>
+              )}
 
               {error && <div className="auth-error">{error}</div>}
 
@@ -385,7 +411,7 @@ export default function AuthScreen() {
                   value={digit}
                   onChange={(e) => handleOtpChange(e.target.value, index)}
                   onKeyDown={(e) => handleOtpKeyDown(e, index)}
-                  onPaste={index === 0 ? handleOtpPaste : undefined}
+                  onPaste={handleOtpPaste}
                   maxLength={1}
                   disabled={loading}
                   autoComplete={index === 0 ? 'one-time-code' : 'off'}
@@ -416,6 +442,7 @@ export default function AuthScreen() {
                   setOtp(Array(OTP_LENGTH).fill(''));
                   setConfirmation(null);
                   setError(null);
+                  setTermsAccepted(false);
                 }}
               >
                 Change number
