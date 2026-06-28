@@ -116,6 +116,14 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/ProjectServeLoco
+            git fetch origin
+            # Fail loudly if the server has local commits that aren't on origin/main.
+            # This prevents silent deploy stalls when someone hotfixes directly on
+            # the server and those commits never get pushed back to GitHub.
+            if [ "$(git rev-list --left-only --count origin/main...main)" -gt 0 ]; then
+              echo "::error::Server main has local commits not on origin/main. Run 'git log origin/main..main' and reconcile manually before deploying."
+              exit 1
+            fi
             git pull origin main
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d --build
