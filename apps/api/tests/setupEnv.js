@@ -1,3 +1,8 @@
+// NOTE: This file is loaded ONLY by Jest (see jest config). Values here
+// are intentionally tiny / fast-failing so tests run quickly. Do NOT copy
+// these into a real .env file. In particular, `JWT_EXPIRES_IN=1d` will
+// log out real users after one day; production should use `30d` (the
+// default in src/config/env.js) or longer.
 process.env.APP_ENV = process.env.APP_ENV || 'test';
 process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 process.env.PORT = process.env.PORT || '3000';

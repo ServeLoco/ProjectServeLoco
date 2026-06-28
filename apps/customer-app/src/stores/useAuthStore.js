@@ -57,7 +57,17 @@ export const useAuthStore = create(
 
         try {
           const fresh = await authApi.getMe();
-          useAuthStore.setState({ user: fresh, profile: fresh, isAuthenticated: true });
+          // fresh = { token, user } from normalizeSession.
+          // If the server sent a refreshed token (sliding renewal), update it.
+          const updates = {
+            user: fresh.user || fresh,
+            profile: fresh.user || fresh,
+            isAuthenticated: true,
+          };
+          if (fresh.token) {
+            updates.token = fresh.token;
+          }
+          useAuthStore.setState(updates);
           return finish(true);
         } catch (err) {
           const status = err && err.status;
@@ -113,8 +123,24 @@ export const useAuthStore = create(
     {
       name: 'serveloco-customer-auth',
       storage: createJSONStorage(() => AsyncStorage),
+      // Only persist real session data. Volatile flags (hasHydrated,
+      // sessionChecked) must stay false on cold start so the spinner
+      // shows until the store actually rehydrates and validates.
+      partialize: (state) => ({
+        token: state.token,
+        user: state.user,
+        profile: state.profile,
+        isAuthenticated: state.isAuthenticated,
+      }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
+        // If there's no token after rehydration, mark the session as
+        // already checked — there's nothing to validate. Without this,
+        // a fresh install would spin forever because validateSession
+        // might never run (or run before subscribers are attached).
+        if (!state?.token) {
+          useAuthStore.setState({ sessionChecked: true });
+        }
       },
     }
   )

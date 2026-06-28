@@ -33,13 +33,16 @@ export function getJwtExpiry(token) {
 
 /**
  * Returns true if the token is either missing, malformed, or has an `exp`
- * claim earlier than `now` (with `leewaySeconds` of grace, default 5s).
+ * claim earlier than `now` (with `leewaySeconds` of early-expire, default 30s).
+ * The leeway causes the client to treat the token as expired slightly BEFORE
+ * the server does, preventing race conditions where the client sends a request
+ * with a token that expires during transit.
  */
-export function isJwtExpired(token, leewaySeconds = 5) {
+export function isJwtExpired(token, leewaySeconds = 30) {
   const exp = getJwtExpiry(token);
   if (exp == null) return true; // can't read -> treat as expired (safer)
   const nowSeconds = Math.floor(Date.now() / 1000);
-  return nowSeconds >= exp + leewaySeconds;
+  return nowSeconds >= exp - leewaySeconds;
 }
 
 function base64Decode(input) {

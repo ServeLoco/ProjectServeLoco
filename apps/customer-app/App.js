@@ -118,6 +118,44 @@ function App() {
     return () => sub.remove();
   }, []);
 
+  // Periodic in-foreground re-validation. AppState 'change' only fires
+  // on background<->active transitions, so a user who keeps the app open
+  // for many hours never triggers a refresh. We poll /auth/me every
+  // SESSION_REVALIDATE_INTERVAL_MS while the app is in the foreground
+  // and the user is authenticated; the server's sliding-refresh hands
+  // back a renewed token long before the current one expires.
+  useEffect(() => {
+    const SESSION_REVALIDATE_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
+    let intervalId = null;
+
+    const start = () => {
+      if (intervalId) return;
+      intervalId = setInterval(() => {
+        if (!useAuthStore.getState().isAuthenticated) return;
+        useAuthStore.getState().validateSession();
+      }, SESSION_REVALIDATE_INTERVAL_MS);
+    };
+    const stop = () => {
+      if (!intervalId) return;
+      clearInterval(intervalId);
+      intervalId = null;
+    };
+
+    // Only run the timer while the app is actually foregrounded — no
+    // point waking the JS engine in the background just to fire a fetch
+    // that will hang until the OS resumes us.
+    if (AppState.currentState === 'active') start();
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') start();
+      else stop();
+    });
+
+    return () => {
+      stop();
+      sub.remove();
+    };
+  }, []);
+
   // Show the splash colour while the rehydration + validation is in flight
   // so we never flash the home tabs with a doomed token. CustomerNavigator
   // shows its own spinner while !hasHydrated; we just paint the background
