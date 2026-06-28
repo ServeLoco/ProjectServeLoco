@@ -255,6 +255,25 @@ export default function AuthScreen() {
           (confirmErr.code === 'auth/code-expired' || confirmErr.code === 'auth/session-expired')
         ) {
           idToken = await currentUser.getIdToken(true);
+        } else if (
+          confirmErr.code === 'auth/session-expired' ||
+          confirmErr.code === 'auth/code-expired'
+        ) {
+          // SMS Retriever auto-consumed the OTP before the user could submit it
+          // (typical when the user backgrounds the app to read the SMS), and
+          // auto-sign-in didn't take (Play Services lag, hash mismatch, etc.).
+          // We owe them a fresh OTP — re-request silently, update state, and
+          // prompt them to enter the new code.
+          const cleanPhoneRetry = phone.replace(/\D/g, '').slice(-10);
+          const retryPhone = `${COUNTRY_CODE}${cleanPhoneRetry}`;
+          const fresh = await auth().signInWithPhoneNumber(retryPhone);
+          setConfirmation(fresh);
+          setOtp(['', '', '', '', '', '']);
+          setResendTimer(45);
+          setErrorMsg('Your phone auto-read the SMS. We\u2019ve sent a new code \u2014 please enter it.');
+          triggerShake();
+          setTimeout(() => otpRefs.current[0]?.focus(), 200);
+          return;
         } else {
           throw confirmErr;
         }
