@@ -232,8 +232,21 @@ export default function AuthScreen() {
     setIsLoading(true);
     try {
       // Confirm the OTP with Firebase
-      const userCredential = await confirmation.confirm(code);
-      const idToken = await userCredential.user.getIdToken();
+      let idToken;
+      try {
+        const userCredential = await confirmation.confirm(code);
+        idToken = await userCredential.user.getIdToken();
+      } catch (confirmErr) {
+        // Fallback for Android auto-verification
+        // If Play Services auto-verified the SMS, the confirmation object is consumed
+        // and throws auth/code-expired, but the user is already signed in!
+        const currentUser = auth().currentUser;
+        if (currentUser) {
+          idToken = await currentUser.getIdToken(true);
+        } else {
+          throw confirmErr;
+        }
+      }
       setFirebaseIdToken(idToken);
 
       // Send to backend for verification and JWT issuance
