@@ -116,7 +116,8 @@ export default function AuthScreen() {
       } else if (err.code === 'auth/too-many-requests') {
         setError('Too many attempts. Please try again later.');
       } else {
-        setError(err.message || 'Failed to send OTP');
+        const cleanMsg = err.message?.includes(']') ? err.message.split('] ')[1] : err.message;
+        setError(cleanMsg || 'Failed to send OTP');
       }
     } finally {
       setLoading(false);
@@ -169,12 +170,13 @@ export default function AuthScreen() {
       }
     } catch (err) {
       console.error('[firebase] verifyOtp error:', err);
-      if (err.code === 'auth/invalid-verification-code') {
+      if (err.code?.includes('invalid-verification-code') || err.message?.includes('invalid-verification-code')) {
         setError('Incorrect OTP. Please try again.');
-      } else if (err.code === 'auth/code-expired') {
+      } else if (err.code?.includes('code-expired') || err.code?.includes('session-expired') || err.message?.includes('expired')) {
         setError('OTP has expired. Please resend.');
       } else {
-        setError(err.response?.data?.message || err.message || 'Failed to verify OTP');
+        const cleanMsg = err.message?.includes(']') ? err.message.split('] ')[1] : err.message;
+        setError(err.response?.data?.message || cleanMsg || 'Failed to verify OTP');
       }
     } finally {
       setLoading(false);
@@ -244,7 +246,8 @@ export default function AuthScreen() {
         try { recaptchaRef.current.clear(); } catch (_) { /* best-effort */ }
         recaptchaRef.current = null;
       }
-      setError(err.message || 'Failed to resend OTP');
+      const cleanMsg = err.message?.includes(']') ? err.message.split('] ')[1] : err.message;
+      setError(cleanMsg || 'Failed to resend OTP');
     } finally {
       setLoading(false);
       submittingRef.current = false;
