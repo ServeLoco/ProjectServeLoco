@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
-const { register, login, me, updateProfile, requestPasswordReset, requestAccountDeletion, cancelAccountDeletion, registerPushToken } = require('../controllers/authController');
+const { register, login, me, updateProfile, requestPasswordReset, requestAccountDeletion, cancelAccountDeletion, registerPushToken, verifyFirebaseToken } = require('../controllers/authController');
 const { requireCustomer } = require('../middleware/authMiddleware');
 const { validate, isString, isPhone, normalizeField } = require('../validators');
 const rateLimit = require('express-rate-limit');
@@ -20,6 +20,7 @@ const loginLimiter = makeAuthLimiter();
 const registerLimiter = makeAuthLimiter(); // shared by /register and its /signup alias (same flow)
 const passwordResetLimiter = makeAuthLimiter();
 const deleteAccountLimiter = makeAuthLimiter();
+const firebaseVerifyLimiter = makeAuthLimiter();
 
 // Schemas
 const registerSchema = (req) => {
@@ -86,6 +87,10 @@ const passwordResetRequestSchema = (req) => {
 };
 
 // Routes
+// Firebase Phone Auth — client sends Firebase ID token after OTP verification.
+// Works for both login (existing user) and signup (new user, include name).
+router.post('/firebase-verify', firebaseVerifyLimiter, asyncHandler(verifyFirebaseToken));
+
 router.post('/register', registerLimiter, validate(registerSchema), asyncHandler(register));
 router.post('/signup', registerLimiter, validate(registerSchema), asyncHandler(register)); // alias for frontend (shares register bucket)
 router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(login));

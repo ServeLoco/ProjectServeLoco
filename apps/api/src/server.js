@@ -37,7 +37,11 @@ const startServer = async () => {
     await db.initDB();
 
     server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server is running on port ${PORT}`);
+      // Log the configured JWT lifetime so a short value (e.g. '1d' leaking
+      // in from tests) is obvious in the server logs instead of surfacing
+      // as users mysteriously getting logged out after a day.
+      const jwtExpires = require('./config/env').JWT_EXPIRES_IN;
+      console.log(`Server is running on port ${PORT} (JWT_EXPIRES_IN=${jwtExpires})`);
     });
     initRealtime(server);
     // Auto-accept any orders that were Pending before this restart.

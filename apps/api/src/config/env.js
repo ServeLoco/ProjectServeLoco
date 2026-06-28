@@ -25,7 +25,7 @@ const config = {
   NODE_ENV: ENV,
   PORT: getEnv('PORT', localDefaults.PORT),
   JWT_SECRET: process.env.JWT_SECRET,
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '30d',
   
   ADMIN_OWNER_ID: process.env.ADMIN_OWNER_ID || (ENV === 'test' ? 'test_admin' : undefined),
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || (ENV === 'test' ? 'test_pass' : undefined),

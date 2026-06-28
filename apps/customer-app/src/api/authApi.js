@@ -13,6 +13,11 @@ const authApi = {
   requestAccountDeletion: payload => apiClient.post('/auth/me/request-deletion', payload, { auth: 'customer' }),
   cancelAccountDeletion: () => apiClient.post('/auth/me/cancel-deletion', {}, { auth: 'customer' }),
   registerPushToken: (push_token) => apiClient.post('/auth/me/push-token', { push_token }, { auth: 'customer' }),
+
+  // Firebase Phone Auth — send the Firebase ID token to the backend for verification.
+  // For login:  { idToken }
+  // For signup: { idToken, name }
+  firebaseVerify: payload => apiClient.post('/auth/firebase-verify', payload).then(normalizeSession),
 };
 
 export { authApi };

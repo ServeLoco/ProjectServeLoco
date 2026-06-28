@@ -13,12 +13,12 @@ import {
   Linking,
   Dimensions,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   AppScreen,
   TextInputField,
-  SegmentedControl,
   AppIcon,
 } from '../../../components';
 import { colors, typography, spacing, radius } from '../../../theme';
@@ -26,8 +26,12 @@ import { useAuthStore } from '../../../stores';
 import { authApi } from '../../../api';
 import { requestNotificationPermission } from '../../../hooks/useLocalNotifications';
 import { loginLogo } from '../../../assets';
+import { auth } from '../../../config/firebase';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+
+const COUNTRY_CODE = '+91';
+const OTP_LENGTH = 6;
 
 const POLICY_URLS = {
   privacy: 'https://api.serveloco.app/policies/privacy',
@@ -43,25 +47,31 @@ function useAnimatedValue(init) {
 export default function AuthScreen() {
   const setSession = useAuthStore((state) => state.setSession);
 
-  const [mode, setMode] = useState('Login'); // 'Login' | 'Sign Up' | 'Reset Password'
+  /*
+   * step: 'phone' | 'otp' | 'name'
+   *   phone → user enters phone (and name if signup mode)
+   *   otp   → user enters 6-digit Firebase OTP
+   *   name  → backend said NAME_REQUIRED for a new user
+   */
+  const [step, setStep] = useState('phone');
+  const [mode, setMode] = useState('Login'); // 'Login' | 'Sign Up'
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
 
   /* Form state */
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [termsAccepted, setTermsAccepted] = useState(false);
+
+  /* Firebase state */
+  const [confirmation, setConfirmation] = useState(null);
+  const [firebaseIdToken, setFirebaseIdToken] = useState(null);
 
   /* Refs */
   const phoneRef = useRef(null);
-  const passwordRef = useRef(null);
-  const confirmPasswordRef = useRef(null);
-  const resetPasswordRef = useRef(null);
-  const resetConfirmRef = useRef(null);
   const scrollRef = useRef(null);
+  const otpRefs = useRef([]);
 
   /* Animated values */
   const heroFade = useAnimatedValue(0);
@@ -77,8 +87,8 @@ export default function AuthScreen() {
   const blobC = useAnimatedValue(0);
 
   const shakeAnim = useAnimatedValue(0);
-  const modeFade = useAnimatedValue(1);
-  const modeSlide = useAnimatedValue(0);
+  const stepFade = useAnimatedValue(1);
+  const stepSlide = useAnimatedValue(0);
 
   /* ── Entrance animations ── */
   useEffect(() => {
@@ -90,14 +100,12 @@ export default function AuthScreen() {
       Animated.timing(blobB, { toValue: 1, duration: 1000, delay: 120, ...common }),
       Animated.timing(blobC, { toValue: 1, duration: 1100, delay: 240, ...common }),
       Animated.stagger(t, [
-        /* logo */
         Animated.parallel([
           Animated.timing(logoScale, { toValue: 1, duration: 700, ...common }),
           Animated.timing(logoRotate, { toValue: 0, duration: 700, ...common }),
           Animated.timing(heroFade, { toValue: 1, duration: 700, ...common }),
           Animated.timing(heroSlide, { toValue: 0, duration: 700, ...common }),
         ]),
-        /* card */
         Animated.parallel([
           Animated.timing(cardFade, { toValue: 1, duration: 700, ...common }),
           Animated.timing(cardSlide, { toValue: 0, duration: 700, ...common }),
@@ -111,9 +119,7 @@ export default function AuthScreen() {
     const showListener = Keyboard.addListener(showEvent, () => {
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
     });
-    const hideListener = Keyboard.addListener(hideEvent, () => {
-      /* no-op — ScrollView manages itself */
-    });
+    const hideListener = Keyboard.addListener(hideEvent, () => {});
 
     return () => {
       showListener.remove();
@@ -134,30 +140,23 @@ export default function AuthScreen() {
     ]).start();
   }, [shakeAnim]);
 
-  /* ── Mode switch animation ── */
-  const switchMode = useCallback(
-    (newMode) => {
-      if (newMode === mode) return;
-      // exit
+  /* ── Step transition animation ── */
+  const animateToStep = useCallback(
+    (newStep) => {
       Animated.parallel([
-        Animated.timing(modeFade, { toValue: 0, duration: 200, useNativeDriver: true }),
-        Animated.timing(modeSlide, { toValue: -16, duration: 200, useNativeDriver: true }),
+        Animated.timing(stepFade, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(stepSlide, { toValue: -16, duration: 200, useNativeDriver: true }),
       ]).start(() => {
-        setMode(newMode);
+        setStep(newStep);
         setErrorMsg('');
-        setSuccessMsg('');
-        setPassword('');
-        setConfirmPassword('');
-        setTermsAccepted(false);
-        // enter
-        modeSlide.setValue(16);
+        stepSlide.setValue(16);
         Animated.parallel([
-          Animated.timing(modeFade, { toValue: 1, duration: 280, useNativeDriver: true }),
-          Animated.timing(modeSlide, { toValue: 0, duration: 280, useNativeDriver: true }),
+          Animated.timing(stepFade, { toValue: 1, duration: 280, useNativeDriver: true }),
+          Animated.timing(stepSlide, { toValue: 0, duration: 280, useNativeDriver: true }),
         ]).start();
       });
     },
-    [mode, modeFade, modeSlide]
+    [stepFade, stepSlide]
   );
 
   const handleSuccess = useCallback((token, user) => {
@@ -167,293 +166,401 @@ export default function AuthScreen() {
     }, 800);
   }, [setSession]);
 
-  /* ── Login ── */
-  const submitLogin = async () => {
-    if (!phone || !password) {
-      setErrorMsg('Phone and password are required');
+  /* ── Send OTP via Firebase ── */
+  const sendOtp = async () => {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) {
+      setErrorMsg('Enter a valid 10-digit phone number');
       triggerShake();
       return;
     }
+    if (mode === 'Sign Up' && !name.trim()) {
+      setErrorMsg('Name is required');
+      triggerShake();
+      return;
+    }
+    if (mode === 'Sign Up' && !termsAccepted) {
+      setErrorMsg('Please accept the Terms and Privacy Policy');
+      triggerShake();
+      return;
+    }
+
     setErrorMsg('');
     setIsLoading(true);
     try {
-      const session = await authApi.login({ phone, password });
-      if (!session.token) throw new Error('Login response did not include a session token');
+      const fullPhone = `${COUNTRY_CODE}${cleanPhone}`;
+      const result = await auth().signInWithPhoneNumber(fullPhone);
+      setConfirmation(result);
       setIsLoading(false);
-      handleSuccess(session.token, session.user);
+      animateToStep('otp');
+      setTimeout(() => otpRefs.current[0]?.focus(), 400);
     } catch (err) {
       setIsLoading(false);
-      setErrorMsg(err.message || 'Failed to login');
+      console.error('[firebase] sendOtp error:', err);
+      if (err.code === 'auth/invalid-phone-number') {
+        setErrorMsg('Invalid phone number format');
+      } else if (err.code === 'auth/too-many-requests') {
+        setErrorMsg('Too many attempts. Please try again later.');
+      } else if (err.code === 'auth/quota-exceeded') {
+        setErrorMsg('SMS quota exceeded. Please try again later.');
+      } else {
+        setErrorMsg(err.message || 'Failed to send OTP');
+      }
       triggerShake();
     }
   };
 
-  /* ── Signup ── */
-  const submitSignup = async () => {
-    if (!name.trim() || !phone || !password || !confirmPassword) {
-      setErrorMsg('Please fill in all fields');
+  /* ── Verify OTP ──
+   * Accepts an optional `codeOverride` so the auto-submit path (which fires
+   * before React commits the state update for the 6th digit) can pass the
+   * fresh code directly instead of reading stale state from the closure.
+   */
+  const verifyOtp = async (codeOverride) => {
+    const code = typeof codeOverride === 'string' ? codeOverride : otp.join('');
+    if (code.length !== OTP_LENGTH) {
+      setErrorMsg(`Enter all ${OTP_LENGTH} digits`);
       triggerShake();
       return;
     }
-    if (!termsAccepted) {
-      setErrorMsg('Please accept the Terms and Privacy Policy to continue');
+    if (!confirmation) {
+      setErrorMsg('Session expired. Please resend OTP.');
       triggerShake();
       return;
     }
-    if (password !== confirmPassword) {
-      setErrorMsg('Passwords do not match');
-      triggerShake();
-      return;
-    }
-    if (password.length < 8) {
-      setErrorMsg('Password must be at least 8 characters');
-      triggerShake();
-      return;
-    }
+
     setErrorMsg('');
     setIsLoading(true);
     try {
-      const session = await authApi.signup({
+      // Confirm the OTP with Firebase
+      const userCredential = await confirmation.confirm(code);
+      const idToken = await userCredential.user.getIdToken();
+      setFirebaseIdToken(idToken);
+
+      // Send to backend for verification and JWT issuance
+      const payload = { idToken };
+      if (mode === 'Sign Up' && name.trim()) {
+        payload.name = name.trim();
+      }
+
+      try {
+        const session = await authApi.firebaseVerify(payload);
+        if (!session.token) throw new Error('Response did not include a session token');
+        setIsLoading(false);
+        handleSuccess(session.token, session.user);
+      } catch (backendErr) {
+        // If backend says name is required (new user without name),
+        // show the name step.
+        if (backendErr.code === 'NAME_REQUIRED' ||
+            backendErr.response?.code === 'NAME_REQUIRED') {
+          setIsLoading(false);
+          animateToStep('name');
+          return;
+        }
+        throw backendErr;
+      }
+    } catch (err) {
+      setIsLoading(false);
+      console.error('[firebase] verifyOtp error:', err);
+      if (err.code === 'auth/invalid-verification-code') {
+        setErrorMsg('Incorrect OTP. Please try again.');
+      } else if (err.code === 'auth/code-expired') {
+        setErrorMsg('OTP has expired. Please resend.');
+      } else {
+        setErrorMsg(err.message || 'Failed to verify OTP');
+      }
+      triggerShake();
+    }
+  };
+
+  /* ── Submit name (for new users discovered at verify time) ── */
+  const submitName = async () => {
+    if (!name.trim()) {
+      setErrorMsg('Name is required');
+      triggerShake();
+      return;
+    }
+
+    setErrorMsg('');
+    setIsLoading(true);
+    try {
+      // Re-get a fresh ID token in case the old one expired
+      const currentUser = auth().currentUser;
+      const idToken = currentUser ? await currentUser.getIdToken(true) : firebaseIdToken;
+
+      const session = await authApi.firebaseVerify({
+        idToken,
         name: name.trim(),
-        fullName: name.trim(),
-        phone,
-        password,
       });
-      if (!session.token) throw new Error('Signup response did not include a session token');
+      if (!session.token) throw new Error('Response did not include a session token');
       setIsLoading(false);
       handleSuccess(session.token, session.user);
     } catch (err) {
       setIsLoading(false);
-      setErrorMsg(err.message || 'Failed to sign up');
+      setErrorMsg(err.message || 'Failed to create account');
       triggerShake();
     }
   };
 
-  /* ── Reset password ── */
-  const submitPasswordResetRequest = async () => {
-    if (!phone || !password || !confirmPassword) {
-      setErrorMsg('Phone and new password are required');
-      triggerShake();
-      return;
+  /* ── OTP input handling ── */
+  const handleOtpChange = (text, index) => {
+    // Only allow digits
+    const digit = text.replace(/\D/g, '').slice(-1);
+    const newOtp = [...otp];
+    newOtp[index] = digit;
+    setOtp(newOtp);
+
+    // Auto-advance to next input
+    if (digit && index < OTP_LENGTH - 1) {
+      otpRefs.current[index + 1]?.focus();
     }
-    if (password !== confirmPassword) {
-      setErrorMsg('Passwords do not match');
-      triggerShake();
-      return;
+
+    // Auto-submit when all digits are filled
+    if (digit && index === OTP_LENGTH - 1) {
+      const code = newOtp.join('');
+      if (code.length === OTP_LENGTH) {
+        Keyboard.dismiss();
+        // Pass the fresh code directly — state update from setOtp() above
+        // hasn't committed yet, so reading `otp` inside verifyOtp would see
+        // the previous value.
+        verifyOtp(code);
+      }
     }
-    if (password.length < 8) {
-      setErrorMsg('Password must be at least 8 characters');
-      triggerShake();
-      return;
+  };
+
+  const handleOtpKeyPress = (e, index) => {
+    if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+      const newOtp = [...otp];
+      newOtp[index - 1] = '';
+      setOtp(newOtp);
     }
+  };
+
+  /* ── Resend OTP ── */
+  const [resendTimer, setResendTimer] = useState(0);
+  useEffect(() => {
+    if (step === 'otp') {
+      setResendTimer(30);
+    }
+  }, [step]);
+
+  useEffect(() => {
+    if (resendTimer <= 0) return;
+    const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendTimer]);
+
+  const resendOtp = async () => {
+    if (resendTimer > 0) return;
+    setOtp(['', '', '', '', '', '']);
     setErrorMsg('');
-    setSuccessMsg('');
     setIsLoading(true);
     try {
-      const response = await authApi.requestPasswordReset({
-        phone,
-        newPassword: password,
-        new_password: password,
-      });
-      setPassword('');
-      setConfirmPassword('');
-      setMode('Login');
-      setSuccessMsg(response.message || 'Password reset request sent for admin approval');
-    } catch (err) {
-      setErrorMsg(err.message || 'Failed to request password reset');
-      triggerShake();
-    } finally {
+      const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+      const fullPhone = `${COUNTRY_CODE}${cleanPhone}`;
+      const result = await auth().signInWithPhoneNumber(fullPhone, true);
+      setConfirmation(result);
+      setResendTimer(30);
       setIsLoading(false);
+      otpRefs.current[0]?.focus();
+    } catch (err) {
+      setIsLoading(false);
+      setErrorMsg(err.message || 'Failed to resend OTP');
+      triggerShake();
     }
   };
 
-  /* ── Forms ── */
-  const renderLoginForm = () => (
+  /* ── Mode switch (Login / Sign Up toggle) ── */
+  const switchMode = useCallback(
+    (newMode) => {
+      if (newMode === mode) return;
+      setMode(newMode);
+      setErrorMsg('');
+      setTermsAccepted(false);
+    },
+    [mode]
+  );
+
+  /* ── Render: Phone Step ── */
+  const renderPhoneStep = () => (
     <View style={styles.form}>
-      <TextInputField
-        label="Phone Number"
-        placeholder="10-digit mobile number"
-        keyboardType="phone-pad"
-        value={phone}
-        onChangeText={setPhone}
-        editable={!isLoading}
-        returnKeyType="next"
-        onSubmitEditing={() => passwordRef.current?.focus()}
-        inputRef={phoneRef}
-        containerStyle={styles.fieldGap}
-      />
-      <TextInputField
-        label="Password"
-        placeholder="Enter your password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        editable={!isLoading}
-        returnKeyType="done"
-        onSubmitEditing={submitLogin}
-        inputRef={passwordRef}
-        containerStyle={styles.fieldGap}
-      />
+      {mode === 'Sign Up' && (
+        <TextInputField
+          label="Full Name"
+          placeholder="Your full name"
+          value={name}
+          onChangeText={setName}
+          editable={!isLoading}
+          returnKeyType="next"
+          onSubmitEditing={() => phoneRef.current?.focus()}
+          autoCapitalize="words"
+          containerStyle={styles.fieldGap}
+        />
+      )}
+      <View style={styles.phoneRow}>
+        <View style={styles.countryCode}>
+          <Text style={styles.countryCodeText}>{COUNTRY_CODE}</Text>
+        </View>
+        <View style={styles.phoneInputWrap}>
+          <TextInputField
+            label={mode === 'Sign Up' ? '' : 'Phone Number'}
+            placeholder="10-digit mobile number"
+            keyboardType="phone-pad"
+            value={phone}
+            onChangeText={setPhone}
+            editable={!isLoading}
+            returnKeyType="done"
+            onSubmitEditing={sendOtp}
+            inputRef={phoneRef}
+            containerStyle={styles.fieldGap}
+            maxLength={10}
+          />
+        </View>
+      </View>
+      {mode === 'Sign Up' && (
+        <View style={styles.termsRow}>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={() => setTermsAccepted((p) => !p)}
+            disabled={isLoading}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: termsAccepted }}
+            accessibilityLabel="Accept Terms of Service and Privacy Policy"
+          >
+            <AnimatedCheckbox checked={termsAccepted} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.termsText}>
+              I agree to the{' '}
+              <Text style={styles.termsLink} onPress={() => Linking.openURL(POLICY_URLS.terms)}>
+                Terms
+              </Text>
+              {' '}and{' '}
+              <Text style={styles.termsLink} onPress={() => Linking.openURL(POLICY_URLS.privacy)}>
+                Privacy Policy
+              </Text>
+            </Text>
+          </View>
+        </View>
+      )}
       {!!errorMsg && (
         <View style={styles.alertRow}>
           <Text style={styles.errorText}>{errorMsg}</Text>
         </View>
       )}
-      {!!successMsg && (
-        <View style={styles.alertRow}>
-          <Text style={styles.successText}>{successMsg}</Text>
-        </View>
-      )}
-      <GradientButton label="Login" onPress={submitLogin} loading={isLoading} style={styles.mt} />
-      <View style={styles.linkRow}>
-        <NavLink label="Forgot password?" onPress={() => switchMode('Reset Password')} disabled={isLoading} />
-        <View style={styles.dividerDot} />
-        <NavLink label="Create account" onPress={() => switchMode('Sign Up')} disabled={isLoading} />
+      <GradientButton
+        label={mode === 'Sign Up' ? 'Get OTP' : 'Send OTP'}
+        onPress={sendOtp}
+        loading={isLoading}
+        style={styles.mt}
+      />
+      <View style={styles.linkRowSingle}>
+        {mode === 'Login' ? (
+          <NavLink
+            label="Don't have an account? Sign Up"
+            onPress={() => switchMode('Sign Up')}
+            disabled={isLoading}
+          />
+        ) : (
+          <NavLink
+            label="Already have an account? Login"
+            onPress={() => switchMode('Login')}
+            disabled={isLoading}
+          />
+        )}
       </View>
     </View>
   );
 
-  const renderSignupForm = () => (
+  /* ── Render: OTP Step ── */
+  const renderOtpStep = () => (
     <View style={styles.form}>
+      <Text style={styles.otpTitle}>Verify Phone Number</Text>
+      <Text style={styles.otpSubtitle}>
+        Enter the 6-digit code sent to{'\n'}
+        <Text style={styles.otpPhone}>{COUNTRY_CODE} {phone}</Text>
+      </Text>
+
+      <View style={styles.otpRow}>
+        {otp.map((digit, index) => (
+          <TextInput
+            key={index}
+            ref={(ref) => { otpRefs.current[index] = ref; }}
+            style={[
+              styles.otpBox,
+              digit ? styles.otpBoxFilled : null,
+            ]}
+            value={digit}
+            onChangeText={(text) => handleOtpChange(text, index)}
+            onKeyPress={(e) => handleOtpKeyPress(e, index)}
+            keyboardType="number-pad"
+            maxLength={1}
+            editable={!isLoading}
+            selectTextOnFocus
+            autoComplete="sms-otp"
+            textContentType="oneTimeCode"
+          />
+        ))}
+      </View>
+
+      {!!errorMsg && (
+        <View style={styles.alertRow}>
+          <Text style={styles.errorText}>{errorMsg}</Text>
+        </View>
+      )}
+
+      <GradientButton label="Verify OTP" onPress={verifyOtp} loading={isLoading} style={styles.mt} />
+
+      <View style={styles.otpActions}>
+        <TouchableOpacity
+          onPress={resendOtp}
+          disabled={resendTimer > 0 || isLoading}
+          activeOpacity={0.65}
+        >
+          <Text style={[styles.resendText, resendTimer > 0 && styles.resendDisabled]}>
+            {resendTimer > 0 ? `Resend OTP in ${resendTimer}s` : 'Resend OTP'}
+          </Text>
+        </TouchableOpacity>
+        <NavLink
+          label="Change number"
+          onPress={() => {
+            setOtp(['', '', '', '', '', '']);
+            setConfirmation(null);
+            animateToStep('phone');
+          }}
+          disabled={isLoading}
+        />
+      </View>
+    </View>
+  );
+
+  /* ── Render: Name Step (for new users discovered at verify time) ── */
+  const renderNameStep = () => (
+    <View style={styles.form}>
+      <Text style={styles.otpTitle}>Almost there!</Text>
+      <Text style={styles.otpSubtitle}>
+        You're new here. Tell us your name to get started.
+      </Text>
+
       <TextInputField
         label="Full Name"
         placeholder="Your full name"
         value={name}
         onChangeText={setName}
         editable={!isLoading}
-        returnKeyType="next"
-        onSubmitEditing={() => phoneRef.current?.focus()}
+        returnKeyType="done"
+        onSubmitEditing={submitName}
         autoCapitalize="words"
         containerStyle={styles.fieldGap}
       />
-      <View style={styles.phoneWrap}>
-        <TextInputField
-          label="Phone Number"
-          placeholder="10-digit mobile number"
-          keyboardType="phone-pad"
-          value={phone}
-          onChangeText={setPhone}
-          editable={!isLoading}
-          returnKeyType="next"
-          onSubmitEditing={() => passwordRef.current?.focus()}
-          inputRef={phoneRef}
-          containerStyle={styles.fieldGap}
-        />
-        <Text style={styles.hintText}>This number will be used for delivery</Text>
-      </View>
-      <TextInputField
-        label="Password"
-        placeholder="Minimum 8 characters"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        editable={!isLoading}
-        returnKeyType="next"
-        onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-        inputRef={passwordRef}
-        containerStyle={styles.fieldGap}
-      />
-      <TextInputField
-        label="Confirm Password"
-        placeholder="Re-enter password"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        editable={!isLoading}
-        returnKeyType="done"
-        onSubmitEditing={submitSignup}
-        inputRef={confirmPasswordRef}
-        containerStyle={styles.fieldGap}
-      />
-      <View style={styles.termsRow}>
-        <TouchableOpacity
-          activeOpacity={0.75}
-          onPress={() => setTermsAccepted((p) => !p)}
-          disabled={isLoading}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: termsAccepted }}
-          accessibilityLabel="Accept Terms of Service and Privacy Policy"
-        >
-          <AnimatedCheckbox checked={termsAccepted} />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.termsText}>
-            I agree to the{' '}
-            <Text style={styles.termsLink} onPress={() => Linking.openURL(POLICY_URLS.terms)}>
-              Terms
-            </Text>
-            {' '}and{' '}
-            <Text style={styles.termsLink} onPress={() => Linking.openURL(POLICY_URLS.privacy)}>
-              Privacy Policy
-            </Text>
-          </Text>
-        </View>
-      </View>
-      {!!errorMsg && (
-        <View style={styles.alertRow}>
-          <Text style={styles.errorText}>{errorMsg}</Text>
-        </View>
-      )}
-      <GradientButton label="Create Account" onPress={submitSignup} loading={isLoading} style={styles.mt} />
-      <View style={styles.linkRowSingle}>
-        <NavLink label="Already have an account? Login" onPress={() => switchMode('Login')} disabled={isLoading} />
-      </View>
-    </View>
-  );
 
-  const renderResetPasswordForm = () => (
-    <View style={styles.form}>
-      <TextInputField
-        label="Phone Number"
-        placeholder="10-digit mobile number"
-        keyboardType="phone-pad"
-        value={phone}
-        onChangeText={setPhone}
-        editable={!isLoading}
-        returnKeyType="next"
-        onSubmitEditing={() => passwordRef.current?.focus()}
-        inputRef={phoneRef}
-        containerStyle={styles.fieldGap}
-      />
-      <Text style={styles.hintText}>This number will be used for delivery</Text>
-      <TextInputField
-        label="New Password"
-        placeholder="Minimum 8 characters"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        editable={!isLoading}
-        returnKeyType="next"
-        onSubmitEditing={() => resetConfirmRef.current?.focus()}
-        inputRef={resetPasswordRef}
-        containerStyle={styles.fieldGap}
-      />
-      <TextInputField
-        label="Confirm New Password"
-        placeholder="Re-enter new password"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        editable={!isLoading}
-        returnKeyType="done"
-        onSubmitEditing={submitPasswordResetRequest}
-        inputRef={resetConfirmRef}
-        containerStyle={styles.fieldGap}
-      />
       {!!errorMsg && (
         <View style={styles.alertRow}>
           <Text style={styles.errorText}>{errorMsg}</Text>
         </View>
       )}
-      {!!successMsg && (
-        <View style={styles.alertRow}>
-          <Text style={styles.successText}>{successMsg}</Text>
-        </View>
-      )}
-      <GradientButton label="Send for Approval" onPress={submitPasswordResetRequest} loading={isLoading} style={styles.mt} />
-      <View style={styles.linkRowSingle}>
-        <NavLink label="Back to Login" onPress={() => switchMode('Login')} disabled={isLoading} />
-      </View>
+
+      <GradientButton label="Create Account" onPress={submitName} loading={isLoading} style={styles.mt} />
     </View>
   );
 
@@ -463,39 +570,27 @@ export default function AuthScreen() {
     outputRange: ['-8deg', '0deg'],
   });
 
-  const blobAS = blobA.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.6, 1],
-  });
-  const blobAT = blobA.interpolate({
-    inputRange: [0, 1],
-    outputRange: [60, 0],
-  });
-  const blobBS = blobB.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.5, 1],
-  });
-  const blobBT = blobB.interpolate({
-    inputRange: [0, 1],
-    outputRange: [80, 0],
-  });
-  const blobCS = blobC.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.4, 1],
-  });
-  const blobCT = blobC.interpolate({
-    inputRange: [0, 1],
-    outputRange: [90, 0],
-  });
+  const blobAS = blobA.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
+  const blobAT = blobA.interpolate({ inputRange: [0, 1], outputRange: [60, 0] });
+  const blobBS = blobB.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
+  const blobBT = blobB.interpolate({ inputRange: [0, 1], outputRange: [80, 0] });
+  const blobCS = blobC.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] });
+  const blobCT = blobC.interpolate({ inputRange: [0, 1], outputRange: [90, 0] });
 
-  const modeOpacity = modeFade.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
-  });
-  const modeX = modeSlide.interpolate({
-    inputRange: [-16, 0, 16],
-    outputRange: [-12, 0, 12],
-  });
+  const stepOpacity = stepFade.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const stepX = stepSlide.interpolate({ inputRange: [-16, 0, 16], outputRange: [-12, 0, 12] });
+
+  const heroTitle = step === 'phone'
+    ? 'Welcome'
+    : step === 'otp'
+    ? 'Verification'
+    : 'One more step';
+
+  const heroSub = step === 'phone'
+    ? 'Login or sign up with your phone number.'
+    : step === 'otp'
+    ? 'We sent a code to your phone.'
+    : 'Tell us your name.';
 
   return (
     <KeyboardAvoidingView
@@ -557,12 +652,8 @@ export default function AuthScreen() {
                 ]}
                 resizeMode="contain"
               />
-              <Text style={styles.heroTitle}>
-                Welcome back
-              </Text>
-              <Text style={styles.heroSub}>
-                Login or sign up to continue.
-              </Text>
+              <Text style={styles.heroTitle}>{heroTitle}</Text>
+              <Text style={styles.heroSub}>{heroSub}</Text>
             </Animated.View>
 
             {/* ── Auth Card ── */}
@@ -578,27 +669,16 @@ export default function AuthScreen() {
                 },
               ]}
             >
-              {/* Mode switcher */}
-              {mode !== 'Reset Password' && (
-                <SegmentedControl
-                  options={['Login', 'Sign Up']}
-                  selectedOption={mode}
-                  onSelect={(opt) => switchMode(opt)}
-                  disabled={isLoading}
-                  style={{ marginBottom: spacing.lg }}
-                />
-              )}
-
               {/* Form area with animated transition */}
               <Animated.View
                 style={{
-                  opacity: modeOpacity,
-                  transform: [{ translateX: modeX }],
+                  opacity: stepOpacity,
+                  transform: [{ translateX: stepX }],
                 }}
               >
-                {mode === 'Login' && renderLoginForm()}
-                {mode === 'Sign Up' && renderSignupForm()}
-                {mode === 'Reset Password' && renderResetPasswordForm()}
+                {step === 'phone' && renderPhoneStep()}
+                {step === 'otp' && renderOtpStep()}
+                {step === 'name' && renderNameStep()}
               </Animated.View>
             </Animated.View>
           </ScrollView>
@@ -610,7 +690,6 @@ export default function AuthScreen() {
 
 /**
  * GradientButton
- * Primary action with a soft saffron-to-dark gradient and subtle shadow
  */
 function GradientButton({ label, onPress, loading, style }) {
   return (
@@ -629,17 +708,13 @@ function GradientButton({ label, onPress, loading, style }) {
       />
       <View style={styles.btnInner}>
         {loading ? (
-          <ActivityIcon />
+          <ActivityIndicator color={colors.textInverse} size="small" />
         ) : (
           <Text style={styles.gradientBtnText}>{label}</Text>
         )}
       </View>
     </TouchableOpacity>
   );
-}
-
-function ActivityIcon() {
-  return <ActivityIndicator color={colors.textInverse} size="small" />;
 }
 
 function NavLink({ label, onPress, disabled }) {
@@ -652,7 +727,6 @@ function NavLink({ label, onPress, disabled }) {
 
 /**
  * AnimatedCheckbox
- * Small animated scale pop on check/uncheck
  */
 function AnimatedCheckbox({ checked }) {
   const scale = useAnimatedValue(checked ? 1 : 0);
@@ -746,6 +820,94 @@ const styles = StyleSheet.create({
   fieldGap: { marginBottom: 2 },
   mt: { marginTop: spacing.md + 2 },
 
+  /* Phone row with country code */
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.sm,
+  },
+  countryCode: {
+    height: 48,
+    paddingHorizontal: 14,
+    borderRadius: radius.input || 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bgApp,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  countryCodeText: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  phoneInputWrap: {
+    flex: 1,
+  },
+
+  /* OTP */
+  otpTitle: {
+    ...typography.heading || { fontSize: 20, fontWeight: '700' },
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  otpSubtitle: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+    lineHeight: 22,
+  },
+  otpPhone: {
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  otpRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: spacing.sm,
+    paddingHorizontal: 2,
+  },
+  otpBox: {
+    flex: 1,
+    maxWidth: 52,
+    minWidth: 36,
+    aspectRatio: 0.82,
+    marginHorizontal: 3,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.border,
+    backgroundColor: colors.bgApp,
+    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    paddingVertical: 0,
+  },
+  otpBoxFilled: {
+    borderColor: colors.saffron || colors.primary,
+    backgroundColor: 'rgba(255,107,53,0.06)',
+  },
+  otpActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingHorizontal: 4,
+  },
+  resendText: {
+    ...typography.bodySmall,
+    color: colors.saffronDark || colors.primary,
+    fontWeight: '600',
+  },
+  resendDisabled: {
+    color: colors.textTertiary,
+  },
+
   /* Alerts */
   alertRow: {
     flexDirection: 'row',
@@ -758,11 +920,6 @@ const styles = StyleSheet.create({
   errorText: {
     ...typography.caption,
     color: colors.error,
-    flex: 1,
-  },
-  successText: {
-    ...typography.caption,
-    color: colors.success,
     flex: 1,
   },
 
@@ -800,24 +957,11 @@ const styles = StyleSheet.create({
   },
 
   /* Links */
-  linkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.md,
-    gap: spacing.md,
-  },
   linkRowSingle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.md,
-  },
-  dividerDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.textTertiary,
   },
   navLink: {
     ...typography.bodySmall,
@@ -860,14 +1004,5 @@ const styles = StyleSheet.create({
   termsLink: {
     color: colors.saffronDark,
     fontWeight: '700',
-  },
-  phoneWrap: {
-    gap: 2,
-    marginBottom: 2,
-  },
-  hintText: {
-    ...typography.caption,
-    color: colors.textTertiary,
-    marginLeft: 2,
   },
 });

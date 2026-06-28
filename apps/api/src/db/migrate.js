@@ -58,7 +58,8 @@ const migrate = async () => {
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         phone VARCHAR(20) NOT NULL UNIQUE,
-        password_hash VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255) NULL,
+        firebase_uid VARCHAR(128) NULL,
         whatsapp_number VARCHAR(20),
         address TEXT,
         short_address VARCHAR(255),
@@ -66,9 +67,15 @@ const migrate = async () => {
         blocked BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_phone (phone)
+        INDEX idx_phone (phone),
+        INDEX idx_firebase_uid (firebase_uid)
       );
     `);
+    // Make password_hash nullable for Firebase Phone Auth users (no password).
+    await connection.query('ALTER TABLE users MODIFY COLUMN password_hash VARCHAR(255) NULL');
+    // Firebase UID column for linking Firebase accounts to local users.
+    await ensureColumn('users', 'firebase_uid',
+      'firebase_uid VARCHAR(128) NULL DEFAULT NULL AFTER password_hash');
     const [shortAddressColumns] = await connection.query(`
       SELECT COLUMN_NAME
       FROM INFORMATION_SCHEMA.COLUMNS

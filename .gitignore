@@ -10,4 +10,8 @@ build
 *.log
 coverage
 firebase-service-account.json
+*-firebase-adminsdk-*.json
+# google-services.json is committed — it contains only public config
+# (API key, project ID) and is required by the CI/CD build pipeline.
+GoogleService-Info.plist
 .antigravitycli/

@@ -90,6 +90,83 @@
   border-color: var(--primary);
 }
 
+/* Phone input with country code */
+.phone-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.country-code {
+  padding: 14px 12px;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.phone-input {
+  flex: 1;
+}
+
+/* OTP styles */
+.otp-info {
+  text-align: center;
+}
+
+.otp-subtitle {
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.otp-subtitle strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.otp-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.otp-box {
+  width: 48px;
+  height: 56px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  background: var(--bg-surface);
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  transition: border-color 0.2s, background-color 0.2s;
+  caret-color: var(--primary);
+}
+
+.otp-box:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: rgba(255, 107, 53, 0.04);
+}
+
+.otp-box.filled {
+  border-color: var(--primary);
+  background: rgba(255, 107, 53, 0.06);
+}
+
+.otp-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-sm);
+}
+
 .auth-error {
   color: var(--text-error);
   font-size: var(--fs-sm);
@@ -116,4 +193,17 @@
   font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
   text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-btn.disabled {
+  color: var(--text-secondary);
+  opacity: 0.5;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+/* Hide the reCAPTCHA badge (invisible mode) */
+.grecaptcha-badge {
+  visibility: hidden !important;
 }

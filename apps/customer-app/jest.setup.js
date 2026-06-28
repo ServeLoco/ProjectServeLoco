@@ -65,3 +65,25 @@ jest.mock('expo-linear-gradient', () => {
     LinearGradient: React.forwardRef((props, ref) => <View ref={ref} {...props} />),
   };
 });
+
+// Mock @react-native-firebase/auth — native module not available in Jest/Node.
+// AuthScreen imports this, so any test that touches AuthScreen needs the mock.
+jest.mock('@react-native-firebase/auth', () => {
+  const mockAuth = () => ({
+    currentUser: null,
+    signInWithPhoneNumber: jest.fn(async () => ({
+      confirm: jest.fn(async () => ({
+        user: { getIdToken: jest.fn(async () => 'mock-id-token') },
+      })),
+    })),
+  });
+  return {
+    __esModule: true,
+    default: mockAuth,
+  };
+});
+
+jest.mock('@react-native-firebase/app', () => ({
+  __esModule: true,
+  default: {},
+}));

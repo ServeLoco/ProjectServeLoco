@@ -6,4 +6,9 @@ export const authApi = {
   getMe: () => apiClient.get('/auth/me'),
   updateProfile: (payload) => apiClient.patch('/auth/profile', payload),
   requestPasswordReset: (payload) => apiClient.post('/auth/password-reset-requests', payload),
+
+  // Firebase Phone Auth — send the Firebase ID token to the backend for verification.
+  // For login:  { idToken }
+  // For signup: { idToken, name }
+  firebaseVerify: (payload) => apiClient.post('/auth/firebase-verify', payload),
 };

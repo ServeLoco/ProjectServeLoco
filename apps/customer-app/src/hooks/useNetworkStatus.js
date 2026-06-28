@@ -93,7 +93,9 @@ export function useNetworkStatus({
     };
   }, [checkIntervalMs, healthPath, failureThreshold]);
 
-  // isOnline combines the (unreliable on RN) navigator.onLine hint with our
-  // own reachability check. The reachability check is the source of truth.
-  return { isOnline: initialOnline && isReachable, isReachable, lastCheckedAt };
+  // isOnline reflects whether the server is actually reachable from this
+  // device. We deliberately ignore navigator.onLine because on React Native
+  // it's unreliable (often returns false even with working network) and
+  // would falsely show the offline banner forever.
+  return { isOnline: isReachable, isReachable, lastCheckedAt };
 }
