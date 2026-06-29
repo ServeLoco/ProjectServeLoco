@@ -41,7 +41,9 @@ export default function Products() {
 
   useEffect(() => { fetchCategories(); }, []);
 
-  useAdminRefresh(() => fetchProducts(pagination.page));
+  const paginationRef = useRef({ page: 1 });
+  useEffect(() => { paginationRef.current = pagination; }, [pagination]);
+  useAdminRefresh(() => fetchProducts(paginationRef.current.page));
 
   useEffect(() => {
     const timer = setTimeout(() => fetchProducts(1), 500);
@@ -93,7 +95,8 @@ export default function Products() {
 
   const showSuccess = (msg) => {
     setSuccessMessage(msg);
-    setTimeout(() => setSuccessMessage(null), 4000);
+    const t = setTimeout(() => setSuccessMessage(null), 4000);
+    return () => clearTimeout(t);
   };
 
   const toggleAvailability = async (product) => {

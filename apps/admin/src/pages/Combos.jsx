@@ -7,6 +7,7 @@ import { getImageUploadError } from '../utils/fileValidation';
 import { useImageCropper } from '../hooks/useImageCropper';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
 import MessageBanner from '../components/MessageBanner';
+import { useAdminRefresh } from '../hooks/useAdminRefresh';
 import { GENERIC_ERROR } from '../utils/constants';
 import './Products.css';
 
@@ -27,6 +28,7 @@ export default function Combos() {
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -35,6 +37,10 @@ export default function Combos() {
   useEffect(() => {
     fetchComboProducts();
   }, []);
+
+  const paginationRef = useRef({ page: 1 });
+  useEffect(() => { paginationRef.current = pagination; }, [pagination]);
+  useAdminRefresh(() => fetchProducts(paginationRef.current.page));
 
   useEffect(() => {
     fetchProducts(1);
@@ -127,7 +133,11 @@ export default function Combos() {
   };
 
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} combos?`)) return;
+    if (!confirmBulkDelete) {
+      setConfirmBulkDelete(true);
+      return;
+    }
+    setConfirmBulkDelete(false);
     setBulkUpdating(true);
     try {
       const failed = await runBulk(selectedIds, id => CombosApi.delete(id));
@@ -211,7 +221,15 @@ export default function Combos() {
           <div className="bulk-actions-buttons">
             <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkAvailability(true)}>Mark In Stock</button>
             <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkAvailability(false)}>Mark Out of Stock</button>
-            <button className="btn-secondary" style={{ borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }} disabled={bulkUpdating} onClick={handleBulkDelete}>Delete</button>
+            {confirmBulkDelete ? (
+              <>
+                <span style={{ color: 'var(--danger-color)', fontWeight: 600 }}>Delete {selectedIds.length} combo(s)?</span>
+                <button className="btn-secondary" style={{ borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }} disabled={bulkUpdating} onClick={handleBulkDelete}>Yes, delete</button>
+                <button className="btn-secondary" disabled={bulkUpdating} onClick={() => setConfirmBulkDelete(false)}>Cancel</button>
+              </>
+            ) : (
+              <button className="btn-secondary" style={{ borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }} disabled={bulkUpdating} onClick={handleBulkDelete}>Delete</button>
+            )}
           </div>
         </div>
       )}
@@ -452,7 +470,6 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
         if (wouldBreak) {
           const msg = `Heads up — this combo currently contains products that don't match the new store type "${formData.store_type}". The backend will reject the save until you remove them.\n\nContinue anyway?`;
           if (!window.confirm(msg)) {
-            setSaving(false);
             return;
           }
         }

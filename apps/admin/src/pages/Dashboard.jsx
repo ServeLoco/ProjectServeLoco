@@ -7,6 +7,7 @@ import {
 } from '../api';
 import { Link } from 'react-router-dom';
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
+import { GENERIC_ERROR } from '../utils/constants';
 import './Dashboard.css';
 
 const ORDER_STATUS_LABELS = {
@@ -19,7 +20,6 @@ const ORDER_STATUS_LABELS = {
 };
 const getOrderStatusLabel = (status) => ORDER_STATUS_LABELS[status] || status || 'Unknown';
 
-import { GENERIC_ERROR } from '../utils/constants';
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState(null);

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { OrdersApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } from '../api';
 import MessageBanner from '../components/MessageBanner';
+import { GENERIC_ERROR } from '../utils/constants';
 import { readList } from '../utils/apiResponse';
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
 import {
@@ -56,8 +57,6 @@ const formatDateTime = (value) => {
   });
 };
 const statusClassName = (status) => String(status || 'unknown').toLowerCase().replace(/\s+/g, '-');
-
-import { GENERIC_ERROR } from '../utils/constants';
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -293,7 +292,6 @@ export default function Orders() {
     }
 
     try {
-      const body = cancelReason ? { status: newStatus, cancel_reason: cancelReason } : { status: newStatus };
       const patchRes = await OrdersApi.updateStatus(selectedOrder.id, newStatus, cancelReason);
       // Use the canonical server state from the PATCH response so updated_at,
       // cancel_reason, and (for cancels) the recomputed payment_status are

@@ -207,7 +207,7 @@ export default function Settings() {
       setSaveSuccess('Settings saved successfully!');
     } catch (err) {
       console.error(err);
-      setError(GENERIC_ERROR);
+      setFormError(GENERIC_ERROR);
     } finally {
       setSaving(false);
     }
