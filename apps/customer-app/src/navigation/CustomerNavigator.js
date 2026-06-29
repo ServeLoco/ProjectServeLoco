@@ -269,10 +269,14 @@ const styles = StyleSheet.create({
 // ─────────────────────────────────────────────────────────────────────────────
 export default function CustomerNavigator() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const hasHydrated     = useAuthStore((s) => s.hasHydrated);
-  const sessionChecked  = useAuthStore((s) => s.sessionChecked);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
 
-  if (!hasHydrated || !sessionChecked) {
+  // Block only until AsyncStorage has rehydrated the store. Once hydrated,
+  // render the cached auth state immediately — session validation (/auth/me)
+  // runs in the background. If the server rejects the token (401/403),
+  // validateSession() calls logout() which flips isAuthenticated → false and
+  // this navigator re-renders to the Auth screen automatically.
+  if (!hasHydrated) {
     return (
       <View style={styles.bootScreen}>
         <ActivityIndicator size="small" color={colors.primary} />
