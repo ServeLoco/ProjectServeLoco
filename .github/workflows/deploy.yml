@@ -117,13 +117,12 @@ jobs:
           script: |
             cd ~/ProjectServeLoco
             git fetch origin
-            # Fail loudly if the server has local commits that aren't on origin/main.
-            # This prevents silent deploy stalls when someone hotfixes directly on
-            # the server and those commits never get pushed back to GitHub.
-            if [ "$(git rev-list --left-only --count origin/main...main)" -gt 0 ]; then
-              echo "::error::Server main has local commits not on origin/main. Run 'git log origin/main..main' and reconcile manually before deploying."
-              exit 1
-            fi
-            git pull origin main
+            # Treat the server as a pure deployment mirror of origin/main.
+            # Any local commits or uncommitted changes on the server's main are
+            # discarded automatically. This prevents silent deploy stalls when
+            # someone hotfixes directly on the server and those commits never get
+            # pushed back to GitHub. If you need to keep server-side hotfixes,
+            # push them to GitHub first or they will be overwritten on deploy.
+            git reset --hard origin/main
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d --build
