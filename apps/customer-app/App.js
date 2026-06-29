@@ -86,10 +86,21 @@ function App() {
   // Android devices could time out and force a spurious logout.
   useEffect(() => {
     let cancelled = false;
-    const unsubFinish = useAuthStore.persist.onFinishHydration(() => {
+    const runValidation = () => {
       if (cancelled) return;
       useAuthStore.getState().validateSession();
-    });
+    };
+
+    // If rehydration finished before this effect mounted (common on cold
+    // start when the JS thread is busy), onFinishHydration will not fire the
+    // callback because the event already happened. Run validation immediately
+    // when hasHydrated is already true so sessionChecked never stays false.
+    if (useAuthStore.getState().hasHydrated) {
+      runValidation();
+      return () => { cancelled = true; };
+    }
+
+    const unsubFinish = useAuthStore.persist.onFinishHydration(runValidation);
     return () => {
       cancelled = true;
       unsubFinish();
