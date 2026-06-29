@@ -56,7 +56,21 @@ export const useAuthStore = create(
         }
 
         try {
-          const fresh = await authApi.getMe();
+          // Hard timeout so a hanging /auth/me request (e.g. DNS stall,
+          // unavailable AbortController, or slow cold-start network) never
+          // leaves the user stuck on the boot spinner. On timeout we treat
+          // it as a transient error and keep the cached session — the next
+          // authenticated request will either succeed or get a real 401 and
+          // log the user out cleanly.
+          const fresh = await Promise.race([
+            authApi.getMe(),
+            new Promise((_, reject) =>
+              setTimeout(
+                () => reject({ status: 0, code: 'TIMEOUT', message: 'Session validation timed out' }),
+                5000
+              )
+            ),
+          ]);
           // fresh = { token, user } from normalizeSession.
           // If the server sent a refreshed token (sliding renewal), update it.
           const updates = {
