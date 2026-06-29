@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { OrdersApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } from '../api';
+import MessageBanner from '../components/MessageBanner';
 import { readList } from '../utils/apiResponse';
+import { useAdminRefresh } from '../hooks/useAdminRefresh';
 import {
   getRealtimeOrderId,
   getRealtimeOrderKey,
@@ -55,7 +57,7 @@ const formatDateTime = (value) => {
 };
 const statusClassName = (status) => String(status || 'unknown').toLowerCase().replace(/\s+/g, '-');
 
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+import { GENERIC_ERROR } from '../utils/constants';
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -67,6 +69,7 @@ export default function Orders() {
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [updating, setUpdating] = useState(false);
+  const [pageMessage, setPageMessage] = useState(null);
   const filtersRef = useRef(filters);
   const paginationRef = useRef(pagination);
   const selectedOrderRef = useRef(selectedOrder);
@@ -144,6 +147,8 @@ export default function Orders() {
     const timer = setTimeout(() => fetchOrders(1), 300);
     return () => clearTimeout(timer);
   }, [filters]);
+
+  useAdminRefresh(() => fetchOrders(paginationRef.current.page || 1));
 
   useEffect(() => {
     // Close the drawer when the new-order popup in GlobalOrderAlert accepts
@@ -370,7 +375,8 @@ export default function Orders() {
       const allFilteredOrders = readList(res, ['orders']);
       
       if (allFilteredOrders.length === 0) {
-        alert('No orders found to export');
+        setPageMessage({ type: 'warning', text: 'No orders found to export' });
+        setLoading(false);
         return;
       }
 
@@ -519,7 +525,7 @@ export default function Orders() {
     printFrame.onload = () => {
       const frameWindow = printFrame.contentWindow;
       if (!frameWindow) {
-        alert('Unable to open print preview. Please try again.');
+        setPageMessage({ type: 'error', text: 'Unable to open print preview. Please try again.' });
         printFrame.remove();
         return;
       }
@@ -563,6 +569,12 @@ export default function Orders() {
           </button>
         </div>
       </header>
+
+      <MessageBanner
+        type={pageMessage?.type || 'info'}
+        message={pageMessage?.text}
+        onDismiss={() => setPageMessage(null)}
+      />
 
       <section className="orders-summary-grid" aria-label="Orders summary">
         <div className="orders-summary-card">

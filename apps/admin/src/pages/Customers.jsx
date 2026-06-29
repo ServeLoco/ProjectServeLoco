@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { CustomersApi } from '../api';
+import MessageBanner from '../components/MessageBanner';
+import { GENERIC_ERROR } from '../utils/constants';
 import './Customers.css';
-
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
@@ -21,6 +21,7 @@ export default function Customers() {
   const [updating, setUpdating] = useState(false);
   const [resetRequests, setResetRequests] = useState([]);
   const [showResetMenu, setShowResetMenu] = useState(false);
+  const [actionMessage, setActionMessage] = useState(null);
 
   useEffect(() => {
     const timer = setTimeout(() => fetchCustomers(1), 500);
@@ -170,7 +171,7 @@ export default function Customers() {
       }
       setSelectedCustomer(prev => ({ ...prev, pending_password_reset_request: null }));
       fetchPasswordResetRequests();
-      alert(`Password reset request ${isApprove ? 'approved' : 'rejected'} successfully.`);
+      setActionMessage({ type: 'success', text: `Password reset request ${isApprove ? 'approved' : 'rejected'} successfully.` });
     } catch (err) {
       console.error(err);
       setError(GENERIC_ERROR);
@@ -183,6 +184,11 @@ export default function Customers() {
     <div className="customers-container">
       <header className="customers-header">
         <h1 className="customers-title">Customers</h1>
+        <MessageBanner
+          type={actionMessage?.type || 'info'}
+          message={actionMessage?.text}
+          onDismiss={() => setActionMessage(null)}
+        />
         {resetRequests.length > 0 && (
           <div style={{ position: 'relative' }}>
             <button

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AuditApi } from '../api';
 import './AuditLogs.css';
 
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+import { GENERIC_ERROR } from '../utils/constants';
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState([]);

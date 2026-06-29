@@ -4,7 +4,7 @@ import { ProductsApi } from '../api';
 import { getFileSizeError, MAX_BULK_CSV_BYTES, MAX_BULK_ZIP_BYTES } from '../utils/fileValidation';
 import './BulkImport.css';
 
-const GENERIC_ERROR = 'Something went wrong. Please try again later.'
+import { GENERIC_ERROR } from '../utils/constants';
 
 // ── Step indicators ──────────────────────────────────────────────────────────
 function StepIndicator({ step }) {

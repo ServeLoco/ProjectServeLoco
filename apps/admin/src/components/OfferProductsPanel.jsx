@@ -3,7 +3,7 @@ import { ProductsApi, OffersApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { normalizeImageUrl } from '../utils/imageUrl';
 
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+import { GENERIC_ERROR } from '../utils/constants';
 
 export default function OfferProductsPanel({ offer }) {
   const [attachedProducts, setAttachedProducts] = useState([]);

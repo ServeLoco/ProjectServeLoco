@@ -18,7 +18,7 @@ const QUICK_TEMPLATES = [
   { title: '🎊 Thank You!', body: 'Thank you for being our valued customer. Enjoy 10% off your next order!', type: 'success' }
 ];
 
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+import { GENERIC_ERROR } from '../utils/constants';
 
 const EVENT_LABELS = {
   order_placed:           { label: 'Order Placed',        icon: '🎉', trigger: 'When customer places an order' },

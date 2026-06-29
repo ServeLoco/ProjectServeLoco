@@ -6,6 +6,7 @@ import {
   subscribeRealtimeLifecycle,
 } from '../api';
 import { Link } from 'react-router-dom';
+import { useAdminRefresh } from '../hooks/useAdminRefresh';
 import './Dashboard.css';
 
 const ORDER_STATUS_LABELS = {
@@ -18,7 +19,7 @@ const ORDER_STATUS_LABELS = {
 };
 const getOrderStatusLabel = (status) => ORDER_STATUS_LABELS[status] || status || 'Unknown';
 
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+import { GENERIC_ERROR } from '../utils/constants';
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState(null);
@@ -47,6 +48,8 @@ export default function Dashboard() {
   }, [fetchDashboardData]);
 
   useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
+
+  useAdminRefresh(fetchDashboardData);
 
   useEffect(() => {
     const unsubscribeOrders = subscribeAdminOrderEvents(() => queueDashboardRefresh());

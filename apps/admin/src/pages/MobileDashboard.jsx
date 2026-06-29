@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MobileDashboardApi, ProductsApi, CategoriesApi, OffersApi, CombosApi } from '../api';
 import './MobileDashboard.css';
+import { GENERIC_ERROR } from '../utils/constants';
 
 import { readList } from '../utils/apiResponse';
 import { normalizeImageUrl } from '../utils/imageUrl';
@@ -13,7 +14,6 @@ const DEFAULT_MAX_VISIBLE_BY_SECTION = {
   combo_block: 6
 };
 
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 
 export default function MobileDashboard() {
   const [sections, setSections] = useState([]);

@@ -104,19 +104,8 @@ export default function Header() {
 function RefreshButton() {
   // Emit a custom event so active pages can refetch their own data without a
   // full reload (which would wipe forms, scroll, undo, debounce timers).
-  // Falls back to window.location.reload() if no listener responds.
-  const tick = useRef(0);
   const handleClick = () => {
-    tick.current += 1;
-    let handled = false;
-    const handler = () => { handled = true; };
-    window.addEventListener('admin:refresh', handler, { once: true });
-    window.dispatchEvent(new CustomEvent('admin:refresh-request'));
-    // If no listener ran synchronously, fall back to the previous behaviour.
-    setTimeout(() => {
-      window.removeEventListener('admin:refresh', handler);
-      if (!handled) window.location.reload();
-    }, 0);
+    window.dispatchEvent(new CustomEvent('admin:refresh'));
   };
   return (
     <button
