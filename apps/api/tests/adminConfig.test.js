@@ -28,7 +28,8 @@ describe('Admin Configuration', () => {
     process.env.NODE_ENV = 'production';
     process.env.ADMIN_OWNER_ID = 'admin';
     process.env.ADMIN_PASSWORD = 'admin';
-    expect(() => require('../src/config/env')).toThrow('ADMIN_PASSWORD is too weak for production');
+    // TASK 4.3: plaintext ADMIN_PASSWORD is no longer accepted in production
+    expect(() => require('../src/config/env')).toThrow('ADMIN_PASSWORD_HASH is required in production');
   });
 
   it('should throw error if admin credentials are missing', () => {
@@ -42,6 +43,7 @@ describe('Admin Configuration', () => {
     process.env.NODE_ENV = 'production';
     process.env.ADMIN_OWNER_ID = 'admin_user';
     process.env.ADMIN_PASSWORD = 'strong_password_123';
+    process.env.ADMIN_PASSWORD_HASH = '$2b$10$placeholderbcrypttesthashxxxxxxxxxxxxxxxxxxxx';
     const env = require('../src/config/env');
     expect(env.ADMIN_PASSWORD).toBe('strong_password_123');
   });

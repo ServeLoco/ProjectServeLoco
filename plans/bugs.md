@@ -115,20 +115,22 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/controllers/adminController.js` (`login`), `apps/api/src/routes/adminRoutes.js`, `apps/api/src/utils/auth.js`, `apps/api/src/config/env.js`
 
 **Steps:**
-- [ ] 4.1 In `adminRoutes.js`, wrap the login handler: `router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(login));` (it is currently the only unwrapped handler).
-- [ ] 4.2 In `adminController.login`, invert the preference: check `ownerPasswordHash` **first** with `await bcrypt.compare(password, ownerPasswordHash)`; only if no hash is set, fall back to the plaintext comparison, and replace `password === ownerPassword` with a constant-time check:
+- [x] 4.1 In `adminRoutes.js`, wrap the login handler: `router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(login));` (it is currently the only unwrapped handler).
+- [x] 4.2 In `adminController.login`, invert the preference: check `ownerPasswordHash` **first** with `await bcrypt.compare(password, ownerPasswordHash)`; only if no hash is set, fall back to the plaintext comparison, and replace `password === ownerPassword` with a constant-time check:
   ```js
   const crypto = require('crypto');
   const a = Buffer.from(String(password)); const b = Buffer.from(String(ownerPassword));
   isMatch = a.length === b.length && crypto.timingSafeEqual(a, b);
   ```
-- [ ] 4.3 In `config/env.js` production block, add: if `!config.ADMIN_PASSWORD_HASH` then `throw new Error('ADMIN_PASSWORD_HASH is required in production (plaintext ADMIN_PASSWORD is not allowed).')` — and remove/adjust the now-redundant plaintext-strength checks in that block accordingly.
-- [ ] 4.4 In `utils/auth.js` `signAdminToken`, use a dedicated expiry: `expiresIn: process.env.ADMIN_JWT_EXPIRES_IN || '12h'` (customer token expiry unchanged). Add `ADMIN_JWT_EXPIRES_IN: process.env.ADMIN_JWT_EXPIRES_IN || '12h'` to `config/env.js` for documentation, but read it via `process.env` in auth.js is fine.
-- [ ] 4.5 Update `apps/api/.env.production.example` to show `ADMIN_PASSWORD_HASH=` and `ADMIN_JWT_EXPIRES_IN=12h` placeholders.
+- [x] 4.3 In `config/env.js` production block, add: if `!config.ADMIN_PASSWORD_HASH` then `throw new Error('ADMIN_PASSWORD_HASH is required in production (plaintext ADMIN_PASSWORD is not allowed).')` — and remove/adjust the now-redundant plaintext-strength checks in that block accordingly.
+- [x] 4.4 In `utils/auth.js` `signAdminToken`, use a dedicated expiry: `expiresIn: process.env.ADMIN_JWT_EXPIRES_IN || '12h'` (customer token expiry unchanged). Add `ADMIN_JWT_EXPIRES_IN: process.env.ADMIN_JWT_EXPIRES_IN || '12h'` to `config/env.js` for documentation, but read it via `process.env` in auth.js is fine.
+- [x] 4.5 Update `apps/api/.env.production.example` to show `ADMIN_PASSWORD_HASH=` and `ADMIN_JWT_EXPIRES_IN=12h` placeholders.
 
 **Do NOT:** change the customer token lifetime or `JWT_SECRET`; add a token-revocation store (out of scope); alter the login response shape.
 
 **Done when:** production boot fails without `ADMIN_PASSWORD_HASH`; admin JWT `exp - iat` = 12h; tests (which run with `NODE_ENV=test`) still pass.
+
+**NOTE (done):** login route wrapped with asyncHandler; login checks bcrypt hash first, falls back to crypto.timingSafeEqual for plaintext (dev/test only); env.js production block now requires ADMIN_PASSWORD_HASH (plaintext checks removed); signAdminToken uses `process.env.ADMIN_JWT_EXPIRES_IN || '12h'`; ADMIN_JWT_EXPIRES_IN added to config + .env.production.example. 3 config tests updated for intentional behavior change. All 330 tests pass.
 
 ---
 

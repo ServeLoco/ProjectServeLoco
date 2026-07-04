@@ -7,6 +7,7 @@ const realtimeEvents = require('../realtime/orderEvents');
 const orderAutoAccept = require('../realtime/orderAutoAccept');
 const adminInbox = require('../utils/adminNotifications');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 
 const ORDER_STATUS_VALUES = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
@@ -30,14 +31,15 @@ const login = async (req, res) => {
   if (id === ownerId) {
     let isMatch = false;
 
-    // Prefer ADMIN_PASSWORD (plaintext env var). Simpler to manage than a
-    // hash for a single-admin setup, and the env file is gitignored + only
-    // readable on the server. ADMIN_PASSWORD_HASH is still accepted as a
-    // fallback for anyone who already set one up.
-    if (ownerPassword) {
-      isMatch = (password === ownerPassword);
-    } else if (ownerPasswordHash) {
+    // Prefer ADMIN_PASSWORD_HASH (bcrypt) — the only path allowed in
+    // production. Fall back to a constant-time plaintext comparison only
+    // when no hash is set (development / test).
+    if (ownerPasswordHash) {
       isMatch = await bcrypt.compare(password, ownerPasswordHash);
+    } else if (ownerPassword) {
+      const a = Buffer.from(String(password));
+      const b = Buffer.from(String(ownerPassword));
+      isMatch = a.length === b.length && crypto.timingSafeEqual(a, b);
     }
 
     if (isMatch) {

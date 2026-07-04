@@ -23,7 +23,7 @@ const signAdminToken = (adminId) => {
   return jwt.sign(
     { sub: adminId, role: 'admin' },
     config.JWT_SECRET,
-    { expiresIn: config.JWT_EXPIRES_IN }
+    { expiresIn: process.env.ADMIN_JWT_EXPIRES_IN || '12h' }
   );
 };
 

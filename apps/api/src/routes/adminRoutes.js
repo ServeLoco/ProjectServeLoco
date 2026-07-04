@@ -8,6 +8,15 @@ const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo
 const { getNotificationTemplates, updateNotificationTemplate, resetNotificationTemplate } = require('../controllers/notificationTemplateController');
 const { previewBulkImport, commitBulkImport } = require('../controllers/bulkImportController');
 const {
+  getAdminCoupons,
+  getAdminCouponById,
+  createCoupon,
+  updateCoupon,
+  deleteCoupon,
+  duplicateCoupon,
+  getCouponRedemptions,
+} = require('../controllers/couponController');
+const {
   getAdminSections,
   getAdminSectionById,
   createAdminSection,
@@ -321,7 +330,7 @@ const productImageSchema = (req) => {
 };
 
 // Routes
-router.post('/login', loginLimiter, validate(loginSchema), login);
+router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(login));
 router.get('/me', requireAdmin, me);
 
 // Customers
@@ -406,6 +415,16 @@ router.get('/offers/:id/products', requireAdmin, asyncHandler(getOfferProducts))
 router.post('/offers/:id/products', requireAdmin, auditLog, asyncHandler(addOfferProduct));
 router.delete('/offers/:id/products/:productId', requireAdmin, auditLog, asyncHandler(removeOfferProduct));
 router.patch('/offers/:id/products/reorder', requireAdmin, auditLog, asyncHandler(reorderOfferProducts));
+
+// Coupons — admin-managed discount codes & auto-apply offers.
+router.get('/coupons', requireAdmin, asyncHandler(getAdminCoupons));
+router.get('/coupons/:id', requireAdmin, asyncHandler(getAdminCouponById));
+router.post('/coupons', requireAdmin, auditLog, asyncHandler(createCoupon));
+router.put('/coupons/:id', requireAdmin, auditLog, asyncHandler(updateCoupon));
+router.patch('/coupons/:id', requireAdmin, auditLog, asyncHandler(updateCoupon));
+router.delete('/coupons/:id', requireAdmin, auditLog, asyncHandler(deleteCoupon));
+router.post('/coupons/:id/duplicate', requireAdmin, auditLog, asyncHandler(duplicateCoupon));
+router.get('/coupons/:id/redemptions', requireAdmin, asyncHandler(getCouponRedemptions));
 
 // Audit
 router.get('/audit', requireAdmin, asyncHandler(getAuditLogs));
