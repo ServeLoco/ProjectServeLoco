@@ -113,6 +113,7 @@ if (isProd) {
   } else {
     throw new Error('Either ADMIN_PASSWORD_HASH or ADMIN_PASSWORD must be set.');
   }
+  if (process.env.DEBUG === 'true') throw new Error('DEBUG must not be enabled in production.');
 }
 
 module.exports = config;
