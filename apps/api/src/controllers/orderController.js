@@ -12,18 +12,24 @@ class OrderError extends Error {}  // expected business failures → 400
 
 const generateOrderNumber = async (connection) => {
   const date = new Date();
-  const dateStr = date.toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0].replace(/-/g, '');
+  const istDate = date.toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
+  const dateStr = istDate.replace(/-/g, '');
   const prefix = `OD-${dateStr}-`;
 
   if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
     return `${prefix}TEST`;
   }
 
-  const [rows] = await connection.query(
-    `SELECT COUNT(*) as count FROM orders WHERE order_number LIKE ? FOR UPDATE`,
-    [`${prefix}%`]
+  // Atomically reserve the next sequence for this date. LAST_INSERT_ID is
+  // per-connection, so two concurrent checkouts on separate connections can
+  // never collide — the INSERT ... ON DUPLICATE KEY UPDATE serializes on the
+  // PRIMARY KEY, and SELECT LAST_INSERT_ID() returns the new seq value.
+  await connection.query(
+    `INSERT INTO daily_order_counters (counter_date, seq) VALUES (?, LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE seq = LAST_INSERT_ID(seq + 1)`,
+    [istDate]
   );
-  const nextSeq = (rows[0].count + 1).toString().padStart(4, '0');
+  const [rows] = await connection.query(`SELECT LAST_INSERT_ID() AS seq`);
+  const nextSeq = (rows[0].seq).toString().padStart(4, '0');
   return `${prefix}${nextSeq}`;
 };
 
@@ -523,5 +529,6 @@ module.exports = {
   createOrder,
   getOrders,
   getOrderById,
-  cancelOrder
+  cancelOrder,
+  generateOrderNumber
 };

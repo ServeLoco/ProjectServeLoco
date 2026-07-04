@@ -319,6 +319,16 @@ const migrate = async () => {
 
     console.log('Orders table ready.');
 
+    // Daily order-number counter — atomically reserves the next sequence per
+    // date so two concurrent checkouts can never produce the same order_number.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS daily_order_counters (
+        counter_date DATE PRIMARY KEY,
+        seq INT NOT NULL DEFAULT 0
+      );
+    `);
+    console.log('Daily order counters table ready.');
+
     // Order Items Table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS order_items (
@@ -368,9 +378,6 @@ const migrate = async () => {
         delivery_radius_km DECIMAL(10, 2) DEFAULT 8.00,
         delivery_cost_per_km DECIMAL(10, 2) DEFAULT 0.00,
         /* END OBSOLETE FIELDS */
-        below_threshold_delivery_charge DECIMAL(10, 2) DEFAULT 20.00,
-        free_delivery_above_minimum_active BOOLEAN DEFAULT TRUE,
-        free_delivery_offer_active BOOLEAN DEFAULT FALSE,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
     `);
@@ -380,10 +387,10 @@ const migrate = async () => {
     await ensureColumn('settings', 'shop_longitude', 'shop_longitude DECIMAL(11, 8) DEFAULT NULL AFTER shop_latitude');
     await ensureColumn('settings', 'delivery_radius_km', 'delivery_radius_km DECIMAL(10, 2) DEFAULT 8.00 AFTER shop_longitude');
     await ensureColumn('settings', 'delivery_cost_per_km', 'delivery_cost_per_km DECIMAL(10, 2) DEFAULT 0.00 AFTER delivery_radius_km');
-    await ensureColumn('settings', 'below_threshold_delivery_charge', 'below_threshold_delivery_charge DECIMAL(10, 2) DEFAULT 20.00 AFTER delivery_cost_per_km');
-    await ensureColumn('settings', 'free_delivery_above_minimum_active', 'free_delivery_above_minimum_active BOOLEAN DEFAULT TRUE AFTER below_threshold_delivery_charge');
-    await ensureColumn('settings', 'free_delivery_offer_active', 'free_delivery_offer_active BOOLEAN DEFAULT FALSE AFTER free_delivery_above_minimum_active');
-    await ensureColumn('settings', 'fast_delivery_enabled', 'fast_delivery_enabled BOOLEAN DEFAULT FALSE AFTER free_delivery_offer_active');
+    // below_threshold_delivery_charge / free_delivery_above_minimum_active /
+    // free_delivery_offer_active are superseded by the coupon system's
+    // free_delivery discount type — see the one-time migration below.
+    await ensureColumn('settings', 'fast_delivery_enabled', 'fast_delivery_enabled BOOLEAN DEFAULT FALSE AFTER delivery_cost_per_km');
     await ensureColumn('settings', 'fast_delivery_charge', 'fast_delivery_charge DECIMAL(10, 2) DEFAULT 0.00 AFTER fast_delivery_enabled');
     await ensureColumn('settings', 'standard_delivery_minutes', 'standard_delivery_minutes INT DEFAULT 60 AFTER fast_delivery_charge');
     await ensureColumn('settings', 'fast_delivery_minutes', 'fast_delivery_minutes INT DEFAULT 30 AFTER standard_delivery_minutes');
@@ -531,8 +538,8 @@ const migrate = async () => {
     const [settingsRows] = await connection.query('SELECT * FROM settings LIMIT 1');
     if (settingsRows.length === 0) {
       await connection.query(`
-        INSERT INTO settings (minimum_order_amount, night_charge_start, night_charge_end, delivery_charge) 
-        VALUES (149.00, '21:00:00', '07:00:00', 20.00)
+        INSERT INTO settings (night_charge_start, night_charge_end, delivery_charge)
+        VALUES ('21:00:00', '07:00:00', 20.00)
       `);
       console.log('Seeded default settings.');
     }
@@ -797,6 +804,196 @@ const migrate = async () => {
     }
     } // end if (!skipSeed) for notification_templates
     console.log('Notification templates table ready.');
+
+    // ---------------------------------------------------------
+    // COUPONS — admin-managed discount codes & auto-apply offers.
+    // A coupon is a single rule (flat / percent / free_delivery)
+    // that subtracts a Discount line from the cart grand total.
+    // Only ONE coupon applies per order (no stacking): if the user
+    // enters a code it wins; otherwise the best auto-apply offer is
+    // picked. Usage is tracked in coupon_redemptions (per-user +
+    // global caps). Targeting can be all users or a selected subset
+    // (coupon_users). Scheduling supports a date window, day-of-week
+    // bitmask, and an optional time-of-day window.
+    // ---------------------------------------------------------
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS coupons (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(40) NULL,
+        title VARCHAR(120) NOT NULL,
+        description TEXT,
+
+        -- Discount rule
+        discount_type ENUM('flat','percent','free_delivery') NOT NULL DEFAULT 'flat',
+        discount_value DECIMAL(10,2) NOT NULL DEFAULT 0,
+        max_discount_amount DECIMAL(10,2) NULL,
+
+        -- Eligibility
+        min_order_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+        max_order_amount DECIMAL(10,2) NULL,
+        applies_to ENUM('all','packed','fast_food') NOT NULL DEFAULT 'all',
+
+        -- Scheduling / time window
+        starts_at DATETIME NULL,
+        ends_at DATETIME NULL,
+        active_days_mask TINYINT NULL,
+        active_time_start TIME NULL,
+        active_time_end TIME NULL,
+
+        -- Usage limits
+        total_usage_limit INT NULL,
+        per_user_usage_limit INT NULL DEFAULT 1,
+        first_order_only TINYINT(1) NOT NULL DEFAULT 0,
+        first_n_orders INT NULL,
+
+        -- Targeting
+        target_audience ENUM('all','selected') NOT NULL DEFAULT 'all',
+
+        -- Behaviour
+        auto_apply TINYINT(1) NOT NULL DEFAULT 0,
+        requires_code TINYINT(1) NOT NULL DEFAULT 1,
+        priority INT NOT NULL DEFAULT 0,
+
+        -- Lifecycle
+        active TINYINT(1) NOT NULL DEFAULT 1,
+        deleted TINYINT(1) NOT NULL DEFAULT 0,
+        created_by_admin_id VARCHAR(50) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+        INDEX idx_coupons_active_window (active, deleted, starts_at, ends_at),
+        INDEX idx_coupons_code (code),
+        INDEX idx_coupons_auto_apply (auto_apply, active, deleted)
+      );
+    `);
+    // Ensure columns exist for databases created before coupons were added.
+    await ensureColumn('coupons', 'max_order_amount', 'max_order_amount DECIMAL(10,2) NULL AFTER min_order_amount');
+    await ensureColumn('coupons', 'active_days_mask', 'active_days_mask TINYINT NULL AFTER ends_at');
+    await ensureColumn('coupons', 'first_n_orders', 'first_n_orders INT NULL AFTER first_order_only');
+    await ensureColumn('coupons', 'target_audience', "target_audience ENUM('all','selected') NOT NULL DEFAULT 'all' AFTER first_n_orders");
+    await ensureColumn('coupons', 'priority', 'priority INT NOT NULL DEFAULT 0 AFTER requires_code');
+    await ensureColumn('coupons', 'created_by_admin_id', 'created_by_admin_id VARCHAR(50) NULL AFTER deleted');
+    // Enforce code uniqueness among non-deleted coupons. A plain UNIQUE
+    // index would block re-creating a soft-deleted code, so we scope
+    // uniqueness to deleted = 0 (NULL is treated as distinct by MySQL,
+    // which is exactly what we want: multiple deleted rows can share
+    // a code, but only one live row may hold it).
+    try {
+      await connection.query(
+        'ALTER TABLE coupons ADD UNIQUE KEY uniq_live_coupon_code (code, deleted)'
+      );
+    } catch (e) {
+      // Index already exists — fine.
+    }
+    console.log('Coupons table ready.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS coupon_redemptions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        coupon_id INT NOT NULL,
+        user_id INT NOT NULL,
+        order_id INT NOT NULL,
+        discount_amount DECIMAL(10,2) NOT NULL,
+        -- Redemptions are soft-cancelled (never deleted) when their order is
+        -- cancelled, so quota restoration stays auditable. Only 'active' rows
+        -- count toward per-user/global usage limits.
+        status ENUM('active','cancelled') NOT NULL DEFAULT 'active',
+        redeemed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+        INDEX idx_redemption_user_coupon (user_id, coupon_id),
+        INDEX idx_redemption_coupon (coupon_id),
+        INDEX idx_redemption_order (order_id)
+      );
+    `);
+    await ensureColumn('coupon_redemptions', 'status', "status ENUM('active','cancelled') NOT NULL DEFAULT 'active' AFTER discount_amount");
+    console.log('Coupon redemptions table ready.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS coupon_users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        coupon_id INT NOT NULL,
+        user_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_coupon_user (coupon_id, user_id),
+        FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_coupon_users_coupon (coupon_id),
+        INDEX idx_coupon_users_user (user_id)
+      );
+    `);
+    console.log('Coupon users table ready.');
+
+    // Snapshot coupon details on the order so reports/refunds survive
+    // even if the coupon is later edited or soft-deleted.
+    await ensureColumn('orders', 'coupon_id', 'coupon_id INT NULL AFTER total');
+    await ensureColumn('orders', 'coupon_code', 'coupon_code VARCHAR(40) NULL AFTER coupon_id');
+    await ensureColumn('orders', 'coupon_title', 'coupon_title VARCHAR(120) NULL AFTER coupon_code');
+    await ensureColumn('orders', 'discount_amount', 'discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER coupon_title');
+
+    // ---------------------------------------------------------
+    // ONE-TIME MIGRATION: replace the threshold/blanket delivery-fee
+    // settings with an equivalent free_delivery coupon, then drop the old
+    // columns. Guarded by presence of free_delivery_offer_active so this
+    // block is a no-op on every run after the first (self-idempotent,
+    // no separate migration-marker needed).
+    // ---------------------------------------------------------
+    const [oldDeliveryColumns] = await connection.query(`
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'settings' AND COLUMN_NAME = 'free_delivery_offer_active'
+    `, [config.MYSQL_DATABASE]);
+
+    if (oldDeliveryColumns.length > 0) {
+      const [settingsSnapshotRows] = await connection.query(`
+        SELECT id, minimum_order_amount, delivery_charge, below_threshold_delivery_charge,
+               free_delivery_above_minimum_active, free_delivery_offer_active
+        FROM settings LIMIT 1
+      `);
+
+      if (settingsSnapshotRows.length > 0) {
+        const { planFreeDeliveryMigration } = require('./migrateFreeDeliveryCoupon');
+        const snapshot = settingsSnapshotRows[0];
+        const { coupon, deliveryChargeUpdate, warning } = planFreeDeliveryMigration(snapshot);
+
+        if (warning) {
+          console.warn(warning);
+        }
+
+        if (coupon) {
+          await connection.query(
+            `INSERT INTO coupons (code, title, description, discount_type, discount_value,
+               min_order_amount, applies_to, total_usage_limit, per_user_usage_limit,
+               target_audience, auto_apply, requires_code, priority, active, created_by_admin_id)
+             VALUES (?, ?, ?, ?, ?, ?, 'all', NULL, NULL, 'all', 1, 0, 0, 1, 'system-migration')`,
+            [coupon.code, coupon.title, coupon.description, coupon.discount_type,
+              coupon.discount_value, coupon.min_order_amount]
+          );
+          console.log(`[migrate] Seeded system free_delivery coupon (min_order_amount=${coupon.min_order_amount}) to replicate prior delivery-fee settings.`);
+        }
+
+        if (deliveryChargeUpdate !== null) {
+          await connection.query('UPDATE settings SET delivery_charge = ? WHERE id = ?', [deliveryChargeUpdate, snapshot.id]);
+          console.log(`[migrate] Reconciled settings.delivery_charge to ${deliveryChargeUpdate}.`);
+        }
+      }
+
+      const oldDeliveryFeeColumns = [
+        'minimum_order_amount',
+        'below_threshold_delivery_charge',
+        'free_delivery_above_minimum_active',
+        'free_delivery_offer_active',
+      ];
+      for (const column of oldDeliveryFeeColumns) {
+        try {
+          await connection.query(`ALTER TABLE settings DROP COLUMN ${column}`);
+        } catch (e) {
+          // Ignore error if column doesn't exist
+        }
+      }
+      console.log('[migrate] Dropped deprecated threshold delivery-fee columns from settings.');
+    }
 
     // Admin Inbox — notifications shown in the admin panel bell.
     // Separate from `notifications` (customer-facing) because admin ids are

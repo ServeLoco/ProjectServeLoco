@@ -88,21 +88,23 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/db/migrate.js`, `apps/api/src/controllers/orderController.js` (`generateOrderNumber`)
 
 **Steps:**
-- [ ] 3.1 In `migrate.js`, alongside the other `CREATE TABLE IF NOT EXISTS` statements, add:
+- [x] 3.1 In `migrate.js`, alongside the other `CREATE TABLE IF NOT EXISTS` statements, add:
   ```sql
   CREATE TABLE IF NOT EXISTS daily_order_counters (
     counter_date DATE PRIMARY KEY,
     seq INT NOT NULL DEFAULT 0
   );
   ```
-- [ ] 3.2 Rewrite `generateOrderNumber(connection)` to keep the same prefix format `OD-YYYYMMDD-` (same Asia/Kolkata date logic, same `TEST` shortcut for jest), but obtain the sequence with:
+- [x] 3.2 Rewrite `generateOrderNumber(connection)` to keep the same prefix format `OD-YYYYMMDD-` (same Asia/Kolkata date logic, same `TEST` shortcut for jest), but obtain the sequence with:
   `INSERT INTO daily_order_counters (counter_date, seq) VALUES (?, LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE seq = LAST_INSERT_ID(seq + 1)` with the IST `YYYY-MM-DD` date, then read `SELECT LAST_INSERT_ID() AS seq` on the **same connection**. Pad to 4 digits as before.
-- [ ] 3.3 Remove the old `SELECT COUNT(*) ... FOR UPDATE` query.
-- [ ] 3.4 Add a test asserting two sequential calls return consecutive, distinct numbers.
+- [x] 3.3 Remove the old `SELECT COUNT(*) ... FOR UPDATE` query.
+- [x] 3.4 Add a test asserting two sequential calls return consecutive, distinct numbers.
 
 **Do NOT:** change the visible `OD-YYYYMMDD-NNNN` format; renumber existing orders.
 
 **Done when:** order numbers are unique under parallel inserts; format unchanged; tests pass.
+
+**NOTE (done):** `daily_order_counters` table added to migrate.js; `generateOrderNumber` rewritten with INSERT…ON DUPLICATE KEY UPDATE + SELECT LAST_INSERT_ID() (old COUNT FOR UPDATE removed); format unchanged. 2 tests added in `orderNumber.test.js` (consecutive distinct numbers + SQL pattern assertion). All 330 tests pass.
 
 ---
 
