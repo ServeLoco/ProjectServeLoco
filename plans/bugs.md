@@ -163,8 +163,8 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/server.js` (`purgeExpiredDeletions`)
 
 **Steps:**
-- [ ] 6.1 Remove `AND blocked = 0` from the SELECT (blocked users' data must also be purgeable).
-- [ ] 6.2 Replace the two batched DELETEs with a per-user loop. For each user id, inside its own `try/catch` (one failure must not stop the rest):
+- [x] 6.1 Remove `AND blocked = 0` from the SELECT (blocked users' data must also be purgeable).
+- [x] 6.2 Replace the two batched DELETEs with a per-user loop. For each user id, inside its own `try/catch` (one failure must not stop the rest):
   1. `DELETE FROM password_reset_requests WHERE user_id = ?`
   2. Check `SELECT COUNT(*) AS cnt FROM orders WHERE customer_id = ?`.
   3. If `cnt === 0`: `DELETE FROM users WHERE id = ?` (hard delete, as today).
@@ -184,12 +184,14 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
      WHERE id = ?
      ```
      (`phone` is `UNIQUE NOT NULL`, so it must stay unique — `CONCAT('deleted-', id)` guarantees that. If any of these columns doesn't exist on the `users` table, skip that column only.)
-- [ ] 6.3 Keep the existing log line but report both counts, e.g. `hard-deleted X, anonymized Y user(s)`.
-- [ ] 6.4 Add a test: a user with `deletion_requested_at` 31 days ago **and one order** gets anonymized (name = 'Deleted User', phone starts with 'deleted-'), and their order row still exists.
+- [x] 6.3 Keep the existing log line but report both counts, e.g. `hard-deleted X, anonymized Y user(s)`.
+- [x] 6.4 Add a test: a user with `deletion_requested_at` 31 days ago **and one order** gets anonymized (name = 'Deleted User', phone starts with 'deleted-'), and their order row still exists.
 
 **Do NOT:** touch the FK constraints in `migrate.js`; delete or modify `orders` rows; change the 30-day grace period or the 24h schedule.
 
 **Done when:** the purge completes with a mix of ordered and order-less expired users; order history survives anonymization; tests pass.
+
+**NOTE (done):** Removed `AND blocked = 0`; replaced the batched `DELETE ... IN (?)` with a per-user loop (delete reset requests → COUNT orders → hard-delete if 0, else anonymize via `UPDATE users SET name='Deleted User', phone=CONCAT('deleted-',id), password_hash/firebase_uid/whatsapp_number/address/short_address/push_token=NULL, blocked=1, deletion_requested_at=NULL`), each user in its own try/catch; log reports `hard-deleted X, anonymized Y user(s)`. Exported `purgeExpiredDeletions` and guarded the auto-start with `require.main === module` so the function is unit-testable (production boot via `node src/server.js` unchanged; nothing imported server.js before). 2 tests added in `purgeExpiredDeletions.test.js` (mix of ordered→anonymized + order-less→hard-deleted, order rows survive, SELECT no longer filters on blocked; no-op when empty). All 333 tests pass (332 + 1 skipped).
 
 ---
 
