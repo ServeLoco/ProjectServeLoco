@@ -141,16 +141,18 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/db/migrate.js`, `apps/api/src/controllers/authController.js` (`requestPasswordReset`), `apps/api/src/controllers/adminController.js` (`getPasswordResetRequests`), `apps/admin/src/pages/Customers.jsx`
 
 **Steps:**
-- [ ] 5.1 In `migrate.js`, next to the other `ensureColumn` calls, add: `await ensureColumn('password_reset_requests', 'requester_ip', 'requester_ip VARCHAR(45) DEFAULT NULL');`
-- [ ] 5.2 In `authController.requestPasswordReset`: before inserting, count existing rows with `SELECT COUNT(*) AS cnt FROM password_reset_requests WHERE phone = ? AND status = 'pending'` (check the actual column names in the table first — if the status column/value differs, use the real ones). If `cnt >= 1`, respond `429 { code:'TOO_MANY_REQUESTS', message:'A reset request for this number is already pending. Please wait for it to be reviewed.' }` and do not insert.
-- [ ] 5.3 In the same function, store the requester IP in the INSERT: use `req.ip` (Express `trust proxy` is already enabled) into the new `requester_ip` column.
-- [ ] 5.4 In `adminController.getPasswordResetRequests`, include `requester_ip` and the request's created-at timestamp in the SELECT so the admin UI receives them (additive fields only).
-- [ ] 5.5 In the admin Customers page (where reset requests are approved): display the requester IP and request time next to each pending request, and change the Approve action to require a confirm step (reuse the existing confirm-dialog pattern in the admin app if one exists; otherwise `window.confirm`) with this exact text: *"Approving sets a password chosen by whoever filed this request. Verify with the customer (call/WhatsApp) before approving. Continue?"*
-- [ ] 5.6 Add a test: second pending reset request for the same phone returns 429.
+- [x] 5.1 In `migrate.js`, next to the other `ensureColumn` calls, add: `await ensureColumn('password_reset_requests', 'requester_ip', 'requester_ip VARCHAR(45) DEFAULT NULL');`
+- [x] 5.2 In `authController.requestPasswordReset`: before inserting, count existing rows with `SELECT COUNT(*) AS cnt FROM password_reset_requests WHERE phone = ? AND status = 'pending'` (check the actual column names in the table first — if the status column/value differs, use the real ones). If `cnt >= 1`, respond `429 { code:'TOO_MANY_REQUESTS', message:'A reset request for this number is already pending. Please wait for it to be reviewed.' }` and do not insert.
+- [x] 5.3 In the same function, store the requester IP in the INSERT: use `req.ip` (Express `trust proxy` is already enabled) into the new `requester_ip` column.
+- [x] 5.4 In `adminController.getPasswordResetRequests`, include `requester_ip` and the request's created-at timestamp in the SELECT so the admin UI receives them (additive fields only).
+- [x] 5.5 In the admin Customers page (where reset requests are approved): display the requester IP and request time next to each pending request, and change the Approve action to require a confirm step (reuse the existing confirm-dialog pattern in the admin app if one exists; otherwise `window.confirm`) with this exact text: *"Approving sets a password chosen by whoever filed this request. Verify with the customer (call/WhatsApp) before approving. Continue?"*
+- [x] 5.6 Add a test: second pending reset request for the same phone returns 429.
 
 **Do NOT:** change the approve endpoint's behavior or response shape; touch the OTP/Firebase flow; add CAPTCHA or email.
 
 **Done when:** a second pending request for the same phone is rejected with 429; the admin list shows IP + time; Approve asks for confirmation; tests pass.
+
+**NOTE (done):** `requester_ip` column added via ensureColumn; requestPasswordReset counts pending per user_id (table uses user_id not phone) → 429 if ≥1; INSERT stores `req.ip`; getPasswordResetRequests + getAdminCustomerById SELECTs include requester_ip; Customers.jsx dropdown & drawer show IP+time; Approve confirm uses exact spec text. 1 new test + 1 updated test. All 331 tests pass.
 
 ---
 

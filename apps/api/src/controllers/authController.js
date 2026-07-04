@@ -175,6 +175,15 @@ const requestPasswordReset = async (req, res) => {
   const userId = users[0].id;
   const hashedPassword = await hashPassword(newPassword);
 
+  // Cap pending requests: if one is already awaiting review, refuse a new one.
+  const [pendingRows] = await pool.query(
+    "SELECT COUNT(*) AS cnt FROM password_reset_requests WHERE user_id = ? AND status = 'pending'",
+    [userId]
+  );
+  if (pendingRows[0].cnt >= 1) {
+    return res.status(429).json({ code: 'TOO_MANY_REQUESTS', message: 'A reset request for this number is already pending. Please wait for it to be reviewed.' });
+  }
+
   await pool.query(
     `UPDATE password_reset_requests
      SET status = 'rejected', reviewed_at = CURRENT_TIMESTAMP, reviewed_by_admin_id = 'system', review_note = 'Replaced by newer request'
@@ -183,8 +192,8 @@ const requestPasswordReset = async (req, res) => {
   );
 
   const [resetResult] = await pool.query(
-    'INSERT INTO password_reset_requests (user_id, password_hash) VALUES (?, ?)',
-    [userId, hashedPassword]
+    'INSERT INTO password_reset_requests (user_id, password_hash, requester_ip) VALUES (?, ?, ?)',
+    [userId, hashedPassword, req.ip || null]
   );
 
   // Admin inbox — notify all admins a password reset is awaiting approval.

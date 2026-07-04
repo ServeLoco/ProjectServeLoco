@@ -114,6 +114,8 @@ const migrate = async () => {
       );
     `);
     console.log('Password reset requests table ready.');
+    // Track the IP that submitted each reset request so the admin can spot abuse.
+    await ensureColumn('password_reset_requests', 'requester_ip', 'requester_ip VARCHAR(45) DEFAULT NULL');
 
     // Categories Table
     await connection.query(`

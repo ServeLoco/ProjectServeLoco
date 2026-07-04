@@ -272,7 +272,7 @@ const getAdminCustomerById = async (req, res) => {
   const customer = userRows[0];
   const [orderRows] = await pool.query('SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC', [id]);
   const [resetRows] = await pool.query(
-    `SELECT id, status, requested_at
+    `SELECT id, status, requested_at, requester_ip
      FROM password_reset_requests
      WHERE user_id = ? AND status = 'pending'
      ORDER BY requested_at DESC
@@ -298,7 +298,7 @@ const getPasswordResetRequests = async (req, res) => {
   const finalStatus = allowedStatuses.includes(status) ? status : 'pending';
 
   const [rows] = await pool.query(
-    `SELECT prr.id, prr.user_id, prr.status, prr.requested_at, prr.reviewed_at, prr.reviewed_by_admin_id,
+    `SELECT prr.id, prr.user_id, prr.status, prr.requested_at, prr.requester_ip, prr.reviewed_at, prr.reviewed_by_admin_id,
             u.name, u.phone, u.whatsapp_number
      FROM password_reset_requests prr
      JOIN users u ON u.id = prr.user_id

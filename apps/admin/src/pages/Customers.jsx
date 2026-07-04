@@ -157,9 +157,9 @@ export default function Customers() {
     const request = selectedCustomer?.pending_password_reset_request;
     if (!request) return;
     const isApprove = action === 'approve';
-    const confirmed = window.confirm(
-      `${isApprove ? 'Approve' : 'Reject'} password reset request for ${selectedCustomer.name}?`
-    );
+    const confirmed = isApprove
+      ? window.confirm('Approving sets a password chosen by whoever filed this request. Verify with the customer (call/WhatsApp) before approving. Continue?')
+      : window.confirm(`Reject password reset request for ${selectedCustomer.name}?`);
     if (!confirmed) return;
 
     try {
@@ -241,7 +241,7 @@ export default function Customers() {
                     User #{r.user_id}
                     {r.user_name ? ` · ${r.user_name}` : ''}
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #666)' }}>
-                      Tap to review
+                      {r.requested_at ? new Date(r.requested_at).toLocaleString() : ''}{r.requester_ip ? ` · IP ${r.requester_ip}` : ''}
                     </div>
                   </button>
                 ))}
@@ -401,7 +401,10 @@ export default function Customers() {
                   <p>
                     Customer requested a new password on{' '}
                     {new Date(selectedCustomer.pending_password_reset_request.requested_at).toLocaleString()}.
-                    Verify the customer before approving.
+                    {selectedCustomer.pending_password_reset_request.requester_ip && (
+                      <> Request submitted from IP: <strong>{selectedCustomer.pending_password_reset_request.requester_ip}</strong>.</>
+                    )}
+                    {' '}Verify the customer before approving.
                   </p>
                   <div className="password-reset-actions">
                     <button
