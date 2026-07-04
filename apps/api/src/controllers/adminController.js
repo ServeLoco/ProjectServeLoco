@@ -569,12 +569,46 @@ const updateOrderStatus = async (req, res) => {
 
   if (status === 'Cancelled') {
     const cancelledPaymentStatus = getCancelledPaymentStatus(orderRows[0].payment_method);
-    await pool.query(
-      'UPDATE orders SET status = ?, payment_status = ?, cancel_reason = ? WHERE id = ?',
-      [status, cancelledPaymentStatus, cancel_reason || null, id]
-    );
+    // Cancel + coupon-quota restore must land together: soft-cancelling the
+    // redemption releases the customer's per-user use and the global count
+    // (only 'active' rows count toward limits), same as a customer cancel.
+    const connection = await pool.getConnection();
+    let conflict = false;
+    try {
+      await connection.beginTransaction();
+      const [cancelResult] = await connection.query(
+        'UPDATE orders SET status = ?, payment_status = ?, cancel_reason = ? WHERE id = ? AND status = ?',
+        [status, cancelledPaymentStatus, cancel_reason || null, id, currentStatus]
+      );
+      if (cancelResult.affectedRows === 0) {
+        // The order status changed underneath us — do not overwrite it.
+        await connection.rollback();
+        conflict = true;
+      } else {
+        if (orderRows[0].coupon_id) {
+          await connection.query(
+            "UPDATE coupon_redemptions SET status = 'cancelled' WHERE order_id = ? AND coupon_id = ?",
+            [id, orderRows[0].coupon_id]
+          );
+        }
+        await connection.commit();
+      }
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+    if (conflict) {
+      const [freshRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+      return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'Order was updated by someone else.', order: freshRows[0] });
+    }
   } else {
-    await pool.query('UPDATE orders SET status = ?, cancel_reason = ? WHERE id = ?', [status, cancel_reason || null, id]);
+    const [updateResult] = await pool.query('UPDATE orders SET status = ? WHERE id = ? AND status = ?', [status, id, currentStatus]);
+    if (updateResult.affectedRows === 0) {
+      const [freshRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+      return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'Order was updated by someone else.', order: freshRows[0] });
+    }
   }
   const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
   const updatedOrder = updatedRows[0];
@@ -623,7 +657,11 @@ const updateOrderPayment = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot update payment for a canceled order' });
   }
 
-  await pool.query('UPDATE orders SET payment_status = ? WHERE id = ?', [finalStatus, id]);
+  const [paymentResult] = await pool.query('UPDATE orders SET payment_status = ? WHERE id = ? AND payment_status = ?', [finalStatus, id, currentPaymentStatus]);
+  if (paymentResult.affectedRows === 0) {
+    const [freshRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+    return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'Order was updated by someone else.', order: freshRows[0] });
+  }
   const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
   const updatedOrder = updatedRows[0];
 

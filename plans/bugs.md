@@ -67,15 +67,17 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/controllers/adminController.js` (`updateOrderStatus`, `updateOrderPayment`), `apps/api/src/controllers/orderController.js` (`cancelOrder`)
 
 **Steps:**
-- [ ] 2.1 In `adminController.updateOrderStatus`: change both UPDATE statements to include the expected prior status in the WHERE clause. The Cancelled branch becomes `UPDATE orders SET status = ?, payment_status = ?, cancel_reason = ? WHERE id = ? AND status = ?` (last param = `currentStatus`); the other branch likewise gets `AND status = ?`. After each UPDATE, check `result.affectedRows`. If `0`: re-SELECT the order and respond `409 { code:'CONCURRENCY_CONFLICT', message:'Order was updated by someone else.', order: <fresh row> }` and **do not** emit notifications/events.
-- [ ] 2.2 Same pattern in `updateOrderPayment`: `UPDATE orders SET payment_status = ? WHERE id = ? AND payment_status = ?` (expected = `currentPaymentStatus`), `affectedRows === 0` → 409 with the fresh order.
-- [ ] 2.3 In `orderController.cancelOrder`: change the UPDATE to `... WHERE id = ? AND status = 'Pending'`. If `affectedRows === 0`, re-SELECT: if the fresh status is `Cancelled`, return the existing "already cancelled" 200; otherwise return `400 { code:'VALIDATION_ERROR', message:'Only pending orders can be cancelled' }`. Keep the coupon-redemption soft-cancel exactly as C1/C4 implemented it, but only run it when the UPDATE actually succeeded.
-- [ ] 2.4 In `adminController.updateOrderStatus`, non-cancel branch: stop writing `cancel_reason`. The UPDATE for non-cancel transitions must set **only** `status` (currently it also writes `cancel_reason = ?` with null, wiping stored reasons).
-- [ ] 2.5 Add a test in `apps/api/tests/` : updating an order whose status was changed underneath returns 409 and does not overwrite.
+- [x] 2.1 In `adminController.updateOrderStatus`: change both UPDATE statements to include the expected prior status in the WHERE clause. The Cancelled branch becomes `UPDATE orders SET status = ?, payment_status = ?, cancel_reason = ? WHERE id = ? AND status = ?` (last param = `currentStatus`); the other branch likewise gets `AND status = ?`. After each UPDATE, check `result.affectedRows`. If `0`: re-SELECT the order and respond `409 { code:'CONCURRENCY_CONFLICT', message:'Order was updated by someone else.', order: <fresh row> }` and **do not** emit notifications/events.
+- [x] 2.2 Same pattern in `updateOrderPayment`: `UPDATE orders SET payment_status = ? WHERE id = ? AND payment_status = ?` (expected = `currentPaymentStatus`), `affectedRows === 0` → 409 with the fresh order.
+- [x] 2.3 In `orderController.cancelOrder`: change the UPDATE to `... WHERE id = ? AND status = 'Pending'`. If `affectedRows === 0`, re-SELECT: if the fresh status is `Cancelled`, return the existing "already cancelled" 200; otherwise return `400 { code:'VALIDATION_ERROR', message:'Only pending orders can be cancelled' }`. Keep the coupon-redemption soft-cancel exactly as C1/C4 implemented it, but only run it when the UPDATE actually succeeded.
+- [x] 2.4 In `adminController.updateOrderStatus`, non-cancel branch: stop writing `cancel_reason`. The UPDATE for non-cancel transitions must set **only** `status` (currently it also writes `cancel_reason = ?` with null, wiping stored reasons).
+- [x] 2.5 Add a test in `apps/api/tests/` : updating an order whose status was changed underneath returns 409 and does not overwrite.
 
 **Do NOT:** change the forward-only progression rules, the notification event names, or the auto-accept logic (`orderAutoAccept.js` already uses a conditional UPDATE — leave it).
 
 **Done when:** admin UI's existing 409 branch fires in a two-writer scenario; customer cancel can no longer overwrite an Accepted order; tests pass.
+
+**NOTE (done):** All UPDATEs now carry `AND status = ?`/`AND payment_status = ?`; affectedRows===0 → 409 CONCURRENCY_CONFLICT with fresh row (no notifications). Non-cancel branch no longer writes cancel_reason. cancelOrder WHERE status='Pending' with re-SELECT fallback. 3 new tests added. All 328 tests pass.
 
 ---
 

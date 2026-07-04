@@ -479,10 +479,19 @@ const cancelOrder = async (req, res) => {
   }
 
   const cancelledPaymentStatus = getCancelledPaymentStatus(order.payment_method);
-  await pool.query(
-    'UPDATE orders SET status = "Cancelled", payment_status = ?, cancel_reason = ? WHERE id = ?',
+  const [cancelResult] = await pool.query(
+    'UPDATE orders SET status = "Cancelled", payment_status = ?, cancel_reason = ? WHERE id = ? AND status = "Pending"',
     [cancelledPaymentStatus, reason || 'Cancelled by customer', id]
   );
+
+  if (cancelResult.affectedRows === 0) {
+    const [freshRows] = await pool.query('SELECT * FROM orders WHERE id = ? AND customer_id = ?', [id, userId]);
+    const freshOrder = freshRows[0];
+    if (freshOrder && freshOrder.status === 'Cancelled') {
+      return res.status(200).json({ success: true, message: 'Order already cancelled', order: freshOrder, data: freshOrder });
+    }
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Only pending orders can be cancelled' });
+  }
 
   // Soft-cancel the coupon redemption so one-use coupons can be retried by
   // the customer after a cancellation. Only 'active' rows count toward usage
