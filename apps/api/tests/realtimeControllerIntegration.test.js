@@ -332,10 +332,10 @@ describe('Controller -> realtime event integration', () => {
     });
 
     it('does not emit when payment status has not changed', async () => {
-      pool.query.mockResolvedValueOnce([[{
-        id: 801, payment_status: 'Pending', status: 'Accepted', customer_id: 1,
-      }]]);
-      pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
+      // Same-value update short-circuits BEFORE the compare-and-set UPDATE:
+      // with a real DB, `UPDATE ... WHERE payment_status = ?` reports
+      // affectedRows = 0 when the value is unchanged, which would read as a
+      // bogus concurrency conflict (409). Only the initial SELECT runs.
       pool.query.mockResolvedValueOnce([[{
         id: 801, payment_status: 'Pending', status: 'Accepted', customer_id: 1,
       }]]);
@@ -346,6 +346,7 @@ describe('Controller -> realtime event integration', () => {
       await adminController.updateOrderPayment(req, res);
 
       expect(res.statusCode).toBe(200);
+      expect(pool.query).toHaveBeenCalledTimes(1);
       expect(realtimeEvents.emitOrderPaymentUpdated).not.toHaveBeenCalled();
     });
 

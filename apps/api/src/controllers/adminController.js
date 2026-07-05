@@ -660,6 +660,14 @@ const updateOrderPayment = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot update payment for a canceled order' });
   }
 
+  // Same-value no-op must not fall through to the compare-and-set UPDATE:
+  // MySQL reports affectedRows = 0 when the new value equals the old one,
+  // which would be indistinguishable from a real concurrent change and
+  // return a bogus 409. Answer 200 with the current row instead.
+  if (finalStatus === currentPaymentStatus) {
+    return res.status(200).json({ message: 'Order payment status updated successfully', order: orderRows[0] });
+  }
+
   const [paymentResult] = await pool.query('UPDATE orders SET payment_status = ? WHERE id = ? AND payment_status = ?', [finalStatus, id, currentPaymentStatus]);
   if (paymentResult.affectedRows === 0) {
     const [freshRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);

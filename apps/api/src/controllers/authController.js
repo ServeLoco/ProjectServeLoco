@@ -220,13 +220,6 @@ const requestPasswordReset = async (req, res) => {
     return res.status(429).json({ code: 'TOO_MANY_REQUESTS', message: 'A reset request for this number is already pending. Please wait for it to be reviewed.' });
   }
 
-  await pool.query(
-    `UPDATE password_reset_requests
-     SET status = 'rejected', reviewed_at = CURRENT_TIMESTAMP, reviewed_by_admin_id = 'system', review_note = 'Replaced by newer request'
-     WHERE user_id = ? AND status = 'pending'`,
-    [userId]
-  );
-
   const [resetResult] = await pool.query(
     'INSERT INTO password_reset_requests (user_id, password_hash, requester_ip) VALUES (?, ?, ?)',
     [userId, hashedPassword, req.ip || null]
