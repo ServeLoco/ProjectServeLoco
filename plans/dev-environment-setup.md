@@ -80,7 +80,9 @@ Goal: one command starts API + Admin + Web + Customer app together, with a clean
 **Files:** `apps/web/vite.config.js`
 
 **Steps:**
-- [ ] 3.1 Add `server: { port: 5174, strictPort: true }` to the Vite config export (admin stays on default 5173).
+- [x] 3.1 Add `server: { port: 5174, strictPort: true }` to the Vite config export (admin stays on default 5173).
+
+**NOTE (done):** Added `server: { port: 5174, strictPort: true }` to `apps/web/vite.config.js`; admin remains on Vite default 5173.
 
 **Done when:** `cd apps/web && npm run dev` binds to :5174 while admin's `npm run dev` binds to :5173, both running at once.
 
