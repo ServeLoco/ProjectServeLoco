@@ -134,10 +134,15 @@ export default function Notifications() {
       const res = await NotificationsApi.create(payload);
       const recipientCount = res?.data?.recipientCount ?? 'all';
       const matched = res?.data?.matchedPhones;
+      const unmatched = res?.data?.unmatchedPhones;
+
       const matchedHint = Array.isArray(matched) && matched.length
         ? ` (matched: ${matched.join(', ')})`
         : '';
-      setSuccessMsg(`✅ Sent successfully to ${recipientCount} customer${recipientCount === 1 ? '' : 's'}!${matchedHint}`);
+      const unmatchedHint = Array.isArray(unmatched) && unmatched.length
+        ? ` ⚠️ ${unmatched.length} numbers not found: ${unmatched.join(', ')}`
+        : '';
+      setSuccessMsg(`✅ Sent successfully to ${recipientCount} customer${recipientCount === 1 ? '' : 's'}!${matchedHint}${unmatchedHint}`);
       setTitle('');
       setBody('');
       setPhonesInput('');

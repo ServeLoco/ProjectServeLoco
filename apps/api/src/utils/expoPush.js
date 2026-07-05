@@ -44,7 +44,8 @@ const sendPushToUser = async (pool, userId, opts) => {
     const token = rows[0]?.push_token;
     if (!token || !Expo.isExpoPushToken(token)) return;
 
-    await expo.sendPushNotificationsAsync([buildMessage(token, opts)]);
+    const tickets = await expo.sendPushNotificationsAsync([buildMessage(token, opts)]);
+    await cleanupDeadTokens(pool, tickets, [token]);
   } catch (err) {
     console.error('[expoPush] sendPushToUser failed:', err.message);
   }
@@ -77,13 +78,43 @@ const sendPushToMany = async (pool, userIds, opts) => {
 
     const chunks = expo.chunkPushNotifications(messages);
     for (const chunk of chunks) {
-      await expo.sendPushNotificationsAsync(chunk).catch(err => {
+      let tickets;
+      try {
+        tickets = await expo.sendPushNotificationsAsync(chunk);
+      } catch (err) {
         console.error('[expoPush] chunk send failed:', err.message);
-      });
+        continue;
+      }
+      await cleanupDeadTokens(pool, tickets, chunk.map(m => m.to));
     }
   } catch (err) {
     console.error('[expoPush] sendPushToMany failed:', err.message);
   }
 };
 
-module.exports = { sendPushToUser, sendPushToMany };
+/**
+ * Inspect Expo push tickets and null out push_tokens for devices that the
+ * APNS/FCM layer has marked as `DeviceNotRegistered`. Fire-and-forget safe —
+ * any error is logged and swallowed so cleanup can never fail the send.
+ *
+ * @param {import('mysql2/promise').Pool} pool
+ * @param {Array<{status?: string, details?: {error?: string}}>} tickets
+ * @param {string[]} tokens  Same length and order as the messages sent.
+ */
+const cleanupDeadTokens = async (pool, tickets, tokens) => {
+  try {
+    for (let i = 0; i < tickets.length; i++) {
+      const ticket = tickets[i];
+      if (ticket?.status === 'error' && ticket?.details?.error === 'DeviceNotRegistered') {
+        const token = tokens[i];
+        if (token) {
+          await pool.query('UPDATE users SET push_token = NULL WHERE push_token = ?', [token]);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[expoPush] cleanup failed:', err.message);
+  }
+};
+
+module.exports = { sendPushToUser, sendPushToMany, cleanupDeadTokens };

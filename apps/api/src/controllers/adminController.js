@@ -628,7 +628,8 @@ const updateOrderStatus = async (req, res) => {
         userId: updatedOrder.customer_id,
         order: updatedOrder,
         event: eventName
-      }).then(result => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result));
+      }).then(result => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result))
+        .catch(err => console.error('[notify]', err.message));
     }
 
     realtimeEvents.emitOrderStatusUpdated(updatedOrder);
@@ -678,7 +679,8 @@ const updateOrderPayment = async (req, res) => {
         userId: updatedOrder.customer_id,
         order: updatedOrder,
         event: eventName
-      }).then(result => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result));
+      }).then(result => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result))
+        .catch(err => console.error('[notify]', err.message));
     }
 
     realtimeEvents.emitOrderPaymentUpdated(updatedOrder);
@@ -750,6 +752,7 @@ const createAdminNotification = async (req, res) => {
 
   let targetUserIds = [];
   let resolvedPhones = [];
+  let unmatchedPhones = [];
 
   if (target === 'everyone') {
     const [users] = await pool.query('SELECT id FROM users WHERE blocked = 0');
@@ -830,6 +833,26 @@ const createAdminNotification = async (req, res) => {
     }
     targetUserIds = users.map(u => u.id);
     resolvedPhones = users.map(u => u.phone);
+
+    // Identify which sanitized inputs didn't resolve to any customer. Use the
+    // same digit-only comparison as the matching loop above so that an admin
+    // who typed a 10-digit local number sees it reported as unmatched when
+    // their input had no matching row, even when stored phones carry a
+    // country code (and vice-versa).
+    const matchedDigitSet = new Set();
+    for (const u of users) {
+      const d = stripDigits(u.phone);
+      if (!d) continue;
+      matchedDigitSet.add(d);
+      if (d.length > 10) matchedDigitSet.add(d.slice(-10));
+    }
+    unmatchedPhones = sanitized.filter(phone => {
+      const d = stripDigits(phone);
+      if (!d) return false;
+      if (matchedDigitSet.has(d)) return false;
+      if (d.length > 10 && matchedDigitSet.has(d.slice(-10))) return false;
+      return true;
+    });
   } else {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Unsupported target' });
   }
@@ -887,7 +910,9 @@ const createAdminNotification = async (req, res) => {
     data: {
       batchId: result.batchId,
       recipientCount: result.count,
-      ...(target === 'phones' ? { matchedPhones: resolvedPhones } : {}),
+      ...(target === 'phones'
+        ? { matchedPhones: resolvedPhones, unmatchedPhones }
+        : {}),
     }
   });
 };

@@ -477,7 +477,8 @@ const createOrder = async (req, res) => {
     };
 
     notificationService.createOrderNotification({ userId, order, event: 'order_placed' })
-      .then(result => realtimeEvents.emitNotificationCreated(userId, result));
+      .then(result => realtimeEvents.emitNotificationCreated(userId, result))
+      .catch(err => console.error('[notify]', err.message));
 
     realtimeEvents.emitOrderCreated(order);
 
@@ -618,7 +619,8 @@ const cancelOrder = async (req, res) => {
   };
 
   notificationService.createOrderNotification({ userId, order: updatedOrder, event: 'status_cancelled' })
-    .then(result => realtimeEvents.emitNotificationCreated(userId, result));
+    .then(result => realtimeEvents.emitNotificationCreated(userId, result))
+    .catch(err => console.error('[notify]', err.message));
 
   realtimeEvents.emitOrderCancelled(updatedOrder);
 
