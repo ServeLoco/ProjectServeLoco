@@ -521,7 +521,7 @@ const couponSchema = (req) => {
       errors.push(`${field} must be a number or null`);
     }
   }
-  for (const field of ['total_usage_limit', 'per_user_usage_limit', 'first_n_orders']) {
+  for (const field of ['total_usage_limit', 'per_user_usage_limit', 'first_n_orders', 'min_item_count']) {
     if (!isEmptyish(body[field]) && (!Number.isInteger(Number(body[field])) || Number(body[field]) < 0)) {
       errors.push(`${field} must be a non-negative integer or null`);
     }
