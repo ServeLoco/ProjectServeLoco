@@ -855,6 +855,7 @@ const migrate = async () => {
 
         -- Eligibility
         min_order_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+        min_item_count INT NULL,
         max_order_amount DECIMAL(10,2) NULL,
         applies_to ENUM('all','packed','fast_food') NOT NULL DEFAULT 'all',
 
@@ -892,7 +893,8 @@ const migrate = async () => {
       );
     `);
     // Ensure columns exist for databases created before coupons were added.
-    await ensureColumn('coupons', 'max_order_amount', 'max_order_amount DECIMAL(10,2) NULL AFTER min_order_amount');
+    await ensureColumn('coupons', 'min_item_count', 'min_item_count INT NULL AFTER min_order_amount');
+    await ensureColumn('coupons', 'max_order_amount', 'max_order_amount DECIMAL(10,2) NULL AFTER min_item_count');
     await ensureColumn('coupons', 'active_days_mask', 'active_days_mask TINYINT NULL AFTER ends_at');
     await ensureColumn('coupons', 'first_n_orders', 'first_n_orders INT NULL AFTER first_order_only');
     await ensureColumn('coupons', 'target_audience', "target_audience ENUM('all','selected') NOT NULL DEFAULT 'all' AFTER first_n_orders");
