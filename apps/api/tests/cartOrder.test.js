@@ -125,7 +125,7 @@ describe('Cart and Order Tests', () => {
       night_charge: 0,
     }]]);
     pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
-    getNextFreeDeliveryThreshold.mockResolvedValueOnce({ minOrder: 300, amountRemaining: 100 });
+    getNextFreeDeliveryThreshold.mockResolvedValueOnce({ minOrder: 300, amountRemaining: 100, minItemCount: 0, itemsRemaining: 0, thresholdType: 'amount' });
 
     const res = await request(app)
       .post('/api/cart/calculate')
@@ -139,8 +139,53 @@ describe('Cart and Order Tests', () => {
     expect(res.statusCode).toEqual(200);
     expect(res.body.subtotal).toEqual(200);
     expect(res.body.deliveryCharge).toBe(35);
-    expect(res.body.freeDeliveryProgress).toEqual({ minOrder: 300, amountRemaining: 100 });
+    expect(res.body.freeDeliveryProgress).toEqual({ minOrder: 300, amountRemaining: 100, minItemCount: 0, itemsRemaining: 0, thresholdType: 'amount' });
     expect(res.body.deliveryMessage).toBe('Add ₹100 more for free delivery. ₹35 delivery applied.');
+  });
+
+  it('should surface an item-count free-delivery hint when amount is met but items are short', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      delivery_charge: 35,
+      night_charge: 0,
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+    getNextFreeDeliveryThreshold.mockResolvedValueOnce({ minOrder: 0, amountRemaining: 0, minItemCount: 3, itemsRemaining: 1, thresholdType: 'item_count' });
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        latitude: 12.9716,
+        longitude: 77.6046,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.freeDeliveryProgress).toEqual({ minOrder: 0, amountRemaining: 0, minItemCount: 3, itemsRemaining: 1, thresholdType: 'item_count' });
+    expect(res.body.deliveryMessage).toBe('Add 1 more item(s) for free delivery. ₹35 delivery applied.');
+  });
+
+  it('should join amount and item-count shortfalls in the free-delivery hint', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      delivery_charge: 35,
+      night_charge: 0,
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+    getNextFreeDeliveryThreshold.mockResolvedValueOnce({ minOrder: 300, amountRemaining: 100, minItemCount: 3, itemsRemaining: 1, thresholdType: 'both' });
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        latitude: 12.9716,
+        longitude: 77.6046,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.deliveryMessage).toBe('Add ₹100 more and 1 more item(s) for free delivery. ₹35 delivery applied.');
   });
 
   it('should surface a nearest-unlockable-offer progress hint alongside the bill', async () => {
