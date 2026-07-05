@@ -168,7 +168,16 @@ function CouponPreview({ form }) {
       return `On a \u20B9${sampleTotal} order: customer pays \u20B9${discountedTotal} (\u20B9${off} off)`;
     }
     if (form.discount_type === 'free_delivery') {
-      return `On a \u20B9${sampleTotal} order: standard delivery fee waived`;
+      if (minOrder > 0 && minItemCount > 0) {
+        return `On orders above \u20B9${minOrder} with ${minItemCount}+ items: standard delivery fee waived`;
+      }
+      if (minItemCount > 0) {
+        return `On orders with ${minItemCount}+ items: standard delivery fee waived`;
+      }
+      if (minOrder > 0) {
+        return `On orders above \u20B9${minOrder}: standard delivery fee waived`;
+      }
+      return 'On any order: standard delivery fee waived';
     }
     return '';
   })();
