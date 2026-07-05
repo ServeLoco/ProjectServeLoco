@@ -329,6 +329,221 @@ const productImageSchema = (req) => {
   return { errors, data: { id: req.params.id, image_id: imageId } };
 };
 
+const dashboardSectionSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const body = req.body || {};
+  if (!body.title || typeof body.title !== 'string' || body.title.trim() === '') {
+    errors.push('title is required');
+  } else {
+    data.title = body.title.trim();
+  }
+  if (body.display_order !== undefined) {
+    const n = Number(body.display_order);
+    if (!Number.isInteger(n) || n < 0) errors.push('display_order must be a non-negative integer');
+    else data.display_order = n;
+  }
+  if (body.active !== undefined) {
+    data.active = (body.active === true || body.active === 'true' || body.active === 1 || body.active === '1') ? 1 : 0;
+  }
+  return { errors, data };
+};
+
+const dashboardSectionReorderSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const ids = req.body?.sectionIds;
+  if (!Array.isArray(ids) || ids.some(id => !Number.isInteger(Number(id)) || Number(id) < 0)) {
+    errors.push('sectionIds must be an array of non-negative integers');
+  } else {
+    data.sectionIds = ids.map(Number);
+  }
+  return { errors, data };
+};
+
+const dashboardSectionUpdateSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const body = req.body || {};
+  if (body.title !== undefined) {
+    if (typeof body.title !== 'string' || body.title.trim() === '') errors.push('title must be a non-empty string');
+    else data.title = body.title.trim();
+  }
+  if (body.display_order !== undefined) {
+    const n = Number(body.display_order);
+    if (!Number.isInteger(n) || n < 0) errors.push('display_order must be a non-negative integer');
+    else data.display_order = n;
+  }
+  if (body.active !== undefined) {
+    data.active = (body.active === true || body.active === 'true' || body.active === 1 || body.active === '1') ? 1 : 0;
+  }
+  return { errors, data };
+};
+
+const dashboardSectionItemSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const body = req.body || {};
+  const validItemTypes = ['offer', 'category', 'product', 'combo'];
+  if (!body.item_type || typeof body.item_type !== 'string' || !validItemTypes.includes(body.item_type)) {
+    errors.push('item_type is required and must be one of: offer, category, product, combo');
+  } else {
+    data.item_type = body.item_type;
+  }
+  if (body.item_id === undefined || body.item_id === null || !Number.isInteger(Number(body.item_id)) || Number(body.item_id) < 1) {
+    errors.push('item_id is required and must be a positive integer');
+  } else {
+    data.item_id = Number(body.item_id);
+  }
+  if (body.display_order !== undefined) {
+    const n = Number(body.display_order);
+    if (!Number.isInteger(n) || n < 0) errors.push('display_order must be a non-negative integer');
+    else data.display_order = n;
+  }
+  return { errors, data };
+};
+
+const dashboardSectionItemReorderSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const ids = req.body?.itemIds;
+  if (!Array.isArray(ids) || ids.some(id => !Number.isInteger(Number(id)) || Number(id) < 0)) {
+    errors.push('itemIds must be an array of non-negative integers');
+  } else {
+    data.itemIds = ids.map(Number);
+  }
+  return { errors, data };
+};
+
+const dashboardSectionItemUpdateSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const body = req.body || {};
+  const validItemTypes = ['offer', 'category', 'product', 'combo'];
+  if (body.item_type !== undefined) {
+    if (typeof body.item_type !== 'string' || !validItemTypes.includes(body.item_type)) {
+      errors.push('item_type must be one of: offer, category, product, combo');
+    } else {
+      data.item_type = body.item_type;
+    }
+  }
+  if (body.item_id !== undefined) {
+    if (!Number.isInteger(Number(body.item_id)) || Number(body.item_id) < 1) errors.push('item_id must be a positive integer');
+    else data.item_id = Number(body.item_id);
+  }
+  if (body.display_order !== undefined) {
+    const n = Number(body.display_order);
+    if (!Number.isInteger(n) || n < 0) errors.push('display_order must be a non-negative integer');
+    else data.display_order = n;
+  }
+  return { errors, data };
+};
+
+const offerSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const body = req.body || {};
+  if (req.method === 'POST' && (!body.title || typeof body.title !== 'string' || body.title.trim() === '')) {
+    errors.push('title is required');
+  } else if (body.title !== undefined) {
+    data.title = body.title.trim();
+  }
+  if (body.description !== undefined) data.description = body.description;
+  if (body.active !== undefined) {
+    data.active = (body.active === true || body.active === 'true' || body.active === 1 || body.active === '1') ? 1 : 0;
+  }
+  if (body.image_id !== undefined) data.image_id = body.image_id;
+  if (body.imageId !== undefined) data.imageId = body.imageId;
+  if (body.store_type !== undefined) data.store_type = body.store_type;
+  if (body.storeType !== undefined) data.storeType = body.storeType;
+  if (body.is_clickable !== undefined) {
+    data.is_clickable = (body.is_clickable === true || body.is_clickable === 'true' || body.is_clickable === 1 || body.is_clickable === '1') ? 1 : 0;
+  }
+  if (body.isClickable !== undefined) {
+    data.isClickable = (body.isClickable === true || body.isClickable === 'true' || body.isClickable === 1 || body.isClickable === '1') ? 1 : 0;
+  }
+  return { errors, data };
+};
+
+const offerProductSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const body = req.body || {};
+  const productId = body.productId !== undefined ? body.productId : body.product_id;
+  if (!productId || !Number.isInteger(Number(productId)) || Number(productId) < 1) {
+    errors.push('productId is required');
+  } else {
+    data.productId = Number(productId);
+    data.product_id = Number(productId);
+  }
+  return { errors, data };
+};
+
+const offerProductReorderSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const ids = req.body?.productIds;
+  if (!Array.isArray(ids) || ids.some(id => !Number.isInteger(Number(id)) || Number(id) < 0)) {
+    errors.push('productIds must be an array of non-negative integers');
+  } else {
+    data.productIds = ids.map(Number);
+  }
+  return { errors, data };
+};
+
+// Type-gates the fields couponController actually reads from req.body.
+// Business rules (code required when requires_code, percent ∈ [0,100], flat
+// cap, duplicate codes) stay in the controller — this only rejects garbage
+// types. Empty string / null mean "clear the field" for the nullable ones,
+// matching the controller's toNullIfEmpty/toIntOrNull handling.
+const couponSchema = (req) => {
+  const errors = [];
+  const body = req.body || {};
+  const isEmptyish = (v) => v === undefined || v === null || v === '';
+  const isBoolish = (v) => [true, false, 'true', 'false', 0, 1, '0', '1'].includes(v);
+
+  if (!isEmptyish(body.code) && typeof body.code !== 'string') errors.push('code must be a string');
+  if (req.method === 'POST' && (!body.title || typeof body.title !== 'string' || body.title.trim() === '')) {
+    errors.push('title is required');
+  } else if (body.title !== undefined && typeof body.title !== 'string') {
+    errors.push('title must be a string');
+  }
+  if (body.discount_type !== undefined && !['flat', 'percent', 'free_delivery'].includes(body.discount_type)) {
+    errors.push('discount_type must be one of: flat, percent, free_delivery');
+  }
+  for (const field of ['discount_value', 'min_order_amount', 'priority']) {
+    if (!isEmptyish(body[field]) && !Number.isFinite(Number(body[field]))) {
+      errors.push(`${field} must be a number`);
+    }
+  }
+  for (const field of ['max_discount_amount', 'max_order_amount']) {
+    if (!isEmptyish(body[field]) && !Number.isFinite(Number(body[field]))) {
+      errors.push(`${field} must be a number or null`);
+    }
+  }
+  for (const field of ['total_usage_limit', 'per_user_usage_limit', 'first_n_orders']) {
+    if (!isEmptyish(body[field]) && (!Number.isInteger(Number(body[field])) || Number(body[field]) < 0)) {
+      errors.push(`${field} must be a non-negative integer or null`);
+    }
+  }
+  for (const field of ['active', 'auto_apply', 'requires_code', 'first_order_only']) {
+    if (body[field] !== undefined && !isBoolish(body[field])) {
+      errors.push(`${field} must be a boolean`);
+    }
+  }
+  if (body.target_audience !== undefined && !['all', 'selected'].includes(body.target_audience)) {
+    errors.push('target_audience must be all or selected');
+  }
+  if (body.targeted_user_ids !== undefined && !Array.isArray(body.targeted_user_ids)) {
+    errors.push('targeted_user_ids must be an array');
+  }
+  // Controller reads req.body directly — pass it through untouched so the
+  // camelCase/snake_case duplicates and nullable clears survive.
+  return { errors, data: body };
+};
+
+const couponDuplicateSchema = () => ({ errors: [], data: {} });
+
 // Routes
 router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(login));
 router.get('/me', requireAdmin, me);
@@ -382,16 +597,16 @@ router.get('/dashboard', requireAdmin, asyncHandler(getDashboard));
 
 // Admin Dashboard Sections CRUD
 router.get('/dashboard-sections', requireAdmin, asyncHandler(getAdminSections));
-router.post('/dashboard-sections', requireAdmin, auditLog, asyncHandler(createAdminSection));
-router.patch('/dashboard-sections/reorder', requireAdmin, auditLog, asyncHandler(reorderAdminSections));
+router.post('/dashboard-sections', requireAdmin, auditLog, validate(dashboardSectionSchema), asyncHandler(createAdminSection));
+router.patch('/dashboard-sections/reorder', requireAdmin, auditLog, validate(dashboardSectionReorderSchema), asyncHandler(reorderAdminSections));
 router.get('/dashboard-sections/:id', requireAdmin, asyncHandler(getAdminSectionById));
-router.patch('/dashboard-sections/:id', requireAdmin, auditLog, asyncHandler(updateAdminSection));
+router.patch('/dashboard-sections/:id', requireAdmin, auditLog, validate(dashboardSectionUpdateSchema), asyncHandler(updateAdminSection));
 router.delete('/dashboard-sections/:id', requireAdmin, auditLog, asyncHandler(deleteAdminSection));
 
 // Section Items
-router.post('/dashboard-sections/:id/items', requireAdmin, auditLog, asyncHandler(addAdminSectionItem));
-router.patch('/dashboard-sections/:id/items/reorder', requireAdmin, auditLog, asyncHandler(reorderAdminSectionItems));
-router.patch('/dashboard-sections/:id/items/:itemId', requireAdmin, auditLog, asyncHandler(updateAdminSectionItem));
+router.post('/dashboard-sections/:id/items', requireAdmin, auditLog, validate(dashboardSectionItemSchema), asyncHandler(addAdminSectionItem));
+router.patch('/dashboard-sections/:id/items/reorder', requireAdmin, auditLog, validate(dashboardSectionItemReorderSchema), asyncHandler(reorderAdminSectionItems));
+router.patch('/dashboard-sections/:id/items/:itemId', requireAdmin, auditLog, validate(dashboardSectionItemUpdateSchema), asyncHandler(updateAdminSectionItem));
 router.delete('/dashboard-sections/:id/items/:itemId', requireAdmin, auditLog, asyncHandler(deleteAdminSectionItem));
 
 router.get('/reports/sales', requireAdmin, asyncHandler(getSalesReport));
@@ -408,22 +623,22 @@ router.get('/settings', requireAdmin, asyncHandler(getSettings));
 router.patch('/settings', requireAdmin, auditLog, asyncHandler(updateSettings));
 router.get('/offers/active', requireAdmin, asyncHandler(getActiveOffer));
 router.get('/offers', requireAdmin, asyncHandler(getAdminOffers));
-router.post('/offers', requireAdmin, auditLog, asyncHandler(createOffer));
-router.patch('/offers/:id', requireAdmin, auditLog, asyncHandler(updateOffer));
+router.post('/offers', requireAdmin, auditLog, validate(offerSchema), asyncHandler(createOffer));
+router.patch('/offers/:id', requireAdmin, auditLog, validate(offerSchema), asyncHandler(updateOffer));
 router.delete('/offers/:id', requireAdmin, auditLog, asyncHandler(deleteOffer));
 router.get('/offers/:id/products', requireAdmin, asyncHandler(getOfferProducts));
-router.post('/offers/:id/products', requireAdmin, auditLog, asyncHandler(addOfferProduct));
+router.post('/offers/:id/products', requireAdmin, auditLog, validate(offerProductSchema), asyncHandler(addOfferProduct));
 router.delete('/offers/:id/products/:productId', requireAdmin, auditLog, asyncHandler(removeOfferProduct));
-router.patch('/offers/:id/products/reorder', requireAdmin, auditLog, asyncHandler(reorderOfferProducts));
+router.patch('/offers/:id/products/reorder', requireAdmin, auditLog, validate(offerProductReorderSchema), asyncHandler(reorderOfferProducts));
 
 // Coupons — admin-managed discount codes & auto-apply offers.
 router.get('/coupons', requireAdmin, asyncHandler(getAdminCoupons));
 router.get('/coupons/:id', requireAdmin, asyncHandler(getAdminCouponById));
-router.post('/coupons', requireAdmin, auditLog, asyncHandler(createCoupon));
-router.put('/coupons/:id', requireAdmin, auditLog, asyncHandler(updateCoupon));
-router.patch('/coupons/:id', requireAdmin, auditLog, asyncHandler(updateCoupon));
+router.post('/coupons', requireAdmin, auditLog, validate(couponSchema), asyncHandler(createCoupon));
+router.put('/coupons/:id', requireAdmin, auditLog, validate(couponSchema), asyncHandler(updateCoupon));
+router.patch('/coupons/:id', requireAdmin, auditLog, validate(couponSchema), asyncHandler(updateCoupon));
 router.delete('/coupons/:id', requireAdmin, auditLog, asyncHandler(deleteCoupon));
-router.post('/coupons/:id/duplicate', requireAdmin, auditLog, asyncHandler(duplicateCoupon));
+router.post('/coupons/:id/duplicate', requireAdmin, auditLog, validate(couponDuplicateSchema), asyncHandler(duplicateCoupon));
 router.get('/coupons/:id/redemptions', requireAdmin, asyncHandler(getCouponRedemptions));
 
 // Audit

@@ -3,6 +3,16 @@ const { hashPassword, comparePassword, signCustomerToken, verifyToken } = requir
 const { getFirebaseAuth } = require('../config/firebase');
 const adminInbox = require('../utils/adminNotifications');
 
+// Normalize an inbound phone number the same way the Firebase/OTP flow does:
+// strip a leading +91, drop non-digits, and keep the trailing 10 digits.
+// This keeps the password and OTP auth flows in agreement so the same user
+// can't end up with two accounts (one registered as "+919876543210", another
+// as "9876543210").
+const normalizePhone = (phone) => {
+  if (!phone || typeof phone !== 'string') return '';
+  return phone.replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
+};
+
 // Sliding-window token renewal. We refresh whenever the token has used
 // more than half of its own lifetime. This auto-adapts to whatever
 // JWT_EXPIRES_IN is configured to: a 30d token refreshes after 15d, a 1d
@@ -16,7 +26,16 @@ const adminInbox = require('../utils/adminNotifications');
 const TOKEN_REFRESH_FLOOR_SECONDS = 24 * 60 * 60;
 
 const register = async (req, res) => {
-  const { name, phone, password, address, whatsapp_number } = req.validatedData;
+  const { name, password, address, whatsapp_number } = req.validatedData;
+
+  // Normalize the phone BEFORE any DB lookup so "+919876543210" and
+  // "9876543210" resolve to the same row. Keep `whatsapp_number` as-is —
+  // it's out of scope for this normalization and the schema stores it
+  // verbatim.
+  const phone = normalizePhone(req.validatedData.phone);
+  if (!phone || phone.length !== 10) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid phone number' });
+  }
 
   // Check duplicate phone before INSERT to return a clean error
   const [existing] = await pool.query('SELECT id FROM users WHERE phone = ?', [phone]);
@@ -51,7 +70,14 @@ const register = async (req, res) => {
 };
 
 const login = async (req, res) => {
-  const { phone, password } = req.validatedData;
+  const { password } = req.validatedData;
+
+  // Normalize the phone so "+919876543210" and "9876543210" both find the
+  // same account. Match the OTP flow's normalization exactly.
+  const phone = normalizePhone(req.validatedData.phone);
+  if (!phone || phone.length !== 10) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid phone number' });
+  }
 
   const [rows] = await pool.query('SELECT id, name, phone, whatsapp_number, address, trusted, blocked, created_at, password_hash FROM users WHERE phone = ?', [phone]);
   if (rows.length === 0) {
@@ -160,13 +186,23 @@ const updateProfile = async (req, res) => {
 };
 
 const requestPasswordReset = async (req, res) => {
-  const { phone, newPassword } = req.validatedData;
-  const [users] = await pool.query('SELECT id FROM users WHERE phone = ?', [phone]);
+  const { newPassword } = req.validatedData;
 
   // Return the same success message even if the phone is unknown to avoid account discovery.
   const response = {
     message: 'If the phone number is registered, your password reset request has been sent for admin approval'
   };
+
+  // Normalize the phone so "+919876543210" and "9876543210" find the same
+  // account. If normalization fails (e.g. too few digits), still return
+  // the same 202 success message — leaking "invalid phone" would let an
+  // attacker enumerate valid phone numbers.
+  const phone = normalizePhone(req.validatedData.phone);
+  if (!phone || phone.length !== 10) {
+    return res.status(202).json(response);
+  }
+
+  const [users] = await pool.query('SELECT id FROM users WHERE phone = ?', [phone]);
 
   if (users.length === 0) {
     return res.status(202).json(response);
