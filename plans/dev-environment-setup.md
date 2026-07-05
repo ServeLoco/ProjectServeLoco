@@ -123,9 +123,11 @@ Goal: one command starts API + Admin + Web + Customer app together, with a clean
 **Files:** root `README.md` (create short section if a README exists, otherwise add one) or `CLAUDE.md` under a new "Local dev" note — pick whichever file already exists; do not create a new doc file if one of these already covers commands.
 
 **Steps:**
-- [ ] 5.1 Document `npm run dev` (local, all four apps, requires local MySQL+Mongo running) and `npm run dev:proddb` (local API code against production DBs, confirmation required, UIs still local) and what each connects to.
+- [x] 5.1 Document `npm run dev` (local, all four apps, requires local MySQL+Mongo running) and `npm run dev:proddb` (local API code against production DBs, confirmation required, UIs still local) and what each connects to.
 
 **Done when:** the two commands and their meaning are written down in one discoverable place.
+
+**NOTE (done):** Updated README.md "Quick start" section with the one-command `npm run dev` workflow, preflight requirements, and `npm run dev:proddb` warning/usage.
 
 ---
 
