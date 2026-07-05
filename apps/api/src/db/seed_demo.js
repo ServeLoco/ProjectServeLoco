@@ -137,24 +137,28 @@ async function seedDemoData() {
     // 6. Coupons — a representative spread of discount types/rules for
     // exercising the admin panel and customer coupon UI against real data.
     await pool.query(
-      "DELETE FROM coupons WHERE code IN ('WELCOME50', 'FREEDEL', 'SAVE20', 'COMBO30')"
+      "DELETE FROM coupons WHERE code IN ('WELCOME50', 'FREEDEL', 'SAVE20', 'COMBO30', 'FREEDEL3', 'ORDER299')"
     );
     await pool.query(
       `INSERT INTO coupons (
         code, title, description,
         discount_type, discount_value, max_discount_amount,
-        min_order_amount, applies_to,
+        min_order_amount, min_item_count, max_order_amount, applies_to,
         total_usage_limit, per_user_usage_limit, first_order_only,
         auto_apply, requires_code, priority, active
       ) VALUES
         ('WELCOME50', 'Welcome Offer', 'Flat 50% off up to ₹100 on your first order',
-          'percent', 50, 100, 0, 'all', NULL, 1, 1, 0, 1, 10, 1),
+          'percent', 50, 100, 0, NULL, NULL, 'all', NULL, 1, 1, 0, 1, 10, 1),
         ('FREEDEL', 'Free Delivery', 'Free delivery on orders above ₹199',
-          'free_delivery', 0, NULL, 199, 'all', NULL, NULL, 0, 1, 0, 5, 1),
+          'free_delivery', 0, NULL, 199, NULL, NULL, 'all', NULL, NULL, 0, 1, 0, 5, 1),
         ('SAVE20', 'Flat 20% Off', 'Flat 20% off, no minimum order value',
-          'percent', 20, 150, 0, 'all', NULL, 5, 0, 0, 1, 1, 1),
+          'percent', 20, 150, 0, NULL, NULL, 'all', NULL, 5, 0, 0, 1, 1, 1),
         ('COMBO30', 'Combo Meal Deal', '30% off on combo meals over ₹300',
-          'percent', 30, 200, 300, 'fast_food', 500, 3, 0, 0, 1, 3, 1)`
+          'percent', 30, 200, 300, NULL, NULL, 'fast_food', 500, 3, 0, 0, 1, 3, 1),
+        ('FREEDEL3', 'Free Delivery (3 items)', 'Free delivery when you add 3 or more items',
+          'free_delivery', 0, NULL, 0, 3, NULL, 'all', NULL, NULL, 0, 1, 0, 6, 1),
+        ('ORDER299', '₹50 off + 2 items', '₹50 off when order is ₹299+ and has 2+ items',
+          'flat', 50, NULL, 299, 2, NULL, 'all', NULL, NULL, 0, 0, 1, 4, 1)`
     );
 
     console.log('Demo data seeded successfully.');
