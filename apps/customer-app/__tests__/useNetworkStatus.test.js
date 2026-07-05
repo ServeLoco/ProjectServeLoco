@@ -23,6 +23,12 @@ jest.mock('react-native', () => {
   return { AppState };
 });
 
+jest.mock('@react-native-community/netinfo', () => ({
+  addEventListener: jest.fn(() => jest.fn()),
+  addListener: jest.fn(() => jest.fn()),
+  fetch: jest.fn(() => Promise.resolve({ isConnected: true })),
+}));
+
 const { getApiBaseUrl } = require('../src/api/config');
 
 function renderUseNetworkStatus(options) {

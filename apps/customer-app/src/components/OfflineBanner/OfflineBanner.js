@@ -9,10 +9,10 @@ import { colors, spacing, typography } from '../../theme';
  *
  * Props:
  *   visible          - whether to show the banner
- *   message          - banner text (default: "No internet connection. Showing saved data.")
+ *   message          - banner text (default: "Can't reach the server.")
  *   onRetry          - optional retry callback (shows a "Retry" pill)
  */
-function OfflineBanner({ visible, message = 'No internet connection. Showing saved data.', onRetry }) {
+function OfflineBanner({ visible, message = "Can't reach the server.", onRetry }) {
   const translateYRef = React.useRef(new Animated.Value(-60)).current;
   const [shown, setShown] = React.useState(visible);
 
