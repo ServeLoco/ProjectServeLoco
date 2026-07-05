@@ -38,6 +38,7 @@ const calculateCart = async (req, res) => {
     }
     normalizedItems.push({ productId: Number(productId), quantity: Number(item.quantity), isCombo });
   }
+  const totalItemCount = normalizedItems.reduce((sum, i) => sum + i.quantity, 0);
 
   // Batch fetch products and combos in 2 queries instead of N queries
   const productIds = normalizedItems.filter(i => !i.isCombo).map(i => i.productId);
@@ -214,6 +215,7 @@ const calculateCart = async (req, res) => {
       standardDeliveryCharge,
       storeType: cartStoreType,
       userId,
+      itemCount: totalItemCount,
     });
     if (result.ok) {
       discount = roundMoney(result.discount);
@@ -238,6 +240,7 @@ const calculateCart = async (req, res) => {
       standardDeliveryCharge,
       storeType: cartStoreType,
       userId,
+      itemCount: totalItemCount,
     });
     if (result.ok) {
       discount = roundMoney(result.discount);
@@ -261,6 +264,7 @@ const calculateCart = async (req, res) => {
       standardDeliveryCharge,
       storeType: cartStoreType,
       userId,
+      itemCount: totalItemCount,
     });
     if (best) {
       discount = roundMoney(best.discount);
@@ -286,6 +290,7 @@ const calculateCart = async (req, res) => {
       standardDeliveryCharge,
       storeType: cartStoreType,
       userId,
+      itemCount: totalItemCount,
     });
     if (best) {
       discount = roundMoney(best.discount);
@@ -310,6 +315,7 @@ const calculateCart = async (req, res) => {
       standardDeliveryCharge,
       storeType: cartStoreType,
       userId,
+      itemCount: totalItemCount,
     });
   } catch (_) {
     // Non-fatal: empty list on error.
@@ -327,7 +333,7 @@ const calculateCart = async (req, res) => {
   let freeDeliveryProgress = null;
   if (!isFreeDeliveryApplied) {
     try {
-      freeDeliveryProgress = await getNextFreeDeliveryThreshold({ subtotal, storeType: cartStoreType, userId });
+      freeDeliveryProgress = await getNextFreeDeliveryThreshold({ subtotal, storeType: cartStoreType, userId, itemCount: totalItemCount });
     } catch (_) {
       // Non-fatal: no progress hint on error.
     }
@@ -344,6 +350,7 @@ const calculateCart = async (req, res) => {
       storeType: cartStoreType,
       userId,
       excludeCouponId: appliedCoupon?.id || null,
+      itemCount: totalItemCount,
     });
   } catch (_) {
     // Non-fatal: no progress hint on error.
@@ -353,7 +360,15 @@ const calculateCart = async (req, res) => {
     if (isFreeDeliveryApplied) {
       deliveryMessage = 'Free delivery unlocked!';
     } else if (freeDeliveryProgress) {
-      deliveryMessage = `Add ₹${freeDeliveryProgress.amountRemaining} more for free delivery. ₹${deliveryCharge} delivery applied.`;
+      const parts = [];
+      if (freeDeliveryProgress.amountRemaining > 0) {
+        parts.push(`₹${freeDeliveryProgress.amountRemaining} more`);
+      }
+      if (freeDeliveryProgress.itemsRemaining > 0) {
+        parts.push(`${freeDeliveryProgress.itemsRemaining} more item(s)`);
+      }
+      const addHint = parts.join(' and ');
+      deliveryMessage = `Add ${addHint} for free delivery. ₹${deliveryCharge} delivery applied.`;
     } else {
       deliveryMessage = `₹${deliveryCharge} delivery applied.`;
     }
