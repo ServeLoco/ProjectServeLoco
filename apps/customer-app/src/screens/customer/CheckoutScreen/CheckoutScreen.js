@@ -8,6 +8,7 @@ import {
   Animated,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
   Linking,
   LayoutAnimation,
   Platform,
@@ -44,9 +45,13 @@ export default function CheckoutScreen() {
   const navigation = useNavigation();
   const items = useCartStore(state => state.items);
   const clearCart = useCartStore(state => state.clearCart);
+  const appliedCouponCode = useCartStore(state => state.appliedCouponCode);
+  const appliedCouponId = useCartStore(state => state.appliedCouponId);
+  const appliedCoupon = useCartStore(state => state.appliedCoupon);
+  const couponAutoApplyDisabled = useCartStore(state => state.couponAutoApplyDisabled);
+  const setFreeDeliveryProgress = useCartStore(state => state.setFreeDeliveryProgress);
   const shopStatus = useSettingsStore(state => state.shopStatus);
   const deliveryAvailable = useSettingsStore(state => state.deliveryAvailable);
-  const minimumOrder = useSettingsStore(state => state.minimumOrder);
   const upiId = useSettingsStore(state => state.upiId);
   const upiQrImageId = useSettingsStore(state => state.upiQrImageId);
   const upiQrImageUrl = useSettingsStore(state => state.upiQrImageUrl);
@@ -73,6 +78,10 @@ export default function CheckoutScreen() {
   const [coordinates, setCoordinates] = useState(null);
   const [gpsStatus, setGpsStatus] = useState('idle'); // idle | loading | success | error
   const [gpsError, setGpsError] = useState(null);
+  // How the user is providing their delivery address: pick it up automatically
+  // via GPS, or type it in by hand. Starts unselected unless we already have
+  // an address from their profile, in which case manual entry is pre-selected.
+  const [locationMode, setLocationMode] = useState(() => (userProfile?.address ? 'manual' : null));
   const [paymentMethod, setPaymentMethod] = useState('Cash'); // Cash | UPI
   const [deliveryType, setDeliveryType] = useState('standard'); // standard | fast
 
@@ -96,7 +105,10 @@ export default function CheckoutScreen() {
     latitude: coordinates?.lat,
     longitude: coordinates?.lng,
     delivery_type: deliveryType,
-  }), [checkoutItems, coordinates, deliveryType]);
+    coupon_code: appliedCouponCode || undefined,
+    coupon_id: !appliedCouponCode && appliedCouponId ? appliedCouponId : undefined,
+    no_auto_apply: couponAutoApplyDisabled,
+  }), [checkoutItems, coordinates, deliveryType, appliedCouponCode, appliedCouponId, couponAutoApplyDisabled]);
 
   // Animations
   const deliverySlide = useRef(new Animated.Value(20)).current;
@@ -105,6 +117,13 @@ export default function CheckoutScreen() {
   const btnScale = useRef(new Animated.Value(1)).current;
   const arrowAnim = useRef(new Animated.Value(0)).current;
   const gpsPulse = useRef(new Animated.Value(1)).current;
+  const gpsIconScale = useRef(new Animated.Value(1)).current;
+  const manualIconScale = useRef(new Animated.Value(1)).current;
+  const manualPanelFade = useRef(new Animated.Value(userProfile?.address ? 1 : 0)).current;
+  // 0 -> 1 selected-state progress per delivery-mode row, driving the badge
+  // fill, row border/background, and radio-dot animations together.
+  const gpsRowProgress = useRef(new Animated.Value(0)).current;
+  const manualRowProgress = useRef(new Animated.Value(userProfile?.address ? 1 : 0)).current;
 
   // Synchronous double-submit guard. React state is async, so isSubmitting alone
   // does not protect against a fast double-tap on Place Order.
@@ -244,7 +263,9 @@ export default function CheckoutScreen() {
       cartApi.calculate(calculationPayload)
         .then(response => {
           if (!isActive) return;
-          setBill(normalizeCartCalculation(response));
+          const normalized = normalizeCartCalculation(response);
+          setBill(normalized);
+          setFreeDeliveryProgress(normalized.freeDeliveryProgress);
         })
         .catch(error => {
           if (!isActive) return;
@@ -286,19 +307,75 @@ export default function CheckoutScreen() {
         new Promise((_, reject) => setTimeout(() => reject(new Error('GPS request timed out. Please try again or proceed without location.')), 8000)),
       ]);
 
+      const { latitude, longitude } = position.coords;
+
+      // Reverse-geocode so the address field fills itself in — the user
+      // picked "use my current location" specifically to avoid typing it.
+      let resolvedAddress = null;
+      try {
+        const places = await Location.reverseGeocodeAsync({ latitude, longitude });
+        const place = places?.[0];
+        if (place) {
+          resolvedAddress = [place.name, place.street, place.district || place.subregion, place.city, place.region, place.postalCode]
+            .filter(Boolean)
+            .join(', ');
+        }
+      } catch {
+        // Reverse geocoding failed (offline, no provider, etc). Fall back
+        // to a coordinate-based label below so the order can still proceed.
+      }
+
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setBill(null);
       setCalcError(null);
       setSubmitError(null);
-      setCoordinates({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      });
+      setCoordinates({ lat: latitude, lng: longitude });
+      setAddress(resolvedAddress || `Pinned location (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`);
       setGpsStatus('success');
     } catch (error) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setGpsStatus('error');
       setGpsError(error.message || 'Failed to get location. Please try again.');
+    }
+  };
+
+  const selectMode = (mode) => {
+    // Tapping the already-selected GPS card again is treated as "retry".
+    if (mode === locationMode) {
+      if (mode === 'gps') handleRequestGPS();
+      return;
+    }
+
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setLocationMode(mode);
+    setSubmitError(null);
+
+    const iconScale = mode === 'gps' ? gpsIconScale : manualIconScale;
+    iconScale.setValue(1);
+    Animated.sequence([
+      Animated.spring(iconScale, { toValue: 1.18, useNativeDriver: true, speed: 24, bounciness: 10 }),
+      Animated.spring(iconScale, { toValue: 1, useNativeDriver: true, speed: 24, bounciness: 6 }),
+    ]).start();
+
+    Animated.timing(gpsRowProgress, {
+      toValue: mode === 'gps' ? 1 : 0,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+    Animated.timing(manualRowProgress, {
+      toValue: mode === 'manual' ? 1 : 0,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+
+    Animated.timing(manualPanelFade, {
+      toValue: mode === 'manual' ? 1 : 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+
+    if (mode === 'gps') {
+      handleRequestGPS();
     }
   };
 
@@ -315,6 +392,74 @@ export default function CheckoutScreen() {
     });
 
     Linking.openURL(url).catch(() => {});
+  };
+
+  const createOrder = async (currentBill) => {
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true }).start();
+
+    try {
+      const orderResponse = await ordersApi.createOrder(
+        {
+          items: checkoutItems,
+          deliveryAddress: address.trim(),
+          address: address.trim(),
+          latitude: coordinates?.lat,
+          longitude: coordinates?.lng,
+          mapUrl: coordinates
+            ? `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`
+            : undefined,
+          paymentMethod,
+          delivery_type: deliveryType,
+          coupon_code: appliedCouponCode || undefined,
+          coupon_id: !appliedCouponCode && appliedCouponId ? appliedCouponId : undefined,
+          no_auto_apply: couponAutoApplyDisabled,
+          // Lets the server distinguish an auto-applied offer (drop silently
+          // if it lapsed since the cart) from a typed/tapped one (hard error).
+          coupon_auto_applied: appliedCoupon?.autoApplied === true,
+        },
+        { headers: { 'Idempotency-Key': idempotencyKeyRef.current } }
+      );
+      const responseOrder = orderResponse?.order || orderResponse?.data || orderResponse;
+      const orderId = responseOrder?.id || responseOrder?.orderId || orderResponse?.orderId;
+      const confirmationParams = {
+        orderId,
+        order: {
+          ...responseOrder,
+          id: orderId,
+          address: address.trim(),
+          total: responseOrder?.total || currentBill.grandTotal,
+          paymentMethod,
+        },
+      };
+
+      // Clear the submit guard BEFORE dispatching the stack reset so the
+      // beforeRemove listener (which blocks back-gestures mid-submission)
+      // doesn't intercept and cancel this programmatic navigation.
+      isSubmittingRef.current = false;
+
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 1,
+          routes: [
+            { name: 'MainTabs', params: { screen: 'Orders' } },
+            { name: 'OrderConfirmation', params: confirmationParams },
+          ],
+        })
+      );
+      clearCart();
+      // Order created successfully — clear the key so a future checkout
+      // session generates a fresh one.
+      idempotencyKeyRef.current = null;
+    } catch (error) {
+      setSubmitError(error.message || 'Unable to place order. Please try again.');
+      // Keep the key on failure so a retry reuses it (server will dedupe).
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+      Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
+    }
   };
 
   const handlePlaceOrder = async () => {
@@ -354,73 +499,45 @@ export default function CheckoutScreen() {
       const verifiedBill = normalizeCartCalculation(await cartApi.calculate(calculationPayload));
       setBill(verifiedBill);
 
-      // Location validation removed - backend will handle delivery availability
-
-      const orderResponse = await ordersApi.createOrder(
-        {
-          items: checkoutItems,
-          deliveryAddress: address.trim(),
-          address: address.trim(),
-          latitude: coordinates?.lat,
-          longitude: coordinates?.lng,
-          mapUrl: coordinates
-            ? `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`
-            : undefined,
-          paymentMethod,
-          delivery_type: deliveryType,
-        },
-        { headers: { 'Idempotency-Key': idempotencyKey } }
-      );
-      const responseOrder = orderResponse?.order || orderResponse?.data || orderResponse;
-      const orderId = responseOrder?.id || responseOrder?.orderId || orderResponse?.orderId;
-      const confirmationParams = {
-        orderId,
-        order: {
-          ...responseOrder,
-          id: orderId,
-          address: address.trim(),
-          total: responseOrder?.total || bill.grandTotal,
-          paymentMethod,
-        },
-      };
-
-      // Clear the submit guard BEFORE dispatching the stack reset so the
-      // beforeRemove listener (which blocks back-gestures mid-submission)
-      // doesn't intercept and cancel this programmatic navigation.
-      isSubmittingRef.current = false;
-
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 1,
-          routes: [
-            { name: 'MainTabs', params: { screen: 'Orders' } },
-            { name: 'OrderConfirmation', params: confirmationParams },
+      const oldGrandTotal = bill?.grandTotal;
+      if (oldGrandTotal !== undefined && verifiedBill.grandTotal !== oldGrandTotal) {
+        setBill(verifiedBill);
+        setFreeDeliveryProgress(verifiedBill.freeDeliveryProgress);
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
+        Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
+        Alert.alert(
+          'Total changed',
+          `The total has changed from ₹${oldGrandTotal} to ₹${verifiedBill.grandTotal} (prices or charges were updated). Place order at the new total?`,
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => {},
+            },
+            {
+              text: 'Place Order',
+              onPress: () => createOrder(verifiedBill),
+            },
           ],
-        })
-      );
-      clearCart();
-      // Order created successfully — clear the key so a future checkout
-      // session generates a fresh one.
-      idempotencyKeyRef.current = null;
+          { cancelable: false }
+        );
+        return;
+      }
+
+      await createOrder(verifiedBill);
     } catch (error) {
       setSubmitError(error.message || 'Unable to place order. Please try again.');
-      // Keep the key on failure so a retry reuses it (server will dedupe).
-    } finally {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
       Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
     }
   };
 
-  const requiredMinimum = bill?.minimumOrder || minimumOrder || 0;
-  const isBelowFreeDeliveryThreshold = Boolean(bill && requiredMinimum && bill.subtotal < requiredMinimum);
-  const deliveryLabel = bill?.belowThreshold || isBelowFreeDeliveryThreshold
-    ? 'Delivery Charge (Below Minimum)'
-    : 'Delivery Charge';
+  const freeDeliveryProgress = bill?.freeDeliveryProgress || null;
   const totalQuantity = items.reduce((total, item) => total + (Number(item.quantity) || 0), 0);
-  const hasPinnedLocation = Boolean(coordinates);
   // Location is now optional - removed delivery validation checks
-  const isPinLocationDisabled = isSubmitting || gpsStatus === 'loading' || items.length === 0 || !address.trim();
+  const isModeSelectDisabled = isSubmitting || items.length === 0 || gpsStatus === 'loading';
   const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError);
   const placeOrderLabel = isSubmitting
     ? 'Processing...'
@@ -440,83 +557,125 @@ export default function CheckoutScreen() {
         {/* Delivery Details */}
         <Animated.View style={[styles.section, { transform: [{ translateY: deliverySlide }] }]}>
           <Text style={styles.sectionTitle}>Delivery Details</Text>
-          
-          <TextInputField
-            label="Complete Address"
-            placeholder="House No, Building, Street, Area"
-            value={address}
-            onChangeText={(text) => {
-              setAddress(text);
-              if (submitError) setSubmitError(null);
-            }}
-            multiline
-            numberOfLines={3}
-            containerStyle={styles.addressInput}
-          />
+          <Text style={styles.sectionSubtitle}>How should we get your delivery address?</Text>
 
-          {/* Pin Location Button - Now under address input */}
-          {!hasPinnedLocation && (
-            <PressableScale
-              onPress={handleRequestGPS}
-              disabled={isPinLocationDisabled}
+          <View style={styles.optionList}>
+            <View
               style={[
-                styles.pinLocationBtn,
-                isPinLocationDisabled && styles.pinLocationBtnDisabled
+                styles.optionRow,
+                locationMode === 'gps' && styles.optionRowActive,
+                isModeSelectDisabled && styles.optionRowDisabled,
               ]}
-              scaleTo={0.97}
             >
-              <AppIcon
-                name="location"
-                size={18}
-                color={isPinLocationDisabled ? colors.textDisabled : colors.primary}
+              <PressableScale
+                onPress={() => selectMode('gps')}
+                disabled={isModeSelectDisabled}
+                style={styles.optionRowPressable}
+                scaleTo={0.98}
+                accessibilityRole="button"
+                accessibilityLabel="Use my current location"
+                accessibilityState={{ selected: locationMode === 'gps', disabled: isModeSelectDisabled }}
+              >
+                <View style={[styles.optionIconBadge, locationMode === 'gps' && styles.optionIconBadgeActive]}>
+                  <Animated.View style={{ transform: [{ scale: gpsIconScale }] }}>
+                    <AppIcon name="navigation" size={18} color={locationMode === 'gps' ? colors.textInverse : colors.primary} />
+                  </Animated.View>
+                </View>
+                <View style={styles.optionTextWrap}>
+                  <Text style={styles.optionTitle}>Current Location</Text>
+                  <Text style={styles.optionSubtitle}>Auto-detect via GPS</Text>
+                </View>
+                <View style={[styles.radioOuter, locationMode === 'gps' && styles.radioOuterActive]}>
+                  <Animated.View style={[styles.radioInner, { opacity: gpsRowProgress, transform: [{ scale: gpsRowProgress }] }]} />
+                </View>
+              </PressableScale>
+            </View>
+
+            <View
+              style={[
+                styles.optionRow,
+                locationMode === 'manual' && styles.optionRowActive,
+                isModeSelectDisabled && styles.optionRowDisabled,
+              ]}
+            >
+              <PressableScale
+                onPress={() => selectMode('manual')}
+                disabled={isModeSelectDisabled}
+                style={styles.optionRowPressable}
+                scaleTo={0.98}
+                accessibilityRole="button"
+                accessibilityLabel="Enter address manually"
+                accessibilityState={{ selected: locationMode === 'manual', disabled: isModeSelectDisabled }}
+              >
+                <View style={[styles.optionIconBadge, locationMode === 'manual' && styles.optionIconBadgeActive]}>
+                  <Animated.View style={{ transform: [{ scale: manualIconScale }] }}>
+                    <AppIcon name="pencil" size={18} color={locationMode === 'manual' ? colors.textInverse : colors.primary} />
+                  </Animated.View>
+                </View>
+                <View style={styles.optionTextWrap}>
+                  <Text style={styles.optionTitle}>Enter Manually</Text>
+                  <Text style={styles.optionSubtitle}>Type your address</Text>
+                </View>
+                <View style={[styles.radioOuter, locationMode === 'manual' && styles.radioOuterActive]}>
+                  <Animated.View style={[styles.radioInner, { opacity: manualRowProgress, transform: [{ scale: manualRowProgress }] }]} />
+                </View>
+              </PressableScale>
+            </View>
+          </View>
+
+          {locationMode === 'manual' && (
+            <Animated.View style={{ opacity: manualPanelFade }}>
+              <TextInputField
+                label="Complete Address"
+                placeholder="House No, Building, Street, Area"
+                value={address}
+                onChangeText={(text) => {
+                  setAddress(text);
+                  if (submitError) setSubmitError(null);
+                }}
+                multiline
+                numberOfLines={3}
+                containerStyle={styles.addressInput}
               />
-              <Text style={[
-                styles.pinLocationBtnText,
-                isPinLocationDisabled && styles.pinLocationBtnTextDisabled
-              ]}>
-                {gpsStatus === 'loading' ? 'Pinning Location...' : 'Pin My Location (Optional)'}
-              </Text>
-              {gpsStatus === 'loading' && (
-                <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: spacing.xs }} />
-              )}
-            </PressableScale>
+            </Animated.View>
           )}
 
-          <View style={styles.gpsContainer}>
-            {gpsStatus === 'idle' ? (
-              <View style={styles.gpsHintBox}>
-                <AppIcon name="location" size={18} color={colors.textSecondary} />
-                <Text style={styles.gpsHintText}>Location not pinned. You can still place order without GPS location.</Text>
-              </View>
-            ) : gpsStatus === 'loading' ? (
-              <View style={styles.gpsLoading}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={styles.gpsLoadingText}>Fetching location...</Text>
-              </View>
-            ) : (
-              <View style={styles.gpsSuccess}>
-                <Animated.View style={[styles.gpsSuccessIconFrame, { transform: [{ scale: gpsPulse }] }]}>
-                  <AppIcon name="location" size={22} color={colors.success} />
-                </Animated.View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.gpsSuccessText}>Location Pinned</Text>
-                  <Text style={styles.gpsCoords}>
-                    {coordinates?.lat?.toFixed(6)}, {coordinates?.lng?.toFixed(6)}
-                  </Text>
+          {locationMode === 'gps' && (
+            <View style={styles.gpsContainer}>
+              {gpsStatus === 'loading' ? (
+                <View style={styles.gpsLoading}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={styles.gpsLoadingText}>Fetching your location...</Text>
                 </View>
-                <TouchableOpacity style={styles.mapActionBtn} onPress={handleOpenMap}>
-                  <AppIcon name="navigation" size={16} color={colors.primary} />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {gpsStatus === 'error' && (
-              <View style={styles.gpsErrorContainer}>
-                <AppIcon name="delete" size={16} color={colors.error} style={{ marginRight: spacing.sm }} />
-                <Text style={styles.gpsErrorText}>{gpsError || 'Failed to get location. Please try again.'}</Text>
-              </View>
-            )}
-          </View>
+              ) : gpsStatus === 'success' ? (
+                <View style={styles.gpsSuccess}>
+                  <Animated.View style={[styles.gpsSuccessIconFrame, { transform: [{ scale: gpsPulse }] }]}>
+                    <AppIcon name="location" size={22} color={colors.success} />
+                  </Animated.View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.gpsSuccessText}>Location Pinned</Text>
+                    <Text numberOfLines={2} style={styles.gpsAddressText}>{address}</Text>
+                    <Text style={styles.gpsCoords}>
+                      {coordinates?.lat?.toFixed(6)}, {coordinates?.lng?.toFixed(6)}
+                    </Text>
+                  </View>
+                  <TouchableOpacity style={styles.mapActionBtn} onPress={handleOpenMap}>
+                    <AppIcon name="navigation" size={16} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+              ) : gpsStatus === 'error' ? (
+                <View style={styles.gpsErrorContainer}>
+                  <AppIcon name="delete" size={16} color={colors.error} style={{ marginRight: spacing.sm }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.gpsErrorText}>{gpsError || 'Failed to get location. Please try again.'}</Text>
+                    <TouchableOpacity onPress={handleRequestGPS} style={styles.gpsRetryBtn}>
+                      <Text style={styles.gpsRetryText}>Try Again</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : null}
+            </View>
+          )}
         </Animated.View>
 
         {/* Delivery Type Selector — shown whenever the admin has enabled fast delivery.
@@ -714,26 +873,33 @@ export default function CheckoutScreen() {
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>
-                    {bill.deliveryType === 'fast' ? '⚡ Fast Delivery' : deliveryLabel}
+                    {bill.deliveryType === 'fast' ? '⚡ Fast Delivery' : 'Delivery Charge'}
                   </Text>
-                  <Text style={styles.summaryValue}>
-                    {bill.deliveryCharge === 0 ? 'FREE' : `₹${bill.deliveryCharge}`}
-                  </Text>
+                  <Text style={styles.summaryValue}>₹{bill.deliveryCharge}</Text>
                 </View>
                 {/* Distance display removed since it's no longer used for pricing */}
-                {(!deliveryAvailable) ? (
-                  <Text style={[styles.deliveryStatusText, styles.deliveryStatusError]}>
-                    Delivery is currently unavailable in your area.
-                  </Text>
-                ) : (bill.deliveryMessage || bill.requiresLocation || !bill.deliveryWithinRange || bill.freeDeliveryOfferActive) ? (
-                  <Text style={[
-                    styles.deliveryStatusText,
-                    !bill.deliveryWithinRange && styles.deliveryStatusError,
-                    bill.freeDeliveryOfferActive && styles.deliveryStatusSuccess,
-                  ]}>
-                    {bill.deliveryMessage || (bill.requiresLocation ? 'Pin location to continue.' : 'Delivery available.')}
-                  </Text>
-                ) : null}
+                {(() => {
+                  const isFreeDeliveryApplied = Boolean(bill.appliedCoupon && bill.appliedCoupon.discountType === 'free_delivery');
+                  if (!deliveryAvailable) {
+                    return (
+                      <Text style={[styles.deliveryStatusText, styles.deliveryStatusError]}>
+                        Delivery is currently unavailable in your area.
+                      </Text>
+                    );
+                  }
+                  if (bill.deliveryMessage || bill.requiresLocation || !bill.deliveryWithinRange || isFreeDeliveryApplied) {
+                    return (
+                      <Text style={[
+                        styles.deliveryStatusText,
+                        !bill.deliveryWithinRange && styles.deliveryStatusError,
+                        isFreeDeliveryApplied && styles.deliveryStatusSuccess,
+                      ]}>
+                        {bill.deliveryMessage || (bill.requiresLocation ? 'Pin location to continue.' : 'Delivery available.')}
+                      </Text>
+                    );
+                  }
+                  return null;
+                })()}
                 {bill.nightCharge > 0 && (
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Night Charge</Text>
@@ -751,15 +917,13 @@ export default function CheckoutScreen() {
                   <Text style={styles.summaryTotalLabel}>Total to Pay</Text>
                   <Text style={styles.summaryTotalValue}>₹{bill.grandTotal}</Text>
                 </View>
-                {isBelowFreeDeliveryThreshold && (
+                {freeDeliveryProgress && (
                   <View style={styles.warningBox}>
                     <AppIcon name="box" size={16} color={colors.saffron || '#FF7A3A'} style={styles.warningIcon} />
                     <Text style={styles.warningText}>
-                      Add items worth <Text style={styles.warningHighlight}>₹{(requiredMinimum - bill.subtotal).toFixed(0)}</Text> more
-                      {bill.freeAboveThresholdActive
-                        ? <Text> to unlock <Text style={styles.warningHighlight}>Free Delivery</Text></Text>
-                        : <Text> to reach the preferred order value</Text>}
-                      <Text> (₹{bill.belowThresholdDeliveryCharge || bill.deliveryCharge} delivery fee currently applied).</Text>
+                      Add items worth <Text style={styles.warningHighlight}>₹{freeDeliveryProgress.amountRemaining.toFixed(0)}</Text> more
+                      <Text> to unlock <Text style={styles.warningHighlight}>Free Delivery</Text></Text>
+                      <Text> (₹{bill.deliveryCharge} delivery fee currently applied).</Text>
                     </Text>
                   </View>
                 )}
@@ -852,53 +1016,88 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.h3,
     color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  sectionSubtitle: {
+    ...typography.caption,
+    color: colors.textSecondary,
     marginBottom: spacing.md,
   },
   addressInput: {
+    marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
-  pinLocationBtn: {
+  optionList: {
+    gap: spacing.sm,
+  },
+  optionRow: {
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.bgApp,
+    overflow: 'hidden',
+  },
+  optionRowActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  optionRowDisabled: {
+    opacity: 0.5,
+  },
+  optionRowPressable: {
     flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 64,
+    width: '100%',
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
+  },
+  optionIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgApp,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    marginBottom: spacing.md,
-    gap: spacing.sm,
+    marginRight: spacing.md,
+    backgroundColor: colors.primaryLight,
   },
-  pinLocationBtnDisabled: {
-    backgroundColor: colors.bgDisabled,
+  optionIconBadgeActive: {
+    backgroundColor: colors.primary,
+  },
+  optionTextWrap: {
+    flex: 1,
+  },
+  optionTitle: {
+    ...typography.label,
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  optionSubtitle: {
+    ...typography.caption,
+    color: colors.textTertiary,
+    marginTop: 2,
+  },
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
     borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.sm,
   },
-  pinLocationBtnText: {
-    ...typography.button,
-    color: colors.primary,
-    fontWeight: '600',
+  radioOuterActive: {
+    borderColor: colors.primary,
   },
-  pinLocationBtnTextDisabled: {
-    color: colors.textDisabled,
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
   },
   gpsContainer: {
-    marginTop: spacing.sm,
-  },
-  gpsHintBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.bgApp,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  gpsHintText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    flex: 1,
+    marginTop: spacing.md,
   },
   gpsLoading: {
     flexDirection: 'row',
@@ -933,6 +1132,11 @@ const styles = StyleSheet.create({
     color: colors.success,
     fontWeight: '600',
   },
+  gpsAddressText: {
+    ...typography.body,
+    color: colors.textPrimary,
+    marginTop: 2,
+  },
   gpsCoords: {
     ...typography.caption,
     color: colors.textSecondary,
@@ -962,6 +1166,16 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.error,
     flex: 1,
+  },
+  gpsRetryBtn: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.xs,
+  },
+  gpsRetryText: {
+    ...typography.caption,
+    color: colors.error,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   paymentOptions: {
     flexDirection: 'row',

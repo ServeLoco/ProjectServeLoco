@@ -34,6 +34,9 @@ export default function OrderConfirmationScreen() {
       : 'Delivery Charge';
   const paymentMethod = order.paymentMethod || 'Cash';
   const address = order.address || order.customer?.address || 'Delivery address saved with your order';
+  // Server sets this when an auto-applied offer lapsed between cart and
+  // checkout and the order went through at regular price instead.
+  const couponDropped = rawOrder?.couponDropped === true;
 
   // Animations
   const iconScale = useRef(new Animated.Value(0)).current;
@@ -167,6 +170,15 @@ export default function OrderConfirmationScreen() {
           <Text style={styles.title}>Order Placed Successfully!</Text>
           <Text style={styles.statusLabel}>Preparing your order...</Text>
 
+          {couponDropped && (
+            <View style={styles.couponDroppedBanner}>
+              <AppIcon name="ticket" size={16} color={colors.warning} />
+              <Text style={styles.couponDroppedText}>
+                The offer was no longer available, so your order was placed at the regular price.
+              </Text>
+            </View>
+          )}
+
           <View style={styles.card}>
             <View style={styles.row}>
               <Text style={styles.label}>Order ID</Text>
@@ -256,6 +268,24 @@ const styles = StyleSheet.create({
     color: colors.success,
     fontWeight: '600',
     marginBottom: spacing.xl,
+  },
+  couponDroppedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    width: '100%',
+    backgroundColor: colors.warningLight,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  couponDroppedText: {
+    ...typography.label,
+    color: colors.textPrimary,
+    flex: 1,
+    lineHeight: 18,
   },
   card: {
     width: '100%',

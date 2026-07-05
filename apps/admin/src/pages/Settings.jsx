@@ -12,9 +12,7 @@ import MessageBanner from '../components/MessageBanner';
 const DEFAULT_SETTINGS = {
   shop_open: false,
   delivery_available: false,
-  minimum_order_amount: 0,
   delivery_charge: 0,
-  below_threshold_delivery_charge: 20,
   night_charge: 0,
   night_charge_start: '',
   night_charge_end: '',
@@ -27,8 +25,6 @@ const DEFAULT_SETTINGS = {
   upi_id: '',
   upi_qr_image_id: '',
   upi_qr_image_url: '',
-  free_delivery_above_minimum_active: true,
-  free_delivery_offer_active: false,
   minimum_version: '',
   current_version: ''
   // Location-based distance pricing is removed, so latitude/longitude/radius are obsolete.
@@ -124,10 +120,8 @@ export default function Settings() {
       setFieldErrors({});
       const nullableNumber = (value) => (value === '' || value === null || value === undefined ? null : Number(value));
       const nonNegativeFields = [
-        ['minimum_order_amount', 'Minimum order amount'],
-        ['delivery_charge', 'Standard delivery charge'],
+        ['delivery_charge', 'Delivery charge'],
         ['night_charge', 'Night delivery surcharge'],
-        ['below_threshold_delivery_charge', 'Below-threshold delivery charge'],
         ['fast_delivery_charge', 'Fast delivery surcharge'],
       ];
 
@@ -183,12 +177,8 @@ export default function Settings() {
 
       const payload = {
         ...settings,
-        minimum_order_amount: Number(settings.minimum_order_amount),
         delivery_charge: Number(settings.delivery_charge),
         night_charge: Number(settings.night_charge),
-        below_threshold_delivery_charge: Number(settings.below_threshold_delivery_charge),
-        free_delivery_above_minimum_active: Boolean(settings.free_delivery_above_minimum_active),
-        free_delivery_offer_active: Boolean(settings.free_delivery_offer_active),
         fast_delivery_enabled: Boolean(settings.fast_delivery_enabled),
         fast_delivery_charge: Number(settings.fast_delivery_charge || 0),
         standard_delivery_minutes: Number.parseInt(settings.standard_delivery_minutes, 10) || 60,
@@ -265,41 +255,12 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* ── 2. Order Requirements ───────────────────────────────────────── */}
-      <section className="settings-section">
-        <h2 className="settings-section-title">Order Requirements</h2>
-        <div className="settings-form-grid">
-          <div className="settings-form-group">
-            <label className="settings-label">Minimum Order Amount (₹)</label>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              name="minimum_order_amount"
-              className="settings-input"
-              value={settings.minimum_order_amount || ''}
-              onChange={handleChange}
-              aria-invalid={Boolean(fieldErrors.minimum_order_amount)}
-              aria-errormessage={fieldErrors.minimum_order_amount ? 'minimum_order_amount-error' : undefined}
-            />
-            {fieldErrors.minimum_order_amount && (
-              <span id="minimum_order_amount-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
-                {fieldErrors.minimum_order_amount}
-              </span>
-            )}
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Orders below this amount use the below-minimum delivery charge.
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 3. Delivery Pricing ─────────────────────────────────────────── */}
+      {/* ── 2. Delivery Pricing ─────────────────────────────────────────── */}
       <section className="settings-section">
         <h2 className="settings-section-title">Delivery Pricing</h2>
         <div className="settings-form-grid">
           <div className="settings-form-group">
-            <label className="settings-label">Delivery Charge (Above Minimum) (₹)</label>
+            <label className="settings-label">Delivery Charge (₹)</label>
             <input
               type="number"
               min="0"
@@ -317,65 +278,8 @@ export default function Settings() {
               </span>
             )}
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Charged on orders at or above the minimum (unless waived by a rule below).
+              Flat delivery fee for all orders. Free-delivery promotions (e.g. above a minimum order) are configured via Coupons → Free Delivery.
             </span>
-          </div>
-
-          <div className="settings-form-group">
-            <label className="settings-label">Delivery Charge (Below Minimum) (₹)</label>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              name="below_threshold_delivery_charge"
-              className="settings-input"
-              value={settings.below_threshold_delivery_charge ?? 20}
-              onChange={handleChange}
-              aria-invalid={Boolean(fieldErrors.below_threshold_delivery_charge)}
-              aria-errormessage={fieldErrors.below_threshold_delivery_charge ? 'below_threshold_delivery_charge-error' : undefined}
-            />
-            {fieldErrors.below_threshold_delivery_charge && (
-              <span id="below_threshold_delivery_charge-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
-                {fieldErrors.below_threshold_delivery_charge}
-              </span>
-            )}
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Charged on orders below the minimum order amount.
-            </span>
-          </div>
-
-          <div className="toggle-switch-wrapper full-width">
-            <div style={{ flex: 1 }}>
-              <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Free Delivery for Orders Above Minimum</strong>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                When ON, orders at or above the minimum order amount get free delivery. When OFF, the above-minimum charge applies.
-              </span>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                name="free_delivery_above_minimum_active"
-                checked={Boolean(settings.free_delivery_above_minimum_active)}
-                onChange={handleChange}
-              />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div className="toggle-switch-wrapper full-width">
-            <div style={{ flex: 1 }}>
-              <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Free Delivery Offer (Global)</strong>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>When enabled, all orders get zero delivery charge (overrides the other delivery charges).</span>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                name="free_delivery_offer_active"
-                checked={Boolean(settings.free_delivery_offer_active)}
-                onChange={handleChange}
-              />
-              <span className="toggle-slider"></span>
-            </label>
           </div>
         </div>
       </section>

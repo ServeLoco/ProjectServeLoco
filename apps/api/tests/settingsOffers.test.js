@@ -45,24 +45,25 @@ describe('Settings and Offers Tests', () => {
         shop_longitude: 77.5946,
         delivery_radius_km: 8,
         delivery_cost_per_km: 10,
-        free_delivery_offer_active: 1
       }]]);
 
     const res = await request(app)
       .patch('/api/admin/settings')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
+        // shop_latitude/longitude/delivery_radius_km/delivery_cost_per_km are
+        // deprecated (not in the update whitelist) — delivery_charge is the
+        // one live field in this payload, needed so `updates.length` isn't 0.
+        delivery_charge: 15,
         shop_latitude: 12.9716,
         shop_longitude: 77.5946,
         delivery_radius_km: 8,
         delivery_cost_per_km: 10,
-        free_delivery_offer_active: true
       });
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.data.delivery_radius_km).toEqual(8);
     expect(res.body.data.delivery_cost_per_km).toEqual(10);
-    expect(res.body.data.free_delivery_offer_active).toEqual(1);
   });
 
   it('should reject invalid shop latitude', async () => {

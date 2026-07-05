@@ -15,7 +15,7 @@ describe('api mappers', () => {
         deliveryRadiusKm: 8,
         deliveryWithinRange: false,
         requiresLocation: true,
-        freeDeliveryOfferActive: true,
+        freeDeliveryProgress: { minOrder: 149, amountRemaining: 30 },
         deliveryMessage: 'Pin location to calculate delivery.',
       },
     });
@@ -24,8 +24,82 @@ describe('api mappers', () => {
     expect(result.deliveryRadiusKm).toBe(8);
     expect(result.deliveryWithinRange).toBe(false);
     expect(result.requiresLocation).toBe(true);
-    expect(result.freeDeliveryOfferActive).toBe(true);
+    expect(result.freeDeliveryProgress).toEqual({ minOrder: 149, amountRemaining: 30 });
     expect(result.deliveryMessage).toBe('Pin location to calculate delivery.');
+  });
+
+  it('maps nearestOfferProgress (camelCase) from cart calculation response', () => {
+    const result = normalizeCartCalculation({
+      data: {
+        subtotal: 100,
+        nearestOfferProgress: {
+          title: '20% Off',
+          discountType: 'percent',
+          minOrder: 250,
+          amountRemaining: 150,
+          savingsText: 'You save ₹40',
+          requiresCode: false,
+          autoApply: true,
+        },
+      },
+    });
+
+    expect(result.nearestOfferProgress).toEqual({
+      title: '20% Off',
+      discountType: 'percent',
+      minOrder: 250,
+      amountRemaining: 150,
+      savingsText: 'You save ₹40',
+      requiresCode: false,
+      autoApply: true,
+    });
+  });
+
+  it('maps nearest_offer_progress (snake_case) from cart calculation response', () => {
+    const result = normalizeCartCalculation({
+      data: {
+        subtotal: 100,
+        nearest_offer_progress: {
+          title: 'Flat ₹50 Off',
+          discount_type: 'flat',
+          min_order: 500,
+          amount_remaining: 220,
+          savings_text: '₹50 off',
+          requires_code: true,
+          auto_apply: false,
+        },
+      },
+    });
+
+    expect(result.nearestOfferProgress).toEqual({
+      title: 'Flat ₹50 Off',
+      discountType: 'flat',
+      minOrder: 500,
+      amountRemaining: 220,
+      savingsText: '₹50 off',
+      requiresCode: true,
+      autoApply: false,
+    });
+  });
+
+  it('returns null nearestOfferProgress when absent', () => {
+    const result = normalizeCartCalculation({ data: { subtotal: 100 } });
+    expect(result.nearestOfferProgress).toBeNull();
+  });
+
+  it('maps appliedCoupon, couponError, and availableCoupons from cart calculation response', () => {
+    const result = normalizeCartCalculation({
+      data: {
+        subtotal: 100,
+        appliedCoupon: { id: 1, code: 'FLAT10', title: 'Flat 10', autoApplied: false },
+        couponError: 'Invalid coupon code',
+        availableCoupons: [{ id: 2, code: 'SAVE20' }],
+      },
+    });
+
+    expect(result.appliedCoupon).toEqual({ id: 1, code: 'FLAT10', title: 'Flat 10', autoApplied: false });
+    expect(result.couponError).toBe('Invalid coupon code');
+    expect(result.availableCoupons).toEqual([{ id: 2, code: 'SAVE20' }]);
   });
 
   it('maps delivery snapshot fields from order response', () => {

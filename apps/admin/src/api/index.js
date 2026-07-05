@@ -157,3 +157,13 @@ export const NotificationTemplatesApi = {
   update: (id, data) => apiClient(`/admin/notification-templates/${id}`, { method: 'PATCH', body: data }),
   reset: (id) => apiClient(`/admin/notification-templates/${id}/reset`, { method: 'POST' }),
 };
+
+export const CouponsApi = {
+  list: (params) => apiClient(withQuery('/admin/coupons', params), { method: 'GET' }),
+  get: (id) => apiClient(`/admin/coupons/${id}`, { method: 'GET' }),
+  create: (data) => apiClient('/admin/coupons', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/coupons/${id}`, { method: 'PATCH', body: data }),
+  delete: (id) => apiClient(`/admin/coupons/${id}`, { method: 'DELETE' }),
+  duplicate: (id) => apiClient(`/admin/coupons/${id}/duplicate`, { method: 'POST' }),
+  redemptions: (id, params) => apiClient(withQuery(`/admin/coupons/${id}/redemptions`, params), { method: 'GET' }),
+};

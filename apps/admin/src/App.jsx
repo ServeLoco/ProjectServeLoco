@@ -12,6 +12,7 @@ import Products from './pages/Products';
 import Combos from './pages/Combos';
 import Categories from './pages/Categories';
 import Offers from './pages/Offers';
+import Coupons from './pages/Coupons';
 import MobileDashboard from './pages/MobileDashboard';
 import Customers from './pages/Customers';
 import Notifications from './pages/Notifications';
@@ -72,6 +73,7 @@ function App() {
                   <Route path="/combos" element={<Combos />} />
                   <Route path="/categories" element={<Categories />} />
                   <Route path="/offers" element={<Offers />} />
+                  <Route path="/coupons" element={<Coupons />} />
                   <Route path="/mobile-dashboard" element={<MobileDashboard />} />
                   <Route path="/customers" element={<Customers />} />
                   <Route path="/notifications" element={<Notifications />} />

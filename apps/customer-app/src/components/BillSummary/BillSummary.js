@@ -12,7 +12,8 @@ import { colors, typography, spacing, radius, borderWidth } from '../../theme';
  *   nightCharge       - number (0 or undefined = not shown)
  *   discount          - number (0 or undefined = not shown)
  *   total             - number (grand total)
- *   minimumOrder      - number (shows warning if subtotal < minimumOrder)
+ *   freeDeliveryProgress - { minOrder, amountRemaining } | null — from the
+ *                           cart-calculate response; shows a hint when set
  *   style             - container style
  */
 function BillSummary({
@@ -21,20 +22,18 @@ function BillSummary({
   nightCharge = 0,
   discount = 0,
   total = 0,
-  minimumOrder,
-  belowThreshold = false,
+  freeDeliveryProgress = null,
   style,
 }) {
   const showNight = nightCharge > 0;
   const showDiscount = discount > 0;
-  const belowMin = minimumOrder && subtotal < minimumOrder && subtotal > 0;
 
   return (
     <View style={[styles.container, style]}>
       <Text style={styles.heading}>Bill Summary</Text>
 
       <BillRow label="Subtotal" value={`₹${subtotal.toFixed(0)}`} />
-      <BillRow label={belowThreshold ? 'Delivery Charge (Below Minimum)' : 'Delivery Charge'} value={deliveryCharge === 0 ? 'Free' : `₹${deliveryCharge.toFixed(0)}`} />
+      <BillRow label="Delivery Charge" value={`₹${deliveryCharge.toFixed(0)}`} />
       {showNight ? (
         <BillRow label="Night Charge" value={`₹${nightCharge.toFixed(0)}`} warn />
       ) : null}
@@ -46,11 +45,10 @@ function BillSummary({
 
       <BillRow label="Grand Total" value={`₹${total.toFixed(0)}`} total />
 
-      {belowMin ? (
+      {freeDeliveryProgress ? (
         <View style={styles.minOrderWarn}>
           <Text style={styles.minOrderText}>
-            Minimum order is ₹{minimumOrder}. Add items worth ₹{' '}
-            {(minimumOrder - subtotal).toFixed(0)} more.
+            Add items worth ₹{freeDeliveryProgress.amountRemaining.toFixed(0)} more to unlock free delivery.
           </Text>
         </View>
       ) : null}

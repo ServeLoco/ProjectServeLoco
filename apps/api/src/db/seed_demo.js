@@ -10,7 +10,7 @@ async function seedDemoData() {
   try {
     await connect();
     // 1. Settings and Offers
-    await pool.query('INSERT IGNORE INTO settings (id, shop_open, minimum_order_amount, delivery_charge, free_delivery_above) VALUES (1, 1, 50, 10, 500)');
+    await pool.query('INSERT IGNORE INTO settings (id, shop_open, delivery_charge) VALUES (1, 1, 10)');
     await pool.query('DELETE FROM offers WHERE title = "Weekend Snack Combo"');
     await pool.query('INSERT INTO offers (title, description, active) VALUES ("Weekend Snack Combo", "Get 20% extra on all snacks this weekend!", 1)');
 
@@ -127,6 +127,29 @@ async function seedDemoData() {
         [orderRes.insertId, demoChipsId, 'Demo Chips', 1, 20, 20]
       );
     }
+
+    // 6. Coupons — a representative spread of discount types/rules for
+    // exercising the admin panel and customer coupon UI against real data.
+    await pool.query(
+      "DELETE FROM coupons WHERE code IN ('WELCOME50', 'FREEDEL', 'SAVE20', 'COMBO30')"
+    );
+    await pool.query(
+      `INSERT INTO coupons (
+        code, title, description,
+        discount_type, discount_value, max_discount_amount,
+        min_order_amount, applies_to,
+        total_usage_limit, per_user_usage_limit, first_order_only,
+        auto_apply, requires_code, priority, active
+      ) VALUES
+        ('WELCOME50', 'Welcome Offer', 'Flat 50% off up to ₹100 on your first order',
+          'percent', 50, 100, 0, 'all', NULL, 1, 1, 0, 1, 10, 1),
+        ('FREEDEL', 'Free Delivery', 'Free delivery on orders above ₹199',
+          'free_delivery', 0, NULL, 199, 'all', NULL, NULL, 0, 1, 0, 5, 1),
+        ('SAVE20', 'Flat 20% Off', 'Flat 20% off, no minimum order value',
+          'percent', 20, 150, 0, 'all', NULL, 5, 0, 0, 1, 1, 1),
+        ('COMBO30', 'Combo Meal Deal', '30% off on combo meals over ₹300',
+          'percent', 30, 200, 300, 'fast_food', 500, 3, 0, 0, 1, 3, 1)`
+    );
 
     console.log('Demo data seeded successfully.');
     console.log('Test credentials: phone=9999999999 password=password123');

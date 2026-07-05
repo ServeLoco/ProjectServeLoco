@@ -32,6 +32,12 @@ const createOrderSchema = (req) => {
   if (data.deliveryType && !data.delivery_type) data.delivery_type = data.deliveryType;
   data.delivery_type = ['standard', 'fast'].includes(data.delivery_type) ? data.delivery_type : 'standard';
 
+  // Coupon code (optional) — validated server-side in createOrder.
+  if (data.couponCode && !data.coupon_code) data.coupon_code = data.couponCode;
+  if (data.coupon_code) {
+    data.coupon_code = String(data.coupon_code).trim().toUpperCase();
+  }
+
   const customerLat = data.latitude !== undefined ? data.latitude : data.lat;
   const customerLng = data.longitude !== undefined ? data.longitude : data.lng;
 
