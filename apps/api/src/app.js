@@ -53,8 +53,8 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Handling preflight OPTIONS requests for all routes
 
 // Request body JSON parsing with safe size limits
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(express.json({ limit: '200kb' }));
+app.use(express.urlencoded({ extended: true, limit: '200kb' }));
 
 // Static file serving for images — only needed when images live on local disk.
 // In S3 mode, images are served directly from the bucket/CDN, so this is skipped.
@@ -110,12 +110,18 @@ legacyPaths.forEach(legacyPath => {
   });
 });
 
+// Cheap liveness endpoint — no DB, no auth. Used by the mobile app's periodic
+// reachability ping (useNetworkStatus) so it doesn't run DB checks every 30s
+// like /health does. /health keeps its DB-checking body unchanged (TASK 15 may
+// change its status code); /ping only signals "the process is up".
+app.get('/ping', (req, res) => res.status(200).json({ ok: true }));
+
 // Public health endpoint
 app.get('/health', async (req, res) => {
   const dbHealth = await db.checkHealth();
   const isHealthy = dbHealth.mysql === 'ok' && dbHealth.mongodb === 'ok';
 
-  res.status(200).json({
+  res.status(isHealthy ? 200 : 503).json({
     status: isHealthy ? 'ok' : 'error',
     databases: {
       mysql: dbHealth.mysql,

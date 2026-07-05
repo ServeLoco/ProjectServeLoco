@@ -11,6 +11,9 @@ const calculateCart = async (req, res) => {
   if (!items || !Array.isArray(items)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Items array is required' });
   }
+  if (items.length > 100) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Too many items in one order (max 100).' });
+  }
 
   const [settingRows] = await pool.query(
     'SELECT shop_open, delivery_charge, night_charge, night_charge_start, night_charge_end, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, delivery_radius_km FROM settings LIMIT 1'

@@ -18,7 +18,7 @@ const DEFAULT_CHECK_INTERVAL_MS = 30 * 1000;
 
 export function useNetworkStatus({
   checkIntervalMs = DEFAULT_CHECK_INTERVAL_MS,
-  healthPath = '/health',
+  healthPath = '/ping',
   failureThreshold = 2,
 } = {}) {
   // Best-effort: try the navigator.onLine hint when present. It works on web

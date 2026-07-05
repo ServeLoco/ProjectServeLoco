@@ -165,6 +165,8 @@ const createOrder = async (req, res) => {
       throw new OrderError('Cash on Delivery is not available during night delivery hours. Please choose UPI.');
     }
 
+    if (items.length > 100) throw new OrderError('Too many items in one order (max 100).');
+
     let subtotal = 0;
     const orderItems = [];
 

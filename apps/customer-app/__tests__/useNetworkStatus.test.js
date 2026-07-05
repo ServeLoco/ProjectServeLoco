@@ -53,7 +53,7 @@ describe('useNetworkStatus', () => {
     jest.useRealTimers();
   });
 
-  it('pings the ROOT /health endpoint, NOT /api/health', async () => {
+  it('pings the ROOT /ping endpoint, NOT /api/ping', async () => {
     getApiBaseUrl.mockReturnValue('https://api.serveloco.app/api');
     global.fetch = jest.fn().mockResolvedValue({ ok: true });
 
@@ -65,12 +65,12 @@ describe('useNetworkStatus', () => {
     });
 
     expect(global.fetch).toHaveBeenCalledWith(
-      'https://api.serveloco.app/health',
+      'https://api.serveloco.app/ping',
       expect.objectContaining({ method: 'HEAD' })
     );
-    // It must NOT have been called with /api/health.
+    // It must NOT have been called with /api/ping.
     expect(global.fetch).not.toHaveBeenCalledWith(
-      'https://api.serveloco.app/api/health',
+      'https://api.serveloco.app/api/ping',
       expect.any(Object)
     );
   });
@@ -86,7 +86,7 @@ describe('useNetworkStatus', () => {
     });
 
     expect(global.fetch).toHaveBeenCalledWith(
-      'http://10.0.2.2:3000/health',
+      'http://10.0.2.2:3000/ping',
       expect.objectContaining({ method: 'HEAD' })
     );
   });

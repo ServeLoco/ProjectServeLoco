@@ -5,6 +5,7 @@ const { createOrder, getOrders, getOrderById, cancelOrder } = require('../contro
 const { requireCustomer } = require('../middleware/authMiddleware');
 const { validate, isEnum, isPositiveInteger, validateCoordinates } = require('../validators');
 const { body, validationResult } = require('express-validator');
+const rateLimit = require('express-rate-limit');
 
 const validateExpress = (req, res, next) => {
   const errors = validationResult(req);
@@ -87,7 +88,17 @@ const expressValidatorChecks = [
   body('total').optional().isNumeric().withMessage('total must be numeric')
 ];
 
-router.post('/', requireCustomer, ...expressValidatorChecks, validateExpress, validate(createOrderSchema), asyncHandler(createOrder));
+// Per-user cap on order creation: at most 5 orders/minute. Keyed on the
+// authenticated user id (set by requireCustomer, which runs BEFORE this) so
+// all devices for one account share a bucket; falls back to IP for safety.
+const orderLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 5,
+  keyGenerator: (req) => String(req.user?.id || req.ip),
+  message: { code: 'TOO_MANY_REQUESTS', message: 'Too many orders, please wait a minute.' }
+});
+
+router.post('/', requireCustomer, orderLimiter, ...expressValidatorChecks, validateExpress, validate(createOrderSchema), asyncHandler(createOrder));
 router.get('/', requireCustomer, asyncHandler(getOrders));
 router.get('/:id', requireCustomer, asyncHandler(getOrderById));
 router.patch('/:id/cancel', requireCustomer, asyncHandler(cancelOrder));
