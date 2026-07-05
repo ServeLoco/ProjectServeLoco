@@ -285,8 +285,21 @@ const registerPushToken = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid Expo push token format' });
   }
 
+  // Detach this token from any OTHER account first. On a shared device the
+  // previous user's row can still hold the same Expo token — without this,
+  // they would keep receiving the new user's order notifications.
+  await pool.query('UPDATE users SET push_token = NULL WHERE push_token = ? AND id != ?', [token, userId]);
   await pool.query('UPDATE users SET push_token = ? WHERE id = ?', [token, userId]);
   res.json({ success: true });
+};
+
+// Customer logout — only clears the push token so this device stops
+// receiving the account's notifications. The JWT itself stays valid until
+// expiry (no revocation store — out of scope, see plans/bugs.md TASK 4).
+const logout = async (req, res) => {
+  const userId = req.user.id;
+  await pool.query('UPDATE users SET push_token = NULL WHERE id = ?', [userId]);
+  res.status(200).json({ data: { ok: true } });
 };
 
 /**
@@ -482,5 +495,6 @@ module.exports = {
   requestAccountDeletion,
   cancelAccountDeletion,
   registerPushToken,
+  logout,
   verifyFirebaseToken,
 };

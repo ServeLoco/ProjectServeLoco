@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
-const { register, login, me, updateProfile, requestPasswordReset, requestAccountDeletion, cancelAccountDeletion, registerPushToken, verifyFirebaseToken } = require('../controllers/authController');
+const { register, login, me, updateProfile, requestPasswordReset, requestAccountDeletion, cancelAccountDeletion, registerPushToken, logout, verifyFirebaseToken } = require('../controllers/authController');
 const { requireCustomer } = require('../middleware/authMiddleware');
 const { validate, isString, isPhone, normalizeField } = require('../validators');
 const rateLimit = require('express-rate-limit');
@@ -103,5 +103,8 @@ router.post('/me/request-deletion', deleteAccountLimiter, requireCustomer, async
 router.post('/me/cancel-deletion', deleteAccountLimiter, requireCustomer, asyncHandler(cancelAccountDeletion));
 // Register / refresh Expo push token. Called by the app on every login and startup.
 router.post('/me/push-token', requireCustomer, asyncHandler(registerPushToken));
+// Logout — clears this user's push token server-side so a shared device stops
+// receiving their notifications. Client discards the JWT afterwards.
+router.post('/logout', requireCustomer, asyncHandler(logout));
 
 module.exports = router;

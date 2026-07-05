@@ -110,6 +110,16 @@ export const useAuthStore = create(
       },
 
       logout: () => {
+        // Fire-and-forget: tell the server to null this user's push token so a
+        // shared device doesn't keep receiving their notifications. Errors are
+        // swallowed — we clear local state regardless so the user is logged out
+        // even if the request fails (offline, expired token, etc.).
+        try {
+          const token = useAuthStore.getState()?.token;
+          if (token) {
+            authApi.logout().catch(() => {});
+          }
+        } catch (_) { /* never block logout on the server call */ }
         try {
           useCartStore.getState()?.clearCart?.();
         } catch (_) { /* ignore cart clear errors on logout */ }
