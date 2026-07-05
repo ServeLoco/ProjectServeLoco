@@ -19,6 +19,8 @@ export default defineConfig({
         start_url: '/',
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2,ttf,json}'],
         runtimeCaching: [
           {
