@@ -7,9 +7,9 @@ const config = require('../config/env');
 const { cleanupOrphanedImage } = require('./imageController');
 
 // Settings is a singleton (1 row), read by every app open and every public
-// endpoint. 60-second cache eliminates 99%+ of SELECTs in a 500-user app.
+// endpoint. 15-second cache eliminates most SELECTs while keeping settings fresh.
 // Invalidated on PATCH.
-const settingsCache = createTtlCache({ ttlMs: 60_000 });
+const settingsCache = createTtlCache({ ttlMs: 15_000 });
 const SETTINGS_KEY = 'settings';
 
 const hasValue = (value) => value !== undefined && value !== null && value !== '';
