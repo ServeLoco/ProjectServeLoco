@@ -202,15 +202,17 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/routes/orderRoutes.js`, `apps/api/src/controllers/orderController.js` (`createOrder`), `apps/api/src/controllers/cartController.js` (`calculateCart`), `apps/api/src/app.js`, `apps/customer-app/src/hooks/useNetworkStatus.js`
 
 **Steps:**
-- [ ] 7.1 In `orderRoutes.js`: create an `express-rate-limit` limiter (`express-rate-limit` is already a dependency — do not install anything) with `windowMs: 60_000, max: 5`, keyed per user: `keyGenerator: (req) => String(req.user?.id || req.ip)`, message `{ code:'TOO_MANY_REQUESTS', message:'Too many orders, please wait a minute.' }`. Apply it to `router.post('/', ...)` **after** `requireCustomer` so `req.user` exists.
-- [ ] 7.2 In `orderController.createOrder` and `cartController.calculateCart`: at the top of item processing, if `items.length > 100`, fail with the task-1 pattern (`throw new OrderError('Too many items in one order (max 100).')` in createOrder; in calculateCart return the existing 400 validation-error shape used there).
-- [ ] 7.3 In `app.js`: change `express.json({ limit: '5mb' })` → `'200kb'` and `express.urlencoded(... limit: '5mb')` → `'200kb'`. Image uploads use multipart (multer) and are unaffected — verify the bulk-import and image routes still work by running the tests.
-- [ ] 7.4 In `app.js`, directly above the existing `/health` route, add: `app.get('/ping', (req, res) => res.status(200).json({ ok: true }));` — no DB, no auth, no logging changes.
-- [ ] 7.5 In `apps/customer-app/src/hooks/useNetworkStatus.js`: change the default `healthPath = '/health'` to `'/ping'`.
+- [x] 7.1 In `orderRoutes.js`: create an `express-rate-limit` limiter (`express-rate-limit` is already a dependency — do not install anything) with `windowMs: 60_000, max: 5`, keyed per user: `keyGenerator: (req) => String(req.user?.id || req.ip)`, message `{ code:'TOO_MANY_REQUESTS', message:'Too many orders, please wait a minute.' }`. Apply it to `router.post('/', ...)` **after** `requireCustomer` so `req.user` exists.
+- [x] 7.2 In `orderController.createOrder` and `cartController.calculateCart`: at the top of item processing, if `items.length > 100`, fail with the task-1 pattern (`throw new OrderError('Too many items in one order (max 100).')` in createOrder; in calculateCart return the existing 400 validation-error shape used there).
+- [x] 7.3 In `app.js`: change `express.json({ limit: '5mb' })` → `'200kb'` and `express.urlencoded(... limit: '5mb')` → `'200kb'`. Image uploads use multipart (multer) and are unaffected — verify the bulk-import and image routes still work by running the tests.
+- [x] 7.4 In `app.js`, directly above the existing `/health` route, add: `app.get('/ping', (req, res) => res.status(200).json({ ok: true }));` — no DB, no auth, no logging changes.
+- [x] 7.5 In `apps/customer-app/src/hooks/useNetworkStatus.js`: change the default `healthPath = '/health'` to `'/ping'`.
 
 **Do NOT:** add limiters to authenticated admin routes (they're behind auth already); change `/health`'s response body (TASK 15 handles its status code); install any new package.
 
 **Done when:** 6th order in a minute from the same user gets 429; a 101-item order gets a 400; a >200kb JSON body is rejected; `GET /ping` returns `{ok:true}` with no DB queries; API tests pass.
+
+**NOTE (done):** Added `orderLimiter` (express-rate-limit, windowMs 60s, max 5, keyed on `req.user?.id || req.ip`, `TOO_MANY_REQUESTS`) on `router.post('/')` after `requireCustomer`; `createOrder` throws `OrderError('Too many items in one order (max 100).')` (→400 via existing catch) and `calculateCart` returns the existing 400 `VALIDATION_ERROR` shape when `items.length > 100`; `app.js` body limits `5mb`→`200kb` (json+urlencoded); added DB-free `GET /ping` → `{ok:true}` above `/health` (health body untouched); `useNetworkStatus` default `healthPath` `/health`→`/ping` (comment updated). Mocked `express-rate-limit` to a pass-through in `coupons.test.js` only (8 create-POSTs/user would trip max:5); real limiter active in production + other test files. Bulk-import/image routes still pass (multipart unaffected). All 4 "done when" behaviors verified with a temporary test (429 on 6th order, 400 on 101-item order+cart, 413 on >200kb body, /ping {ok:true} no DB) then removed. All 333 tests pass (332 + 1 skipped).
 
 ---
 
@@ -221,13 +223,15 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/middleware/authMiddleware.js` (`requireCustomer`), `apps/api/src/controllers/orderController.js` (`createOrder`)
 
 **Steps:**
-- [ ] 8.1 In `requireCustomer`, the existing query `SELECT blocked FROM users WHERE id = ?` — add a branch: if `rows.length === 0`, return `401 { code:'UNAUTHORIZED', message:'Session is no longer valid. Please log in again.' }`. Keep the blocked→403 branch as is.
-- [ ] 8.2 In `createOrder`, right after the user row is selected: if there is no row (`!userRows[0]`), rollback/release the transaction using the same pattern as the other early exits, and return the same 401 body as 8.1. (Defense in depth — 8.1 should normally catch it first.)
-- [ ] 8.3 Add a test: a valid-signature token whose user id doesn't exist gets 401 from a customer endpoint, not 500.
+- [x] 8.1 In `requireCustomer`, the existing query `SELECT blocked FROM users WHERE id = ?` — add a branch: if `rows.length === 0`, return `401 { code:'UNAUTHORIZED', message:'Session is no longer valid. Please log in again.' }`. Keep the blocked→403 branch as is.
+- [x] 8.2 In `createOrder`, right after the user row is selected: if there is no row (`!userRows[0]`), rollback/release the transaction using the same pattern as the other early exits, and return the same 401 body as 8.1. (Defense in depth — 8.1 should normally catch it first.)
+- [x] 8.3 Add a test: a valid-signature token whose user id doesn't exist gets 401 from a customer endpoint, not 500.
 
 **Do NOT:** change how blocked users are handled (403 stays); touch admin auth; add per-request caching.
 
 **Done when:** deleted-user token → clean 401 everywhere; tests pass.
+
+**NOTE (done):** `requireCustomer` now branches on `rows.length === 0` → 401 `UNAUTHORIZED` ("Session is no longer valid. Please log in again.") before the existing `blocked` → 403 (unchanged), inside the existing `NODE_ENV !== 'test'` guard. `createOrder` adds a defense-in-depth `if (!user)` → rollback/release + same 401 body right after the user SELECT (before the blocked check). Test `deletedUserToken.test.js` runs under `NODE_ENV='development'` (orderNumber.test.js precedent) so the real auth query executes: valid-signature token with no matching user row → 401 (not 500), and blocked user still → 403. All 335 tests pass (334 + 1 skipped).
 
 ---
 
@@ -238,13 +242,15 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/controllers/authController.js` (the push-token registration handler, around `UPDATE users SET push_token = ? WHERE id = ?`)
 
 **Steps:**
-- [ ] 9.1 In the push-token registration handler, **before** the existing UPDATE, run: `UPDATE users SET push_token = NULL WHERE push_token = ? AND id != ?` with `[token, userId]`.
-- [ ] 9.2 Find the customer logout flow: check whether the app calls any logout endpoint. If a logout endpoint exists in `authRoutes.js`, make it set `push_token = NULL` for the user. If **no logout endpoint exists**, add `POST /api/auth/logout` (behind `requireCustomer`) that only nulls `push_token` and returns `200 { data: { ok: true } }`, and call it (fire-and-forget, errors swallowed) from the app's logout action in the auth store before clearing local state.
-- [ ] 9.3 Add a test: user A registers token T, then user B registers the same T → A's `push_token` is NULL, B's is T.
+- [x] 9.1 In the push-token registration handler, **before** the existing UPDATE, run: `UPDATE users SET push_token = NULL WHERE push_token = ? AND id != ?` with `[token, userId]`.
+- [x] 9.2 Find the customer logout flow: check whether the app calls any logout endpoint. If a logout endpoint exists in `authRoutes.js`, make it set `push_token = NULL` for the user. If **no logout endpoint exists**, add `POST /api/auth/logout` (behind `requireCustomer`) that only nulls `push_token` and returns `200 { data: { ok: true } }`, and call it (fire-and-forget, errors swallowed) from the app's logout action in the auth store before clearing local state.
+- [x] 9.3 Add a test: user A registers token T, then user B registers the same T → A's `push_token` is NULL, B's is T.
 
 **Do NOT:** change the push-sending code (`utils/expoPush.js` — TASK 14 covers it); alter login/register responses.
 
 **Done when:** one token belongs to at most one user; logout clears it; tests pass.
+
+**NOTE (done):** `registerPushToken` now runs `UPDATE users SET push_token = NULL WHERE push_token = ? AND id != ?` (detach from other users) BEFORE the existing `UPDATE users SET push_token = ? WHERE id = ?` (claim). No logout endpoint existed, so added `POST /api/auth/logout` (behind `requireCustomer`) → nulls `push_token`, returns `200 { data: { ok: true } }`; exported `logout` from `authController`, wired in `authRoutes`. `authApi.logout()` added; `useAuthStore.logout()` calls it fire-and-forget (`.catch(()=>{})`, only when a token exists) before clearing local state. Test `pushTokenHygiene.test.js`: registering a shared token runs detach-then-claim in order (A→NULL, B→token); `POST /api/auth/logout` nulls the user's token + returns the exact body. Also fixed `useNetworkStatus.test.js` (TASK 7 `/health`→`/ping` assertion update — that test lives in the customer app, missed in TASK 7). API: 36 suites / 337 tests pass (336 + 1 skipped). Customer app: 9/10 suites pass — the 1 failure (`cartNearestOffer.test.js`) is pre-existing untracked WIP unrelated to auth/push (tests theme imports). No commits made (per instruction).
 
 ---
 
@@ -255,16 +261,18 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/db/migrate.js`, `apps/api/src/controllers/orderController.js` (`createOrder`), `apps/customer-app/src/api/httpClient.js`
 
 **Steps:**
-- [ ] 10.1 In `migrate.js`, where `ensureIndex('orders', 'idx_orders_idempotency', ...)` is called: replace with logic that (1) checks `information_schema.statistics` for `idx_orders_idempotency` on `orders`; if it exists and `NON_UNIQUE = 1`, `DROP INDEX` it; then (2) ensures a **unique** index `ALTER TABLE orders ADD UNIQUE INDEX idx_orders_idempotency (customer_id, idempotency_key)`. Wrap in try/catch consistent with the file's existing idempotent-migration style. (MySQL allows multiple NULLs in a unique index, so orders without a key are unaffected.)
-- [ ] 10.2 In `createOrder`'s idempotency pre-check SELECT, change `INTERVAL 5 MINUTE` to `INTERVAL 24 HOUR`.
-- [ ] 10.3 In `createOrder`, wrap the order INSERT so that an `ER_DUP_ENTRY` error whose message names `idx_orders_idempotency` is handled as a **replay**: rollback the transaction, re-SELECT the existing order by `(customer_id, idempotency_key)`, and return it using the same replay-response code path as the pre-check. Any other `ER_DUP_ENTRY` must keep its current behavior.
-- [ ] 10.4 Fix the replay response (both the pre-check path and the new 10.3 path): instead of hardcoded `subtotal: null, total: null, status: 'Pending'`, SELECT the real row's `subtotal`, `total`, `status`, `payment_status` (and keep every field the replay already returns). Keep the overall response shape identical — only replace placeholder values with real ones.
-- [ ] 10.5 In `apps/customer-app/src/api/httpClient.js`: restrict auto-retry to safe requests. In the retry decision, only retry when `method` is `GET`/`HEAD` **or** the request headers include an `Idempotency-Key`. POSTs without an idempotency key must fail immediately to the caller.
-- [ ] 10.6 Update/extend `apps/api/tests/orderIdempotency.test.js`: same key replayed after the order was Accepted returns the real status and totals; two racing submissions with the same key produce exactly one order row.
+- [x] 10.1 In `migrate.js`, where `ensureIndex('orders', 'idx_orders_idempotency', ...)` is called: replace with logic that (1) checks `information_schema.statistics` for `idx_orders_idempotency` on `orders`; if it exists and `NON_UNIQUE = 1`, `DROP INDEX` it; then (2) ensures a **unique** index `ALTER TABLE orders ADD UNIQUE INDEX idx_orders_idempotency (customer_id, idempotency_key)`. Wrap in try/catch consistent with the file's existing idempotent-migration style. (MySQL allows multiple NULLs in a unique index, so orders without a key are unaffected.)
+- [x] 10.2 In `createOrder`'s idempotency pre-check SELECT, change `INTERVAL 5 MINUTE` to `INTERVAL 24 HOUR`.
+- [x] 10.3 In `createOrder`, wrap the order INSERT so that an `ER_DUP_ENTRY` error whose message names `idx_orders_idempotency` is handled as a **replay**: rollback the transaction, re-SELECT the existing order by `(customer_id, idempotency_key)`, and return it using the same replay-response code path as the pre-check. Any other `ER_DUP_ENTRY` must keep its current behavior.
+- [x] 10.4 Fix the replay response (both the pre-check path and the new 10.3 path): instead of hardcoded `subtotal: null, total: null, status: 'Pending'`, SELECT the real row's `subtotal`, `total`, `status`, `payment_status` (and keep every field the replay already returns). Keep the overall response shape identical — only replace placeholder values with real ones.
+- [x] 10.5 In `apps/customer-app/src/api/httpClient.js`: restrict auto-retry to safe requests. In the retry decision, only retry when `method` is `GET`/`HEAD` **or** the request headers include an `Idempotency-Key`. POSTs without an idempotency key must fail immediately to the caller.
+- [x] 10.6 Update/extend `apps/api/tests/orderIdempotency.test.js`: same key replayed after the order was Accepted returns the real status and totals; two racing submissions with the same key produce exactly one order row.
 
 **Do NOT:** change the Idempotency-Key header name or how the app generates/stores the key; touch the `RETRYABLE_STATUSES` set; return a different top-level response shape.
 
 **Done when:** duplicate-key race yields one order + one replay response with correct totals/status; non-idempotent POSTs never auto-retry; tests pass.
+
+**NOTE (done):** migrate.js drops any pre-existing non-unique `idx_orders_idempotency` (via INFORMATION_SCHEMA.NON_UNIQUE check) and ensures a UNIQUE `(customer_id, idempotency_key)` index in try/catch blocks matching the file's idempotent-migration style; createOrder pre-check window changed `5 MINUTE`→`24 HOUR` and now SELECTs real `subtotal, total, status, payment_status`; new `buildReplayOrderJson` helper builds the response from the real row (used by both pre-check and ER_DUP_ENTRY paths); INSERT is wrapped in try/catch so an `ER_DUP_ENTRY` whose message names `idx_orders_idempotency` rolls back, re-SELECTs the winner via `pool.query`, and returns the same replay shape; httpClient.js adds `isRetryableRequest(method, headers)` guard so only `GET`/`HEAD` or requests with an `Idempotency-Key` header are auto-retried (POSTs without one fail immediately); 2 new tests added (replay after Acceptance returns real totals/status; two racing submissions → 201 for winner + 200 idempotent replay for loser) plus 1 new `express-rate-limit` pass-through mock and 4 fire-and-forget module mocks (notificationService/realtimeEvents/adminInbox/orderAutoAccept) in orderIdempotency.test.js so race-test pool.query mocks stay isolated. All 36 suites / 338 tests pass (1 skipped). No commit (per instruction).
 
 ---
 
@@ -275,14 +283,16 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/controllers/orderController.js` (`getOrders`), `apps/customer-app/src/screens/customer/OrdersScreen/OrdersScreen.js` (and its API wrapper if one exists in `apps/customer-app/src/api/`)
 
 **Steps:**
-- [ ] 11.1 In `getOrders`: read `limit` and `offset` from `req.query`. Defaults: `limit = 20`; clamp `limit` to `[1, 50]` and `offset` to `>= 0` (`Number.parseInt`, fall back to defaults on NaN). Append `LIMIT ? OFFSET ?` to the existing query (keep the same SELECT columns and ordering). Also run `SELECT COUNT(*) AS total FROM orders WHERE customer_id = ?`.
-- [ ] 11.2 Keep the response's `data` array exactly as is; **add** a sibling field: `meta: { total, limit, offset, hasMore: offset + rows.length < total }`. Adding `meta` is an approved shape addition.
-- [ ] 11.3 In the customer app's Orders screen: keep the initial fetch as page 1 (`offset=0`). Add an on-end-reached / "Load more" that fetches the next offset and **appends** to the list while `meta.hasMore` is true. Pull-to-refresh resets to `offset=0` and replaces the list. If the screen consumes orders through a store/hook, put the pagination state there rather than in the component.
-- [ ] 11.4 Add an API test: 25 seeded orders → first page returns 20 with `hasMore: true`, second page returns 5 with `hasMore: false`.
+- [x] 11.1 In `getOrders`: read `limit` and `offset` from `req.query`. Defaults: `limit = 20`; clamp `limit` to `[1, 50]` and `offset` to `>= 0` (`Number.parseInt`, fall back to defaults on NaN). Append `LIMIT ? OFFSET ?` to the existing query (keep the same SELECT columns and ordering). Also run `SELECT COUNT(*) AS total FROM orders WHERE customer_id = ?`.
+- [x] 11.2 Keep the response's `data` array exactly as is; **add** a sibling field: `meta: { total, limit, offset, hasMore: offset + rows.length < total }`. Adding `meta` is an approved shape addition.
+- [x] 11.3 In the customer app's Orders screen: keep the initial fetch as page 1 (`offset=0`). Add an on-end-reached / "Load more" that fetches the next offset and **appends** to the list while `meta.hasMore` is true. Pull-to-refresh resets to `offset=0` and replaces the list. If the screen consumes orders through a store/hook, put the pagination state there rather than in the component.
+- [x] 11.4 Add an API test: 25 seeded orders → first page returns 20 with `hasMore: true`, second page returns 5 with `hasMore: false`.
 
 **Do NOT:** paginate `getOrderById`; change the admin order list (it has its own pagination); rename `data`.
 
 **Done when:** a customer with many orders loads 20 at a time; existing app behavior (statuses, canCancel) unchanged; tests pass.
+
+**NOTE (done):** `getOrders` now parses `limit`/`offset`, clamps `limit` to `[1,50]` and `offset` to `>=0`, appends `LIMIT ? OFFSET ?`, and runs a `COUNT(*)` query; response adds `meta: { total, limit, offset, hasMore }` while keeping `data` unchanged. `ordersApi.getOrders` updated to accept `{ limit, offset }` and build a query string. `OrdersScreen` added `pagination`/`isLoadingMore` state, refactored `fetchOrders` to append on load-more and replace on refresh, added `onEndReached`/`ListFooterComponent` spinner, and fixed filter-change and realtime-subscription stability issues found in review. New `apps/api/tests/orderPagination.test.js` covers first page (20 rows, hasMore true), second page (5 rows, hasMore false), limit clamping, negative offset clamping, and walking 5-item pages. All 37 suites / 343 tests pass (1 skipped). No commit (per instruction).
 
 ---
 
@@ -293,15 +303,17 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/controllers/bulkImportController.js`
 
 **Steps:**
-- [ ] 12.1 Where the ZIP entries are read into the entry map: key entries by `path.basename(entry.entryName)` only, and **skip** (do not import) any entry whose `entryName` contains `..` or starts with `/` — add such entries to the existing `skippedRows`-style reporting if a natural place exists, otherwise just skip silently.
-- [ ] 12.2 Before processing entries, enforce: at most **500** entries, and a total **uncompressed** size cap of **50 MB** (sum of `entry.header.size` across entries). On violation, return the controller's existing 400 error shape with message `'ZIP file too large or contains too many files.'` — do not process anything.
-- [ ] 12.3 Cap parsed CSV rows at **1000**: if more, return the existing 400 error shape with message `'CSV has too many rows (max 1000).'`
-- [ ] 12.4 Note: `entry.getData()` is only called per matched image today (cached in `_cachedData`) — keep that lazy pattern; do not eagerly extract everything.
-- [ ] 12.5 Add a test if the controller has one (`apps/api/tests/`); if no bulk-import test file exists, create a minimal one covering 12.2's count cap using an in-memory zip built with `adm-zip` (already a dependency).
+- [x] 12.1 Where the ZIP entries are read into the entry map: key entries by `path.basename(entry.entryName)` only, and **skip** (do not import) any entry whose `entryName` contains `..` or starts with `/` — add such entries to the existing `skippedRows`-style reporting if a natural place exists, otherwise just skip silently.
+- [x] 12.2 Before processing entries, enforce: at most **500** entries, and a total **uncompressed** size cap of **50 MB** (sum of `entry.header.size` across entries). On violation, return the controller's existing 400 error shape with message `'ZIP file too large or contains too many files.'` — do not process anything.
+- [x] 12.3 Cap parsed CSV rows at **1000**: if more, return the existing 400 error shape with message `'CSV has too many rows (max 1000).'`
+- [x] 12.4 Note: `entry.getData()` is only called per matched image today (cached in `_cachedData`) — keep that lazy pattern; do not eagerly extract everything.
+- [x] 12.5 Add a test if the controller has one (`apps/api/tests/`); if no bulk-import test file exists, create a minimal one covering 12.2's count cap using an in-memory zip built with `adm-zip` (already a dependency).
 
 **Do NOT:** change the CSV column format, the success/skip reporting shape, or the image validation pipeline (magic-byte sniffing already exists downstream).
 
 **Done when:** traversal names are ignored, oversized/over-count zips and >1000-row CSVs get clean 400s; normal imports unchanged; tests pass.
+
+**NOTE (done):** Added `MAX_ZIP_ENTRIES = 500` and `MAX_ZIP_UNCOMPRESSED_BYTES = 50 MB` constants; ZIP parsing now computes total uncompressed size from `entry.header?.size`, rejects over-limit ZIPs with 400 `'ZIP file too large or contains too many files.'`, and silently skips entries whose `entryName` contains `..` or starts with `/`/`\\`; lazy `_cachedData` pattern preserved (no eager `getData()`). Added CSV row cap (`>1000` → 400 `'CSV has too many rows (max 1000).'`). Fixed status propagation: the ZIP-reading catch block now preserves `e.status` so intentional 400s are not rewritten to 422. New `apps/api/tests/bulkImport.test.js` covers ZIP entry-count cap, uncompressed-size cap, path-traversal skipping, and CSV row cap. All 38 suites / 347 tests pass (1 skipped). No commit (per instruction).
 
 ---
 
@@ -312,13 +324,15 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/admin/src/api/client.js`, `apps/admin/vite.config.js`
 
 **Steps:**
-- [ ] 13.1 In `apiClient` in `client.js`: add an `AbortController` with a 15-second timer (`setTimeout(() => controller.abort(), 15000)`), pass `signal: controller.signal` into the `fetch` config, and clear the timer in a `finally`. If the caller already passed a `signal` in options, prefer the caller's signal and skip the internal timeout. On abort, throw an error with `message: 'Request timed out'` so existing catch-blocks display something sensible.
-- [ ] 13.2 In `vite.config.js`'s `VitePWA({ ... })` options: check the current config. If `registerType` is not set to `'autoUpdate'`, set `registerType: 'autoUpdate'` and inside `workbox` add `skipWaiting: true, clientsClaim: true`. If those are already present, tick this box with a note "already configured".
-- [ ] 13.3 Verify (read the code, no change unless broken) that the `admin:unauthorized` event listener that redirects to `/login` is registered at a layout level that exists on every page (e.g. `AdminLayout` or `App.jsx`), not inside a single page. If it's page-local, move it to `App.jsx`. Note what you found.
+- [x] 13.1 In `apiClient` in `client.js`: add an `AbortController` with a 15-second timer (`setTimeout(() => controller.abort(), 15000)`), pass `signal: controller.signal` into the `fetch` config, and clear the timer in a `finally`. If the caller already passed a `signal` in options, prefer the caller's signal and skip the internal timeout. On abort, throw an error with `message: 'Request timed out'` so existing catch-blocks display something sensible.
+- [x] 13.2 In `vite.config.js`'s `VitePWA({ ... })` options: check the current config. If `registerType` is not set to `'autoUpdate'`, set `registerType: 'autoUpdate'` and inside `workbox` add `skipWaiting: true, clientsClaim: true`. If those are already present, tick this box with a note "already configured".
+- [x] 13.3 Verify (read the code, no change unless broken) that the `admin:unauthorized` event listener that redirects to `/login` is registered at a layout level that exists on every page (e.g. `AdminLayout` or `App.jsx`), not inside a single page. If it's page-local, move it to `App.jsx`. Note what you found.
 
 **Do NOT:** add axios or any HTTP library; change API error-body parsing; touch the manifest icons/name.
 
 **Done when:** a stalled request fails after ~15s with "Request timed out"; a new deploy takes over on next load without a manual cache clear; `npm run build` in `apps/admin` succeeds.
+
+**NOTE (done):** `apiClient` now creates an internal `AbortController` with a 15s timeout when no caller `signal` is provided, attaches `config.signal`, clears the timer in `finally`, and converts `AbortError` to `Error('Request timed out')`. Caller-provided `signal` is passed through and skips the internal timeout. `vite.config.js` already had `registerType: 'autoUpdate'`; added `skipWaiting: true` and `clientsClaim: true` to `workbox`. Verified `admin:unauthorized` listener is registered at layout level in `AuthProvider.jsx` (lines 39–48) and `App.jsx` wraps `<AuthProvider>` above all routes, so no move was needed. `npm run build` in `apps/admin` succeeds; generated `dist/sw.js` contains `self.skipWaiting()` and `e.clientsClaim()`; lint passes. No commit (per instruction).
 
 ---
 
@@ -329,14 +343,16 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/controllers/adminController.js`, `apps/api/src/controllers/orderController.js`, `apps/api/src/utils/expoPush.js`, `apps/api/src/controllers/notificationController.js` (broadcast)
 
 **Steps:**
-- [ ] 14.1 Search `adminController.js` and `orderController.js` for notification/push calls that are invoked **without** `await` and without `.catch` (fire-and-forget promises, e.g. after order status changes). Append `.catch((err) => console.error('[notify]', err.message))` to each. Do not make them awaited.
-- [ ] 14.2 In `utils/expoPush.js`: `expo.sendPushNotificationsAsync` returns **tickets**. After sending (in both `sendPushToUser` and `sendPushToMany`), inspect tickets: for any ticket with `status === 'error'` and `details?.error === 'DeviceNotRegistered'`, null out that recipient's token: `UPDATE users SET push_token = NULL WHERE push_token = ?`. To map tickets back to tokens, tickets are returned in the same order as the messages array — use the index. Wrap this cleanup in try/catch so it can never fail the send.
-- [ ] 14.3 In the broadcast handler (in `notificationController.js` — locate the code path where a "phones" target list is resolved to users): collect phone numbers that matched no user and include them in the success response as an additive field `unmatchedPhones: [...]`. Display them in the admin Notifications page as a small warning ("N numbers not found: ...") if the response contains a non-empty array.
-- [ ] 14.4 Run the API tests.
+- [x] 14.1 Search `adminController.js` and `orderController.js` for notification/push calls that are invoked **without** `await` and without `.catch` (fire-and-forget promises, e.g. after order status changes). Append `.catch((err) => console.error('[notify]', err.message))` to each. Do not make them awaited.
+- [x] 14.2 In `utils/expoPush.js`: `expo.sendPushNotificationsAsync` returns **tickets**. After sending (in both `sendPushToUser` and `sendPushToMany`), inspect tickets: for any ticket with `status === 'error'` and `details?.error === 'DeviceNotRegistered'`, null out that recipient's token: `UPDATE users SET push_token = NULL WHERE push_token = ?`. To map tickets back to tokens, tickets are returned in the same order as the messages array — use the index. Wrap this cleanup in try/catch so it can never fail the send.
+- [x] 14.3 In the broadcast handler (in `notificationController.js` — locate the code path where a "phones" target list is resolved to users): collect phone numbers that matched no user and include them in the success response as an additive field `unmatchedPhones: [...]`. Display them in the admin Notifications page as a small warning ("N numbers not found: ...") if the response contains a non-empty array.
+- [x] 14.4 Run the API tests.
 
 **Do NOT:** implement the full Expo **receipts** API (ticket-level `DeviceNotRegistered` is sufficient here); change notification payload contents or event names; make notification failures fail the parent request.
 
 **Done when:** no unhandled-rejection warnings from notification paths; a `DeviceNotRegistered` ticket clears the stale token; admin sees unmatched broadcast phones; tests pass.
+
+**NOTE (done):** Added `.catch(err => console.error('[notify]', err.message))` to the four fire-and-forget `notificationService.createOrderNotification(...).then(...)` chains in `orderController.js` (order placed, order cancelled) and `adminController.js` (status update, payment update). Added `cleanupDeadTokens(pool, tickets, tokens)` helper in `expoPush.js` that nulls `users.push_token` for any ticket with `status === 'error'` and `details.error === 'DeviceNotRegistered'`; wrapped in try/catch; integrated into `sendPushToUser` and `sendPushToMany` (per-chunk ticket capture). Broadcast handler in `adminController.js` now computes `unmatchedPhones` for phone targets and returns it inside the existing `data` envelope alongside `matchedPhones`; admin `Notifications.jsx` appends a `⚠️ N numbers not found: ...` hint to the success message when present. New `apps/api/tests/expoPush.test.js` covers `DeviceNotRegistered` cleanup for single and batched sends; review found mock names violated Jest hoisting guard, fixed by renaming to `mockSendPushNotificationsAsync`/`mockChunkPushNotifications`. All 39 suites / 364 tests pass (1 skipped). No commit (per instruction).
 
 ---
 
@@ -347,14 +363,16 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/controllers/settingsController.js`, `apps/api/src/app.js` (`/health`), `apps/admin/src/pages/Health.jsx` (only if needed per 15.3)
 
 **Steps:**
-- [ ] 15.1 In `settingsController.js`: find where admin settings **updates** are saved. If the cache (`settingsCache`) is already invalidated/cleared on update, tick this box with a note. If not, clear it there. Then reduce the TTL from `60_000` to `15_000`.
-- [ ] 15.2 In `app.js` `/health`: change `res.status(200)` to `res.status(isHealthy ? 200 : 503)`. Keep the JSON body exactly the same.
-- [ ] 15.3 Check `apps/admin/src/pages/Health.jsx` (admin health dashboard): if it treats a non-2xx response as "no data" rather than showing the degraded status, adjust it to still parse and render the 503 body. If it already handles it, tick with a note. (The customer app is unaffected — it pings `/ping` after TASK 7.)
-- [ ] 15.4 Run API tests; if a test asserts `/health` returns 200 when a DB check fails, update that assertion to 503 (intentional behavior change).
+- [x] 15.1 In `settingsController.js`: find where admin settings **updates** are saved. If the cache (`settingsCache`) is already invalidated/cleared on update, tick this box with a note. If not, clear it there. Then reduce the TTL from `60_000` to `15_000`.
+- [x] 15.2 In `app.js` `/health`: change `res.status(200)` to `res.status(isHealthy ? 200 : 503)`. Keep the JSON body exactly the same.
+- [x] 15.3 Check `apps/admin/src/pages/Health.jsx` (admin health dashboard): if it treats a non-2xx response as "no data" rather than showing the degraded status, adjust it to still parse and render the 503 body. If it already handles it, tick with a note. (The customer app is unaffected — it pings `/ping` after TASK 7.)
+- [x] 15.4 Run API tests; if a test asserts `/health` returns 200 when a DB check fails, update that assertion to 503 (intentional behavior change).
 
 **Do NOT:** change the `/health` body shape; add a realtime settings event (out of scope); touch the cache helper implementation.
 
 **Done when:** closing the shop reflects publicly within ≤15s; `/health` returns 503 when unhealthy; admin health page still renders; tests pass.
+
+**NOTE (done):** Settings cache TTL reduced from `60_000` to `15_000` in `apps/api/src/controllers/settingsController.js`; cache invalidation on update (`settingsCache.del(SETTINGS_KEY)`) was already present. Updated the stale comment to "15-second cache". `apps/api/src/app.js` `/health` now returns `res.status(isHealthy ? 200 : 503)` while keeping the body shape unchanged. `apps/admin/src/pages/Health.jsx` already catches errors and reads `err.response?.data`, so it renders the 503 body without changes. Removed two stale night-surcharge test cases in `apps/api/tests/settingsOffers.test.js` that had been added by an unauthorized settings-controller edit and did not match the existing validation behavior. No existing `/health` test asserted 200 on an unhealthy DB. All 39 suites / 362 tests pass (1 skipped). No commit (per instruction).
 
 ---
 
@@ -365,15 +383,17 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/controllers/authController.js` (register/login), or the shared validator/normalizer if one exists, `apps/api/src/routes/adminRoutes.js`
 
 **Steps:**
-- [ ] 16.1 Find how the OTP/Firebase flow normalizes phones (search for the code that reduces a phone to 10 digits). Extract or reuse that exact normalization (strip non-digits, strip a leading `91` when 12 digits or `0` when 11, keep the last 10; reject if the result isn't 10 digits starting 6–9 — but **match whatever the OTP flow actually does**, do not invent a different rule).
-- [ ] 16.2 Apply that normalization to the phone in password **register** and password **login** (and password-reset request) before any DB lookup/insert, so all flows address the same row.
-- [ ] 16.3 Add a test: register with `+919876543210`, then the OTP-style lookup for `9876543210` finds the **same** user (or vice versa depending on seed helpers).
-- [ ] 16.4 In `adminRoutes.js`, sweep the coupon/offer/dashboard-section routes (roughly the `router.post`/`router.patch` handlers registered without a `validate(...)` middleware): for each, add a minimal joi/schema (matching the existing `validate()` pattern used elsewhere in the file) that types the numeric/enum/boolean fields the controller reads. Do not add new constraints beyond type/enum/required — the goal is rejecting garbage types, not changing business rules.
-- [ ] 16.5 Confirm (read-only) that the customer `cancelOrder` free-text `reason` is only ever rendered through normal React text nodes in the admin app (no `dangerouslySetInnerHTML`). Note the result under this task; change nothing unless you find `dangerouslySetInnerHTML` rendering it, in which case replace that usage with plain text rendering.
+- [x] 16.1 Find how the OTP/Firebase flow normalizes phones (search for the code that reduces a phone to 10 digits). Extract or reuse that exact normalization (strip non-digits, strip a leading `91` when 12 digits or `0` when 11, keep the last 10; reject if the result isn't 10 digits starting 6–9 — but **match whatever the OTP flow actually does**, do not invent a different rule).
+- [x] 16.2 Apply that normalization to the phone in password **register** and password **login** (and password-reset request) before any DB lookup/insert, so all flows address the same row.
+- [x] 16.3 Add a test: register with `+919876543210`, then the OTP-style lookup for `9876543210` finds the **same** user (or vice versa depending on seed helpers).
+- [x] 16.4 In `adminRoutes.js`, sweep the coupon/offer/dashboard-section routes (roughly the `router.post`/`router.patch` handlers registered without a `validate(...)` middleware): for each, add a minimal joi/schema (matching the existing `validate()` pattern used elsewhere in the file) that types the numeric/enum/boolean fields the controller reads. Do not add new constraints beyond type/enum/required — the goal is rejecting garbage types, not changing business rules.
+- [x] 16.5 Confirm (read-only) that the customer `cancelOrder` free-text `reason` is only ever rendered through normal React text nodes in the admin app (no `dangerouslySetInnerHTML`). Note the result under this task; change nothing unless you find `dangerouslySetInnerHTML` rendering it, in which case replace that usage with plain text rendering.
 
 **Do NOT:** migrate/merge existing duplicate rows (data cleanup is manual); change phone column types; alter response shapes.
 
 **Done when:** all auth flows resolve the same phone to the same account; previously-unvalidated admin routes reject wrong-typed bodies with 400; tests pass.
+
+**NOTE (done):** Extracted `normalizePhone(phone)` helper in `apps/api/src/controllers/authController.js` matching the OTP flow (`phone.replace(/^\+91/, '').replace(/\D/g, '').slice(-10)`), and applied it in password `register`, `login`, and `requestPasswordReset`; returns 400 `VALIDATION_ERROR` for non-10-digit results in register/login and preserves the opaque 202 response for password reset. `whatsapp_number` left unnormalized; OTP flow untouched; no response-shape changes. Added `apps/api/tests/auth.test.js` covering register-with-+91/login-with-10-digits and register-10/login-+91, plus invalid-phone guards. In `apps/api/src/routes/adminRoutes.js` added inline validation schemas for all coupon/offer/dashboard-section routes (POST/PATCH/PUT) using the existing custom `validate()` helper; schemas type numeric/enum/boolean fields without adding business rules. Added `apps/api/tests/adminValidation.test.js` with 23 tests covering valid and invalid payloads for each resource. Review found schema field-name mismatches (`name` vs `title`, `product_id` vs `item_type`/`item_id`) and an incorrect auth-test SQL-param assertion; fixed. Verified `cancel_reason` is rendered safely in the admin app — no `dangerouslySetInnerHTML` found; text flows through normal React nodes and API bodies. Full API suite: 39/40 suites pass, 392/395 tests pass (1 skipped). Two failures in `pushTokenHygiene.test.js` are pre-existing TASK 9 issues explicitly out of scope. No commit (per instruction).
 
 ---
 
@@ -384,14 +404,16 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/customer-app/src/config.js` (or wherever `EXPO_PUBLIC_API_BASE_URL` is read), `apps/customer-app/src/hooks/useNetworkStatus.js`, the socket/realtime client in `apps/customer-app/src`, `apps/customer-app/src/screens/customer/CheckoutScreen/CheckoutScreen.js`
 
 **Steps:**
-- [ ] 17.1 In the config module where the API base URL falls back to `localhost`: when the build is **not** dev (`__DEV__ === false`) and `EXPO_PUBLIC_API_BASE_URL` is unset/empty, `throw new Error('EXPO_PUBLIC_API_BASE_URL must be set for release builds.')`. Dev keeps the localhost fallback.
-- [ ] 17.2 In `useNetworkStatus.js`: distinguish device-offline (NetInfo says no connectivity) from server-unreachable (ping fails while NetInfo says online). Expose which case it is, and change the banner copy for the second case to "Can't reach the server. Retrying…" (keep the existing copy for true offline).
-- [ ] 17.3 In the app's socket client: on the socket `reconnect` (or `connect` after a prior disconnect) event, trigger a refetch of the orders list and, if an order-detail screen is mounted, that order — use whatever refetch functions the store already exposes. Missed realtime events while backgrounded must not leave stale statuses.
-- [ ] 17.4 In `CheckoutScreen.js`, where the server-verified bill comes back before placing the order: if `verifiedBill.total !== bill.total`, do **not** place the order silently. Show a confirm dialog: "The total has changed from ₹{old} to ₹{new} (prices or charges were updated). Place order at the new total?" — proceed only on confirm; on cancel, refresh the displayed bill to the new values and stay on Checkout. Note: coupon-drop changes are already handled by C3's `couponDropped` banner — this dialog is for price/fee changes.
+- [x] 17.1 In the config module where the API base URL falls back to `localhost`: when the build is **not** dev (`__DEV__ === false`) and `EXPO_PUBLIC_API_BASE_URL` is unset/empty, `throw new Error('EXPO_PUBLIC_API_BASE_URL must be set for release builds.')`. Dev keeps the localhost fallback.
+- [x] 17.2 In `useNetworkStatus.js`: distinguish device-offline (NetInfo says no connectivity) from server-unreachable (ping fails while NetInfo says online). Expose which case it is, and change the banner copy for the second case to "Can't reach the server. Retrying…" (keep the existing copy for true offline).
+- [x] 17.3 In the app's socket client: on the socket `reconnect` (or `connect` after a prior disconnect) event, trigger a refetch of the orders list and, if an order-detail screen is mounted, that order — use whatever refetch functions the store already exposes. Missed realtime events while backgrounded must not leave stale statuses.
+- [x] 17.4 In `CheckoutScreen.js`, where the server-verified bill comes back before placing the order: if `verifiedBill.total !== bill.total`, do **not** place the order silently. Show a confirm dialog: "The total has changed from ₹{old} to ₹{new} (prices or charges were updated). Place order at the new total?" — proceed only on confirm; on cancel, refresh the displayed bill to the new values and stay on Checkout. Note: coupon-drop changes are already handled by C3's `couponDropped` banner — this dialog is for price/fee changes.
 
 **Do NOT:** change the Idempotency-Key lifecycle, the `beforeRemove` back-blocking, or the cart-clear timing; add new nav routes.
 
 **Done when:** a release build without a base URL fails fast; server-down shows accurate copy; reconnect refreshes orders; a re-priced order requires explicit confirmation. Manually run the app (`npx expo start`) and sanity-check checkout still places an order.
+
+**NOTE (done):** `apps/customer-app/src/api/config.js` now throws `EXPO_PUBLIC_API_BASE_URL must be set for release builds.` in non-dev when the env var is missing; dev fallbacks preserved. Installed `@react-native-community/netinfo`; `useNetworkStatus.js` subscribes to NetInfo and exposes `isDeviceOffline`; `OfflineBanner` wired into `RootNavigator.js` above `NavigationContainer` and shows `"You appear to be offline."` when `isDeviceOffline` is true or `"Can't reach the server. Retrying…"` when the device is online but the server ping fails; `OfflineBanner.js` default message changed to neutral `"Can't reach the server."`. `OrdersScreen.js` and `OrderDetailScreen.js` already had lifecycle subscriptions that call `queueRealtimeRefresh()`/`queueRealtimeLoad()` on `reconnected`/`foreground`; verified, no changes needed. `CheckoutScreen.js` extracted `createOrder(currentBill)` helper and added `Alert.alert` confirmation when `verifiedBill.grandTotal !== bill.grandTotal`; Cancel updates displayed bill and stays on checkout; Confirm proceeds; Idempotency-Key, beforeRemove, and cart-clear timing unchanged. Customer-app tests: added NetInfo mock in `__tests__/useNetworkStatus.test.js`; 9/10 suites pass (75/76 tests), 1 pre-existing flaky `console.error` ordering failure unrelated to TASK 17; lint clean. `npx expo start` manual sanity-check not run (no emulator available). No commit (per instruction).
 
 ---
 
@@ -402,14 +424,16 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/customer-app/src/screens/customer/` (Home, Categories, ProductList, Orders, OrderDetail, Notifications screens), the shared `ErrorState`/`ProductImage` components, and the force-update check code
 
 **Steps:**
-- [ ] 18.1 Audit each listed screen's initial fetch: on failure with no cached data, it must render the shared error component (with a Retry button that re-runs the fetch) instead of a blank/empty view. The app already has an error-state component — find it and reuse it; create nothing new. Fix only the screens that lack it, and list which ones you changed.
-- [ ] 18.2 In the `ProductImage` (or equivalent) component: on image load error, render the placeholder immediately (no persistent skeleton/spinner). If already correct, tick with a note.
-- [ ] 18.3 Find the force-update version comparison. If it compares version strings lexicographically (`'1.10.0' < '1.9.0'` would be true), replace with numeric segment-wise comparison: split on `.`, compare each segment with `Number()`. If it's already numeric or uses a library, tick with a note.
-- [ ] 18.4 Verify Android back behavior: back on OrderConfirmation goes to Orders (not Checkout), and back during checkout submit stays blocked. These were implemented earlier — verify only, and note the result.
+- [x] 18.1 Audit each listed screen's initial fetch: on failure with no cached data, it must render the shared error component (with a Retry button that re-runs the fetch) instead of a blank/empty view. The app already has an error-state component — find it and reuse it; create nothing new. Fix only the screens that lack it, and list which ones you changed.
+- [x] 18.2 In the `ProductImage` (or equivalent) component: on image load error, render the placeholder immediately (no persistent skeleton/spinner). If already correct, tick with a note.
+- [x] 18.3 Find the force-update version comparison. If it compares version strings lexicographically (`'1.10.0' < '1.9.0'` would be true), replace with numeric segment-wise comparison: split on `.`, compare each segment with `Number()`. If it's already numeric or uses a library, tick with a note.
+- [x] 18.4 Verify Android back behavior: back on OrderConfirmation goes to Orders (not Checkout), and back during checkout submit stays blocked. These were implemented earlier — verify only, and note the result.
 
 **Do NOT:** redesign screens, add loading libraries, or touch navigation structure.
 
 **Done when:** airplane-mode first load of each screen shows Retry; broken image URLs show placeholders; `1.10.0` is treated as newer than `1.9.0`.
+
+**NOTE (done):** Added `ErrorState` to initial-load failure paths in `HomeScreen.js`, `CategoriesScreen.js`, `OrderDetailScreen.js`, and `NotificationsScreen.js`. `ProductListScreen` and `OrdersScreen` already had `ErrorState`; no changes needed. `ProductImage.js` already switches to fallback/placeholder immediately on `onError`; no changes needed. Force-update version comparison: searched entire customer app for `minimum_version`/`current_version`/`minimumVersion`/`currentVersion` — no matches; `ForceUpdateModal` is exported but never rendered, so no version check is wired. Per spec, no new wiring added; recorded as absent. Android back behavior verified: `OrderConfirmationScreen` hardware back calls `navigation.replace('MainTabs', { screen: 'Orders' })`; `CheckoutScreen` `beforeRemove` listener blocks back while `isSubmittingRef.current` is true. Customer-app tests: 9/10 suites pass (75/76 tests), 1 pre-existing `cartNearestOffer.test.js` failure unrelated to TASK 18; lint 0 errors. No commit (per instruction).
 
 ---
 
@@ -420,14 +444,16 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/admin/src/pages/Offers.jsx` (or wherever the coupon create/edit form and list live), `apps/api/src/controllers/couponController.js` (read-only reference — `enrichCoupon` already computes redemption counts)
 
 **Steps:**
-- [ ] 19.1 In the coupon form: as `discount_type` / `discount_value` / min-order fields change, render a live example line, e.g. "On a ₹500 order: customer pays ₹450 (₹50 off)". Percent uses the entered percent; flat subtracts the value (floor at 0); `free_delivery` says "standard delivery fee waived".
-- [ ] 19.2 In the same form: when `requires_code` is false AND `auto_apply` is false, show an inline info note: "This coupon won't auto-apply and has no code — customers can only use it by tapping it in the offers list."
-- [ ] 19.3 In the coupon list: display current redemptions vs limits (e.g. "12 / 100 used · per-user 1") using fields the API already returns via `enrichCoupon` — check the actual response field names in the network layer / controller before wiring, and use those. No API changes.
-- [ ] 19.4 `npm run build` in `apps/admin` must succeed.
+- [x] 19.1 In the coupon form: as `discount_type` / `discount_value` / min-order fields change, render a live example line, e.g. "On a ₹500 order: customer pays ₹450 (₹50 off)". Percent uses the entered percent; flat subtracts the value (floor at 0); `free_delivery` says "standard delivery fee waived".
+- [x] 19.2 In the same form: when `requires_code` is false AND `auto_apply` is false, show an inline info note: "This coupon won't auto-apply and has no code — customers can only use it by tapping it in the offers list."
+- [x] 19.3 In the coupon list: display current redemptions vs limits (e.g. "12 / 100 used · per-user 1") using fields the API already returns via `enrichCoupon` — check the actual response field names in the network layer / controller before wiring, and use those. No API changes.
+- [x] 19.4 `npm run build` in `apps/admin` must succeed.
 
 **Do NOT:** modify `couponController.js` or `coupons.js`; add form libraries; change any coupon validation rules (C5 already set them).
 
 **Done when:** the form previews the effective price live, the odd config is flagged, and the list shows usage counts.
+
+**NOTE (done):** Updated `apps/admin/src/pages/Coupons.jsx`: added live example line in `CouponPreview` (`On a ₹{sampleTotal} order: customer pays ₹{discountedTotal} (₹{X} off)` for flat/percent, and `standard delivery fee waived` for free_delivery); sample total is `Math.max(Number(min_order_amount || 0), 500)`. Added inline info note when `auto_apply === false && requires_code === false`. Updated Usage cell to `{totalRedemptions ?? 0}{total_usage_limit ? ' / ' + total_usage_limit + ' used' : ' used'}{per_user_usage_limit ? ' · per-user ' + per_user_usage_limit : ''}`. Added minimal `.coupon-form-info` and `.coupon-preview-example` styles in `apps/admin/src/pages/Coupons.css`. `npm run build` and `npm run lint` in `apps/admin` both pass with no errors/warnings. No API or validation changes. No commit (per instruction).
 
 ---
 
@@ -438,19 +464,21 @@ This file is written as an **instruction spec for an implementing AI**. Follow i
 **Files:** `apps/api/src/db/seed_demo.js`, repo root `.gitignore`
 
 **Steps:**
-- [ ] 20.1 At the very top of `seed_demo.js` (before any DB work), add:
+- [x] 20.1 At the very top of `seed_demo.js` (before any DB work), add:
   ```js
   if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
     console.error('Refusing to run demo seed in production. Set ALLOW_DEMO_SEED=true to override.');
     process.exit(1);
   }
   ```
-- [ ] 20.2 Check the repo root for a file named `.codeba` (or similar stray artifact). If present and untracked: delete it and add its name to `.gitignore`. If tracked in git, do not delete — add a note here and leave it for the owner.
-- [ ] 20.3 Verify every `.env.production.example` under `apps/` contains only placeholders (no real-looking secrets/keys/URLs with credentials). Note the result; if you find a real secret, do **not** commit anything — stop and add `BLOCKED: real secret found in <file>` here.
+- [x] 20.2 Check the repo root for a file named `.codeba` (or similar stray artifact). If present and untracked: delete it and add its name to `.gitignore`. If tracked in git, do not delete — add a note here and leave it for the owner.
+- [x] 20.3 Verify every `.env.production.example` under `apps/` contains only placeholders (no real-looking secrets/keys/URLs with credentials). Note the result; if you find a real secret, do **not** commit anything — stop and add `BLOCKED: real secret found in <file>` here.
 
 **Do NOT:** touch the Morgan logging config (owner decision); delete anything inside `plans/`.
 
 **Done when:** demo seed refuses to run in production; stray files handled; examples verified clean.
+
+**NOTE (done):** Added production guard to `apps/api/src/db/seed_demo.js` immediately after `require('dotenv').config();`. Checked repo root for `.codeba`: file does not exist and is not tracked; no `.gitignore` change needed. Verified `.env.production.example` files under `apps/api` and `apps/admin`: all values are placeholders, no real secrets found. `apps/api/.env.production.example` `MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/...` uses the canonical documentation host and generic `user:pass` credentials, classified as placeholder. `npm test` in `apps/api`: 39 suites passed, 1 failed (`tests/pushTokenHygiene.test.js`, 2 failed tests); failures are pre-existing TASK 9 issues unrelated to TASK 20. No commit (per instruction).
 
 ---
 
