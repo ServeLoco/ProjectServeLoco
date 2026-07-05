@@ -26,7 +26,7 @@ import {
 import { colors, typography, spacing, radius, shadows, layout, borderWidth, motionConfig, entryDistance, easing, smallMs, staggerMs, screenMs } from '../../../theme';
 import { useCartStore, useSettingsStore } from '../../../stores';
 import { cartApi } from '../../../api';
-import { normalizeCartCalculation, useReducedMotion } from '../../../utils';
+import { buildProgressHintText, normalizeCartCalculation, useReducedMotion } from '../../../utils';
 import CouponSheet from './CouponSheet';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -504,9 +504,7 @@ export default function CartScreen() {
               />
             </View>
             <Text style={styles.freeDeliveryHint}>
-              Add
-              <Text style={styles.freeDeliveryAmount}> ₹{freeDeliveryProgress.amountRemaining}</Text>
-              {' more for free delivery'}
+              {buildProgressHintText(freeDeliveryProgress, { suffix: ' for free delivery' })}
             </Text>
           </View>
         )}
@@ -534,7 +532,7 @@ export default function CartScreen() {
           style={styles.nearestOfferBox}
           scaleTo={0.98}
           accessibilityRole="button"
-          accessibilityLabel={`Add ₹${nearestOfferProgress.amountRemaining} more to unlock ${nearestOfferProgress.title}`}
+          accessibilityLabel={buildProgressHintText(nearestOfferProgress, { suffix: ` to unlock ${nearestOfferProgress.title}` })}
         >
           <View style={styles.freeDeliveryRow}>
             <AppIcon name="box" size={16} color={colors.saffron} />
@@ -556,9 +554,7 @@ export default function CartScreen() {
             />
           </View>
           <Text style={styles.freeDeliveryHint}>
-            Add
-            <Text style={styles.freeDeliveryAmount}> ₹{nearestOfferProgress.amountRemaining}</Text>
-            {` more to unlock ${nearestOfferProgress.title}`}
+            {buildProgressHintText(nearestOfferProgress, { suffix: ` to unlock ${nearestOfferProgress.title}` })}
           </Text>
         </PressableScale>
       </Animated.View>

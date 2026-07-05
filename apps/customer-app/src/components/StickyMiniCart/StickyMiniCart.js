@@ -3,6 +3,7 @@ import { Animated, Keyboard, Platform, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
 import { useCartStore } from '../../stores';
+import { buildProgressHintText } from '../../utils';
 import PressableScale from '../PressableScale';
 import AppIcon from '../AppIcon';
 
@@ -33,7 +34,8 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
   // the backend always re-verifies the fee and any coupon at checkout.
   const freeDeliveryProgress = useCartStore((s) => s.freeDeliveryProgress);
   const amountToFreeDelivery = freeDeliveryProgress?.amountRemaining || 0;
-  const showFreeDeliveryHint = amountToFreeDelivery > 0;
+  const itemsToFreeDelivery = freeDeliveryProgress?.itemsRemaining || 0;
+  const showFreeDeliveryHint = amountToFreeDelivery > 0 || itemsToFreeDelivery > 0;
 
   const isVisible = visible && itemCount > 0;
   const [shouldRender, setShouldRender] = useState(isVisible);
@@ -115,11 +117,11 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
       style={[
         styles.container,
         // Resting position only — above the tab bar on tab screens
-        // (62 content height + system inset + 12 gap), at the bottom on stack
-        // screens that have no tab bar. The popup hides entirely while the
-        // keyboard is open (see effectiveVisible above).
+        // (62 content height + system inset + 12 gap), or above the system
+        // navigation bar on stack screens that have no tab bar. The popup hides
+        // entirely while the keyboard is open (see effectiveVisible above).
         {
-          bottom: aboveTabBar ? 62 + insets.bottom + 12 : 16,
+          bottom: aboveTabBar ? 62 + insets.bottom + 12 : 16 + insets.bottom,
         },
         {
           opacity: progress,
@@ -146,7 +148,7 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
           <Text style={styles.title}>View Cart</Text>
           {showFreeDeliveryHint ? (
             <Text style={styles.subtitleHint} numberOfLines={1}>
-              Add ₹{amountToFreeDelivery.toFixed(0)} more for FREE delivery
+              {buildProgressHintText(freeDeliveryProgress, { suffix: ' for FREE delivery' })}
             </Text>
           ) : (
             <Text style={styles.subtitle} numberOfLines={1}>

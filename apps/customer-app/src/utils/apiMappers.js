@@ -207,6 +207,9 @@ function normalizeCartCalculation(payload = {}) {
       return {
         minOrder: numberOrZero(pickFirst(progress.minOrder, progress.min_order)),
         amountRemaining: numberOrZero(pickFirst(progress.amountRemaining, progress.amount_remaining)),
+        minItemCount: numberOrZero(pickFirst(progress.minItemCount, progress.min_item_count)),
+        itemsRemaining: numberOrZero(pickFirst(progress.itemsRemaining, progress.items_remaining)),
+        thresholdType: pickFirst(progress.thresholdType, progress.threshold_type, 'amount'),
       };
     })(),
     deliveryMessage: pickFirst(bill.deliveryMessage, bill.delivery_message, bill.message, ''),
@@ -231,12 +234,28 @@ function normalizeCartCalculation(payload = {}) {
         discountType: pickFirst(progress.discountType, progress.discount_type, null),
         minOrder: numberOrZero(pickFirst(progress.minOrder, progress.min_order)),
         amountRemaining: numberOrZero(pickFirst(progress.amountRemaining, progress.amount_remaining)),
+        minItemCount: numberOrZero(pickFirst(progress.minItemCount, progress.min_item_count)),
+        itemsRemaining: numberOrZero(pickFirst(progress.itemsRemaining, progress.items_remaining)),
+        thresholdType: pickFirst(progress.thresholdType, progress.threshold_type, 'amount'),
         savingsText: pickFirst(progress.savingsText, progress.savings_text, ''),
         requiresCode: asBoolean(pickFirst(progress.requiresCode, progress.requires_code), false),
         autoApply: asBoolean(pickFirst(progress.autoApply, progress.auto_apply), false),
       };
     })(),
   };
+}
+
+function buildProgressHintText(progress, { suffix = '', includeWorth = false } = {}) {
+  if (!progress) return '';
+  const parts = [];
+  if (progress.amountRemaining > 0) parts.push(`₹${progress.amountRemaining.toFixed(0)} more`);
+  if (progress.itemsRemaining > 0) parts.push(`${progress.itemsRemaining} more item(s)`);
+  if (parts.length === 0) return '';
+  const joined = parts.join(' and ');
+  if (includeWorth) {
+    return `Add items worth ${joined}${suffix}`;
+  }
+  return `Add ${joined}${suffix}`;
 }
 
 function normalizeProfile(user = {}) {
@@ -423,6 +442,7 @@ export const mapNotification = normalizeNotification;
 
 export {
   asArray,
+  buildProgressHintText,
   normalizeCartCalculation,
   normalizeCategory,
   normalizeDashboard,

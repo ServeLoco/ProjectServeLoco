@@ -27,7 +27,7 @@ import {
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../../stores';
 import { cartApi, ordersApi, imagesApi } from '../../../api';
-import { normalizeCartCalculation, normalizeImageUrl } from '../../../utils';
+import { buildProgressHintText, normalizeCartCalculation, normalizeImageUrl } from '../../../utils';
 import { isCodBlockedDuringNight } from '../../../utils/nightDelivery';
 import { formatEtaMinutes } from '../../../utils/formatEta';
 import { uuidv4 } from '../../../utils/uuid';
@@ -921,9 +921,10 @@ export default function CheckoutScreen() {
                   <View style={styles.warningBox}>
                     <AppIcon name="box" size={16} color={colors.saffron || '#FF7A3A'} style={styles.warningIcon} />
                     <Text style={styles.warningText}>
-                      Add items worth <Text style={styles.warningHighlight}>₹{freeDeliveryProgress.amountRemaining.toFixed(0)}</Text> more
-                      <Text> to unlock <Text style={styles.warningHighlight}>Free Delivery</Text></Text>
-                      <Text> (₹{bill.deliveryCharge} delivery fee currently applied).</Text>
+                      {buildProgressHintText(freeDeliveryProgress, {
+                        includeWorth: true,
+                        suffix: ` to unlock Free Delivery (₹${bill.deliveryCharge} delivery fee currently applied).`,
+                      })}
                     </Text>
                   </View>
                 )}

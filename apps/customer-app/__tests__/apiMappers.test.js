@@ -24,7 +24,7 @@ describe('api mappers', () => {
     expect(result.deliveryRadiusKm).toBe(8);
     expect(result.deliveryWithinRange).toBe(false);
     expect(result.requiresLocation).toBe(true);
-    expect(result.freeDeliveryProgress).toEqual({ minOrder: 149, amountRemaining: 30 });
+    expect(result.freeDeliveryProgress).toEqual({ minOrder: 149, amountRemaining: 30, minItemCount: 0, itemsRemaining: 0, thresholdType: 'amount' });
     expect(result.deliveryMessage).toBe('Pin location to calculate delivery.');
   });
 
@@ -49,6 +49,9 @@ describe('api mappers', () => {
       discountType: 'percent',
       minOrder: 250,
       amountRemaining: 150,
+      minItemCount: 0,
+      itemsRemaining: 0,
+      thresholdType: 'amount',
       savingsText: 'You save ₹40',
       requiresCode: false,
       autoApply: true,
@@ -76,6 +79,9 @@ describe('api mappers', () => {
       discountType: 'flat',
       minOrder: 500,
       amountRemaining: 220,
+      minItemCount: 0,
+      itemsRemaining: 0,
+      thresholdType: 'amount',
       savingsText: '₹50 off',
       requiresCode: true,
       autoApply: false,

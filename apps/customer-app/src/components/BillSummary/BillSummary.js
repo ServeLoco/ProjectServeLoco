@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, typography, spacing, radius, borderWidth } from '../../theme';
+import { buildProgressHintText } from '../../utils';
 
 /**
  * BillSummary
@@ -48,7 +49,7 @@ function BillSummary({
       {freeDeliveryProgress ? (
         <View style={styles.minOrderWarn}>
           <Text style={styles.minOrderText}>
-            Add items worth ₹{freeDeliveryProgress.amountRemaining.toFixed(0)} more to unlock free delivery.
+            {buildProgressHintText(freeDeliveryProgress, { suffix: ' to unlock free delivery.' })}
           </Text>
         </View>
       ) : null}

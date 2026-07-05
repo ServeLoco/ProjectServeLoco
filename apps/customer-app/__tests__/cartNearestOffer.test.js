@@ -53,8 +53,8 @@ describe('CartScreen nearest-offer progress hint', () => {
     expect(match).not.toBeNull();
   });
 
-  it('shows the amount-remaining + offer title copy', () => {
-    expect(source).toMatch(/more to unlock \$\{nearestOfferProgress\.title\}/);
+  it('shows the amount-remaining + offer title copy via the shared hint helper', () => {
+    expect(source).toMatch(/buildProgressHintText\(nearestOfferProgress, \{ suffix: ` to unlock \$\{nearestOfferProgress\.title\}` \}\)/);
   });
 
   it('only replays the entrance animation when the nearest offer actually changes (not on every recalculation)', () => {
