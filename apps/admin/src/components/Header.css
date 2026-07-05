@@ -1,3 +1,4 @@
+/* ── Header shell ────────────────────────────────────────── */
 .admin-header {
   position: sticky;
   top: 0;
@@ -12,6 +13,7 @@
   box-shadow: 0 1px 0 var(--border-color);
   transition: background-color var(--transition-normal), border-color var(--transition-normal);
   gap: 1rem;
+  flex-shrink: 0;
 }
 
 .header-page-meta {
@@ -19,6 +21,8 @@
   flex-direction: column;
   gap: 0.1rem;
   min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .header-title {
@@ -38,13 +42,17 @@
   color: var(--text-muted);
   font-weight: 500;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.5rem;
   flex-shrink: 0;
+  flex-wrap: nowrap;
 }
 
 /* ── Live clock ──────────────────────────────────────────── */
@@ -63,12 +71,14 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
   font-family: 'Outfit', 'Inter', sans-serif;
+  white-space: nowrap;
 }
 
 .header-clock-date {
   font-size: 0.68rem;
   color: var(--text-muted);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 /* ── Online badge ────────────────────────────────────────── */
@@ -82,6 +92,7 @@
   font-weight: 700;
   border: 1px solid;
   transition: all var(--transition-fast);
+  white-space: nowrap;
 }
 
 .header-online-badge.online {
@@ -126,6 +137,7 @@
   cursor: pointer;
   transition: all var(--transition-fast);
   font-size: 1rem;
+  flex-shrink: 0;
 }
 
 .theme-toggle:hover {
@@ -133,6 +145,10 @@
   color: var(--text-primary);
   border-color: var(--border-strong);
   transform: rotate(20deg);
+}
+
+.theme-toggle:active {
+  transform: rotate(20deg) scale(0.95);
 }
 
 /* ── User badge ──────────────────────────────────────────── */
@@ -145,6 +161,7 @@
   border-radius: 999px;
   background: var(--surface-color);
   transition: background-color var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .header-user-badge:hover {
@@ -176,7 +193,7 @@
   color: var(--text-primary);
 }
 
-/* ── Icon refresh button ─────────────────────────────────── */
+/* ── Header icon button ─────────────────────────────────── */
 .btn-header-icon {
   display: inline-flex;
   align-items: center;
@@ -191,6 +208,7 @@
   font-weight: 400;
   cursor: pointer;
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .btn-header-icon:hover {
@@ -200,7 +218,11 @@
   transform: rotate(-180deg);
 }
 
-/* ── Buttons ─────────────────────────────────────────────── */
+.btn-header-icon:active {
+  transform: rotate(-180deg) scale(0.95);
+}
+
+/* ── Header action button ───────────────────────────────── */
 .btn-header-action {
   display: inline-flex;
   align-items: center;
@@ -212,6 +234,8 @@
   cursor: pointer;
   transition: all var(--transition-fast);
   min-height: 36px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-header-action.logout {
@@ -225,10 +249,19 @@
   border-color: var(--danger-color);
 }
 
-/* ── Responsive ──────────────────────────────────────────── */
-@media (max-width: 980px) {
+.btn-header-action.logout:active {
+  transform: scale(0.97);
+}
+
+/* ── Notifications bell ─────────────────────────────────── */
+.admin-notifications-wrapper {
+  flex-shrink: 0;
+}
+
+/* ── Tablet (1024px) ─────────────────────────────────────── */
+@media (max-width: 1024px) {
   .admin-header {
-    padding: 0 1rem 0 3.5rem; /* leave room for hamburger */
+    padding: 0 1rem 0 4rem;
     height: 60px;
   }
 
@@ -236,15 +269,95 @@
   .header-online-badge {
     display: none;
   }
+
+  .user-name {
+    max-width: 100px;
+  }
 }
 
-@media (max-width: 600px) {
-  .header-subtitle,
+/* ── Mobile (768px) ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .admin-header {
+    padding: 0 0.75rem 0 3.75rem;
+    height: 56px;
+    gap: 0.5rem;
+  }
+
+  .sidebar-mobile-toggle {
+    top: 0.5rem;
+    left: 0.5rem;
+  }
+
+  .header-title {
+    font-size: 0.95rem;
+  }
+
+  .header-subtitle {
+    display: none;
+  }
+
   .user-name {
     display: none;
   }
 
-  .btn-header-action.logout span {
-    display: none;
+  .header-actions {
+    gap: 0.35rem;
+  }
+
+  .theme-toggle,
+  .btn-header-icon,
+  .admin-notifications-wrapper {
+    width: 34px;
+    height: 34px;
+  }
+
+  .header-user-badge {
+    padding: 0.25rem;
+    width: 34px;
+    height: 34px;
+    justify-content: center;
+  }
+
+  .user-avatar {
+    width: 26px;
+    height: 26px;
+    font-size: 0.7rem;
+  }
+}
+
+/* ── Small mobile (480px) ────────────────────────────────── */
+@media (max-width: 480px) {
+  .admin-header {
+    padding: 0 0.5rem 0 3.5rem;
+    height: 52px;
+  }
+
+  .sidebar-mobile-toggle {
+    width: 36px;
+    height: 36px;
+    top: 0.4rem;
+    left: 0.4rem;
+  }
+
+  .header-title {
+    font-size: 0.9rem;
+  }
+
+  .header-actions {
+    gap: 0.25rem;
+  }
+
+  .btn-header-action.logout {
+    padding: 0.4rem 0.6rem;
+    font-size: 0;
+    min-height: 32px;
+    width: 32px;
+    justify-content: center;
+  }
+
+  /* Hide text on logout, show only icon via content */
+  .btn-header-action.logout::after {
+    content: '→';
+    font-size: 0.9rem;
   }
 }

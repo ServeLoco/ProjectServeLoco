@@ -1,3 +1,4 @@
+/* ── Admin shell layout ────────────────────────────────────── */
 .admin-shell {
   display: flex;
   height: 100vh;
@@ -12,27 +13,45 @@
   flex-direction: column;
   min-width: 0;
   position: relative;
+  overflow: hidden;
 }
 
 .admin-main {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
   padding: 1.75rem 1.5rem;
+  -webkit-overflow-scrolling: touch;
 }
 
-@media (max-width: 980px) {
+/* ── Tablet ───────────────────────────────────────────────── */
+@media (max-width: 1024px) {
   .admin-shell {
     flex-direction: column;
-    overflow: auto;
   }
 
   .admin-workspace {
     min-height: 0;
+    height: 100%;
   }
 
   .admin-main {
     padding: 1.25rem 1rem;
     overflow: visible;
+  }
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .admin-main {
+    padding: 1rem 0.75rem;
+  }
+}
+
+/* ── Small mobile ─────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .admin-main {
+    padding: 0.75rem 0.5rem;
   }
 }

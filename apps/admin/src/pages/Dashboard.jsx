@@ -80,18 +80,24 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner" />
-        <p>Loading dashboard…</p>
+      <div className="dashboard-container">
+        <div className="loading-container">
+          <div className="spinner" />
+          <p>Loading dashboard…</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="error-container" style={{ padding: '2rem', textAlign: 'center' }}>
-        <p style={{ fontWeight: 700, marginBottom: '1rem' }}>{error}</p>
-        <button className="btn-primary" onClick={fetchDashboardData}>Retry</button>
+      <div className="dashboard-container">
+        <div className="error-state-wrapper">
+          <div className="error-icon">⚠️</div>
+          <h3>Failed to load dashboard</h3>
+          <p>{error}</p>
+          <button className="btn-primary" onClick={fetchDashboardData}>Try Again</button>
+        </div>
       </div>
     );
   }
@@ -103,7 +109,12 @@ export default function Dashboard() {
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <h1 className="dashboard-title">Overview</h1>
+        <div className="dashboard-header-left">
+          <h1 className="dashboard-title">Overview</h1>
+          <p className="dashboard-subtitle">
+            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
 
         <div className="shop-status-card">
           <span className="status-label">Shop</span>
@@ -111,8 +122,9 @@ export default function Dashboard() {
             className={`status-toggle ${shop_open ? 'open' : 'closed'}`}
             onClick={handleToggleShopStatus}
             disabled={togglingShop}
+            aria-label={shop_open ? 'Shop is open. Click to close.' : 'Shop is closed. Click to open.'}
           >
-            <span className="status-dot">●</span>
+            <span className="status-dot" aria-hidden="true">●</span>
             {togglingShop ? 'Updating…' : shop_open ? 'Open' : 'Closed'}
           </button>
         </div>
@@ -144,55 +156,65 @@ export default function Dashboard() {
       <div className="dashboard-content-grid">
         <section className="section-card">
           <div className="section-header">
-            <h2 className="section-title">📋 Latest Orders</h2>
-            <Link to="/orders" style={{ fontSize: '0.85rem', fontWeight: 700 }}>View All →</Link>
+            <h2 className="section-title">
+              <span className="section-icon">📋</span>
+              Latest Orders
+            </h2>
+            <Link to="/orders" className="section-link">View All →</Link>
           </div>
           {latest_orders.length > 0 ? (
-            <table className="latest-orders-table">
-              <thead>
-                <tr>
-                  <th>Order #</th>
-                  <th>Customer</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {latest_orders.map(order => (
-                  <tr key={order.id}>
-                    <td className="order-number">#{order.order_number}</td>
-                    <td>{order.customer_name}</td>
-                    <td style={{ fontWeight: 700 }}>₹{Number(order.total).toLocaleString('en-IN')}</td>
-                    <td>
-                      <span className={`status-badge ${(order.status || 'unknown').toLowerCase().replace(/ /g, '-')}`}>
-                        {getOrderStatusLabel(order.status)}
-                      </span>
-                    </td>
+            <div className="table-scroll-wrapper">
+              <table className="latest-orders-table">
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Amount</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {latest_orders.map(order => (
+                    <tr key={order.id}>
+                      <td className="order-number">#{order.order_number}</td>
+                      <td>{order.customer_name}</td>
+                      <td className="order-amount">₹{Number(order.total).toLocaleString('en-IN')}</td>
+                      <td>
+                        <span className={`status-badge ${(order.status || 'unknown').toLowerCase().replace(/ /g, '-')}`}>
+                          {getOrderStatusLabel(order.status)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
-            <div className="empty-state">No recent orders found.</div>
+            <div className="empty-state">
+              <span className="empty-state-icon">📦</span>
+              <span>No recent orders found</span>
+            </div>
           )}
         </section>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div className="dashboard-sidebar-widgets">
           <section className="section-card">
             <div className="section-header">
-              <h2 className="section-title">🏆 Top Items</h2>
+              <h2 className="section-title">
+                <span className="section-icon">🏆</span>
+                Top Items
+              </h2>
             </div>
             {top_products.length > 0 ? (
               <ul className="top-products-list">
-                {top_products.map(prod => (
+                {top_products.map((prod, idx) => (
                   <li key={`${prod.product_id}-${prod.item_type}`} className="top-product-item">
+                    <div className="top-product-rank">{idx + 1}</div>
                     <div className="top-product-info">
                       <span className="top-product-name">
                         {prod.product_name}
                         {prod.item_type === 'combo' && (
-                          <span style={{ marginLeft: '0.4rem', fontSize: '0.68rem', background: 'var(--surface-soft)', padding: '1px 6px', borderRadius: '4px', color: 'var(--text-secondary)', verticalAlign: 'middle' }}>
-                            Combo
-                          </span>
+                          <span className="combo-tag">Combo</span>
                         )}
                       </span>
                       <span className="top-product-qty">{prod.total_quantity} sold</span>
@@ -202,19 +224,29 @@ export default function Dashboard() {
                 ))}
               </ul>
             ) : (
-              <div className="empty-state" style={{ padding: '2rem' }}>No sales data yet.</div>
+              <div className="empty-state">
+                <span className="empty-state-icon">📊</span>
+                <span>No sales data yet</span>
+              </div>
             )}
           </section>
 
           {product_alerts.length > 0 && (
-            <section className="section-card">
+            <section className="section-card section-card--alert">
               <div className="section-header">
-                <h2 className="section-title" style={{ color: 'var(--danger-color)' }}>⚠️ Out of Stock</h2>
+                <h2 className="section-title section-title--alert">
+                  <span className="section-icon">⚠️</span>
+                  Out of Stock
+                  <span className="alert-count">{product_alerts.length}</span>
+                </h2>
               </div>
               <div className="alerts-list">
                 {product_alerts.map(prod => (
                   <div key={prod.id} className="alert-item">
-                    <strong>{prod.name}</strong> is currently unavailable.
+                    <span className="alert-icon">🔴</span>
+                    <span className="alert-text">
+                      <strong>{prod.name}</strong> is currently unavailable.
+                    </span>
                   </div>
                 ))}
               </div>

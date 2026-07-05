@@ -1,6 +1,6 @@
 .health-container {
   padding: 0;
-  max-width: 1120px;
+  max-width: var(--page-max-width, 1120px);
   margin: 0 auto;
   animation: fadeIn 0.4s ease-out;
 }
@@ -11,6 +11,7 @@
   align-items: flex-start;
   gap: 1rem;
   margin-bottom: 1.25rem;
+  flex-wrap: wrap;
 }
 
 .health-title {
@@ -19,6 +20,8 @@
   font-weight: 850;
   color: var(--text-primary);
   letter-spacing: 0;
+  margin: 0;
+  font-family: 'Outfit', 'Inter', sans-serif;
 }
 
 .health-card {
@@ -26,17 +29,23 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
-  padding: 1.25rem;
+  padding: 1.5rem;
   margin-bottom: 1.25rem;
+  transition: box-shadow var(--transition-normal);
+}
+
+.health-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .health-overall {
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  padding-bottom: 2rem;
+  padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .health-status-icon {
@@ -48,6 +57,7 @@
   justify-content: center;
   font-size: 2rem;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .health-status-icon.ok {
@@ -63,73 +73,93 @@
 .health-status-icon.loading {
   background: rgba(100, 116, 139, 0.1);
   color: var(--text-secondary);
-  animation: pulse 1.5s infinite;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.health-overall-text {
+  flex: 1;
 }
 
 .health-overall-text h2 {
-  font-size: 1.5rem;
-  margin-bottom: 0.25rem;
+  font-size: 1.4rem;
+  margin: 0 0 0.25rem;
   color: var(--text-primary);
+  font-family: 'Outfit', 'Inter', sans-serif;
 }
 
 .health-overall-text p {
   color: var(--text-secondary);
   font-size: 0.95rem;
+  margin: 0;
 }
 
 .service-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .service-item {
-  background: var(--overlay-dark);
-  padding: 1.25rem;
+  background: var(--bg-color);
+  padding: 1rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+  transition: border-color var(--transition-fast), transform var(--transition-spring);
+}
+
+.service-item:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
 }
 
 .service-info {
   display: flex;
   flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
 }
 
 .service-name {
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
 }
 
 .service-time {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 .service-badge {
   padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.8rem;
-  font-weight: 700;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .service-badge.ok {
   background: rgba(16, 185, 129, 0.1);
   color: var(--success-color);
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .service-badge.error {
   background: rgba(239, 68, 68, 0.1);
   color: var(--danger-color);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .health-troubleshoot {
-  margin-top: 2rem;
-  padding: 1.5rem;
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
   background: rgba(239, 68, 68, 0.05);
   border-left: 4px solid var(--danger-color);
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
@@ -137,13 +167,55 @@
 
 .health-troubleshoot h4 {
   color: var(--danger-color);
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-family: 'Outfit', 'Inter', sans-serif;
 }
 
 .health-troubleshoot p {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .health-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .health-card {
+    padding: 1.25rem;
+  }
+
+  .health-overall {
+    gap: 1rem;
+  }
+
+  .health-status-icon {
+    width: 52px;
+    height: 52px;
+    font-size: 1.6rem;
+  }
+
+  .health-overall-text h2 {
+    font-size: 1.2rem;
+  }
+
+  .service-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .health-card {
+    padding: 1rem;
+  }
+
+  .service-item {
+    padding: 0.85rem;
+  }
 }
 
 @keyframes pulse {
