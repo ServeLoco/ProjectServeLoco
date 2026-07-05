@@ -86,6 +86,7 @@ const isWithinActiveTime = (coupon, now = new Date()) => {
  */
 const computeDiscount = (coupon, { subtotal, deliveryCharge, standardDeliveryCharge }) => {
   if (!coupon) return 0;
+  // Item count is eligibility-only; it is never used as a discount input.
   const sub = toMoney(subtotal);
   const del = toMoney(deliveryCharge);
   const stdDel = standardDeliveryCharge === undefined || standardDeliveryCharge === null
@@ -187,6 +188,7 @@ const checkEligibility = async ({
   now = new Date(),
   connection,
   skipUsageChecks = false, // when true, skips per-user/global/first-order checks (for listing)
+  itemCount = null,
 }) => {
   if (!coupon) {
     return { ok: false, reason: 'Coupon not found' };
@@ -222,6 +224,16 @@ const checkEligibility = async ({
   if (sub < toMoney(coupon.min_order_amount)) {
     const diff = roundMoney(toMoney(coupon.min_order_amount) - sub);
     return { ok: false, reason: `Add ₹${diff} more to use this coupon (min order ₹${toMoney(coupon.min_order_amount)})` };
+  }
+
+  // 6a. Min item count
+  if (coupon.min_item_count !== null && coupon.min_item_count !== undefined) {
+    const currentItems = Number(itemCount) || 0;
+    const requiredItems = Number(coupon.min_item_count);
+    if (currentItems < requiredItems) {
+      const shortfall = requiredItems - currentItems;
+      return { ok: false, reason: `Add ${shortfall} more item(s) to use this coupon (min ${requiredItems} items)` };
+    }
   }
 
   // 7. Max order amount (if set)
@@ -296,6 +308,7 @@ const validateCoupon = async ({
   userId = null,
   now = new Date(),
   connection = null,
+  itemCount = null,
 }) => {
   if (!code || typeof code !== 'string') {
     return { ok: false, reason: 'Please enter a coupon code' };
@@ -345,6 +358,7 @@ const validateCouponById = async ({
   userId = null,
   now = new Date(),
   connection = null,
+  itemCount = null,
 }) => {
   if (!couponId) {
     return { ok: false, reason: 'Coupon not found' };
@@ -370,6 +384,7 @@ const validateCouponById = async ({
     userId,
     now,
     connection: conn,
+    itemCount,
   });
 };
 
@@ -388,6 +403,7 @@ const pickBestAutoApply = async ({
   userId = null,
   now = new Date(),
   connection = null,
+  itemCount = null,
 }) => {
   const conn = connection || pool;
 
@@ -414,6 +430,7 @@ const pickBestAutoApply = async ({
       userId,
       now,
       connection: conn,
+      itemCount,
     });
     if (result.ok && (!best || result.discount > best.discount)) {
       best = result;
@@ -447,6 +464,7 @@ const findApplicableCoupons = async ({
   userId = null,
   now = new Date(),
   connection = null,
+  itemCount = null,
 }) => {
   // NOTE: Owner confirmed in bugs.md (§C7) that code-required coupons appearing
   // in the in-app offers list is INTENDED BEHAVIOR. Do not filter them out.
@@ -462,6 +480,7 @@ const findApplicableCoupons = async ({
   );
 
   const sub = toMoney(subtotal);
+  const currentItems = Number(itemCount) || 0;
   const result = [];
   for (const coupon of rows) {
     const minOrder = toMoney(coupon.min_order_amount);
@@ -469,6 +488,12 @@ const findApplicableCoupons = async ({
     const evalSubtotal = unlocked ? subtotal : minOrder;
     const evalDelivery = unlocked ? deliveryCharge : 0;
     const evalStandardDelivery = unlocked ? standardDeliveryCharge : 0;
+
+    const minItemCount = coupon.min_item_count !== null && coupon.min_item_count !== undefined
+      ? Number(coupon.min_item_count)
+      : null;
+    const itemsUnlocked = minItemCount === null || currentItems >= minItemCount;
+    const evalItemCount = itemsUnlocked ? currentItems : minItemCount;
 
     // Full eligibility check — day/time window, store type, max order,
     // target audience, first-order/first-N, per-user/global usage limits.
@@ -486,6 +511,7 @@ const findApplicableCoupons = async ({
       now,
       connection: conn,
       skipUsageChecks: false,
+      itemCount: evalItemCount,
     });
 
     // Compute usage info for display
@@ -524,6 +550,9 @@ const findApplicableCoupons = async ({
       usageInfo,
       unlocked,
       amountRemaining: unlocked ? 0 : roundMoney(minOrder - sub),
+      minItemCount,
+      itemsUnlocked,
+      itemsRemaining: itemsUnlocked ? 0 : (minItemCount - currentItems),
       available: evaluation.ok,
       unavailableReason: evaluation.ok ? null : evaluation.reason,
     });
@@ -550,26 +579,47 @@ const findNearestEligibleThreshold = async ({
   now,
   connection,
   skipUsageChecks,
+  itemCount = 0,
 }) => {
   const sub = toMoney(subtotal);
+  const currentItems = Number(itemCount) || 0;
 
   for (const coupon of rows) {
     const minOrder = toMoney(coupon.min_order_amount);
-    if (sub >= minOrder) continue; // already met — no hint needed for this one
+    const minItemCount = Number(coupon.min_item_count) || 0;
+    const amountMet = sub >= minOrder;
+    const itemsMet = minItemCount === 0 || currentItems >= minItemCount;
+    if (amountMet && itemsMet) continue; // already met — no hint needed for this one
+
+    const evalSubtotal = amountMet ? subtotal : minOrder;
+    const evalItemCount = itemsMet ? currentItems : minItemCount;
 
     const eligible = await checkEligibility({
       coupon,
-      subtotal: minOrder,
+      subtotal: evalSubtotal,
       deliveryCharge: 0,
       storeType,
       userId,
       now,
       connection,
       skipUsageChecks,
+      itemCount: evalItemCount,
     });
     if (!eligible.ok) continue;
 
-    return { coupon, minOrder, amountRemaining: roundMoney(minOrder - sub) };
+    let thresholdType;
+    if (!amountMet && !itemsMet) thresholdType = 'both';
+    else if (!amountMet) thresholdType = 'amount';
+    else thresholdType = 'item_count';
+
+    return {
+      coupon,
+      minOrder,
+      amountRemaining: amountMet ? 0 : roundMoney(minOrder - sub),
+      minItemCount,
+      itemsRemaining: itemsMet ? 0 : minItemCount - currentItems,
+      thresholdType,
+    };
   }
 
   return null;
@@ -590,6 +640,7 @@ const getNextFreeDeliveryThreshold = async ({
   userId = null,
   now = new Date(),
   connection = null,
+  itemCount = 0,
 }) => {
   const conn = connection || pool;
 
@@ -599,7 +650,7 @@ const getNextFreeDeliveryThreshold = async ({
        AND auto_apply = 1 AND requires_code = 0
        AND (starts_at IS NULL OR starts_at <= ?)
        AND (ends_at IS NULL OR ends_at >= ?)
-     ORDER BY min_order_amount ASC`,
+     ORDER BY min_order_amount ASC, min_item_count ASC`,
     [now, now]
   );
 
@@ -611,10 +662,17 @@ const getNextFreeDeliveryThreshold = async ({
     now,
     connection: conn,
     skipUsageChecks: true,
+    itemCount,
   });
   if (!result) return null;
 
-  return { minOrder: result.minOrder, amountRemaining: result.amountRemaining };
+  return {
+    minOrder: result.minOrder,
+    amountRemaining: result.amountRemaining,
+    minItemCount: result.minItemCount,
+    itemsRemaining: result.itemsRemaining,
+    thresholdType: result.thresholdType,
+  };
 };
 
 /**
@@ -641,6 +699,7 @@ const getNearestUnlockableCoupon = async ({
   now = new Date(),
   connection = null,
   excludeCouponId = null,
+  itemCount = 0,
 }) => {
   const conn = connection || pool;
 
@@ -649,7 +708,7 @@ const getNearestUnlockableCoupon = async ({
      WHERE active = 1 AND deleted = 0 AND discount_type != 'free_delivery'
        AND (starts_at IS NULL OR starts_at <= ?)
        AND (ends_at IS NULL OR ends_at >= ?)
-     ORDER BY min_order_amount ASC, priority DESC, id ASC`,
+     ORDER BY min_order_amount ASC, min_item_count ASC, priority DESC, id ASC`,
     [now, now]
   );
 
@@ -665,10 +724,11 @@ const getNearestUnlockableCoupon = async ({
     now,
     connection: conn,
     skipUsageChecks: false,
+    itemCount,
   });
   if (!result) return null;
 
-  const { coupon, minOrder, amountRemaining } = result;
+  const { coupon, minOrder, amountRemaining, minItemCount, itemsRemaining, thresholdType } = result;
   const discountAtThreshold = computeDiscount(coupon, { subtotal: minOrder, deliveryCharge: 0 });
 
   return {
@@ -678,6 +738,9 @@ const getNearestUnlockableCoupon = async ({
     discountType: coupon.discount_type,
     minOrder,
     amountRemaining,
+    minItemCount,
+    itemsRemaining,
+    thresholdType,
     savingsText: buildSavingsText(coupon, discountAtThreshold),
     requiresCode: Boolean(coupon.requires_code),
     autoApply: Boolean(coupon.auto_apply),

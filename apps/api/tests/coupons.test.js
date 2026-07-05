@@ -74,6 +74,7 @@ const buildCoupon = (overrides = {}) => ({
   discount_value: 10,
   max_discount_amount: null,
   min_order_amount: 0,
+  min_item_count: null,
   max_order_amount: null,
   applies_to: 'all',
   starts_at: null,
@@ -530,6 +531,56 @@ describe('coupons.checkEligibility — failure paths (no DB)', () => {
     expect(r.reason).toMatch(/up to ₹500/);
   });
 
+  it('rejects when item count is below min_item_count and reports the shortfall', async () => {
+    const r = await coupons.checkEligibility({
+      coupon: buildCoupon({ min_item_count: 3 }),
+      subtotal: 200,
+      itemCount: 1,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/Add 2 more item\(s\)/);
+    expect(r.reason).toMatch(/min 3 items/);
+  });
+
+  it('accepts when item count exactly meets min_item_count', async () => {
+    const r = await coupons.checkEligibility({
+      coupon: buildCoupon({ discount_type: 'flat', discount_value: 15, min_item_count: 3 }),
+      subtotal: 200,
+      itemCount: 3,
+    });
+    expect(r.ok).toBe(true);
+    expect(r.discount).toBe(15);
+  });
+
+  it('rejects when amount is met but item count is not (AND semantics)', async () => {
+    const r = await coupons.checkEligibility({
+      coupon: buildCoupon({ min_order_amount: 100, min_item_count: 3 }),
+      subtotal: 150,
+      itemCount: 2,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/Add 1 more item\(s\)/);
+  });
+
+  it('rejects when item count is met but amount is not (AND semantics)', async () => {
+    const r = await coupons.checkEligibility({
+      coupon: buildCoupon({ min_order_amount: 100, min_item_count: 3 }),
+      subtotal: 50,
+      itemCount: 5,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/Add ₹50 more/);
+  });
+
+  it('treats min_item_count=null as no item-count gate', async () => {
+    const r = await coupons.checkEligibility({
+      coupon: buildCoupon({ min_item_count: null }),
+      subtotal: 10,
+      itemCount: 1,
+    });
+    expect(r.ok).toBe(true);
+  });
+
   it('returns ok:true and the computed discount when everything passes', async () => {
     const r = await coupons.checkEligibility({
       coupon: buildCoupon({ discount_type: 'flat', discount_value: 15 }),
@@ -896,6 +947,34 @@ describe('coupons.findApplicableCoupons', () => {
     const locked = r.find(c => c.code === 'LOCKED');
     expect(locked.unlocked).toBe(false);
     expect(locked.amountRemaining).toBe(899);
+  });
+
+  it('surfaces item-count gate fields and locked-relaxation for item thresholds', async () => {
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({ id: 1, code: 'ITEM3', discount_type: 'flat', discount_value: 10, min_order_amount: 0, min_item_count: 3 }),
+    ]]);
+    const r = await coupons.findApplicableCoupons({ subtotal: 100, itemCount: 1 });
+    expect(r).toHaveLength(1);
+
+    const c = r[0];
+    expect(c.minItemCount).toBe(3);
+    expect(c.itemsUnlocked).toBe(false);
+    expect(c.itemsRemaining).toBe(2);
+    expect(c.unlocked).toBe(true); // amount gate is met
+    expect(c.amountRemaining).toBe(0);
+  });
+
+  it('unlocks item-count coupon when the threshold is reached', async () => {
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({ id: 1, code: 'ITEM3', discount_type: 'flat', discount_value: 10, min_order_amount: 0, min_item_count: 3 }),
+    ]]);
+    const r = await coupons.findApplicableCoupons({ subtotal: 100, itemCount: 3 });
+    expect(r).toHaveLength(1);
+
+    const c = r[0];
+    expect(c.itemsUnlocked).toBe(true);
+    expect(c.itemsRemaining).toBe(0);
+    expect(c.available).toBe(true);
   });
 
   it('marks a locked coupon unavailable (not just locked) when its other rules also fail at min_order_amount', async () => {
@@ -1477,7 +1556,7 @@ describe('coupons.getNextFreeDeliveryThreshold', () => {
     ]]);
 
     const result = await coupons.getNextFreeDeliveryThreshold({ subtotal: 100 });
-    expect(result).toEqual({ minOrder: 149, amountRemaining: 49 });
+    expect(result).toEqual({ minOrder: 149, amountRemaining: 49, minItemCount: 0, itemsRemaining: 0, thresholdType: 'amount' });
   });
 
   it('returns null when the cart already meets the free_delivery coupon threshold', async () => {
@@ -1533,6 +1612,72 @@ describe('coupons.getNextFreeDeliveryThreshold', () => {
       ]]);
 
     const result = await coupons.getNextFreeDeliveryThreshold({ subtotal: 10, storeType: 'packed' });
+    expect(result).toBeNull();
+  });
+
+  it('returns item-count-only threshold when min_order_amount is met but items are short', async () => {
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({
+        id: 13,
+        code: null,
+        discount_type: 'free_delivery',
+        discount_value: 0,
+        min_order_amount: 0,
+        min_item_count: 3,
+        auto_apply: 1,
+        requires_code: 0,
+      }),
+    ]]);
+
+    const result = await coupons.getNextFreeDeliveryThreshold({ subtotal: 100, itemCount: 1 });
+    expect(result).toEqual({
+      minOrder: 0,
+      amountRemaining: 0,
+      minItemCount: 3,
+      itemsRemaining: 2,
+      thresholdType: 'item_count',
+    });
+  });
+
+  it('returns both-gates hint when amount and item count are both unmet', async () => {
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({
+        id: 14,
+        code: null,
+        discount_type: 'free_delivery',
+        discount_value: 0,
+        min_order_amount: 149,
+        min_item_count: 3,
+        auto_apply: 1,
+        requires_code: 0,
+      }),
+    ]]);
+
+    const result = await coupons.getNextFreeDeliveryThreshold({ subtotal: 100, itemCount: 1 });
+    expect(result).toMatchObject({
+      minOrder: 149,
+      amountRemaining: 49,
+      minItemCount: 3,
+      itemsRemaining: 2,
+      thresholdType: 'both',
+    });
+  });
+
+  it('returns null for an item-count-only free_delivery coupon once the item threshold is met', async () => {
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({
+        id: 15,
+        code: null,
+        discount_type: 'free_delivery',
+        discount_value: 0,
+        min_order_amount: 0,
+        min_item_count: 3,
+        auto_apply: 1,
+        requires_code: 0,
+      }),
+    ]]);
+
+    const result = await coupons.getNextFreeDeliveryThreshold({ subtotal: 10, itemCount: 3 });
     expect(result).toBeNull();
   });
 });
@@ -1680,6 +1825,51 @@ describe('coupons.getNearestUnlockableCoupon', () => {
     pool.query.mockResolvedValueOnce([[]]);
     const result = await coupons.getNearestUnlockableCoupon({ subtotal: 0 });
     expect(result).toBeNull();
+  });
+
+  it('surfaces item-count-only threshold', async () => {
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({ id: 6, code: 'ITEM5', discount_type: 'flat', discount_value: 20, min_order_amount: 0, min_item_count: 5 }),
+    ]]);
+
+    const result = await coupons.getNearestUnlockableCoupon({ subtotal: 100, itemCount: 2 });
+    expect(result).toMatchObject({
+      couponId: 6,
+      code: 'ITEM5',
+      minOrder: 0,
+      amountRemaining: 0,
+      minItemCount: 5,
+      itemsRemaining: 3,
+      thresholdType: 'item_count',
+    });
+  });
+
+  it('surfaces both amount and item count unmet', async () => {
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({ id: 7, code: 'MIXED', discount_type: 'flat', discount_value: 20, min_order_amount: 120, min_item_count: 3 }),
+    ]]);
+
+    const result = await coupons.getNearestUnlockableCoupon({ subtotal: 100, itemCount: 1 });
+    expect(result).toMatchObject({
+      couponId: 7,
+      code: 'MIXED',
+      minOrder: 120,
+      amountRemaining: 20,
+      minItemCount: 3,
+      itemsRemaining: 2,
+      thresholdType: 'both',
+    });
+  });
+
+  it('still breaks ties correctly after adding min_item_count to ORDER BY', async () => {
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({ id: 5, code: 'HIGHER_PRIORITY', discount_type: 'flat', discount_value: 20, min_order_amount: 150, priority: 5 }),
+      buildCoupon({ id: 2, code: 'LOWER_PRIORITY', discount_type: 'flat', discount_value: 20, min_order_amount: 150, priority: 1 }),
+    ]]);
+
+    const result = await coupons.getNearestUnlockableCoupon({ subtotal: 100 });
+    expect(result.couponId).toBe(5);
+    expect(result.code).toBe('HIGHER_PRIORITY');
   });
 });
 
