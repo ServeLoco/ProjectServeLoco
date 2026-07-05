@@ -1,4 +1,10 @@
 require('dotenv').config();
+
+if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
+  console.error('Refusing to run demo seed in production. Set ALLOW_DEMO_SEED=true to override.');
+  process.exit(1);
+}
+
 const { pool } = require('./mysql');
 const { getDb, connect } = require('./mongodb');
 const { ObjectId } = require('mongodb');
