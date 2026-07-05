@@ -12,6 +12,7 @@ import {
   UIManager,
   RefreshControl,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
@@ -299,6 +300,8 @@ export default function OrdersScreen() {
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [cancellingId, setCancellingId] = useState(null);
+  const [pagination, setPagination] = useState({ limit: 20, offset: 0, hasMore: true, total: 0 });
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Animations
   const listOpacity = useRef(new Animated.Value(1)).current;
@@ -306,27 +309,41 @@ export default function OrdersScreen() {
   const recentRealtimeEvents = useRef({});
 
   const fetchOrders = useCallback((refresh = false) => {
+    const isLoadMore = !refresh && pagination.offset > 0;
     if (refresh) {
       setIsRefreshing(true);
+    } else if (isLoadMore) {
+      setIsLoadingMore(true);
     } else {
       setIsLoading(true);
     }
     setIsError(false);
 
-    ordersApi.getOrders()
+    const offset = refresh ? 0 : pagination.offset;
+
+    ordersApi.getOrders({ limit: pagination.limit, offset })
       .then(response => {
-      let filtered = asArray(response, ['orders']).map(normalizeOrder);
-      if (activeFilter !== 'All') {
-        filtered = filtered.filter(o => formatStatus(o.status) === activeFilter);
-      }
+        const meta = response?.meta || { total: 0, limit: 20, offset: 0, hasMore: false };
+        // Store the RAW page — the status-chip filter is applied at render
+        // time (displayOrders below). Filtering here would bake the filter
+        // that was active at fetch time into the paginated list, so pages
+        // fetched under different chips would mix and chip taps would do
+        // nothing until the next fetch.
+        const fetched = asArray(response, ['orders']).map(normalizeOrder);
 
-      // Crossfade
-      Animated.sequence([
-        Animated.timing(listOpacity, { toValue: 0.5, duration: 100, useNativeDriver: true }),
-        Animated.timing(listOpacity, { toValue: 1, duration: 200, useNativeDriver: true })
-      ]).start();
+        Animated.sequence([
+          Animated.timing(listOpacity, { toValue: 0.5, duration: 100, useNativeDriver: true }),
+          Animated.timing(listOpacity, { toValue: 1, duration: 200, useNativeDriver: true })
+        ]).start();
 
-      setOrders(filtered);
+        setPagination({
+          limit: meta.limit,
+          offset: meta.offset + fetched.length,
+          hasMore: meta.hasMore,
+          total: meta.total,
+        });
+
+        setOrders(prev => (refresh ? fetched : [...prev, ...fetched]));
       })
       .catch((err) => {
         setIsError(true);
@@ -335,8 +352,18 @@ export default function OrdersScreen() {
       .finally(() => {
         setIsLoading(false);
         setIsRefreshing(false);
+        setIsLoadingMore(false);
       });
-  }, [activeFilter, listOpacity]);
+  }, [listOpacity, pagination.limit, pagination.offset]);
+
+  // Keep a ref to the latest fetchOrders so the realtime subscription can call
+  // the most recent version without depending on pagination state. Without
+  // this, every pagination update would tear down and recreate the realtime
+  // subscription, which can drop realtime events during the resubscribe.
+  const fetchOrdersRef = useRef(fetchOrders);
+  useEffect(() => {
+    fetchOrdersRef.current = fetchOrders;
+  }, [fetchOrders]);
 
   const queueRealtimeRefresh = useCallback(() => {
     if (realtimeFetchTimer.current) {
@@ -345,10 +372,16 @@ export default function OrdersScreen() {
 
     realtimeFetchTimer.current = setTimeout(() => {
       if (isFocused) {
-        fetchOrders(false);
+        fetchOrdersRef.current(true);
       }
     }, 350);
-  }, [fetchOrders, isFocused]);
+  }, [isFocused]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!isLoadingMore && pagination.hasMore && !isRefreshing && !isLoading) {
+      fetchOrders(false);
+    }
+  }, [isLoadingMore, pagination.hasMore, isRefreshing, isLoading, fetchOrders]);
 
   const handleRefresh = () => {
     fetchOrders(true);
@@ -356,9 +389,13 @@ export default function OrdersScreen() {
 
   useEffect(() => {
     if (isFocused) {
-      fetchOrders();
+      // Always a full refresh: fetchOrders(false) at offset > 0 is a
+      // load-more and would silently APPEND the next page every time the
+      // user tabs back to this screen. isLoading starts true, so the very
+      // first focus still shows the skeleton rather than the pull spinner.
+      fetchOrders(true);
     }
-  }, [activeFilter, isFocused]); // Re-fetch on focus or filter change
+  }, [isFocused]); // Re-fetch on focus only
 
   useEffect(() => {
     const unsubscribeOrders = subscribeOrderEvents(({ eventName, payload }) => {
@@ -373,7 +410,10 @@ export default function OrdersScreen() {
       const eventOrderId = getRealtimeOrderId(payload);
       if (!eventOrderId) return;
 
-      let shouldRefresh = activeFilter !== 'All';
+      // The chip filter is applied at render time, so patching an order in
+      // place moves it between chips automatically. A refetch is only needed
+      // when the order isn't in the loaded pages at all.
+      let shouldRefresh = false;
 
       setOrders(prevOrders => {
         let found = false;
@@ -408,7 +448,7 @@ export default function OrdersScreen() {
         clearTimeout(realtimeFetchTimer.current);
       }
     };
-  }, [activeFilter, queueRealtimeRefresh]);
+  }, [queueRealtimeRefresh]);
 
   const handleCancelOrder = (orderId) => {
     setCancellingId(orderId);
@@ -446,6 +486,15 @@ export default function OrdersScreen() {
         return '#F59E0B';
     }
   };
+
+  // Chip filtering happens here — over the raw paginated list — so tapping a
+  // chip refilters the already-loaded pages instantly and load-more keeps
+  // appending to one consistent list regardless of the active chip.
+  const displayOrders = useMemo(() => (
+    activeFilter === 'All'
+      ? orders
+      : orders.filter(o => formatStatus(o.status) === activeFilter)
+  ), [orders, activeFilter]);
 
   const summary = useMemo(() => {
     const total = orders.length;
@@ -665,6 +714,15 @@ export default function OrdersScreen() {
     />
   );
 
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+    return (
+      <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+        <ActivityIndicator size="small" color={colors.primary} />
+      </View>
+    );
+  };
+
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
       <AppHeader title="My Orders" />
@@ -730,11 +788,11 @@ export default function OrdersScreen() {
           renderSkeleton()
         ) : isError ? (
           renderErrorState()
-        ) : orders.length === 0 ? (
+        ) : displayOrders.length === 0 ? (
           renderEmptyState()
         ) : (
           <Animated.FlatList
-            data={orders}
+            data={displayOrders}
             keyExtractor={item => item.id}
             renderItem={renderItem}
             contentContainerStyle={styles.flatListContent}
@@ -746,6 +804,9 @@ export default function OrdersScreen() {
             initialNumToRender={6}
             maxToRenderPerBatch={6}
             windowSize={7}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
             refreshControl={
               <RefreshControl
                 refreshing={isRefreshing}

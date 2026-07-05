@@ -515,12 +515,30 @@ const createOrder = async (req, res) => {
 
 const getOrders = async (req, res) => {
   const userId = req.user.id;
+  const rawLimit = Number.parseInt(req.query.limit, 10);
+  const rawOffset = Number.parseInt(req.query.offset, 10);
+  const limit = Math.min(50, Math.max(1, Number.isNaN(rawLimit) ? 20 : rawLimit));
+  const offset = Math.max(0, Number.isNaN(rawOffset) ? 0 : rawOffset);
+
   const [rows] = await pool.query(
-    'SELECT o.*, (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) as item_count FROM orders o WHERE o.customer_id = ? ORDER BY o.created_at DESC',
+    'SELECT o.*, (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) as item_count FROM orders o WHERE o.customer_id = ? ORDER BY o.created_at DESC LIMIT ? OFFSET ?',
+    [userId, limit, offset]
+  );
+  const [countRows] = await pool.query(
+    'SELECT COUNT(*) AS total FROM orders WHERE customer_id = ?',
     [userId]
   );
+  const total = Number(countRows[0].total);
   const orders = rows.map(o => ({ ...o, canCancel: o.status === 'Pending' }));
-  res.status(200).json({ data: orders });
+  res.status(200).json({
+    data: orders,
+    meta: {
+      total,
+      limit,
+      offset,
+      hasMore: offset + rows.length < total,
+    },
+  });
 };
 
 const getOrderById = async (req, res) => {
