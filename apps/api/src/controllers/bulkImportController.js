@@ -12,6 +12,8 @@ const s3 = require('../config/s3');
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 const UPLOAD_DIR = path.join(__dirname, '../../', config.UPLOAD_DIR);
 const MAX_IMAGE_BYTES = parseInt(config.MAX_IMAGE_SIZE_MB || '5') * 1024 * 1024;
+const MAX_ZIP_ENTRIES = 500;
+const MAX_ZIP_UNCOMPRESSED_BYTES = 50 * 1024 * 1024; // 50 MB
 
 // Normalize mode aliases to canonical DB values
 const NORMALISE_MODE = {
@@ -358,6 +360,9 @@ const parseAndValidate = async (req) => {
   }
   if (!rawRows || rawRows.length === 0)
     throw { status: 422, message: 'The spreadsheet contains no data rows.' };
+  if (rawRows.length > 1000) {
+    throw { status: 400, message: 'CSV has too many rows (max 1000).' };
+  }
 
   // Parse ZIP if provided
   let zipEntryMap = null;
@@ -366,12 +371,23 @@ const parseAndValidate = async (req) => {
       throw { status: 422, message: 'imagesZip is not a valid ZIP file.' };
     try {
       const zip = new AdmZip(zipFile.buffer);
+      const entries = zip.getEntries();
+      const totalUncompressedSize = entries.reduce((sum, entry) => sum + (entry.header?.size || 0), 0);
+      if (entries.length > MAX_ZIP_ENTRIES || totalUncompressedSize > MAX_ZIP_UNCOMPRESSED_BYTES) {
+        throw { status: 400, message: 'ZIP file too large or contains too many files.' };
+      }
       zipEntryMap = {};
-      for (const entry of zip.getEntries()) {
+      for (const entry of entries) {
         if (entry.isDirectory) continue;
+        if (
+          entry.entryName.includes('..') ||
+          entry.entryName.startsWith('/') ||
+          entry.entryName.startsWith('\\')
+        ) continue;
         zipEntryMap[path.basename(entry.entryName)] = entry;
       }
     } catch (e) {
+      if (e.status) throw e;  // preserve intentional status codes (e.g. 400)
       throw { status: 422, message: `Failed to read ZIP file: ${e.message}` };
     }
   }
