@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme';
 import { AppIcon } from '../components';
 import { useAuthStore } from '../stores';
@@ -116,6 +117,8 @@ function TabItem({ tab, focused, onPress }) {
 // CustomTabBar
 // ─────────────────────────────────────────────────────────────────────────────
 function CustomTabBar({ state, navigation }) {
+  const insets = useSafeAreaInsets();
+
   // Render-driven hide: when the keyboard opens, unmount the tab bar
   // immediately so it never "flashes" upward. No translate animation
   // (those always have a visible first frame at the wrong position).
@@ -140,7 +143,15 @@ function CustomTabBar({ state, navigation }) {
 
   return (
     <View style={styles.tabBarOuter}>
-      <View style={styles.tabBarCard}>
+      <View
+        style={[
+          styles.tabBarCard,
+          {
+            height: TAB_CONTENT_HEIGHT + insets.bottom,
+            paddingBottom: insets.bottom,
+          },
+        ]}
+      >
         {state.routes.map((route, index) => {
           const tab     = TABS[index] || { name: route.name, icon: 'home', label: route.name };
           const focused = state.index === index;
@@ -189,7 +200,7 @@ function CustomerBottomTabs() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Styles
 // ─────────────────────────────────────────────────────────────────────────────
-const CARD_HEIGHT = Platform.OS === 'ios' ? 80 : 62;
+const TAB_CONTENT_HEIGHT = 62;
 
 const styles = StyleSheet.create({
   bootScreen: {
@@ -212,7 +223,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    height: CARD_HEIGHT,
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -222,8 +232,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
     borderColor: 'rgba(0,0,0,0.09)',
     paddingHorizontal: 8,
-    // Safe-area space for iOS home indicator
-    paddingBottom: Platform.OS === 'ios' ? 18 : 0,
     // Shadow cast upward (iOS only — avoids Android square bug)
     ...Platform.select({
       ios: {

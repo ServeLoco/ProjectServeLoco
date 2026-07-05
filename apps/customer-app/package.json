@@ -4,9 +4,11 @@
   "private": true,
   "main": "index.js",
   "scripts": {
+    "preandroid": "node scripts/adbReverse.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "lint": "eslint .",
+    "prestart": "node scripts/adbReverse.js",
     "start": "expo start",
     "start:tunnel": "expo start --tunnel",
     "test": "jest"
