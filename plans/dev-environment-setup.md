@@ -60,10 +60,12 @@ Goal: one command starts API + Admin + Web + Customer app together, with a clean
 **Files:** `apps/api/.env.proddb` (new, gitignored), `apps/api/.env.proddb.example` (new, tracked), `apps/api/package.json`
 
 **Steps:**
-- [ ] 2.1 Create `apps/api/.env.proddb` by copying the Azure MySQL + Atlas Mongo connection values out of `apps/api/.env.production` (host, port, database, user, password, SSL, Mongo URI, Mongo database, S3 config).
-- [ ] 2.2 In that file, override: `APP_ENV=proddb`, `NODE_ENV=development` (keeps dev fallbacks/relaxations, avoids prod-only gates), `CORS_ORIGIN=http://localhost:5173,http://localhost:5174`, `PUBLIC_BASE_URL=http://localhost:3000`.
-- [ ] 2.3 Create `apps/api/.env.proddb.example` mirroring the existing `.env.production.example` convention (placeholders only, no real credentials).
-- [ ] 2.4 In `apps/api/package.json`, add script: `"dev:proddb": "cross-env APP_ENV=proddb NODE_ENV=development nodemon src/server.js"`. Do not add a migrate step to this script — never auto-migrate production from a local run.
+- [x] 2.1 Create `apps/api/.env.proddb` by copying the Azure MySQL + Atlas Mongo connection values out of `apps/api/.env.production` (host, port, database, user, password, SSL, Mongo URI, Mongo database, S3 config).
+- [x] 2.2 In that file, override: `APP_ENV=proddb`, `NODE_ENV=development` (keeps dev fallbacks/relaxations, avoids prod-only gates), `CORS_ORIGIN=http://localhost:5173,http://localhost:5174`, `PUBLIC_BASE_URL=http://localhost:3000`.
+- [x] 2.3 Create `apps/api/.env.proddb.example` mirroring the existing `.env.production.example` convention (placeholders only, no real credentials).
+- [x] 2.4 In `apps/api/package.json`, add script: `"dev:proddb": "cross-env APP_ENV=proddb NODE_ENV=development nodemon src/server.js"`. Do not add a migrate step to this script — never auto-migrate production from a local run.
+
+**NOTE (done):** Created `.env.proddb` (untracked, real prod DB + S3 values, local CORS/base-url overrides) and `.env.proddb.example` (tracked template). Added `dev:proddb` script to `apps/api/package.json`; no migrate step.
 
 **Do NOT:** run `db:migrate` against proddb from any script added in this spec.
 
