@@ -20,6 +20,61 @@ const TARGET_AUDIENCE_OPTIONS = [
   { value: 'selected', label: 'Selected Users' },
 ];
 
+const COUPON_TYPE_PRESETS = [
+  {
+    label: 'One-time welcome offer',
+    apply: (form) => ({
+      ...form,
+      discount_type: 'flat',
+      requires_code: false,
+      auto_apply: true,
+      first_order_only: true,
+      per_user_usage_limit: '1',
+    }),
+  },
+  {
+    label: 'Free delivery unlock (by amount)',
+    apply: (form) => ({
+      ...form,
+      discount_type: 'free_delivery',
+      requires_code: false,
+      auto_apply: true,
+      min_item_count: '',
+    }),
+  },
+  {
+    label: 'Free delivery unlock (by item count)',
+    apply: (form) => ({
+      ...form,
+      discount_type: 'free_delivery',
+      requires_code: false,
+      auto_apply: true,
+      min_order_amount: '0',
+      min_item_count: '3',
+    }),
+  },
+  {
+    label: 'Flash sale / percent off',
+    apply: (form) => ({
+      ...form,
+      discount_type: 'percent',
+      requires_code: false,
+      auto_apply: true,
+      priority: '10',
+    }),
+  },
+  {
+    label: 'Minimum order discount',
+    apply: (form) => ({
+      ...form,
+      discount_type: 'flat',
+      requires_code: true,
+      auto_apply: false,
+      min_order_amount: '299',
+    }),
+  },
+];
+
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const STATUS_COLORS = {
@@ -59,7 +114,7 @@ const EMPTY_FILTERS = { status: '', target_audience: '', applies_to: '', active:
 
 const EMPTY_FORM = {
   code: '', title: '', description: '', discount_type: 'flat', discount_value: '',
-  max_discount_amount: '', min_order_amount: '0', max_order_amount: '', applies_to: 'all',
+  max_discount_amount: '', min_order_amount: '0', min_item_count: '', max_order_amount: '', applies_to: 'all',
   starts_at: '', ends_at: '', active_days_mask: null, active_time_start: '', active_time_end: '',
   total_usage_limit: '', per_user_usage_limit: '1', first_order_only: false, first_n_orders: '',
   target_audience: 'all', auto_apply: false, requires_code: true, priority: '0', active: true,
@@ -91,7 +146,11 @@ function CouponPreview({ form }) {
   })();
 
   const minOrder = Number(form.min_order_amount || 0);
-  const minOrderHint = minOrder > 0 ? `On orders above Rs.${minOrder}` : 'No minimum order';
+  const minItemCount = Number(form.min_item_count || 0);
+  const minOrderParts = [];
+  if (minOrder > 0) minOrderParts.push(`orders above Rs.${minOrder}`);
+  if (minItemCount > 0) minOrderParts.push(`${minItemCount}+ items`);
+  const minOrderHint = minOrderParts.length > 0 ? `On ${minOrderParts.join(' and ')}` : 'No minimum order';
 
   const sampleTotal = Math.max(Number(form.min_order_amount || 0), 500);
   const exampleLine = (() => {
@@ -147,6 +206,7 @@ export default function Coupons() {
   const [userSearch, setUserSearch] = useState('');
   const [userSearchResults, setUserSearchResults] = useState([]);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [presetValue, setPresetValue] = useState('');
 
   const fetchCoupons = useCallback(async (params = {}) => {
     setLoading(true); setError(null);
@@ -179,6 +239,7 @@ export default function Coupons() {
         discount_value: c.discount_value !== null ? String(c.discount_value) : '',
         max_discount_amount: c.max_discount_amount !== null ? String(c.max_discount_amount) : '',
         min_order_amount: c.min_order_amount !== null ? String(c.min_order_amount) : '0',
+        min_item_count: c.min_item_count !== null ? String(c.min_item_count) : '',
         max_order_amount: c.max_order_amount !== null ? String(c.max_order_amount) : '',
         applies_to: c.applies_to || 'all',
         starts_at: c.starts_at ? c.starts_at.slice(0, 16) : '',
@@ -215,6 +276,16 @@ export default function Coupons() {
   };
 
   const handleFormChange = (field, value) => { setForm(prev => ({ ...prev, [field]: value })); };
+
+  const handlePresetChange = (e) => {
+    const value = e.target.value;
+    if (!value) return;
+    const preset = COUPON_TYPE_PRESETS.find(p => p.label === value);
+    if (preset) {
+      setForm(prev => preset.apply(prev));
+    }
+    setPresetValue('');
+  };
 
   const handleAutoGenerateCode = () => {
     setForm(prev => ({ ...prev, code: generateReadableCode() }));
@@ -253,6 +324,7 @@ export default function Coupons() {
       const payload = { ...form };
       if (!payload.code) payload.code = null;
       if (!payload.max_discount_amount) payload.max_discount_amount = null;
+      if (!payload.min_item_count) payload.min_item_count = null;
       if (!payload.max_order_amount) payload.max_order_amount = null;
       if (!payload.starts_at) payload.starts_at = null;
       if (!payload.ends_at) payload.ends_at = null;
@@ -332,7 +404,7 @@ export default function Coupons() {
                     <span className="coupon-title-text">{c.title}</span>
                   </div></td>
                   <td>{formatDiscountValue(c)}</td>
-                  <td>Rs.{Number(c.min_order_amount)}</td>
+                  <td>Rs.{Number(c.min_order_amount)}{c.min_item_count ? ' / ' + c.min_item_count + ' items' : ''}</td>
                   <td>{c.auto_apply ? <span className="coupon-auto-tag">Yes</span> : 'No'}</td>
                   <td>{c.auto_apply ? Number(c.priority) || 0 : '—'}</td>
                   <td>{c.target_audience === 'selected' ? 'Selected' : 'All'}</td>
@@ -362,6 +434,14 @@ export default function Coupons() {
             <div className="coupon-form-header"><h2>{editingId ? 'Edit Coupon' : 'Create Coupon'}</h2><button className="btn-close" onClick={() => setShowForm(false)}>X</button></div>
             <form onSubmit={handleSubmit} className="coupon-form-body">
               {formError && <div className="coupon-form-error">{formError}</div>}
+              <div className="form-row">
+                <label>Coupon Type (optional preset)</label>
+                <select value={presetValue} onChange={handlePresetChange}>
+                  <option value="">Select a preset...</option>
+                  {COUPON_TYPE_PRESETS.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
+                </select>
+                <span className="form-hint">Applies sensible defaults below — every field remains editable afterward.</span>
+              </div>
               <fieldset><legend>Basics</legend>
                 <div className="form-row"><label>Title *</label><input type="text" value={form.title} onChange={e => handleFormChange('title', e.target.value)} required placeholder="e.g. Welcome Offer" /></div>
                 <div className="form-row"><label>Code</label><div className="code-input-row"><input type="text" value={form.code} onChange={e => handleFormChange('code', e.target.value.toUpperCase())} placeholder="e.g. WELCOME50" disabled={form.auto_apply && !form.requires_code} /><button type="button" className="btn-auto-generate" onClick={handleAutoGenerateCode} disabled={form.auto_apply && !form.requires_code} title="Generate a readable code">Auto-generate</button></div></div>
@@ -377,6 +457,9 @@ export default function Coupons() {
                 <div className="form-row-2">
                   <div className="form-row"><label>Min Order (Rs.)</label><input type="number" min="0" step="0.01" value={form.min_order_amount} onChange={e => handleFormChange('min_order_amount', e.target.value)} /></div>
                   <div className="form-row"><label>Max Order (Rs.)</label><input type="number" min="0" step="0.01" value={form.max_order_amount} onChange={e => handleFormChange('max_order_amount', e.target.value)} placeholder="No limit" /></div>
+                </div>
+                <div className="form-row-2">
+                  <div className="form-row"><label>Min Item Count</label><input type="number" min="0" step="1" value={form.min_item_count} onChange={e => handleFormChange('min_item_count', e.target.value)} placeholder="No minimum" /></div>
                 </div>
                 <div className="form-row-2">
                   <div className="form-row"><label>Per-User Limit</label><input type="number" min="0" value={form.per_user_usage_limit} onChange={e => handleFormChange('per_user_usage_limit', e.target.value)} placeholder="1" /></div>
