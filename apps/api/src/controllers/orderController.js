@@ -37,6 +37,60 @@ const getCancelledPaymentStatus = (paymentMethod) => (
   paymentMethod === 'UPI' ? 'Refunded' : 'Failed'
 );
 
+// Build the idempotent-replay response from a real orders row. Used by both
+// the pre-check path (SELECT inside the transaction) and the ER_DUP_ENTRY
+// race path (concurrent INSERT lost to a unique-index conflict). Real
+// subtotal/total/status/payment_status come from the row so the client
+// sees the current order state, not the placeholder values it had on
+// first response (e.g. an order that was Accepted between two retries).
+const buildReplayOrderJson = (existing, itemsRows, couponSnap, req) => {
+  const paymentMethod = req.validatedData?.payment_method;
+  const address = req.validatedData?.address;
+  const deliveryType = req.validatedData?.delivery_type || 'standard';
+  const replayOrder = {
+    id: existing.id,
+    orderId: existing.id,
+    orderNumber: existing.order_number,
+    order_number: existing.order_number,
+    address: address || null,
+    subtotal: Number(existing.subtotal),
+    deliveryCharge: null,
+    nightCharge: null,
+    discount: Number(couponSnap.discount_amount) || 0,
+    total: Number(existing.total),
+    paymentMethod: paymentMethod,
+    payment_method: paymentMethod,
+    paymentStatus: existing.payment_status,
+    payment_status: existing.payment_status,
+    status: existing.status,
+    created_at: existing.idempotency_key_created_at,
+    createdAt: existing.idempotency_key_created_at
+      ? new Date(existing.idempotency_key_created_at).toISOString()
+      : null,
+    deliveryType: deliveryType,
+    delivery_type: deliveryType,
+    couponId: couponSnap.coupon_id || null,
+    couponCode: couponSnap.coupon_code || null,
+    couponTitle: couponSnap.coupon_title || null,
+    items: itemsRows.map(item => ({
+      productId: item.product_id,
+      name: item.product_name,
+      quantity: item.quantity,
+      unitPrice: item.unit_price,
+      lineTotal: item.line_total,
+      type: item.item_type
+    }))
+  };
+  return {
+    message: 'Order already exists (idempotent replay)',
+    orderId: existing.id,
+    orderNumber: existing.order_number,
+    order: replayOrder,
+    data: replayOrder,
+    idempotent: true,
+  };
+};
+
 // Re-checks per-user and global usage limits AFTER the coupon row has been
 // locked (SELECT ... FOR UPDATE) inside the order transaction, so two
 // concurrent checkouts on the same coupon serialize. Returns a reason string
@@ -78,13 +132,25 @@ const createOrder = async (req, res) => {
   const connection = await pool.getConnection();
   await connection.beginTransaction();
 
+  // The ER_DUP_ENTRY replay path releases the connection early and then
+  // queries via the pool; if one of those queries throws, the outer catch
+  // must not rollback/release a second time — mysql2 raises on double
+  // release, which would mask the real error.
+  let connectionReleased = false;
+  const releaseConnection = () => {
+    if (connectionReleased) return;
+    connectionReleased = true;
+    connection.release();
+  };
+
   try {
     if (idempotencyKey) {
       const [existingRows] = await connection.query(
         `SELECT id, order_number, idempotency_key_created_at,
+                subtotal, total, status, payment_status,
                 TIMESTAMPDIFF(SECOND, idempotency_key_created_at, NOW()) AS age_seconds
          FROM orders
-         WHERE customer_id = ? AND idempotency_key = ? AND idempotency_key_created_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+         WHERE customer_id = ? AND idempotency_key = ? AND idempotency_key_created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
          ORDER BY id DESC LIMIT 1
          FOR UPDATE`,
         [userId, idempotencyKey]
@@ -101,57 +167,21 @@ const createOrder = async (req, res) => {
         );
         const couponSnap = couponRows[0] || {};
         await connection.commit();
-        connection.release();
-        const replayOrder = {
-          id: existing.id,
-          orderId: existing.id,
-          orderNumber: existing.order_number,
-          order_number: existing.order_number,
-          address: address || null,
-          subtotal: null,
-          deliveryCharge: null,
-          nightCharge: null,
-          discount: Number(couponSnap.discount_amount) || 0,
-          total: null,
-          paymentMethod: payment_method,
-          payment_method,
-          paymentStatus: 'Pending',
-          payment_status: 'Pending',
-          status: 'Pending',
-          created_at: existing.idempotency_key_created_at,
-          createdAt: existing.idempotency_key_created_at
-            ? new Date(existing.idempotency_key_created_at).toISOString()
-            : null,
-          deliveryType: delivery_type || 'standard',
-          delivery_type: delivery_type || 'standard',
-          couponId: couponSnap.coupon_id || null,
-          couponCode: couponSnap.coupon_code || null,
-          couponTitle: couponSnap.coupon_title || null,
-          items: itemsRows.map(item => ({
-            productId: item.product_id,
-            name: item.product_name,
-            quantity: item.quantity,
-            unitPrice: item.unit_price,
-            lineTotal: item.line_total,
-            type: item.item_type
-          }))
-        };
-        return res.status(200).json({
-          message: 'Order already exists (idempotent replay)',
-          orderId: existing.id,
-          orderNumber: existing.order_number,
-          order: replayOrder,
-          data: replayOrder,
-          idempotent: true,
-        });
+        releaseConnection();
+        return res.status(200).json(buildReplayOrderJson(existing, itemsRows, couponSnap, req));
       }
     }
 
     const [userRows] = await connection.query('SELECT id, name, phone, whatsapp_number, address, blocked FROM users WHERE id = ?', [userId]);
     const user = userRows[0];
+    if (!user) {
+      await connection.rollback();
+      releaseConnection();
+      return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Session is no longer valid. Please log in again.' });
+    }
     if (user.blocked) {
       await connection.rollback();
-      connection.release();
+      releaseConnection();
       return res.status(403).json({ code: 'FORBIDDEN', message: 'Your account is blocked' });
     }
 
@@ -306,33 +336,78 @@ const createOrder = async (req, res) => {
     const finalAddress = address || user.address;
     if (!finalAddress) throw new OrderError('Address is required');
 
-    const [orderResult] = await connection.query(
-      `INSERT INTO orders (
-        order_number, customer_id, customer_name, phone, whatsapp_number, address,
-        latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total,
-        payment_method, payment_status, status, note,
-        delivery_distance_km, delivery_radius_km_snapshot, delivery_cost_per_km_snapshot,
-        free_delivery_offer_snapshot, delivery_type,
-        idempotency_key, idempotency_key_created_at,
-        coupon_id, coupon_code, coupon_title, discount_amount
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        orderNumber, userId, user.name, user.phone, user.whatsapp_number, finalAddress,
-        latitude || null, longitude || null, map_url || null,
-        subtotal, deliveryCharge, nightCharge, total,
-        payment_method, note || null,
-        null, null, null,
-        null,
-        finalDeliveryType,
-        idempotencyKey, idempotencyKey ? new Date() : null,
-        appliedCoupon ? appliedCoupon.id : null,
-        appliedCoupon ? appliedCoupon.code : null,
-        appliedCoupon ? appliedCoupon.title : null,
-        discount,
-      ]
-    );
-
-    const orderId = orderResult.insertId;
+    let orderId;
+    try {
+      const [orderResult] = await connection.query(
+        `INSERT INTO orders (
+          order_number, customer_id, customer_name, phone, whatsapp_number, address,
+          latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total,
+          payment_method, payment_status, status, note,
+          delivery_distance_km, delivery_radius_km_snapshot, delivery_cost_per_km_snapshot,
+          free_delivery_offer_snapshot, delivery_type,
+          idempotency_key, idempotency_key_created_at,
+          coupon_id, coupon_code, coupon_title, discount_amount
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          orderNumber, userId, user.name, user.phone, user.whatsapp_number, finalAddress,
+          latitude || null, longitude || null, map_url || null,
+          subtotal, deliveryCharge, nightCharge, total,
+          payment_method, note || null,
+          null, null, null,
+          null,
+          finalDeliveryType,
+          idempotencyKey, idempotencyKey ? new Date() : null,
+          appliedCoupon ? appliedCoupon.id : null,
+          appliedCoupon ? appliedCoupon.code : null,
+          appliedCoupon ? appliedCoupon.title : null,
+          discount,
+        ]
+      );
+      orderId = orderResult.insertId;
+    } catch (insertErr) {
+      // Race-safe replay: a concurrent request with the same idempotency
+      // key beat us to the INSERT and the unique index rejected ours. Roll
+      // back our transaction, re-fetch the existing order via the pool
+      // (our connection is no longer usable for the read after rollback),
+      // and return the same replay shape as the pre-check path. Any other
+      // ER_DUP_ENTRY (e.g. order_number collision) keeps its existing
+      // behavior — let it propagate to the global handler.
+      if (
+        idempotencyKey &&
+        (insertErr.code === 'ER_DUP_ENTRY' || insertErr.errno === 1062) &&
+        typeof insertErr.message === 'string' &&
+        insertErr.message.includes('idx_orders_idempotency')
+      ) {
+        await connection.rollback();
+        releaseConnection();
+        const [existingRows2] = await pool.query(
+          `SELECT id, order_number, idempotency_key_created_at,
+                  subtotal, total, status, payment_status
+           FROM orders
+           WHERE customer_id = ? AND idempotency_key = ?
+           ORDER BY id DESC LIMIT 1`,
+          [userId, idempotencyKey]
+        );
+        if (existingRows2.length === 0) {
+          // Should be unreachable — the unique-index violation proved a row
+          // exists. Surface the original error instead of inventing a fake
+          // replay so the client can retry if needed.
+          throw insertErr;
+        }
+        const existing2 = existingRows2[0];
+        const [itemsRows2] = await pool.query(
+          'SELECT product_id, item_type, product_name, quantity, unit_price, line_total FROM order_items WHERE order_id = ?',
+          [existing2.id]
+        );
+        const [couponRows2] = await pool.query(
+          'SELECT coupon_id, coupon_code, coupon_title, discount_amount FROM orders WHERE id = ?',
+          [existing2.id]
+        );
+        const couponSnap2 = couponRows2[0] || {};
+        return res.status(200).json(buildReplayOrderJson(existing2, itemsRows2, couponSnap2, req));
+      }
+      throw insertErr;
+    }
 
     if (orderItems.length > 0) {
       const placeholders = orderItems.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
@@ -354,7 +429,7 @@ const createOrder = async (req, res) => {
     }
 
     await connection.commit();
-    connection.release();
+    releaseConnection();
 
     const order = {
       id: orderId,
@@ -424,8 +499,13 @@ const createOrder = async (req, res) => {
       data: order
     });
   } catch (error) {
-    await connection.rollback();
-    connection.release();
+    if (!connectionReleased) {
+      try {
+        await connection.rollback();
+      } finally {
+        releaseConnection();
+      }
+    }
     if (error instanceof OrderError) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: error.message });
     }

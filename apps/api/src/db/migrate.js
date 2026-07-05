@@ -313,7 +313,30 @@ const migrate = async () => {
     await ensureIndex('orders', 'idx_orders_status_created', 'status, created_at');
     await ensureIndex('orders', 'idx_orders_payment_status_created', 'payment_status, created_at');
     await ensureIndex('orders', 'idx_orders_customer_created', 'customer_id, created_at');
-    await ensureIndex('orders', 'idx_orders_idempotency', 'customer_id, idempotency_key');
+    // Idempotency-Key index must be UNIQUE — a non-unique index lets the
+    // SELECT-then-INSERT in createOrder double-insert under load. Older
+    // installs may have created a non-unique variant here; drop it first if
+    // present, then ensure the unique one. (MySQL allows multiple NULLs in a
+    // unique index, so orders without a key are unaffected.)
+    try {
+      const [idempotencyIndexRows] = await connection.query(
+        `SELECT NON_UNIQUE FROM INFORMATION_SCHEMA.STATISTICS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'orders' AND INDEX_NAME = 'idx_orders_idempotency' LIMIT 1`,
+        [config.MYSQL_DATABASE]
+      );
+      if (idempotencyIndexRows.length > 0 && Number(idempotencyIndexRows[0].NON_UNIQUE) === 1) {
+        await connection.query('ALTER TABLE orders DROP INDEX idx_orders_idempotency');
+      }
+    } catch (e) {
+      // best-effort — if the index is already gone or never existed, fall through to the ensure
+    }
+    try {
+      await connection.query(
+        'ALTER TABLE orders ADD UNIQUE INDEX idx_orders_idempotency (customer_id, idempotency_key)'
+      );
+    } catch (e) {
+      // Index already exists (unique) — fine.
+    }
     await ensureIndex('products', 'idx_products_available_deleted', 'available, deleted');
     // NOTE: indexes for `notifications` and `offer_products` are added after
     // those tables are created later in this file (a fresh DB has no such

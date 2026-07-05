@@ -28,6 +28,17 @@ const RETRYABLE_STATUSES = new Set([502, 503, 504, 0]); // 0 = network error
 const MAX_RETRIES = 2;
 const BASE_BACKOFF_MS = 500;
 
+// Only retry requests that are safe to replay. A POST without an
+// Idempotency-Key could create duplicate side effects (a second order,
+// a duplicate charge) — the client must see the failure immediately
+// instead of us silently retrying. GET/HEAD are always safe; requests
+// that opt in via the Idempotency-Key header are replay-safe too.
+function isRetryableRequest(method, headers) {
+  const upper = String(method || 'GET').toUpperCase();
+  if (upper === 'GET' || upper === 'HEAD') return true;
+  return !!(headers && (headers['Idempotency-Key'] !== undefined || headers['idempotency-key'] !== undefined));
+}
+
 function isFormData(body) {
   return typeof FormData !== 'undefined' && body instanceof FormData;
 }
@@ -139,7 +150,7 @@ async function request(path, options = {}) {
       // Both deserve a retry; user-initiated cancellation does not.
       const isTimeout = timeout.signal?.aborted === true;
       const isNetworkError = !isTimeout;
-      if (attempt < MAX_RETRIES && (isTimeout || isNetworkError)) {
+      if (attempt < MAX_RETRIES && (isTimeout || isNetworkError) && isRetryableRequest(method, requestHeaders)) {
         const backoff = BASE_BACKOFF_MS * Math.pow(2, attempt);
         // eslint-disable-next-line no-await-in-loop
         await sleep(backoff, signal);
@@ -183,8 +194,9 @@ async function request(path, options = {}) {
 
     // Retry on transient 5xx / network errors. We treat network failures
     // (status 0) and 502/503/504 as worth retrying; everything else is a
-    // real error the user should see immediately.
-    if (RETRYABLE_STATUSES.has(response.status) && attempt < MAX_RETRIES) {
+    // real error the user should see immediately. Even on a 5xx, a POST
+    // without an Idempotency-Key must NOT be silently replayed.
+    if (RETRYABLE_STATUSES.has(response.status) && attempt < MAX_RETRIES && isRetryableRequest(method, requestHeaders)) {
       const backoff = BASE_BACKOFF_MS * Math.pow(2, attempt);
       // eslint-disable-next-line no-await-in-loop
       await sleep(backoff, signal);
