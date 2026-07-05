@@ -95,9 +95,9 @@ Goal: one command starts API + Admin + Web + Customer app together, with a clean
 **Files:** `package.json` (root, new scripts + devDependency), `scripts/dev.js` (new)
 
 **Steps:**
-- [ ] 4.1 Add `concurrently` as a root devDependency.
-- [ ] 4.2 Add root scripts: `"dev": "node scripts/dev.js local"`, `"dev:proddb": "node scripts/dev.js proddb"`.
-- [ ] 4.3 Write `scripts/dev.js`:
+- [x] 4.1 Add `concurrently` as a root devDependency.
+- [x] 4.2 Add root scripts: `"dev": "node scripts/dev.js local"`, `"dev:proddb": "node scripts/dev.js proddb"`.
+- [x] 4.3 Write `scripts/dev.js`:
   - Parse mode arg (`local` | `proddb`), default `local` if omitted.
   - **Local mode preflight:** TCP-probe `localhost:3306` (MySQL) and `localhost:27017` (Mongo) using Node's built-in `net` module (no new dependency). If either is unreachable, print a clear error naming the service and exit non-zero before spawning anything.
   - **proddb mode guard:** print a loud warning that the local API will read/write PRODUCTION databases; require the user to type `y` to continue (skip prompt if `--yes` flag passed), otherwise abort.
@@ -111,6 +111,8 @@ Goal: one command starts API + Admin + Web + Customer app together, with a clean
 **Do NOT:** add Docker orchestration — local DBs are native installs per user's environment, not containers.
 
 **Done when:** `npm run dev` from repo root starts all four apps with labeled output, and fails fast with a clear message if local MySQL/Mongo aren't running. `npm run dev:proddb` prompts for confirmation, then starts API against production DBs and the three frontends locally.
+
+**NOTE (done):** Installed `concurrently` as root devDependency, added root `dev`/`dev:proddb` scripts, and created `scripts/dev.js` with TCP preflight for local MySQL/Mongo, interactive confirmation for `proddb`, labeled colored output, and `killOthers` so Ctrl-C stops all children.
 
 ---
 

@@ -1,5 +1,12 @@
 {
+  "scripts": {
+    "dev": "node scripts/dev.js local",
+    "dev:proddb": "node scripts/dev.js proddb"
+  },
   "dependencies": {
     "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
   }
 }
