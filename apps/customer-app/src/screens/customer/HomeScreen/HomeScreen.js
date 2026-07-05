@@ -32,6 +32,7 @@ import {
   PressableScale,
   ReconnectingPill,
   ExitAppModal,
+  ErrorState,
 } from '../../../components';
 import { colors, typography, spacing, radius, layout } from '../../../theme';
 import { useCartStore, useSettingsStore } from '../../../stores';
@@ -430,14 +431,22 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {!isLoading && homeError ? (
-        <View style={styles.homeErrorCard}>
-          <Text style={styles.homeErrorText}>{homeError}</Text>
-          <Button label="Retry" size="small" variant="outline" onPress={() => loadHomeData(true)} />
-        </View>
-      ) : null}
+      {!isLoading && homeError && dashboardSections.length === 0 ? (
+        <ErrorState
+          message="Unable to load home. Tap to retry."
+          onRetry={() => loadHomeData(true)}
+          retryLabel="Retry"
+        />
+      ) : (
+        <>
+          {!isLoading && homeError ? (
+            <View style={styles.homeErrorCard}>
+              <Text style={styles.homeErrorText}>{homeError}</Text>
+              <Button label="Retry" size="small" variant="outline" onPress={() => loadHomeData(true)} />
+            </View>
+          ) : null}
 
-      {isLoading ? (
+          {isLoading ? (
         <ScrollView
           style={styles.skeletonContainer}
           refreshControl={
@@ -684,6 +693,8 @@ export default function HomeScreen() {
             return null;
           })}
         </Animated.ScrollView>
+          )}
+        </>
       )}
 
       {/* Sticky Mini Cart — Home has the floating tab bar, so float above it */}
