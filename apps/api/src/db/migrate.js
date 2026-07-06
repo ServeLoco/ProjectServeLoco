@@ -861,9 +861,22 @@ const migrate = async () => {
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?
       `, [config.MYSQL_DATABASE, tableName, columnName]);
-      if (columns.length > 0 && columns[0].DATA_TYPE !== 'int') {
-        await connection.query(`ALTER TABLE ${tableName} MODIFY COLUMN ${columnName} INT NULL`);
+      if (columns.length === 0 || columns[0].DATA_TYPE === 'int') return;
+
+      // Second line of defense beyond deploy ordering: if the backfill
+      // script hasn't rewritten every value to a plain numeric string yet
+      // (e.g. this deploy landed before someone ran it), converting the
+      // column now would corrupt every non-numeric value. Skip and warn
+      // instead of risking data loss — safe to re-run once backfilled.
+      const [nonNumeric] = await connection.query(
+        `SELECT COUNT(*) AS cnt FROM ${tableName} WHERE ${columnName} IS NOT NULL AND ${columnName} NOT REGEXP '^[0-9]+$'`
+      );
+      if (Number(nonNumeric[0].cnt) > 0) {
+        console.warn(`[migrate] Skipping ${tableName}.${columnName} INT conversion — ${nonNumeric[0].cnt} non-numeric value(s) still present. Run the backfill script first.`);
+        return;
       }
+
+      await connection.query(`ALTER TABLE ${tableName} MODIFY COLUMN ${columnName} INT NULL`);
     };
     await convertImageIdColumnToInt('products', 'image_id');
     await convertImageIdColumnToInt('categories', 'image_id');
