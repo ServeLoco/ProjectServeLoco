@@ -11,4 +11,8 @@ export const authApi = {
   // For login:  { idToken }
   // For signup: { idToken, name }
   firebaseVerify: (payload) => apiClient.post('/auth/firebase-verify', payload),
+
+  // Account soft-delete flow — 30-day grace period before permanent deletion.
+  requestAccountDeletion: (payload = {}) => apiClient.post('/auth/me/request-deletion', payload),
+  cancelAccountDeletion: () => apiClient.post('/auth/me/cancel-deletion'),
 };
