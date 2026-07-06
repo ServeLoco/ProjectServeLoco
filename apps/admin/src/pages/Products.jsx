@@ -2,14 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductsApi, CategoriesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
-import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
+import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
+import { useAdminRefresh } from '../hooks/useAdminRefresh';
 import { IMAGE_GUIDANCE, isWithinTimeWindow, formatTimeWindow } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
 import { useImageCropper } from '../hooks/useImageCropper';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
+import MessageBanner from '../components/MessageBanner';
+import { GENERIC_ERROR } from '../utils/constants';
 import './Products.css';
-
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 
 export default function Products() {
   const navigate = useNavigate();
@@ -39,6 +40,10 @@ export default function Products() {
   const [editingProduct, setEditingProduct] = useState(null);
 
   useEffect(() => { fetchCategories(); }, []);
+
+  const paginationRef = useRef({ page: 1 });
+  useEffect(() => { paginationRef.current = pagination; }, [pagination]);
+  useAdminRefresh(() => fetchProducts(paginationRef.current.page));
 
   useEffect(() => {
     const timer = setTimeout(() => fetchProducts(1), 500);
@@ -90,7 +95,8 @@ export default function Products() {
 
   const showSuccess = (msg) => {
     setSuccessMessage(msg);
-    setTimeout(() => setSuccessMessage(null), 4000);
+    const t = setTimeout(() => setSuccessMessage(null), 4000);
+    return () => clearTimeout(t);
   };
 
   const toggleAvailability = async (product) => {
@@ -188,7 +194,7 @@ export default function Products() {
         </button>
       </div>
 
-      <section className="filter-bar">
+      <section className="products-filter-bar">
         <input
           type="text" name="search" placeholder="Search product name..."
           className="filter-input filter-search" value={filters.search} onChange={handleFilterChange}
@@ -252,8 +258,10 @@ export default function Products() {
         </div>
       )}
 
-      {successMessage && <div className="success-container" style={{ margin: '0 0 1rem 0', padding: '0.75rem 1rem', background: '#d4edda', border: '1px solid #c3e6cb', borderRadius: '6px', color: '#155724' }}>{successMessage}</div>}
-      {error && <div className="error-container" style={{ margin: '0 0 2rem 0' }}>{error}</div>}
+      {successMessage && (
+        <MessageBanner type="success" message={successMessage} onDismiss={() => setSuccessMessage(null)} />
+      )}
+      {error && <MessageBanner type="error" message={error} onDismiss={() => setError(null)} />}
 
       <section className="products-table-wrapper">
         <table className="products-table">
@@ -287,7 +295,7 @@ export default function Products() {
                   </td>
                   <td>
                     <div className="product-info">
-                      <img src={normalizeImageUrl(p.imageUrl || p.image_url) || 'https://via.placeholder.com/48'} alt={p.name} className="product-thumbnail" />
+                      <img src={normalizeImageUrl(p.imageUrl || p.image_url) || FALLBACK_IMAGE} onError={handleImageError} alt={p.name} className="product-thumbnail" />
                       <div className="product-details">
                         <span className="product-name">{p.name}</span>
                         <span className="product-unit">{p.unit || '1 plate'} {p.featured ? '• Featured' : ''}</span>
@@ -395,6 +403,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
 
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
@@ -407,12 +416,18 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
     }
     const data = new FormData();
     data.append('image', file);
+    const previousPendingId = formData.image_id;
     try {
       setUploadingImage(true);
       setUploadMessage(null);
       const res = await ImagesApi.upload(data);
       const image = getUploadedImage(res);
       setFormData(prev => ({ ...prev, image_id: image.id, image_url: image.url }));
+      // Discard the previous unsaved upload from this session so re-picking a
+      // photo before hitting Save doesn't leak an orphaned S3 object.
+      if (previousPendingId && previousPendingId !== product?.image_id) {
+        ImagesApi.delete(previousPendingId).catch(() => {});
+      }
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the product to apply it.' });
     } catch (err) {
       console.error(err);
@@ -424,13 +439,14 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
 
   const { fileInputProps, cropperProps } = useImageCropper({
     type: 'product',
-    defaultAspect: 1,
+    defaultAspect: 0.78,
     onCropped: uploadImageFile,
   });
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setFieldErrors(prev => ({ ...prev, [name]: undefined }));
   };
 
   const handleModeChange = (e) => {
@@ -440,22 +456,36 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       const selectedCategory = categories.find(c => String(c.id) === String(prev.category_id));
       return { ...prev, category_id: selectedCategory?.type === nextMode ? prev.category_id : '' };
     });
+    setFieldErrors(prev => ({ ...prev, category_id: undefined }));
+  };
+
+  const focusFirstInvalid = () => {
+    setTimeout(() => {
+      const el = document.querySelector('[aria-invalid="true"]');
+      el?.focus();
+    }, 0);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setSaving(true);
+      setFormError(null);
+      setFieldErrors({});
       const price = Number(formData.price);
       const originalPrice = formData.original_price ? Number(formData.original_price) : null;
       if (!Number.isFinite(price) || price < 0) {
-        alert('Product price must be a valid non-negative number.');
+        setFieldErrors({ price: 'Product price must be a valid non-negative number.' });
+        setFormError('Product price must be a valid non-negative number.');
         setSaving(false);
+        focusFirstInvalid();
         return;
       }
       if (originalPrice !== null && (!Number.isFinite(originalPrice) || originalPrice < price)) {
-        alert('Original price must be a valid amount and cannot be lower than selling price.');
+        setFieldErrors({ original_price: 'Original price must be a valid amount and cannot be lower than selling price.' });
+        setFormError('Original price must be a valid amount and cannot be lower than selling price.');
         setSaving(false);
+        focusFirstInvalid();
         return;
       }
       const fromTime = formData.available_from_time || null;
@@ -473,8 +503,8 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
         availableUntilTime: untilTime,
       };
       const selectedCat = categories.find(c => c.id.toString() === formData.category_id.toString());
-      if (!selectedCat) { alert('Please select a category for this product.'); setSaving(false); return; }
-      if (selectedCat.type !== productMode) { alert('Selected category does not match the chosen product mode.'); setSaving(false); return; }
+      if (!selectedCat) { setFieldErrors({ category_id: 'Please select a category for this product.' }); setFormError('Please select a category for this product.'); setSaving(false); focusFirstInvalid(); return; }
+      if (selectedCat.type !== productMode) { setFieldErrors({ category_id: 'Selected category does not match the chosen product mode.' }); setFormError('Selected category does not match the chosen product mode.'); setSaving(false); focusFirstInvalid(); return; }
       if (isEdit) {
         if (product.category_id && formData.category_id && product.category_id.toString() !== formData.category_id.toString()) {
           const oldCat = categories.find(c => c.id.toString() === product.category_id.toString());
@@ -525,7 +555,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
             <button type="button" className="drawer-close" onClick={onClose}>&times;</button>
           </div>
           <div className="drawer-body">
-            {formError && <div className="error-container" style={{ marginBottom: '1rem' }}>{formError}</div>}
+            <MessageBanner type="error" message={formError} onDismiss={() => setFormError(null)} />
             <div className="form-group">
               <label className="form-label">Product Name</label>
               <input required type="text" name="name" className="form-input" value={formData.name} onChange={handleChange} />
@@ -533,11 +563,43 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Price (₹)</label>
-                <input required type="number" min="0" step="0.01" name="price" className="form-input" value={formData.price} onChange={handleChange} />
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  name="price"
+                  className="form-input"
+                  value={formData.price}
+                  onChange={handleChange}
+                  aria-invalid={Boolean(fieldErrors.price)}
+                  aria-errormessage={fieldErrors.price ? 'price-error' : undefined}
+                />
+                {fieldErrors.price && (
+                  <span id="price-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                    {fieldErrors.price}
+                  </span>
+                )}
               </div>
               <div className="form-group">
                 <label className="form-label">Original Price (₹)</label>
-                <input type="number" min="0" step="0.01" name="original_price" className="form-input" placeholder="Optional" value={formData.original_price || ''} onChange={handleChange} />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  name="original_price"
+                  className="form-input"
+                  placeholder="Optional"
+                  value={formData.original_price || ''}
+                  onChange={handleChange}
+                  aria-invalid={Boolean(fieldErrors.original_price)}
+                  aria-errormessage={fieldErrors.original_price ? 'original_price-error' : undefined}
+                />
+                {fieldErrors.original_price && (
+                  <span id="original_price-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                    {fieldErrors.original_price}
+                  </span>
+                )}
               </div>
             </div>
             <div className="form-row">
@@ -550,12 +612,25 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
               </div>
               <div className="form-group">
                 <label className="form-label">Category</label>
-                <select required name="category_id" className="form-select" value={formData.category_id} onChange={handleChange}>
+                <select
+                  required
+                  name="category_id"
+                  className="form-select"
+                  value={formData.category_id}
+                  onChange={handleChange}
+                  aria-invalid={Boolean(fieldErrors.category_id)}
+                  aria-errormessage={fieldErrors.category_id ? 'category_id-error' : undefined}
+                >
                   <option value="">Select {productMode === 'fast_food' ? 'Fast Food' : 'Packed Items'} Category</option>
                   {categories.filter(c => c.type === productMode).map(c => (
                     <option key={c.id} value={c.id}>{c.name} ({c.type === 'fast_food' ? 'Fast Food' : 'Packed Items'})</option>
                   ))}
                 </select>
+                {fieldErrors.category_id && (
+                  <span id="category_id-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                    {fieldErrors.category_id}
+                  </span>
+                )}
               </div>
             </div>
             <div className="form-row">

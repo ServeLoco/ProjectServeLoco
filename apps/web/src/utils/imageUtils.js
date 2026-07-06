@@ -1,8 +1,8 @@
 const getApiBaseUrl = () => import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-// Tiny inline SVG placeholder — light grey card with image icon
-const PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#EEF0F3"/><path d="M30 35h40v30H30z" fill="#DFE2E6"/><circle cx="40" cy="46" r="4" fill="#C7CCD4"/><path d="M30 60l12-12 10 10 8-6 10 8v5H30z" fill="#C7CCD4"/></svg>`
+// Inline SVG placeholder — bowl/steam food icon shown when a product/category has no image
+export const PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#F4EFE6"/><path d="M40 34c-2-5 1-10 1-10M50 32c-2-6 2-11 2-11M60 34c-2-5 1-10 1-10" stroke="#C9BFAE" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M24 56c0 15 11.6 26 26 26s26-11 26-26H24z" fill="#E2963F"/><rect x="20" y="53" width="60" height="7" rx="3.5" fill="#C97A2B"/></svg>`
 );
 
 export const getResolvedImageUrl = (item) => {

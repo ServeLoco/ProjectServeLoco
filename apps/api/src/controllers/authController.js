@@ -1,5 +1,5 @@
 const { pool } = require('../db/mysql');
-const { hashPassword, comparePassword, signCustomerToken, verifyToken } = require('../utils/auth');
+const { signCustomerToken, verifyToken } = require('../utils/auth');
 const { getFirebaseAuth } = require('../config/firebase');
 const adminInbox = require('../utils/adminNotifications');
 
@@ -14,85 +14,6 @@ const adminInbox = require('../utils/adminNotifications');
 // get rotated periodically and don't ride out their entire lifetime
 // without ever passing through the server.
 const TOKEN_REFRESH_FLOOR_SECONDS = 24 * 60 * 60;
-
-const register = async (req, res) => {
-  const { name, phone, password, address, whatsapp_number } = req.validatedData;
-
-  // Check duplicate phone before INSERT to return a clean error
-  const [existing] = await pool.query('SELECT id FROM users WHERE phone = ?', [phone]);
-  if (existing.length > 0) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Phone number already registered' });
-  }
-
-  const hashedPassword = await hashPassword(password);
-
-  const [result] = await pool.query(
-    'INSERT INTO users (name, phone, password_hash, address, whatsapp_number) VALUES (?, ?, ?, ?, ?)',
-    [name, phone, hashedPassword, address || null, whatsapp_number || null]
-  );
-
-  const userId = result.insertId;
-  const token = signCustomerToken(userId);
-
-  // Admin inbox — fire-and-forget notification on new customer signup.
-  adminInbox.createAdminNotification({
-    type: adminInbox.TYPES.NEW_CUSTOMER,
-    title: 'New customer signed up',
-    body: `${name || phone} just created an account`,
-    relatedUrl: `/customers?id=${userId}`,
-    relatedId: String(userId),
-  });
-
-  res.status(201).json({
-    message: 'Registration successful',
-    token,
-    user: { id: userId, name, phone, address, whatsapp_number, trusted: 0, blocked: 0 }
-  });
-};
-
-const login = async (req, res) => {
-  const { phone, password } = req.validatedData;
-
-  const [rows] = await pool.query('SELECT id, name, phone, whatsapp_number, address, trusted, blocked, created_at, password_hash FROM users WHERE phone = ?', [phone]);
-  if (rows.length === 0) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid phone or password' });
-  }
-
-  const row = rows[0];
-  const passwordHash = row.password_hash || row.password;
-
-  // OTP-only users have no password_hash — password login is not available for them.
-  if (!passwordHash) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid phone or password' });
-  }
-
-  const isMatch = await comparePassword(password, passwordHash);
-  if (!isMatch) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid phone or password' });
-  }
-
-  if (row.blocked) {
-    return res.status(403).json({ code: 'FORBIDDEN', message: 'Your account is blocked' });
-  }
-
-  const token = signCustomerToken(row.id);
-  const user = {
-    id: row.id,
-    name: row.name,
-    phone: row.phone,
-    whatsapp_number: row.whatsapp_number,
-    address: row.address,
-    trusted: row.trusted,
-    blocked: row.blocked,
-    created_at: row.created_at
-  };
-
-  res.status(200).json({
-    message: 'Login successful',
-    token,
-    user
-  });
-};
 
 const me = async (req, res) => {
   const userId = req.user.id;
@@ -159,50 +80,9 @@ const updateProfile = async (req, res) => {
   });
 };
 
-const requestPasswordReset = async (req, res) => {
-  const { phone, newPassword } = req.validatedData;
-  const [users] = await pool.query('SELECT id FROM users WHERE phone = ?', [phone]);
-
-  // Return the same success message even if the phone is unknown to avoid account discovery.
-  const response = {
-    message: 'If the phone number is registered, your password reset request has been sent for admin approval'
-  };
-
-  if (users.length === 0) {
-    return res.status(202).json(response);
-  }
-
-  const userId = users[0].id;
-  const hashedPassword = await hashPassword(newPassword);
-
-  await pool.query(
-    `UPDATE password_reset_requests
-     SET status = 'rejected', reviewed_at = CURRENT_TIMESTAMP, reviewed_by_admin_id = 'system', review_note = 'Replaced by newer request'
-     WHERE user_id = ? AND status = 'pending'`,
-    [userId]
-  );
-
-  const [resetResult] = await pool.query(
-    'INSERT INTO password_reset_requests (user_id, password_hash) VALUES (?, ?)',
-    [userId, hashedPassword]
-  );
-
-  // Admin inbox — notify all admins a password reset is awaiting approval.
-  adminInbox.createAdminNotification({
-    type: adminInbox.TYPES.PASSWORD_RESET_REQUESTED,
-    title: 'Password reset requested',
-    body: `Customer ID ${userId} (${phone}) requested a password reset and is awaiting approval`,
-    relatedUrl: `/customers`,
-    relatedId: String(resetResult.insertId),
-  });
-
-  res.status(202).json(response);
-};
-
-// Soft-delete the customer account: wipe PII, block further logins, and
-// reject any pending password reset requests. Hard purge happens via a
-// Soft-delete with a 30-day grace period. Verifies the user's current password,
-// marks the account for deletion, and signs the user out. A separate cron
+// Soft-delete the customer account: wipe PII, block further logins.
+// Soft-delete with a 30-day grace period. Marks the account for deletion
+// and signs the user out. A separate cron
 // (see server.js) hard-deletes accounts where deletion_requested_at is older
 // than 30 days. The `requireCustomer` middleware also blocks any token
 // whose user has blocked=1, so any in-flight JWT becomes unusable once we
@@ -212,28 +92,13 @@ const DELETION_GRACE_DAYS = 30;
 
 const requestAccountDeletion = async (req, res) => {
   const userId = req.user.id;
-  const { password } = req.body || {};
 
   const [rows] = await pool.query(
-    'SELECT id, password_hash, firebase_uid, deletion_requested_at FROM users WHERE id = ?',
+    'SELECT id, firebase_uid, deletion_requested_at FROM users WHERE id = ?',
     [userId]
   );
   if (rows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Account not found' });
-  }
-
-  const user = rows[0];
-
-  // Firebase (OTP-only) users have no password_hash — skip password check.
-  // Password-based users must still verify their password.
-  if (user.password_hash) {
-    if (!password || typeof password !== 'string') {
-      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Password is required' });
-    }
-    const ok = await comparePassword(password, user.password_hash);
-    if (!ok) {
-      return res.status(401).json({ code: 'INVALID_PASSWORD', message: 'Incorrect password' });
-    }
   }
 
   // Allow re-confirmation — overwrites the previous timestamp (grace period
@@ -276,8 +141,21 @@ const registerPushToken = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid Expo push token format' });
   }
 
+  // Detach this token from any OTHER account first. On a shared device the
+  // previous user's row can still hold the same Expo token — without this,
+  // they would keep receiving the new user's order notifications.
+  await pool.query('UPDATE users SET push_token = NULL WHERE push_token = ? AND id != ?', [token, userId]);
   await pool.query('UPDATE users SET push_token = ? WHERE id = ?', [token, userId]);
   res.json({ success: true });
+};
+
+// Customer logout — only clears the push token so this device stops
+// receiving the account's notifications. The JWT itself stays valid until
+// expiry (no revocation store — out of scope, see plans/bugs.md TASK 4).
+const logout = async (req, res) => {
+  const userId = req.user.id;
+  await pool.query('UPDATE users SET push_token = NULL WHERE id = ?', [userId]);
+  res.status(200).json({ data: { ok: true } });
 };
 
 /**
@@ -465,13 +343,11 @@ const verifyFirebaseToken = async (req, res) => {
 };
 
 module.exports = {
-  register,
-  login,
   me,
   updateProfile,
-  requestPasswordReset,
   requestAccountDeletion,
   cancelAccountDeletion,
   registerPushToken,
+  logout,
   verifyFirebaseToken,
 };

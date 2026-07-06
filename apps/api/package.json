@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/db/migrate.js && node src/server.js",
     "dev": "cross-env APP_ENV=development NODE_ENV=development nodemon src/server.js",
+    "dev:proddb": "cross-env APP_ENV=proddb NODE_ENV=development nodemon src/server.js",
     "start:dev": "cross-env APP_ENV=development NODE_ENV=development node src/server.js",
     "start:prod": "cross-env APP_ENV=production NODE_ENV=production node src/server.js",
     "test": "jest",

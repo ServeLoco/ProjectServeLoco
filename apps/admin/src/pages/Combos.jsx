@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ProductsApi, CombosApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
-import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
+import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
 import { useImageCropper } from '../hooks/useImageCropper';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
+import MessageBanner from '../components/MessageBanner';
+import { useAdminRefresh } from '../hooks/useAdminRefresh';
+import { GENERIC_ERROR } from '../utils/constants';
 import './Products.css';
-
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 
 export default function Combos() {
   // Combos are bundles and do not require category.
@@ -27,6 +28,7 @@ export default function Combos() {
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -35,6 +37,10 @@ export default function Combos() {
   useEffect(() => {
     fetchComboProducts();
   }, []);
+
+  const paginationRef = useRef({ page: 1 });
+  useEffect(() => { paginationRef.current = pagination; }, [pagination]);
+  useAdminRefresh(() => fetchProducts(paginationRef.current.page));
 
   useEffect(() => {
     fetchProducts(1);
@@ -127,7 +133,11 @@ export default function Combos() {
   };
 
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} combos?`)) return;
+    if (!confirmBulkDelete) {
+      setConfirmBulkDelete(true);
+      return;
+    }
+    setConfirmBulkDelete(false);
     setBulkUpdating(true);
     try {
       const failed = await runBulk(selectedIds, id => CombosApi.delete(id));
@@ -184,7 +194,7 @@ export default function Combos() {
         </button>
       </div>
 
-      <section className="filter-bar">
+      <section className="products-filter-bar">
         <input
           type="text"
           name="search"
@@ -211,7 +221,15 @@ export default function Combos() {
           <div className="bulk-actions-buttons">
             <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkAvailability(true)}>Mark In Stock</button>
             <button className="btn-secondary" disabled={bulkUpdating} onClick={() => handleBulkAvailability(false)}>Mark Out of Stock</button>
-            <button className="btn-secondary" style={{ borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }} disabled={bulkUpdating} onClick={handleBulkDelete}>Delete</button>
+            {confirmBulkDelete ? (
+              <>
+                <span style={{ color: 'var(--danger-color)', fontWeight: 600 }}>Delete {selectedIds.length} combo(s)?</span>
+                <button className="btn-secondary" style={{ borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }} disabled={bulkUpdating} onClick={handleBulkDelete}>Yes, delete</button>
+                <button className="btn-secondary" disabled={bulkUpdating} onClick={() => setConfirmBulkDelete(false)}>Cancel</button>
+              </>
+            ) : (
+              <button className="btn-secondary" style={{ borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }} disabled={bulkUpdating} onClick={handleBulkDelete}>Delete</button>
+            )}
           </div>
         </div>
       )}
@@ -249,7 +267,7 @@ export default function Combos() {
                   </td>
                   <td>
                     <div className="product-info">
-                      <img src={normalizeImageUrl(p.imageUrl || p.image_url) || 'https://via.placeholder.com/48'} alt={p.name} className="product-thumbnail" />
+                      <img src={normalizeImageUrl(p.imageUrl || p.image_url) || FALLBACK_IMAGE} onError={handleImageError} alt={p.name} className="product-thumbnail" />
                       <div className="product-details">
                         <span className="product-name">{p.name}</span>
                         <span className="product-unit">
@@ -364,6 +382,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
 
     const data = new FormData();
     data.append('image', file);
+    const previousPendingId = formData.image_id;
 
     try {
       setUploadingImage(true);
@@ -375,6 +394,11 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
         image_id: image.id,
         image_url: image.url,
       }));
+      // Discard the previous unsaved upload from this session so re-picking a
+      // photo before hitting Save doesn't leak an orphaned S3 object.
+      if (previousPendingId && previousPendingId !== product?.image_id) {
+        ImagesApi.delete(previousPendingId).catch(() => {});
+      }
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the combo to apply it.' });
     } catch (err) {
       console.error(err);
@@ -386,7 +410,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
 
   const { fileInputProps, cropperProps } = useImageCropper({
     type: 'combo',
-    defaultAspect: 1,
+    defaultAspect: 0.78,
     onCropped: uploadImageFile,
   });
 
@@ -424,22 +448,22 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
     for (const item of comboItems) {
       if (!item.product_id) continue;
       if (selectedProductIds.has(item.product_id)) {
-        alert('This product is already in the combo. Increase quantity instead.');
+        setFormError('This product is already in the combo. Increase quantity instead.');
         return;
       }
       selectedProductIds.add(item.product_id);
       const selectedProduct = productById.get(String(item.product_id));
       if (!selectedProduct) {
-        alert('Please select a valid product for every combo item.');
+        setFormError('Please select a valid product for every combo item.');
         return;
       }
       if (selectedProduct.category_type !== formData.store_type) {
-        alert(`${selectedProduct.name} belongs to ${selectedProduct.category_type}. It cannot be used in a ${formData.store_type} combo.`);
+        setFormError(`${selectedProduct.name} belongs to ${selectedProduct.category_type}. It cannot be used in a ${formData.store_type} combo.`);
         return;
       }
     }
       if (selectedProductIds.size === 0) {
-        alert('Please add at least one product to the combo.');
+        setFormError('Please add at least one product to the combo.');
         return;
       }
       // When editing an existing combo and switching its store_type, warn
@@ -452,7 +476,6 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
         if (wouldBreak) {
           const msg = `Heads up — this combo currently contains products that don't match the new store type "${formData.store_type}". The backend will reject the save until you remove them.\n\nContinue anyway?`;
           if (!window.confirm(msg)) {
-            setSaving(false);
             return;
           }
         }
@@ -460,11 +483,11 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
     const price = Number(formData.price);
     const originalPrice = formData.original_price ? Number(formData.original_price) : null;
     if (!Number.isFinite(price) || price <= 0) {
-      alert('Combo price must be positive.');
+      setFormError('Combo price must be positive.');
       return;
     }
     if (originalPrice !== null && (!Number.isFinite(originalPrice) || originalPrice < price)) {
-      alert('Original price must be a valid amount and cannot be lower than selling price.');
+      setFormError('Original price must be a valid amount and cannot be lower than selling price.');
       return;
     }
 
@@ -672,7 +695,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
           </div>
 
           <div className="drawer-footer">
-            {formError && <p className="upload-message error" style={{ margin: '0 auto 0 0', maxWidth: '60%' }}>{formError}</p>}
+            <MessageBanner type="error" message={formError} onDismiss={() => setFormError(null)} />
             {isEdit && (
               <button type="button" className="action-link danger" onClick={handleDelete} disabled={saving} style={{ marginRight: 'auto' }}>
                 Delete Combo

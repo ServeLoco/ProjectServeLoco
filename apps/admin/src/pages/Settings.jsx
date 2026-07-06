@@ -6,13 +6,13 @@ import { getImageUploadError } from '../utils/fileValidation';
 import { useImageCropper } from '../hooks/useImageCropper';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
 import './Settings.css';
+import { GENERIC_ERROR } from '../utils/constants';
+import MessageBanner from '../components/MessageBanner';
 
 const DEFAULT_SETTINGS = {
   shop_open: false,
   delivery_available: false,
-  minimum_order_amount: 0,
   delivery_charge: 0,
-  below_threshold_delivery_charge: 20,
   night_charge: 0,
   night_charge_start: '',
   night_charge_end: '',
@@ -25,14 +25,10 @@ const DEFAULT_SETTINGS = {
   upi_id: '',
   upi_qr_image_id: '',
   upi_qr_image_url: '',
-  free_delivery_above_minimum_active: true,
-  free_delivery_offer_active: false,
   minimum_version: '',
   current_version: ''
   // Location-based distance pricing is removed, so latitude/longitude/radius are obsolete.
 };
-
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 
 export default function Settings() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -42,7 +38,11 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadMessage, setUploadMessage] = useState(null);
+  const [formError, setFormError] = useState(null);
+  const [saveSuccess, setSaveSuccess] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const fileInputRef = useRef(null);
+  const savedImageIdRef = useRef('');
 
   useEffect(() => {
     fetchSettings();
@@ -54,6 +54,7 @@ export default function Settings() {
       const res = await SettingsApi.get();
       if (res.data) {
         setSettings({ ...DEFAULT_SETTINGS, ...res.data });
+        savedImageIdRef.current = res.data.upi_qr_image_id || '';
       }
     } catch (err) {
       console.error(err);
@@ -69,6 +70,7 @@ export default function Settings() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    setFieldErrors(prev => ({ ...prev, [name]: undefined }));
   };
 
   const uploadImageFile = async (file) => {
@@ -80,6 +82,7 @@ export default function Settings() {
 
     const data = new FormData();
     data.append('image', file);
+    const previousPendingId = settings.upi_qr_image_id;
 
     try {
       setUploadingImage(true);
@@ -91,6 +94,11 @@ export default function Settings() {
         upi_qr_image_id: image.id,
         upi_qr_image_url: image.url,
       }));
+      // Discard the previous unsaved upload from this session so re-picking a
+      // photo before hitting Save doesn't leak an orphaned S3 object.
+      if (previousPendingId && previousPendingId !== savedImageIdRef.current) {
+        ImagesApi.delete(previousPendingId).catch(() => {});
+      }
       setUploadMessage({ type: 'success', text: 'QR image uploaded. Save settings to apply it.' });
     } catch (err) {
       console.error(err);
@@ -106,15 +114,22 @@ export default function Settings() {
     onCropped: uploadImageFile,
   });
 
+  const focusFirstInvalid = () => {
+    setTimeout(() => {
+      const el = document.querySelector('[aria-invalid="true"]');
+      el?.focus();
+    }, 0);
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
+      setFormError(null);
+      setFieldErrors({});
       const nullableNumber = (value) => (value === '' || value === null || value === undefined ? null : Number(value));
       const nonNegativeFields = [
-        ['minimum_order_amount', 'Minimum order amount'],
-        ['delivery_charge', 'Standard delivery charge'],
+        ['delivery_charge', 'Delivery charge'],
         ['night_charge', 'Night delivery surcharge'],
-        ['below_threshold_delivery_charge', 'Below-threshold delivery charge'],
         ['fast_delivery_charge', 'Fast delivery surcharge'],
       ];
 
@@ -125,8 +140,11 @@ export default function Settings() {
         const value = settings[field];
         const numeric = Number(value);
         if (!Number.isFinite(numeric) || numeric < 0) {
-          alert(`${label} must be a valid non-negative number.`);
+          const msg = `${label} must be a valid non-negative number.`;
+          setFieldErrors({ [field]: msg });
+          setFormError(msg);
           setSaving(false);
+          focusFirstInvalid();
           return;
         }
       }
@@ -135,8 +153,11 @@ export default function Settings() {
       // Otherwise customers are either always or never charged at night.
       if (Number(settings.night_charge) > 0) {
         if (!settings.night_charge_start || !settings.night_charge_end) {
-          alert('Night charge is set but the start or end time is missing. Either set both times or set the charge to 0.');
+          const msg = 'Night charge is set but the start or end time is missing. Either set both times or set the charge to 0.';
+          setFieldErrors({ night_charge_start: msg, night_charge_end: msg });
+          setFormError(msg);
           setSaving(false);
+          focusFirstInvalid();
           return;
         }
       }
@@ -145,25 +166,27 @@ export default function Settings() {
       // Validate minimum_version format if provided
       const minVer = (settings.minimum_version || '').trim();
       if (minVer && !/^\d+\.\d+\.\d+$/.test(minVer)) {
-        alert('Minimum version must be in semver format: e.g. 1.2.0');
+        const msg = 'Minimum version must be in semver format: e.g. 1.2.0';
+        setFieldErrors({ minimum_version: msg });
+        setFormError(msg);
         setSaving(false);
+        focusFirstInvalid();
         return;
       }
       const curVer = (settings.current_version || '').trim();
       if (curVer && !/^\d+\.\d+\.\d+$/.test(curVer)) {
-        alert('Current version must be in semver format: e.g. 1.1.1');
+        const msg = 'Current version must be in semver format: e.g. 1.1.1';
+        setFieldErrors({ current_version: msg });
+        setFormError(msg);
         setSaving(false);
+        focusFirstInvalid();
         return;
       }
 
       const payload = {
         ...settings,
-        minimum_order_amount: Number(settings.minimum_order_amount),
         delivery_charge: Number(settings.delivery_charge),
         night_charge: Number(settings.night_charge),
-        below_threshold_delivery_charge: Number(settings.below_threshold_delivery_charge),
-        free_delivery_above_minimum_active: Boolean(settings.free_delivery_above_minimum_active),
-        free_delivery_offer_active: Boolean(settings.free_delivery_offer_active),
         fast_delivery_enabled: Boolean(settings.fast_delivery_enabled),
         fast_delivery_charge: Number(settings.fast_delivery_charge || 0),
         standard_delivery_minutes: Number.parseInt(settings.standard_delivery_minutes, 10) || 60,
@@ -179,10 +202,11 @@ export default function Settings() {
         // value the admin just typed instead of reverting to blank.
         setSettings(prev => ({ ...prev, ...response.data }));
       }
-      alert('Settings saved successfully!');
+      savedImageIdRef.current = settings.upi_qr_image_id || '';
+      setSaveSuccess('Settings saved successfully!');
     } catch (err) {
       console.error(err);
-      setError(GENERIC_ERROR);
+      setFormError(GENERIC_ERROR);
     } finally {
       setSaving(false);
     }
@@ -200,6 +224,9 @@ export default function Settings() {
           {saving ? 'Saving...' : 'Save All Changes'}
         </button>
       </header>
+
+      <MessageBanner type="error" message={formError} onDismiss={() => setFormError(null)} />
+      <MessageBanner type="success" message={saveSuccess} onDismiss={() => setSaveSuccess(null)} />
 
       {error && <div className="error-container" style={{ marginBottom: '1rem' }}>{error}</div>}
 
@@ -237,34 +264,12 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* ── 2. Order Requirements ───────────────────────────────────────── */}
-      <section className="settings-section">
-        <h2 className="settings-section-title">Order Requirements</h2>
-        <div className="settings-form-grid">
-          <div className="settings-form-group">
-            <label className="settings-label">Minimum Order Amount (₹)</label>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              name="minimum_order_amount"
-              className="settings-input"
-              value={settings.minimum_order_amount || ''}
-              onChange={handleChange}
-            />
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Orders below this amount use the below-minimum delivery charge.
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 3. Delivery Pricing ─────────────────────────────────────────── */}
+      {/* ── 2. Delivery Pricing ─────────────────────────────────────────── */}
       <section className="settings-section">
         <h2 className="settings-section-title">Delivery Pricing</h2>
         <div className="settings-form-grid">
           <div className="settings-form-group">
-            <label className="settings-label">Delivery Charge (Above Minimum) (₹)</label>
+            <label className="settings-label">Delivery Charge (₹)</label>
             <input
               type="number"
               min="0"
@@ -273,60 +278,17 @@ export default function Settings() {
               className="settings-input"
               value={settings.delivery_charge}
               onChange={handleChange}
+              aria-invalid={Boolean(fieldErrors.delivery_charge)}
+              aria-errormessage={fieldErrors.delivery_charge ? 'delivery_charge-error' : undefined}
             />
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Charged on orders at or above the minimum (unless waived by a rule below).
-            </span>
-          </div>
-
-          <div className="settings-form-group">
-            <label className="settings-label">Delivery Charge (Below Minimum) (₹)</label>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              name="below_threshold_delivery_charge"
-              className="settings-input"
-              value={settings.below_threshold_delivery_charge ?? 20}
-              onChange={handleChange}
-            />
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Charged on orders below the minimum order amount.
-            </span>
-          </div>
-
-          <div className="toggle-switch-wrapper full-width">
-            <div style={{ flex: 1 }}>
-              <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Free Delivery for Orders Above Minimum</strong>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                When ON, orders at or above the minimum order amount get free delivery. When OFF, the above-minimum charge applies.
+            {fieldErrors.delivery_charge && (
+              <span id="delivery_charge-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                {fieldErrors.delivery_charge}
               </span>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                name="free_delivery_above_minimum_active"
-                checked={Boolean(settings.free_delivery_above_minimum_active)}
-                onChange={handleChange}
-              />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div className="toggle-switch-wrapper full-width">
-            <div style={{ flex: 1 }}>
-              <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Free Delivery Offer (Global)</strong>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>When enabled, all orders get zero delivery charge (overrides the other delivery charges).</span>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                name="free_delivery_offer_active"
-                checked={Boolean(settings.free_delivery_offer_active)}
-                onChange={handleChange}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            )}
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              Flat delivery fee for all orders. Free-delivery promotions (e.g. above a minimum order) are configured via Coupons → Free Delivery.
+            </span>
           </div>
         </div>
       </section>
@@ -347,7 +309,14 @@ export default function Settings() {
               value={settings.standard_delivery_minutes ?? 60}
               onChange={handleChange}
               placeholder="e.g. 60"
+              aria-invalid={Boolean(fieldErrors.standard_delivery_minutes)}
+              aria-errormessage={fieldErrors.standard_delivery_minutes ? 'standard_delivery_minutes-error' : undefined}
             />
+            {fieldErrors.standard_delivery_minutes && (
+              <span id="standard_delivery_minutes-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                {fieldErrors.standard_delivery_minutes}
+              </span>
+            )}
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
               Shown to the customer as the ETA for standard delivery. 1–1439 minutes.
             </span>
@@ -387,7 +356,14 @@ export default function Settings() {
                   value={settings.fast_delivery_charge ?? 0}
                   onChange={handleChange}
                   placeholder="e.g. 50"
+                  aria-invalid={Boolean(fieldErrors.fast_delivery_charge)}
+                  aria-errormessage={fieldErrors.fast_delivery_charge ? 'fast_delivery_charge-error' : undefined}
                 />
+                {fieldErrors.fast_delivery_charge && (
+                  <span id="fast_delivery_charge-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                    {fieldErrors.fast_delivery_charge}
+                  </span>
+                )}
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
                   This replaces the standard delivery charge when the customer selects fast delivery.
                 </span>
@@ -404,7 +380,14 @@ export default function Settings() {
                   value={settings.fast_delivery_minutes ?? 30}
                   onChange={handleChange}
                   placeholder="e.g. 30"
+                  aria-invalid={Boolean(fieldErrors.fast_delivery_minutes)}
+                  aria-errormessage={fieldErrors.fast_delivery_minutes ? 'fast_delivery_minutes-error' : undefined}
                 />
+                {fieldErrors.fast_delivery_minutes && (
+                  <span id="fast_delivery_minutes-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                    {fieldErrors.fast_delivery_minutes}
+                  </span>
+                )}
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
                   Shown to the customer as the ETA for fast delivery. 1–1439 minutes.
                 </span>
@@ -428,7 +411,14 @@ export default function Settings() {
               className="settings-input"
               value={settings.night_charge}
               onChange={handleChange}
+              aria-invalid={Boolean(fieldErrors.night_charge)}
+              aria-errormessage={fieldErrors.night_charge ? 'night_charge-error' : undefined}
             />
+            {fieldErrors.night_charge && (
+              <span id="night_charge-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                {fieldErrors.night_charge}
+              </span>
+            )}
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
               Extra amount added to every order placed inside the night window. Set to 0 to disable.
             </span>
@@ -441,7 +431,14 @@ export default function Settings() {
               className="settings-input"
               value={settings.night_charge_start || ''}
               onChange={handleChange}
+              aria-invalid={Boolean(fieldErrors.night_charge_start)}
+              aria-errormessage={fieldErrors.night_charge_start ? 'night_charge_start-error' : undefined}
             />
+            {fieldErrors.night_charge_start && (
+              <span id="night_charge_start-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                {fieldErrors.night_charge_start}
+              </span>
+            )}
           </div>
           <div className="settings-form-group">
             <label className="settings-label">Night Window — End Time</label>
@@ -451,7 +448,14 @@ export default function Settings() {
               className="settings-input"
               value={settings.night_charge_end || ''}
               onChange={handleChange}
+              aria-invalid={Boolean(fieldErrors.night_charge_end)}
+              aria-errormessage={fieldErrors.night_charge_end ? 'night_charge_end-error' : undefined}
             />
+            {fieldErrors.night_charge_end && (
+              <span id="night_charge_end-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                {fieldErrors.night_charge_end}
+              </span>
+            )}
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
               End before start means the window crosses midnight (e.g. 21:00 → 07:00).
             </span>
@@ -509,7 +513,14 @@ export default function Settings() {
               placeholder="e.g. 1.1.1"
               value={settings.current_version || ''}
               onChange={handleChange}
+              aria-invalid={Boolean(fieldErrors.current_version)}
+              aria-errormessage={fieldErrors.current_version ? 'current_version-error' : undefined}
             />
+            {fieldErrors.current_version && (
+              <span id="current_version-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                {fieldErrors.current_version}
+              </span>
+            )}
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
               The version currently live on the Play Store. Update this after each release so you know what to set the minimum version to.
             </span>
@@ -527,7 +538,14 @@ export default function Settings() {
                 placeholder="e.g. 1.1.0  (leave blank to disable)"
                 value={settings.minimum_version || ''}
                 onChange={handleChange}
+                aria-invalid={Boolean(fieldErrors.minimum_version)}
+                aria-errormessage={fieldErrors.minimum_version ? 'minimum_version-error' : undefined}
               />
+              {fieldErrors.minimum_version && (
+                <span id="minimum_version-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                  {fieldErrors.minimum_version}
+                </span>
+              )}
               {settings.minimum_version && (
                 <button
                   type="button"

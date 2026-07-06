@@ -5,7 +5,13 @@ const ordersApi = {
   createOrder: (payload, options = {}) =>
     apiClient.post('/orders', payload, { auth: 'customer', ...options }),
   getOrder: id => apiClient.get(`/orders/${id}`, { auth: 'customer' }),
-  getOrders: () => apiClient.get('/orders', { auth: 'customer' }),
+  getOrders: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.limit !== undefined) query.set('limit', String(params.limit));
+    if (params.offset !== undefined) query.set('offset', String(params.offset));
+    const qs = query.toString();
+    return apiClient.get(`/orders${qs ? `?${qs}` : ''}`, { auth: 'customer' });
+  },
 };
 
 export { ordersApi };

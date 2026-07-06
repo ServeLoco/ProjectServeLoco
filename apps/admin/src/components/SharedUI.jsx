@@ -11,7 +11,7 @@ export function Loading() {
 
 export function ErrorState({ message }) {
   return (
-    <div style={{
+    <div role="alert" style={{
       padding: '1.25rem 1.5rem',
       backgroundColor: 'var(--danger-soft)',
       color: 'var(--danger-color)',

@@ -6,11 +6,21 @@ const { pool } = require('../src/db/mysql');
 const jwt = require('jsonwebtoken');
 
 jest.mock('../src/db/mysql', () => ({
-  pool: {
-    query: jest.fn(),
-    getConnection: jest.fn()
-  }
+  pool: { query: jest.fn(), getConnection: jest.fn() }
 }));
+
+jest.mock('../src/utils/coupons', () => ({
+  validateCoupon: jest.fn().mockResolvedValue({ ok: false, reason: 'No coupon' }),
+  validateCouponById: jest.fn().mockResolvedValue({ ok: false, reason: 'Coupon not found' }),
+  pickBestAutoApply: jest.fn().mockResolvedValue(null),
+  findApplicableCoupons: jest.fn().mockResolvedValue([]),
+  getNextFreeDeliveryThreshold: jest.fn().mockResolvedValue(null),
+  getNearestUnlockableCoupon: jest.fn().mockResolvedValue(null),
+  computeDiscount: jest.fn().mockReturnValue(0),
+  checkEligibility: jest.fn().mockResolvedValue({ ok: false, reason: 'No coupon' }),
+}));
+
+const { pickBestAutoApply, validateCouponById, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon } = require('../src/utils/coupons');
 
 const app = express();
 app.use(express.json());
@@ -24,8 +34,8 @@ describe('Cart and Order Tests', () => {
     jest.clearAllMocks();
   });
 
-  it('should apply ₹20 delivery when cart subtotal is below the free delivery threshold', async () => {
-    pool.query.mockResolvedValueOnce([[{ shop_open: 1, minimum_order_amount: 300, delivery_charge: 10, free_delivery_above: 500, night_charge: 0 }]]); // settings
+  it('should always charge the flat settings.delivery_charge regardless of subtotal', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]); // settings
     pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1 }]]); // product query
 
     const res = await request(app)
@@ -37,25 +47,22 @@ describe('Cart and Order Tests', () => {
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.subtotal).toEqual(200);
-    expect(res.body.deliveryCharge).toEqual(20);
-    expect(res.body.total).toEqual(220);
+    expect(res.body.deliveryCharge).toEqual(10);
+    expect(res.body.total).toEqual(210);
     expect(res.body.valid).toEqual(true);
   });
 
-  it('should make delivery free when cart subtotal reaches the free delivery threshold', async () => {
+  it('should net delivery to zero via discount when an auto-apply free_delivery coupon applies', async () => {
     pool.query.mockResolvedValueOnce([[{
       shop_open: 1,
-      minimum_order_amount: 149,
       delivery_charge: 10,
-      free_delivery_above: 500,
       night_charge: 0,
-      shop_latitude: 12.9716,
-      shop_longitude: 77.5946,
-      delivery_radius_km: 8,
-      delivery_cost_per_km: 10,
-      free_delivery_offer_active: 0
     }]]);
     pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+    pickBestAutoApply.mockResolvedValueOnce({
+      coupon: { id: 5, code: null, title: 'Free Delivery', discount_type: 'free_delivery' },
+      discount: 10,
+    });
 
     const res = await request(app)
       .post('/api/cart/calculate')
@@ -71,25 +78,54 @@ describe('Cart and Order Tests', () => {
     expect(res.body.deliveryDistanceKm).toBeNull();
     expect(res.body.deliveryWithinRange).toBe(true);
     expect(res.body.requiresLocation).toBe(false);
-    expect(res.body.deliveryCharge).toBe(0);
+    expect(res.body.deliveryCharge).toBe(10);
+    expect(res.body.discount).toBe(10);
     expect(res.body.deliveryMessage).toBe('Free delivery unlocked!');
   });
 
-  it('should use admin configured below-threshold charge', async () => {
+  // Regression test: auto-apply-only offers can have code = NULL (the admin
+  // "no code" offer type — see apps/admin/src/pages/Coupons.jsx). Tapping
+  // such an offer in the cart sends coupon_id (not coupon_code) so the
+  // backend can force-apply that exact offer instead of falling back to
+  // "the best auto-apply offer", which would silently override the tap.
+  it('force-applies a specific no-code offer via coupon_id instead of picking the best one', async () => {
     pool.query.mockResolvedValueOnce([[{
       shop_open: 1,
-      minimum_order_amount: 300,
-      below_threshold_delivery_charge: 35,
       delivery_charge: 10,
       night_charge: 0,
-      shop_latitude: 12.9716,
-      shop_longitude: 77.5946,
-      delivery_radius_km: 8,
-      delivery_cost_per_km: 10,
-      free_delivery_offer_active: 0,
-      free_delivery_above_minimum_active: 1
     }]]);
     pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+    validateCouponById.mockResolvedValueOnce({
+      ok: true,
+      coupon: { id: 2, code: null, title: 'Flat 15', discount_type: 'flat' },
+      discount: 15,
+    });
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        latitude: 12.9716,
+        longitude: 77.6046,
+        coupon_id: 2,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(validateCouponById).toHaveBeenCalledWith(expect.objectContaining({ couponId: 2 }));
+    expect(pickBestAutoApply).not.toHaveBeenCalled();
+    expect(res.body.discount).toBe(15);
+    expect(res.body.appliedCoupon).toEqual(expect.objectContaining({ id: 2, code: null, autoApplied: false }));
+  });
+
+  it('should surface a free-delivery progress hint when no coupon applies yet', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      delivery_charge: 35,
+      night_charge: 0,
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+    getNextFreeDeliveryThreshold.mockResolvedValueOnce({ minOrder: 300, amountRemaining: 100, minItemCount: 0, itemsRemaining: 0, thresholdType: 'amount' });
 
     const res = await request(app)
       .post('/api/cart/calculate')
@@ -103,55 +139,18 @@ describe('Cart and Order Tests', () => {
     expect(res.statusCode).toEqual(200);
     expect(res.body.subtotal).toEqual(200);
     expect(res.body.deliveryCharge).toBe(35);
+    expect(res.body.freeDeliveryProgress).toEqual({ minOrder: 300, amountRemaining: 100, minItemCount: 0, itemsRemaining: 0, thresholdType: 'amount' });
     expect(res.body.deliveryMessage).toBe('Add ₹100 more for free delivery. ₹35 delivery applied.');
   });
 
-  it('should apply below-threshold charge even when per-km charge is zero', async () => {
+  it('should surface an item-count free-delivery hint when amount is met but items are short', async () => {
     pool.query.mockResolvedValueOnce([[{
       shop_open: 1,
-      minimum_order_amount: 300,
-      below_threshold_delivery_charge: 35,
-      delivery_charge: 10,
+      delivery_charge: 35,
       night_charge: 0,
-      shop_latitude: 12.9716,
-      shop_longitude: 77.5946,
-      delivery_radius_km: 8,
-      delivery_cost_per_km: 0,
-      free_delivery_offer_active: 0,
-      free_delivery_above_minimum_active: 1
     }]]);
     pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
-
-    const res = await request(app)
-      .post('/api/cart/calculate')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        latitude: 12.9816,
-        longitude: 77.5946,
-        items: [{ productId: 1, quantity: 2 }]
-      });
-
-    expect(res.statusCode).toEqual(200);
-    expect(res.body.subtotal).toEqual(200);
-    expect(res.body.deliveryCharge).toBe(35);
-    expect(res.body.grandTotal).toBe(235);
-  });
-
-  it('should apply standard delivery charge above threshold when admin disables free threshold delivery', async () => {
-    pool.query.mockResolvedValueOnce([[{
-      shop_open: 1,
-      minimum_order_amount: 149,
-      below_threshold_delivery_charge: 35,
-      delivery_charge: 12,
-      night_charge: 0,
-      shop_latitude: 12.9716,
-      shop_longitude: 77.5946,
-      delivery_radius_km: 8,
-      delivery_cost_per_km: 10,
-      free_delivery_offer_active: 0,
-      free_delivery_above_minimum_active: 0
-    }]]);
-    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+    getNextFreeDeliveryThreshold.mockResolvedValueOnce({ minOrder: 0, amountRemaining: 0, minItemCount: 3, itemsRemaining: 1, thresholdType: 'item_count' });
 
     const res = await request(app)
       .post('/api/cart/calculate')
@@ -163,27 +162,18 @@ describe('Cart and Order Tests', () => {
       });
 
     expect(res.statusCode).toEqual(200);
-    expect(res.body.subtotal).toEqual(200);
-    expect(res.body.deliveryCharge).toBe(12);
-    expect(res.body.deliveryMessage).toBe('Standard delivery charge ₹12 applied.');
+    expect(res.body.freeDeliveryProgress).toEqual({ minOrder: 0, amountRemaining: 0, minItemCount: 3, itemsRemaining: 1, thresholdType: 'item_count' });
+    expect(res.body.deliveryMessage).toBe('Add 1 more item(s) for free delivery. ₹35 delivery applied.');
   });
 
-
-
-  it('should make cart delivery free when free delivery offer is active', async () => {
+  it('should join amount and item-count shortfalls in the free-delivery hint', async () => {
     pool.query.mockResolvedValueOnce([[{
       shop_open: 1,
-      minimum_order_amount: 149,
-      delivery_charge: 10,
-      free_delivery_above: 500,
+      delivery_charge: 35,
       night_charge: 0,
-      shop_latitude: 12.9716,
-      shop_longitude: 77.5946,
-      delivery_radius_km: 8,
-      delivery_cost_per_km: 10,
-      free_delivery_offer_active: 1
     }]]);
     pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+    getNextFreeDeliveryThreshold.mockResolvedValueOnce({ minOrder: 300, amountRemaining: 100, minItemCount: 3, itemsRemaining: 1, thresholdType: 'both' });
 
     const res = await request(app)
       .post('/api/cart/calculate')
@@ -195,9 +185,98 @@ describe('Cart and Order Tests', () => {
       });
 
     expect(res.statusCode).toEqual(200);
-    expect(res.body.deliveryWithinRange).toBe(true);
-    expect(res.body.freeDeliveryOfferActive).toBe(true);
-    expect(res.body.deliveryCharge).toBe(0);
+    expect(res.body.deliveryMessage).toBe('Add ₹100 more and 1 more item(s) for free delivery. ₹35 delivery applied.');
+  });
+
+  it('should surface a nearest-unlockable-offer progress hint alongside the bill', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      delivery_charge: 10,
+      night_charge: 0,
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+    getNearestUnlockableCoupon.mockResolvedValueOnce({
+      couponId: 7,
+      code: 'SAVE20',
+      title: '20% Off',
+      discountType: 'percent',
+      minOrder: 250,
+      amountRemaining: 50,
+      savingsText: 'You save ₹40',
+      requiresCode: false,
+      autoApply: true,
+    });
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        latitude: 12.9716,
+        longitude: 77.6046,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.nearestOfferProgress).toEqual({
+      couponId: 7,
+      code: 'SAVE20',
+      title: '20% Off',
+      discountType: 'percent',
+      minOrder: 250,
+      amountRemaining: 50,
+      savingsText: 'You save ₹40',
+      requiresCode: false,
+      autoApply: true,
+    });
+  });
+
+  it('should not surface a nearest-offer hint when nothing is eligible', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      delivery_charge: 10,
+      night_charge: 0,
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+    getNearestUnlockableCoupon.mockResolvedValueOnce(null);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        latitude: 12.9716,
+        longitude: 77.6046,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.nearestOfferProgress).toBeNull();
+  });
+
+  it('should exclude the currently applied coupon when looking up the nearest-offer hint', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      delivery_charge: 10,
+      night_charge: 0,
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1, name: 'Test Product' }]]);
+    pickBestAutoApply.mockResolvedValueOnce({
+      coupon: { id: 9, code: 'FLAT10', title: 'Flat 10', discount_type: 'flat' },
+      discount: 10,
+    });
+    getNearestUnlockableCoupon.mockResolvedValueOnce(null);
+
+    await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        latitude: 12.9716,
+        longitude: 77.6046,
+        items: [{ productId: 1, quantity: 2 }]
+      });
+
+    expect(getNearestUnlockableCoupon).toHaveBeenCalledWith(
+      expect.objectContaining({ excludeCouponId: 9 })
+    );
   });
 
   it('should create an order when customer is inside delivery radius', async () => {
@@ -215,9 +294,7 @@ describe('Cart and Order Tests', () => {
       .mockResolvedValueOnce([[{
         shop_open: 1,
         delivery_available: 1,
-        minimum_order_amount: 149,
         delivery_charge: 10,
-        free_delivery_above: 500,
         night_charge: 0,
         shop_latitude: 12.9716,
         shop_longitude: 77.5946,
@@ -253,16 +330,12 @@ describe('Cart and Order Tests', () => {
     const settings = {
       shop_open: 1,
       delivery_available: 1,
-      minimum_order_amount: 149,
       delivery_charge: 10,
-      free_delivery_above: 500,
       night_charge: 0,
       shop_latitude: 12.9716,
       shop_longitude: 77.5946,
       delivery_radius_km: 8,
       delivery_cost_per_km: 10,
-      free_delivery_offer_active: 0,
-      free_delivery_above_minimum_active: 0
     };
 
     pool.query.mockResolvedValueOnce([[settings]]);
@@ -311,7 +384,7 @@ describe('Cart and Order Tests', () => {
     expect(orderRes.body.order.deliveryDistanceKm).toBeNull();
   });
 
-  it('should allow order creation below the free delivery threshold with delivery charge', async () => {
+  it('should charge the flat delivery_charge with no discount when subtotal is below any coupon threshold', async () => {
     const mockConnection = {
       beginTransaction: jest.fn(),
       query: jest.fn(),
@@ -326,9 +399,7 @@ describe('Cart and Order Tests', () => {
       .mockResolvedValueOnce([[{
         shop_open: 1,
         delivery_available: 1,
-        minimum_order_amount: 300,
-        below_threshold_delivery_charge: 35,
-        free_delivery_above_minimum_active: 1,
+        delivery_charge: 35,
         shop_latitude: 12.9716,
         shop_longitude: 77.5946,
         delivery_radius_km: 8,
@@ -354,9 +425,8 @@ describe('Cart and Order Tests', () => {
     expect(res.body).toHaveProperty('orderId', 1002);
     expect(res.body.order.subtotal).toBe(200);
     expect(res.body.order.deliveryCharge).toBe(35);
+    expect(res.body.order.discount).toBe(0);
     expect(res.body.order.total).toBe(235);
-    expect(res.body.order.belowThresholdDelivery).toBe(true);
-    expect(res.body.order.belowThresholdDeliveryCharge).toBe(35);
     expect(mockConnection.commit).toHaveBeenCalledTimes(1);
   });
 
@@ -398,4 +468,67 @@ describe('Cart and Order Tests', () => {
   });
 
 
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// C6 — a failed typed code must not cost the customer the auto-apply
+// discount: calculateCart falls back to the best auto-apply offer and
+// returns BOTH couponError and the applied coupon.
+// ─────────────────────────────────────────────────────────────────────────
+
+describe('calculateCart typed-code failure falls back to auto-apply', () => {
+  const { validateCoupon } = require('../src/utils/coupons');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('keeps the auto-apply discount and surfaces couponError when the typed code is invalid', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]); // settings
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1 }]]); // product
+    pool.query.mockResolvedValue([[]]); // store-type lookups etc.
+
+    validateCoupon.mockResolvedValueOnce({ ok: false, reason: 'Invalid coupon code' });
+    pickBestAutoApply.mockResolvedValueOnce({
+      coupon: { id: 3, code: null, title: 'Auto ₹20 off', discount_type: 'flat' },
+      discount: 20,
+    });
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        items: [{ productId: 1, quantity: 2 }],
+        coupon_code: 'BOGUS',
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.couponError).toEqual('Invalid coupon code');
+    expect(res.body.appliedCoupon).toMatchObject({ id: 3, autoApplied: true, discount: 20 });
+    expect(res.body.discount).toEqual(20);
+    expect(res.body.total).toEqual(190); // 200 + 10 delivery - 20
+  });
+
+  it('does NOT fall back when the user explicitly removed their coupon (no_auto_apply)', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]); // settings
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1 }]]); // product
+    pool.query.mockResolvedValue([[]]);
+
+    validateCoupon.mockResolvedValueOnce({ ok: false, reason: 'Invalid coupon code' });
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        items: [{ productId: 1, quantity: 2 }],
+        coupon_code: 'BOGUS',
+        no_auto_apply: true,
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.couponError).toEqual('Invalid coupon code');
+    expect(res.body.appliedCoupon).toBeNull();
+    expect(res.body.discount).toEqual(0);
+    expect(pickBestAutoApply).not.toHaveBeenCalled();
+  });
 });

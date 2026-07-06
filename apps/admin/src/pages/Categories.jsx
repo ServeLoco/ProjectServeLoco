@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CategoriesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
-import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
+import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
 import { useImageCropper } from '../hooks/useImageCropper';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
 import './Categories.css';
 
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+import { GENERIC_ERROR } from '../utils/constants';
 
 export default function Categories() {
   const [categories, setCategories] = useState([]);
@@ -105,7 +105,7 @@ export default function Categories() {
                 <tr key={c.id}>
                   <td>
                     <div className="category-info">
-                      <img src={normalizeImageUrl(c.imageUrl || c.image_url) || 'https://via.placeholder.com/48'} alt={c.name} className="category-thumbnail" />
+                      <img src={normalizeImageUrl(c.imageUrl || c.image_url) || FALLBACK_IMAGE} onError={handleImageError} alt={c.name} className="category-thumbnail" />
                       <div>
                         <span className="category-name">{c.name}</span>
                         <span className="category-slug">/{c.slug}</span>
@@ -193,6 +193,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
 
     const data = new FormData();
     data.append('image', file);
+    const previousPendingId = formData.image_id;
 
     try {
       setUploadingImage(true);
@@ -204,6 +205,11 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
         image_id: image.id,
         image_url: image.url,
       }));
+      // Discard the previous unsaved upload from this session so re-picking a
+      // photo before hitting Save doesn't leak an orphaned S3 object.
+      if (previousPendingId && previousPendingId !== category?.image_id) {
+        ImagesApi.delete(previousPendingId).catch(() => {});
+      }
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the category to apply it.' });
     } catch (err) {
       console.error(err);
@@ -215,7 +221,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
 
   const { fileInputProps, cropperProps } = useImageCropper({
     type: 'category',
-    defaultAspect: 1,
+    defaultAspect: 0.9,
     onCropped: uploadImageFile,
   });
 

@@ -11,7 +11,6 @@ const SECTION_ITEM_TYPES = {
   combo_block: 'combo',
 };
 const STORE_SPECIFIC_TYPES = ['packed', 'fast_food'];
-const DEFAULT_OFFER_BANNER_LIMIT = 10;
 const OFFER_BANNER_SLUG_SUFFIX = {
   packed: 'packed',
   fast_food: 'fast-food',
@@ -367,69 +366,6 @@ const mapOfferRows = (rows) => rows
     is_clickable: Boolean(r.is_clickable)
   }));
 
-const getDefaultOfferItems = async (expectedStoreType, limit = 6, offset = 0) => {
-  const params = [];
-  let query = `
-    SELECT o.*, NULL as section_item_id
-    FROM offers o
-    WHERE o.active = 1 AND o.deleted = 0
-  `;
-
-  if (expectedStoreType && expectedStoreType !== 'all') {
-    query += ' AND o.store_type = ?';
-    params.push(expectedStoreType);
-  }
-
-  query += ' ORDER BY o.updated_at DESC, o.id DESC LIMIT ? OFFSET ?';
-  params.push(limit, offset);
-
-  const [rows] = await pool.query(query, params);
-  await resolveImageUrls(rows);
-  return mapOfferRows(rows);
-};
-
-const getDefaultCategoryItems = async (expectedStoreType, limit = 8, offset = 0) => {
-  const params = [];
-  let query = `
-    SELECT c.*, c.display_order
-    FROM categories c
-    WHERE c.active = 1 AND c.deleted = 0
-  `;
-
-  if (expectedStoreType && expectedStoreType !== 'all') {
-    query += ' AND c.type = ?';
-    params.push(expectedStoreType);
-  }
-
-  query += ' ORDER BY c.display_order ASC, c.id ASC LIMIT ? OFFSET ?';
-  params.push(limit, offset);
-
-  const [rows] = await pool.query(query, params);
-  await resolveImageUrls(rows);
-  return mapCategoryRows(rows);
-};
-
-const getDefaultComboItems = async (expectedStoreType, limit = 6, offset = 0) => {
-  const params = [];
-  let query = `
-    SELECT p.*, 1 as is_combo, p.store_type as category_type
-    FROM combos p
-    WHERE p.available = 1 AND p.deleted = 0
-  `;
-
-  if (expectedStoreType && expectedStoreType !== 'all') {
-    query += ' AND p.store_type = ?';
-    params.push(expectedStoreType);
-  }
-
-  query += ' ORDER BY p.display_order ASC, p.id ASC LIMIT ? OFFSET ?';
-  params.push(limit, offset);
-
-  const [rows] = await pool.query(query, params);
-  await resolveImageUrls(rows);
-  await attachComboItems(rows);
-  return mapProductRows(rows);
-};
 
 /**
  * Public endpoint: GET /api/dashboard
@@ -458,7 +394,6 @@ const getDashboard = async (req, res) => {
     query += ' ORDER BY display_order ASC, id ASC';
 
     const [sections] = await pool.query(query, params);
-    const configuredTypes = new Set(sections.map(row => row.section_type));
     const resultSections = [];
 
     for (const section of sections) {
@@ -481,9 +416,6 @@ const getDashboard = async (req, res) => {
         );
         await resolveImageUrls(rows);
         items = mapOfferRows(rows);
-        if (items.length === 0) {
-          items = await getDefaultOfferItems(expectedStoreType, Math.max(Number(section.max_visible_items || 0), DEFAULT_OFFER_BANNER_LIMIT));
-        }
       } else if (section.section_type === 'category_grid') {
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, c.*
@@ -505,10 +437,6 @@ const getDashboard = async (req, res) => {
         }
         
         items = mapCategoryRows(filteredRows);
-        
-        if (items.length === 0) {
-          items = await getDefaultCategoryItems(expectedStoreType, section.max_visible_items || 8);
-        }
       } else if (section.section_type === 'product_block') {
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type
@@ -551,9 +479,6 @@ const getDashboard = async (req, res) => {
 
         let filteredRows = rows;
         items = mapProductRows(filteredRows);
-        if (items.length === 0 && section.slug === 'popular-combos') {
-          items = await getDefaultComboItems(expectedStoreType, section.max_visible_items || 6);
-        }
       }
 
       const maxVisible = section.section_type === 'offer_banner'
@@ -576,46 +501,6 @@ const getDashboard = async (req, res) => {
           totalItems,
           hasMore: totalItems > visibleItems.length,
           items: visibleItems
-        });
-      }
-    }
-
-    if (!configuredTypes.has('category_grid')) {
-      const categoryMaxVisible = 8;
-      const categoryItems = await getDefaultCategoryItems(expectedStoreType, categoryMaxVisible);
-      if (categoryItems.length > 0) {
-        resultSections.push({
-          id: 'default-categories-grid',
-          title: 'Shop by Category',
-          slug: 'categories-grid',
-          sectionType: 'category_grid',
-          storeType: expectedStoreType || 'packed',
-          displayOrder: 1,
-          maxVisibleItems: categoryMaxVisible,
-          showSeeAll: false,
-          totalItems: categoryItems.length,
-          hasMore: categoryItems.length >= categoryMaxVisible,
-          items: categoryItems
-        });
-      }
-    }
-
-    if (!configuredTypes.has('combo_block')) {
-      const comboMaxVisible = 6;
-      const comboItems = await getDefaultComboItems(expectedStoreType, comboMaxVisible);
-      if (comboItems.length > 0) {
-        resultSections.push({
-          id: 'default-popular-combos',
-          title: 'Popular Combos',
-          slug: 'popular-combos',
-          sectionType: 'combo_block',
-          storeType: expectedStoreType || 'packed',
-          displayOrder: 2,
-          maxVisibleItems: comboMaxVisible,
-          showSeeAll: true,
-          totalItems: comboItems.length,
-          hasMore: comboItems.length >= comboMaxVisible,
-          items: comboItems
         });
       }
     }
@@ -661,38 +546,6 @@ const getSectionItems = async (req, res) => {
 
     const [sections] = await pool.query(sectionQuery, sectionParams);
 
-    if (sections.length === 0 && slug === 'popular-combos') {
-      const items = await getDefaultComboItems(expectedStoreType, limitNumber, offset);
-      return res.status(200).json({
-        data: {
-          section: {
-            id: 'default-popular-combos',
-            title: 'Popular Combos',
-            slug: 'popular-combos',
-            sectionType: 'combo_block',
-            storeType: expectedStoreType || 'packed'
-          },
-          items
-        }
-      });
-    }
-
-    if (sections.length === 0 && slug === 'categories-grid') {
-      const items = await getDefaultCategoryItems(expectedStoreType, limitNumber, offset);
-      return res.status(200).json({
-        data: {
-          section: {
-            id: 'default-categories-grid',
-            title: 'Shop by Category',
-            slug: 'categories-grid',
-            sectionType: 'category_grid',
-            storeType: expectedStoreType || 'packed'
-          },
-          items
-        }
-      });
-    }
-
     if (sections.length === 0) {
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Dashboard section not found' });
     }
@@ -718,9 +571,6 @@ const getSectionItems = async (req, res) => {
       );
       await resolveImageUrls(rows);
       items = mapOfferRows(rows);
-      if (items.length === 0) {
-        items = await getDefaultOfferItems(expectedStoreType, Math.max(limitNumber, DEFAULT_OFFER_BANNER_LIMIT), offset);
-      }
     } else if (section.section_type === 'category_grid') {
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, c.*
@@ -742,10 +592,6 @@ const getSectionItems = async (req, res) => {
       }
       
       items = mapCategoryRows(filteredRows);
-      
-      if (items.length === 0 && offset === 0) {
-        items = await getDefaultCategoryItems(expectedStoreType, limitNumber, offset);
-      }
     } else if (section.section_type === 'product_block') {
       const productStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND cat.type = ?' : '';
       const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];

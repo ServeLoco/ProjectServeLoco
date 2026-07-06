@@ -18,6 +18,14 @@ const errorHandler = (err, req, res, next) => {
     code = 'VALIDATION_ERROR';
   }
 
+  // Never leak internal error details on 5xx responses. The real error is
+  // still captured in the server logs for debugging.
+  if (statusCode >= 500) {
+    console.error('[server-error]', req.method, req.originalUrl, err);
+    message = 'Something went wrong. Please try again.';
+    code = 'SERVER_ERROR';
+  }
+
   // Safe user-visible message
   const response = {
     code,
@@ -29,7 +37,7 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Never leak stack traces in production
-  if (process.env.DEBUG === 'true') {
+  if (process.env.DEBUG === 'true' && process.env.NODE_ENV !== 'production') {
     response.stack = err.stack;
   }
 

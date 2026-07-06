@@ -9,7 +9,6 @@ export const useSettingsStore = create(
     (set, get) => ({
       shopStatus: 'open',
       deliveryAvailable: true,
-      minimumOrder: 0,
       upiId: null,
       upiQrImageId: null,
       upiQrImageUrl: null,

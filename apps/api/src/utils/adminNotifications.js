@@ -2,7 +2,6 @@ const { pool } = require('../db/mysql');
 const { emitToAdmins } = require('../realtime/socket');
 
 const TYPES = {
-  PASSWORD_RESET_REQUESTED: 'password_reset_requested',
   NEW_ORDER: 'new_order',
   NEW_CUSTOMER: 'new_customer',
 };

@@ -5,13 +5,11 @@ import { subscribeRealtime } from '../api/realtimeClient';
 import './AdminNotificationsBell.css';
 
 const TYPE_ICONS = {
-  password_reset_requested: '🔑',
   new_order: '🛒',
   new_customer: '👤',
 };
 
 const TYPE_LABELS = {
-  password_reset_requested: 'Password reset',
   new_order: 'New order',
   new_customer: 'New customer',
 };

@@ -26,6 +26,7 @@ const config = {
   PORT: getEnv('PORT', localDefaults.PORT),
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '30d',
+  ADMIN_JWT_EXPIRES_IN: process.env.ADMIN_JWT_EXPIRES_IN || '12h',
   
   ADMIN_OWNER_ID: process.env.ADMIN_OWNER_ID || (ENV === 'test' ? 'test_admin' : undefined),
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || (ENV === 'test' ? 'test_pass' : undefined),
@@ -101,18 +102,20 @@ if (isProd) {
   if (!config.CORS_ORIGIN || config.CORS_ORIGIN === '*' || config.CORS_ORIGIN.includes('*')) {
     throw new Error('CORS_ORIGIN must be explicitly defined in production (no wildcards).');
   }
-  // In production, require ADMIN_PASSWORD_HASH (bcrypt) — plaintext is not allowed
+  // Admin login: ADMIN_PASSWORD_HASH (bcrypt) is preferred; plaintext
+  // ADMIN_PASSWORD is accepted as long as it isn't a known-weak default.
   if (config.ADMIN_PASSWORD_HASH) {
     if (!config.ADMIN_PASSWORD_HASH.startsWith('$2b$') && !config.ADMIN_PASSWORD_HASH.startsWith('$2a$')) {
       throw new Error('ADMIN_PASSWORD_HASH must be a valid bcrypt hash in production.');
     }
   } else if (config.ADMIN_PASSWORD) {
     if (config.ADMIN_PASSWORD === 'admin143' || config.ADMIN_PASSWORD === 'test_pass' || config.ADMIN_PASSWORD.length < 8) {
-      throw new Error('ADMIN_PASSWORD is too weak for production. Use ADMIN_PASSWORD_HASH instead.');
+      throw new Error('ADMIN_PASSWORD is too weak for production. Use a longer password or ADMIN_PASSWORD_HASH.');
     }
   } else {
     throw new Error('Either ADMIN_PASSWORD_HASH or ADMIN_PASSWORD must be set.');
   }
+  if (process.env.DEBUG === 'true') throw new Error('DEBUG must not be enabled in production.');
 }
 
 module.exports = config;

@@ -11,6 +11,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AppScreen,
   AppHeader,
@@ -18,6 +19,7 @@ import {
   Button,
   PressableScale,
   NotificationPermissionModal,
+  ErrorState,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useSettingsStore } from '../../../stores';
@@ -74,6 +76,7 @@ const getPaymentStatusColor = (status) => {
 export default function OrderDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+  const insets = useSafeAreaInsets();
   const orderId = route.params?.orderId;
   const supportPhone = useSettingsStore(state => state.supportPhone);
 
@@ -274,10 +277,11 @@ export default function OrderDetailScreen() {
     return (
       <AppScreen style={styles.container}>
         <AppHeader title="Order Details" onBack={() => navigation.goBack()} />
-        <View style={styles.center}>
-          <Text style={styles.infoValue}>{loadError || 'Order not found'}</Text>
-          <Button label="Retry" onPress={() => navigation.replace('OrderDetail', { orderId })} fullWidth={false} />
-        </View>
+        <ErrorState
+          message="Unable to load order details. Tap to retry."
+          onRetry={() => loadOrder(false)}
+          retryLabel="Retry"
+        />
       </AppScreen>
     );
   }
@@ -414,7 +418,14 @@ export default function OrderDetailScreen() {
                 ? 'Delivery Charge (Below Minimum)'
                 : 'Delivery Charge'}
             </Text>
-            <Text style={styles.billValue}>₹{order.bill.delivery}</Text>
+            {order.bill.freeDeliveryApplied ? (
+              <View style={styles.freeDeliveryValueRow}>
+                <Text style={styles.billStrikethrough}>₹{order.bill.delivery}</Text>
+                <Text style={[styles.billValue, { color: colors.success }]}>FREE</Text>
+              </View>
+            ) : (
+              <Text style={styles.billValue}>₹{order.bill.delivery}</Text>
+            )}
           </View>
           {order.bill.nightCharge > 0 && (
             <View style={styles.billRow}>
@@ -422,12 +433,16 @@ export default function OrderDetailScreen() {
               <Text style={[styles.billValue, { color: colors.warning || '#F59E0B' }]}>₹{order.bill.nightCharge}</Text>
             </View>
           )}
-          {order.bill.discount > 0 && (
-            <View style={styles.billRow}>
-              <Text style={[styles.billLabel, { color: colors.success }]}>Discount</Text>
-              <Text style={[styles.billValue, { color: colors.success }]}>- ₹{order.bill.discount}</Text>
-            </View>
-          )}
+          {(() => {
+            const discountToShow = order.bill.freeDeliveryApplied ? order.bill.itemDiscount : order.bill.discount;
+            if (!(discountToShow > 0)) return null;
+            return (
+              <View style={styles.billRow}>
+                <Text style={[styles.billLabel, { color: colors.success }]}>Discount</Text>
+                <Text style={[styles.billValue, { color: colors.success }]}>- ₹{discountToShow}</Text>
+              </View>
+            );
+          })()}
           <View style={styles.divider} />
           <View style={styles.billRow}>
             <Text style={styles.grandTotalLabel}>Grand Total</Text>
@@ -439,7 +454,7 @@ export default function OrderDetailScreen() {
 
       {/* Action Buttons */}
       {(order.canCancel || supportPhone) && (
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { paddingBottom: spacing.lg + insets.bottom }]}>
           <View style={styles.actionButtonsRow}>
             {order.canCancel && (
               <View style={styles.btnWrapper}>
@@ -781,6 +796,16 @@ const styles = StyleSheet.create({
   billValue: {
     ...typography.body,
     color: colors.textPrimary,
+  },
+  freeDeliveryValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  billStrikethrough: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textDecorationLine: 'line-through',
   },
   divider: {
     height: 1,

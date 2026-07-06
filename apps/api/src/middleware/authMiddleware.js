@@ -22,10 +22,13 @@ const requireCustomer = async (req, res, next) => {
     }
 
     const userId = payload.sub || payload.id;
-    
+
     if (process.env.NODE_ENV !== 'test') {
       const [rows] = await pool.query('SELECT blocked FROM users WHERE id = ?', [userId]);
-      if (rows.length > 0 && rows[0].blocked) {
+      if (rows.length === 0) {
+        return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Session is no longer valid. Please log in again.' });
+      }
+      if (rows[0].blocked) {
         return res.status(403).json({ code: 'FORBIDDEN', message: 'Your account is blocked' });
       }
     }

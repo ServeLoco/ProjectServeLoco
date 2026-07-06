@@ -1,15 +1,5 @@
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const config = require('../config/env');
-
-const hashPassword = async (password) => {
-  const saltRounds = 10;
-  return await bcrypt.hash(password, saltRounds);
-};
-
-const comparePassword = async (password, hash) => {
-  return await bcrypt.compare(password, hash);
-};
 
 const signCustomerToken = (userId) => {
   return jwt.sign(
@@ -23,7 +13,7 @@ const signAdminToken = (adminId) => {
   return jwt.sign(
     { sub: adminId, role: 'admin' },
     config.JWT_SECRET,
-    { expiresIn: config.JWT_EXPIRES_IN }
+    { expiresIn: process.env.ADMIN_JWT_EXPIRES_IN || '12h' }
   );
 };
 
@@ -32,8 +22,6 @@ const verifyToken = (token) => {
 };
 
 module.exports = {
-  hashPassword,
-  comparePassword,
   signCustomerToken,
   signAdminToken,
   verifyToken

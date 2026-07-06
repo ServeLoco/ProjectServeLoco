@@ -173,7 +173,6 @@ function normalizeSettings(payload = {}) {
   return {
     shopStatus: asBoolean(pickFirst(settings.shopOpen, settings.shop_open, settings.isShopOpen), true) ? 'open' : 'closed',
     deliveryAvailable: asBoolean(pickFirst(settings.deliveryAvailable, settings.delivery_available), true),
-    minimumOrder: numberOrZero(pickFirst(settings.minimumOrderAmount, settings.minimum_order_amount, settings.minimumOrder)),
     supportPhone: pickFirst(settings.supportPhone, settings.support_phone, settings.whatsapp_number, null),
     upiId: pickFirst(settings.upiId, settings.upi_id, null),
     upiQrImageId: pickFirst(settings.upiQrImageId, settings.upi_qr_image_id, null),
@@ -193,17 +192,28 @@ function normalizeCartCalculation(payload = {}) {
     deliveryCharge: numberOrZero(pickFirst(bill.deliveryCharge, bill.delivery_charge)),
     nightCharge: numberOrZero(pickFirst(bill.nightCharge, bill.night_charge)),
     discount: numberOrZero(pickFirst(bill.discount, bill.discountAmount, bill.discount_amount)),
+    itemDiscount: numberOrZero(pickFirst(bill.itemDiscount, bill.item_discount)),
+    isFreeDeliveryApplied: asBoolean(pickFirst(bill.isFreeDeliveryApplied, bill.is_free_delivery_applied), false),
     grandTotal: numberOrZero(pickFirst(bill.grandTotal, bill.grand_total, bill.total, bill.payableAmount)),
-    minimumOrder: numberOrZero(pickFirst(bill.minimumOrder, bill.minimum_order, bill.minimumOrderAmount)),
     paymentStatus: pickFirst(bill.paymentStatus, bill.payment_status, 'Pending'),
     deliveryDistanceKm: pickFirst(bill.deliveryDistanceKm, bill.delivery_distance_km, null),
     deliveryRadiusKm: pickFirst(bill.deliveryRadiusKm, bill.delivery_radius_km, null),
     deliveryWithinRange: asBoolean(pickFirst(bill.deliveryWithinRange, bill.delivery_within_range), true),
     requiresLocation: asBoolean(pickFirst(bill.requiresLocation, bill.requires_location), false),
-    freeDeliveryOfferActive: asBoolean(pickFirst(bill.freeDeliveryOfferActive, bill.free_delivery_offer_active), false),
-    freeAboveThresholdActive: asBoolean(pickFirst(bill.freeAboveThresholdActive, bill.free_delivery_above_minimum_active), true),
-    belowThreshold: asBoolean(pickFirst(bill.belowThreshold, bill.below_threshold, bill.belowThresholdDelivery, bill.below_threshold_delivery), false),
-    belowThresholdDeliveryCharge: numberOrZero(pickFirst(bill.belowThresholdDeliveryCharge, bill.below_threshold_delivery_charge)),
+    // Free-delivery progress toward the nearest eligible free_delivery coupon
+    // threshold, e.g. { minOrder: 149, amountRemaining: 30 }. Null when a
+    // free_delivery coupon is already applied (see appliedCoupon) or none exists.
+    freeDeliveryProgress: (() => {
+      const progress = pickFirst(bill.freeDeliveryProgress, bill.free_delivery_progress, null);
+      if (!progress) return null;
+      return {
+        minOrder: numberOrZero(pickFirst(progress.minOrder, progress.min_order)),
+        amountRemaining: numberOrZero(pickFirst(progress.amountRemaining, progress.amount_remaining)),
+        minItemCount: numberOrZero(pickFirst(progress.minItemCount, progress.min_item_count)),
+        itemsRemaining: numberOrZero(pickFirst(progress.itemsRemaining, progress.items_remaining)),
+        thresholdType: pickFirst(progress.thresholdType, progress.threshold_type, 'amount'),
+      };
+    })(),
     deliveryMessage: pickFirst(bill.deliveryMessage, bill.delivery_message, bill.message, ''),
     deliveryType: pickFirst(bill.deliveryType, bill.delivery_type, 'standard'),
     fastDeliveryEnabled: asBoolean(pickFirst(bill.fastDeliveryEnabled, bill.fast_delivery_enabled), false),
@@ -212,7 +222,42 @@ function normalizeCartCalculation(payload = {}) {
     fastDeliveryMinutes: numberOrZero(pickFirst(bill.fastDeliveryMinutes, bill.fast_delivery_minutes)),
     standardDeliveryCharge: numberOrZero(pickFirst(bill.standardDeliveryCharge, bill.standard_delivery_charge, bill.deliveryCharge, bill.delivery_charge)),
     standardDeliveryMinutes: numberOrZero(pickFirst(bill.standardDeliveryMinutes, bill.standard_delivery_minutes)),
+    appliedCoupon: bill.appliedCoupon || null,
+    couponError: pickFirst(bill.couponError, bill.coupon_error, null),
+    availableCoupons: asArray(bill.availableCoupons || bill.available_coupons, []),
+    // Nearest not-yet-unlocked coupon (any type except free_delivery, which
+    // has its own freeDeliveryProgress hint above). Null when nothing
+    // qualifies, a coupon is already applied, or the threshold is already met.
+    nearestOfferProgress: (() => {
+      const progress = pickFirst(bill.nearestOfferProgress, bill.nearest_offer_progress, null);
+      if (!progress) return null;
+      return {
+        title: pickFirst(progress.title, ''),
+        discountType: pickFirst(progress.discountType, progress.discount_type, null),
+        minOrder: numberOrZero(pickFirst(progress.minOrder, progress.min_order)),
+        amountRemaining: numberOrZero(pickFirst(progress.amountRemaining, progress.amount_remaining)),
+        minItemCount: numberOrZero(pickFirst(progress.minItemCount, progress.min_item_count)),
+        itemsRemaining: numberOrZero(pickFirst(progress.itemsRemaining, progress.items_remaining)),
+        thresholdType: pickFirst(progress.thresholdType, progress.threshold_type, 'amount'),
+        savingsText: pickFirst(progress.savingsText, progress.savings_text, ''),
+        requiresCode: asBoolean(pickFirst(progress.requiresCode, progress.requires_code), false),
+        autoApply: asBoolean(pickFirst(progress.autoApply, progress.auto_apply), false),
+      };
+    })(),
   };
+}
+
+function buildProgressHintText(progress, { suffix = '', includeWorth = false } = {}) {
+  if (!progress) return '';
+  const parts = [];
+  if (progress.amountRemaining > 0) parts.push(`₹${progress.amountRemaining.toFixed(0)} more`);
+  if (progress.itemsRemaining > 0) parts.push(`${progress.itemsRemaining} more item(s)`);
+  if (parts.length === 0) return '';
+  const joined = parts.join(' and ');
+  if (includeWorth) {
+    return `Add items worth ${joined}${suffix}`;
+  }
+  return `Add ${joined}${suffix}`;
 }
 
 function normalizeProfile(user = {}) {
@@ -269,7 +314,14 @@ function normalizeOrder(order = {}) {
   const subtotal = numberOrZero(pickFirst(bill.subtotal, order.subtotal, order.itemTotal, order.item_total));
   const delivery = numberOrZero(pickFirst(bill.delivery, bill.deliveryCharge, bill.delivery_charge, order.deliveryCharge, order.delivery_charge));
   const nightCharge = numberOrZero(pickFirst(bill.nightCharge, bill.night_charge, order.nightCharge, order.night_charge));
-  const discount = numberOrZero(pickFirst(bill.discount, bill.discountAmount, order.discount));
+  const discount = numberOrZero(pickFirst(bill.discount, bill.discountAmount, order.discount, order.discount_amount));
+  const freeDeliveryWaiver = numberOrZero(pickFirst(
+    bill.freeDeliveryWaiver, bill.free_delivery_waiver_amount,
+    order.freeDeliveryWaiver, order.free_delivery_waiver_amount,
+  ));
+  const itemDiscount = numberOrZero(pickFirst(
+    bill.itemDiscount, order.itemDiscount, Math.max(0, discount - freeDeliveryWaiver),
+  ));
   const grandTotal = numberOrZero(pickFirst(
     bill.grandTotal,
     bill.grand_total,
@@ -316,6 +368,9 @@ function normalizeOrder(order = {}) {
       delivery,
       nightCharge,
       discount,
+      freeDeliveryWaiver,
+      itemDiscount,
+      freeDeliveryApplied: freeDeliveryWaiver > 0,
       grandTotal,
       deliveryType: pickFirst(order.deliveryType, order.delivery_type, 'standard'),
       belowThresholdDelivery: asBoolean(pickFirst(order.belowThresholdDelivery, order.below_threshold_delivery), false),
@@ -399,6 +454,7 @@ export const mapNotification = normalizeNotification;
 
 export {
   asArray,
+  buildProgressHintText,
   normalizeCartCalculation,
   normalizeCategory,
   normalizeDashboard,

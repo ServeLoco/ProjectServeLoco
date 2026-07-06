@@ -8,25 +8,63 @@ const orderAutoAccept = require('./realtime/orderAutoAccept');
 const PORT = config.PORT;
 let server;
 
-// Hard-delete users whose deletion grace period (30 days) has elapsed.
-// Runs once on startup and every 24 hours after that. Cascades to the
-// user's orders / addresses / reset requests through the existing FK
-// constraints where appropriate. We intentionally delete the reset requests
-// (no FK cascade) explicitly first so the user record is the only thing
-// holding audit data — otherwise an orphaned reset_request row could survive.
+// Purge users whose deletion grace period (30 days) has elapsed. Runs once
+// on startup and every 24 hours after that. Because orders.customer_id is
+// ON DELETE RESTRICT, a user who ever placed an order can't be hard-deleted
+// (the old batched DELETE ... IN (?) failed the WHOLE batch on the first such
+// user, forever). We now process users one at a time: order-less users are
+// hard-deleted; users with order history are anonymized in place so the order
+// history survives. blocked users are purgeable too, so the WHERE no longer
+// filters on blocked.
 const purgeExpiredDeletions = async () => {
   try {
     const [rows] = await pool.query(
       `SELECT id FROM users
         WHERE deletion_requested_at IS NOT NULL
-          AND deletion_requested_at < (NOW() - INTERVAL 30 DAY)
-          AND blocked = 0`
+          AND deletion_requested_at < (NOW() - INTERVAL 30 DAY)`
     );
     if (rows.length === 0) return;
-    const ids = rows.map(r => r.id);
-    await pool.query('DELETE FROM password_reset_requests WHERE user_id IN (?)', [ids]);
-    await pool.query('DELETE FROM users WHERE id IN (?)', [ids]);
-    console.log(`[purge-expired-deletions] hard-deleted ${ids.length} user(s) past 30-day grace`);
+    let hardDeleted = 0;
+    let anonymized = 0;
+    for (const { id } of rows) {
+      try {
+        // Reset requests have no FK cascade — clear them first so no orphan
+        // audit row survives the user record.
+        await pool.query('DELETE FROM password_reset_requests WHERE user_id = ?', [id]);
+        // orders.customer_id is ON DELETE RESTRICT: only hard-delete when the
+        // user never ordered. Otherwise anonymize so order history survives.
+        const [countRows] = await pool.query(
+          'SELECT COUNT(*) AS cnt FROM orders WHERE customer_id = ?',
+          [id]
+        );
+        if (countRows[0].cnt === 0) {
+          await pool.query('DELETE FROM users WHERE id = ?', [id]);
+          hardDeleted += 1;
+        } else {
+          // phone is UNIQUE NOT NULL — CONCAT('deleted-', id) keeps it unique.
+          await pool.query(
+            `UPDATE users SET
+              name = 'Deleted User',
+              phone = CONCAT('deleted-', id),
+              password_hash = NULL,
+              firebase_uid = NULL,
+              whatsapp_number = NULL,
+              address = NULL,
+              short_address = NULL,
+              push_token = NULL,
+              blocked = 1,
+              deletion_requested_at = NULL
+            WHERE id = ?`,
+            [id]
+          );
+          anonymized += 1;
+        }
+      } catch (e) {
+        // One user failing must not stop the rest of the batch.
+        console.error(`[purge-expired-deletions] failed for user ${id}:`, e.message);
+      }
+    }
+    console.log(`[purge-expired-deletions] hard-deleted ${hardDeleted}, anonymized ${anonymized} user(s) past 30-day grace`);
   } catch (e) {
     console.error('[purge-expired-deletions] failed:', e.message);
   }
@@ -57,7 +95,10 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// Only auto-start when run directly (`node src/server.js`). Under Jest
+// (require.main !== module) the file is imported solely to test
+// purgeExpiredDeletions, so we must not boot a real HTTP server here.
+if (require.main === module) startServer();
 
 // Graceful shutdown helpers
 const shutdown = async () => {
@@ -82,4 +123,7 @@ const shutdown = async () => {
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-module.exports = server;
+// Exported for unit testing (purgeExpiredDeletions). `server` is assigned
+// asynchronously inside startServer(), so it is not meaningfully exported;
+// nothing imports this module at runtime — the process is started directly.
+module.exports = { purgeExpiredDeletions };

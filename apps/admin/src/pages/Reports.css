@@ -1,6 +1,6 @@
 .reports-container {
   padding: 0;
-  max-width: 1480px;
+  max-width: var(--page-max-width, 1480px);
   margin: 0 auto;
   animation: fadeIn 0.4s ease-out;
 }
@@ -20,28 +20,38 @@
   font-weight: 850;
   color: var(--text-primary);
   letter-spacing: 0;
+  margin: 0;
+  font-family: 'Outfit', 'Inter', sans-serif;
 }
 
 .reports-controls {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .date-filter {
-  padding: 0.75rem 1rem;
+  padding: 0.7rem 1rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   background: var(--bg-color);
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   outline: none;
   min-width: 150px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.date-filter:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
 }
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
   margin-bottom: 1.25rem;
 }
@@ -54,33 +64,43 @@
   border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
+  transition: transform var(--transition-spring), box-shadow var(--transition-normal), border-color var(--transition-fast);
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
 }
 
 .summary-label {
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 800;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
   margin-bottom: 0.5rem;
 }
 
 .summary-value {
-  font-size: 2rem;
+  font-size: 1.9rem;
   font-weight: 800;
   color: var(--text-primary);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  letter-spacing: -0.02em;
 }
 
 .summary-subtext {
   font-size: 0.85rem;
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .reports-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 1.25rem;
   margin-bottom: 1.25rem;
 }
 
@@ -90,15 +110,21 @@
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
   padding: 1.5rem;
+  transition: box-shadow var(--transition-normal);
+}
+
+.report-section:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .report-section-title {
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 800;
   color: var(--text-primary);
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-color);
+  font-family: 'Outfit', 'Inter', sans-serif;
 }
 
 .breakdown-list {
@@ -110,8 +136,10 @@
 .breakdown-item {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 0.75rem 0;
   border-bottom: 1px dashed var(--border-color);
+  gap: 1rem;
 }
 
 .breakdown-item:last-child {
@@ -121,16 +149,62 @@
 .breakdown-name {
   font-weight: 500;
   color: var(--text-primary);
+  font-size: 0.9rem;
 }
 
 .breakdown-stat {
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--primary-color);
+  font-size: 0.95rem;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {
   .reports-grid {
     grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .reports-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .summary-card {
+    padding: 1rem;
+  }
+
+  .summary-value {
+    font-size: 1.5rem;
+  }
+
+  .report-section {
+    padding: 1.25rem;
+  }
+
+  .breakdown-item {
+    padding: 0.6rem 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .date-filter {
+    width: 100%;
   }
 }
 

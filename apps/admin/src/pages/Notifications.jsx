@@ -18,7 +18,7 @@ const QUICK_TEMPLATES = [
   { title: '🎊 Thank You!', body: 'Thank you for being our valued customer. Enjoy 10% off your next order!', type: 'success' }
 ];
 
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+import { GENERIC_ERROR } from '../utils/constants';
 
 const EVENT_LABELS = {
   order_placed:           { label: 'Order Placed',        icon: '🎉', trigger: 'When customer places an order' },
@@ -134,10 +134,15 @@ export default function Notifications() {
       const res = await NotificationsApi.create(payload);
       const recipientCount = res?.data?.recipientCount ?? 'all';
       const matched = res?.data?.matchedPhones;
+      const unmatched = res?.data?.unmatchedPhones;
+
       const matchedHint = Array.isArray(matched) && matched.length
         ? ` (matched: ${matched.join(', ')})`
         : '';
-      setSuccessMsg(`✅ Sent successfully to ${recipientCount} customer${recipientCount === 1 ? '' : 's'}!${matchedHint}`);
+      const unmatchedHint = Array.isArray(unmatched) && unmatched.length
+        ? ` ⚠️ ${unmatched.length} numbers not found: ${unmatched.join(', ')}`
+        : '';
+      setSuccessMsg(`✅ Sent successfully to ${recipientCount} customer${recipientCount === 1 ? '' : 's'}!${matchedHint}${unmatchedHint}`);
       setTitle('');
       setBody('');
       setPhonesInput('');

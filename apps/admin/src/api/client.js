@@ -39,6 +39,17 @@ export const apiClient = async (endpoint, options = {}) => {
     config.body = JSON.stringify(config.body);
   }
 
+  const TIMEOUT_MS = 15000;
+  let timeoutId;
+  let internalController;
+  if (!requestOptions.signal) {
+    internalController = new AbortController();
+    timeoutId = setTimeout(() => internalController.abort(), TIMEOUT_MS);
+    config.signal = internalController.signal;
+  } else {
+    config.signal = requestOptions.signal;
+  }
+
   try {
     const response = await fetch(url, config);
     
@@ -74,6 +85,11 @@ export const apiClient = async (endpoint, options = {}) => {
 
     return data;
   } catch (error) {
+    if (error?.name === 'AbortError' || error?.message?.includes('aborted')) {
+      return Promise.reject(new Error('Request timed out'));
+    }
     return Promise.reject(error);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
   }
 };

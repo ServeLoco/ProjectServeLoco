@@ -1,24 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import { addEventListener as addNetInfoListener } from '@react-native-community/netinfo';
 import { getApiBaseUrl } from '../api/config';
 
 /**
  * useNetworkStatus
- * Lightweight online/offline detection without adding @react-native-community/netinfo.
+ * Lightweight online/offline detection for the customer app.
  *
  * Approach:
- *   1. Periodically ping a lightweight endpoint to confirm the server is
- *      reachable. The ping is cheap (HEAD /health) and throttled.
- *   2. Treat consecutive failures as "offline"; a single success clears it.
+ *   1. Subscribe to NetInfo for device-level connectivity (isConnected) so
+ *      we can distinguish "no network at all" from "network up but server
+ *      unreachable".
+ *   2. Periodically ping a lightweight endpoint to confirm the server is
+ *      reachable. The ping is cheap (HEAD /ping) and throttled.
+ *   3. Treat consecutive ping failures as "offline"; a single success clears
+ *      it.
  *
  * Returns:
- *   { isOnline: boolean, isReachable: boolean, lastCheckedAt: number|null }
+ *   { isOnline: boolean, isReachable: boolean, isDeviceOffline: boolean,
+ *     lastCheckedAt: number|null }
  */
 const DEFAULT_CHECK_INTERVAL_MS = 30 * 1000;
 
 export function useNetworkStatus({
   checkIntervalMs = DEFAULT_CHECK_INTERVAL_MS,
-  healthPath = '/health',
+  healthPath = '/ping',
   failureThreshold = 2,
 } = {}) {
   // Best-effort: try the navigator.onLine hint when present. It works on web
@@ -31,12 +37,20 @@ export function useNetworkStatus({
       : true;
   const [isReachable, setIsReachable] = useState(true);
   const [lastCheckedAt, setLastCheckedAt] = useState(null);
+  const [isDeviceOffline, setIsDeviceOffline] = useState(false);
   const consecutiveFailuresRef = useRef(0);
   const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = addNetInfoListener(state => {
+      setIsDeviceOffline(!state.isConnected);
+    });
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -97,5 +111,5 @@ export function useNetworkStatus({
   // device. We deliberately ignore navigator.onLine because on React Native
   // it's unreliable (often returns false even with working network) and
   // would falsely show the offline banner forever.
-  return { isOnline: isReachable, isReachable, lastCheckedAt };
+  return { isOnline: isReachable, isReachable, isDeviceOffline, lastCheckedAt };
 }

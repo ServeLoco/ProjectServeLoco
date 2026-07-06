@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, typography, spacing, radius, borderWidth } from '../../theme';
+import { buildProgressHintText } from '../../utils';
 
 /**
  * BillSummary
@@ -10,9 +11,14 @@ import { colors, typography, spacing, radius, borderWidth } from '../../theme';
  *   subtotal          - number
  *   deliveryCharge    - number
  *   nightCharge       - number (0 or undefined = not shown)
- *   discount          - number (0 or undefined = not shown)
+ *   discount          - number (0 or undefined = not shown) — total coupon discount
+ *   itemDiscount      - number — discount excluding any free-delivery waiver;
+ *                        shown on the Discount row when isFreeDeliveryApplied
+ *                        is true so delivery isn't double-counted
+ *   isFreeDeliveryApplied - bool — renders Delivery Charge as struck-through + FREE
  *   total             - number (grand total)
- *   minimumOrder      - number (shows warning if subtotal < minimumOrder)
+ *   freeDeliveryProgress - { minOrder, amountRemaining } | null — from the
+ *                           cart-calculate response; shows a hint when set
  *   style             - container style
  */
 function BillSummary({
@@ -20,37 +26,47 @@ function BillSummary({
   deliveryCharge = 0,
   nightCharge = 0,
   discount = 0,
+  itemDiscount = null,
+  isFreeDeliveryApplied = false,
   total = 0,
-  minimumOrder,
-  belowThreshold = false,
+  freeDeliveryProgress = null,
   style,
 }) {
   const showNight = nightCharge > 0;
-  const showDiscount = discount > 0;
-  const belowMin = minimumOrder && subtotal < minimumOrder && subtotal > 0;
+  const discountToShow = isFreeDeliveryApplied ? (itemDiscount ?? Math.max(0, discount - deliveryCharge)) : discount;
+  const showDiscount = discountToShow > 0;
 
   return (
     <View style={[styles.container, style]}>
       <Text style={styles.heading}>Bill Summary</Text>
 
       <BillRow label="Subtotal" value={`₹${subtotal.toFixed(0)}`} />
-      <BillRow label={belowThreshold ? 'Delivery Charge (Below Minimum)' : 'Delivery Charge'} value={deliveryCharge === 0 ? 'Free' : `₹${deliveryCharge.toFixed(0)}`} />
+      {isFreeDeliveryApplied ? (
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>Delivery Charge</Text>
+          <View style={styles.freeDeliveryValueRow}>
+            <Text style={styles.deliveryStrikethrough}>₹{deliveryCharge.toFixed(0)}</Text>
+            <Text style={[styles.rowValue, { color: colors.success }]}>FREE</Text>
+          </View>
+        </View>
+      ) : (
+        <BillRow label="Delivery Charge" value={`₹${deliveryCharge.toFixed(0)}`} />
+      )}
       {showNight ? (
         <BillRow label="Night Charge" value={`₹${nightCharge.toFixed(0)}`} warn />
       ) : null}
       {showDiscount ? (
-        <BillRow label="Discount" value={`- ₹${discount.toFixed(0)}`} success />
+        <BillRow label="Discount" value={`- ₹${discountToShow.toFixed(0)}`} success />
       ) : null}
 
       <View style={styles.divider} />
 
       <BillRow label="Grand Total" value={`₹${total.toFixed(0)}`} total />
 
-      {belowMin ? (
+      {freeDeliveryProgress ? (
         <View style={styles.minOrderWarn}>
           <Text style={styles.minOrderText}>
-            Minimum order is ₹{minimumOrder}. Add items worth ₹{' '}
-            {(minimumOrder - subtotal).toFixed(0)} more.
+            {buildProgressHintText(freeDeliveryProgress, { suffix: ' to unlock free delivery.' })}
           </Text>
         </View>
       ) : null}
@@ -117,6 +133,16 @@ const styles = StyleSheet.create({
     height: borderWidth.thin,
     backgroundColor: colors.divider,
     marginVertical: spacing.xs,
+  },
+  freeDeliveryValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  deliveryStrikethrough: {
+    ...typography.label,
+    color: colors.textSecondary,
+    textDecorationLine: 'line-through',
   },
   minOrderWarn: {
     backgroundColor: colors.warningLight,

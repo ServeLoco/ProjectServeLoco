@@ -282,12 +282,13 @@ const updateCombo = async (req, res) => {
   const { id } = req.params;
   const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items, store_type } = req.validatedData;
 
-  const [existing] = await pool.query('SELECT id, store_type FROM combos WHERE id = ? AND deleted = 0', [id]);
+  const [existing] = await pool.query('SELECT id, store_type, image_id FROM combos WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Combo not found' });
   }
 
   const existingCombo = existing[0];
+  const previousImageId = existingCombo.image_id;
   const targetStoreType = store_type || existingCombo.store_type;
   const validatedComboItems = await validateComboItems(combo_items, targetStoreType, { required: combo_items !== undefined });
 
@@ -332,6 +333,10 @@ const updateCombo = async (req, res) => {
     throw error;
   } finally {
     connection.release();
+  }
+
+  if (previousImageId && String(previousImageId) !== String(image_id)) {
+    await cleanupOrphanedImage(previousImageId);
   }
 
   res.status(200).json({ message: 'Combo updated' });

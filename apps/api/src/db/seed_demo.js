@@ -1,8 +1,13 @@
 require('dotenv').config();
+
+if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
+  console.error('Refusing to run demo seed in production. Set ALLOW_DEMO_SEED=true to override.');
+  process.exit(1);
+}
+
 const { pool } = require('./mysql');
 const { getDb, connect } = require('./mongodb');
 const { ObjectId } = require('mongodb');
-const bcrypt = require('bcrypt'); // use bcrypt (not bcryptjs) — matches package.json
 
 async function seedDemoData() {
   console.log('Seeding demo data...');
@@ -10,35 +15,32 @@ async function seedDemoData() {
   try {
     await connect();
     // 1. Settings and Offers
-    await pool.query('INSERT IGNORE INTO settings (id, shop_open, minimum_order_amount, delivery_charge, free_delivery_above) VALUES (1, 1, 50, 10, 500)');
+    await pool.query('INSERT IGNORE INTO settings (id, shop_open, delivery_charge) VALUES (1, 1, 10)');
     await pool.query('DELETE FROM offers WHERE title = "Weekend Snack Combo"');
     await pool.query('INSERT INTO offers (title, description, active) VALUES ("Weekend Snack Combo", "Get 20% extra on all snacks this weekend!", 1)');
 
-    // 2. Customers — note column is password_hash (not password)
-    const passwordHash = await bcrypt.hash('password123', 10);
+    // 2. Customers — OTP-only, no password
     await pool.query(
-      `INSERT INTO users (name, phone, whatsapp_number, password_hash, address, trusted, blocked)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO users (name, phone, whatsapp_number, address, trusted, blocked)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
         name = VALUES(name),
         whatsapp_number = VALUES(whatsapp_number),
-        password_hash = VALUES(password_hash),
         address = VALUES(address),
         trusted = VALUES(trusted),
         blocked = VALUES(blocked)`,
-      ['Demo User', '9999999999', '9999999999', passwordHash, '123 Demo Street', 1, 0]
+      ['Demo User', '9999999999', '9999999999', '123 Demo Street', 1, 0]
     );
     await pool.query(
-      `INSERT INTO users (name, phone, whatsapp_number, password_hash, address, trusted, blocked)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO users (name, phone, whatsapp_number, address, trusted, blocked)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
         name = VALUES(name),
         whatsapp_number = VALUES(whatsapp_number),
-        password_hash = VALUES(password_hash),
         address = VALUES(address),
         trusted = VALUES(trusted),
         blocked = VALUES(blocked)`,
-      ['Blocked User', '8888888888', '8888888888', passwordHash, '456 Bad Street', 0, 1]
+      ['Blocked User', '8888888888', '8888888888', '456 Bad Street', 0, 1]
     );
 
     const [customerRows] = await pool.query('SELECT id FROM users WHERE phone = ?', ['9999999999']);
@@ -128,8 +130,35 @@ async function seedDemoData() {
       );
     }
 
+    // 6. Coupons — a representative spread of discount types/rules for
+    // exercising the admin panel and customer coupon UI against real data.
+    await pool.query(
+      "DELETE FROM coupons WHERE code IN ('WELCOME50', 'FREEDEL', 'SAVE20', 'COMBO30', 'FREEDEL3', 'ORDER299')"
+    );
+    await pool.query(
+      `INSERT INTO coupons (
+        code, title, description,
+        discount_type, discount_value, max_discount_amount,
+        min_order_amount, min_item_count, max_order_amount, applies_to,
+        total_usage_limit, per_user_usage_limit, first_order_only,
+        auto_apply, requires_code, priority, active
+      ) VALUES
+        ('WELCOME50', 'Welcome Offer', 'Flat 50% off up to ₹100 on your first order',
+          'percent', 50, 100, 0, NULL, NULL, 'all', NULL, 1, 1, 0, 1, 10, 1),
+        ('FREEDEL', 'Free Delivery', 'Free delivery on orders above ₹199',
+          'free_delivery', 0, NULL, 199, NULL, NULL, 'all', NULL, NULL, 0, 1, 0, 5, 1),
+        ('SAVE20', 'Flat 20% Off', 'Flat 20% off, no minimum order value',
+          'percent', 20, 150, 0, NULL, NULL, 'all', NULL, 5, 0, 0, 1, 1, 1),
+        ('COMBO30', 'Combo Meal Deal', '30% off on combo meals over ₹300',
+          'percent', 30, 200, 300, NULL, NULL, 'fast_food', 500, 3, 0, 0, 1, 3, 1),
+        ('FREEDEL3', 'Free Delivery (3 items)', 'Free delivery when you add 3 or more items',
+          'free_delivery', 0, NULL, 0, 3, NULL, 'all', NULL, NULL, 0, 1, 0, 6, 1),
+        ('ORDER299', '₹50 off + 2 items', '₹50 off when order is ₹299+ and has 2+ items',
+          'flat', 50, NULL, 299, 2, NULL, 'all', NULL, NULL, 0, 0, 1, 4, 1)`
+    );
+
     console.log('Demo data seeded successfully.');
-    console.log('Test credentials: phone=9999999999 password=password123');
+    console.log('Test credentials: phone=9999999999 (OTP login)');
     process.exit(0);
   } catch (err) {
     console.error('Error seeding demo data:', err);

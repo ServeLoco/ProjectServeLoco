@@ -22,6 +22,7 @@ import {
   LoadingSkeleton,
   PressableScale,
   ProductImage,
+  ErrorState,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
@@ -210,16 +211,12 @@ export default function CategoriesScreen() {
           {isLoading ? (
             renderSkeletonList()
           ) : isError ? (
-            <View style={styles.emptyState}>
-              <AppIcon name="close" size={48} color={colors.error} style={styles.emptyEmoji} />
-              <Text style={styles.emptyTitle}>Failed to load categories</Text>
-              <Text style={styles.emptyDesc}>Please check your connection and try again.</Text>
-              <Button
-                label="Retry"
-                onPress={() => setReloadToken(value => value + 1)}
-                style={styles.emptyBtn}
-              />
-            </View>
+            <ErrorState
+              message="Unable to load categories. Tap to retry."
+              onRetry={() => setReloadToken(value => value + 1)}
+              retryLabel="Retry"
+              style={styles.emptyState}
+            />
           ) : (
             <Animated.ScrollView
               contentContainerStyle={styles.scrollContent}

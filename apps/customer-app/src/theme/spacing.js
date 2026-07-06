@@ -26,6 +26,7 @@ export const spacing = {
   lg: 24,
   xl: 32,
   xxl: 48,
+  xxxl: 64,
 
   // Screen layout
   screenPaddingH: 16,   // horizontal padding for screens

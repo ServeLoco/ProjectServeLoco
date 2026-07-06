@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { CustomersApi } from '../api';
+import MessageBanner from '../components/MessageBanner';
+import { GENERIC_ERROR } from '../utils/constants';
 import './Customers.css';
-
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
@@ -19,34 +19,12 @@ export default function Customers() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const [resetRequests, setResetRequests] = useState([]);
-  const [showResetMenu, setShowResetMenu] = useState(false);
+  const [actionMessage, setActionMessage] = useState(null);
 
   useEffect(() => {
     const timer = setTimeout(() => fetchCustomers(1), 500);
     return () => clearTimeout(timer);
   }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    fetchPasswordResetRequests();
-  }, []);
-
-  // Close the reset-request dropdown when clicking outside or pressing Escape.
-  useEffect(() => {
-    if (!showResetMenu) return undefined;
-    const handleDown = (e) => {
-      if (!e.target.closest('.reset-request-pill') && !e.target.closest('.reset-request-menu')) {
-        setShowResetMenu(false);
-      }
-    };
-    const handleKey = (e) => { if (e.key === 'Escape') setShowResetMenu(false); };
-    document.addEventListener('mousedown', handleDown);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handleDown);
-      document.removeEventListener('keydown', handleKey);
-    };
-  }, [showResetMenu]);
 
   const fetchCustomers = async (page = 1) => {
     try {
@@ -68,15 +46,6 @@ export default function Customers() {
     }
   };
 
-  const fetchPasswordResetRequests = async () => {
-    try {
-      const res = await CustomersApi.listPasswordResetRequests({ status: 'pending' });
-      setResetRequests(res.data || []);
-    } catch (err) {
-      console.warn('Failed to fetch password reset requests:', err);
-    }
-  };
-
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
@@ -95,20 +64,6 @@ export default function Customers() {
       setUpdating(false);
     }
   };
-
-  const handlePendingResetClick = () => {
-    // Toggle a small dropdown listing every pending request so the admin can
-    // pick which one to action. Previous behaviour opened only the first.
-    if (resetRequests.length === 1) {
-      handleRowClick(resetRequests[0].user_id);
-      return;
-    }
-    setShowResetMenu(prev => !prev);
-  };
-
-  const getPendingResetForCustomer = (customerId) => (
-    resetRequests.find(request => Number(request.user_id) === Number(customerId))
-  );
 
   const closeDrawer = () => {
     setDrawerOpen(false);
@@ -152,100 +107,18 @@ export default function Customers() {
     }
   };
 
-  const handleReviewPasswordReset = async (action) => {
-    const request = selectedCustomer?.pending_password_reset_request;
-    if (!request) return;
-    const isApprove = action === 'approve';
-    const confirmed = window.confirm(
-      `${isApprove ? 'Approve' : 'Reject'} password reset request for ${selectedCustomer.name}?`
-    );
-    if (!confirmed) return;
-
-    try {
-      setUpdating(true);
-      if (isApprove) {
-        await CustomersApi.approvePasswordReset(request.id);
-      } else {
-        await CustomersApi.rejectPasswordReset(request.id);
-      }
-      setSelectedCustomer(prev => ({ ...prev, pending_password_reset_request: null }));
-      fetchPasswordResetRequests();
-      alert(`Password reset request ${isApprove ? 'approved' : 'rejected'} successfully.`);
-    } catch (err) {
-      console.error(err);
-      setError(GENERIC_ERROR);
-    } finally {
-      setUpdating(false);
-    }
-  };
-
   return (
     <div className="customers-container">
       <header className="customers-header">
         <h1 className="customers-title">Customers</h1>
-        {resetRequests.length > 0 && (
-          <div style={{ position: 'relative' }}>
-            <button
-              type="button"
-              className="reset-request-pill"
-              onClick={handlePendingResetClick}
-              disabled={updating}
-              aria-haspopup={resetRequests.length > 1 ? 'true' : undefined}
-              aria-expanded={showResetMenu ? 'true' : 'false'}
-            >
-              {resetRequests.length} pending password reset{resetRequests.length === 1 ? '' : 's'} {resetRequests.length > 1 ? '▾' : ''}
-            </button>
-            {showResetMenu && resetRequests.length > 1 && (
-              <div
-                className="reset-request-menu"
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: 6,
-                  background: 'var(--surface-color, #fff)',
-                  border: '1px solid var(--border-color, #e5e7eb)',
-                  borderRadius: 8,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-                  minWidth: 280,
-                  zIndex: 50,
-                  padding: 4,
-                }}
-                role="menu"
-              >
-                {resetRequests.map(r => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => { setShowResetMenu(false); handleRowClick(r.user_id); }}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      textAlign: 'left',
-                      background: 'transparent',
-                      border: 'none',
-                      padding: '8px 12px',
-                      borderRadius: 4,
-                      cursor: 'pointer',
-                      color: 'var(--text-primary, #111)',
-                      fontSize: '0.9rem',
-                    }}
-                    role="menuitem"
-                  >
-                    User #{r.user_id}
-                    {r.user_name ? ` · ${r.user_name}` : ''}
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #666)' }}>
-                      Tap to review
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        <MessageBanner
+          type={actionMessage?.type || 'info'}
+          message={actionMessage?.text}
+          onDismiss={() => setActionMessage(null)}
+        />
       </header>
 
-      <section className="filter-bar">
+      <section className="customers-filter-bar">
         <input
           type="text"
           name="search"
@@ -285,24 +158,20 @@ export default function Customers() {
             ) : customers.length === 0 ? (
               <tr><td colSpan="4" style={{ textAlign: 'center', padding: '2rem' }}>No customers found.</td></tr>
             ) : (
-              customers.map(c => {
-                const pendingReset = getPendingResetForCustomer(c.id);
-                return (
+              customers.map(c => (
                 <tr key={c.id} onClick={() => handleRowClick(c.id)}>
                   <td>
                     <div className="customer-name">
                       {c.name}
                       {c.trusted ? <span className="badge-trusted">Trusted</span> : null}
                       {c.blocked ? <span className="badge-blocked">Blocked</span> : null}
-                      {pendingReset ? <span className="badge-reset">Password Reset</span> : null}
                     </div>
                   </td>
                   <td>{c.phone}</td>
                   <td>{c.order_count || c.total_orders || 0}</td>
                   <td>{new Date(c.created_at).toLocaleDateString()}</td>
                 </tr>
-                );
-              })
+              ))
             )}
           </tbody>
         </table>
@@ -320,7 +189,7 @@ export default function Customers() {
               <h3 className="drawer-title">Customer Details</h3>
               <button className="drawer-close" onClick={closeDrawer}>&times;</button>
             </div>
-            
+
             <div className="drawer-body">
               <div className="customer-detail-header">
                 <div className="customer-avatar">
@@ -379,8 +248,8 @@ export default function Customers() {
               <div className="action-card">
                 <h4>Trust Status</h4>
                 <p>Trusted customers may bypass certain verifications.</p>
-                <button 
-                  className="btn-secondary" 
+                <button
+                  className="btn-secondary"
                   style={{ width: '100%', borderColor: selectedCustomer.trusted ? 'var(--border-color)' : 'var(--success-color)', color: selectedCustomer.trusted ? 'inherit' : 'var(--success-color)' }}
                   onClick={handleToggleTrust}
                   disabled={updating}
@@ -389,45 +258,11 @@ export default function Customers() {
                 </button>
               </div>
 
-              {selectedCustomer.pending_password_reset_request ? (
-                <div className="action-card password-reset-card">
-                  <h4>Password Reset Request</h4>
-                  <p>
-                    Customer requested a new password on{' '}
-                    {new Date(selectedCustomer.pending_password_reset_request.requested_at).toLocaleString()}.
-                    Verify the customer before approving.
-                  </p>
-                  <div className="password-reset-actions">
-                    <button
-                      type="button"
-                      className="btn-primary"
-                      onClick={() => handleReviewPasswordReset('approve')}
-                      disabled={updating}
-                    >
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => handleReviewPasswordReset('reject')}
-                      disabled={updating}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="action-card">
-                  <h4>Password Reset</h4>
-                  <p>No pending password reset request for this customer.</p>
-                </div>
-              )}
-
               <div className="action-card" style={{ borderColor: 'var(--danger-border)' }}>
                 <h4 style={{ color: 'var(--danger-color)' }}>Block Customer</h4>
                 <p>Blocked customers are immediately prevented from placing new orders.</p>
-                <button 
-                  className="btn-secondary" 
+                <button
+                  className="btn-secondary"
                   style={{ width: '100%', borderColor: selectedCustomer.blocked ? 'var(--border-color)' : 'var(--danger-color)', color: selectedCustomer.blocked ? 'inherit' : 'var(--danger-color)' }}
                   onClick={handleToggleBlock}
                   disabled={updating}

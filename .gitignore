@@ -15,3 +15,11 @@ firebase-service-account.json
 # (API key, project ID) and is required by the CI/CD build pipeline.
 GoogleService-Info.plist
 .antigravitycli/
+
+# AI tool configs/state
+.claude/
+.codebase-memory/
+.kimchi/
+.opencode/
+.mcp.json
+skills-lock.json

@@ -27,16 +27,18 @@ function resolveDefaultApiBaseUrl() {
     return normalizeBaseUrl(envBaseUrl);
   }
 
-  if (__DEV__) {
-    const devServerHost = getDevServerHost();
+  if (!__DEV__) {
+    throw new Error('EXPO_PUBLIC_API_BASE_URL must be set for release builds.');
+  }
 
-    if (devServerHost) {
-      return `http://${devServerHost}:3000/api`;
-    }
+  const devServerHost = getDevServerHost();
 
-    if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:3000/api';
-    }
+  if (devServerHost) {
+    return `http://${devServerHost}:3000/api`;
+  }
+
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:3000/api';
   }
 
   return 'http://localhost:3000/api';

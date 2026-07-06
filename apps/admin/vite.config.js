@@ -9,7 +9,18 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false, // admin doesn't need PWA install prompt
+      manifest: {
+        name: 'VillKro Admin',
+        short_name: 'VK Admin',
+        description: 'VillKro store administration panel',
+        theme_color: '#4f46e5',
+        background_color: '#ffffff',
+        display: 'standalone',
+        start_url: '/',
+      },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2,ttf,json}'],
         runtimeCaching: [
           {

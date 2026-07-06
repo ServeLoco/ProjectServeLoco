@@ -12,6 +12,7 @@ import Products from './pages/Products';
 import Combos from './pages/Combos';
 import Categories from './pages/Categories';
 import Offers from './pages/Offers';
+import Coupons from './pages/Coupons';
 import MobileDashboard from './pages/MobileDashboard';
 import Customers from './pages/Customers';
 import Notifications from './pages/Notifications';
@@ -19,7 +20,6 @@ import Settings from './pages/Settings';
 import Images from './pages/Images';
 import Reports from './pages/Reports';
 import Health from './pages/Health';
-import AuditLogs from './pages/AuditLogs';
 import BulkImport from './pages/BulkImport';
 
 class ErrorBoundary extends React.Component {
@@ -72,6 +72,7 @@ function App() {
                   <Route path="/combos" element={<Combos />} />
                   <Route path="/categories" element={<Categories />} />
                   <Route path="/offers" element={<Offers />} />
+                  <Route path="/coupons" element={<Coupons />} />
                   <Route path="/mobile-dashboard" element={<MobileDashboard />} />
                   <Route path="/customers" element={<Customers />} />
                   <Route path="/notifications" element={<Notifications />} />
@@ -79,7 +80,6 @@ function App() {
                   <Route path="/images" element={<Images />} />
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/health" element={<Health />} />
-                  <Route path="/audit" element={<AuditLogs />} />
                   <Route path="/bulk-import" element={<BulkImport />} />
                 </Route>
               </Route>

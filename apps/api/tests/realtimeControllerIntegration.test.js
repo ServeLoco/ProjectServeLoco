@@ -17,24 +17,23 @@ jest.mock('../src/utils/notificationService', () => ({
   createOrderNotification: jest.fn(),
 }));
 
-jest.mock('../src/utils/thresholdDelivery', () => ({
-  calculateThresholdDeliveryCharge: jest.fn(() => ({
-    charge: 30,
-    belowThreshold: false,
-    belowThresholdCharge: 0,
-    message: 'Standard delivery',
-  })),
-}));
-
 jest.mock('../src/utils/money', () => ({
   roundMoney: (v) => Math.round(v * 100) / 100,
   toMoney: (v) => Number(v),
 }));
 
+jest.mock('../src/utils/coupons', () => ({
+  validateCoupon: jest.fn().mockResolvedValue({ ok: false, reason: 'No coupon' }),
+  pickBestAutoApply: jest.fn().mockResolvedValue(null),
+  findApplicableCoupons: jest.fn().mockResolvedValue([]),
+  getNextFreeDeliveryThreshold: jest.fn().mockResolvedValue(null),
+  computeDiscount: jest.fn().mockReturnValue(0),
+  checkEligibility: jest.fn().mockResolvedValue({ ok: false, reason: 'No coupon' }),
+}));
+
 const { pool } = require('../src/db/mysql');
 const realtimeEvents = require('../src/realtime/orderEvents');
 const notificationService = require('../src/utils/notificationService');
-const { calculateThresholdDeliveryCharge } = require('../src/utils/thresholdDelivery');
 
 const orderController = require('../src/controllers/orderController');
 const adminController = require('../src/controllers/adminController');
@@ -278,7 +277,16 @@ describe('Controller -> realtime event integration', () => {
       pool.query.mockResolvedValueOnce([[{
         id: 705, status: 'Out for Delivery', customer_id: 4, order_number: 'OD-705',
       }]]);
-      pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
+      // The cancel path runs in a transaction (order UPDATE + coupon
+      // redemption soft-cancel) on a dedicated connection.
+      const mockConnection = {
+        beginTransaction: jest.fn(),
+        query: jest.fn().mockResolvedValue([{ affectedRows: 1 }]),
+        commit: jest.fn(),
+        rollback: jest.fn(),
+        release: jest.fn(),
+      };
+      pool.getConnection.mockResolvedValueOnce(mockConnection);
       pool.query.mockResolvedValueOnce([[{
         id: 705, status: 'Cancelled', customer_id: 4, order_number: 'OD-705',
         payment_status: 'Pending', total: 400,
@@ -324,10 +332,10 @@ describe('Controller -> realtime event integration', () => {
     });
 
     it('does not emit when payment status has not changed', async () => {
-      pool.query.mockResolvedValueOnce([[{
-        id: 801, payment_status: 'Pending', status: 'Accepted', customer_id: 1,
-      }]]);
-      pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
+      // Same-value update short-circuits BEFORE the compare-and-set UPDATE:
+      // with a real DB, `UPDATE ... WHERE payment_status = ?` reports
+      // affectedRows = 0 when the value is unchanged, which would read as a
+      // bogus concurrency conflict (409). Only the initial SELECT runs.
       pool.query.mockResolvedValueOnce([[{
         id: 801, payment_status: 'Pending', status: 'Accepted', customer_id: 1,
       }]]);
@@ -338,6 +346,7 @@ describe('Controller -> realtime event integration', () => {
       await adminController.updateOrderPayment(req, res);
 
       expect(res.statusCode).toBe(200);
+      expect(pool.query).toHaveBeenCalledTimes(1);
       expect(realtimeEvents.emitOrderPaymentUpdated).not.toHaveBeenCalled();
     });
 

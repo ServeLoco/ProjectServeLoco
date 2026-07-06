@@ -1,12 +1,21 @@
 const express = require('express');
 const multer = require('multer');
-const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getPasswordResetRequests, approvePasswordResetRequest, rejectPasswordResetRequest, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
+const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage, bulkUpdateProducts, bulkDeleteProducts } = require('../controllers/productController');
 const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability } = require('../controllers/comboController');
 const { getNotificationTemplates, updateNotificationTemplate, resetNotificationTemplate } = require('../controllers/notificationTemplateController');
 const { previewBulkImport, commitBulkImport } = require('../controllers/bulkImportController');
+const {
+  getAdminCoupons,
+  getAdminCouponById,
+  createCoupon,
+  updateCoupon,
+  deleteCoupon,
+  duplicateCoupon,
+  getCouponRedemptions,
+} = require('../controllers/couponController');
 const {
   getAdminSections,
   getAdminSectionById,
@@ -20,7 +29,6 @@ const {
   reorderAdminSectionItems
 } = require('../controllers/dashboardController');
 const { requireAdmin } = require('../middleware/authMiddleware');
-const { auditLog } = require('../middleware/auditMiddleware');
 const { validate, isString, isId, isBoolean, isNumericAmount, isPositiveInteger, isNonNegativeInteger, validatePagination, normalizeField } = require('../validators');
 const asyncHandler = require('../utils/asyncHandler');
 const rateLimit = require('express-rate-limit');
@@ -320,8 +328,223 @@ const productImageSchema = (req) => {
   return { errors, data: { id: req.params.id, image_id: imageId } };
 };
 
+const dashboardSectionSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const body = req.body || {};
+  if (!body.title || typeof body.title !== 'string' || body.title.trim() === '') {
+    errors.push('title is required');
+  } else {
+    data.title = body.title.trim();
+  }
+  if (body.display_order !== undefined) {
+    const n = Number(body.display_order);
+    if (!Number.isInteger(n) || n < 0) errors.push('display_order must be a non-negative integer');
+    else data.display_order = n;
+  }
+  if (body.active !== undefined) {
+    data.active = (body.active === true || body.active === 'true' || body.active === 1 || body.active === '1') ? 1 : 0;
+  }
+  return { errors, data };
+};
+
+const dashboardSectionReorderSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const ids = req.body?.sectionIds;
+  if (!Array.isArray(ids) || ids.some(id => !Number.isInteger(Number(id)) || Number(id) < 0)) {
+    errors.push('sectionIds must be an array of non-negative integers');
+  } else {
+    data.sectionIds = ids.map(Number);
+  }
+  return { errors, data };
+};
+
+const dashboardSectionUpdateSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const body = req.body || {};
+  if (body.title !== undefined) {
+    if (typeof body.title !== 'string' || body.title.trim() === '') errors.push('title must be a non-empty string');
+    else data.title = body.title.trim();
+  }
+  if (body.display_order !== undefined) {
+    const n = Number(body.display_order);
+    if (!Number.isInteger(n) || n < 0) errors.push('display_order must be a non-negative integer');
+    else data.display_order = n;
+  }
+  if (body.active !== undefined) {
+    data.active = (body.active === true || body.active === 'true' || body.active === 1 || body.active === '1') ? 1 : 0;
+  }
+  return { errors, data };
+};
+
+const dashboardSectionItemSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const body = req.body || {};
+  const validItemTypes = ['offer', 'category', 'product', 'combo'];
+  if (!body.item_type || typeof body.item_type !== 'string' || !validItemTypes.includes(body.item_type)) {
+    errors.push('item_type is required and must be one of: offer, category, product, combo');
+  } else {
+    data.item_type = body.item_type;
+  }
+  if (body.item_id === undefined || body.item_id === null || !Number.isInteger(Number(body.item_id)) || Number(body.item_id) < 1) {
+    errors.push('item_id is required and must be a positive integer');
+  } else {
+    data.item_id = Number(body.item_id);
+  }
+  if (body.display_order !== undefined) {
+    const n = Number(body.display_order);
+    if (!Number.isInteger(n) || n < 0) errors.push('display_order must be a non-negative integer');
+    else data.display_order = n;
+  }
+  return { errors, data };
+};
+
+const dashboardSectionItemReorderSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const ids = req.body?.itemIds;
+  if (!Array.isArray(ids) || ids.some(id => !Number.isInteger(Number(id)) || Number(id) < 0)) {
+    errors.push('itemIds must be an array of non-negative integers');
+  } else {
+    data.itemIds = ids.map(Number);
+  }
+  return { errors, data };
+};
+
+const dashboardSectionItemUpdateSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const body = req.body || {};
+  const validItemTypes = ['offer', 'category', 'product', 'combo'];
+  if (body.item_type !== undefined) {
+    if (typeof body.item_type !== 'string' || !validItemTypes.includes(body.item_type)) {
+      errors.push('item_type must be one of: offer, category, product, combo');
+    } else {
+      data.item_type = body.item_type;
+    }
+  }
+  if (body.item_id !== undefined) {
+    if (!Number.isInteger(Number(body.item_id)) || Number(body.item_id) < 1) errors.push('item_id must be a positive integer');
+    else data.item_id = Number(body.item_id);
+  }
+  if (body.display_order !== undefined) {
+    const n = Number(body.display_order);
+    if (!Number.isInteger(n) || n < 0) errors.push('display_order must be a non-negative integer');
+    else data.display_order = n;
+  }
+  return { errors, data };
+};
+
+const offerSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const body = req.body || {};
+  if (req.method === 'POST' && (!body.title || typeof body.title !== 'string' || body.title.trim() === '')) {
+    errors.push('title is required');
+  } else if (body.title !== undefined) {
+    data.title = body.title.trim();
+  }
+  if (body.description !== undefined) data.description = body.description;
+  if (body.active !== undefined) {
+    data.active = (body.active === true || body.active === 'true' || body.active === 1 || body.active === '1') ? 1 : 0;
+  }
+  if (body.image_id !== undefined) data.image_id = body.image_id;
+  if (body.imageId !== undefined) data.imageId = body.imageId;
+  if (body.store_type !== undefined) data.store_type = body.store_type;
+  if (body.storeType !== undefined) data.storeType = body.storeType;
+  if (body.is_clickable !== undefined) {
+    data.is_clickable = (body.is_clickable === true || body.is_clickable === 'true' || body.is_clickable === 1 || body.is_clickable === '1') ? 1 : 0;
+  }
+  if (body.isClickable !== undefined) {
+    data.isClickable = (body.isClickable === true || body.isClickable === 'true' || body.isClickable === 1 || body.isClickable === '1') ? 1 : 0;
+  }
+  return { errors, data };
+};
+
+const offerProductSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const body = req.body || {};
+  const productId = body.productId !== undefined ? body.productId : body.product_id;
+  if (!productId || !Number.isInteger(Number(productId)) || Number(productId) < 1) {
+    errors.push('productId is required');
+  } else {
+    data.productId = Number(productId);
+    data.product_id = Number(productId);
+  }
+  return { errors, data };
+};
+
+const offerProductReorderSchema = (req) => {
+  const errors = [];
+  const data = {};
+  const ids = req.body?.productIds;
+  if (!Array.isArray(ids) || ids.some(id => !Number.isInteger(Number(id)) || Number(id) < 0)) {
+    errors.push('productIds must be an array of non-negative integers');
+  } else {
+    data.productIds = ids.map(Number);
+  }
+  return { errors, data };
+};
+
+// Type-gates the fields couponController actually reads from req.body.
+// Business rules (code required when requires_code, percent ∈ [0,100], flat
+// cap, duplicate codes) stay in the controller — this only rejects garbage
+// types. Empty string / null mean "clear the field" for the nullable ones,
+// matching the controller's toNullIfEmpty/toIntOrNull handling.
+const couponSchema = (req) => {
+  const errors = [];
+  const body = req.body || {};
+  const isEmptyish = (v) => v === undefined || v === null || v === '';
+  const isBoolish = (v) => [true, false, 'true', 'false', 0, 1, '0', '1'].includes(v);
+
+  if (!isEmptyish(body.code) && typeof body.code !== 'string') errors.push('code must be a string');
+  if (req.method === 'POST' && (!body.title || typeof body.title !== 'string' || body.title.trim() === '')) {
+    errors.push('title is required');
+  } else if (body.title !== undefined && typeof body.title !== 'string') {
+    errors.push('title must be a string');
+  }
+  if (body.discount_type !== undefined && !['flat', 'percent', 'free_delivery'].includes(body.discount_type)) {
+    errors.push('discount_type must be one of: flat, percent, free_delivery');
+  }
+  for (const field of ['discount_value', 'min_order_amount', 'priority']) {
+    if (!isEmptyish(body[field]) && !Number.isFinite(Number(body[field]))) {
+      errors.push(`${field} must be a number`);
+    }
+  }
+  for (const field of ['max_discount_amount', 'max_order_amount']) {
+    if (!isEmptyish(body[field]) && !Number.isFinite(Number(body[field]))) {
+      errors.push(`${field} must be a number or null`);
+    }
+  }
+  for (const field of ['total_usage_limit', 'per_user_usage_limit', 'first_n_orders', 'min_item_count']) {
+    if (!isEmptyish(body[field]) && (!Number.isInteger(Number(body[field])) || Number(body[field]) < 0)) {
+      errors.push(`${field} must be a non-negative integer or null`);
+    }
+  }
+  for (const field of ['active', 'auto_apply', 'requires_code', 'first_order_only']) {
+    if (body[field] !== undefined && !isBoolish(body[field])) {
+      errors.push(`${field} must be a boolean`);
+    }
+  }
+  if (body.target_audience !== undefined && !['all', 'selected'].includes(body.target_audience)) {
+    errors.push('target_audience must be all or selected');
+  }
+  if (body.targeted_user_ids !== undefined && !Array.isArray(body.targeted_user_ids)) {
+    errors.push('targeted_user_ids must be an array');
+  }
+  // Controller reads req.body directly — pass it through untouched so the
+  // camelCase/snake_case duplicates and nullable clears survive.
+  return { errors, data: body };
+};
+
+const couponDuplicateSchema = () => ({ errors: [], data: {} });
+
 // Routes
-router.post('/login', loginLimiter, validate(loginSchema), login);
+router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(login));
 router.get('/me', requireAdmin, me);
 
 // Customers
@@ -332,30 +555,26 @@ router.patch('/customers/:id/block', requireAdmin, validate(blockSchema), asyncH
 router.put('/customers/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
 router.patch('/customers/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
 
-router.get('/password-reset-requests', requireAdmin, asyncHandler(getPasswordResetRequests));
-router.patch('/password-reset-requests/:id/approve', requireAdmin, auditLog, asyncHandler(approvePasswordResetRequest));
-router.patch('/password-reset-requests/:id/reject', requireAdmin, auditLog, asyncHandler(rejectPasswordResetRequest));
-
 router.get('/categories', requireAdmin, asyncHandler(getAdminCategories));
-router.post('/categories', requireAdmin, auditLog, validate(categorySchema), asyncHandler(createCategory));
-router.put('/categories/:id', requireAdmin, auditLog, validate(categorySchema), asyncHandler(updateCategory));
-router.delete('/categories/:id', requireAdmin, auditLog, asyncHandler(deleteCategory));
+router.post('/categories', requireAdmin, validate(categorySchema), asyncHandler(createCategory));
+router.put('/categories/:id', requireAdmin, validate(categorySchema), asyncHandler(updateCategory));
+router.delete('/categories/:id', requireAdmin, asyncHandler(deleteCategory));
 
 router.get('/products', requireAdmin, asyncHandler(getAdminProducts));
-router.post('/products', requireAdmin, auditLog, validate(productSchema), asyncHandler(createProduct));
+router.post('/products', requireAdmin, validate(productSchema), asyncHandler(createProduct));
 
 // Bulk action routes — MUST be registered before /:id routes to prevent Express
 // matching the literal string "bulk" as a product ID parameter.
-router.patch('/products/bulk', requireAdmin, auditLog, asyncHandler(bulkUpdateProducts));
-router.delete('/products/bulk', requireAdmin, auditLog, asyncHandler(bulkDeleteProducts));
+router.patch('/products/bulk', requireAdmin, asyncHandler(bulkUpdateProducts));
+router.delete('/products/bulk', requireAdmin, asyncHandler(bulkDeleteProducts));
 
 router.get('/products/:id', requireAdmin, asyncHandler(getAdminProductById));
-router.put('/products/:id', requireAdmin, auditLog, validate(productSchema), asyncHandler(updateProduct));
-router.delete('/products/:id', requireAdmin, auditLog, asyncHandler(deleteProduct));
-router.patch('/products/:id/availability', requireAdmin, auditLog, validate(productAvailabilitySchema), asyncHandler(updateProductAvailability));
-router.patch('/products/:id/image', requireAdmin, auditLog, validate(productImageSchema), asyncHandler(updateProductImage));
+router.put('/products/:id', requireAdmin, validate(productSchema), asyncHandler(updateProduct));
+router.delete('/products/:id', requireAdmin, asyncHandler(deleteProduct));
+router.patch('/products/:id/availability', requireAdmin, validate(productAvailabilitySchema), asyncHandler(updateProductAvailability));
+router.patch('/products/:id/image', requireAdmin, validate(productImageSchema), asyncHandler(updateProductImage));
 // Bulk import: ?preview=true for dry-run, no query param for commit
-router.post('/products/bulk-import', requireAdmin, auditLog, bulkUpload, asyncHandler(async (req, res) => {
+router.post('/products/bulk-import', requireAdmin, bulkUpload, asyncHandler(async (req, res) => {
   if (req.query.preview === 'true') {
     return previewBulkImport(req, res);
   }
@@ -364,26 +583,26 @@ router.post('/products/bulk-import', requireAdmin, auditLog, bulkUpload, asyncHa
 
 router.get('/combos', requireAdmin, asyncHandler(getAdminCombos));
 router.get('/combos/:id', requireAdmin, asyncHandler(getAdminComboById));
-router.post('/combos', requireAdmin, auditLog, validate(comboSchema), asyncHandler(createCombo));
-router.put('/combos/:id', requireAdmin, auditLog, validate(comboSchema), asyncHandler(updateCombo));
-router.delete('/combos/:id', requireAdmin, auditLog, asyncHandler(deleteCombo));
-router.patch('/combos/:id/availability', requireAdmin, auditLog, validate(comboAvailabilitySchema), asyncHandler(updateComboAvailability));
+router.post('/combos', requireAdmin, validate(comboSchema), asyncHandler(createCombo));
+router.put('/combos/:id', requireAdmin, validate(comboSchema), asyncHandler(updateCombo));
+router.delete('/combos/:id', requireAdmin, asyncHandler(deleteCombo));
+router.patch('/combos/:id/availability', requireAdmin, validate(comboAvailabilitySchema), asyncHandler(updateComboAvailability));
 
 router.get('/dashboard', requireAdmin, asyncHandler(getDashboard));
 
 // Admin Dashboard Sections CRUD
 router.get('/dashboard-sections', requireAdmin, asyncHandler(getAdminSections));
-router.post('/dashboard-sections', requireAdmin, auditLog, asyncHandler(createAdminSection));
-router.patch('/dashboard-sections/reorder', requireAdmin, auditLog, asyncHandler(reorderAdminSections));
+router.post('/dashboard-sections', requireAdmin, validate(dashboardSectionSchema), asyncHandler(createAdminSection));
+router.patch('/dashboard-sections/reorder', requireAdmin, validate(dashboardSectionReorderSchema), asyncHandler(reorderAdminSections));
 router.get('/dashboard-sections/:id', requireAdmin, asyncHandler(getAdminSectionById));
-router.patch('/dashboard-sections/:id', requireAdmin, auditLog, asyncHandler(updateAdminSection));
-router.delete('/dashboard-sections/:id', requireAdmin, auditLog, asyncHandler(deleteAdminSection));
+router.patch('/dashboard-sections/:id', requireAdmin, validate(dashboardSectionUpdateSchema), asyncHandler(updateAdminSection));
+router.delete('/dashboard-sections/:id', requireAdmin, asyncHandler(deleteAdminSection));
 
 // Section Items
-router.post('/dashboard-sections/:id/items', requireAdmin, auditLog, asyncHandler(addAdminSectionItem));
-router.patch('/dashboard-sections/:id/items/reorder', requireAdmin, auditLog, asyncHandler(reorderAdminSectionItems));
-router.patch('/dashboard-sections/:id/items/:itemId', requireAdmin, auditLog, asyncHandler(updateAdminSectionItem));
-router.delete('/dashboard-sections/:id/items/:itemId', requireAdmin, auditLog, asyncHandler(deleteAdminSectionItem));
+router.post('/dashboard-sections/:id/items', requireAdmin, validate(dashboardSectionItemSchema), asyncHandler(addAdminSectionItem));
+router.patch('/dashboard-sections/:id/items/reorder', requireAdmin, validate(dashboardSectionItemReorderSchema), asyncHandler(reorderAdminSectionItems));
+router.patch('/dashboard-sections/:id/items/:itemId', requireAdmin, validate(dashboardSectionItemUpdateSchema), asyncHandler(updateAdminSectionItem));
+router.delete('/dashboard-sections/:id/items/:itemId', requireAdmin, asyncHandler(deleteAdminSectionItem));
 
 router.get('/reports/sales', requireAdmin, asyncHandler(getSalesReport));
 router.get('/reports/customers', requireAdmin, asyncHandler(getCustomersReport));
@@ -391,30 +610,37 @@ router.get('/reports/top-products', requireAdmin, asyncHandler(getTopProductsRep
 
 router.get('/orders', requireAdmin, asyncHandler(getAdminOrders));
 router.get('/orders/:id', requireAdmin, asyncHandler(getAdminOrderById));
-router.patch('/orders/:id/status', requireAdmin, auditLog, asyncHandler(updateOrderStatus));
-router.patch('/orders/:id/payment', requireAdmin, auditLog, asyncHandler(updateOrderPayment));
+router.patch('/orders/:id/status', requireAdmin, asyncHandler(updateOrderStatus));
+router.patch('/orders/:id/payment', requireAdmin, asyncHandler(updateOrderPayment));
 
 // Settings
 router.get('/settings', requireAdmin, asyncHandler(getSettings));
-router.patch('/settings', requireAdmin, auditLog, asyncHandler(updateSettings));
+router.patch('/settings', requireAdmin, asyncHandler(updateSettings));
 router.get('/offers/active', requireAdmin, asyncHandler(getActiveOffer));
 router.get('/offers', requireAdmin, asyncHandler(getAdminOffers));
-router.post('/offers', requireAdmin, auditLog, asyncHandler(createOffer));
-router.patch('/offers/:id', requireAdmin, auditLog, asyncHandler(updateOffer));
-router.delete('/offers/:id', requireAdmin, auditLog, asyncHandler(deleteOffer));
+router.post('/offers', requireAdmin, validate(offerSchema), asyncHandler(createOffer));
+router.patch('/offers/:id', requireAdmin, validate(offerSchema), asyncHandler(updateOffer));
+router.delete('/offers/:id', requireAdmin, asyncHandler(deleteOffer));
 router.get('/offers/:id/products', requireAdmin, asyncHandler(getOfferProducts));
-router.post('/offers/:id/products', requireAdmin, auditLog, asyncHandler(addOfferProduct));
-router.delete('/offers/:id/products/:productId', requireAdmin, auditLog, asyncHandler(removeOfferProduct));
-router.patch('/offers/:id/products/reorder', requireAdmin, auditLog, asyncHandler(reorderOfferProducts));
+router.post('/offers/:id/products', requireAdmin, validate(offerProductSchema), asyncHandler(addOfferProduct));
+router.delete('/offers/:id/products/:productId', requireAdmin, asyncHandler(removeOfferProduct));
+router.patch('/offers/:id/products/reorder', requireAdmin, validate(offerProductReorderSchema), asyncHandler(reorderOfferProducts));
 
-// Audit
-router.get('/audit', requireAdmin, asyncHandler(getAuditLogs));
+// Coupons — admin-managed discount codes & auto-apply offers.
+router.get('/coupons', requireAdmin, asyncHandler(getAdminCoupons));
+router.get('/coupons/:id', requireAdmin, asyncHandler(getAdminCouponById));
+router.post('/coupons', requireAdmin, validate(couponSchema), asyncHandler(createCoupon));
+router.put('/coupons/:id', requireAdmin, validate(couponSchema), asyncHandler(updateCoupon));
+router.patch('/coupons/:id', requireAdmin, validate(couponSchema), asyncHandler(updateCoupon));
+router.delete('/coupons/:id', requireAdmin, asyncHandler(deleteCoupon));
+router.post('/coupons/:id/duplicate', requireAdmin, validate(couponDuplicateSchema), asyncHandler(duplicateCoupon));
+router.get('/coupons/:id/redemptions', requireAdmin, asyncHandler(getCouponRedemptions));
 
 // Notifications
 router.get('/notifications', requireAdmin, asyncHandler(getAdminNotifications));
-router.post('/notifications', requireAdmin, auditLog, asyncHandler(createAdminNotification));
+router.post('/notifications', requireAdmin, asyncHandler(createAdminNotification));
   router.get('/notifications/:id', requireAdmin, asyncHandler(getAdminNotificationById));
-  router.delete('/notifications/:id', requireAdmin, auditLog, asyncHandler(deleteAdminNotification));
+  router.delete('/notifications/:id', requireAdmin, asyncHandler(deleteAdminNotification));
 
   // Admin inbox (bell icon). Distinct from the broadcast composer above.
   router.get('/inbox', requireAdmin, asyncHandler(getInbox));
@@ -425,7 +651,7 @@ router.post('/notifications', requireAdmin, auditLog, asyncHandler(createAdminNo
 
 // Notification Templates
 router.get('/notification-templates', requireAdmin, asyncHandler(getNotificationTemplates));
-router.patch('/notification-templates/:id', requireAdmin, auditLog, asyncHandler(updateNotificationTemplate));
-router.post('/notification-templates/:id/reset', requireAdmin, auditLog, asyncHandler(resetNotificationTemplate));
+router.patch('/notification-templates/:id', requireAdmin, asyncHandler(updateNotificationTemplate));
+router.post('/notification-templates/:id/reset', requireAdmin, asyncHandler(resetNotificationTemplate));
 
 module.exports = router;

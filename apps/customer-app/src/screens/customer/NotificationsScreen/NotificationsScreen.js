@@ -3,7 +3,7 @@ import {
   StyleSheet, Text, View, FlatList,
   TouchableOpacity, ActivityIndicator, Platform,
 } from 'react-native';
-import { AppScreen, AppHeader, AppIcon } from '../../../components';
+import { AppScreen, AppHeader, AppIcon, ErrorState } from '../../../components';
 import { colors, typography, spacing, radius } from '../../../theme';
 import { notificationsApi, subscribeNotificationEvents, subscribeRealtimeLifecycle } from '../../../api';
 import { useAuthStore } from '../../../stores';
@@ -65,6 +65,8 @@ const buildFlatData = (notifications) => {
 export default function NotificationsScreen({ navigation }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const refreshTimer = useRef(null);
 
@@ -74,11 +76,12 @@ export default function NotificationsScreen({ navigation }) {
   useEffect(() => {
     if (isAuthenticated) fetchNotifications();
     else setLoading(false);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, reloadToken]);
 
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
+      setIsError(false);
       const res = await notificationsApi.list({ limit: 50 });
       const items = res.data || [];
       setNotifications(items);
@@ -88,6 +91,7 @@ export default function NotificationsScreen({ navigation }) {
       }
     } catch (err) {
       console.warn('Failed to fetch notifications', err);
+      setIsError(true);
     } finally {
       setLoading(false);
     }
@@ -247,6 +251,12 @@ export default function NotificationsScreen({ navigation }) {
         <View style={styles.centred}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      ) : isError && notifications.length === 0 ? (
+        <ErrorState
+          message="Unable to load notifications. Tap to retry."
+          onRetry={() => setReloadToken(value => value + 1)}
+          retryLabel="Retry"
+        />
       ) : !isAuthenticated ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyIconBg}>

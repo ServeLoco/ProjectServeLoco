@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ReportsApi } from '../api';
 import './Reports.css';
 
-const GENERIC_ERROR = 'Something went wrong. Please try again later.';
+import { GENERIC_ERROR } from '../utils/constants';
 const escapeCsvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
 export default function Reports() {

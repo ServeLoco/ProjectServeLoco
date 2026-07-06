@@ -26,6 +26,8 @@ export default function OrderConfirmationScreen() {
   const orderLabel = order.orderNumber || order.order_number || orderId || 'Pending';
   const total = order.total || order.bill?.grandTotal || 0;
   const deliveryCharge = order.bill?.delivery || 0;
+  const isFreeDeliveryApplied = Boolean(order.bill?.freeDeliveryApplied);
+  const itemDiscount = order.bill?.itemDiscount || 0;
   const deliveryType = order.bill?.deliveryType || order.deliveryType || 'standard';
   const deliveryLabel = deliveryType === 'fast'
     ? '⚡ Fast Delivery'
@@ -34,6 +36,9 @@ export default function OrderConfirmationScreen() {
       : 'Delivery Charge';
   const paymentMethod = order.paymentMethod || 'Cash';
   const address = order.address || order.customer?.address || 'Delivery address saved with your order';
+  // Server sets this when an auto-applied offer lapsed between cart and
+  // checkout and the order went through at regular price instead.
+  const couponDropped = rawOrder?.couponDropped === true;
 
   // Animations
   const iconScale = useRef(new Animated.Value(0)).current;
@@ -167,6 +172,15 @@ export default function OrderConfirmationScreen() {
           <Text style={styles.title}>Order Placed Successfully!</Text>
           <Text style={styles.statusLabel}>Preparing your order...</Text>
 
+          {couponDropped && (
+            <View style={styles.couponDroppedBanner}>
+              <AppIcon name="ticket" size={16} color={colors.warning} />
+              <Text style={styles.couponDroppedText}>
+                The offer was no longer available, so your order was placed at the regular price.
+              </Text>
+            </View>
+          )}
+
           <View style={styles.card}>
             <View style={styles.row}>
               <Text style={styles.label}>Order ID</Text>
@@ -180,8 +194,24 @@ export default function OrderConfirmationScreen() {
             <View style={styles.divider} />
             <View style={styles.row}>
               <Text style={styles.label}>{deliveryLabel}</Text>
-              <Text style={styles.value}>{deliveryCharge > 0 ? `₹${deliveryCharge}` : 'FREE'}</Text>
+              {isFreeDeliveryApplied ? (
+                <View style={styles.freeDeliveryValueRow}>
+                  <Text style={styles.strikethroughValue}>₹{deliveryCharge}</Text>
+                  <Text style={[styles.value, styles.freeDeliveryText]}>FREE</Text>
+                </View>
+              ) : (
+                <Text style={styles.value}>{deliveryCharge > 0 ? `₹${deliveryCharge}` : 'FREE'}</Text>
+              )}
             </View>
+            {itemDiscount > 0 && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.row}>
+                  <Text style={styles.label}>Discount</Text>
+                  <Text style={[styles.value, styles.freeDeliveryText]}>- ₹{itemDiscount}</Text>
+                </View>
+              </>
+            )}
             <View style={styles.divider} />
             <View style={styles.col}>
               <Text style={styles.label}>Delivery Address</Text>
@@ -257,6 +287,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: spacing.xl,
   },
+  couponDroppedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    width: '100%',
+    backgroundColor: colors.warningLight,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  couponDroppedText: {
+    ...typography.label,
+    color: colors.textPrimary,
+    flex: 1,
+    lineHeight: 18,
+  },
   card: {
     width: '100%',
     backgroundColor: colors.bgSurface,
@@ -282,6 +330,19 @@ const styles = StyleSheet.create({
     ...typography.labelLarge,
     color: colors.textPrimary,
     fontWeight: '600',
+  },
+  freeDeliveryValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  strikethroughValue: {
+    ...typography.labelLarge,
+    color: colors.textSecondary,
+    textDecorationLine: 'line-through',
+  },
+  freeDeliveryText: {
+    color: colors.success,
   },
   addressValue: {
     ...typography.body,

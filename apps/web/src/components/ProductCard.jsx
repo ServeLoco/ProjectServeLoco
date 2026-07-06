@@ -7,7 +7,7 @@ import Button from './Button';
 import { formatPrice } from '../utils/formatters';
 import './ProductCard.css';
 
-import { getResolvedImageUrl } from '../utils/imageUtils';
+import { getResolvedImageUrl, PLACEHOLDER } from '../utils/imageUtils';
 
 export default function ProductCard({ item, isCombo = false }) {
   const navigate = useNavigate();
@@ -61,7 +61,13 @@ export default function ProductCard({ item, isCombo = false }) {
       <div className="product-img-wrapper">
         {isCombo && <div className="hot-badge">HOT</div>}
         {discountLabel && <div className="discount-badge">{discountLabel}</div>}
-        <img src={imageUrl} alt={item.name} className="product-img" loading="lazy" />
+        <img
+          src={imageUrl}
+          alt={item.name}
+          className="product-img"
+          loading="lazy"
+          onError={(e) => { e.target.onerror = null; e.target.src = PLACEHOLDER; }}
+        />
       </div>
       <div className="product-info">
         <div className="product-name">{item.name}</div>

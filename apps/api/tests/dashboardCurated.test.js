@@ -40,22 +40,19 @@ describe('Curated Category Grid', () => {
     expect(pool.query.mock.calls[1][0]).toContain('dashboard_section_items');
   });
 
-  it('should fallback to default categories if curated items are empty', async () => {
+  it('should hide the category section when no curated items are assigned', async () => {
     pool.query
       .mockResolvedValueOnce([[{ id: 1, slug: 'categories-grid', section_type: 'category_grid', store_type: 'packed' }]]) // getDashboard sections
-      .mockResolvedValueOnce([[]]) // curated category grid query (returns empty). resolveImageUrls will skip.
-      .mockResolvedValueOnce([[{ id: 102, name: 'Default Category', type: 'packed', image_id: null }]]) // default query fallback. resolveImageUrls will skip.
+      .mockResolvedValueOnce([[]]); // curated category grid query (returns empty)
 
     const res = await request(app).get('/api/dashboard?storeType=packed');
 
     expect(res.statusCode).toEqual(200);
     const gridSection = res.body.data.sections.find(s => s.sectionType === 'category_grid');
-    expect(gridSection).toBeDefined();
-    expect(gridSection.items).toHaveLength(1);
-    expect(gridSection.items[0].name).toEqual('Default Category');
+    expect(gridSection).toBeUndefined();
 
-    // Ensure it called both
+    // Only the curated dashboard_section_items query should have run — no fallback to all categories.
     expect(pool.query.mock.calls[1][0]).toContain('dashboard_section_items');
-    expect(pool.query.mock.calls[2][0]).not.toContain('dashboard_section_items');
+    expect(pool.query.mock.calls).toHaveLength(2);
   });
 });

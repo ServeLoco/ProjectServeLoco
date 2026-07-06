@@ -19,25 +19,55 @@ Each `apps/*` folder is a self-contained, independently deployable project. The 
 
 ## Quick start
 
+### One-command development (recommended)
+
+From the repo root (after installing dependencies in each `apps/*` project once):
+
+```bash
+npm run dev          # local API + admin + web + customer app
+```
+
+- API: http://localhost:3000
+- Admin: http://localhost:5173
+- Web PWA: http://localhost:5174
+- Customer app: Expo starts and prints the QR / metro URL
+
+Requirements for `npm run dev`:
+- Local MySQL on `localhost:3306`
+- Local MongoDB on `localhost:27017`
+- `apps/api/.env.development` already contains local-only values
+
+The script preflights both databases and fails fast with a clear message if either is not reachable.
+
+### Production-DB verification mode
+
+```bash
+npm run dev:proddb
+```
+
+This runs the **local API code** against the production Azure MySQL + Atlas Mongo databases (-values are read from `apps/api/.env.proddb`), while the Admin, Web, and Customer app still run locally. It asks for confirmation before starting; pass `--yes` to skip the prompt.
+
+**Use this only for final pre-push smoke testing.** Never migrate or seed production from this command.
+
+### Manual start
+
+If you prefer to start projects individually:
+
 ```bash
 # Backend
 cd apps/api
-npm install
 npm run dev          # http://localhost:3000
 
 # Admin panel
 cd apps/admin
-npm install
 npm run dev          # http://localhost:5173
 
 # iOS-style web PWA
 cd apps/web
-npm install
 npm run dev          # http://localhost:5174
 
 # Customer app (Expo)
 cd apps/customer-app
-npm install
 npx expo start
 ```
 
