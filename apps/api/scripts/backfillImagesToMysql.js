@@ -26,15 +26,39 @@ const REFERENCING_COLUMNS = [
 
 const dryRun = process.argv.includes('--dry-run');
 
+// Some rows store '' instead of NULL for "no image" — not a real reference,
+// just messy data. Normalize to NULL first so it isn't reported as an
+// unmatched/broken reference and doesn't later block the INT column
+// conversion in migrate.js.
+const normalizeEmptyStringsToNull = async () => {
+  for (const { table, column } of REFERENCING_COLUMNS) {
+    const [rows] = await pool.query(`SELECT COUNT(*) AS cnt FROM ${table} WHERE ${column} = ''`);
+    const count = Number(rows[0].cnt);
+    if (count === 0) continue;
+
+    if (dryRun) {
+      console.log(`[backfill] (dry-run) would set ${table}.${column} = NULL for ${count} row(s) currently ''`);
+      continue;
+    }
+    await pool.query(`UPDATE ${table} SET ${column} = NULL WHERE ${column} = ''`);
+    console.log(`[backfill] ${table}.${column}: normalized ${count} empty-string value(s) to NULL`);
+  }
+};
+
+// Returns the set of Mongo _id strings that exist (whether already copied to
+// MySQL or not) — used so a --dry-run can accurately predict which
+// references would resolve, without requiring real inserts to have happened.
 const copyImagesToMysql = async (db) => {
   const docs = await db.collection('images').find().toArray();
   console.log(`[backfill] Mongo images collection has ${docs.length} document(s).`);
 
+  const mongoIds = new Set();
   let inserted = 0;
   let skipped = 0;
 
   for (const doc of docs) {
     const legacyId = doc._id.toString();
+    mongoIds.add(legacyId);
 
     const [existing] = await pool.query(
       'SELECT id FROM images WHERE legacy_mongo_id = ?',
@@ -75,9 +99,10 @@ const copyImagesToMysql = async (db) => {
   }
 
   console.log(`[backfill] Images: ${inserted} inserted, ${skipped} already present (skipped).`);
+  return mongoIds;
 };
 
-const rewriteReferencingColumns = async () => {
+const rewriteReferencingColumns = async (mongoIds) => {
   for (const { table, column } of REFERENCING_COLUMNS) {
     const [rows] = await pool.query(
       `SELECT id, ${column} AS old_value FROM ${table} WHERE ${column} IS NOT NULL`
@@ -96,6 +121,20 @@ const rewriteReferencingColumns = async () => {
         continue;
       }
 
+      if (dryRun) {
+        // Nothing was actually inserted yet in dry-run mode, so predict the
+        // match against the Mongo doc ids themselves instead of querying
+        // MySQL (which would still be empty/stale).
+        if (!mongoIds.has(oldValue)) {
+          noMatch += 1;
+          console.warn(`[backfill] ${table}.${column}: no Mongo doc for legacy id ${oldValue} (row id=${row.id}) — leaving as-is`);
+          continue;
+        }
+        console.log(`[backfill] (dry-run) would set ${table}.${column} for row id=${row.id} (was ${oldValue})`);
+        rewritten += 1;
+        continue;
+      }
+
       const [match] = await pool.query(
         'SELECT id FROM images WHERE legacy_mongo_id = ?',
         [oldValue]
@@ -107,12 +146,6 @@ const rewriteReferencingColumns = async () => {
       }
 
       const newId = match[0].id;
-      if (dryRun) {
-        console.log(`[backfill] (dry-run) would set ${table}.${column} = ${newId} for row id=${row.id} (was ${oldValue})`);
-        rewritten += 1;
-        continue;
-      }
-
       await pool.query(
         `UPDATE ${table} SET ${column} = ? WHERE id = ?`,
         [String(newId), row.id]
@@ -128,8 +161,9 @@ const run = async () => {
   console.log(`[backfill] Starting${dryRun ? ' (DRY RUN — no writes)' : ''}...`);
   const db = await mongodb.connect();
   try {
-    await copyImagesToMysql(db);
-    await rewriteReferencingColumns();
+    await normalizeEmptyStringsToNull();
+    const mongoIds = await copyImagesToMysql(db);
+    await rewriteReferencingColumns(mongoIds);
     console.log('[backfill] Done.');
   } finally {
     await mongodb.close();
