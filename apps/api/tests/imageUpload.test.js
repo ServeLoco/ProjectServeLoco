@@ -1,26 +1,13 @@
 const request = require('supertest');
 const express = require('express');
 const imageRoutes = require('../src/routes/imageRoutes');
-const { getDb } = require('../src/db/mongodb');
 const jwt = require('jsonwebtoken');
 
-jest.mock('../src/db/mongodb', () => ({
-  getDb: jest.fn()
-}));
-
-const mockInsertOne = jest.fn();
-const mockFindOne = jest.fn();
-getDb.mockReturnValue({
-  collection: () => ({
-    insertOne: mockInsertOne,
-    findOne: mockFindOne,
-    find: jest.fn(() => ({ sort: () => ({ toArray: () => [] }) }))
-  })
-});
-
 jest.mock('../src/db/mysql', () => ({
-  pool: { query: jest.fn().mockResolvedValue([[]]) }
+  pool: { query: jest.fn() }
 }));
+
+const { pool } = require('../src/db/mysql');
 
 const app = express();
 app.use(express.json());
@@ -31,10 +18,26 @@ const token = jwt.sign({ id: 'admin', role: 'admin' }, process.env.JWT_SECRET ||
 describe('Image Upload Security', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Threads the row inserted by uploadImage through to the SELECT that
+    // follows it, so the response reflects the actual detected filename/ext.
+    let lastInsertedRow = null;
+    pool.query.mockImplementation((sql, params = []) => {
+      if (sql.startsWith('INSERT INTO images')) {
+        const [filename, original_name, mime_type, size, storage_type, url, alt_text] = params;
+        lastInsertedRow = {
+          id: 1, filename, original_name, mime_type, size, storage_type, url, alt_text,
+          created_at: new Date(), updated_at: new Date()
+        };
+        return Promise.resolve([{ insertId: 1 }]);
+      }
+      if (sql.startsWith('SELECT * FROM images WHERE id')) {
+        return Promise.resolve([[lastInsertedRow]]);
+      }
+      return Promise.resolve([[]]);
+    });
   });
 
   it('should accept valid JPG magic bytes', async () => {
-    mockInsertOne.mockResolvedValueOnce({ insertedId: '123456789012345678901234' });
     const fakeJpg = Buffer.from([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01]);
 
     const res = await request(app)
@@ -57,7 +60,6 @@ describe('Image Upload Security', () => {
   });
 
   it('should enforce the extension based on magic bytes', async () => {
-    mockInsertOne.mockResolvedValueOnce({ insertedId: '123456789012345678901235' });
     const fakePng = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D]);
 
     const res = await request(app)

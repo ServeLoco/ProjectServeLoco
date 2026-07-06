@@ -850,6 +850,28 @@ const migrate = async () => {
     `);
     console.log('Images table ready.');
 
+    // Switch the 5 image-reference columns from VARCHAR (holding the legacy
+    // Mongo ObjectId hex string) to INT (holding the new `images.id`). Only
+    // safe to run after the one-time backfill script has rewritten every
+    // value to a plain numeric string — guarded so it's a no-op on repeat
+    // deploys once the column is already INT.
+    const convertImageIdColumnToInt = async (tableName, columnName) => {
+      const [columns] = await connection.query(`
+        SELECT DATA_TYPE
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?
+      `, [config.MYSQL_DATABASE, tableName, columnName]);
+      if (columns.length > 0 && columns[0].DATA_TYPE !== 'int') {
+        await connection.query(`ALTER TABLE ${tableName} MODIFY COLUMN ${columnName} INT NULL`);
+      }
+    };
+    await convertImageIdColumnToInt('products', 'image_id');
+    await convertImageIdColumnToInt('categories', 'image_id');
+    await convertImageIdColumnToInt('combos', 'image_id');
+    await convertImageIdColumnToInt('offers', 'image_id');
+    await convertImageIdColumnToInt('settings', 'upi_qr_image_id');
+    console.log('Image reference columns ready.');
+
     console.log('Migration and seeding completed successfully!');
   } catch (error) {
     console.error('Migration failed:', error);

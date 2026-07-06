@@ -1,6 +1,4 @@
 const { pool } = require('../db/mysql');
-const { getDb } = require('../db/mongodb');
-const { ObjectId } = require('mongodb');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { createTtlCache } = require('../utils/ttlCache');
 const { cleanupOrphanedImage } = require('./imageController');
@@ -20,16 +18,14 @@ function slugify(value) {
 const attachImageUrls = async (rows) => {
   const imageIds = rows
     .map(row => row.image_id)
-    .filter(id => id && ObjectId.isValid(id))
-    .map(id => new ObjectId(id));
+    .filter(id => id && /^\d+$/.test(String(id)));
 
   if (imageIds.length === 0) return rows;
 
-  const db = getDb();
-  const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
+  const [images] = await pool.query('SELECT id, url FROM images WHERE id IN (?)', [imageIds]);
   const imageMap = {};
   images.forEach(image => {
-    imageMap[image._id.toString()] = image.url;
+    imageMap[String(image.id)] = image.url;
   });
 
   rows.forEach(row => {
