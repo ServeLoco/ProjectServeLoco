@@ -6,6 +6,9 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import Button from '../../components/Button';
 import QuantityControl from '../../components/QuantityControl';
 import EmptyState from '../../components/EmptyState';
+import BillSummary from '../../components/BillSummary/BillSummary';
+import CouponSheet from '../../components/CouponSheet/CouponSheet';
+import ShopClosedBanner from '../../components/ShopClosedBanner';
 import { formatPrice } from '../../utils/formatters';
 import { getResolvedImageUrl } from '../../utils/imageUtils';
 import './CartScreen.css';
@@ -27,10 +30,20 @@ export default function CartScreen() {
   const items = useCartStore((state) => state.items);
   const updateQty = useCartStore((state) => state.updateQty);
   const removeItem = useCartStore((state) => state.removeItem);
-  const shopOpen = useSettingsStore((state) => state.shopOpen);
+  const settings = useSettingsStore((state) => state.settings);
+  // Primary check: settings.storeOpen === false means closed. Undefined or true means open.
+  const storeClosed = settings?.storeOpen === false;
+
+  const appliedCouponCode = useCartStore((state) => state.appliedCouponCode);
+  const appliedCouponId = useCartStore((state) => state.appliedCouponId);
+  const couponAutoApplyDisabled = useCartStore((state) => state.couponAutoApplyDisabled);
+  const appliedCoupon = useCartStore((state) => state.appliedCoupon);
+  const setAppliedCoupon = useCartStore((state) => state.setAppliedCoupon);
+  const clearAppliedCoupon = useCartStore((state) => state.clearAppliedCoupon);
 
   const [bill, setBill] = useState(null);
   const [calculating, setCalculating] = useState(false);
+  const [showCouponSheet, setShowCouponSheet] = useState(false);
   const timeoutRef = useRef(null);
 
   useEffect(() => {
@@ -48,11 +61,21 @@ export default function CartScreen() {
             quantity: i.quantity,
             type: i.type,
             isCombo: i.type === 'combo'
-          }))
+          })),
+          coupon_code: appliedCouponCode || undefined,
+          coupon_id: !appliedCouponCode && appliedCouponId ? appliedCouponId : undefined,
+          no_auto_apply: couponAutoApplyDisabled,
         };
         const res = await cartApi.calculate(payload);
         const responsePayload = res.data || res;
         setBill(responsePayload);
+
+        // Sync coupon state from the server (handles auto-apply + validation).
+        if (responsePayload.appliedCoupon) {
+          setAppliedCoupon(responsePayload.appliedCoupon.code, responsePayload.appliedCoupon);
+        } else if (responsePayload.couponError && (appliedCouponCode || appliedCouponId)) {
+          clearAppliedCoupon();
+        }
       } catch (err) {
         console.error('Failed to calculate cart', err);
       } finally {
@@ -66,7 +89,7 @@ export default function CartScreen() {
     }, 300);
 
     return () => clearTimeout(timeoutRef.current);
-  }, [items]);
+  }, [items, appliedCouponCode, appliedCouponId, couponAutoApplyDisabled]);
 
   if (items.length === 0) {
     return (
@@ -92,6 +115,12 @@ export default function CartScreen() {
       </div>
 
       <div className="cart-content">
+        {storeClosed && (
+          <div className="cart-shop-closed-wrap">
+            <ShopClosedBanner />
+          </div>
+        )}
+
         <div className="cart-items-list">
           {items.map((item, idx) => (
             <div key={`${item.product.id}-${item.type}-${idx}`} className="cart-item-row">
@@ -120,57 +149,68 @@ export default function CartScreen() {
         </div>
 
         {bill && (
-          <div className="bill-summary">
-            <div className="bill-title">Bill Summary</div>
-            <div className="bill-row">
-              <span>Item Total</span>
-              <span>{formatPrice(bill.subtotal)}</span>
-            </div>
-            
-            <div className="bill-row">
-              <span>Delivery Charge</span>
-              {bill.deliveryCharge === 0 ? (
-                <span className="free-delivery">FREE</span>
-              ) : (
-                <span>{formatPrice(bill.deliveryCharge)}</span>
-              )}
-            </div>
-
-            {bill.nightCharge > 0 && (
-              <div className="bill-row">
-                <span>Night Charge</span>
-                <span>{formatPrice(bill.nightCharge)}</span>
+          <>
+            <button className="coupon-card" onClick={() => setShowCouponSheet(true)}>
+              <div className="coupon-card-left">
+                <div className="coupon-card-icon">%</div>
+                <div>
+                  {appliedCoupon ? (
+                    <>
+                      <div className="coupon-card-title">{appliedCoupon.title || appliedCoupon.code}</div>
+                      <div className="coupon-card-sub">Tap to change or remove</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="coupon-card-title">Apply coupon / offer</div>
+                      <div className="coupon-card-sub">Save more on this order</div>
+                    </>
+                  )}
+                </div>
               </div>
-            )}
-
-            {bill.discount > 0 && (
-              <div className="bill-row">
-                <span>Discount</span>
-                <span className="text-success">-{formatPrice(bill.discount)}</span>
+              <div className="coupon-card-action">
+                {appliedCoupon ? (
+                  <span className="coupon-card-applied" onClick={(e) => { e.stopPropagation(); clearAppliedCoupon(); }}>Remove</span>
+                ) : (
+                  <span className="coupon-card-apply">Apply</span>
+                )}
               </div>
-            )}
+            </button>
 
-            <div className="bill-row total">
-              <span>Grand Total</span>
-              <span>{formatPrice(bill.grandTotal)}</span>
-            </div>
-          </div>
+            <BillSummary
+              subtotal={bill.subtotal}
+              deliveryCharge={bill.deliveryCharge}
+              nightCharge={bill.nightCharge}
+              discount={bill.discount}
+              itemDiscount={bill.itemDiscount}
+              isFreeDeliveryApplied={bill.deliveryCharge === 0}
+              total={bill.grandTotal}
+              freeDeliveryProgress={bill.belowThreshold ? { minOrder: bill.minimumOrder, amountRemaining: bill.minimumOrder - bill.subtotal } : null}
+            />
+          </>
         )}
 
-        {bill?.belowThreshold && (
-          <div className="threshold-warning">
-            Add {formatPrice(bill.minimumOrder - bill.subtotal)} more for FREE Delivery!
-          </div>
-        )}
+        <CouponSheet
+          open={showCouponSheet}
+          onClose={() => setShowCouponSheet(false)}
+          subtotal={bill?.subtotal || 0}
+          deliveryCharge={bill?.deliveryCharge || 0}
+          appliedCoupon={appliedCoupon}
+          onApply={(coupon) => setAppliedCoupon(coupon.code, coupon)}
+          onRemove={() => clearAppliedCoupon()}
+        />
       </div>
 
       <div className="cart-bottom-bar">
         <Button 
           variant="success" 
-          disabled={!shopOpen || calculating || !bill}
+          disabled={storeClosed || calculating || !bill}
           onClick={() => navigate('/checkout')}
         >
-          {calculating ? 'Calculating...' : `Proceed to Pay (${bill ? formatPrice(bill.grandTotal) : ''})`}
+          {storeClosed
+            ? 'Shop Closed'
+            : calculating
+              ? 'Calculating...'
+              : `Proceed to Pay (${bill ? formatPrice(bill.grandTotal) : ''})`}
         </Button>
       </div>
     </div>

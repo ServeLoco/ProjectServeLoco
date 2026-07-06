@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ordersApi } from '../../api/ordersApi';
 import { subscribeOrderEvents } from '../../api/realtimeClient';
 import OrderStatusBadge from '../../components/OrderStatusBadge';
+import OrderStatusTimeline from '../../components/OrderStatusTimeline/OrderStatusTimeline';
 import ErrorState from '../../components/ErrorState';
 import SkeletonCard from '../../components/SkeletonCard';
 import { formatPrice, formatDate } from '../../utils/formatters';
@@ -21,6 +22,8 @@ export default function OrderDetailScreen() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -59,6 +62,54 @@ export default function OrderDetailScreen() {
     };
   }, [id]);
 
+  const formattedAddress = order ? (order.address || order.delivery_address || '') : '';
+
+  const paymentStatusMap = {
+    paid: { label: 'Paid', cls: 'paid' },
+    successful: { label: 'Paid', cls: 'paid' },
+    success: { label: 'Paid', cls: 'paid' },
+    pending: { label: 'Pending', cls: 'pending' },
+    unpaid: { label: 'Pending', cls: 'pending' },
+    failed: { label: 'Failed', cls: 'failed' },
+    failure: { label: 'Failed', cls: 'failed' },
+    refunded: { label: 'Refunded', cls: 'refunded' },
+    partially_refunded: { label: 'Refunded', cls: 'refunded' },
+  };
+  const rawPaymentStatus = order ? String(order.paymentStatus || '').toLowerCase() : '';
+  const paymentStatusView = paymentStatusMap[rawPaymentStatus] || { label: 'Unknown', cls: 'unknown' };
+
+  const canShowCancelButton =
+    !!order && order.canCancel === true && order.status !== 'delivered' && order.status !== 'cancelled';
+
+  const handleCancelOrder = async () => {
+    if (!order || cancelling) return;
+    const confirmed = window.confirm('Are you sure you want to cancel this order? This action cannot be undone.');
+    if (!confirmed) return;
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      await ordersApi.cancelOrder(order.id);
+      const res = await ordersApi.getOrder(order.id);
+      const payload = res.data || res;
+      setOrder(payload.order || payload);
+    } catch (err) {
+      setCancelError(err.message || 'Failed to cancel order');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const mapHref = (() => {
+    if (!order) return '#';
+    const lat = order.address?.lat;
+    const lng = order.address?.lng;
+    if (lat !== undefined && lat !== null && lng !== undefined && lng !== null) {
+      return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    }
+    const queryText = order.addressText || formattedAddress;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(queryText)}`;
+  })();
+
   if (loading) {
     return (
       <div className="screen-container">
@@ -94,11 +145,22 @@ export default function OrderDetailScreen() {
       </div>
 
       <div className="od-content">
+        {order.status === 'cancelled' && (
+          <div className="od-cancel-banner" role="status">This order was cancelled.</div>
+        )}
+
         <div className="od-section">
           <div className="od-row">
             <span>Status</span>
             <OrderStatusBadge status={order.status} />
           </div>
+          <div className="od-row">
+            <span>Payment</span>
+            <span className={`od-payment-badge od-payment-badge--${paymentStatusView.cls}`}>
+              {paymentStatusView.label}
+            </span>
+          </div>
+          <OrderStatusTimeline status={order.status} cancelled={order.status === 'Cancelled'} />
           <div className="od-row">
             <span>Date</span>
             <span className="od-row bold">{formatDate(order.created_at)}</span>
@@ -111,6 +173,19 @@ export default function OrderDetailScreen() {
             <span>Delivery Speed</span>
             <span className="od-row bold">{order.delivery_type === 'fast' ? 'Express' : 'Standard'}</span>
           </div>
+          {canShowCancelButton && (
+            <button
+              type="button"
+              className="od-cancel-btn"
+              onClick={handleCancelOrder}
+              disabled={cancelling}
+            >
+              {cancelling ? 'Cancelling...' : 'Cancel Order'}
+            </button>
+          )}
+          {cancelError && (
+            <div className="od-cancel-error" role="alert">{cancelError}</div>
+          )}
         </div>
 
         <div className="od-section">
@@ -118,6 +193,16 @@ export default function OrderDetailScreen() {
           <div className="od-row" style={{ whiteSpace: 'pre-wrap' }}>
             {order.address || order.delivery_address || 'No address provided'}
           </div>
+          {formattedAddress && (
+            <a
+              className="od-map-link"
+              href={mapHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open in Maps
+            </a>
+          )}
         </div>
 
         <div className="od-section">

@@ -6,6 +6,8 @@ import { useCartStore } from '../../stores/cartStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import Button from '../../components/Button';
+import CouponSheet from '../../components/CouponSheet/CouponSheet';
+import BillSummary from '../../components/BillSummary/BillSummary';
 import { formatPrice } from '../../utils/formatters';
 import { formatEtaMinutes } from '../../utils/formatEta';
 import { isCodBlockedDuringNight } from '../../utils/nightDelivery';
@@ -30,6 +32,13 @@ export default function CheckoutScreen() {
   const user = useAuthStore(state => state.user);
   const items = useCartStore(state => state.items);
   const clearCart = useCartStore(state => state.clearCart);
+  const appliedCouponCode = useCartStore(state => state.appliedCouponCode);
+  const appliedCouponId = useCartStore(state => state.appliedCouponId);
+  const couponAutoApplyDisabled = useCartStore(state => state.couponAutoApplyDisabled);
+  const appliedCoupon = useCartStore(state => state.appliedCoupon);
+  const setAppliedCoupon = useCartStore(state => state.setAppliedCoupon);
+  const clearAppliedCoupon = useCartStore(state => state.clearAppliedCoupon);
+  const [showCouponSheet, setShowCouponSheet] = useState(false);
   const { settings, shopOpen } = useSettingsStore();
 
   const [address, setAddress] = useState(user?.address || '');
@@ -52,6 +61,14 @@ export default function CheckoutScreen() {
   const nightWindowStart = settings?.night_charge_start || settings?.nightChargeStart || null;
   const nightWindowEnd = settings?.night_charge_end || settings?.nightChargeEnd || null;
 
+  // After /cart/calculate, the response payload may include a delivery distance.
+  // Read both camelCase and snake_case shapes; only render the row when the
+  // value is a finite number (so null/undefined/garbage strings are ignored).
+  const deliveryDistanceRaw = bill?.distanceKm ?? bill?.distance_km;
+  const hasDeliveryDistance =
+    deliveryDistanceRaw != null && Number.isFinite(Number(deliveryDistanceRaw));
+  const deliveryDistanceKm = hasDeliveryDistance ? Number(deliveryDistanceRaw) : null;
+
   const [bill, setBill] = useState(null);
   const [calculating, setCalculating] = useState(false);
   const [placing, setPlacing] = useState(false);
@@ -63,6 +80,24 @@ export default function CheckoutScreen() {
 
   const isSubmitting = useRef(false);
   const debounceRef = useRef(null);
+
+  // Generate a single idempotency key per checkout mount so retries/replays
+  // of the same Place Order attempt are deduped server-side.
+  // useState lazy initializer runs the factory exactly once on mount.
+  const [idempotencyKey] = useState(() => {
+    const c = (typeof crypto !== 'undefined' && crypto)
+      || (typeof window !== 'undefined' && window.crypto)
+      || null;
+    if (c && typeof c.randomUUID === 'function') {
+      return c.randomUUID();
+    }
+    // Fallback: 32-char hex string from Math.random().
+    let hex = '';
+    while (hex.length < 32) {
+      hex += Math.floor(Math.random() * 0x100000000).toString(16).padStart(8, '0');
+    }
+    return hex.slice(0, 32);
+  });
 
   useEffect(() => {
     if (hydrated) return;
@@ -91,11 +126,20 @@ export default function CheckoutScreen() {
           })),
           delivery_type: deliveryType,
           latitude: coords?.latitude,
-          longitude: coords?.longitude
+          longitude: coords?.longitude,
+          coupon_code: appliedCouponCode || undefined,
+          coupon_id: !appliedCouponCode && appliedCouponId ? appliedCouponId : undefined,
+          no_auto_apply: couponAutoApplyDisabled,
         };
         const res = await cartApi.calculate(payload);
         const responsePayload = res.data || res;
         setBill(responsePayload);
+
+        if (responsePayload.appliedCoupon) {
+          setAppliedCoupon(responsePayload.appliedCoupon.code, responsePayload.appliedCoupon);
+        } else if (responsePayload.couponError && (appliedCouponCode || appliedCouponId)) {
+          clearAppliedCoupon();
+        }
         
         if (deliveryType === 'fast' && !responsePayload.fastDeliveryEnabled) {
           setDeliveryType('standard');
@@ -173,7 +217,10 @@ export default function CheckoutScreen() {
         delivery_charge: bill.deliveryCharge,
         discount: bill.discount,
         night_charge: bill.nightCharge,
-        total_amount: bill.grandTotal
+        total_amount: bill.grandTotal,
+        coupon_code: appliedCoupon?.code || appliedCouponCode || undefined,
+        coupon_id: appliedCoupon?.id || (!appliedCouponCode && appliedCouponId ? appliedCouponId : undefined),
+        idempotencyKey,
       };
       
       const res = await ordersApi.createOrder(payload);
@@ -260,6 +307,11 @@ export default function CheckoutScreen() {
                 </div>
               </label>
             </div>
+            {hasDeliveryDistance && (
+              <div className="co-distance-row" data-testid="co-delivery-distance">
+                Delivery distance: {deliveryDistanceKm} km
+              </div>
+            )}
           </div>
         )}
 
@@ -309,6 +361,60 @@ export default function CheckoutScreen() {
             </div>
           )}
         </div>
+
+        {bill && (
+          <>
+            <div className="co-section">
+              <button className="coupon-card" onClick={() => setShowCouponSheet(true)}>
+                <div className="coupon-card-left">
+                  <div className="coupon-card-icon">%</div>
+                  <div>
+                    {appliedCoupon ? (
+                      <>
+                        <div className="coupon-card-title">{appliedCoupon.title || appliedCoupon.code}</div>
+                        <div className="coupon-card-sub">Tap to change or remove</div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="coupon-card-title">Apply coupon / offer</div>
+                        <div className="coupon-card-sub">Save more on this order</div>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="coupon-card-action">
+                  {appliedCoupon ? (
+                    <span className="coupon-card-applied" onClick={(e) => { e.stopPropagation(); clearAppliedCoupon(); }}>Remove</span>
+                  ) : (
+                    <span className="coupon-card-apply">Apply</span>
+                  )}
+                </div>
+              </button>
+            </div>
+
+            <div className="co-section">
+              <BillSummary
+                subtotal={bill.subtotal}
+                deliveryCharge={bill.deliveryCharge}
+                nightCharge={bill.nightCharge}
+                discount={bill.discount}
+                itemDiscount={bill.itemDiscount}
+                isFreeDeliveryApplied={bill.deliveryCharge === 0}
+                total={bill.grandTotal}
+              />
+            </div>
+          </>
+        )}
+
+        <CouponSheet
+          open={showCouponSheet}
+          onClose={() => setShowCouponSheet(false)}
+          subtotal={bill?.subtotal || 0}
+          deliveryCharge={bill?.deliveryCharge || 0}
+          appliedCoupon={appliedCoupon}
+          onApply={(coupon) => setAppliedCoupon(coupon.code, coupon)}
+          onRemove={() => clearAppliedCoupon()}
+        />
       </div>
 
       <div className="co-bottom-bar">

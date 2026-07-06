@@ -24,48 +24,93 @@
   gap: var(--space-md);
 }
 
-.order-card {
+/* ----- Summary hero ----- */
+.orders-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--screen-padding-h) 0;
+}
+
+.orders-summary-stat {
   background: var(--bg-surface);
   border-radius: var(--radius-lg);
-  padding: var(--space-md);
+  padding: var(--space-sm) var(--space-xs);
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  cursor: pointer;
-}
-
-.order-card-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  border-bottom: 1px dashed var(--border);
-  padding-bottom: var(--space-sm);
+  justify-content: center;
+  text-align: center;
+  border-top: 3px solid var(--border);
+  min-height: 64px;
 }
 
-.order-id {
+.orders-summary-stat--total { border-top-color: var(--primary); }
+.orders-summary-stat--active { border-top-color: var(--info, #2563eb); }
+.orders-summary-stat--delivered { border-top-color: var(--success, #16a34a); }
+.orders-summary-stat--cancelled { border-top-color: var(--error, #dc2626); }
+
+.orders-summary-value {
+  font-size: var(--fs-xl);
   font-weight: var(--fw-bold);
-  font-size: var(--fs-sm);
   color: var(--text-primary);
+  line-height: 1.1;
 }
 
-.order-date {
+.orders-summary-label {
   font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
   color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
   margin-top: 2px;
 }
 
-.order-amount {
-  font-weight: var(--fw-bold);
-  font-size: var(--fs-base);
+/* ----- Filter chips ----- */
+.orders-filters {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--screen-padding-h) 0;
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.orders-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.orders-filter-chip {
+  flex-shrink: 0;
+  padding: 8px var(--space-md);
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  font-family: inherit;
+  line-height: 1.2;
+}
+
+.orders-filter-chip:hover {
+  border-color: var(--primary);
   color: var(--primary);
 }
 
-.order-items-preview {
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.orders-filter-chip--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--text-on-primary, #fff);
 }
+
+.orders-filter-chip--active:hover {
+  background: var(--primary);
+  color: var(--text-on-primary, #fff);
+}
+
+/* Order card styles live in components/OrderCard/OrderCard.css */
