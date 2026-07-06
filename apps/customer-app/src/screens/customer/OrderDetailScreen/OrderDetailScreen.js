@@ -418,7 +418,14 @@ export default function OrderDetailScreen() {
                 ? 'Delivery Charge (Below Minimum)'
                 : 'Delivery Charge'}
             </Text>
-            <Text style={styles.billValue}>₹{order.bill.delivery}</Text>
+            {order.bill.freeDeliveryApplied ? (
+              <View style={styles.freeDeliveryValueRow}>
+                <Text style={styles.billStrikethrough}>₹{order.bill.delivery}</Text>
+                <Text style={[styles.billValue, { color: colors.success }]}>FREE</Text>
+              </View>
+            ) : (
+              <Text style={styles.billValue}>₹{order.bill.delivery}</Text>
+            )}
           </View>
           {order.bill.nightCharge > 0 && (
             <View style={styles.billRow}>
@@ -426,12 +433,16 @@ export default function OrderDetailScreen() {
               <Text style={[styles.billValue, { color: colors.warning || '#F59E0B' }]}>₹{order.bill.nightCharge}</Text>
             </View>
           )}
-          {order.bill.discount > 0 && (
-            <View style={styles.billRow}>
-              <Text style={[styles.billLabel, { color: colors.success }]}>Discount</Text>
-              <Text style={[styles.billValue, { color: colors.success }]}>- ₹{order.bill.discount}</Text>
-            </View>
-          )}
+          {(() => {
+            const discountToShow = order.bill.freeDeliveryApplied ? order.bill.itemDiscount : order.bill.discount;
+            if (!(discountToShow > 0)) return null;
+            return (
+              <View style={styles.billRow}>
+                <Text style={[styles.billLabel, { color: colors.success }]}>Discount</Text>
+                <Text style={[styles.billValue, { color: colors.success }]}>- ₹{discountToShow}</Text>
+              </View>
+            );
+          })()}
           <View style={styles.divider} />
           <View style={styles.billRow}>
             <Text style={styles.grandTotalLabel}>Grand Total</Text>
@@ -785,6 +796,16 @@ const styles = StyleSheet.create({
   billValue: {
     ...typography.body,
     color: colors.textPrimary,
+  },
+  freeDeliveryValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  billStrikethrough: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textDecorationLine: 'line-through',
   },
   divider: {
     height: 1,

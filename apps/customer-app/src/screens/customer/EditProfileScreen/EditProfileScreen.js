@@ -9,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AppScreen,
   AppHeader,
@@ -21,6 +22,7 @@ import { authApi } from '../../../api';
 
 export default function EditProfileScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const profile = useAuthStore(state => state.profile);
   const setProfile = useAuthStore(state => state.setProfile);
 
@@ -165,7 +167,7 @@ export default function EditProfileScreen() {
 
         </ScrollView>
 
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { paddingBottom: spacing.lg + insets.bottom }]}>
           <Animated.View style={{ transform: [{ scale: btnScale }] }}>
             <Button
               label={isSaving ? "Saving..." : isSuccess ? "Saved Successfully! Done" : "Save Changes"}

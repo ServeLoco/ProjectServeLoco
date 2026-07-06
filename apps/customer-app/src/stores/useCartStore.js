@@ -24,7 +24,20 @@ export const useCartStore = create(
       // next bill recalculation (otherwise "remove" would appear to do
       // nothing, since the discount would just reappear from another coupon).
       couponAutoApplyDisabled: false,
-      setAppliedCoupon: (code, coupon) => set({ appliedCouponCode: code, appliedCouponId: coupon?.id ?? null, appliedCoupon: coupon, couponAutoApplyDisabled: false }),
+      // When `coupon.autoApplied` is true, this sync came from the backend
+      // silently picking the best auto-apply offer — NOT from the user
+      // choosing a specific coupon. In that case we must not remember its
+      // code/id, or every future recalculation would force-reapply this
+      // exact coupon (via coupon_code/coupon_id) instead of letting the
+      // backend re-run "pick best" as the cart total/items change, which
+      // would permanently lock the customer onto whichever offer happened
+      // to be auto-applied first.
+      setAppliedCoupon: (code, coupon) => set({
+        appliedCouponCode: coupon?.autoApplied ? null : code,
+        appliedCouponId: coupon?.autoApplied ? null : (coupon?.id ?? null),
+        appliedCoupon: coupon,
+        couponAutoApplyDisabled: false,
+      }),
       clearAppliedCoupon: () => set({ appliedCouponCode: null, appliedCouponId: null, appliedCoupon: null, couponAutoApplyDisabled: true }),
 
       // Last known "add ₹X more for free delivery" progress from the most
@@ -116,6 +129,14 @@ export const useCartStore = create(
       name: 'serveloco-cart',
       storage: createJSONStorage(() => AsyncStorage),
       version: 2,
+      // couponAutoApplyDisabled is a same-session "user just removed this"
+      // signal only — it must not survive an app restart, otherwise removing
+      // a coupon once permanently blocks auto-apply on this device until the
+      // cart happens to be cleared.
+      partialize: (state) => {
+        const { couponAutoApplyDisabled, ...rest } = state;
+        return rest;
+      },
       // Strip stale/corrupt items from older app versions so legacy entries
       // (missing id, non-numeric price, missing type) don't blow up calculations.
       migrate: (persistedState) => {

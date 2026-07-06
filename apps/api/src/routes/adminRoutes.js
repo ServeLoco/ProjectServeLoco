@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getPasswordResetRequests, approvePasswordResetRequest, rejectPasswordResetRequest, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAuditLogs, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
+const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage, bulkUpdateProducts, bulkDeleteProducts } = require('../controllers/productController');
@@ -29,7 +29,6 @@ const {
   reorderAdminSectionItems
 } = require('../controllers/dashboardController');
 const { requireAdmin } = require('../middleware/authMiddleware');
-const { auditLog } = require('../middleware/auditMiddleware');
 const { validate, isString, isId, isBoolean, isNumericAmount, isPositiveInteger, isNonNegativeInteger, validatePagination, normalizeField } = require('../validators');
 const asyncHandler = require('../utils/asyncHandler');
 const rateLimit = require('express-rate-limit');
@@ -556,30 +555,26 @@ router.patch('/customers/:id/block', requireAdmin, validate(blockSchema), asyncH
 router.put('/customers/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
 router.patch('/customers/:id/trust', requireAdmin, validate(trustSchema), asyncHandler(setTrustStatus));
 
-router.get('/password-reset-requests', requireAdmin, asyncHandler(getPasswordResetRequests));
-router.patch('/password-reset-requests/:id/approve', requireAdmin, auditLog, asyncHandler(approvePasswordResetRequest));
-router.patch('/password-reset-requests/:id/reject', requireAdmin, auditLog, asyncHandler(rejectPasswordResetRequest));
-
 router.get('/categories', requireAdmin, asyncHandler(getAdminCategories));
-router.post('/categories', requireAdmin, auditLog, validate(categorySchema), asyncHandler(createCategory));
-router.put('/categories/:id', requireAdmin, auditLog, validate(categorySchema), asyncHandler(updateCategory));
-router.delete('/categories/:id', requireAdmin, auditLog, asyncHandler(deleteCategory));
+router.post('/categories', requireAdmin, validate(categorySchema), asyncHandler(createCategory));
+router.put('/categories/:id', requireAdmin, validate(categorySchema), asyncHandler(updateCategory));
+router.delete('/categories/:id', requireAdmin, asyncHandler(deleteCategory));
 
 router.get('/products', requireAdmin, asyncHandler(getAdminProducts));
-router.post('/products', requireAdmin, auditLog, validate(productSchema), asyncHandler(createProduct));
+router.post('/products', requireAdmin, validate(productSchema), asyncHandler(createProduct));
 
 // Bulk action routes — MUST be registered before /:id routes to prevent Express
 // matching the literal string "bulk" as a product ID parameter.
-router.patch('/products/bulk', requireAdmin, auditLog, asyncHandler(bulkUpdateProducts));
-router.delete('/products/bulk', requireAdmin, auditLog, asyncHandler(bulkDeleteProducts));
+router.patch('/products/bulk', requireAdmin, asyncHandler(bulkUpdateProducts));
+router.delete('/products/bulk', requireAdmin, asyncHandler(bulkDeleteProducts));
 
 router.get('/products/:id', requireAdmin, asyncHandler(getAdminProductById));
-router.put('/products/:id', requireAdmin, auditLog, validate(productSchema), asyncHandler(updateProduct));
-router.delete('/products/:id', requireAdmin, auditLog, asyncHandler(deleteProduct));
-router.patch('/products/:id/availability', requireAdmin, auditLog, validate(productAvailabilitySchema), asyncHandler(updateProductAvailability));
-router.patch('/products/:id/image', requireAdmin, auditLog, validate(productImageSchema), asyncHandler(updateProductImage));
+router.put('/products/:id', requireAdmin, validate(productSchema), asyncHandler(updateProduct));
+router.delete('/products/:id', requireAdmin, asyncHandler(deleteProduct));
+router.patch('/products/:id/availability', requireAdmin, validate(productAvailabilitySchema), asyncHandler(updateProductAvailability));
+router.patch('/products/:id/image', requireAdmin, validate(productImageSchema), asyncHandler(updateProductImage));
 // Bulk import: ?preview=true for dry-run, no query param for commit
-router.post('/products/bulk-import', requireAdmin, auditLog, bulkUpload, asyncHandler(async (req, res) => {
+router.post('/products/bulk-import', requireAdmin, bulkUpload, asyncHandler(async (req, res) => {
   if (req.query.preview === 'true') {
     return previewBulkImport(req, res);
   }
@@ -588,26 +583,26 @@ router.post('/products/bulk-import', requireAdmin, auditLog, bulkUpload, asyncHa
 
 router.get('/combos', requireAdmin, asyncHandler(getAdminCombos));
 router.get('/combos/:id', requireAdmin, asyncHandler(getAdminComboById));
-router.post('/combos', requireAdmin, auditLog, validate(comboSchema), asyncHandler(createCombo));
-router.put('/combos/:id', requireAdmin, auditLog, validate(comboSchema), asyncHandler(updateCombo));
-router.delete('/combos/:id', requireAdmin, auditLog, asyncHandler(deleteCombo));
-router.patch('/combos/:id/availability', requireAdmin, auditLog, validate(comboAvailabilitySchema), asyncHandler(updateComboAvailability));
+router.post('/combos', requireAdmin, validate(comboSchema), asyncHandler(createCombo));
+router.put('/combos/:id', requireAdmin, validate(comboSchema), asyncHandler(updateCombo));
+router.delete('/combos/:id', requireAdmin, asyncHandler(deleteCombo));
+router.patch('/combos/:id/availability', requireAdmin, validate(comboAvailabilitySchema), asyncHandler(updateComboAvailability));
 
 router.get('/dashboard', requireAdmin, asyncHandler(getDashboard));
 
 // Admin Dashboard Sections CRUD
 router.get('/dashboard-sections', requireAdmin, asyncHandler(getAdminSections));
-router.post('/dashboard-sections', requireAdmin, auditLog, validate(dashboardSectionSchema), asyncHandler(createAdminSection));
-router.patch('/dashboard-sections/reorder', requireAdmin, auditLog, validate(dashboardSectionReorderSchema), asyncHandler(reorderAdminSections));
+router.post('/dashboard-sections', requireAdmin, validate(dashboardSectionSchema), asyncHandler(createAdminSection));
+router.patch('/dashboard-sections/reorder', requireAdmin, validate(dashboardSectionReorderSchema), asyncHandler(reorderAdminSections));
 router.get('/dashboard-sections/:id', requireAdmin, asyncHandler(getAdminSectionById));
-router.patch('/dashboard-sections/:id', requireAdmin, auditLog, validate(dashboardSectionUpdateSchema), asyncHandler(updateAdminSection));
-router.delete('/dashboard-sections/:id', requireAdmin, auditLog, asyncHandler(deleteAdminSection));
+router.patch('/dashboard-sections/:id', requireAdmin, validate(dashboardSectionUpdateSchema), asyncHandler(updateAdminSection));
+router.delete('/dashboard-sections/:id', requireAdmin, asyncHandler(deleteAdminSection));
 
 // Section Items
-router.post('/dashboard-sections/:id/items', requireAdmin, auditLog, validate(dashboardSectionItemSchema), asyncHandler(addAdminSectionItem));
-router.patch('/dashboard-sections/:id/items/reorder', requireAdmin, auditLog, validate(dashboardSectionItemReorderSchema), asyncHandler(reorderAdminSectionItems));
-router.patch('/dashboard-sections/:id/items/:itemId', requireAdmin, auditLog, validate(dashboardSectionItemUpdateSchema), asyncHandler(updateAdminSectionItem));
-router.delete('/dashboard-sections/:id/items/:itemId', requireAdmin, auditLog, asyncHandler(deleteAdminSectionItem));
+router.post('/dashboard-sections/:id/items', requireAdmin, validate(dashboardSectionItemSchema), asyncHandler(addAdminSectionItem));
+router.patch('/dashboard-sections/:id/items/reorder', requireAdmin, validate(dashboardSectionItemReorderSchema), asyncHandler(reorderAdminSectionItems));
+router.patch('/dashboard-sections/:id/items/:itemId', requireAdmin, validate(dashboardSectionItemUpdateSchema), asyncHandler(updateAdminSectionItem));
+router.delete('/dashboard-sections/:id/items/:itemId', requireAdmin, asyncHandler(deleteAdminSectionItem));
 
 router.get('/reports/sales', requireAdmin, asyncHandler(getSalesReport));
 router.get('/reports/customers', requireAdmin, asyncHandler(getCustomersReport));
@@ -615,40 +610,37 @@ router.get('/reports/top-products', requireAdmin, asyncHandler(getTopProductsRep
 
 router.get('/orders', requireAdmin, asyncHandler(getAdminOrders));
 router.get('/orders/:id', requireAdmin, asyncHandler(getAdminOrderById));
-router.patch('/orders/:id/status', requireAdmin, auditLog, asyncHandler(updateOrderStatus));
-router.patch('/orders/:id/payment', requireAdmin, auditLog, asyncHandler(updateOrderPayment));
+router.patch('/orders/:id/status', requireAdmin, asyncHandler(updateOrderStatus));
+router.patch('/orders/:id/payment', requireAdmin, asyncHandler(updateOrderPayment));
 
 // Settings
 router.get('/settings', requireAdmin, asyncHandler(getSettings));
-router.patch('/settings', requireAdmin, auditLog, asyncHandler(updateSettings));
+router.patch('/settings', requireAdmin, asyncHandler(updateSettings));
 router.get('/offers/active', requireAdmin, asyncHandler(getActiveOffer));
 router.get('/offers', requireAdmin, asyncHandler(getAdminOffers));
-router.post('/offers', requireAdmin, auditLog, validate(offerSchema), asyncHandler(createOffer));
-router.patch('/offers/:id', requireAdmin, auditLog, validate(offerSchema), asyncHandler(updateOffer));
-router.delete('/offers/:id', requireAdmin, auditLog, asyncHandler(deleteOffer));
+router.post('/offers', requireAdmin, validate(offerSchema), asyncHandler(createOffer));
+router.patch('/offers/:id', requireAdmin, validate(offerSchema), asyncHandler(updateOffer));
+router.delete('/offers/:id', requireAdmin, asyncHandler(deleteOffer));
 router.get('/offers/:id/products', requireAdmin, asyncHandler(getOfferProducts));
-router.post('/offers/:id/products', requireAdmin, auditLog, validate(offerProductSchema), asyncHandler(addOfferProduct));
-router.delete('/offers/:id/products/:productId', requireAdmin, auditLog, asyncHandler(removeOfferProduct));
-router.patch('/offers/:id/products/reorder', requireAdmin, auditLog, validate(offerProductReorderSchema), asyncHandler(reorderOfferProducts));
+router.post('/offers/:id/products', requireAdmin, validate(offerProductSchema), asyncHandler(addOfferProduct));
+router.delete('/offers/:id/products/:productId', requireAdmin, asyncHandler(removeOfferProduct));
+router.patch('/offers/:id/products/reorder', requireAdmin, validate(offerProductReorderSchema), asyncHandler(reorderOfferProducts));
 
 // Coupons — admin-managed discount codes & auto-apply offers.
 router.get('/coupons', requireAdmin, asyncHandler(getAdminCoupons));
 router.get('/coupons/:id', requireAdmin, asyncHandler(getAdminCouponById));
-router.post('/coupons', requireAdmin, auditLog, validate(couponSchema), asyncHandler(createCoupon));
-router.put('/coupons/:id', requireAdmin, auditLog, validate(couponSchema), asyncHandler(updateCoupon));
-router.patch('/coupons/:id', requireAdmin, auditLog, validate(couponSchema), asyncHandler(updateCoupon));
-router.delete('/coupons/:id', requireAdmin, auditLog, asyncHandler(deleteCoupon));
-router.post('/coupons/:id/duplicate', requireAdmin, auditLog, validate(couponDuplicateSchema), asyncHandler(duplicateCoupon));
+router.post('/coupons', requireAdmin, validate(couponSchema), asyncHandler(createCoupon));
+router.put('/coupons/:id', requireAdmin, validate(couponSchema), asyncHandler(updateCoupon));
+router.patch('/coupons/:id', requireAdmin, validate(couponSchema), asyncHandler(updateCoupon));
+router.delete('/coupons/:id', requireAdmin, asyncHandler(deleteCoupon));
+router.post('/coupons/:id/duplicate', requireAdmin, validate(couponDuplicateSchema), asyncHandler(duplicateCoupon));
 router.get('/coupons/:id/redemptions', requireAdmin, asyncHandler(getCouponRedemptions));
-
-// Audit
-router.get('/audit', requireAdmin, asyncHandler(getAuditLogs));
 
 // Notifications
 router.get('/notifications', requireAdmin, asyncHandler(getAdminNotifications));
-router.post('/notifications', requireAdmin, auditLog, asyncHandler(createAdminNotification));
+router.post('/notifications', requireAdmin, asyncHandler(createAdminNotification));
   router.get('/notifications/:id', requireAdmin, asyncHandler(getAdminNotificationById));
-  router.delete('/notifications/:id', requireAdmin, auditLog, asyncHandler(deleteAdminNotification));
+  router.delete('/notifications/:id', requireAdmin, asyncHandler(deleteAdminNotification));
 
   // Admin inbox (bell icon). Distinct from the broadcast composer above.
   router.get('/inbox', requireAdmin, asyncHandler(getInbox));
@@ -659,7 +651,7 @@ router.post('/notifications', requireAdmin, auditLog, asyncHandler(createAdminNo
 
 // Notification Templates
 router.get('/notification-templates', requireAdmin, asyncHandler(getNotificationTemplates));
-router.patch('/notification-templates/:id', requireAdmin, auditLog, asyncHandler(updateNotificationTemplate));
-router.post('/notification-templates/:id/reset', requireAdmin, auditLog, asyncHandler(resetNotificationTemplate));
+router.patch('/notification-templates/:id', requireAdmin, asyncHandler(updateNotificationTemplate));
+router.post('/notification-templates/:id/reset', requireAdmin, asyncHandler(resetNotificationTemplate));
 
 module.exports = router;

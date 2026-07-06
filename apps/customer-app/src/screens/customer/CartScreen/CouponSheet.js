@@ -87,16 +87,20 @@ export default function CouponSheet({
     [availableCoupons, isAvailable, isAppliedCoupon],
   );
 
-  // The single highest-value unlocked offer gets a "BEST" badge, mirroring
-  // the admin-side CouponPreview's AUTO/EXCLUSIVE badge treatment.
+  // The single highest-value offer gets a "BEST" badge, mirroring the
+  // admin-side CouponPreview's AUTO/EXCLUSIVE badge treatment. The applied
+  // coupon must stay in this comparison — otherwise applying the best offer
+  // removes it from `unlockedCoupons` and the badge wrongly jumps to the
+  // next-best pickable coupon.
   const bestCouponId = useMemo(() => {
-    if (unlockedCoupons.length < 2) return null;
-    const best = unlockedCoupons.reduce(
+    const candidates = appliedCoupon ? [...unlockedCoupons, appliedCoupon] : unlockedCoupons;
+    if (candidates.length < 2) return null;
+    const best = candidates.reduce(
       (acc, coupon) => (Number(coupon.discount) > Number(acc?.discount || 0) ? coupon : acc),
       null,
     );
     return best?.id ?? null;
-  }, [unlockedCoupons]);
+  }, [unlockedCoupons, appliedCoupon]);
 
   useEffect(() => {
     if (!visible) {
@@ -151,7 +155,7 @@ export default function CouponSheet({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={[styles.sheet, { paddingBottom: spacing.xl + insets.bottom }]}>
+        <View style={styles.sheet}>
           <View style={styles.header}>
             <View>
               <Text style={styles.title}>Select an Offer</Text>
@@ -162,7 +166,11 @@ export default function CouponSheet({
             </TouchableOpacity>
           </View>
 
-          <View style={styles.body}>
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={{ paddingBottom: spacing.xl + Math.max(insets.bottom, spacing.lg) }}
+            showsVerticalScrollIndicator={false}
+          >
             {appliedCoupon && (
               <>
                 <Text style={styles.listHeading}>Applied offer</Text>
@@ -184,6 +192,11 @@ export default function CouponSheet({
                       <Text style={[styles.optionTitle, styles.optionTitleSelected]} numberOfLines={1}>
                         {appliedCoupon.title}
                       </Text>
+                      {bestCouponId === appliedCoupon.id ? (
+                        <View style={styles.bestBadge}>
+                          <Text style={styles.bestBadgeText}>BEST</Text>
+                        </View>
+                      ) : null}
                       <View style={styles.appliedBadge}>
                         <Text style={styles.appliedBadgeText}>APPLIED</Text>
                       </View>
@@ -405,7 +418,7 @@ export default function CouponSheet({
             {showManualEntry && manualError && (
               <Text style={styles.manualErrorText}>{manualError}</Text>
             )}
-          </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>

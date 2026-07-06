@@ -81,9 +81,6 @@ describe('Dashboard Public and Admin API Tests', () => {
         }
       ]]);
 
-      // No category fallback rows for this focused combo test.
-      pool.query.mockResolvedValueOnce([[]]);
-
       const res = await request(app).get('/api/dashboard?storeType=fast_food');
 
       expect(res.statusCode).toEqual(200);
@@ -93,7 +90,7 @@ describe('Dashboard Public and Admin API Tests', () => {
       expect(res.body.data.sections[0].items[0].comboItems).toHaveLength(1);
     });
 
-    it('should recover the default category section when dashboard item links are missing', async () => {
+    it('should hide the category section when no items are explicitly assigned', async () => {
       pool.query.mockResolvedValueOnce([[
         {
           id: 2,
@@ -108,29 +105,16 @@ describe('Dashboard Public and Admin API Tests', () => {
         }
       ]]);
 
-      pool.query.mockResolvedValueOnce([[
-        {
-          id: 5,
-          name: 'Snacks',
-          slug: 'snacks',
-          type: 'packed',
-          active: 1,
-          display_order: 2
-        }
-      ]]);
-
-      // No combo fallback rows for this focused category test.
+      // No dashboard_section_items rows linked to this section.
       pool.query.mockResolvedValueOnce([[]]);
 
       const res = await request(app).get('/api/dashboard?storeType=packed');
 
       expect(res.statusCode).toEqual(200);
-      expect(res.body.data.sections).toHaveLength(1);
-      expect(res.body.data.sections[0].sectionType).toEqual('category_grid');
-      expect(res.body.data.sections[0].items[0].name).toEqual('Snacks');
+      expect(res.body.data.sections).toHaveLength(0);
     });
 
-    it('should recover active offer banners when dashboard item links are stale', async () => {
+    it('should hide the offer banner section when linked items are stale or inactive', async () => {
       pool.query.mockResolvedValueOnce([[
         {
           id: 5,
@@ -148,54 +132,10 @@ describe('Dashboard Public and Admin API Tests', () => {
       // Linked dashboard rows are stale, inactive, or missing for this section.
       pool.query.mockResolvedValueOnce([[]]);
 
-      pool.query.mockResolvedValueOnce([[
-        {
-          id: 11,
-          title: 'Free Delivery',
-          description: '',
-          image_id: 'image-11',
-          image_url: 'http://10.0.2.2:3000/uploads/free-delivery.png',
-          active: 1,
-          deleted: 0,
-          store_type: 'fast_food',
-          is_clickable: 0,
-          section_item_id: null
-        },
-        {
-          id: 12,
-          title: 'Combo Deal',
-          description: '',
-          image_id: 'image-12',
-          image_url: 'http://10.0.2.2:3000/uploads/combo-deal.png',
-          active: 1,
-          deleted: 0,
-          store_type: 'fast_food',
-          is_clickable: 0,
-          section_item_id: null
-        }
-      ]]);
-
-      // No category or combo fallback rows for this focused offer-banner test.
-      pool.query.mockResolvedValueOnce([[]]);
-      pool.query.mockResolvedValueOnce([[]]);
-
       const res = await request(app).get('/api/dashboard?storeType=fast_food');
 
       expect(res.statusCode).toEqual(200);
-      expect(res.body.data.sections).toHaveLength(1);
-      expect(res.body.data.sections[0].sectionType).toEqual('offer_banner');
-      expect(res.body.data.sections[0].items[0]).toMatchObject({
-        id: 11,
-        title: 'Free Delivery',
-        imageUrl: 'http://10.0.2.2:3000/uploads/free-delivery.png',
-        storeType: 'fast_food'
-      });
-      expect(res.body.data.sections[0].items[1]).toMatchObject({
-        id: 12,
-        title: 'Combo Deal',
-        imageUrl: 'http://10.0.2.2:3000/uploads/combo-deal.png',
-        storeType: 'fast_food'
-      });
+      expect(res.body.data.sections).toHaveLength(0);
     });
   });
 

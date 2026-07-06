@@ -117,6 +117,40 @@ const computeDiscount = (coupon, { subtotal, deliveryCharge, standardDeliveryCha
 };
 
 /**
+ * Wraps computeDiscount to also account for `also_free_delivery` — a flat
+ * or percent coupon that ALSO waives standard delivery. Returns the pieces
+ * separately so callers (bill summary UI) can show "Delivery: FREE" plus
+ * only the remaining item-level discount, instead of one merged number.
+ *
+ * @returns {{ discount: number, itemDiscount: number, freeDeliveryWaiver: number }}
+ */
+const computeDiscountBreakdown = (coupon, { subtotal, deliveryCharge, standardDeliveryCharge }) => {
+  const itemDiscount = computeDiscount(coupon, { subtotal, deliveryCharge, standardDeliveryCharge });
+
+  if (coupon.discount_type === 'free_delivery') {
+    return { discount: itemDiscount, itemDiscount: 0, freeDeliveryWaiver: itemDiscount };
+  }
+
+  if (!coupon.also_free_delivery) {
+    return { discount: itemDiscount, itemDiscount, freeDeliveryWaiver: 0 };
+  }
+
+  const sub = toMoney(subtotal);
+  const del = toMoney(deliveryCharge);
+  const stdDel = standardDeliveryCharge === undefined || standardDeliveryCharge === null
+    ? del
+    : toMoney(standardDeliveryCharge);
+  const remaining = Math.max(0, roundMoney(sub + del - itemDiscount));
+  const freeDeliveryWaiver = roundMoney(Math.min(stdDel, remaining));
+
+  return {
+    discount: roundMoney(itemDiscount + freeDeliveryWaiver),
+    itemDiscount,
+    freeDeliveryWaiver,
+  };
+};
+
+/**
  * Counts a user's lifetime non-cancelled orders. Used for first-order /
  * first-N-order checks.
  */
@@ -284,8 +318,8 @@ const checkEligibility = async ({
     }
   }
 
-  const discount = computeDiscount(coupon, { subtotal, deliveryCharge, standardDeliveryCharge });
-  return { ok: true, coupon, discount };
+  const { discount, itemDiscount, freeDeliveryWaiver } = computeDiscountBreakdown(coupon, { subtotal, deliveryCharge, standardDeliveryCharge });
+  return { ok: true, coupon, discount, itemDiscount, freeDeliveryWaiver };
 };
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -335,6 +369,7 @@ const validateCoupon = async ({
     userId,
     now,
     connection: conn,
+    itemCount,
   });
 };
 
@@ -526,13 +561,16 @@ const findApplicableCoupons = async ({
       };
     }
 
-    const discount = computeDiscount(coupon, { subtotal: evalSubtotal, deliveryCharge: evalDelivery, standardDeliveryCharge: evalStandardDelivery });
+    const { discount, itemDiscount, freeDeliveryWaiver } = computeDiscountBreakdown(coupon, { subtotal: evalSubtotal, deliveryCharge: evalDelivery, standardDeliveryCharge: evalStandardDelivery });
     result.push({
       id: coupon.id,
       code: coupon.code,
       title: coupon.title,
       description: coupon.description,
       discountType: coupon.discount_type,
+      alsoFreeDelivery: Boolean(coupon.also_free_delivery),
+      itemDiscount: roundMoney(itemDiscount),
+      freeDeliveryWaiver: roundMoney(freeDeliveryWaiver),
       discountValue: Number(coupon.discount_value),
       maxDiscountAmount: coupon.max_discount_amount !== null ? Number(coupon.max_discount_amount) : null,
       minOrder: Number(coupon.min_order_amount),
@@ -776,6 +814,7 @@ module.exports = {
   getNearestUnlockableCoupon,
   checkEligibility,
   computeDiscount,
+  computeDiscountBreakdown,
 
   // Helpers (exported for testing)
   isWithinDateWindow,

@@ -9,7 +9,7 @@ import ErrorState from '../../components/ErrorState';
 import { formatPrice } from '../../utils/formatters';
 import './ProductDetailScreen.css';
 
-import { getResolvedImageUrl } from '../../utils/imageUtils';
+import { getResolvedImageUrl, PLACEHOLDER } from '../../utils/imageUtils';
 
 const BackIcon = () => (
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -84,7 +84,12 @@ export default function ProductDetailScreen() {
       </div>
 
       <div className="pd-image-wrapper">
-        <img src={imageUrl} alt={product.name} className="pd-image" />
+        <img
+          src={imageUrl}
+          alt={product.name}
+          className="pd-image"
+          onError={(e) => { e.target.onerror = null; e.target.src = PLACEHOLDER; }}
+        />
       </div>
 
       <div className="pd-info-container">

@@ -172,18 +172,19 @@ const createCoupon = async (req, res) => {
     [result] = await pool.query(
       `INSERT INTO coupons (
         code, title, description,
-        discount_type, discount_value, max_discount_amount,
+        discount_type, also_free_delivery, discount_value, max_discount_amount,
         min_order_amount, min_item_count, max_order_amount, applies_to,
         starts_at, ends_at, active_days_mask, active_time_start, active_time_end,
         total_usage_limit, per_user_usage_limit, first_order_only, first_n_orders,
         target_audience, auto_apply, requires_code, priority,
         active, created_by_admin_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
       [
         code,
         b.title.trim(),
         toNullIfEmpty(b.description) || '',
         b.discount_type,
+        b.discount_type !== 'free_delivery' && toBool(b.also_free_delivery) ? 1 : 0,
         b.discount_type === 'free_delivery' ? 0 : Number(b.discount_value),
         toMoneyOrNull(b.max_discount_amount),
         Number(b.min_order_amount) || 0,
@@ -270,6 +271,11 @@ const updateCoupon = async (req, res) => {
     updates.push('discount_type = ?');
     params.push(b.discount_type);
   }
+  if (b.also_free_delivery !== undefined) {
+    const finalType = b.discount_type !== undefined ? b.discount_type : existing.discount_type;
+    updates.push('also_free_delivery = ?');
+    params.push(finalType !== 'free_delivery' && toBool(b.also_free_delivery) ? 1 : 0);
+  }
   if (b.discount_value !== undefined) { updates.push('discount_value = ?'); params.push(Number(b.discount_value)); }
   if (b.max_discount_amount !== undefined) { updates.push('max_discount_amount = ?'); params.push(toMoneyOrNull(b.max_discount_amount)); }
   if (b.min_order_amount !== undefined) { updates.push('min_order_amount = ?'); params.push(Number(b.min_order_amount)); }
@@ -351,18 +357,19 @@ const duplicateCoupon = async (req, res) => {
     [result] = await pool.query(
       `INSERT INTO coupons (
         code, title, description,
-        discount_type, discount_value, max_discount_amount,
+        discount_type, also_free_delivery, discount_value, max_discount_amount,
         min_order_amount, min_item_count, max_order_amount, applies_to,
         starts_at, ends_at, active_days_mask, active_time_start, active_time_end,
         total_usage_limit, per_user_usage_limit, first_order_only, first_n_orders,
         target_audience, auto_apply, requires_code, priority,
         active, created_by_admin_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
       [
         c.code ? `${c.code}-COPY` : null,
         `${c.title} (Copy)`,
         c.description,
         c.discount_type,
+        c.also_free_delivery,
         c.discount_value,
         c.max_discount_amount,
         c.min_order_amount,

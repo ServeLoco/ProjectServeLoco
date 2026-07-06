@@ -5,7 +5,7 @@ import './MobileDashboard.css';
 import { GENERIC_ERROR } from '../utils/constants';
 
 import { readList } from '../utils/apiResponse';
-import { normalizeImageUrl } from '../utils/imageUrl';
+import { normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
 
 const DEFAULT_MAX_VISIBLE_BY_SECTION = {
   offer_banner: 5,
@@ -454,7 +454,7 @@ export default function MobileDashboard() {
   };
 
   return (
-    <div className="dashboard-workspace">
+    <div>
       {/* Status banners */}
       {error && (
         <div className="error-container" style={{ marginBottom: '1rem' }}>{error}</div>
@@ -477,6 +477,7 @@ export default function MobileDashboard() {
         </div>
       )}
 
+    <div className="dashboard-workspace">
       {/* Left Panel: Section Selector */}
       <aside className="sections-panel">
         <header className="panel-header">
@@ -743,10 +744,10 @@ export default function MobileDashboard() {
                     selectedSection.items?.map((item, idx) => {
                       const details = item.details || {};
                       const name = details.name || details.title || `Item #${item.item_id}`;
-                      const img = normalizeImageUrl(details.imageUrl || details.image_url) || 'https://via.placeholder.com/40';
+                      const img = normalizeImageUrl(details.imageUrl || details.image_url) || FALLBACK_IMAGE;
                       return (
                         <div key={item.id} className="item-row">
-                          <img src={img} alt={name} className="item-thumbnail" />
+                          <img src={img} onError={handleImageError} alt={name} className="item-thumbnail" />
                           <div className="item-details">
                             <div className="item-title-name">{name}</div>
                             <div className="item-subtitle-meta">
@@ -823,7 +824,7 @@ export default function MobileDashboard() {
 
                         return (
                           <div key={cand.id} className={`picker-result-row ${disabled ? 'disabled-item' : ''}`}>
-                            <img src={img || 'https://via.placeholder.com/40'} alt={name} className="item-thumbnail" style={disabled ? { opacity: 0.5 } : {}} />
+                            <img src={img || FALLBACK_IMAGE} onError={handleImageError} alt={name} className="item-thumbnail" style={disabled ? { opacity: 0.5 } : {}} />
                             <div style={{ flex: 1, minWidth: 0, opacity: disabled ? 0.6 : 1 }}>
                               <div className="item-title-name">{name}</div>
                               <div className="item-subtitle-meta">
@@ -1040,6 +1041,7 @@ export default function MobileDashboard() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

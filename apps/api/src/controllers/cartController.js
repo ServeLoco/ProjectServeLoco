@@ -201,6 +201,33 @@ const calculateCart = async (req, res) => {
     // Non-fatal: if store-type detection fails, just skip store-type filtering.
   }
 
+  // Builds the appliedCoupon payload from a checkEligibility/pickBestAutoApply
+  // result, carrying the itemDiscount / freeDeliveryWaiver split forward so
+  // the bill summary can show "Delivery: FREE" separately from the
+  // remaining flat/percent discount instead of one merged number.
+  const buildAppliedCoupon = (result, { autoApplied }) => {
+    // itemDiscount/freeDeliveryWaiver come from computeDiscountBreakdown via
+    // checkEligibility; fall back to discount_type when a caller only sends
+    // the plain { coupon, discount } shape (e.g. older mocks/tests).
+    const freeDeliveryWaiver = result.freeDeliveryWaiver !== undefined
+      ? roundMoney(result.freeDeliveryWaiver)
+      : (result.coupon.discount_type === 'free_delivery' ? roundMoney(result.discount) : 0);
+    const itemDiscount = result.itemDiscount !== undefined
+      ? roundMoney(result.itemDiscount)
+      : roundMoney(result.discount - freeDeliveryWaiver);
+    return {
+      id: result.coupon.id,
+      code: result.coupon.code,
+      title: result.coupon.title,
+      discountType: result.coupon.discount_type,
+      alsoFreeDelivery: Boolean(result.coupon.also_free_delivery),
+      discount: roundMoney(result.discount),
+      itemDiscount,
+      freeDeliveryWaiver,
+      autoApplied,
+    };
+  };
+
   let discount = 0;
   let appliedCoupon = null;
   let couponError = null;
@@ -219,14 +246,7 @@ const calculateCart = async (req, res) => {
     });
     if (result.ok) {
       discount = roundMoney(result.discount);
-      appliedCoupon = {
-        id: result.coupon.id,
-        code: result.coupon.code,
-        title: result.coupon.title,
-        discountType: result.coupon.discount_type,
-        discount: roundMoney(result.discount),
-        autoApplied: false,
-      };
+      appliedCoupon = buildAppliedCoupon(result, { autoApplied: false });
     } else {
       couponError = result.reason;
     }
@@ -244,14 +264,7 @@ const calculateCart = async (req, res) => {
     });
     if (result.ok) {
       discount = roundMoney(result.discount);
-      appliedCoupon = {
-        id: result.coupon.id,
-        code: result.coupon.code,
-        title: result.coupon.title,
-        discountType: result.coupon.discount_type,
-        discount: roundMoney(result.discount),
-        autoApplied: false,
-      };
+      appliedCoupon = buildAppliedCoupon(result, { autoApplied: false });
     } else {
       couponError = result.reason;
     }
@@ -268,14 +281,7 @@ const calculateCart = async (req, res) => {
     });
     if (best) {
       discount = roundMoney(best.discount);
-      appliedCoupon = {
-        id: best.coupon.id,
-        code: best.coupon.code,
-        title: best.coupon.title,
-        discountType: best.coupon.discount_type,
-        discount: roundMoney(best.discount),
-        autoApplied: true,
-      };
+      appliedCoupon = buildAppliedCoupon(best, { autoApplied: true });
     }
   }
 
@@ -294,14 +300,7 @@ const calculateCart = async (req, res) => {
     });
     if (best) {
       discount = roundMoney(best.discount);
-      appliedCoupon = {
-        id: best.coupon.id,
-        code: best.coupon.code,
-        title: best.coupon.title,
-        discountType: best.coupon.discount_type,
-        discount: roundMoney(best.discount),
-        autoApplied: true,
-      };
+      appliedCoupon = buildAppliedCoupon(best, { autoApplied: true });
     }
   }
 
@@ -328,14 +327,18 @@ const calculateCart = async (req, res) => {
   const grandTotal = roundMoney(Math.max(0, rawTotal));
 
   // Free-delivery progress hint: only relevant when no free_delivery coupon
-  // is already applied. Drives "add ₹X more for free delivery" UI.
-  const isFreeDeliveryApplied = Boolean(appliedCoupon && appliedCoupon.discountType === 'free_delivery');
+  // is already applied. Drives "add ₹X more for free delivery" UI. Uses the
+  // waiver amount rather than discountType so a flat/percent coupon with
+  // also_free_delivery counts too.
+  const isFreeDeliveryApplied = Boolean(appliedCoupon && appliedCoupon.freeDeliveryWaiver > 0);
   let freeDeliveryProgress = null;
   if (!isFreeDeliveryApplied) {
     try {
       freeDeliveryProgress = await getNextFreeDeliveryThreshold({ subtotal, storeType: cartStoreType, userId, itemCount: totalItemCount });
-    } catch (_) {
-      // Non-fatal: no progress hint on error.
+    } catch (err) {
+      // Non-fatal: no progress hint on error, but log so a broken hint
+      // (e.g. missing migration column) doesn't fail silently in prod.
+      console.error('[cart] getNextFreeDeliveryThreshold failed:', err.message);
     }
   }
 
@@ -352,8 +355,8 @@ const calculateCart = async (req, res) => {
       excludeCouponId: appliedCoupon?.id || null,
       itemCount: totalItemCount,
     });
-  } catch (_) {
-    // Non-fatal: no progress hint on error.
+  } catch (err) {
+    console.error('[cart] getNearestUnlockableCoupon failed:', err.message);
   }
 
   if (!requiresLocation) {
@@ -408,6 +411,12 @@ const calculateCart = async (req, res) => {
     appliedCoupon,
     couponError,
     availableCoupons,
+    // Bill-summary display: whether delivery should render as "FREE"
+    // (whole discount when discount_type is free_delivery, or the delivery
+    // slice of a combined flat/percent + also_free_delivery coupon), and the
+    // remaining item-level discount to show on the Discount line.
+    isFreeDeliveryApplied,
+    itemDiscount: appliedCoupon ? appliedCoupon.itemDiscount : discount,
   };
 
   res.status(200).json({
@@ -482,7 +491,10 @@ const validateCouponHandler = async (req, res) => {
         code: result.coupon.code,
         title: result.coupon.title,
         discountType: result.coupon.discount_type,
+        alsoFreeDelivery: Boolean(result.coupon.also_free_delivery),
         discount: roundMoney(result.discount),
+        itemDiscount: roundMoney(result.itemDiscount),
+        freeDeliveryWaiver: roundMoney(result.freeDeliveryWaiver),
       },
       discount: roundMoney(result.discount),
     });

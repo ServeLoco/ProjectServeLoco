@@ -3,9 +3,6 @@ import { normalizeSession } from '../utils/apiMappers';
 
 const authApi = {
   getMe: options => apiClient.get('/auth/me', { ...options, auth: 'customer' }).then(normalizeSession),
-  login: payload => apiClient.post('/auth/login', payload).then(normalizeSession),
-  signup: payload => apiClient.post('/auth/signup', payload).then(normalizeSession),
-  requestPasswordReset: payload => apiClient.post('/auth/password-reset-requests', payload),
   updateProfile: payload => apiClient.patch('/auth/profile', payload, { auth: 'customer' }).then(normalizeSession),
   // Soft-delete with 30-day grace. Backend sets deletion_requested_at;
   // user can cancel anytime via cancelAccountDeletion. After 30 days a daily

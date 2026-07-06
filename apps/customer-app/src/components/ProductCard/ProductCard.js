@@ -116,14 +116,6 @@ function ProductCard({
             priority="high"
           />
 
-          {/* Combo tag (top-left) */}
-          {resolvedIsCombo ? (
-            <View style={styles.comboTag}>
-              <AppIcon name="shoppingBag" size={9} color={colors.saffronDark} strokeWidth={2.6} />
-              <Text style={styles.comboTagText}>COMBO</Text>
-            </View>
-          ) : null}
-
           {/* Discount ribbon (top-right) — green gradient */}
           {resolvedDiscountLabel ? (
             <View style={styles.discountRibbon}>
@@ -161,18 +153,6 @@ function ProductCard({
             </View>
           ) : null}
 
-          {/* Dark gradient strip at the bottom — white text overlay */}
-          <LinearGradient
-            colors={[
-              'rgba(8,12,20,0)',
-              'rgba(8,12,20,0.55)',
-              'rgba(8,12,20,0.85)',
-            ]}
-            locations={[0, 0.35, 1]}
-            pointerEvents="none"
-            style={styles.bottomScrim}
-          />
-
           {/* Top-right unit badge (e.g. "500 g" or "1 L") */}
           {resolvedUnit ? (
             <View style={styles.unitBadge}>
@@ -186,10 +166,14 @@ function ProductCard({
           <LinearGradient
             colors={[
               'rgba(8,12,20,0)',
-              'rgba(8,12,20,0.55)',
-              'rgba(8,12,20,0.85)',
+              'rgba(8,12,20,0.06)',
+              'rgba(8,12,20,0.16)',
+              'rgba(8,12,20,0.32)',
+              'rgba(8,12,20,0.52)',
+              'rgba(8,12,20,0.74)',
+              'rgba(8,12,20,0.9)',
             ]}
-            locations={[0, 0.35, 1]}
+            locations={[0, 0.16, 0.34, 0.52, 0.68, 0.84, 1]}
             pointerEvents="none"
             style={styles.bottomScrim}
           />
@@ -381,7 +365,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: '45%',
+    height: '58%',
   },
 
   // Bottom strip content
@@ -405,12 +389,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   priceBlock: {
-    flexShrink: 0,
+    flex: 1,
+    flexShrink: 1,
     minWidth: 0,
   },
   bottomRight: {
-    flex: 1,
-    minWidth: 0,
+    flexShrink: 0,
+    alignItems: 'flex-end',
   },
 
   // Top-right unit badge (e.g. "500 g" or "1 L")

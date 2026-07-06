@@ -128,10 +128,11 @@ const updateCategory = async (req, res) => {
   const slug = req.validatedData.slug || slugify(name);
   const displayOrder = req.validatedData.display_order ?? 0;
 
-  const [currentRows] = await pool.query('SELECT id FROM categories WHERE id = ? AND deleted = 0', [id]);
+  const [currentRows] = await pool.query('SELECT id, image_id FROM categories WHERE id = ? AND deleted = 0', [id]);
   if (currentRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Category not found' });
   }
+  const previousImageId = currentRows[0].image_id;
 
   if (displayOrder > 0) {
     const [existing] = await pool.query('SELECT name FROM categories WHERE type = ? AND display_order = ? AND id != ? AND deleted = 0 LIMIT 1', [type, displayOrder, id]);
@@ -145,6 +146,9 @@ const updateCategory = async (req, res) => {
     [name, slug, type, image_id, active, displayOrder, id]
   );
   categoriesCache.del();
+  if (previousImageId && String(previousImageId) !== String(image_id)) {
+    await cleanupOrphanedImage(previousImageId);
+  }
   res.status(200).json({ message: 'Category updated' });
 };
 

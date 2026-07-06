@@ -20,7 +20,6 @@ import Settings from './pages/Settings';
 import Images from './pages/Images';
 import Reports from './pages/Reports';
 import Health from './pages/Health';
-import AuditLogs from './pages/AuditLogs';
 import BulkImport from './pages/BulkImport';
 
 class ErrorBoundary extends React.Component {
@@ -81,7 +80,6 @@ function App() {
                   <Route path="/images" element={<Images />} />
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/health" element={<Health />} />
-                  <Route path="/audit" element={<AuditLogs />} />
                   <Route path="/bulk-import" element={<BulkImport />} />
                 </Route>
               </Route>

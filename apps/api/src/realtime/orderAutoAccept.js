@@ -2,7 +2,7 @@ const { pool } = require('../db/mysql');
 const realtimeEvents = require('./orderEvents');
 const notificationService = require('../utils/notificationService');
 
-const AUTO_ACCEPT_MS = 10_000;
+const AUTO_ACCEPT_MS = 120_000;
 
 // In-memory map of orderId → Node Timeout handle. Cleared on cancel/completion.
 const timers = new Map();

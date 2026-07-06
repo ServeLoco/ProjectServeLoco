@@ -26,6 +26,8 @@ export default function OrderConfirmationScreen() {
   const orderLabel = order.orderNumber || order.order_number || orderId || 'Pending';
   const total = order.total || order.bill?.grandTotal || 0;
   const deliveryCharge = order.bill?.delivery || 0;
+  const isFreeDeliveryApplied = Boolean(order.bill?.freeDeliveryApplied);
+  const itemDiscount = order.bill?.itemDiscount || 0;
   const deliveryType = order.bill?.deliveryType || order.deliveryType || 'standard';
   const deliveryLabel = deliveryType === 'fast'
     ? '⚡ Fast Delivery'
@@ -192,8 +194,24 @@ export default function OrderConfirmationScreen() {
             <View style={styles.divider} />
             <View style={styles.row}>
               <Text style={styles.label}>{deliveryLabel}</Text>
-              <Text style={styles.value}>{deliveryCharge > 0 ? `₹${deliveryCharge}` : 'FREE'}</Text>
+              {isFreeDeliveryApplied ? (
+                <View style={styles.freeDeliveryValueRow}>
+                  <Text style={styles.strikethroughValue}>₹{deliveryCharge}</Text>
+                  <Text style={[styles.value, styles.freeDeliveryText]}>FREE</Text>
+                </View>
+              ) : (
+                <Text style={styles.value}>{deliveryCharge > 0 ? `₹${deliveryCharge}` : 'FREE'}</Text>
+              )}
             </View>
+            {itemDiscount > 0 && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.row}>
+                  <Text style={styles.label}>Discount</Text>
+                  <Text style={[styles.value, styles.freeDeliveryText]}>- ₹{itemDiscount}</Text>
+                </View>
+              </>
+            )}
             <View style={styles.divider} />
             <View style={styles.col}>
               <Text style={styles.label}>Delivery Address</Text>
@@ -312,6 +330,19 @@ const styles = StyleSheet.create({
     ...typography.labelLarge,
     color: colors.textPrimary,
     fontWeight: '600',
+  },
+  freeDeliveryValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  strikethroughValue: {
+    ...typography.labelLarge,
+    color: colors.textSecondary,
+    textDecorationLine: 'line-through',
+  },
+  freeDeliveryText: {
+    color: colors.success,
   },
   addressValue: {
     ...typography.body,

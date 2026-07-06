@@ -23,8 +23,6 @@ jest.mock('../src/db/mongodb', () => {
   };
 });
 
-const { __mockInsertOne } = require('../src/db/mongodb');
-
 const app = express();
 app.use(express.json());
 app.use('/api/admin', adminRoutes);
@@ -92,63 +90,6 @@ describe('Order Cancellation and Admin Action Tests', () => {
 
     expect(res.statusCode).toEqual(200);
     expect(res.body.message).toContain('blocked');
-  });
-
-  it('should allow customer to request a password reset with a hashed pending password', async () => {
-    pool.query
-      .mockResolvedValueOnce([[{ id: 1 }]])           // SELECT id FROM users WHERE phone
-      .mockResolvedValueOnce([[{ cnt: 0 }]])            // SELECT COUNT(*) AS cnt (no pending)
-      .mockResolvedValueOnce([{}])                      // UPDATE old pending to rejected
-      .mockResolvedValueOnce([{ insertId: 7 }]);        // INSERT new request
-
-    const res = await request(app)
-      .post('/api/auth/password-reset-requests')
-      .send({ phone: '9999999999', newPassword: 'TempPass123' });
-
-    expect(res.statusCode).toEqual(202);
-    expect(res.body.message).toContain('admin approval');
-    // TASK 5.3: INSERT now stores the requester IP
-    const insertCall = pool.query.mock.calls.find(
-      ([sql]) => sql === 'INSERT INTO password_reset_requests (user_id, password_hash, requester_ip) VALUES (?, ?, ?)'
-    );
-    expect(insertCall).toBeDefined();
-    expect(insertCall[1][0]).toBe(1);
-    expect(insertCall[1][1]).toMatch(/^\$2[aby]\$/);
-  });
-
-  it('returns 429 when a pending reset request already exists for the phone (TASK 5.2)', async () => {
-    pool.query
-      .mockResolvedValueOnce([[{ id: 1 }]])           // SELECT id FROM users WHERE phone
-      .mockResolvedValueOnce([[{ cnt: 1 }]]);           // SELECT COUNT(*) AS cnt (1 pending)
-
-    const res = await request(app)
-      .post('/api/auth/password-reset-requests')
-      .send({ phone: '9999999999', newPassword: 'TempPass123' });
-
-    expect(res.statusCode).toEqual(429);
-    expect(res.body.code).toEqual('TOO_MANY_REQUESTS');
-    expect(res.body.message).toContain('already pending');
-  });
-
-  it('should allow admin to approve a pending password reset request', async () => {
-    pool.query
-      .mockResolvedValueOnce([[{ id: 7, user_id: 1, password_hash: '$2b$10$hashed', status: 'pending' }]])
-      .mockResolvedValueOnce([{ affectedRows: 1 }])
-      .mockResolvedValueOnce([{ affectedRows: 1 }]);
-
-    const res = await request(app)
-      .patch('/api/admin/password-reset-requests/7/approve')
-      .set('Authorization', `Bearer ${adminToken}`);
-
-    expect(res.statusCode).toEqual(200);
-    expect(res.body.message).toContain('approved');
-    expect(pool.query).toHaveBeenCalledWith(
-      'UPDATE users SET password_hash = ? WHERE id = ?',
-      ['$2b$10$hashed', 1]
-    );
-    expect(__mockInsertOne).toHaveBeenCalledWith(expect.objectContaining({
-      body: {}
-    }));
   });
 
   it('should aggregate admin stats', async () => {

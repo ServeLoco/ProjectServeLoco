@@ -280,10 +280,11 @@ const updateProduct = async (req, res) => {
   const { id } = req.params;
   const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time } = req.validatedData;
 
-  const [existing] = await pool.query('SELECT id FROM products WHERE id = ? AND deleted = 0', [id]);
+  const [existing] = await pool.query('SELECT id, image_id FROM products WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
+  const previousImageId = existing[0].image_id;
 
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
   if (finalDisplayOrder > 0) {
@@ -308,6 +309,9 @@ const updateProduct = async (req, res) => {
     ]
   );
   await pool.query('DELETE FROM product_combo_items WHERE combo_product_id = ?', [id]);
+  if (previousImageId && String(previousImageId) !== String(image_id)) {
+    await cleanupOrphanedImage(previousImageId);
+  }
   res.status(200).json({ message: 'Product updated' });
 };
 
@@ -440,13 +444,17 @@ const updateProductImage = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Image ID required' });
   }
 
-  const [existing] = await pool.query('SELECT id FROM products WHERE id = ? AND deleted = 0', [id]);
+  const [existing] = await pool.query('SELECT id, image_id FROM products WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
+  const previousImageId = existing[0].image_id;
 
   await pool.query('UPDATE products SET image_id = ? WHERE id = ?', [finalImageId, id]);
-  
+  if (previousImageId && String(previousImageId) !== String(finalImageId)) {
+    await cleanupOrphanedImage(previousImageId);
+  }
+
   const [updatedRows] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
   res.status(200).json({ message: 'Product image updated', product: updatedRows[0] });
 };

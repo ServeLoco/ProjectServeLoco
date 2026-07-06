@@ -6,8 +6,11 @@ import PlaceholderPreview from './PlaceholderPreview';
 import './ImageCropper.css';
 
 const ASPECT_PRESETS = [
+  { label: '0.78:1 (Product/combo card)', value: 0.78 },
+  { label: '0.9:1 (Category card)', value: 0.9 },
   { label: '1:1 (Square)', value: 1 },
-  { label: '16:9 (Banner)', value: 16 / 9 },
+  { label: '2:1 (Offer banner)', value: 2 },
+  { label: '16:9', value: 16 / 9 },
   { label: '4:3', value: 4 / 3 },
   { label: '3:2', value: 3 / 2 },
   { label: 'Free', value: undefined },
@@ -16,12 +19,22 @@ const ASPECT_PRESETS = [
 const FILL_PRESETS = ['#ffffff', '#000000', '#f4f4f4', '#e8f5e9', '#fff3e0', '#e3f2fd', '#fce4ec'];
 
 const ASPECT_LABELS = {
-  product: '1:1 (square product card)',
-  category: '1:1 (square category icon)',
-  combo: '1:1 (square combo card)',
-  offer: '16:9 (wide banner)',
+  product: '0.78:1 (product card, portrait)',
+  category: '0.9:1 (category card)',
+  combo: '0.78:1 (combo card, portrait)',
+  offer: '2:1 (home banner)',
   qr: '1:1 (square QR code)',
   library: '1:1 (library thumbnail)',
+};
+
+// Aspect the customer app actually renders each image type at.
+const TYPE_DEFAULT_ASPECTS = {
+  product: 0.78,
+  combo: 0.78,
+  category: 0.9,
+  offer: 2,
+  qr: 1,
+  library: 1,
 };
 
 export default function ImageCropper({
@@ -34,7 +47,7 @@ export default function ImageCropper({
   onApply,                    // (croppedFile: File) => void
   onSkip,                     // () => void — user chose to upload the original
 }) {
-  const initialAspect = defaultAspect ?? (type === 'offer' ? 16 / 9 : 1);
+  const initialAspect = defaultAspect ?? TYPE_DEFAULT_ASPECTS[type] ?? 1;
   const [aspect, setAspect] = useState(initialAspect);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);

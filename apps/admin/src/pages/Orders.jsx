@@ -593,7 +593,7 @@ export default function Orders() {
         </div>
       </section>
 
-      <section className="filter-bar">
+      <section className="orders-filter-bar">
         <div className="filter-row">
           <input
             type="text"

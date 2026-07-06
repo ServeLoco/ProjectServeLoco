@@ -620,16 +620,20 @@ const migrate = async () => {
         'SELECT id FROM dashboard_sections WHERE slug = ? LIMIT 1',
         [slug]
       );
-      if (existing.length > 0) return existing[0].id;
+      if (existing.length > 0) return { id: existing[0].id, isNew: false };
 
       const [result] = await connection.query(`
         INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all)
         VALUES (?, ?, ?, 'all', ?, ?, ?)
       `, [title, slug, sectionType, displayOrder, maxVisibleItems, showSeeAll]);
-      return result.insertId;
+      return { id: result.insertId, isNew: true };
     };
 
-    const offerSectionId = await ensureDashboardSection({
+    // Item seeding below only runs the first time a default section is created,
+    // so admins retain full control over what appears once the layout exists —
+    // newly created categories/combos are never auto-injected on later restarts.
+
+    const { id: offerSectionId, isNew: offerSectionIsNew } = await ensureDashboardSection({
       title: 'Special Offers',
       slug: 'hero-offers',
       sectionType: 'offer_banner',
@@ -638,19 +642,21 @@ const migrate = async () => {
       showSeeAll: false
     });
 
-    const [activeOffers] = await connection.query('SELECT id FROM offers WHERE active = 1 AND deleted = 0 LIMIT 1');
-    if (activeOffers.length > 0) {
-      await connection.query(`
-        INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
-        SELECT ?, 'offer', ?, 0 FROM DUAL
-        WHERE NOT EXISTS (
-          SELECT 1 FROM dashboard_section_items
-          WHERE section_id = ? AND item_type = 'offer' AND item_id = ?
-        )
-      `, [offerSectionId, activeOffers[0].id, offerSectionId, activeOffers[0].id]);
+    if (offerSectionIsNew) {
+      const [activeOffers] = await connection.query('SELECT id FROM offers WHERE active = 1 AND deleted = 0 LIMIT 1');
+      if (activeOffers.length > 0) {
+        await connection.query(`
+          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
+          SELECT ?, 'offer', ?, 0 FROM DUAL
+          WHERE NOT EXISTS (
+            SELECT 1 FROM dashboard_section_items
+            WHERE section_id = ? AND item_type = 'offer' AND item_id = ?
+          )
+        `, [offerSectionId, activeOffers[0].id, offerSectionId, activeOffers[0].id]);
+      }
     }
 
-    const catSectionId = await ensureDashboardSection({
+    const { id: catSectionId, isNew: catSectionIsNew } = await ensureDashboardSection({
       title: 'Shop by Category',
       slug: 'categories-grid',
       sectionType: 'category_grid',
@@ -659,19 +665,21 @@ const migrate = async () => {
       showSeeAll: false
     });
 
-    const [activeCats] = await connection.query('SELECT id, display_order FROM categories WHERE active = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
-    for (const cat of activeCats) {
-      await connection.query(`
-        INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
-        SELECT ?, 'category', ?, ? FROM DUAL
-        WHERE NOT EXISTS (
-          SELECT 1 FROM dashboard_section_items
-          WHERE section_id = ? AND item_type = 'category' AND item_id = ?
-        )
-      `, [catSectionId, cat.id, cat.display_order, catSectionId, cat.id]);
+    if (catSectionIsNew) {
+      const [activeCats] = await connection.query('SELECT id, display_order FROM categories WHERE active = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
+      for (const cat of activeCats) {
+        await connection.query(`
+          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
+          SELECT ?, 'category', ?, ? FROM DUAL
+          WHERE NOT EXISTS (
+            SELECT 1 FROM dashboard_section_items
+            WHERE section_id = ? AND item_type = 'category' AND item_id = ?
+          )
+        `, [catSectionId, cat.id, cat.display_order, catSectionId, cat.id]);
+      }
     }
 
-    const comboSectionId = await ensureDashboardSection({
+    const { id: comboSectionId, isNew: comboSectionIsNew } = await ensureDashboardSection({
       title: 'Popular Combos',
       slug: 'popular-combos',
       sectionType: 'combo_block',
@@ -680,17 +688,19 @@ const migrate = async () => {
       showSeeAll: true
     });
 
-    const [activeCombos] = await connection.query('SELECT id FROM combos WHERE available = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
-    let comboOrder = 0;
-    for (const combo of activeCombos) {
-      await connection.query(`
-        INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
-        SELECT ?, 'combo', ?, ? FROM DUAL
-        WHERE NOT EXISTS (
-          SELECT 1 FROM dashboard_section_items
-          WHERE section_id = ? AND item_type = 'combo' AND item_id = ?
-        )
-      `, [comboSectionId, combo.id, comboOrder++, comboSectionId, combo.id]);
+    if (comboSectionIsNew) {
+      const [activeCombos] = await connection.query('SELECT id FROM combos WHERE available = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
+      let comboOrder = 0;
+      for (const combo of activeCombos) {
+        await connection.query(`
+          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
+          SELECT ?, 'combo', ?, ? FROM DUAL
+          WHERE NOT EXISTS (
+            SELECT 1 FROM dashboard_section_items
+            WHERE section_id = ? AND item_type = 'combo' AND item_id = ?
+          )
+        `, [comboSectionId, combo.id, comboOrder++, comboSectionId, combo.id]);
+      }
     }
     console.log('Default dashboard sections and items ready.');
     } // end if (!skipSeed)
@@ -900,6 +910,10 @@ const migrate = async () => {
     await ensureColumn('coupons', 'target_audience', "target_audience ENUM('all','selected') NOT NULL DEFAULT 'all' AFTER first_n_orders");
     await ensureColumn('coupons', 'priority', 'priority INT NOT NULL DEFAULT 0 AFTER requires_code');
     await ensureColumn('coupons', 'created_by_admin_id', 'created_by_admin_id VARCHAR(50) NULL AFTER deleted');
+    // Lets a flat/percent coupon ALSO waive standard delivery, without
+    // needing a separate discount_type. Ignored when discount_type is
+    // already 'free_delivery' (that type already waives delivery alone).
+    await ensureColumn('coupons', 'also_free_delivery', 'also_free_delivery TINYINT(1) NOT NULL DEFAULT 0 AFTER discount_type');
     // Enforce code uniqueness among non-deleted coupons. A plain UNIQUE
     // index would block re-creating a soft-deleted code, so we scope
     // uniqueness to deleted = 0 (NULL is treated as distinct by MySQL,
@@ -958,6 +972,10 @@ const migrate = async () => {
     await ensureColumn('orders', 'coupon_code', 'coupon_code VARCHAR(40) NULL AFTER coupon_id');
     await ensureColumn('orders', 'coupon_title', 'coupon_title VARCHAR(120) NULL AFTER coupon_code');
     await ensureColumn('orders', 'discount_amount', 'discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER coupon_title');
+    // Snapshots the delivery-waiver portion of discount_amount so bill
+    // displays can show "Delivery: FREE" + the remaining item discount
+    // separately, even if the coupon is later edited/deleted.
+    await ensureColumn('orders', 'free_delivery_waiver_amount', 'free_delivery_waiver_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER discount_amount');
 
     // ---------------------------------------------------------
     // ONE-TIME MIGRATION: replace the threshold/blanket delivery-fee

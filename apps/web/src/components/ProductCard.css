@@ -11,7 +11,7 @@
 .product-img-wrapper {
   position: relative;
   width: 100%;
-  padding-top: 100%; /* 1:1 Aspect Ratio */
+  padding-top: 128.2%; /* 0.78:1 aspect ratio — matches customer-app ProductCard */
   background: var(--bg-app);
 }
 

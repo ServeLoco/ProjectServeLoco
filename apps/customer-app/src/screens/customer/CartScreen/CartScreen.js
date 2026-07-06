@@ -191,8 +191,8 @@ export default function CartScreen() {
       // Sync applied coupon from the bill response (handles auto-apply + validation).
       if (calculatedBill.appliedCoupon) {
         setAppliedCoupon(calculatedBill.appliedCoupon.code, calculatedBill.appliedCoupon);
-      } else if (calculatedBill.couponError && appliedCouponCode) {
-        // The user-entered code failed validation — clear it.
+      } else if (calculatedBill.couponError && (appliedCouponCode || appliedCouponId)) {
+        // The user-entered code (or tapped no-code offer) failed validation — clear it.
         clearAppliedCoupon();
       }
       Animated.timing(listOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
@@ -280,14 +280,39 @@ export default function CartScreen() {
   // already active — and rendered separately via its own applied row.
   const pickableOffers = useMemo(() => {
     const unlocked = (bill?.availableCoupons || []).filter(
-      coupon => coupon.unlocked !== false && coupon.eligible !== false && coupon.isEligible !== false
+      coupon => coupon.unlocked !== false && coupon.available !== false
         && !(appliedCoupon && coupon.id === appliedCoupon.id),
     );
     return unlocked
       .slice()
       .sort((a, b) => Number(b.discount || 0) - Number(a.discount || 0));
   }, [bill?.availableCoupons, appliedCoupon]);
-  const topOffers = useMemo(() => pickableOffers.slice(0, 2), [pickableOffers]);
+  // Cap total inline rows at 2 — the applied-coupon row (if any) takes one
+  // of those 2 slots, otherwise a 3rd coupon appears once one is applied.
+  const topOffers = useMemo(
+    () => pickableOffers.slice(0, appliedCoupon ? 1 : 2),
+    [pickableOffers, appliedCoupon],
+  );
+
+  // Mirrors CouponSheet's bestCouponId logic so the same offer gets the
+  // "BEST" badge in both places.
+  const bestCouponId = useMemo(() => {
+    const candidates = appliedCoupon ? [...pickableOffers, appliedCoupon] : pickableOffers;
+    if (candidates.length < 2) return null;
+    const best = candidates.reduce(
+      (acc, coupon) => (Number(coupon.discount) > Number(acc?.discount || 0) ? coupon : acc),
+      null,
+    );
+    return best?.id ?? null;
+  }, [pickableOffers, appliedCoupon]);
+  // Header count stays stable whether or not a coupon is applied — counts
+  // every unlocked+available offer, including the currently applied one.
+  const totalOffersCount = useMemo(
+    () => (bill?.availableCoupons || []).filter(
+      coupon => coupon.unlocked !== false && coupon.available !== false,
+    ).length,
+    [bill?.availableCoupons],
+  );
 
   const formatOfferBadge = (coupon) => {
     if (!coupon) return null;
@@ -296,6 +321,11 @@ export default function CartScreen() {
     if (coupon.discountType === 'percent') return `${coupon.discountValue}% off`;
     if (coupon.discountType === 'flat') return `₹${coupon.discountValue} off`;
     return null;
+  };
+
+  const formatOfferMinOrder = (coupon) => {
+    const minOrder = Number(coupon?.minOrder || 0);
+    return minOrder > 0 ? `Min order ₹${minOrder}` : 'No minimum order';
   };
 
   const nearestOfferProgress = bill?.nearestOfferProgress || null;
@@ -452,7 +482,11 @@ export default function CartScreen() {
   const renderBillSummary = () => {
     if (!bill) return null;
 
-    const deliveryFree = bill.deliveryCharge === 0;
+    // Delivery reads as free either because the raw charge is ₹0 (e.g. a
+    // free zone) or because a coupon (free_delivery type, or a flat/percent
+    // coupon combined with "also give free delivery") waived it.
+    const deliveryFree = bill.deliveryCharge === 0 || bill.isFreeDeliveryApplied;
+    const discountToShow = bill.isFreeDeliveryApplied ? bill.itemDiscount : bill.discount;
 
     return (
       <Animated.View style={[styles.billCard, { opacity: listOpacity }]}>
@@ -464,6 +498,7 @@ export default function CartScreen() {
             label="Delivery Charge"
             value={deliveryFree ? 'FREE' : `₹${bill.deliveryCharge}`}
             valueStyle={deliveryFree ? styles.freeDeliveryValue : null}
+            strikethroughValue={bill.isFreeDeliveryApplied ? `₹${bill.deliveryCharge}` : null}
           />
           {bill.nightCharge > 0 && (
             <BillRow
@@ -472,10 +507,10 @@ export default function CartScreen() {
               valueStyle={styles.nightChargeValue}
             />
           )}
-          {bill.discount > 0 && (
+          {discountToShow > 0 && (
             <BillRow
               label="Discount"
-              value={`− ₹${bill.discount}`}
+              value={`− ₹${discountToShow}`}
               valueStyle={styles.discountValue}
             />
           )}
@@ -635,7 +670,7 @@ export default function CartScreen() {
                 <Text style={styles.couponOffersHeading}>Available offers</Text>
               </View>
               <Text style={styles.couponOffersCount}>
-                {pickableOffers.length} offer{pickableOffers.length !== 1 ? 's' : ''}
+                {totalOffersCount} offer{totalOffersCount !== 1 ? 's' : ''}
               </Text>
             </View>
 
@@ -664,7 +699,14 @@ export default function CartScreen() {
                   </Animated.View>
                 </View>
                 <View style={styles.couponOfferText}>
-                  <Text style={styles.couponOfferTitle} numberOfLines={1}>{appliedCoupon.title}</Text>
+                  <View style={styles.couponOfferTitleRow}>
+                    <Text style={styles.couponOfferTitle} numberOfLines={1}>{appliedCoupon.title}</Text>
+                    {bestCouponId === appliedCoupon.id ? (
+                      <View style={styles.bestBadge}>
+                        <Text style={styles.bestBadgeText}>BEST</Text>
+                      </View>
+                    ) : null}
+                  </View>
                   {appliedCoupon.description ? (
                     <Text style={styles.couponOfferDesc} numberOfLines={1}>{appliedCoupon.description}</Text>
                   ) : null}
@@ -692,10 +734,15 @@ export default function CartScreen() {
                     <AppIcon name="ticket" size={16} color={colors.saffron} />
                   </View>
                   <View style={styles.couponOfferText}>
-                    <Text style={styles.couponOfferTitle} numberOfLines={1}>{coupon.title}</Text>
-                    {coupon.description ? (
-                      <Text style={styles.couponOfferDesc} numberOfLines={1}>{coupon.description}</Text>
-                    ) : null}
+                    <View style={styles.couponOfferTitleRow}>
+                      <Text style={styles.couponOfferTitle} numberOfLines={1}>{coupon.title}</Text>
+                      {bestCouponId === coupon.id ? (
+                        <View style={styles.bestBadge}>
+                          <Text style={styles.bestBadgeText}>BEST</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={styles.couponOfferDesc} numberOfLines={1}>{formatOfferMinOrder(coupon)}</Text>
                   </View>
                   <View style={styles.couponOfferSavingsPill}>
                     <Text style={styles.couponOfferSavingsText} numberOfLines={1}>
@@ -939,11 +986,16 @@ export default function CartScreen() {
   );
 }
 
-function BillRow({ label, value, valueStyle }) {
+function BillRow({ label, value, valueStyle, strikethroughValue }) {
   return (
     <View style={styles.billRow}>
       <Text style={styles.billRowLabel}>{label}</Text>
-      <Text style={[styles.billRowValue, valueStyle]}>{value}</Text>
+      <View style={styles.billRowValueGroup}>
+        {strikethroughValue ? (
+          <Text style={styles.billRowStrikethrough}>{strikethroughValue}</Text>
+        ) : null}
+        <Text style={[styles.billRowValue, valueStyle]}>{value}</Text>
+      </View>
     </View>
   );
 }
@@ -1118,6 +1170,16 @@ const styles = StyleSheet.create({
   freeDeliveryValue: {
     color: colors.success,
     fontWeight: '700',
+  },
+  billRowValueGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  billRowStrikethrough: {
+    ...typography.label,
+    color: colors.textSecondary,
+    textDecorationLine: 'line-through',
   },
   nightChargeValue: {
     color: colors.warning,
@@ -1344,10 +1406,28 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  couponOfferTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   couponOfferTitle: {
     ...typography.label,
     color: colors.textPrimary,
     fontWeight: '700',
+    flexShrink: 1,
+  },
+  bestBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.sm,
+    backgroundColor: colors.saffron,
+  },
+  bestBadgeText: {
+    ...typography.captionMedium,
+    fontSize: 10,
+    color: colors.textInverse,
+    fontWeight: '800',
   },
   couponOfferDesc: {
     ...typography.caption,

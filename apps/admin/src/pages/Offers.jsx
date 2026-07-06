@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { OffersApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
-import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
+import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
 import OfferProductsPanel from '../components/OfferProductsPanel';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
@@ -105,7 +105,7 @@ export default function Offers() {
         <section className="offers-grid">
           {offers.map(o => (
             <div key={o.id} className="offer-card">
-              <img src={normalizeImageUrl(o.imageUrl || o.image_url) || 'https://via.placeholder.com/400x200?text=No+Image'} alt={o.title} className="offer-image" />
+              <img src={normalizeImageUrl(o.imageUrl || o.image_url) || FALLBACK_IMAGE} onError={handleImageError} alt={o.title} className="offer-image" />
               <div className="offer-content">
                 <h3 className="offer-title">{o.title}</h3>
                 <p className="offer-description">{o.description}</p>
@@ -175,6 +175,7 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
 
     const data = new FormData();
     data.append('image', file);
+    const previousPendingId = formData.image_id;
 
     try {
       setUploadingImage(true);
@@ -186,6 +187,11 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
         image_id: image.id,
         image_url: image.url,
       }));
+      // Discard the previous unsaved upload from this session so re-picking a
+      // photo before hitting Save doesn't leak an orphaned S3 object.
+      if (previousPendingId && previousPendingId !== offer?.image_id) {
+        ImagesApi.delete(previousPendingId).catch(() => {});
+      }
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the offer to apply it.' });
     } catch (err) {
       console.error(err);
@@ -197,7 +203,7 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
 
   const { fileInputProps, cropperProps } = useImageCropper({
     type: 'offer',
-    defaultAspect: 16 / 9,
+    defaultAspect: 2,
     onCropped: uploadImageFile,
   });
 

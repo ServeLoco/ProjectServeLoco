@@ -18,7 +18,7 @@ const styles = {
   },
   productImg: {
     width: '100%',
-    aspectRatio: '1 / 1',
+    aspectRatio: '0.78 / 1',
     objectFit: 'cover',
     display: 'block',
     background: 'var(--bg-app, #f4f4f4)',
@@ -30,7 +30,7 @@ const styles = {
   category: { width: 90, textAlign: 'center' },
   categoryImg: {
     width: 56,
-    height: 56,
+    aspectRatio: '0.9 / 1',
     borderRadius: 14,
     margin: '0 auto',
     background: 'var(--bg-surface, #fff)',
@@ -40,7 +40,7 @@ const styles = {
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  categoryImgInner: { width: '100%', height: '100%', objectFit: 'contain' },
+  categoryImgInner: { width: '100%', height: '100%', objectFit: 'cover' },
   categoryName: { fontSize: 10, color: '#333', marginTop: 6, fontWeight: 500 },
 
   combo: {
@@ -53,7 +53,7 @@ const styles = {
   },
   comboImg: {
     width: '100%',
-    aspectRatio: '1 / 1',
+    aspectRatio: '0.78 / 1',
     objectFit: 'cover',
     display: 'block',
     background: 'var(--bg-app, #f4f4f4)',
@@ -68,7 +68,7 @@ const styles = {
   },
   offerImg: {
     width: '100%',
-    aspectRatio: '16 / 9',
+    aspectRatio: '2 / 1',
     objectFit: 'cover',
     display: 'block',
     background: 'var(--bg-app, #f4f4f4)',

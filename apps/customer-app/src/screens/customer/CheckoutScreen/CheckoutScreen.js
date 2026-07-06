@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { CommonActions, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AppScreen,
   AppHeader,
@@ -27,7 +28,7 @@ import {
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../../stores';
 import { cartApi, ordersApi, imagesApi } from '../../../api';
-import { buildProgressHintText, normalizeCartCalculation, normalizeImageUrl } from '../../../utils';
+import { asArray, buildProgressHintText, normalizeCartCalculation, normalizeImageUrl, normalizeOrder } from '../../../utils';
 import { isCodBlockedDuringNight } from '../../../utils/nightDelivery';
 import { formatEtaMinutes } from '../../../utils/formatEta';
 import { uuidv4 } from '../../../utils/uuid';
@@ -43,6 +44,7 @@ const requestLocationPermission = async () => {
 
 export default function CheckoutScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const items = useCartStore(state => state.items);
   const clearCart = useCartStore(state => state.clearCart);
   const appliedCouponCode = useCartStore(state => state.appliedCouponCode);
@@ -124,6 +126,26 @@ export default function CheckoutScreen() {
   // fill, row border/background, and radio-dot animations together.
   const gpsRowProgress = useRef(new Animated.Value(0)).current;
   const manualRowProgress = useRef(new Animated.Value(userProfile?.address ? 1 : 0)).current;
+
+  // Profile has no saved address — fall back to the address on the user's
+  // most recent order so they don't have to retype it from scratch.
+  useEffect(() => {
+    if (userProfile?.address) return;
+
+    ordersApi.getOrders({ limit: 1 })
+      .then(response => {
+        const lastOrder = asArray(response, ['orders']).map(normalizeOrder)[0];
+        if (lastOrder?.address) {
+          setAddress(lastOrder.address);
+          setLocationMode('manual');
+          manualPanelFade.setValue(1);
+          manualRowProgress.setValue(1);
+        }
+      })
+      .catch(() => {});
+    // Only ever needed once, right after mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Synchronous double-submit guard. React state is async, so isSubmitting alone
   // does not protect against a fast double-tap on Place Order.
@@ -875,11 +897,18 @@ export default function CheckoutScreen() {
                   <Text style={styles.summaryLabel}>
                     {bill.deliveryType === 'fast' ? '⚡ Fast Delivery' : 'Delivery Charge'}
                   </Text>
-                  <Text style={styles.summaryValue}>₹{bill.deliveryCharge}</Text>
+                  {bill.isFreeDeliveryApplied ? (
+                    <View style={styles.freeDeliveryValueRow}>
+                      <Text style={styles.summaryStrikethrough}>₹{bill.deliveryCharge}</Text>
+                      <Text style={[styles.summaryValue, styles.freeDeliveryText]}>FREE</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.summaryValue}>₹{bill.deliveryCharge}</Text>
+                  )}
                 </View>
                 {/* Distance display removed since it's no longer used for pricing */}
                 {(() => {
-                  const isFreeDeliveryApplied = Boolean(bill.appliedCoupon && bill.appliedCoupon.discountType === 'free_delivery');
+                  const isFreeDeliveryApplied = Boolean(bill.isFreeDeliveryApplied);
                   if (!deliveryAvailable) {
                     return (
                       <Text style={[styles.deliveryStatusText, styles.deliveryStatusError]}>
@@ -906,12 +935,16 @@ export default function CheckoutScreen() {
                     <Text style={styles.summaryValue}>₹{bill.nightCharge}</Text>
                   </View>
                 )}
-                {bill.discount > 0 && (
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Discount</Text>
-                    <Text style={styles.summaryValue}>- ₹{bill.discount}</Text>
-                  </View>
-                )}
+                {(() => {
+                  const discountToShow = bill.isFreeDeliveryApplied ? bill.itemDiscount : bill.discount;
+                  if (!(discountToShow > 0)) return null;
+                  return (
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Discount</Text>
+                      <Text style={styles.summaryValue}>- ₹{discountToShow}</Text>
+                    </View>
+                  );
+                })()}
                 <View style={styles.divider} />
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryTotalLabel}>Total to Pay</Text>
@@ -946,7 +979,7 @@ export default function CheckoutScreen() {
       </ScrollView>
 
       {/* Bottom Action Bar */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { paddingBottom: spacing.lg + insets.bottom }]}>
         {shopStatus === 'closed' ? (
           <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
             <Text style={styles.placeOrderBtnTextDisabled}>Shop is Closed</Text>
@@ -1475,6 +1508,20 @@ const styles = StyleSheet.create({
   summaryValue: {
     ...typography.body,
     color: colors.textPrimary,
+  },
+  freeDeliveryValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  summaryStrikethrough: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textDecorationLine: 'line-through',
+  },
+  freeDeliveryText: {
+    color: colors.success,
+    fontWeight: '700',
   },
   calcText: {
     ...typography.body,

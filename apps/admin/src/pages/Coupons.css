@@ -1151,12 +1151,12 @@
   color: var(--text-primary);
 }
 
-.btn-icon.btn-danger {
+.btn-icon.btn-icon-danger {
   color: var(--danger-color);
   border-color: var(--danger-border);
 }
 
-.btn-icon.btn-danger:hover {
+.btn-icon.btn-icon-danger:hover {
   background: var(--danger-bg);
   color: var(--danger-color);
 }
@@ -1688,5 +1688,137 @@
     min-width: 38px;
     height: 34px;
     font-size: 0.72rem;
+  }
+}
+
+/* ── Coupon creation wizard ─────────────────────────────── */
+
+/* Step 1: template gallery */
+.coupon-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
+  padding: 0.25rem;
+}
+
+.coupon-template-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 1.15rem 1.25rem;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-primary);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+  min-height: 150px;
+}
+
+.coupon-template-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
+  background: var(--primary-soft);
+}
+
+.coupon-template-card:focus-visible {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18), var(--shadow-sm);
+}
+
+.coupon-template-card:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Custom template: dashed border to mark the escape hatch */
+.coupon-template-card-custom {
+  background: var(--surface-soft);
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+
+.coupon-template-card-custom:hover {
+  background: var(--surface-hover);
+  border-color: var(--primary-color);
+}
+
+.coupon-template-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: var(--radius-md);
+  background: var(--primary-soft);
+  border: 1px solid var(--border-color);
+}
+
+.coupon-template-label {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-family: 'Outfit', 'Inter', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.coupon-template-description {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+/* Step 2: back-to-templates control */
+.coupon-template-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--primary-color);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.coupon-template-back:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary-color);
+  transform: translateX(-2px);
+}
+
+.coupon-template-back:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+}
+
+@media (max-width: 768px) {
+  .coupon-template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .coupon-template-card {
+    min-height: auto;
+    padding: 1rem 1.1rem;
+  }
+
+  .coupon-template-icon {
+    font-size: 1.4rem;
+    width: 2.1rem;
+    height: 2.1rem;
   }
 }

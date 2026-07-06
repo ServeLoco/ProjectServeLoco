@@ -102,13 +102,18 @@ if (isProd) {
   if (!config.CORS_ORIGIN || config.CORS_ORIGIN === '*' || config.CORS_ORIGIN.includes('*')) {
     throw new Error('CORS_ORIGIN must be explicitly defined in production (no wildcards).');
   }
-  // In production, ADMIN_PASSWORD_HASH (bcrypt) is required — plaintext
-  // ADMIN_PASSWORD is no longer accepted.
-  if (!config.ADMIN_PASSWORD_HASH) {
-    throw new Error('ADMIN_PASSWORD_HASH is required in production (plaintext ADMIN_PASSWORD is not allowed).');
-  }
-  if (!config.ADMIN_PASSWORD_HASH.startsWith('$2b$') && !config.ADMIN_PASSWORD_HASH.startsWith('$2a$')) {
-    throw new Error('ADMIN_PASSWORD_HASH must be a valid bcrypt hash in production.');
+  // Admin login: ADMIN_PASSWORD_HASH (bcrypt) is preferred; plaintext
+  // ADMIN_PASSWORD is accepted as long as it isn't a known-weak default.
+  if (config.ADMIN_PASSWORD_HASH) {
+    if (!config.ADMIN_PASSWORD_HASH.startsWith('$2b$') && !config.ADMIN_PASSWORD_HASH.startsWith('$2a$')) {
+      throw new Error('ADMIN_PASSWORD_HASH must be a valid bcrypt hash in production.');
+    }
+  } else if (config.ADMIN_PASSWORD) {
+    if (config.ADMIN_PASSWORD === 'admin143' || config.ADMIN_PASSWORD === 'test_pass' || config.ADMIN_PASSWORD.length < 8) {
+      throw new Error('ADMIN_PASSWORD is too weak for production. Use a longer password or ADMIN_PASSWORD_HASH.');
+    }
+  } else {
+    throw new Error('Either ADMIN_PASSWORD_HASH or ADMIN_PASSWORD must be set.');
   }
   if (process.env.DEBUG === 'true') throw new Error('DEBUG must not be enabled in production.');
 }

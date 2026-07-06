@@ -32,35 +32,8 @@
   flex-wrap: wrap;
 }
 
-/* ── Reset request pill ─────────────────────────────────── */
-.reset-request-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: rgba(245, 158, 11, 0.12);
-  color: #d97706;
-  border: 1px solid rgba(245, 158, 11, 0.28);
-  border-radius: var(--radius-md);
-  padding: 0.5rem 0.85rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-}
-
-.reset-request-pill:hover:not(:disabled) {
-  background: rgba(245, 158, 11, 0.2);
-  transform: translateY(-1px);
-}
-
-.reset-request-pill:disabled {
-  cursor: not-allowed;
-  opacity: 0.65;
-}
-
 /* ── Filter bar ─────────────────────────────────────────── */
-.filter-bar {
+.customers-filter-bar {
   background: var(--surface-color);
   padding: 1rem;
   border-radius: var(--radius-lg);
@@ -73,8 +46,8 @@
   align-items: end;
 }
 
-.filter-bar .filter-input,
-.filter-bar .filter-select {
+.customers-filter-bar .filter-input,
+.customers-filter-bar .filter-select {
   width: 100%;
   min-height: 42px;
   padding: 0.6rem 0.9rem;
@@ -87,8 +60,8 @@
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.filter-bar .filter-input:focus,
-.filter-bar .filter-select:focus {
+.customers-filter-bar .filter-input:focus,
+.customers-filter-bar .filter-select:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
   outline: none;
@@ -186,19 +159,6 @@
   letter-spacing: 0.05em;
 }
 
-.badge-reset {
-  display: inline-flex;
-  align-items: center;
-  background: rgba(245, 158, 11, 0.12);
-  color: #d97706;
-  font-size: 0.7rem;
-  padding: 0.18rem 0.45rem;
-  border-radius: 4px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 /* ── Customer detail drawer ─────────────────────────────── */
 .customer-detail-header {
   display: flex;
@@ -288,17 +248,6 @@
   color: var(--text-secondary);
   margin: 0 0 1rem;
   line-height: 1.5;
-}
-
-.password-reset-card {
-  border-color: rgba(245, 158, 11, 0.35);
-}
-
-.password-reset-actions {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-  align-items: center;
 }
 
 /* ── Buttons ───────────────────────────────────────────── */
@@ -514,11 +463,11 @@
 
 /* Tablet */
 @media (max-width: 1024px) {
-  .filter-bar {
+  .customers-filter-bar {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .filter-bar .filter-input:first-child {
+  .customers-filter-bar .filter-input:first-child {
     grid-column: 1 / -1;
   }
 }
@@ -536,7 +485,7 @@
     justify-content: flex-start;
   }
 
-  .filter-bar {
+  .customers-filter-bar {
     grid-template-columns: 1fr;
   }
 
@@ -588,10 +537,6 @@
 
   .pagination-buttons {
     justify-content: center;
-  }
-
-  .password-reset-actions {
-    grid-template-columns: 1fr;
   }
 
   .stats-grid {

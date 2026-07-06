@@ -7,11 +7,13 @@ const toOrderEventPayload = (order = {}) => ({
   orderNumber: order.order_number || order.orderNumber,
   customerId: order.customer_id || order.customerId,
   customerName: order.customer_name || order.customerName,
+  customerPhone: order.customer_phone || order.customerPhone || order.phone,
   address: order.address,
   paymentMethod: order.payment_method || order.paymentMethod,
   status: order.status,
   paymentStatus: order.payment_status || order.paymentStatus,
   total: order.total,
+  items: order.items,
   createdAt: order.created_at || order.createdAt || new Date().toISOString(),
   updatedAt: order.updated_at || order.updatedAt || new Date().toISOString(),
 });

@@ -20,7 +20,6 @@ import {
   AppHeader,
   AppIcon,
   ConfirmModal,
-  TextInputField,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useAuthStore, useCartStore, useSettingsStore } from '../../../stores';
@@ -160,11 +159,9 @@ export default function ProfileScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  // Three-step soft-delete flow: 'password' (ask for current password) →
-  // 'confirm' (inform user about 30-day grace, ask to proceed) →
-  // 'pending' (deletion scheduled, show banner with Cancel button).
+  // Two-step soft-delete flow: 'confirm' (inform user about 30-day grace,
+  // ask to proceed) → 'pending' (deletion scheduled, show banner with Cancel button).
   const [deleteStep, setDeleteStep] = useState(null);
-  const [deletePassword, setDeletePassword] = useState('');
 
   const heroFade = useRef(new Animated.Value(0)).current;
   const heroSlide = useRef(new Animated.Value(16)).current;
@@ -232,7 +229,7 @@ export default function ProfileScreen() {
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      await authApi.requestAccountDeletion({ password: deletePassword });
+      await authApi.requestAccountDeletion({});
       // Reload profile so the banner with the scheduled-delete date appears.
       loadProfile(true);
       setDeleteStep('pending');
@@ -244,7 +241,6 @@ export default function ProfileScreen() {
       setDeleteStep('confirm');
     } finally {
       setIsDeleting(false);
-      setDeletePassword('');
     }
   };
 
@@ -294,8 +290,7 @@ export default function ProfileScreen() {
         setShowLogoutConfirm(true);
         break;
       case 'delete':
-        setDeletePassword('');
-        setDeleteStep('password');
+        setDeleteStep('confirm');
         break;
       default:
         break;
@@ -558,17 +553,7 @@ export default function ProfileScreen() {
         onConfirm={handleLogout}
       />
 
-      {/* Soft-delete flow — step 1: ask for current password to verify identity. */}
-      <DeletePasswordModal
-        visible={deleteStep === 'password'}
-        password={deletePassword}
-        onChangePassword={setDeletePassword}
-        loading={isDeleting}
-        onCancel={() => { setDeleteStep(null); setDeletePassword(''); }}
-        onConfirm={() => setDeleteStep('confirm')}
-      />
-
-      {/* Soft-delete flow — step 2: warn + confirm. */}
+      {/* Soft-delete flow — step 1: warn + confirm. */}
       <ConfirmModal
         visible={deleteStep === 'confirm'}
         title="Schedule account deletion?"
@@ -577,11 +562,11 @@ export default function ProfileScreen() {
         cancelLabel="Keep account"
         confirmVariant="danger"
         confirmLoading={isDeleting}
-        onCancel={() => setDeleteStep('password')}
+        onCancel={() => setDeleteStep(null)}
         onConfirm={handleDeleteAccount}
       />
 
-      {/* Soft-delete flow — step 3: success, show info card with close button. */}
+      {/* Soft-delete flow — step 2: success, show info card with close button. */}
       <ConfirmModal
         visible={deleteStep === 'pending'}
         title="Deletion scheduled"
@@ -624,53 +609,6 @@ function MenuRow({ icon, iconBg, iconColor, label, caption, destructive, isLast,
         <AppIcon name="chevronRight" size={16} color={colors.textTertiary} />
       </View>
     </TouchableOpacity>
-  );
-}
-
-/**
- * Step-1 modal for the soft-delete flow. Reuses ConfirmModal (which
- * accepts children) so the password input sits between the message and
- * the action row. The eye toggle is built into TextInputField.
- */
-function DeletePasswordModal({ visible, password, onChangePassword, loading, onCancel, onConfirm }) {
-  const passwordRef = useRef(null);
-  const confirmDisabled = loading || !password;
-
-  useEffect(() => {
-    if (visible) {
-      const t = setTimeout(() => passwordRef.current?.focus?.(), 120);
-      return () => clearTimeout(t);
-    }
-    return undefined;
-  }, [visible]);
-
-  return (
-    <ConfirmModal
-      visible={visible}
-      title="Delete account?"
-      message="To confirm, enter your current password. We'll mark your account for permanent deletion in 30 days — you can cancel anytime before then."
-      confirmLabel="Continue"
-      cancelLabel="Cancel"
-      confirmVariant="danger"
-      confirmLoading={loading}
-      onCancel={onCancel}
-      onConfirm={confirmDisabled ? undefined : onConfirm}
-    >
-      <View style={styles.passwordWrap}>
-        <TextInputField
-          label="Your password"
-          placeholder="Enter your password"
-          secureTextEntry
-          value={password}
-          onChangeText={onChangePassword}
-          autoCapitalize="none"
-          autoCorrect={false}
-          editable={!loading}
-          inputRef={passwordRef}
-          containerStyle={styles.passwordField}
-        />
-      </View>
-    </ConfirmModal>
   );
 }
 
@@ -1157,17 +1095,6 @@ const styles = StyleSheet.create({
     width: 22,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  /* ----- Password modal ----- */
-  passwordWrap: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.md,
-    width: '100%',
-  },
-  passwordField: {
-    width: '100%',
-    marginBottom: 0,
   },
 
   /* ----- Footer ----- */

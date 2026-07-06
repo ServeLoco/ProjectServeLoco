@@ -81,7 +81,7 @@
 }
 
 /* Filter Bar */
-.filter-bar {
+.orders-filter-bar {
   background: var(--surface-color);
   padding: 1rem;
   border-radius: var(--radius-lg);
@@ -728,7 +728,7 @@
     font-size: 1.1rem;
   }
 
-  .filter-bar {
+  .orders-filter-bar {
     padding: 0.85rem;
   }
 

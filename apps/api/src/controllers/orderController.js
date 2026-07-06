@@ -57,6 +57,8 @@ const buildReplayOrderJson = (existing, itemsRows, couponSnap, req) => {
     deliveryCharge: null,
     nightCharge: null,
     discount: Number(couponSnap.discount_amount) || 0,
+    freeDeliveryWaiver: Number(couponSnap.free_delivery_waiver_amount) || 0,
+    itemDiscount: roundMoney((Number(couponSnap.discount_amount) || 0) - (Number(couponSnap.free_delivery_waiver_amount) || 0)),
     total: Number(existing.total),
     paymentMethod: paymentMethod,
     payment_method: paymentMethod,
@@ -162,7 +164,7 @@ const createOrder = async (req, res) => {
           [existing.id]
         );
         const [couponRows] = await connection.query(
-          'SELECT coupon_id, coupon_code, coupon_title, discount_amount FROM orders WHERE id = ?',
+          'SELECT coupon_id, coupon_code, coupon_title, discount_amount, free_delivery_waiver_amount FROM orders WHERE id = ?',
           [existing.id]
         );
         const couponSnap = couponRows[0] || {};
@@ -294,6 +296,7 @@ const createOrder = async (req, res) => {
     const couponAutoApplied = req.validatedData.coupon_auto_applied === true || req.validatedData.couponAutoApplied === true
       || (req.body && (req.body.coupon_auto_applied === true || req.body.couponAutoApplied === true));
     let discount = 0;
+    let freeDeliveryWaiver = 0;
     let appliedCoupon = null;
     let couponDropped = false;
 
@@ -313,6 +316,9 @@ const createOrder = async (req, res) => {
         couponDropped = true;
       } else {
         discount = roundMoney(result.discount);
+        freeDeliveryWaiver = result.freeDeliveryWaiver !== undefined
+          ? roundMoney(result.freeDeliveryWaiver)
+          : (result.coupon.discount_type === 'free_delivery' ? discount : 0);
         appliedCoupon = result.coupon;
       }
     } else if (!noAutoApply) {
@@ -325,6 +331,9 @@ const createOrder = async (req, res) => {
         }
         if (best) {
           discount = roundMoney(best.discount);
+          freeDeliveryWaiver = best.freeDeliveryWaiver !== undefined
+            ? roundMoney(best.freeDeliveryWaiver)
+            : (best.coupon.discount_type === 'free_delivery' ? discount : 0);
           appliedCoupon = best.coupon;
         }
       }
@@ -346,8 +355,8 @@ const createOrder = async (req, res) => {
           delivery_distance_km, delivery_radius_km_snapshot, delivery_cost_per_km_snapshot,
           free_delivery_offer_snapshot, delivery_type,
           idempotency_key, idempotency_key_created_at,
-          coupon_id, coupon_code, coupon_title, discount_amount
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          coupon_id, coupon_code, coupon_title, discount_amount, free_delivery_waiver_amount
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           orderNumber, userId, user.name, user.phone, user.whatsapp_number, finalAddress,
           latitude || null, longitude || null, map_url || null,
@@ -361,6 +370,7 @@ const createOrder = async (req, res) => {
           appliedCoupon ? appliedCoupon.code : null,
           appliedCoupon ? appliedCoupon.title : null,
           discount,
+          freeDeliveryWaiver,
         ]
       );
       orderId = orderResult.insertId;
@@ -400,7 +410,7 @@ const createOrder = async (req, res) => {
           [existing2.id]
         );
         const [couponRows2] = await pool.query(
-          'SELECT coupon_id, coupon_code, coupon_title, discount_amount FROM orders WHERE id = ?',
+          'SELECT coupon_id, coupon_code, coupon_title, discount_amount, free_delivery_waiver_amount FROM orders WHERE id = ?',
           [existing2.id]
         );
         const couponSnap2 = couponRows2[0] || {};
@@ -437,6 +447,8 @@ const createOrder = async (req, res) => {
       customerId: userId,
       customerName: user.name,
       customer_name: user.name,
+      customerPhone: user.phone,
+      phone: user.phone,
       orderNumber,
       order_number: orderNumber,
       address: finalAddress,
@@ -444,6 +456,8 @@ const createOrder = async (req, res) => {
       deliveryCharge,
       nightCharge,
       discount,
+      freeDeliveryWaiver,
+      itemDiscount: roundMoney(discount - freeDeliveryWaiver),
       total,
       paymentMethod: payment_method,
       payment_method,
@@ -457,7 +471,7 @@ const createOrder = async (req, res) => {
       deliveryCostPerKmSnapshot: null,
       freeDeliveryOfferSnapshot: null,
       deliveryType: finalDeliveryType,
-      deliveryMessage: appliedCoupon && appliedCoupon.discount_type === 'free_delivery'
+      deliveryMessage: freeDeliveryWaiver > 0
         ? 'Free delivery unlocked!'
         : `₹${deliveryCharge} delivery applied.`,
       couponId: appliedCoupon ? appliedCoupon.id : null,

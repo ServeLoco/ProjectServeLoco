@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ProductsApi, CombosApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
-import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
+import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
 import { useImageCropper } from '../hooks/useImageCropper';
@@ -194,7 +194,7 @@ export default function Combos() {
         </button>
       </div>
 
-      <section className="filter-bar">
+      <section className="products-filter-bar">
         <input
           type="text"
           name="search"
@@ -267,7 +267,7 @@ export default function Combos() {
                   </td>
                   <td>
                     <div className="product-info">
-                      <img src={normalizeImageUrl(p.imageUrl || p.image_url) || 'https://via.placeholder.com/48'} alt={p.name} className="product-thumbnail" />
+                      <img src={normalizeImageUrl(p.imageUrl || p.image_url) || FALLBACK_IMAGE} onError={handleImageError} alt={p.name} className="product-thumbnail" />
                       <div className="product-details">
                         <span className="product-name">{p.name}</span>
                         <span className="product-unit">
@@ -382,6 +382,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
 
     const data = new FormData();
     data.append('image', file);
+    const previousPendingId = formData.image_id;
 
     try {
       setUploadingImage(true);
@@ -393,6 +394,11 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
         image_id: image.id,
         image_url: image.url,
       }));
+      // Discard the previous unsaved upload from this session so re-picking a
+      // photo before hitting Save doesn't leak an orphaned S3 object.
+      if (previousPendingId && previousPendingId !== product?.image_id) {
+        ImagesApi.delete(previousPendingId).catch(() => {});
+      }
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the combo to apply it.' });
     } catch (err) {
       console.error(err);
@@ -404,7 +410,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
 
   const { fileInputProps, cropperProps } = useImageCropper({
     type: 'combo',
-    defaultAspect: 1,
+    defaultAspect: 0.78,
     onCropped: uploadImageFile,
   });
 

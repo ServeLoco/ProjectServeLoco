@@ -35,7 +35,6 @@ const NAV_GROUPS = [
       { path: '/settings', label: 'Settings', icon: '⚙️' },
       { path: '/reports', label: 'Reports', icon: '📊' },
       { path: '/health', label: 'System Health', icon: '💚' },
-      { path: '/audit', label: 'Audit Log', icon: '📋' },
     ],
   },
 ];

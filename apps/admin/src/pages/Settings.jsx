@@ -42,6 +42,7 @@ export default function Settings() {
   const [saveSuccess, setSaveSuccess] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const fileInputRef = useRef(null);
+  const savedImageIdRef = useRef('');
 
   useEffect(() => {
     fetchSettings();
@@ -53,6 +54,7 @@ export default function Settings() {
       const res = await SettingsApi.get();
       if (res.data) {
         setSettings({ ...DEFAULT_SETTINGS, ...res.data });
+        savedImageIdRef.current = res.data.upi_qr_image_id || '';
       }
     } catch (err) {
       console.error(err);
@@ -80,6 +82,7 @@ export default function Settings() {
 
     const data = new FormData();
     data.append('image', file);
+    const previousPendingId = settings.upi_qr_image_id;
 
     try {
       setUploadingImage(true);
@@ -91,6 +94,11 @@ export default function Settings() {
         upi_qr_image_id: image.id,
         upi_qr_image_url: image.url,
       }));
+      // Discard the previous unsaved upload from this session so re-picking a
+      // photo before hitting Save doesn't leak an orphaned S3 object.
+      if (previousPendingId && previousPendingId !== savedImageIdRef.current) {
+        ImagesApi.delete(previousPendingId).catch(() => {});
+      }
       setUploadMessage({ type: 'success', text: 'QR image uploaded. Save settings to apply it.' });
     } catch (err) {
       console.error(err);
@@ -194,6 +202,7 @@ export default function Settings() {
         // value the admin just typed instead of reverting to blank.
         setSettings(prev => ({ ...prev, ...response.data }));
       }
+      savedImageIdRef.current = settings.upi_qr_image_id || '';
       setSaveSuccess('Settings saved successfully!');
     } catch (err) {
       console.error(err);

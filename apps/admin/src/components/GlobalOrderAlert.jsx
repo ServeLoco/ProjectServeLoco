@@ -5,7 +5,7 @@ import './GlobalOrderAlert.css';
 
 const MAX_VISIBLE = 5;
 const SOUND_LOOP_INTERVAL_MS = 8000;
-const AUTO_ACCEPT_SECONDS = 10;
+const AUTO_ACCEPT_SECONDS = 120;
 
 function formatPlacedAt(iso) {
   if (!iso) return 'Just now';
@@ -287,9 +287,11 @@ export default function GlobalOrderAlert() {
           const orderNumber = payload?.orderNumber || '—';
           const customerName = payload?.customerName || 'Customer';
           const address = payload?.address || '';
+          const customerPhone = payload?.customerPhone || '';
           const paymentMethod = payload?.paymentMethod || 'Cash';
           const totalAmount = payload?.total;
           const createdAt = payload?.createdAt;
+          const items = Array.isArray(payload?.items) ? payload.items : [];
           const isBusy = Boolean(busy[id]);
           const error = errors[id];
           const isPaymentUpi = paymentMethod === 'UPI';
@@ -354,6 +356,15 @@ export default function GlobalOrderAlert() {
                   </span>
                 </div>
 
+                {customerPhone ? (
+                  <div className="order-alert-row">
+                    <span className="order-alert-label">Phone</span>
+                    <span className="order-alert-value">
+                      {customerPhone}
+                    </span>
+                  </div>
+                ) : null}
+
                 {address ? (
                   <div className="order-alert-row">
                     <span className="order-alert-label">Address</span>
@@ -370,6 +381,18 @@ export default function GlobalOrderAlert() {
                   </span>
                 </div>
 
+                {items.length > 0 ? (
+                  <div className="order-alert-row order-alert-items">
+                    <span className="order-alert-label">Items</span>
+                    <span
+                      className="order-alert-value order-alert-items-list"
+                      title={items.map((it) => `${it.quantity}x ${it.name}`).join(', ')}
+                    >
+                      {items.map((it) => `${it.quantity}x ${it.name}`).join(', ')}
+                    </span>
+                  </div>
+                ) : null}
+
                 <div className="order-alert-row">
                   <span className="order-alert-label">Total</span>
                   <span className="order-alert-value order-alert-total">
@@ -383,7 +406,7 @@ export default function GlobalOrderAlert() {
 
                 {wasAutoAccepted ? (
                   <div className="order-alert-info" role="status">
-                    Auto-accepted after 10s with no admin action. You can still cancel below.
+                    Auto-accepted after {AUTO_ACCEPT_SECONDS}s with no admin action. You can still cancel below.
                   </div>
                 ) : null}
 

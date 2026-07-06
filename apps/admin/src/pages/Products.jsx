@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductsApi, CategoriesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
-import { getUploadedImage, normalizeImageUrl } from '../utils/imageUrl';
+import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
 import { IMAGE_GUIDANCE, isWithinTimeWindow, formatTimeWindow } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
@@ -194,7 +194,7 @@ export default function Products() {
         </button>
       </div>
 
-      <section className="filter-bar">
+      <section className="products-filter-bar">
         <input
           type="text" name="search" placeholder="Search product name..."
           className="filter-input filter-search" value={filters.search} onChange={handleFilterChange}
@@ -295,7 +295,7 @@ export default function Products() {
                   </td>
                   <td>
                     <div className="product-info">
-                      <img src={normalizeImageUrl(p.imageUrl || p.image_url) || 'https://via.placeholder.com/48'} alt={p.name} className="product-thumbnail" />
+                      <img src={normalizeImageUrl(p.imageUrl || p.image_url) || FALLBACK_IMAGE} onError={handleImageError} alt={p.name} className="product-thumbnail" />
                       <div className="product-details">
                         <span className="product-name">{p.name}</span>
                         <span className="product-unit">{p.unit || '1 plate'} {p.featured ? '• Featured' : ''}</span>
@@ -416,12 +416,18 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
     }
     const data = new FormData();
     data.append('image', file);
+    const previousPendingId = formData.image_id;
     try {
       setUploadingImage(true);
       setUploadMessage(null);
       const res = await ImagesApi.upload(data);
       const image = getUploadedImage(res);
       setFormData(prev => ({ ...prev, image_id: image.id, image_url: image.url }));
+      // Discard the previous unsaved upload from this session so re-picking a
+      // photo before hitting Save doesn't leak an orphaned S3 object.
+      if (previousPendingId && previousPendingId !== product?.image_id) {
+        ImagesApi.delete(previousPendingId).catch(() => {});
+      }
       setUploadMessage({ type: 'success', text: 'Image uploaded. Save the product to apply it.' });
     } catch (err) {
       console.error(err);
@@ -433,7 +439,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
 
   const { fileInputProps, cropperProps } = useImageCropper({
     type: 'product',
-    defaultAspect: 1,
+    defaultAspect: 0.78,
     onCropped: uploadImageFile,
   });
 

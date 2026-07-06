@@ -1,11 +1,11 @@
 const fallbackProductImage =
   'data:image/svg+xml;utf8,' +
   encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240">
-      <rect width="320" height="240" rx="24" fill="#F4F1EA"/>
-      <rect x="88" y="60" width="144" height="120" rx="20" fill="#FFFFFF" stroke="#DED8CC" stroke-width="6"/>
-      <circle cx="128" cy="102" r="18" fill="#F1B84B"/>
-      <path d="M102 158l42-42 28 28 20-20 30 34H102z" fill="#78A083"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="50" fill="#F4EFE6"/>
+      <path d="M40 34c-2-5 1-10 1-10M50 32c-2-6 2-11 2-11M60 34c-2-5 1-10 1-10" stroke="#C9BFAE" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <path d="M24 56c0 15 11.6 26 26 26s26-11 26-26H24z" fill="#E2963F"/>
+      <rect x="20" y="53" width="60" height="7" rx="3.5" fill="#C97A2B"/>
     </svg>
   `);
 

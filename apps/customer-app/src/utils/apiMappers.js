@@ -192,6 +192,8 @@ function normalizeCartCalculation(payload = {}) {
     deliveryCharge: numberOrZero(pickFirst(bill.deliveryCharge, bill.delivery_charge)),
     nightCharge: numberOrZero(pickFirst(bill.nightCharge, bill.night_charge)),
     discount: numberOrZero(pickFirst(bill.discount, bill.discountAmount, bill.discount_amount)),
+    itemDiscount: numberOrZero(pickFirst(bill.itemDiscount, bill.item_discount)),
+    isFreeDeliveryApplied: asBoolean(pickFirst(bill.isFreeDeliveryApplied, bill.is_free_delivery_applied), false),
     grandTotal: numberOrZero(pickFirst(bill.grandTotal, bill.grand_total, bill.total, bill.payableAmount)),
     paymentStatus: pickFirst(bill.paymentStatus, bill.payment_status, 'Pending'),
     deliveryDistanceKm: pickFirst(bill.deliveryDistanceKm, bill.delivery_distance_km, null),
@@ -312,7 +314,14 @@ function normalizeOrder(order = {}) {
   const subtotal = numberOrZero(pickFirst(bill.subtotal, order.subtotal, order.itemTotal, order.item_total));
   const delivery = numberOrZero(pickFirst(bill.delivery, bill.deliveryCharge, bill.delivery_charge, order.deliveryCharge, order.delivery_charge));
   const nightCharge = numberOrZero(pickFirst(bill.nightCharge, bill.night_charge, order.nightCharge, order.night_charge));
-  const discount = numberOrZero(pickFirst(bill.discount, bill.discountAmount, order.discount));
+  const discount = numberOrZero(pickFirst(bill.discount, bill.discountAmount, order.discount, order.discount_amount));
+  const freeDeliveryWaiver = numberOrZero(pickFirst(
+    bill.freeDeliveryWaiver, bill.free_delivery_waiver_amount,
+    order.freeDeliveryWaiver, order.free_delivery_waiver_amount,
+  ));
+  const itemDiscount = numberOrZero(pickFirst(
+    bill.itemDiscount, order.itemDiscount, Math.max(0, discount - freeDeliveryWaiver),
+  ));
   const grandTotal = numberOrZero(pickFirst(
     bill.grandTotal,
     bill.grand_total,
@@ -359,6 +368,9 @@ function normalizeOrder(order = {}) {
       delivery,
       nightCharge,
       discount,
+      freeDeliveryWaiver,
+      itemDiscount,
+      freeDeliveryApplied: freeDeliveryWaiver > 0,
       grandTotal,
       deliveryType: pickFirst(order.deliveryType, order.delivery_type, 'standard'),
       belowThresholdDelivery: asBoolean(pickFirst(order.belowThresholdDelivery, order.below_threshold_delivery), false),

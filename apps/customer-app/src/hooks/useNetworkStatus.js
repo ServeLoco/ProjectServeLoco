@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import NetInfo from '@react-native-community/netinfo';
+import { addEventListener as addNetInfoListener } from '@react-native-community/netinfo';
 import { getApiBaseUrl } from '../api/config';
 
 /**
@@ -47,7 +47,7 @@ export function useNetworkStatus({
   }, []);
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addListener(state => {
+    const unsubscribe = addNetInfoListener(state => {
       setIsDeviceOffline(!state.isConnected);
     });
     return () => unsubscribe();

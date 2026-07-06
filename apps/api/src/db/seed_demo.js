@@ -8,7 +8,6 @@ if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'tr
 const { pool } = require('./mysql');
 const { getDb, connect } = require('./mongodb');
 const { ObjectId } = require('mongodb');
-const bcrypt = require('bcrypt'); // use bcrypt (not bcryptjs) — matches package.json
 
 async function seedDemoData() {
   console.log('Seeding demo data...');
@@ -20,31 +19,28 @@ async function seedDemoData() {
     await pool.query('DELETE FROM offers WHERE title = "Weekend Snack Combo"');
     await pool.query('INSERT INTO offers (title, description, active) VALUES ("Weekend Snack Combo", "Get 20% extra on all snacks this weekend!", 1)');
 
-    // 2. Customers — note column is password_hash (not password)
-    const passwordHash = await bcrypt.hash('password123', 10);
+    // 2. Customers — OTP-only, no password
     await pool.query(
-      `INSERT INTO users (name, phone, whatsapp_number, password_hash, address, trusted, blocked)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO users (name, phone, whatsapp_number, address, trusted, blocked)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
         name = VALUES(name),
         whatsapp_number = VALUES(whatsapp_number),
-        password_hash = VALUES(password_hash),
         address = VALUES(address),
         trusted = VALUES(trusted),
         blocked = VALUES(blocked)`,
-      ['Demo User', '9999999999', '9999999999', passwordHash, '123 Demo Street', 1, 0]
+      ['Demo User', '9999999999', '9999999999', '123 Demo Street', 1, 0]
     );
     await pool.query(
-      `INSERT INTO users (name, phone, whatsapp_number, password_hash, address, trusted, blocked)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO users (name, phone, whatsapp_number, address, trusted, blocked)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
         name = VALUES(name),
         whatsapp_number = VALUES(whatsapp_number),
-        password_hash = VALUES(password_hash),
         address = VALUES(address),
         trusted = VALUES(trusted),
         blocked = VALUES(blocked)`,
-      ['Blocked User', '8888888888', '8888888888', passwordHash, '456 Bad Street', 0, 1]
+      ['Blocked User', '8888888888', '8888888888', '456 Bad Street', 0, 1]
     );
 
     const [customerRows] = await pool.query('SELECT id FROM users WHERE phone = ?', ['9999999999']);
@@ -162,7 +158,7 @@ async function seedDemoData() {
     );
 
     console.log('Demo data seeded successfully.');
-    console.log('Test credentials: phone=9999999999 password=password123');
+    console.log('Test credentials: phone=9999999999 (OTP login)');
     process.exit(0);
   } catch (err) {
     console.error('Error seeding demo data:', err);

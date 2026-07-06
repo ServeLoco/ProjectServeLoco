@@ -97,17 +97,27 @@ describe('CouponSheet locked/unlocked offer split', () => {
     expect(block).toMatch(/\{coupon\.unavailableReason \|\|/);
   });
 
-  it('only ever selects/applies from unlockedCoupons — never silently applies a manual coupon', () => {
-    expect(source).toMatch(/const selectedCoupon = unlockedCoupons\.find\(/);
-    expect(source).toMatch(/appliedStillEligible = unlockedCoupons\.some\(/);
+  it('only ever taps/applies from unlockedCoupons — never silently applies a locked or manual coupon', () => {
     // onApplyCoupon is only invoked from two explicit user-initiated paths:
-    // handleApply (pressing "Apply Selected Offer") and handleApplyManualCode
+    // handleTapCoupon (tapping an unlocked coupon row) and handleApplyManualCode
     // (pressing "Apply" after typing a code in the manual-entry field).
     // Neither fires automatically.
     const applyCalls = source.match(/onApplyCoupon\(/g) || [];
     expect(applyCalls).toHaveLength(2);
-    expect(source).toMatch(/const handleApply = useCallback\(\(\) => \{\s*if \(!selectedCoupon\) return;\s*onApplyCoupon\(/);
+    expect(source).toMatch(/const handleTapCoupon = useCallback\(\(coupon\) => \{\s*onApplyCoupon\(coupon\.code \|\| null, coupon\);/);
     expect(source).toMatch(/if \(result\?\.ok\) \{\s*onApplyCoupon\(result\.coupon\.code, result\.coupon\);/);
+
+    // handleTapCoupon must only be wired inside the unlockedCoupons render
+    // block — never inside lockedCoupons/unavailableCoupons — so a locked or
+    // unavailable coupon can never be tapped to apply.
+    const unlockedBlock = source.match(/\{unlockedCoupons\.map\(\(coupon\) => \{([\s\S]*?)\n\s*\}\)\}/);
+    expect(unlockedBlock).not.toBeNull();
+    expect(unlockedBlock[1]).toMatch(/onPress=\{\(\) => handleTapCoupon\(coupon\)\}/);
+
+    const lockedBlock = source.match(/\{lockedCoupons\.map\(\(coupon\) => \{([\s\S]*?)\n\s*\}\)\}/);
+    expect(lockedBlock).not.toBeNull();
+    expect(lockedBlock[1]).not.toMatch(/handleTapCoupon/);
+    expect(lockedBlock[1]).not.toMatch(/onPress/);
   });
 
   it('renders locked offers as non-interactive preview rows with a disabled accessibility state', () => {

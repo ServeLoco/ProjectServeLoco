@@ -272,8 +272,9 @@ const updateSettings = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No valid fields provided' });
   }
 
-  const [rows] = await pool.query('SELECT id FROM settings LIMIT 1');
+  const [rows] = await pool.query('SELECT id, upi_qr_image_id FROM settings LIMIT 1');
   let settingsId = rows[0]?.id;
+  const previousImageId = rows[0]?.upi_qr_image_id;
   if (rows.length === 0) {
     const [insertResult] = await pool.query('INSERT INTO settings (shop_open) VALUES (1)');
     settingsId = insertResult?.insertId;
@@ -281,6 +282,13 @@ const updateSettings = async (req, res) => {
 
   await pool.query(`UPDATE settings SET ${updates.join(', ')} WHERE id = ?`, [...params, settingsId]);
   settingsCache.del(SETTINGS_KEY);
+  if (
+    body.upi_qr_image_id !== undefined &&
+    previousImageId &&
+    String(previousImageId) !== String(body.upi_qr_image_id)
+  ) {
+    await cleanupOrphanedImage(previousImageId);
+  }
   const [updatedRows] = await pool.query('SELECT * FROM settings LIMIT 1');
   const updatedSettings = await attachSettingsImageUrls(updatedRows[0]);
 
@@ -320,7 +328,8 @@ const updateOffer = async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
   }
   const existingOffer = existingRows[0];
-  
+  const previousImageId = existingOffer.image_id;
+
   const updates = [];
   const params = [];
 
@@ -375,6 +384,10 @@ const updateOffer = async (req, res) => {
 
   params.push(id);
   await pool.query(`UPDATE offers SET ${updates.join(', ')} WHERE id = ?`, params);
+
+  if (previousImageId && finalImageId !== undefined && String(previousImageId) !== String(finalImageId)) {
+    await cleanupOrphanedImage(previousImageId);
+  }
 
   res.status(200).json({ message: 'Offer updated' });
 };
