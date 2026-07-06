@@ -827,6 +827,29 @@ const migrate = async () => {
     }
     console.log('Admin inbox table ready.');
 
+    // Images — metadata for uploaded images (products/categories/combos/
+    // offers/settings). Actual bytes live in S3 or local disk; this table
+    // only stores the pointer + metadata. Replaces the MongoDB `images`
+    // collection (legacy_mongo_id lets the one-time backfill script be
+    // re-run safely by skipping rows already copied).
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS images (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL,
+        original_name VARCHAR(255),
+        mime_type VARCHAR(100),
+        size INT,
+        storage_type ENUM('s3', 'disk') NOT NULL,
+        url TEXT NOT NULL,
+        alt_text VARCHAR(500),
+        legacy_mongo_id VARCHAR(24) NULL UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_legacy_mongo_id (legacy_mongo_id)
+      );
+    `);
+    console.log('Images table ready.');
+
     console.log('Migration and seeding completed successfully!');
   } catch (error) {
     console.error('Migration failed:', error);
