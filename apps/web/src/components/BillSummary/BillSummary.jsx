@@ -14,7 +14,9 @@ import './BillSummary.css';
  *   itemDiscount      - number — discount excluding any free-delivery waiver
  *   isFreeDeliveryApplied - bool — renders Delivery Charge as struck-through + FREE
  *   total             - number (grand total)
- *   freeDeliveryProgress - { minOrder, amountRemaining } | null — shows a hint when set
+ *   freeDeliveryProgress - { minOrder, amountRemaining, minItemCount, itemsRemaining,
+ *                            thresholdType: 'amount' | 'items' } | null — from the
+ *                           cart-calculate response; shows a hint when set
  */
 function BillSummary({
   subtotal = 0,
@@ -121,10 +123,15 @@ function formatPrice(price) {
 
 function buildProgressHintText(progress, { suffix = '' } = {}) {
   if (!progress) return '';
-  const { minOrder, amountRemaining } = progress;
-  
-  if (amountRemaining <= 0) return `You've unlocked free delivery!`;
-  
+  const { thresholdType, amountRemaining, itemsRemaining } = progress;
+
+  if (thresholdType === 'items') {
+    if (itemsRemaining <= 0) return 'You unlocked free delivery!';
+    const noun = itemsRemaining === 1 ? 'item' : 'items';
+    return `Add ${itemsRemaining} more ${noun} for free delivery${suffix}`;
+  }
+
+  if (amountRemaining <= 0) return 'You unlocked free delivery!';
   return `Add ₹${amountRemaining} more for free delivery${suffix}`;
 }
 

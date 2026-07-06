@@ -17,7 +17,9 @@ const ReceiptIcon = () => (
 
 // Status groups used for both the hero counts and the filter chips.
 // Keep these two definitions in sync with the spec.
-const ACTIVE_STATUSES = new Set(['placed', 'accepted', 'preparing', 'out_for_delivery']);
+// Backend returns Title Case statuses: 'Pending', 'Accepted', 'Preparing',
+// 'Out for Delivery', 'Delivered', 'Cancelled' (see apps/api/src/controllers/orderController.js).
+const ACTIVE_STATUSES = new Set(['Pending', 'Accepted', 'Preparing', 'Out for Delivery']);
 
 const FILTER_CHIPS = [
   { key: 'all', label: 'All' },
@@ -117,9 +119,9 @@ export default function OrdersScreen() {
     let delivered = 0;
     let cancelledCount = 0;
     orders.forEach((o) => {
-      const status = (o.status || '').toLowerCase();
-      if (status === 'delivered') delivered += 1;
-      else if (status === 'cancelled') cancelledCount += 1;
+      const status = o.status || '';
+      if (status === 'Delivered') delivered += 1;
+      else if (status === 'Cancelled') cancelledCount += 1;
       else if (ACTIVE_STATUSES.has(status)) active += 1;
     });
     return {
@@ -131,7 +133,7 @@ export default function OrdersScreen() {
   }, [orders]);
 
   const displayOrders = useMemo(
-    () => orders.filter((o) => matchesFilter((o.status || '').toLowerCase(), activeFilter)),
+    () => orders.filter((o) => matchesFilter(o.status || '', activeFilter)),
     [orders, activeFilter]
   );
 

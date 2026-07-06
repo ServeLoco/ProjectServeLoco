@@ -129,7 +129,7 @@ export default function NotificationsScreen() {
 
   // Realtime: refresh the list when a new notification arrives.
   useEffect(() => {
-    const unsubscribe = subscribeRealtime('notification:new', () => {
+    const unsubscribe = subscribeRealtime('notification.created', () => {
       fetchNotifications({ silent: true });
     });
     return unsubscribe;

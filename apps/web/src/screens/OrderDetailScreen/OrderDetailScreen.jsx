@@ -79,7 +79,7 @@ export default function OrderDetailScreen() {
   const paymentStatusView = paymentStatusMap[rawPaymentStatus] || { label: 'Unknown', cls: 'unknown' };
 
   const canShowCancelButton =
-    !!order && order.canCancel === true && order.status !== 'delivered' && order.status !== 'cancelled';
+    !!order && order.canCancel === true && order.status !== 'Delivered' && order.status !== 'Cancelled';
 
   const handleCancelOrder = async () => {
     if (!order || cancelling) return;
@@ -101,6 +101,8 @@ export default function OrderDetailScreen() {
 
   const mapHref = (() => {
     if (!order) return '#';
+    const backendMapUrl = order.mapUrl || order.map_url;
+    if (backendMapUrl) return backendMapUrl;
     const lat = order.address?.lat;
     const lng = order.address?.lng;
     if (lat !== undefined && lat !== null && lng !== undefined && lng !== null) {
@@ -145,7 +147,7 @@ export default function OrderDetailScreen() {
       </div>
 
       <div className="od-content">
-        {order.status === 'cancelled' && (
+        {order.status === 'Cancelled' && (
           <div className="od-cancel-banner" role="status">This order was cancelled.</div>
         )}
 

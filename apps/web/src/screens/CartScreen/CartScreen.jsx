@@ -31,8 +31,9 @@ export default function CartScreen() {
   const updateQty = useCartStore((state) => state.updateQty);
   const removeItem = useCartStore((state) => state.removeItem);
   const settings = useSettingsStore((state) => state.settings);
-  // Primary check: settings.storeOpen === false means closed. Undefined or true means open.
-  const storeClosed = settings?.storeOpen === false;
+  const shopStatus = useSettingsStore((state) => state.shopStatus);
+  // Primary check: shopStatus === 'closed' means the shop is closed. Defaults to 'open'.
+  const storeClosed = shopStatus === 'closed';
 
   const appliedCouponCode = useCartStore((state) => state.appliedCouponCode);
   const appliedCouponId = useCartStore((state) => state.appliedCouponId);
@@ -182,9 +183,9 @@ export default function CartScreen() {
               nightCharge={bill.nightCharge}
               discount={bill.discount}
               itemDiscount={bill.itemDiscount}
-              isFreeDeliveryApplied={bill.deliveryCharge === 0}
+              isFreeDeliveryApplied={bill.isFreeDeliveryApplied === true}
               total={bill.grandTotal}
-              freeDeliveryProgress={bill.belowThreshold ? { minOrder: bill.minimumOrder, amountRemaining: bill.minimumOrder - bill.subtotal } : null}
+              freeDeliveryProgress={bill.freeDeliveryProgress}
             />
           </>
         )}

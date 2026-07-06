@@ -97,8 +97,10 @@ export default function OrderConfirmationScreen() {
   const orderDetails = extractOrderDetails(stateOrder);
   const redirectTimerRef = useRef(null);
 
-  const hasValidState =
-    Boolean(location.state?.confirmation) && Boolean(orderId);
+  // Only require an orderId so direct access and page refresh keep the user
+  // on the confirmation page. Optional order data is used for the summary card
+  // but is not required.
+  const hasValidState = Boolean(orderId);
 
   const clearRedirectTimer = () => {
     if (redirectTimerRef.current) {

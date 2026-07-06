@@ -4,25 +4,27 @@ import { formatPrice, formatDate } from '../../utils/formatters';
 import './OrderCard.css';
 
 // Mini progress stepper — kept in sync with the customer app's five-stage flow.
+// Keys use Title Case to match the values returned by the backend
+// (see apps/api/src/controllers/orderController.js).
 const PROGRESS_STEPS = [
-  { key: 'placed', label: 'Placed' },
-  { key: 'accepted', label: 'Accepted' },
-  { key: 'preparing', label: 'Preparing' },
-  { key: 'out_for_delivery', label: 'Out for Delivery' },
-  { key: 'delivered', label: 'Delivered' },
+  { key: 'Pending', label: 'Placed' },
+  { key: 'Accepted', label: 'Accepted' },
+  { key: 'Preparing', label: 'Preparing' },
+  { key: 'Out for Delivery', label: 'Out for Delivery' },
+  { key: 'Delivered', label: 'Delivered' },
 ];
 
 const STATUS_TO_STEP = {
-  placed: 0,
-  accepted: 1,
-  preparing: 2,
-  out_for_delivery: 3,
-  delivered: 4,
+  Pending: 0,
+  Accepted: 1,
+  Preparing: 2,
+  'Out for Delivery': 3,
+  Delivered: 4,
 };
 
 function getStepIndex(status) {
   if (!status) return 0;
-  return STATUS_TO_STEP[status.toLowerCase()] ?? 0;
+  return STATUS_TO_STEP[status] ?? 0;
 }
 
 const CheckIcon = () => (
@@ -52,8 +54,8 @@ const CloseIcon = () => (
 export default function OrderCard({ order, onCancel, onClick }) {
   if (!order) return null;
 
-  const status = (order.status || '').toLowerCase();
-  const isCancelled = status === 'cancelled';
+  const status = order.status || '';
+  const isCancelled = status === 'Cancelled';
   const currentStep = isCancelled ? -1 : getStepIndex(status);
 
   const items = Array.isArray(order.items) ? order.items : [];

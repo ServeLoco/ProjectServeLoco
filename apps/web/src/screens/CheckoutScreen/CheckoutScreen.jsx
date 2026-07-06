@@ -39,7 +39,8 @@ export default function CheckoutScreen() {
   const setAppliedCoupon = useCartStore(state => state.setAppliedCoupon);
   const clearAppliedCoupon = useCartStore(state => state.clearAppliedCoupon);
   const [showCouponSheet, setShowCouponSheet] = useState(false);
-  const { settings, shopOpen } = useSettingsStore();
+  const settings = useSettingsStore((state) => state.settings);
+  const shopStatus = useSettingsStore((state) => state.shopStatus);
 
   const [address, setAddress] = useState(user?.address || '');
   const [coords, setCoords] = useState(null); // { latitude, longitude }
@@ -185,7 +186,7 @@ export default function CheckoutScreen() {
       setErrorMessage('Please enter your delivery address.');
       return;
     }
-    if (!shopOpen) {
+    if (shopStatus === 'closed') {
       setErrorMessage('Shop is currently closed.');
       return;
     }
@@ -399,8 +400,9 @@ export default function CheckoutScreen() {
                 nightCharge={bill.nightCharge}
                 discount={bill.discount}
                 itemDiscount={bill.itemDiscount}
-                isFreeDeliveryApplied={bill.deliveryCharge === 0}
+                isFreeDeliveryApplied={bill.isFreeDeliveryApplied === true}
                 total={bill.grandTotal}
+                freeDeliveryProgress={bill.freeDeliveryProgress}
               />
             </div>
           </>
@@ -420,7 +422,7 @@ export default function CheckoutScreen() {
       <div className="co-bottom-bar">
         <Button 
           variant="highlight" 
-          disabled={!shopOpen || calculating || placing || !bill || bill.belowThreshold}
+          disabled={shopStatus === 'closed' || calculating || placing || !bill || bill.belowThreshold}
           onClick={handlePlaceOrder}
         >
           {placing ? 'Placing Order...' : calculating ? 'Calculating...' : `Place Order (${formatPrice(bill?.grandTotal)})`}
