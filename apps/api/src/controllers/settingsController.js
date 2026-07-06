@@ -1,6 +1,4 @@
 const { pool } = require('../db/mysql');
-const { getDb } = require('../db/mongodb');
-const { ObjectId } = require('mongodb');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { createTtlCache } = require('../utils/ttlCache');
 const config = require('../config/env');
@@ -47,13 +45,12 @@ const attachSettingsImageUrls = async (settings) => {
   settings.upiQrImageUrl = null;
 
   const imageId = settings.upi_qr_image_id;
-  if (!imageId || !ObjectId.isValid(imageId)) {
+  if (!imageId || !/^\d+$/.test(String(imageId))) {
     return settings;
   }
 
-  const db = getDb();
-  const image = await db.collection('images').findOne({ _id: new ObjectId(imageId) });
-  const imageUrl = getStoredImageUrl(image);
+  const [imageRows] = await pool.query('SELECT id, url FROM images WHERE id = ?', [imageId]);
+  const imageUrl = getStoredImageUrl(imageRows[0]);
 
   if (imageUrl) {
     settings.upi_qr_image_url = imageUrl;
@@ -67,16 +64,14 @@ const attachOfferImageUrls = async (offers) => {
   const rows = Array.isArray(offers) ? offers : [offers].filter(Boolean);
   const imageIds = rows
     .map(row => row.image_id)
-    .filter(id => id && ObjectId.isValid(id))
-    .map(id => new ObjectId(id));
+    .filter(id => id && /^\d+$/.test(String(id)));
 
   if (imageIds.length === 0) return offers;
 
-  const db = getDb();
-  const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
+  const [images] = await pool.query('SELECT id, url FROM images WHERE id IN (?)', [imageIds]);
   const imageMap = {};
   images.forEach(image => {
-    imageMap[image._id.toString()] = getStoredImageUrl(image);
+    imageMap[String(image.id)] = getStoredImageUrl(image);
   });
 
   rows.forEach(row => {
@@ -97,16 +92,14 @@ const attachOfferProductImageUrls = async (products) => {
   const rows = Array.isArray(products) ? products : [products].filter(Boolean);
   const imageIds = rows
     .map(row => row.image_id)
-    .filter(id => id && ObjectId.isValid(id))
-    .map(id => new ObjectId(id));
+    .filter(id => id && /^\d+$/.test(String(id)));
 
   if (imageIds.length === 0) return products;
 
-  const db = getDb();
-  const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
+  const [images] = await pool.query('SELECT id, url FROM images WHERE id IN (?)', [imageIds]);
   const imageMap = {};
   images.forEach(image => {
-    imageMap[image._id.toString()] = getStoredImageUrl(image);
+    imageMap[String(image.id)] = getStoredImageUrl(image);
   });
 
   rows.forEach(row => {

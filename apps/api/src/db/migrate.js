@@ -1069,6 +1069,64 @@ const migrate = async () => {
     }
     console.log('Admin inbox table ready.');
 
+    // Images — metadata for uploaded images (products/categories/combos/
+    // offers/settings). Actual bytes live in S3 or local disk; this table
+    // only stores the pointer + metadata. Replaces the MongoDB `images`
+    // collection (legacy_mongo_id lets the one-time backfill script be
+    // re-run safely by skipping rows already copied).
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS images (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL,
+        original_name VARCHAR(255),
+        mime_type VARCHAR(100),
+        size INT,
+        storage_type ENUM('s3', 'disk') NOT NULL,
+        url TEXT NOT NULL,
+        alt_text VARCHAR(500),
+        legacy_mongo_id VARCHAR(24) NULL UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_legacy_mongo_id (legacy_mongo_id)
+      );
+    `);
+    console.log('Images table ready.');
+
+    // Switch the 5 image-reference columns from VARCHAR (holding the legacy
+    // Mongo ObjectId hex string) to INT (holding the new `images.id`). Only
+    // safe to run after the one-time backfill script has rewritten every
+    // value to a plain numeric string — guarded so it's a no-op on repeat
+    // deploys once the column is already INT.
+    const convertImageIdColumnToInt = async (tableName, columnName) => {
+      const [columns] = await connection.query(`
+        SELECT DATA_TYPE
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?
+      `, [config.MYSQL_DATABASE, tableName, columnName]);
+      if (columns.length === 0 || columns[0].DATA_TYPE === 'int') return;
+
+      // Second line of defense beyond deploy ordering: if the backfill
+      // script hasn't rewritten every value to a plain numeric string yet
+      // (e.g. this deploy landed before someone ran it), converting the
+      // column now would corrupt every non-numeric value. Skip and warn
+      // instead of risking data loss — safe to re-run once backfilled.
+      const [nonNumeric] = await connection.query(
+        `SELECT COUNT(*) AS cnt FROM ${tableName} WHERE ${columnName} IS NOT NULL AND ${columnName} NOT REGEXP '^[0-9]+$'`
+      );
+      if (Number(nonNumeric[0].cnt) > 0) {
+        console.warn(`[migrate] Skipping ${tableName}.${columnName} INT conversion — ${nonNumeric[0].cnt} non-numeric value(s) still present. Run the backfill script first.`);
+        return;
+      }
+
+      await connection.query(`ALTER TABLE ${tableName} MODIFY COLUMN ${columnName} INT NULL`);
+    };
+    await convertImageIdColumnToInt('products', 'image_id');
+    await convertImageIdColumnToInt('categories', 'image_id');
+    await convertImageIdColumnToInt('combos', 'image_id');
+    await convertImageIdColumnToInt('offers', 'image_id');
+    await convertImageIdColumnToInt('settings', 'upi_qr_image_id');
+    console.log('Image reference columns ready.');
+
     console.log('Migration and seeding completed successfully!');
   } catch (error) {
     console.error('Migration failed:', error);

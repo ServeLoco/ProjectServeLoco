@@ -1,7 +1,5 @@
 const path = require('path');
 const fs = require('fs');
-const { ObjectId } = require('mongodb');
-const { getDb } = require('../db/mongodb');
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
 const s3 = require('../config/s3');
@@ -51,23 +49,26 @@ const getUsedImageIds = async () => {
 const getImageUrl = (image) => {
   if (!image) return null;
   return image.url ||
-    image.imageUrl ||
-    image.image_url ||
     (image.filename ? `${config.PUBLIC_BASE_URL}${config.STATIC_UPLOAD_PATH}/${image.filename}` : null);
 };
 
-const normalizeImage = (image) => {
-  const url = getImageUrl(image);
-  const id = image._id.toString();
+const normalizeImage = (row) => {
+  if (!row) return row;
+  const url = getImageUrl(row);
 
   return {
-    ...image,
-    id,
+    id: String(row.id),
+    filename: row.filename,
+    originalName: row.original_name,
+    mimeType: row.mime_type,
+    size: row.size,
+    storageType: row.storage_type,
+    altText: row.alt_text,
     imageUrl: url,
     image_url: url,
     url,
-    created_at: image.created_at || image.createdAt || null,
-    updated_at: image.updated_at || image.updatedAt || null
+    created_at: row.created_at || null,
+    updated_at: row.updated_at || null
   };
 };
 
@@ -96,51 +97,29 @@ const uploadImage = async (req, res) => {
     storageType = 'disk';
   }
 
-  const imageDoc = {
-    filename,
-    originalName: safeOriginalName,
-    mimeType: mimetype,
-    size,
-    storageType,
-    url,
-    altText: req.body.altText || '',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  };
+  const altText = req.body.altText || '';
 
-  const db = getDb();
-  const result = await db.collection('images').insertOne(imageDoc);
-  const savedDoc = await db.collection('images').findOne?.({ _id: result.insertedId }) || {
-    ...imageDoc,
-    _id: result.insertedId
-  };
-  const idStr = savedDoc._id.toString();
+  const [result] = await pool.query(
+    `INSERT INTO images (filename, original_name, mime_type, size, storage_type, url, alt_text)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [filename, safeOriginalName, mimetype, size, storageType, url, altText]
+  );
+  const [savedRows] = await pool.query('SELECT * FROM images WHERE id = ?', [result.insertId]);
+  const normalized = normalizeImage(savedRows[0]);
 
   res.status(201).json({
     message: 'Image uploaded successfully',
-    data: {
-      ...savedDoc,
-      id: idStr,
-      imageUrl: savedDoc.url,
-      image_url: savedDoc.url,
-      created_at: savedDoc.created_at || savedDoc.createdAt || null,
-      updated_at: savedDoc.updated_at || savedDoc.updatedAt || null
-    },
-    image: {
-      ...savedDoc,
-      id: idStr,
-      imageUrl: savedDoc.url,
-      image_url: savedDoc.url,
-      created_at: savedDoc.created_at || savedDoc.createdAt || null,
-      updated_at: savedDoc.updated_at || savedDoc.updatedAt || null
-    }
+    data: normalized,
+    image: normalized
   });
 };
 
+const isValidImageId = (id) => /^\d+$/.test(String(id));
+
 const deleteImage = async (req, res) => {
   const { id } = req.params;
-  
-  if (!ObjectId.isValid(id)) {
+
+  if (!isValidImageId(id)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid image ID' });
   }
 
@@ -154,36 +133,36 @@ const deleteImage = async (req, res) => {
   res.status(200).json({ message: 'Image deleted successfully' });
 };
 
-// Internal: removes the MongoDB doc + underlying S3/disk object for a single image.
-// Throws if the doc or object removal fails.
+// Internal: removes the MySQL row + underlying S3/disk object for a single image.
+// Throws if the row or object removal fails.
 const deleteImageDocAndFile = async (id) => {
-  if (!ObjectId.isValid(id)) return;
+  if (!isValidImageId(id)) return;
 
-  const db = getDb();
-  const image = await db.collection('images').findOne({ _id: new ObjectId(id) });
+  const [rows] = await pool.query('SELECT * FROM images WHERE id = ?', [id]);
+  const image = rows[0];
   if (!image) return;
 
-  if (image.storageType === 's3') {
+  if (image.storage_type === 's3') {
     await s3.deleteObject(image.filename);
-  } else if (image.storageType === 'disk') {
+  } else if (image.storage_type === 'disk') {
     const filePath = path.join(__dirname, '../../', config.UPLOAD_DIR, image.filename);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
   }
 
-  await db.collection('images').deleteOne({ _id: new ObjectId(id) });
+  await pool.query('DELETE FROM images WHERE id = ?', [id]);
 };
 
 // Public helper for other controllers: after soft-deleting an entity that
 // references an image, call this with the imageId. If no active product /
 // category / combo / offer / settings row still references it, the underlying
-// file and MongoDB doc are removed. Errors are swallowed (and logged) so the
+// file and MySQL row are removed. Errors are swallowed (and logged) so the
 // parent delete response isn't blocked by image-storage failures.
 const cleanupOrphanedImage = async (imageId) => {
   if (!imageId) return { deleted: false, reason: 'no-image-id' };
   const idStr = String(imageId);
-  if (!ObjectId.isValid(idStr)) return { deleted: false, reason: 'invalid-id' };
+  if (!isValidImageId(idStr)) return { deleted: false, reason: 'invalid-id' };
 
   try {
     const { used } = await getUsedImageIds();
@@ -199,8 +178,7 @@ const cleanupOrphanedImage = async (imageId) => {
 };
 
 const getImages = async (req, res) => {
-  const db = getDb();
-  const images = await db.collection('images').find().sort({ createdAt: -1 }).toArray();
+  const [images] = await pool.query('SELECT * FROM images ORDER BY created_at DESC');
   const { used, usageMap } = await getUsedImageIds();
 
   const normalizedImages = images.map(img => {
@@ -215,12 +193,12 @@ const getImages = async (req, res) => {
 const getImage = async (req, res) => {
   const { id } = req.params;
 
-  if (!ObjectId.isValid(id)) {
+  if (!isValidImageId(id)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid image ID' });
   }
 
-  const db = getDb();
-  const image = await db.collection('images').findOne({ _id: new ObjectId(id) });
+  const [rows] = await pool.query('SELECT * FROM images WHERE id = ?', [id]);
+  const image = rows[0];
 
   if (!image) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Image not found' });

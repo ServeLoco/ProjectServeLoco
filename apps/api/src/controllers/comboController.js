@@ -1,6 +1,4 @@
 const { pool } = require('../db/mysql');
-const { getDb } = require('../db/mongodb');
-const { ObjectId } = require('mongodb');
 const { validatePagination } = require('../validators');
 const { isPositiveInteger } = require('../validators');
 const { normalizeStoreType } = require('../utils/storeMode');
@@ -9,15 +7,13 @@ const { cleanupOrphanedImage } = require('./imageController');
 const resolveImageUrls = async (rows) => {
   const imageIds = rows
     .map(r => r.image_id)
-    .filter(id => id && ObjectId.isValid(id))
-    .map(id => new ObjectId(id));
+    .filter(id => id && /^\d+$/.test(String(id)));
 
   if (imageIds.length === 0) return;
 
-  const db = getDb();
-  const images = await db.collection('images').find({ _id: { $in: imageIds } }).toArray();
+  const [images] = await pool.query('SELECT id, url FROM images WHERE id IN (?)', [imageIds]);
   const imageMap = {};
-  images.forEach(img => { imageMap[img._id.toString()] = img.url; });
+  images.forEach(img => { imageMap[String(img.id)] = img.url; });
   rows.forEach(row => {
     if (row.image_id && imageMap[row.image_id]) {
       row.imageUrl = imageMap[row.image_id];

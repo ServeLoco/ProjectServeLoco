@@ -3,8 +3,6 @@ const fs = require('fs');
 const { parse } = require('csv-parse/sync');
 const XLSX = require('xlsx');
 const AdmZip = require('adm-zip');
-const { ObjectId } = require('mongodb');
-const { getDb } = require('../db/mongodb');
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
 const s3 = require('../config/s3');
@@ -452,7 +450,6 @@ const previewBulkImport = async (req, res) => {
 
 const commitBulkImport = async (req, res) => {
   const savedFiles = [];
-  const savedMongoIds = [];
   let connection;
 
   try {
@@ -466,7 +463,6 @@ const commitBulkImport = async (req, res) => {
       });
     }
 
-    const db = getDb();
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
@@ -490,31 +486,32 @@ const commitBulkImport = async (req, res) => {
         // 3. Delete old image if updating
         if (row._action === 'update' && row._existingImageId) {
           try {
-            const oldDoc = await db.collection('images').findOne({ _id: new ObjectId(row._existingImageId) });
-            if (oldDoc) {
-              await deleteStoredImage(oldDoc.filename);
-              await db.collection('images').deleteOne({ _id: new ObjectId(row._existingImageId) });
+            const [oldRows] = await connection.query('SELECT filename FROM images WHERE id = ?', [row._existingImageId]);
+            if (oldRows[0]) {
+              await deleteStoredImage(oldRows[0].filename);
+              await connection.query('DELETE FROM images WHERE id = ?', [row._existingImageId]);
             }
           } catch (e) {
             console.error('[bulkImport] Failed to clean up old image:', row._existingImageId, e.message);
           }
         }
 
-        // 4. Insert MongoDB doc
-        const imageDoc = {
-          filename: savedFilename,
-          originalName: path.basename(row.image_file).replace(/[^a-zA-Z0-9._-]/g, ''),
-          mimeType: mimetype,
-          size: imgBuffer.length,
-          storageType: config.STORAGE_DRIVER === 's3' ? 's3' : 'disk',
-          url: imageUrl,
-          altText: row.name,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        const insertResult = await db.collection('images').insertOne(imageDoc);
-        newImageId = insertResult.insertedId.toString();
-        savedMongoIds.push(newImageId);
+        // 4. Insert image metadata row (same transaction as the product write —
+        // a rollback below automatically undoes this, no manual cleanup needed).
+        const [imageInsertResult] = await connection.query(
+          `INSERT INTO images (filename, original_name, mime_type, size, storage_type, url, alt_text)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            savedFilename,
+            path.basename(row.image_file).replace(/[^a-zA-Z0-9._-]/g, ''),
+            mimetype,
+            imgBuffer.length,
+            config.STORAGE_DRIVER === 's3' ? 's3' : 'disk',
+            imageUrl,
+            row.name,
+          ]
+        );
+        newImageId = imageInsertResult.insertId;
       } else {
         // Keep existing image
         newImageId = row._existingImageId;
@@ -556,19 +553,12 @@ const commitBulkImport = async (req, res) => {
 
   } catch (err) {
     if (connection) {
+      // Rollback undoes both the product rows AND the image metadata rows
+      // inserted in this run (same transaction) — no manual cleanup needed.
       try { await connection.rollback(); } catch (e) { /* ignore */ }
       try { connection.release(); } catch (e) { /* ignore */ }
     }
     await cleanupFiles(savedFiles);
-    // Clean up MongoDB docs inserted in this run
-    try {
-      const db = getDb();
-      for (const mongoId of savedMongoIds) {
-        await db.collection('images').deleteOne({ _id: new ObjectId(mongoId) });
-      }
-    } catch (e) {
-      console.error('[bulkImport] MongoDB rollback error:', e.message);
-    }
 
     if (err.status) return res.status(err.status).json({ code: 'VALIDATION_ERROR', message: err.message });
     console.error('[bulkImport] commit error:', err);
