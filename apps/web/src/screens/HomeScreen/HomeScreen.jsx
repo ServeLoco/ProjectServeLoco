@@ -4,6 +4,7 @@ import { dashboardApi } from '../../api/dashboardApi';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useNotificationStore } from '../../stores/notificationStore';
 import { useAuthStore } from '../../stores/authStore';
+import { subscribeRealtime } from '../../api/realtimeClient';
 
 import BottomNav from '../../components/BottomNav';
 import StickyMiniCart from '../../components/StickyMiniCart';
@@ -48,8 +49,25 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchSettings();
-    if (token) fetchUnreadCount();
-  }, [fetchSettings, token, fetchUnreadCount]);
+  }, [fetchSettings]);
+
+  // Realtime unread count: refresh on notification events while authenticated.
+  // `realtimeClient` only emits `notification.created` and
+  // `notification.unread_count.updated`; there is no `notification.read` /
+  // `notification.read-all` event in this app, so we listen for what exists.
+  useEffect(() => {
+    if (!token) return undefined;
+    fetchUnreadCount();
+    const events = ['notification.created', 'notification.unread_count.updated'];
+    const unsubscribers = events.map(eventName =>
+      subscribeRealtime(eventName, () => {
+        fetchUnreadCount();
+      })
+    );
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [token, fetchUnreadCount]);
 
   useEffect(() => {
     try { localStorage.setItem('home-store-type', storeType); } catch { /* storage may be unavailable */ }

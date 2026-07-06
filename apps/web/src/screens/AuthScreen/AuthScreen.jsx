@@ -56,9 +56,51 @@ export default function AuthScreen() {
   const handleAuthSuccess = (data) => {
     login(data.user, data.token);
     connectCustomerRealtime(data.token);
+    // Fire-and-forget: ask the browser for notification permission so the
+    // service-worker push subscription can be registered. Must never block
+    // the login redirect, so any failure is swallowed.
+    requestNotificationPermissionAndRegisterToken();
     const origin = location.state?.from?.pathname || '/';
     const search = location.state?.from?.search || '';
     navigate(origin + search, { replace: true });
+  };
+
+  // Best-effort post-login notification setup. Mirrors the customer-app
+  // behaviour: ask for permission, then register the push token with the
+  // backend if a service worker is available. `authApi.registerPushToken`
+  // does not exist in this web app yet, so when it's missing we just request
+  // permission and skip the token registration.
+  const requestNotificationPermissionAndRegisterToken = async () => {
+    try {
+      if (typeof window === 'undefined' || !('Notification' in window)) return;
+      if (typeof Notification.requestPermission !== 'function') return;
+
+      let permission = Notification.permission;
+      if (permission === 'default') {
+        permission = await Notification.requestPermission();
+      }
+      if (permission !== 'granted') return;
+
+      // Only attempt to register a push token when the browser exposes a
+      // service-worker registration we can attach to.
+      if (!('serviceWorker' in navigator)) return;
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration || !registration.pushManager) return;
+
+      // userVisibleOnly is required; applicationServerKey is omitted because
+      // the backend does not yet vend a VAPID public key for web push.
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+      });
+      if (!subscription) return;
+
+      if (typeof authApi.registerPushToken === 'function') {
+        await authApi.registerPushToken(subscription);
+      }
+    } catch (err) {
+      // Non-fatal — the app works fine without a registered push token.
+      console.warn('[AuthScreen] notification permission/push token setup failed:', err?.message || err);
+    }
   };
 
   /* ── Setup invisible reCAPTCHA ── */
