@@ -728,3 +728,69 @@ describe('createOrder with variantId', () => {
     expect(mockConnection.rollback).toHaveBeenCalledTimes(1);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Regression: a combo line item must never carry a client-supplied variantId
+// through unvalidated. Combos skip the variant validation branch entirely
+// (it only runs when !isCombo), so variantId must be forced to null rather
+// than echoed/persisted as-is.
+// ─────────────────────────────────────────────────────────────────────────
+
+describe('combo items ignore a forged variantId', () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  it('calculateCart nulls out variantId/variantLabel for a combo line', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 40, name: 'Party Combo', price: 499, available: 1 }]]); // combo fetch
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ productId: 40, type: 'combo', variantId: 999999, quantity: 1 }] });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.items[0].unitPrice).toEqual(499);
+    expect(res.body.items[0].variantId).toBeNull();
+    expect(res.body.items[0].variant_id).toBeNull();
+    expect(res.body.items[0].variantLabel).toBeNull();
+  });
+
+  it('createOrder nulls out variant_id/variant_label for a combo line', async () => {
+    const comboToken = jwt.sign({ id: 998, role: 'customer' }, process.env.JWT_SECRET || 'secret');
+    const mockConnection = {
+      beginTransaction: jest.fn(),
+      query: jest.fn()
+        .mockResolvedValueOnce([[{ blocked: 0 }]])
+        .mockResolvedValueOnce([[{ shop_open: 1, delivery_available: 1, delivery_charge: 10, night_charge: 0, fast_delivery_enabled: 0 }]])
+        .mockResolvedValueOnce([[{ id: 40, name: 'Party Combo', price: 499, available: 1 }]]) // combo fetch
+        .mockResolvedValueOnce([{ insertId: 3001 }])
+        .mockResolvedValueOnce([{ affectedRows: 1 }]),
+      commit: jest.fn(),
+      rollback: jest.fn(),
+      release: jest.fn()
+    };
+    pool.getConnection.mockResolvedValue(mockConnection);
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${comboToken}`)
+      .send({
+        address: '123 Test St',
+        paymentMethod: 'Cash',
+        items: [{ productId: 40, type: 'combo', variantId: 999999, quantity: 1 }]
+      });
+
+    expect(res.statusCode).toEqual(201);
+    expect(res.body.order.items[0].unitPrice).toEqual(499);
+    expect(res.body.order.items[0].variantId).toBeNull();
+    expect(res.body.order.items[0].variant_id).toBeNull();
+
+    const insertCall = mockConnection.query.mock.calls.find(
+      c => typeof c[0] === 'string' && c[0].includes('INSERT INTO order_items')
+    );
+    expect(insertCall).toBeDefined();
+    // values array layout: (order_id, product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total)
+    expect(insertCall[1][2]).toBeNull(); // variant_id must be null, not 999999
+    expect(insertCall[1][3]).toBeNull(); // variant_label
+  });
+});

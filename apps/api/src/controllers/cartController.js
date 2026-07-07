@@ -116,6 +116,10 @@ const calculateCart = async (req, res) => {
 
     const lineTotal = roundMoney(unitPrice * quantity);
     subtotal += lineTotal;
+    // Combos never carry a variant — force null so an unvalidated client-sent
+    // variantId is never echoed back as if it had been checked.
+    const effectiveVariantId = isCombo ? null : variantId;
+    const effectiveVariantLabel = isCombo ? null : variantLabel;
     processedItems.push({
       id: product.id,
       name: lineName,
@@ -123,10 +127,10 @@ const calculateCart = async (req, res) => {
       unitPrice,
       lineTotal,
       type: isCombo ? 'combo' : 'product',
-      variantId,
-      variant_id: variantId,
-      variantLabel,
-      variant_label: variantLabel,
+      variantId: effectiveVariantId,
+      variant_id: effectiveVariantId,
+      variantLabel: effectiveVariantLabel,
+      variant_label: effectiveVariantLabel,
     });
   }
 

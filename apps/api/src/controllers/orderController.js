@@ -285,10 +285,14 @@ const createOrder = async (req, res) => {
       const lineTotal = roundMoney(unitPrice * quantity);
 
       subtotal += lineTotal;
+      // Combos never carry a variant — force null so an unvalidated
+      // client-sent variantId is never persisted as if it had been checked.
+      const effectiveVariantId = isCombo ? null : variantId;
+      const effectiveVariantLabel = isCombo ? null : variantLabel;
       orderItems.push({
         product_id: product.id,
-        variant_id: variantId,
-        variant_label: variantLabel,
+        variant_id: effectiveVariantId,
+        variant_label: effectiveVariantLabel,
         product_name: productName,
         quantity,
         unit_price: unitPrice,
