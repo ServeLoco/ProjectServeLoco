@@ -175,7 +175,34 @@ const migrate = async () => {
     await ensureColumn('products', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER discount_label');
     await ensureColumn('products', 'available_from_time', 'available_from_time TIME NULL AFTER deleted');
     await ensureColumn('products', 'available_until_time', 'available_until_time TIME NULL AFTER available_from_time');
+    // Free-text sheet subtitle ("Choose size", "Choose type"). NULL -> client
+    // shows "Choose an option".
+    await ensureColumn('products', 'variant_prompt', 'variant_prompt VARCHAR(100) NULL AFTER available_until_time');
     console.log('Products table ready.');
+
+    // Product Variants Table — purchasable child rows (sizes/types) of a
+    // product, each with its own label + price. products.price ALWAYS mirrors
+    // the default variant's price (the backward-compat keystone). Variant rows
+    // are soft-deleted (deleted = 1) so live carts / order snapshots that hold
+    // variant ids keep resolving. has_variants is DERIVED client-side.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_variants (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        product_id INT NOT NULL,
+        label VARCHAR(100) NOT NULL,
+        price DECIMAL(10,2) NOT NULL,
+        original_price DECIMAL(10,2) NULL,
+        available BOOLEAN DEFAULT TRUE,
+        is_default BOOLEAN DEFAULT FALSE,
+        display_order INT NOT NULL DEFAULT 0,
+        deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+        INDEX idx_variant_product (product_id, deleted, available)
+      );
+    `);
+    console.log('Product variants table ready.');
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS product_combo_items (
@@ -369,6 +396,11 @@ const migrate = async () => {
       );
     `);
     await ensureColumn('order_items', 'item_type', 'item_type VARCHAR(50) DEFAULT "product" AFTER product_id');
+    // Variant snapshot columns. Deliberately NO foreign key on variant_id —
+    // order snapshots must outlive catalog rows (the product FK is dropped
+    // below for the same reason).
+    await ensureColumn('order_items', 'variant_id', 'variant_id INT NULL AFTER product_id');
+    await ensureColumn('order_items', 'variant_label', 'variant_label VARCHAR(100) NULL AFTER variant_id');
     const [orderItemProductFks] = await connection.query(`
       SELECT CONSTRAINT_NAME
       FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
