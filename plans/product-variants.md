@@ -1,6 +1,6 @@
 # Product Variants — Implementation Spec
 
-**Status: NOT STARTED. This is an instruction spec for an implementing AI.**
+**Status: Tasks 0-7 implemented on branch `feature/product-variants`. Admin Task 6.3 (table-row "N options" chip) skipped — cosmetic. All backend + customer-app tests green.**
 **Branch: `feature/product-variants` off `main` (create it as Task 0).**
 
 ## What we are building
@@ -43,7 +43,7 @@ Behavior contract:
 
 ## Task 0 — Create branch
 
-- [ ] From a clean `main`, create and switch to branch `feature/product-variants`.
+- [x] From a clean `main`, create and switch to branch `feature/product-variants`.
 
 **Solution:** `git checkout main && git pull && git checkout -b feature/product-variants`. No commit for this task.
 
@@ -51,9 +51,9 @@ Behavior contract:
 
 ## Task 1 — DB migration
 
-- [ ] 1.1 Add `product_variants` table to `apps/api/src/db/migrate.js`
-- [ ] 1.2 Add `variant_id` / `variant_label` columns to `order_items`
-- [ ] 1.3 Add `variant_prompt` column to `products`
+- [x] 1.1 Add `product_variants` table to `apps/api/src/db/migrate.js`
+- [x] 1.2 Add `variant_id` / `variant_label` columns to `order_items`
+- [x] 1.3 Add `variant_prompt` column to `products`
 
 **Solution:**
 
@@ -94,8 +94,8 @@ Deliberately NO foreign key on `order_items.variant_id` — order snapshots must
 
 ## Task 2 — API read paths: embed variants in product responses
 
-- [ ] 2.1 `attachVariants()` helper in `apps/api/src/controllers/productController.js`
-- [ ] 2.2 Call it from every product read endpoint
+- [x] 2.1 `attachVariants()` helper in `apps/api/src/controllers/productController.js`
+- [x] 2.2 Call it from every product read endpoint
 
 **Solution:**
 
@@ -138,9 +138,9 @@ IMPORTANT: return `available = 0` variants too (client shows them disabled as "O
 
 ## Task 3 — Cart calculation + order creation accept `variantId`
 
-- [ ] 3.1 `cartController.js calculateCart` — variant-aware pricing
-- [ ] 3.2 `orderController.js createOrder` — same resolution + snapshot columns
-- [ ] 3.3 `orderRoutes.js createOrderSchema` — accept/validate optional `variant_id`
+- [x] 3.1 `cartController.js calculateCart` — variant-aware pricing
+- [x] 3.2 `orderController.js createOrder` — same resolution + snapshot columns
+- [x] 3.3 `orderRoutes.js createOrderSchema` — accept/validate optional `variant_id`
 
 **Solution:**
 
@@ -188,8 +188,8 @@ Price-change semantics: unchanged — checkout recalculates server-side immediat
 
 ## Task 4 — Admin API: variant CRUD nested in product payload
 
-- [ ] 4.1 `adminRoutes.js productSchema` — normalize + validate optional `variants` array and `variant_prompt`
-- [ ] 4.2 `productController createProduct`/`updateProduct` — transactional variant upsert + price sync
+- [x] 4.1 `adminRoutes.js productSchema` — normalize + validate optional `variants` array and `variant_prompt`
+- [x] 4.2 `productController createProduct`/`updateProduct` — transactional variant upsert + price sync
 
 **Solution:**
 
@@ -224,8 +224,8 @@ Validation: each label non-empty string ≤ 100 chars; labels unique within the 
 
 ## Task 5 — API tests
 
-- [ ] 5.1 New `apps/api/tests/productVariants.test.js`
-- [ ] 5.2 Additions to `apps/api/tests/cartOrder.test.js`
+- [x] 5.1 New `apps/api/tests/productVariants.test.js`
+- [x] 5.2 Additions to `apps/api/tests/cartOrder.test.js`
 
 **Solution:** use the existing `tests/__mocks__` mysql mocking pattern. Cover at minimum:
 
@@ -242,9 +242,9 @@ Validation: each label non-empty string ≤ 100 chars; labels unique within the 
 
 ## Task 6 — Admin UI: variant editor in product form
 
-- [ ] 6.1 "This product has variants" toggle + repeater in the product drawer form
-- [ ] 6.2 Choice-prompt input
-- [ ] 6.3 Product table row display
+- [x] 6.1 "This product has variants" toggle + repeater in the product drawer form
+- [x] 6.2 Choice-prompt input
+- [ ] 6.3 Product table row display — SKIPPED (cosmetic; table still shows plain `p.price`, which is correct due to price-sync, just no "N options" chip)
 
 **Solution:** all in `apps/admin/src/pages/Products.jsx` (formData state ~line 376, table row ~line 306).
 
@@ -264,12 +264,12 @@ Also add a short note in the combos page or product form: "Combos always use a p
 
 Sub-order matters: store → mappers → sheet → card → screens → cart/checkout.
 
-- [ ] 7.1 `src/stores/useCartStore.js` — variant-aware cart
-- [ ] 7.2 `src/utils/apiMappers.js` — normalize variants
-- [ ] 7.3 New `src/components/VariantSheet/VariantSheet.js`
-- [ ] 7.4 `src/components/ProductCard/ProductCard.js` behavior
-- [ ] 7.5 Screens wire-up (Home, ProductList, ProductDetail)
-- [ ] 7.6 CartScreen + CheckoutScreen payloads and rendering
+- [x] 7.1 `src/stores/useCartStore.js` — variant-aware cart
+- [x] 7.2 `src/utils/apiMappers.js` — normalize variants
+- [x] 7.3 New `src/components/VariantSheet/VariantSheet.js`
+- [x] 7.4 `src/components/ProductCard/ProductCard.js` behavior
+- [x] 7.5 Screens wire-up (Home, ProductList, ProductDetail)
+- [x] 7.6 CartScreen + CheckoutScreen payloads and rendering
 
 **Solution:**
 
