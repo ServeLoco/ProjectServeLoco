@@ -97,6 +97,54 @@ const attachComboItems = async (products = []) => {
   });
 };
 
+// Embed purchasable variants (sizes/types) into a page of product responses.
+// Models on attachComboItems: ONE batch query for all product ids, then attach.
+// Only real products (not combos) can have variants — combos live in the
+// `combos` table whose ids share a namespace with `products`, so filtering
+// them out avoids accidental product_variants.product_id collisions.
+// Returns available = 0 variants too (client shows them disabled as "Out");
+// filters ONLY deleted = 1.
+const attachVariants = async (products = []) => {
+  const productIds = products
+    .filter(p => !p.is_combo)
+    .map(p => p.id)
+    .filter(Boolean);
+
+  const variantsMap = {};
+  if (productIds.length > 0) {
+    const [rows] = await pool.query(
+      `SELECT id, product_id, label, price, original_price, available, is_default, display_order
+       FROM product_variants
+       WHERE product_id IN (?) AND deleted = 0
+       ORDER BY display_order ASC, id ASC`,
+      [productIds]
+    );
+    rows.forEach(v => {
+      if (!variantsMap[v.product_id]) variantsMap[v.product_id] = [];
+      variantsMap[v.product_id].push(v);
+    });
+  }
+
+  products.forEach(product => {
+    const variantRows = variantsMap[product.id] || [];
+    product.variants = variantRows.map(v => ({
+      id: v.id,
+      productId: v.product_id, product_id: v.product_id,
+      label: v.label,
+      price: Number(v.price),
+      originalPrice: v.original_price, original_price: v.original_price,
+      available: Boolean(v.available),
+      isDefault: Boolean(v.is_default), is_default: Boolean(v.is_default),
+      displayOrder: v.display_order, display_order: v.display_order,
+    }));
+    product.hasVariants = product.has_variants = product.variants.length > 0;
+    product.minPrice = product.min_price = product.variants.length
+      ? Math.min(...product.variants.map(v => v.price))
+      : Number(product.price);
+    product.variantPrompt = product.variant_prompt ?? null;
+  });
+};
+
 const getProducts = async (req, res) => {
   const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit, offerId, offer_id } = req.query;
   const requestedType = type || storeType || store_type;
@@ -119,7 +167,7 @@ const getProducts = async (req, res) => {
 
     // 2. Fetch products attached to offer
     let query = `
-      SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order
+      SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt
       FROM offer_products op
       JOIN products p ON op.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
@@ -141,6 +189,7 @@ const getProducts = async (req, res) => {
 
     const [rows] = await pool.query(query, params);
     await resolveImageUrls(rows);
+    await attachVariants(rows);
     const filteredRows = rows.filter(r => isWithinTimeWindow(r.available_from_time, r.available_until_time));
     return res.status(200).json({ data: { products: filteredRows }, products: filteredRows });
   }
@@ -150,7 +199,7 @@ const getProducts = async (req, res) => {
     finalIsCombo = 'false';
   }
 
-  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order
+  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt
     FROM products p LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0`;
   
@@ -191,6 +240,7 @@ const getProducts = async (req, res) => {
 
   await resolveImageUrls(rows);
   await attachComboItems(rows);
+  await attachVariants(rows);
 
   const filteredRows = rows.filter(r => isWithinTimeWindow(r.available_from_time, r.available_until_time));
 
@@ -233,6 +283,7 @@ const getProductById = async (req, res) => {
   const product = rows[0];
   await resolveImageUrls([product]);
   await attachComboItems([product]);
+  await attachVariants([product]);
 
   // Annotate the response with whether the product is in its daily time window.
   // The product is still returned so the customer app can show an
@@ -372,6 +423,7 @@ const getAdminProducts = async (req, res) => {
   const [rows] = await pool.query(query, params);
 
   await resolveImageUrls(rows);
+  await attachVariants(rows);
   res.status(200).json({ 
     data: { products: rows }, 
     products: rows,
@@ -399,6 +451,7 @@ const getAdminProductById = async (req, res) => {
 
   const product = rows[0];
   await resolveImageUrls([product]);
+  await attachVariants([product]);
   res.status(200).json({ data: product });
 };
 
