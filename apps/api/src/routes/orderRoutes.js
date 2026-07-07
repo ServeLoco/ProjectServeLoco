@@ -3,7 +3,7 @@ const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
 const { createOrder, getOrders, getOrderById, cancelOrder } = require('../controllers/orderController');
 const { requireCustomer } = require('../middleware/authMiddleware');
-const { validate, isEnum, isPositiveInteger, validateCoordinates } = require('../validators');
+const { validate, isEnum, isPositiveInteger, validateCoordinates, isId } = require('../validators');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 
@@ -66,11 +66,17 @@ const createOrderSchema = (req) => {
     // Normalize each item: accept productId (camelCase) or product_id (snake_case)
     data.items = data.items.map(item => ({
       ...item,
-      product_id: item.product_id || item.productId
+      product_id: item.product_id || item.productId,
+      variant_id: item.variant_id || item.variantId || null
     }));
     for (let i = 0; i < data.items.length; i++) {
       const item = data.items[i];
       if (!item.product_id) errors.items = `Item ${i + 1}: product_id is missing`;
+      if (item.variant_id !== null && item.variant_id !== undefined && !isId(item.variant_id)) {
+        errors.items = `Item ${i + 1}: valid variant_id is required`;
+      } else {
+        item.variant_id = item.variant_id !== null && item.variant_id !== undefined ? Number(item.variant_id) : null;
+      }
       if (!isPositiveInteger(item.quantity)) {
         errors.items = `Item ${i + 1}: quantity must be a whole number between 1 and 999`;
       } else {
