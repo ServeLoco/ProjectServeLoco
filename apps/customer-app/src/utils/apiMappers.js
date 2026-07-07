@@ -117,17 +117,35 @@ function getComboItems(item = {}) {
   });
 }
 
+function normalizeVariant(v = {}) {
+  return {
+    id: toIdString(pickFirst(v.id, v.variantId, v.variant_id)),
+    label: pickFirst(v.label, ''),
+    price: numberOrZero(pickFirst(v.price)),
+    originalPrice: pickFirst(v.originalPrice, v.original_price, null),
+    available: asBoolean(pickFirst(v.available), true),
+    isDefault: asBoolean(pickFirst(v.isDefault, v.is_default), false),
+    displayOrder: numberOrZero(pickFirst(v.displayOrder, v.display_order, 0)),
+  };
+}
+
 function normalizeProduct(item = {}) {
   const id = toIdString(pickFirst(item.id, item._id, item.productId, item.product_id, item.slug));
   const isCombo = asBoolean(pickFirst(item.isCombo, item.is_combo), false);
   const comboItems = getComboItems(item);
   const imageUrl = normalizeImageUrl(pickFirst(item.imageUrl, item.image_url, item.image, item.url, null));
+  const variants = asArray(item.variants, ['variants'])
+    .map(normalizeVariant)
+    .sort((a, b) => a.displayOrder - b.displayOrder);
+  const hasVariants = asBoolean(pickFirst(item.hasVariants, item.has_variants), variants.length > 0);
+  const basePrice = numberOrZero(pickFirst(item.price, item.salePrice, item.sale_price, item.unitPrice));
+  const minPrice = numberOrZero(pickFirst(item.minPrice, item.min_price, basePrice));
 
   return {
     ...item,
     id,
     name: pickFirst(item.name, item.productName, item.product_name, 'Product'),
-    price: numberOrZero(pickFirst(item.price, item.salePrice, item.sale_price, item.unitPrice)),
+    price: basePrice,
     originalPrice: pickFirst(item.originalPrice, item.original_price, item.mrp, null),
     discountLabel: getDiscountLabel(item),
     unit: pickFirst(item.unit, item.size, item.unitSize, item.unit_size, ''),
@@ -141,6 +159,12 @@ function normalizeProduct(item = {}) {
     is_combo: isCombo,
     comboItems,
     combo_items: comboItems,
+    variants,
+    hasVariants,
+    has_variants: hasVariants,
+    minPrice,
+    min_price: minPrice,
+    variantPrompt: pickFirst(item.variantPrompt, item.variant_prompt, null),
     inTimeWindow: item.in_time_window !== undefined ? Boolean(item.in_time_window) : true,
     availableFromTime: item.available_from_time || null,
     availableUntilTime: item.available_until_time || null,

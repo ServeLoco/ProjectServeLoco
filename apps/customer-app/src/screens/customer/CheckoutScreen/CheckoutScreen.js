@@ -97,6 +97,7 @@ export default function CheckoutScreen() {
     const type = item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');
     return {
       productId: item.product.id,
+      variantId: item.variant?.id ?? null,
       quantity: item.quantity,
       type,
       isCombo: type === 'combo',

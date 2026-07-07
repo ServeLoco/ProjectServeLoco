@@ -60,6 +60,15 @@ function ProductCard({
   const resolvedIsCombo = Boolean(product.isCombo ?? product.is_combo ?? isCombo ?? resolvedComboItems.length > 0);
   const isUnavailable = !resolvedAvailable;
 
+  // Multi-variant products (e.g. pizza sizes, burger types) show the plain
+  // lowest variant price and open the VariantSheet on tap instead of a bare
+  // +/- stepper — a "+" can't know which variant to increment.
+  const resolvedVariants = product.variants ?? [];
+  const isMultiVariant = resolvedVariants.length > 1;
+  const displayPrice = isMultiVariant
+    ? (product.minPrice ?? product.min_price ?? resolvedPrice)
+    : resolvedPrice;
+
   const pressAnim = useRef(new Animated.Value(0)).current;
 
   const discountPct = resolvedOriginalPrice && Number(resolvedOriginalPrice) > Number(resolvedPrice)
@@ -190,9 +199,9 @@ function ProductCard({
               <View style={styles.priceBlock}>
                 <View style={styles.priceRow}>
                   <Text style={styles.price} numberOfLines={1}>
-                    ₹{resolvedPrice}
+                    ₹{displayPrice}
                   </Text>
-                  {resolvedOriginalPrice ? (
+                  {!isMultiVariant && resolvedOriginalPrice ? (
                     <Text style={styles.originalPrice} numberOfLines={1}>
                       ₹{Math.floor(Number(resolvedOriginalPrice))}
                     </Text>
@@ -206,6 +215,41 @@ function ProductCard({
                   <View style={styles.unavailablePill}>
                     <Text style={styles.unavailableText}>Out</Text>
                   </View>
+                ) : isMultiVariant ? (
+                  quantity > 0 ? (
+                    <TouchableOpacity
+                      onPress={onAdd}
+                      activeOpacity={0.8}
+                      style={styles.addButton}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${quantity} in cart. Tap to change ${resolvedName} options`}
+                    >
+                      <LinearGradient
+                        colors={[colors.saffron, colors.saffronDark]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      <Text style={styles.addLabel}>{quantity} in cart</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={onAdd}
+                      activeOpacity={0.8}
+                      style={styles.addButton}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Choose options for ${resolvedName}`}
+                    >
+                      <LinearGradient
+                        colors={[colors.saffron, colors.saffronDark]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      <AppIcon name="plus" size={12} color={colors.textInverse} strokeWidth={2.8} />
+                      <Text style={styles.addLabel}>Buy</Text>
+                    </TouchableOpacity>
+                  )
                 ) : quantity > 0 ? (
                   <QuantityStepper
                     quantity={quantity}

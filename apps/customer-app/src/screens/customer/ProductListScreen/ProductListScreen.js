@@ -24,6 +24,7 @@ import {
   SkeletonRow,
   EmptyState,
   ErrorState,
+  VariantSheet,
 } from '../../../components';
 import { colors, typography, spacing, radius, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
@@ -61,8 +62,10 @@ export default function ProductListScreen() {
   const addCombo = useCartStore(state => state.addCombo);
   const decrementCombo = useCartStore(state => state.decrementCombo);
   const getComboQuantity = useCartStore(state => state.getComboQuantity);
+  const getProductQuantity = useCartStore(state => state.getProductQuantity);
   const updateQuantity = useCartStore(state => state.updateQuantity);
   const removeItem = useCartStore(state => state.removeItem);
+  const [variantSheetProduct, setVariantSheetProduct] = useState(null);
 
   // State
   const [searchQuery, setSearchQuery] = useState(initialQuery);
@@ -189,8 +192,10 @@ export default function ProductListScreen() {
     requireAuth(null, () => {
       if (product.isCombo || product.is_combo || product.comboItems?.length) {
         addCombo(product);
+      } else if ((product.variants?.length ?? 0) > 1) {
+        setVariantSheetProduct(product);
       } else {
-        addItem(product);
+        addItem(product, 1, product.variants?.[0] ?? null);
       }
     });
   }, [requireAuth, addCombo, addItem]);
@@ -248,7 +253,7 @@ export default function ProductListScreen() {
             isCombo={item.isCombo}
             comboItems={item.comboItems}
             imageUri={item.imageUri}
-            quantity={item.isCombo || item.is_combo || item.comboItems?.length ? getComboQuantity(item) : getQty(item.id)}
+            quantity={item.isCombo || item.is_combo || item.comboItems?.length ? getComboQuantity(item) : getProductQuantity(item.id)}
             onAdd={() => handleAddToCart(item)}
             onIncrement={() => handleIncrement(item)}
             onDecrement={() => handleDecrement(item)}
@@ -393,6 +398,12 @@ export default function ProductListScreen() {
         itemCount={cartItemCount}
         totalAmount={cartDisplayTotal}
         onPress={() => navigation.navigate('Cart')}
+      />
+
+      <VariantSheet
+        visible={!!variantSheetProduct}
+        product={variantSheetProduct}
+        onClose={() => setVariantSheetProduct(null)}
       />
     </AppScreen>
   );
