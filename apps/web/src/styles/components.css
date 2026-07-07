@@ -59,3 +59,48 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Entrance animations (match customer-app motion feel) */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUpIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-up {
+  animation: fadeSlideUp 0.3s ease-out both;
+}
+
+.animate-pop {
+  animation: popIn 0.22s ease-out both;
+}
+
+/* Staggered list entrance for cart/order rows */
+.stagger-item {
+  animation: fadeSlideUp 0.3s ease-out both;
+}
+.stagger-item:nth-child(1) { animation-delay: 0.02s; }
+.stagger-item:nth-child(2) { animation-delay: 0.06s; }
+.stagger-item:nth-child(3) { animation-delay: 0.10s; }
+.stagger-item:nth-child(4) { animation-delay: 0.14s; }
+.stagger-item:nth-child(5) { animation-delay: 0.18s; }
+.stagger-item:nth-child(6) { animation-delay: 0.22s; }
+.stagger-item:nth-child(7) { animation-delay: 0.26s; }
+.stagger-item:nth-child(8) { animation-delay: 0.30s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-pop,
+  .stagger-item {
+    animation: none;
+  }
+}
