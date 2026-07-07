@@ -105,3 +105,89 @@
   width: 80px;
   text-align: right;
 }
+
+.od-cancel-banner {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  text-align: center;
+}
+
+.od-payment-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: var(--fs-xs, 12px);
+  font-weight: var(--fw-semibold);
+  line-height: 1.4;
+}
+
+.od-payment-badge--paid {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.od-payment-badge--pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.od-payment-badge--failed {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.od-payment-badge--refunded {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.od-payment-badge--unknown {
+  background: var(--bg-input);
+  color: var(--text-secondary);
+}
+
+.od-cancel-btn {
+  margin-top: var(--space-sm);
+  background: #b91c1c;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.od-cancel-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.od-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.od-cancel-error {
+  margin-top: var(--space-xs);
+  color: #b91c1c;
+  font-size: var(--fs-sm);
+}
+
+.od-map-link {
+  display: inline-block;
+  margin-top: var(--space-xs);
+  color: var(--color-primary, #2563eb);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+}
+
+.od-map-link:hover {
+  text-decoration: underline;
+}

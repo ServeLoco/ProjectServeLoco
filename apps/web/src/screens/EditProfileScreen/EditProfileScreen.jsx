@@ -50,7 +50,10 @@ export default function EditProfileScreen() {
     try {
       const response = await authApi.updateProfile({
         name: formData.name,
+        fullName: formData.name,
+        whatsappNumber: formData.whatsapp,
         whatsapp: formData.whatsapp,
+        deliveryAddress: formData.address,
         address: formData.address,
       });
       

@@ -181,6 +181,12 @@
   gap: 4px;
 }
 
+.co-distance-row {
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  padding-top: var(--space-xs);
+}
+
 .co-radio-title {
   font-weight: var(--fw-bold);
   font-size: var(--fs-sm);
@@ -214,6 +220,66 @@
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
   color: var(--text-primary);
+}
+
+.coupon-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  background: var(--bg-surface);
+  border: 1px dashed var(--saffron);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.coupon-card-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.coupon-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--saffron-light);
+  color: var(--saffron);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.coupon-card-title {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+}
+
+.coupon-card-sub {
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.coupon-card-apply {
+  color: var(--saffron);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+}
+
+.coupon-card-applied {
+  color: var(--error);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-sm);
 }
 
 .co-bottom-bar {

@@ -6,6 +6,29 @@ export const useCartStore = create(
     (set) => ({
       items: [], // [{ product: { id, name, price, unit, imageUrl }, quantity, type: 'product'|'combo' }]
 
+      // Coupon state — survives navigation from cart to checkout.
+      appliedCouponCode: null,
+      appliedCouponId: null,
+      appliedCoupon: null,
+      couponAutoApplyDisabled: false,
+      freeDeliveryProgress: null,
+
+      setAppliedCoupon: (code, coupon) => set({
+        appliedCouponCode: coupon?.autoApplied ? null : code,
+        appliedCouponId: coupon?.autoApplied ? null : (coupon?.id ?? null),
+        appliedCoupon: coupon,
+        couponAutoApplyDisabled: false,
+      }),
+
+      clearAppliedCoupon: () => set({
+        appliedCouponCode: null,
+        appliedCouponId: null,
+        appliedCoupon: null,
+        couponAutoApplyDisabled: true,
+      }),
+
+      setFreeDeliveryProgress: (progress) => set({ freeDeliveryProgress: progress || null }),
+
       addItem: (product, quantity = 1) => set((state) => {
         const existing = state.items.find(i => i.product.id === product.id && i.type === 'product');
         if (existing) {
@@ -51,7 +74,13 @@ export const useCartStore = create(
         };
       }),
 
-      clearCart: () => set({ items: [] }),
+      clearCart: () => set({
+        items: [],
+        appliedCouponCode: null,
+        appliedCouponId: null,
+        appliedCoupon: null,
+        freeDeliveryProgress: null
+      }),
     }),
     {
       name: 'serveloco-customer-cart',

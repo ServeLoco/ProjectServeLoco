@@ -17,6 +17,8 @@ import NotificationsScreen from './screens/NotificationsScreen/NotificationsScre
 import NotFoundScreen from './screens/NotFoundScreen/NotFoundScreen';
 import RealtimeManager from './components/RealtimeManager';
 import AddToHomePrompt from './components/AddToHomePrompt';
+import OfflineBanner from './components/OfflineBanner/OfflineBanner';
+import { useOnlineStatus } from './utils/connectivity';
 import { useAuthStore } from './stores/authStore';
 
 const AuthGuard = ({ children }) => {
@@ -27,10 +29,17 @@ const AuthGuard = ({ children }) => {
 };
 
 export default function App() {
+  const { online, retry } = useOnlineStatus();
+  
   return (
     <BrowserRouter>
       <RealtimeManager />
       <AddToHomePrompt />
+      <OfflineBanner
+        visible={!online}
+        message="Can't reach the server. Check your connection."
+        onRetry={retry}
+      />
       <Routes>
         {/* Main Tabs */}
         <Route path="/" element={<HomeScreen />} />
