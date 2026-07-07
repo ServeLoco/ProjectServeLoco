@@ -532,3 +532,199 @@ describe('calculateCart typed-code failure falls back to auto-apply', () => {
     expect(pickBestAutoApply).not.toHaveBeenCalled();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// VARIANTS TASK 5 — cart calc with variantId
+// ─────────────────────────────────────────────────────────────────────────
+
+describe('calculateCart with variantId', () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  it('prices from the variant and composes product_name with label', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 10, product_id: 1, label: 'Large', price: 349, available: 1, deleted: 0 }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ productId: 1, variantId: 10, quantity: 2 }] });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.subtotal).toEqual(698);
+    expect(res.body.items[0].unitPrice).toEqual(349);
+    expect(res.body.items[0].name).toEqual('Pizza (Large)');
+    expect(res.body.items[0].variantId).toEqual(10);
+    expect(res.body.items[0].variant_id).toEqual(10);
+    expect(res.body.items[0].variantLabel).toEqual('Large');
+  });
+
+  it('handles two lines of the same product with different variants', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]]);
+    pool.query.mockResolvedValueOnce([[
+      { id: 10, product_id: 1, label: 'Small', price: 149, available: 1, deleted: 0 },
+      { id: 11, product_id: 1, label: 'Large', price: 349, available: 1, deleted: 0 },
+    ]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [
+        { productId: 1, variantId: 10, quantity: 2 },
+        { productId: 1, variantId: 11, quantity: 1 },
+      ] });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.subtotal).toEqual(647);
+    expect(res.body.items[0]).toMatchObject({ variantId: 10, unitPrice: 149, name: 'Pizza (Small)' });
+    expect(res.body.items[1]).toMatchObject({ variantId: 11, unitPrice: 349, name: 'Pizza (Large)' });
+  });
+
+  it('rejects an unknown variantId with 400', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]]);
+    pool.query.mockResolvedValueOnce([[]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ productId: 1, variantId: 999, quantity: 1 }] });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.code).toEqual('VALIDATION_ERROR');
+    expect(res.body.message).toContain('selected option is unavailable');
+  });
+
+  it('rejects a variantId belonging to a different product', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 10, product_id: 2, label: 'Large', price: 349, available: 1, deleted: 0 }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ productId: 1, variantId: 10, quantity: 1 }] });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.message).toContain('selected option is unavailable');
+  });
+
+  it('rejects an available=0 variant', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 10, product_id: 1, label: 'Large', price: 349, available: 0, deleted: 0 }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ productId: 1, variantId: 10, quantity: 1 }] });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.message).toContain('selected option is unavailable');
+  });
+
+  it('rejects a soft-deleted variant (deleted=1)', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 10, product_id: 1, label: 'Large', price: 349, available: 1, deleted: 1 }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ productId: 1, variantId: 10, quantity: 1 }] });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.message).toContain('selected option is unavailable');
+  });
+
+  it('charges base products.price when no variantId is sent (old-client path)', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ productId: 1, quantity: 2 }] });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.subtotal).toEqual(698);
+    expect(res.body.items[0].unitPrice).toEqual(349);
+    expect(res.body.items[0].name).toEqual('Pizza');
+    expect(res.body.items[0].variantId).toBeNull();
+    expect(res.body.items[0].variantLabel).toBeNull();
+  });
+});
+
+describe('createOrder with variantId', () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+  // Separate user ID to avoid the orderLimiter (5 orders/min) shared with
+  // the existing order-creation tests above.
+  const variantToken = jwt.sign({ id: 999, role: 'customer' }, process.env.JWT_SECRET || 'secret');
+
+  it('snapshots variant_id, variant_label, and composite product_name', async () => {
+    const mockConnection = {
+      beginTransaction: jest.fn(),
+      query: jest.fn()
+        .mockResolvedValueOnce([[{ blocked: 0 }]])
+        .mockResolvedValueOnce([[{ shop_open: 1, delivery_available: 1, delivery_charge: 10, night_charge: 0, fast_delivery_enabled: 0 }]])
+        .mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]])
+        .mockResolvedValueOnce([[{ id: 10, product_id: 1, label: 'Large', price: 349, available: 1, deleted: 0 }]])
+        .mockResolvedValueOnce([{ insertId: 2001 }])
+        .mockResolvedValueOnce([{ affectedRows: 1 }]),
+      commit: jest.fn(),
+      rollback: jest.fn(),
+      release: jest.fn()
+    };
+    pool.getConnection.mockResolvedValue(mockConnection);
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${variantToken}`)
+      .send({
+        address: '123 Test St',
+        paymentMethod: 'Cash',
+        items: [{ productId: 1, variantId: 10, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(201);
+    expect(res.body.orderId).toBe(2001);
+    expect(res.body.order.subtotal).toBe(698);
+    expect(res.body.order.items[0].variantId).toBe(10);
+    expect(res.body.order.items[0].variant_id).toBe(10);
+    expect(res.body.order.items[0].variantLabel).toBe('Large');
+    expect(res.body.order.items[0].variant_label).toBe('Large');
+    expect(res.body.order.items[0].name).toBe('Pizza (Large)');
+    expect(mockConnection.commit).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a forged cross-product variantId in order creation', async () => {
+    const mockConnection = {
+      beginTransaction: jest.fn(),
+      query: jest.fn()
+        .mockResolvedValueOnce([[{ blocked: 0 }]])
+        .mockResolvedValueOnce([[{ shop_open: 1, delivery_available: 1, delivery_charge: 10, night_charge: 0, fast_delivery_enabled: 0 }]])
+        .mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]])
+        .mockResolvedValueOnce([[{ id: 10, product_id: 2, label: 'Large', price: 349, available: 1, deleted: 0 }]]),
+      commit: jest.fn(),
+      rollback: jest.fn(),
+      release: jest.fn()
+    };
+    pool.getConnection.mockReset();
+    pool.getConnection.mockResolvedValue(mockConnection);
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${variantToken}`)
+      .send({
+        address: '123 Test St',
+        paymentMethod: 'Cash',
+        items: [{ productId: 1, variantId: 10, quantity: 2 }]
+      });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.code).toEqual('VALIDATION_ERROR');
+    expect(res.body.message).toContain('option is unavailable');
+    expect(mockConnection.rollback).toHaveBeenCalledTimes(1);
+  });
+});
