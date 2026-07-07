@@ -146,6 +146,7 @@ const categorySchema = (req) => {
 
 const productSchema = (req) => {
   const rawComboItems = normalizeField(req, 'comboItems', 'combo_items');
+  const rawVariants = normalizeField(req, 'variants', 'variants');
   const data = {
     name: normalizeField(req, 'name', 'name'),
     price: normalizeField(req, 'price', 'price'),
@@ -165,7 +166,17 @@ const productSchema = (req) => {
       product_id: item.productId || item.product_id || item.id,
       quantity: item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1),
       display_order: item.displayOrder || item.display_order || index,
-    })) : undefined
+    })) : undefined,
+    variants: Array.isArray(rawVariants) ? rawVariants.map((v, i) => ({
+      id: v.id || null,
+      label: v.label,
+      price: v.price,
+      original_price: v.originalPrice ?? v.original_price ?? null,
+      available: v.available !== undefined ? Boolean(v.available) : true,
+      is_default: Boolean(v.isDefault ?? v.is_default),
+      display_order: v.displayOrder ?? v.display_order ?? i,
+    })) : undefined,
+    variant_prompt: normalizeField(req, 'variantPrompt', 'variant_prompt'),
   };
   const errors = {};
   if (!isString(data.name)) errors.name = 'Name is required';
@@ -203,6 +214,55 @@ const productSchema = (req) => {
       item.quantity = Number(item.quantity) || 1;
       item.display_order = isNonNegativeInteger(item.display_order) ? Number(item.display_order) : i;
     }
+  }
+  // Variant validation: labels non-empty ≤ 100 chars, unique (case-insensitive),
+  // numeric price per row, exactly one is_default (auto-mark index 0 if none),
+  // max 20 variants, variant_prompt ≤ 100 chars if present.
+  if (data.variants !== undefined) {
+    if (data.variants.length > 20) {
+      errors.variants = 'A product can have at most 20 variants';
+    }
+    const labels = new Set();
+    for (let i = 0; i < data.variants.length; i++) {
+      const v = data.variants[i];
+      if (!isString(v.label) || String(v.label).trim() === '' || String(v.label).length > 100) {
+        errors.variants = `Variant ${i + 1}: label must be a non-empty string of at most 100 characters`;
+      }
+      const lowerLabel = String(v.label || '').toLowerCase().trim();
+      if (labels.has(lowerLabel)) {
+        errors.variants = `Variant ${i + 1}: duplicate label "${v.label}"`;
+      }
+      labels.add(lowerLabel);
+      if (!isNumericAmount(v.price)) {
+        errors.variants = `Variant ${i + 1}: valid price is required`;
+      } else {
+        v.price = Number(v.price);
+      }
+      if (v.original_price !== null && v.original_price !== undefined && v.original_price !== '') {
+        if (!isNumericAmount(v.original_price)) {
+          errors.variants = `Variant ${i + 1}: original price must be a valid amount`;
+        } else {
+          v.original_price = Number(v.original_price);
+        }
+      } else {
+        v.original_price = null;
+      }
+    }
+    if (data.variants.length > 0) {
+      const defaultCount = data.variants.filter(v => v.is_default).length;
+      if (defaultCount === 0) {
+        data.variants[0].is_default = true;
+      } else if (defaultCount > 1) {
+        errors.variants = 'Exactly one variant must be marked as default';
+      }
+    }
+  }
+  if (data.variant_prompt !== undefined && data.variant_prompt !== null && data.variant_prompt !== '') {
+    if (!isString(data.variant_prompt) || String(data.variant_prompt).length > 100) {
+      errors.variant_prompt = 'Choice prompt must be a string of at most 100 characters';
+    }
+  } else if (data.variant_prompt === '') {
+    data.variant_prompt = null;
   }
   
   if (data.available !== undefined) {

@@ -145,6 +145,75 @@ const attachVariants = async (products = []) => {
   });
 };
 
+// Transactional variant upsert + products.price re-sync. Called after the
+// product INSERT (create) or UPDATE (update). `variants === undefined` and
+// `variantPrompt === undefined` mean "not sent" → leave untouched (partial-
+// update safety). UPSERT by id (never delete-and-reinsert — live carts and
+// order snapshots reference variant ids). The products.price sync is the
+// load-bearing backward-compat invariant: products.price must ALWAYS equal
+// the default variant's price.
+const syncProductVariants = async (productId, variants, variantPrompt) => {
+  if (variants === undefined && variantPrompt === undefined) return;
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    if (variantPrompt !== undefined) {
+      await connection.query(
+        'UPDATE products SET variant_prompt = ? WHERE id = ?',
+        [variantPrompt || null, productId]
+      );
+    }
+
+    if (variants !== undefined) {
+      const payloadIds = new Set();
+      for (const v of variants) {
+        if (v.id) {
+          payloadIds.add(Number(v.id));
+          // AND product_id = ? prevents cross-product id abuse.
+          await connection.query(
+            'UPDATE product_variants SET label = ?, price = ?, original_price = ?, available = ?, is_default = ?, display_order = ?, deleted = 0 WHERE id = ? AND product_id = ?',
+            [v.label, v.price, v.original_price, v.available ? 1 : 0, v.is_default ? 1 : 0, v.display_order, v.id, productId]
+          );
+        } else {
+          const [insertResult] = await connection.query(
+            'INSERT INTO product_variants (product_id, label, price, original_price, available, is_default, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [productId, v.label, v.price, v.original_price, v.available ? 1 : 0, v.is_default ? 1 : 0, v.display_order]
+          );
+          payloadIds.add(Number(insertResult.insertId));
+        }
+      }
+
+      // Soft-delete existing non-deleted variants NOT in the payload.
+      if (payloadIds.size > 0) {
+        await connection.query(
+          'UPDATE product_variants SET deleted = 1 WHERE product_id = ? AND deleted = 0 AND id NOT IN (?)',
+          [productId, [...payloadIds]]
+        );
+      } else {
+        await connection.query(
+          'UPDATE product_variants SET deleted = 1 WHERE product_id = ? AND deleted = 0',
+          [productId]
+        );
+      }
+
+      // THE LOAD-BEARING SYNC: products.price = default variant's price.
+      if (variants.length > 0) {
+        const defaultVariant = variants.find(v => v.is_default) || variants[0];
+        await connection.query('UPDATE products SET price = ? WHERE id = ?', [defaultVariant.price, productId]);
+      }
+    }
+
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+};
+
 const getProducts = async (req, res) => {
   const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit, offerId, offer_id } = req.query;
   const requestedType = type || storeType || store_type;
@@ -295,7 +364,7 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
   // Normal products require category. Combos are bundles and do not require category.
-  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time, variants, variant_prompt } = req.validatedData;
 
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
   if (finalDisplayOrder > 0) {
@@ -319,13 +388,14 @@ const createProduct = async (req, res) => {
       available_until_time || null
     ]
   );
+  await syncProductVariants(result.insertId, variants, variant_prompt);
   res.status(201).json({ message: 'Product created', id: result.insertId });
 };
 
 const updateProduct = async (req, res) => {
   // Normal products require category. Combos are bundles and do not require category.
   const { id } = req.params;
-  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time, variants, variant_prompt } = req.validatedData;
 
   const [existing] = await pool.query('SELECT id, image_id FROM products WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
@@ -359,6 +429,7 @@ const updateProduct = async (req, res) => {
   if (previousImageId && String(previousImageId) !== String(image_id)) {
     await cleanupOrphanedImage(previousImageId);
   }
+  await syncProductVariants(Number(id), variants, variant_prompt);
   res.status(200).json({ message: 'Product updated' });
 };
 
