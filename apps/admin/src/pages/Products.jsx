@@ -368,6 +368,27 @@ export default function Products() {
   );
 }
 
+// ── Variant helpers ────────────────────────────────────────
+// The API sends variants with both camelCase and snake_case keys. Normalize each
+// variant into a single editable shape for the form.
+const normalizeVariant = (v) => ({
+  id: v?.id ?? v?.variant_id,
+  label: v?.label ?? '',
+  price: v?.price ?? '',
+  original_price: v?.original_price ?? v?.originalPrice ?? null,
+  available: v?.available ?? true,
+  is_default: v?.is_default ?? v?.isDefault ?? false,
+  display_order: v?.display_order ?? v?.displayOrder ?? 0,
+});
+
+const normalizeVariants = (raw) => {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  const list = raw.map(normalizeVariant);
+  // Ensure exactly one default so the radio group always has a selection.
+  if (!list.some(v => v.is_default)) list[0].is_default = true;
+  return list;
+};
+
 // Separate Component for the Drawer — unchanged from original
 function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }) {
   const isEdit = !!product;
@@ -387,8 +408,12 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
         }
         return '';
       };
+      const variants = normalizeVariants(product.variants);
       return {
         ...product,
+        variants,
+        variant_prompt: product.variant_prompt || product.variantPrompt || '',
+        hasVariants: variants.length > 0,
         available_from_time: formatTime(product.available_from_time),
         available_until_time: formatTime(product.available_until_time)
       };
@@ -397,10 +422,14 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       name: '', description: '', price: '', original_price: '', unit: '',
       category_id: '', display_order: 0, available: true, featured: false,
       discount_label: '', image_id: '', image_url: '',
-      available_from_time: '', available_until_time: ''
+      available_from_time: '', available_until_time: '',
+      variants: [],
+      variant_prompt: '',
+      hasVariants: false
     };
   });
 
+  const [initialHadVariants] = useState(() => isEdit && normalizeVariants(product?.variants).length > 0);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -459,6 +488,59 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
     setFieldErrors(prev => ({ ...prev, category_id: undefined }));
   };
 
+  const variantsOn = !!formData.hasVariants;
+  const variantRows = Array.isArray(formData.variants) ? formData.variants : [];
+  const defaultVariant = variantRows.find(v => v.is_default) || variantRows[0] || null;
+  const basePriceDisplay = variantsOn ? (defaultVariant ? defaultVariant.price : '') : formData.price;
+  const baseOriginalPriceDisplay = variantsOn
+    ? (defaultVariant ? (defaultVariant.original_price ?? '') : '')
+    : (formData.original_price || '');
+
+  const handleToggleVariants = (e) => {
+    const enabled = e.target.checked;
+    setFormData(prev => {
+      let variants = Array.isArray(prev.variants) ? prev.variants : [];
+      if (enabled && variants.length === 0) {
+        variants = [{ id: undefined, label: '', price: '', original_price: null, available: true, is_default: true, display_order: 0 }];
+      }
+      return { ...prev, hasVariants: enabled, variants };
+    });
+  };
+
+  const handleVariantChange = (index, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: (Array.isArray(prev.variants) ? prev.variants : []).map((v, i) =>
+        i === index ? { ...v, [field]: value } : v
+      ),
+    }));
+  };
+
+  const handleSetDefaultVariant = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: (Array.isArray(prev.variants) ? prev.variants : []).map((v, i) => ({ ...v, is_default: i === index })),
+    }));
+  };
+
+  const handleAddVariant = () => {
+    setFormData(prev => {
+      const variants = Array.isArray(prev.variants) ? [...prev.variants] : [];
+      variants.push({ id: undefined, label: '', price: '', original_price: null, available: true, is_default: variants.length === 0, display_order: variants.length });
+      return { ...prev, variants };
+    });
+  };
+
+  const handleRemoveVariant = (index) => {
+    setFormData(prev => {
+      let variants = (Array.isArray(prev.variants) ? prev.variants : []).filter((_, i) => i !== index);
+      if (variants.length > 0 && !variants.some(v => v.is_default)) {
+        variants = variants.map((v, i) => ({ ...v, is_default: i === 0 }));
+      }
+      return { ...prev, variants };
+    });
+  };
+
   const focusFirstInvalid = () => {
     setTimeout(() => {
       const el = document.querySelector('[aria-invalid="true"]');
@@ -472,28 +554,99 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       setSaving(true);
       setFormError(null);
       setFieldErrors({});
-      const price = Number(formData.price);
-      const originalPrice = formData.original_price ? Number(formData.original_price) : null;
-      if (!Number.isFinite(price) || price < 0) {
-        setFieldErrors({ price: 'Product price must be a valid non-negative number.' });
-        setFormError('Product price must be a valid non-negative number.');
-        setSaving(false);
-        focusFirstInvalid();
-        return;
+      let payloadPrice;
+      let payloadOriginalPrice;
+      let variantsPayload; // undefined => omit (don't touch), [] => clear, [...] => set
+      let variantPromptPayload;
+
+      if (variantsOn) {
+        const variants = Array.isArray(formData.variants) ? formData.variants : [];
+        if (variants.length === 0) {
+          setFormError('Add at least one variant, or turn off the variants toggle.');
+          setSaving(false);
+          focusFirstInvalid();
+          return;
+        }
+        if (!variants.some(v => v.is_default)) {
+          setFormError('Mark one variant as the default.');
+          setSaving(false);
+          focusFirstInvalid();
+          return;
+        }
+        const vErrors = {};
+        variants.forEach((v, i) => {
+          if (!String(v.label || '').trim()) vErrors[`variant_${i}_label`] = 'Variant label is required.';
+          const vp = Number(v.price);
+          if (!Number.isFinite(vp) || vp < 0) vErrors[`variant_${i}_price`] = 'Price must be a valid non-negative number.';
+          if (v.original_price !== null && v.original_price !== '' && v.original_price !== undefined) {
+            const op = Number(v.original_price);
+            if (!Number.isFinite(op) || op < vp) vErrors[`variant_${i}_original_price`] = 'Original price must be valid and not lower than the price.';
+          }
+        });
+        if (Object.keys(vErrors).length > 0) {
+          setFieldErrors(vErrors);
+          setFormError('Please fix the highlighted variant fields.');
+          setSaving(false);
+          focusFirstInvalid();
+          return;
+        }
+        variantsPayload = variants.map((v, i) => {
+          const obj = {
+            label: String(v.label).trim(),
+            price: Number(v.price),
+            original_price: (v.original_price !== null && v.original_price !== '' && v.original_price !== undefined) ? Number(v.original_price) : null,
+            available: v.available !== false,
+            is_default: !!v.is_default,
+            display_order: i,
+          };
+          if (v.id) obj.id = v.id; // preserve id so the backend upserts instead of recreating
+          return obj;
+        });
+        const def = variantsPayload.find(v => v.is_default);
+        payloadPrice = def.price;
+        payloadOriginalPrice = def.original_price ?? null;
+        variantPromptPayload = formData.variant_prompt || '';
+      } else {
+        const price = Number(formData.price);
+        const originalPrice = formData.original_price ? Number(formData.original_price) : null;
+        if (!Number.isFinite(price) || price < 0) {
+          setFieldErrors({ price: 'Product price must be a valid non-negative number.' });
+          setFormError('Product price must be a valid non-negative number.');
+          setSaving(false);
+          focusFirstInvalid();
+          return;
+        }
+        if (originalPrice !== null && (!Number.isFinite(originalPrice) || originalPrice < price)) {
+          setFieldErrors({ original_price: 'Original price must be a valid amount and cannot be lower than selling price.' });
+          setFormError('Original price must be a valid amount and cannot be lower than selling price.');
+          setSaving(false);
+          focusFirstInvalid();
+          return;
+        }
+        payloadPrice = price;
+        payloadOriginalPrice = originalPrice;
+        if (initialHadVariants) {
+          // Turning variants off for a product that had them clears them. Confirm first —
+          // live carts holding those variants will start failing calc.
+          if (!window.confirm('Turning off variants will remove all existing variants for this product. Customers who have these variants in their carts may see errors. Are you sure?')) {
+            setSaving(false);
+            return;
+          }
+          variantsPayload = [];
+          variantPromptPayload = '';
+        } else {
+          // Never had variants and the toggle is off — don't touch the field (partial update).
+          variantsPayload = undefined;
+          variantPromptPayload = undefined;
+        }
       }
-      if (originalPrice !== null && (!Number.isFinite(originalPrice) || originalPrice < price)) {
-        setFieldErrors({ original_price: 'Original price must be a valid amount and cannot be lower than selling price.' });
-        setFormError('Original price must be a valid amount and cannot be lower than selling price.');
-        setSaving(false);
-        focusFirstInvalid();
-        return;
-      }
+
       const fromTime = formData.available_from_time || null;
       const untilTime = formData.available_until_time || null;
       const payload = {
         ...formData,
-        price,
-        original_price: originalPrice,
+        price: payloadPrice,
+        original_price: payloadOriginalPrice,
         display_order: Number(formData.display_order) || 0,
         imageId: formData.image_id,
         image_id: formData.image_id,
@@ -502,6 +655,21 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
         availableFromTime: fromTime,
         availableUntilTime: untilTime,
       };
+      // Send the variants field only in the intended shape.
+      if (variantsPayload === undefined) {
+        delete payload.variants;
+        delete payload.variant_prompt;
+        delete payload.variantPrompt;
+      } else {
+        payload.variants = variantsPayload;
+        payload.variant_prompt = variantPromptPayload;
+        payload.variantPrompt = variantPromptPayload;
+      }
+      // Drop form-only / read-only flags so they are not written.
+      delete payload.hasVariants;
+      delete payload.has_variants;
+      delete payload.minPrice;
+      delete payload.min_price;
       const selectedCat = categories.find(c => c.id.toString() === formData.category_id.toString());
       if (!selectedCat) { setFieldErrors({ category_id: 'Please select a category for this product.' }); setFormError('Please select a category for this product.'); setSaving(false); focusFirstInvalid(); return; }
       if (selectedCat.type !== productMode) { setFieldErrors({ category_id: 'Selected category does not match the chosen product mode.' }); setFormError('Selected category does not match the chosen product mode.'); setSaving(false); focusFirstInvalid(); return; }
@@ -564,17 +732,21 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
               <div className="form-group">
                 <label className="form-label">Price (₹)</label>
                 <input
-                  required
+                  required={!variantsOn}
                   type="number"
                   min="0"
                   step="0.01"
                   name="price"
                   className="form-input"
-                  value={formData.price}
+                  value={basePriceDisplay}
                   onChange={handleChange}
+                  readOnly={variantsOn}
                   aria-invalid={Boolean(fieldErrors.price)}
                   aria-errormessage={fieldErrors.price ? 'price-error' : undefined}
                 />
+                {variantsOn && (
+                  <span className="form-hint">Set by default variant</span>
+                )}
                 {fieldErrors.price && (
                   <span id="price-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
                     {fieldErrors.price}
@@ -590,11 +762,15 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
                   name="original_price"
                   className="form-input"
                   placeholder="Optional"
-                  value={formData.original_price || ''}
+                  value={baseOriginalPriceDisplay}
                   onChange={handleChange}
+                  readOnly={variantsOn}
                   aria-invalid={Boolean(fieldErrors.original_price)}
                   aria-errormessage={fieldErrors.original_price ? 'original_price-error' : undefined}
                 />
+                {variantsOn && (
+                  <span className="form-hint">Set by default variant</span>
+                )}
                 {fieldErrors.original_price && (
                   <span id="original_price-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
                     {fieldErrors.original_price}
@@ -602,6 +778,117 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
                 )}
               </div>
             </div>
+            <div className="form-group" style={{ marginTop: '1rem' }}>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="hasVariants"
+                  checked={variantsOn}
+                  onChange={handleToggleVariants}
+                />
+                This product has variants (sizes / types)
+              </label>
+            </div>
+            {variantsOn && (
+              <div className="variant-editor">
+                <div className="variant-editor-header">
+                  <span className="form-label">Variants</span>
+                  <button type="button" className="action-link" onClick={handleAddVariant}>+ Add Variant</button>
+                </div>
+                {variantRows.map((v, i) => (
+                  <div className="variant-row" key={v.id ?? `new-${i}`}>
+                    <div className="variant-row-top">
+                      <input
+                        type="text"
+                        className="form-input variant-label-input"
+                        placeholder="e.g. Small / Chicken / Half Plate"
+                        value={v.label}
+                        required
+                        onChange={(e) => handleVariantChange(i, 'label', e.target.value)}
+                        aria-invalid={Boolean(fieldErrors[`variant_${i}_label`])}
+                      />
+                      <label className="variant-default-radio" title="Default variant">
+                        <input
+                          type="radio"
+                          name="variant-default"
+                          checked={!!v.is_default}
+                          onChange={() => handleSetDefaultVariant(i)}
+                        />
+                        Default
+                      </label>
+                      <button
+                        type="button"
+                        className="action-link danger variant-remove"
+                        onClick={() => handleRemoveVariant(i)}
+                        title="Remove variant"
+                      >✕</button>
+                    </div>
+                    <div className="variant-row-prices">
+                      <div className="form-group">
+                        <label className="form-label">Price (₹)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          className="form-input"
+                          value={v.price}
+                          required
+                          onChange={(e) => handleVariantChange(i, 'price', e.target.value)}
+                          aria-invalid={Boolean(fieldErrors[`variant_${i}_price`])}
+                        />
+                        {fieldErrors[`variant_${i}_price`] && (
+                          <span className="field-error" style={{ fontSize: '0.78rem', color: 'var(--danger-color)' }}>
+                            {fieldErrors[`variant_${i}_price`]}
+                          </span>
+                        )}
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Original Price (₹)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          className="form-input"
+                          placeholder="Optional"
+                          value={v.original_price ?? ''}
+                          onChange={(e) => handleVariantChange(i, 'original_price', e.target.value || null)}
+                        />
+                        {fieldErrors[`variant_${i}_original_price`] && (
+                          <span className="field-error" style={{ fontSize: '0.78rem', color: 'var(--danger-color)' }}>
+                            {fieldErrors[`variant_${i}_original_price`]}
+                          </span>
+                        )}
+                      </div>
+                      <label className="checkbox-label variant-available-label">
+                        <input
+                          type="checkbox"
+                          checked={v.available !== false}
+                          onChange={(e) => handleVariantChange(i, 'available', e.target.checked)}
+                        />
+                        Available
+                      </label>
+                    </div>
+                    {fieldErrors[`variant_${i}_label`] && (
+                      <span className="field-error" style={{ fontSize: '0.78rem', color: 'var(--danger-color)' }}>
+                        {fieldErrors[`variant_${i}_label`]}
+                      </span>
+                    )}
+                  </div>
+                ))}
+                <div className="form-group" style={{ marginTop: '0.25rem' }}>
+                  <label className="form-label">Choice prompt (shown to customer)</label>
+                  <input
+                    type="text"
+                    name="variant_prompt"
+                    className="form-input"
+                    placeholder="e.g. Choose size"
+                    value={formData.variant_prompt || ''}
+                    onChange={handleChange}
+                  />
+                  <span className="form-hint">Combos always use a product&apos;s default variant.</span>
+                </div>
+              </div>
+            )}
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Product Mode</label>
