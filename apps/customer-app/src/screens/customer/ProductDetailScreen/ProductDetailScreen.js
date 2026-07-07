@@ -104,10 +104,7 @@ export default function ProductDetailScreen() {
     };
   }, [bottomBarSlide, detailsFade, detailsSlide, imgFade, productId, productType, routeProduct, staggerRelatedAnims]);
 
-  const getQty = (id) => {
-    const item = items.find(i => i.product.id === id && (i.type || 'product') !== 'combo');
-    return item ? item.quantity : 0;
-  };
+  const findCartLine = (id) => items.find(i => i.product.id === id && (i.type || 'product') !== 'combo');
 
   const isComboProduct = (item) => item?.isCombo || item?.is_combo || item?.comboItems?.length;
   const isMultiVariantProduct = (item) => (item?.variants?.length ?? 0) > 1;
@@ -118,8 +115,16 @@ export default function ProductDetailScreen() {
     else addItem(item, 1, item.variants?.[0] ?? null);
   });
   const handleIncrement = (item) => requireAuth(null, () => {
-    if (isComboProduct(item)) addCombo(item);
-    else addItem(item);
+    if (isComboProduct(item)) {
+      addCombo(item);
+      return;
+    }
+    // Reuse the variant already in the cart for this product — a
+    // single-variant product is stored WITH its variant attached, so
+    // adding with variant=null here would miss the match and create a
+    // duplicate line instead of incrementing it.
+    const existing = findCartLine(item.id);
+    addItem(item, 1, existing?.variant ?? item.variants?.[0] ?? null);
   });
   const handleDecrement = (item) => {
     if (isComboProduct(item)) {
@@ -127,9 +132,11 @@ export default function ProductDetailScreen() {
       return;
     }
 
-    const currentQty = getQty(item.id);
-    if (currentQty <= 1) removeItem(item.id);
-    else updateQuantity(item.id, currentQty - 1);
+    const existing = findCartLine(item.id);
+    const variantId = existing?.variant?.id ?? null;
+    const currentQty = existing?.quantity || 0;
+    if (currentQty <= 1) removeItem(item.id, 'product', variantId);
+    else updateQuantity(item.id, currentQty - 1, 'product', variantId);
   };
 
   if (isLoading) {
@@ -160,9 +167,11 @@ export default function ProductDetailScreen() {
   // Sum of actual line totals across this product's variant lines (each
   // variant may be priced differently) rather than a naive price * qty.
   const productCartTotal = productIsMultiVariant
-    ? items
-        .filter(i => i.product.id === product.id && (i.type || 'product') !== 'combo')
-        .reduce((sum, i) => sum + (Number(i.variant?.price ?? i.product.price) || 0) * (Number(i.quantity) || 0), 0)
+    ? (currentQty > 0
+        ? items
+            .filter(i => i.product.id === product.id && (i.type || 'product') !== 'combo')
+            .reduce((sum, i) => sum + (Number(i.variant?.price ?? i.product.price) || 0) * (Number(i.quantity) || 0), 0)
+        : (product.minPrice ?? product.min_price ?? product.price))
     : product.price * (currentQty || 1);
 
   return (
@@ -264,6 +273,7 @@ export default function ProductDetailScreen() {
                 ]}
               >
                 <ProductCard
+                  product={rel}
                   name={rel.name}
                   price={rel.price}
                   originalPrice={rel.originalPrice}

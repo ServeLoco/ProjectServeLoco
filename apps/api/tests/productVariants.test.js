@@ -149,10 +149,11 @@ describe('Product Variants — admin validation', () => {
   });
 
   it('auto-marks the first variant as default when none is marked', async () => {
-    pool.query.mockResolvedValueOnce([{ insertId: 500 }]); // INSERT product
+    // Product INSERT and variant sync now run on the same transaction connection.
     const mockConn = {
       beginTransaction: jest.fn(),
       query: jest.fn()
+        .mockResolvedValueOnce([{ insertId: 500 }]) // INSERT product
         .mockResolvedValueOnce([{ insertId: 601 }]) // INSERT variant 1
         .mockResolvedValueOnce([{ insertId: 602 }]) // INSERT variant 2
         .mockResolvedValueOnce([{ affectedRows: 0 }]) // soft-delete missing
@@ -191,10 +192,11 @@ describe('Product Variants — admin upsert', () => {
   beforeEach(() => { jest.clearAllMocks(); });
 
   it('createProduct syncs products.price to the default variant', async () => {
-    pool.query.mockResolvedValueOnce([{ insertId: 500 }]); // INSERT INTO products
+    // Product INSERT and variant sync now run on the same transaction connection.
     const mockConn = {
       beginTransaction: jest.fn(),
       query: jest.fn()
+        .mockResolvedValueOnce([{ insertId: 500 }]) // INSERT INTO products
         .mockResolvedValueOnce([{ affectedRows: 1 }]) // UPDATE variant_prompt
         .mockResolvedValueOnce([{ insertId: 601 }]) // INSERT variant Small
         .mockResolvedValueOnce([{ insertId: 602 }]) // INSERT variant Medium
@@ -235,12 +237,13 @@ describe('Product Variants — admin upsert', () => {
 
   it('updateProduct soft-deletes omitted variant ids and keeps existing ids', async () => {
     pool.query.mockResolvedValueOnce([[{ id: 1, image_id: null }]]); // SELECT existing
-    pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]); // UPDATE products
     pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]); // DELETE combo_items
 
+    // UPDATE products and variant sync now run on the same transaction connection.
     const mockConn = {
       beginTransaction: jest.fn(),
       query: jest.fn()
+        .mockResolvedValueOnce([{ affectedRows: 1 }]) // UPDATE products
         .mockResolvedValueOnce([{ affectedRows: 1 }]) // UPDATE existing variant id=10
         .mockResolvedValueOnce([{ insertId: 601 }])   // INSERT new variant
         .mockResolvedValueOnce([{ affectedRows: 1 }]) // soft-delete NOT IN (10, 601)
@@ -280,9 +283,19 @@ describe('Product Variants — admin upsert', () => {
   });
 
   it('updateProduct with variants: undefined leaves variants untouched', async () => {
-    pool.query.mockResolvedValueOnce([[{ id: 1, image_id: null }]]);
-    pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
-    pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, image_id: null }]]); // SELECT existing
+    pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]); // DELETE combo_items
+
+    // The product UPDATE itself is transactional, so a connection is always
+    // opened — but syncProductVariants must not run any variant queries.
+    const mockConn = {
+      beginTransaction: jest.fn(),
+      query: jest.fn().mockResolvedValueOnce([{ affectedRows: 1 }]), // UPDATE products
+      commit: jest.fn(),
+      rollback: jest.fn(),
+      release: jest.fn(),
+    };
+    pool.getConnection.mockResolvedValue(mockConn);
 
     const res = await request(adminApp)
       .put('/api/admin/products/1')
@@ -290,17 +303,18 @@ describe('Product Variants — admin upsert', () => {
       .send({ name: 'Pizza', price: 149, category_id: 1, display_order: 0 });
 
     expect(res.statusCode).toEqual(200);
-    expect(pool.getConnection).not.toHaveBeenCalled();
+    expect(mockConn.commit).toHaveBeenCalledTimes(1);
+    expect(mockConn.query).toHaveBeenCalledTimes(1); // only the product UPDATE, no variant queries
   });
 
   it('updateProduct with variants: [] soft-deletes all variants', async () => {
     pool.query.mockResolvedValueOnce([[{ id: 1, image_id: null }]]);
-    pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
-    pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]);
+    pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]); // DELETE combo_items
 
     const mockConn = {
       beginTransaction: jest.fn(),
       query: jest.fn()
+        .mockResolvedValueOnce([{ affectedRows: 1 }]) // UPDATE products
         .mockResolvedValueOnce([{ affectedRows: 2 }]), // soft-delete ALL
       commit: jest.fn(),
       rollback: jest.fn(),

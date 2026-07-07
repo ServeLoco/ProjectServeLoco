@@ -93,7 +93,7 @@ export default function HomeScreen() {
     [items]
   );
   const cartDisplayTotal = useMemo(
-    () => items.reduce((total, item) => total + ((Number(item.product?.price) || 0) * (Number(item.quantity) || 0)), 0),
+    () => items.reduce((total, item) => total + ((Number(item.variant?.price ?? item.product?.price) || 0) * (Number(item.quantity) || 0)), 0),
     [items]
   );
 
@@ -331,11 +331,6 @@ export default function HomeScreen() {
     });
   };
 
-  const getQty = React.useCallback((productId) => {
-    const item = items.find(i => i.product.id === productId && (i.type || 'product') !== 'combo');
-    return item ? item.quantity : 0;
-  }, [items]);
-
   const handleAddToCart = React.useCallback((product) => {
     requireAuth(null, () => {
       if (product.isCombo || product.is_combo || product.comboItems?.length) {
@@ -353,10 +348,15 @@ export default function HomeScreen() {
       if (product.isCombo || product.is_combo || product.comboItems?.length) {
         addCombo(product);
       } else {
-        addItem(product);
+        // Reuse the variant already in the cart for this product (single-
+        // variant products are stored WITH their variant attached — adding
+        // with variant=null here would miss the match and create a
+        // duplicate line instead of incrementing it).
+        const existing = items.find(i => i.product.id === product.id && (i.type || 'product') !== 'combo');
+        addItem(product, 1, existing?.variant ?? product.variants?.[0] ?? null);
       }
     });
-  }, [requireAuth, addCombo, addItem]);
+  }, [requireAuth, addCombo, addItem, items]);
 
   const handleDecrement = React.useCallback((product) => {
     if (product.isCombo || product.is_combo || product.comboItems?.length) {
@@ -364,13 +364,15 @@ export default function HomeScreen() {
       return;
     }
 
-    const currentQty = getQty(product.id);
+    const existing = items.find(i => i.product.id === product.id && (i.type || 'product') !== 'combo');
+    const variantId = existing?.variant?.id ?? null;
+    const currentQty = existing?.quantity || 0;
     if (currentQty <= 1) {
-      removeItem(product.id);
+      removeItem(product.id, 'product', variantId);
     } else {
-      updateQuantity(product.id, currentQty - 1);
+      updateQuantity(product.id, currentQty - 1, 'product', variantId);
     }
-  }, [decrementCombo, getQty, removeItem, updateQuantity]);
+  }, [decrementCombo, items, removeItem, updateQuantity]);
 
   const handleCartPress = React.useCallback(() => {
     navigation.navigate('Cart');
@@ -657,6 +659,7 @@ export default function HomeScreen() {
                           }}
                         >
                           <ProductCard
+                            product={item}
                             name={item.name}
                             price={item.price}
                             originalPrice={item.originalPrice}
@@ -910,19 +913,30 @@ function HomeHeader({
     }
   };
 
+  // Reuse the variant already in the cart for this product — single-variant
+  // products are stored WITH their variant attached, so incrementing without
+  // it would miss the match and silently no-op instead of updating the line.
+  const findCartVariant = (productId) => {
+    const found = cartItems.find(
+      (item) => String(item.product.id) === String(productId) && item.type !== 'combo'
+    );
+    return found?.variant?.id ?? null;
+  };
+
   const handleIncrement = (product) => {
     if (!updateQuantity) return;
     const current = getProductQuantity(product.id);
-    updateQuantity(product.id, current + 1, 'product');
+    updateQuantity(product.id, current + 1, 'product', findCartVariant(product.id));
   };
 
   const handleDecrement = (product) => {
     if (!updateQuantity) return;
     const current = getProductQuantity(product.id);
+    const variantId = findCartVariant(product.id);
     if (current <= 1 && removeItem) {
-      removeItem(product.id, 'product');
+      removeItem(product.id, 'product', variantId);
     } else {
-      updateQuantity(product.id, current - 1, 'product');
+      updateQuantity(product.id, current - 1, 'product', variantId);
     }
   };
 

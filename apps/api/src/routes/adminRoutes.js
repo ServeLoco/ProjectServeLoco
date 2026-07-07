@@ -225,6 +225,14 @@ const productSchema = (req) => {
     const labels = new Set();
     for (let i = 0; i < data.variants.length; i++) {
       const v = data.variants[i];
+      // A truthy id must be a valid numeric id — otherwise the upsert's
+      // UPDATE ... WHERE id = ? silently matches zero rows and the row the
+      // caller thought they were editing vanishes with no error surfaced.
+      if (v.id && !isId(v.id)) {
+        errors.variants = `Variant ${i + 1}: id must be a valid numeric id`;
+      } else if (v.id) {
+        v.id = Number(v.id);
+      }
       if (!isString(v.label) || String(v.label).trim() === '' || String(v.label).length > 100) {
         errors.variants = `Variant ${i + 1}: label must be a non-empty string of at most 100 characters`;
       }

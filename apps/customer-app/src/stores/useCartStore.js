@@ -134,7 +134,7 @@ export const useCartStore = create(
 
       get displayTotal() {
         return get().items.reduce((total, item) => {
-          const price = Number(item?.product?.price) || 0;
+          const price = Number(item?.variant?.price ?? item?.product?.price) || 0;
           const qty = Number(item?.quantity) || 0;
           return total + price * qty;
         }, 0);
