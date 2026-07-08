@@ -672,7 +672,6 @@ export default function HomeScreen() {
                             onAdd={() => handleAddToCart(item)}
                             onIncrement={() => handleIncrement(item)}
                             onDecrement={() => handleDecrement(item)}
-                            onPress={() => handleProductPress(item)}
                             disabled={!item.available}
                             compact
                           />

@@ -226,15 +226,6 @@ export default function ProductListScreen() {
     }
   }, [decrementCombo, items, removeItem, updateQuantity]);
 
-  const handleProductPress = useCallback((product) => {
-    const isCombo = product.isCombo || product.is_combo || product.comboItems?.length;
-    navigation.navigate('ProductDetail', {
-      id: product.id,
-      type: isCombo ? 'combo' : 'product',
-      product,
-    });
-  }, [navigation]);
-
   // Renders
   const renderItem = ({ item }) => {
     const itemStoreType = item.storeType || item.store_type || item.type;
@@ -245,25 +236,26 @@ export default function ProductListScreen() {
 
     return (
       <View style={[styles.productWrap, { width: cardWidth }]}>
-        <TouchableOpacity activeOpacity={0.9} onPress={() => handleProductPress(item)}>
-          <ProductCard
-            product={item}
-            name={item.name}
-            price={item.price}
-            originalPrice={item.originalPrice}
-            discountLabel={item.discountLabel}
-            unit={item.unit}
-            isCombo={item.isCombo}
-            comboItems={item.comboItems}
-            imageUri={item.imageUri}
-            quantity={item.isCombo || item.is_combo || item.comboItems?.length ? getComboQuantity(item) : getProductQuantity(item.id)}
-            onAdd={() => handleAddToCart(item)}
-            onIncrement={() => handleIncrement(item)}
-            onDecrement={() => handleDecrement(item)}
-            disabled={!item.available}
-            style={{ width: '100%' }}
-          />
-        </TouchableOpacity>
+        {/* Card body tap intentionally does nothing — purchases happen on the
+            card itself (Buy button / variant sheet), there is no product page
+            in the customer flow. */}
+        <ProductCard
+          product={item}
+          name={item.name}
+          price={item.price}
+          originalPrice={item.originalPrice}
+          discountLabel={item.discountLabel}
+          unit={item.unit}
+          isCombo={item.isCombo}
+          comboItems={item.comboItems}
+          imageUri={item.imageUri}
+          quantity={item.isCombo || item.is_combo || item.comboItems?.length ? getComboQuantity(item) : getProductQuantity(item.id)}
+          onAdd={() => handleAddToCart(item)}
+          onIncrement={() => handleIncrement(item)}
+          onDecrement={() => handleDecrement(item)}
+          disabled={!item.available}
+          style={{ width: '100%' }}
+        />
         {showModeBadge && (
           <View style={[styles.modeBadge, { backgroundColor: modeBadgeColor }]}>
             <Text style={[styles.modeBadgeText, { color: modeBadgeTextColor }]}>{modeBadgeLabel}</Text>
