@@ -609,7 +609,8 @@ module.exports = {
   getAdminProductById,
   deleteProduct,
   updateProductAvailability,
-  updateProductImage
+  updateProductImage,
+  attachVariants
 };
 
 const bulkUpdateProducts = async (req, res) => {
