@@ -167,7 +167,7 @@ NOTE (done): TASK 2 implemented — `createBroadcastNotification` now awaits `ex
 **Files:** `apps/admin/src/pages/Notifications.jsx`
 
 **Steps:**
-- [ ] 3.1 In `handleSend`, where the success message is built from the response (`recipientCount`, `matchedPhones`, `unmatchedPhones`), read the new field and build a hint:
+- [x] 3.1 In `handleSend`, where the success message is built from the response (`recipientCount`, `matchedPhones`, `unmatchedPhones`), read the new field and build a hint:
   ```js
   const pushEligible = res?.data?.pushEligibleCount;
   let pushHint = '';
@@ -178,11 +178,13 @@ NOTE (done): TASK 2 implemented — `createBroadcastNotification` now awaits `ex
   }
   ```
   Append `pushHint` to the existing "✅ Sent successfully to {N} customer(s)!" success message. The `typeof` guard keeps the UI working against an older API (field absent) and the `null` "unknown" case (show no hint).
-- [ ] 3.2 Run `npm run lint` in `apps/admin`. No new state, no new components, no styling changes beyond the message text.
+- [x] 3.2 Run `npm run lint` in `apps/admin`. No new state, no new components, no styling changes beyond the message text.
 
 **Do NOT:** change the request payload, the error path, the unmatched-phones warning, or the broadcasts history table.
 
 **Done when:** success banner shows the device count (or the ⚠️ zero-devices warning); lint passes.
+
+NOTE (done): TASK 3 implemented — in `handleSend` (`apps/admin/src/pages/Notifications.jsx`), read `res?.data?.pushEligibleCount` and build `pushHint`: `⚠️ …no push-capable device…` when 0, else ` — N have push-capable devices (others will see it in-app)`; appended `${pushHint}` to the existing success message. The `typeof === 'number'` guard keeps the UI working against an older API (field absent) and the `null` "unknown" case (no hint). No new state, components, or styling; request payload, error path, unmatched-phones warning, and broadcasts history table untouched. `npm run lint` in apps/admin passes with 0 errors/warnings; `npm run build` succeeds.
 
 ---
 

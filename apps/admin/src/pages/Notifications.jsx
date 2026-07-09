@@ -135,6 +135,13 @@ export default function Notifications() {
       const recipientCount = res?.data?.recipientCount ?? 'all';
       const matched = res?.data?.matchedPhones;
       const unmatched = res?.data?.unmatchedPhones;
+      const pushEligible = res?.data?.pushEligibleCount;
+      let pushHint = '';
+      if (typeof pushEligible === 'number') {
+        pushHint = pushEligible === 0
+          ? ' ⚠️ Saved to in-app inboxes, but none of these customers have a push-capable device — no phone notifications will be delivered.'
+          : ` — ${pushEligible} have push-capable devices (others will see it in-app)`;
+      }
 
       const matchedHint = Array.isArray(matched) && matched.length
         ? ` (matched: ${matched.join(', ')})`
@@ -142,7 +149,7 @@ export default function Notifications() {
       const unmatchedHint = Array.isArray(unmatched) && unmatched.length
         ? ` ⚠️ ${unmatched.length} numbers not found: ${unmatched.join(', ')}`
         : '';
-      setSuccessMsg(`✅ Sent successfully to ${recipientCount} customer${recipientCount === 1 ? '' : 's'}!${matchedHint}${unmatchedHint}`);
+      setSuccessMsg(`✅ Sent successfully to ${recipientCount} customer${recipientCount === 1 ? '' : 's'}!${matchedHint}${unmatchedHint}${pushHint}`);
       setTitle('');
       setBody('');
       setPhonesInput('');
