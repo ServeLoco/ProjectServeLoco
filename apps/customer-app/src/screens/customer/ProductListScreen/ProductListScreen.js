@@ -7,8 +7,6 @@ import {
   FlatList,
   TouchableOpacity,
   LayoutAnimation,
-  Platform,
-  UIManager,
   ScrollView,
   RefreshControl,
   useWindowDimensions,
@@ -31,10 +29,6 @@ import { useCartStore } from '../../../stores';
 import { useAuthGate } from '../../../hooks';
 import { productsApi, dashboardApi } from '../../../api';
 import { asArray, normalizeProduct } from '../../../utils';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 const SORT_OPTIONS = ['Popular', 'Price Low to High', 'Price High to Low'];
 

@@ -7,8 +7,6 @@ import {
   Animated,
   TouchableOpacity,
   LayoutAnimation,
-  Platform,
-  UIManager,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -28,10 +26,6 @@ import { useCartStore, useSettingsStore } from '../../../stores';
 import { cartApi } from '../../../api';
 import { buildProgressHintText, normalizeCartCalculation, useReducedMotion } from '../../../utils';
 import CouponSheet from './CouponSheet';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 const getItemType = (item) =>
   item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');

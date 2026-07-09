@@ -238,6 +238,14 @@ const updateSettings = async (req, res) => {
     }
   }
 
+  // App version strings — column is VARCHAR(20); reject anything that
+  // wouldn't fit or isn't a plausible version (digits/dots, e.g. "1.2.3").
+  for (const field of ['minimum_version', 'current_version']) {
+    if (hasValue(body[field]) && !/^[0-9]+(\.[0-9]+){0,3}$/.test(String(body[field]))) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `${field} must be a version string like 1.2.3 (max 20 characters)` });
+    }
+  }
+
   const updates = [];
   const params = [];
 

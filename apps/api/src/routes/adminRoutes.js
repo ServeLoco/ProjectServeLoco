@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
+const { login, me, revokeSessions, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage, bulkUpdateProducts, bulkDeleteProducts } = require('../controllers/productController');
@@ -614,6 +614,7 @@ const couponDuplicateSchema = () => ({ errors: [], data: {} });
 // Routes
 router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(login));
 router.get('/me', requireAdmin, me);
+router.post('/revoke-sessions', requireAdmin, asyncHandler(revokeSessions));
 
 // Customers
 router.get('/customers', requireAdmin, validate(paginationSchema), asyncHandler(getAdminCustomers));

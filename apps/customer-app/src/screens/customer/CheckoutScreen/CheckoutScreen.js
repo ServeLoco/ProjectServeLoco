@@ -12,7 +12,6 @@ import {
   Linking,
   LayoutAnimation,
   Platform,
-  UIManager,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { CommonActions, useNavigation } from '@react-navigation/native';
@@ -32,10 +31,6 @@ import { asArray, buildProgressHintText, normalizeCartCalculation, normalizeImag
 import { isCodBlockedDuringNight } from '../../../utils/nightDelivery';
 import { formatEtaMinutes } from '../../../utils/formatEta';
 import { uuidv4 } from '../../../utils/uuid';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 const requestLocationPermission = async () => {
   const { status } = await Location.requestForegroundPermissionsAsync();

@@ -22,7 +22,8 @@ Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const isRemotePush = notification?.request?.trigger?.type === 'push';
     return {
-      shouldShowAlert: !isRemotePush,
+      shouldShowBanner: !isRemotePush,
+      shouldShowList: !isRemotePush,
       shouldPlaySound: !isRemotePush,
       shouldSetBadge: true,
     };

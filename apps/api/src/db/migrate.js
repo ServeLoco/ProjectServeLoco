@@ -1124,6 +1124,30 @@ const migrate = async () => {
     `);
     console.log('Images table ready.');
 
+    // Admin session revocation + brute-force lockout — single row (there is
+    // one shared owner admin account, not a users table).
+    // - revoked_before: any admin JWT whose `iat` is at or before this is
+    //   rejected by requireAdmin even though its signature/expiry are still
+    //   valid. Kill switch for a leaked token that doesn't require rotating
+    //   JWT_SECRET (which would also nuke every customer session).
+    // - failed_attempts / locked_until: account-level lockout independent of
+    //   the per-IP login rate limiter, so a distributed brute force (many
+    //   source IPs) still gets stopped.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS admin_auth_state (
+        id INT PRIMARY KEY DEFAULT 1,
+        revoked_before TIMESTAMP NULL DEFAULT NULL,
+        failed_attempts INT NOT NULL DEFAULT 0,
+        locked_until TIMESTAMP NULL DEFAULT NULL
+      );
+    `);
+    await ensureColumn('admin_auth_state', 'failed_attempts', 'failed_attempts INT NOT NULL DEFAULT 0');
+    await ensureColumn('admin_auth_state', 'locked_until', 'locked_until TIMESTAMP NULL DEFAULT NULL');
+    await connection.query(`
+      INSERT IGNORE INTO admin_auth_state (id, revoked_before) VALUES (1, NULL)
+    `);
+    console.log('Admin auth state table ready.');
+
     // Switch the 5 image-reference columns from VARCHAR (holding the legacy
     // Mongo ObjectId hex string) to INT (holding the new `images.id`). Only
     // safe to run after the one-time backfill script has rewritten every

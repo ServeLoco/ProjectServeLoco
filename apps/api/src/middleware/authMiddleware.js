@@ -40,7 +40,7 @@ const requireCustomer = async (req, res, next) => {
   }
 };
 
-const requireAdmin = (req, res, next) => {
+const requireAdmin = async (req, res, next) => {
   const token = extractToken(req);
   if (!token) {
     return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Authentication token missing' });
@@ -51,6 +51,15 @@ const requireAdmin = (req, res, next) => {
     if (payload.role !== 'admin') {
       return res.status(403).json({ code: 'FORBIDDEN', message: 'Forbidden role' });
     }
+
+    if (process.env.NODE_ENV !== 'test') {
+      const [rows] = await pool.query('SELECT revoked_before FROM admin_auth_state WHERE id = 1');
+      const revokedBefore = rows[0]?.revoked_before;
+      if (revokedBefore && payload.iat && payload.iat * 1000 <= new Date(revokedBefore).getTime()) {
+        return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Session is no longer valid. Please log in again.' });
+      }
+    }
+
     req.admin = { id: payload.sub || payload.id, role: payload.role };
     next();
   } catch (error) {

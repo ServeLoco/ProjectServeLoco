@@ -101,16 +101,13 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
 
   if (!shouldRender) return null;
 
-  const translateY = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [96, 0],
-  });
-
-  const scale = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.94, 1],
-  });
-
+  // Entrance is opacity-only (no translateY/scale transform) — a transform on
+  // this container would move the Pressable's actual hit-test bounds with it,
+  // so a real tap landing while the spring is still mid-flight (very common:
+  // users tap the instant the bar appears) would miss the still-in-transit
+  // touch target and silently do nothing, requiring a second tap once the
+  // animation settles. Opacity doesn't move the hit box, so the first tap
+  // always lands where the bar is visually shown.
   return (
     <Animated.View
       pointerEvents={effectiveVisible ? 'auto' : 'none'}
@@ -125,7 +122,6 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
         },
         {
           opacity: progress,
-          transform: [{ translateY }, { scale }],
         },
         style,
       ]}
@@ -137,32 +133,22 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
         accessibilityRole="button"
         accessibilityLabel={`View cart, ${itemCount} item${itemCount !== 1 ? 's' : ''}`}
       >
-        {/* Left: item count badge */}
-        <Animated.View style={[styles.badge, { transform: [{ scale: badgeScale }] }]}>
-          <AppIcon name="shoppingBag" size={14} color="#FFFFFF" />
-          <Text style={styles.badgeText}>{itemCount}</Text>
-        </Animated.View>
-
-        {/* Center: label text */}
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>View Cart</Text>
-          {showFreeDeliveryHint ? (
-            <Text style={styles.subtitleHint} numberOfLines={1}>
+        {/* Left: total price, with the free-delivery nudge as a small line below it */}
+        <Animated.View style={[styles.textContainer, { transform: [{ scale: badgeScale }] }]}>
+          <Text style={styles.total} numberOfLines={1}>
+            <Text style={styles.totalLabel}>Total </Text>₹{displayTotal}
+          </Text>
+          {showFreeDeliveryHint && (
+            <Text style={styles.hintText} numberOfLines={1}>
               {buildProgressHintText(freeDeliveryProgress, { suffix: ' for FREE delivery' })}
             </Text>
-          ) : (
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {itemCount} item{itemCount !== 1 ? 's' : ''} added
-            </Text>
           )}
-        </View>
+        </Animated.View>
 
-        {/* Right: estimated total */}
-        <View style={styles.rightContainer}>
-          <Text style={styles.total}>₹{displayTotal}</Text>
-          <View style={styles.arrowIconWrapper}>
-            <AppIcon name="chevronRight" size={14} color="#FFFFFF" />
-          </View>
+        {/* Right: compact saffron "View Cart" pill button */}
+        <View style={styles.viewCartPill}>
+          <Text style={styles.title}>View Cart</Text>
+          <AppIcon name="chevronRight" size={13} color="#FFFFFF" />
         </View>
       </PressableScale>
     </Animated.View>
@@ -178,74 +164,56 @@ const styles = StyleSheet.create({
     zIndex: 999,
     ...shadows.xl,
   },
-  subtitleHint: {
+  hintText: {
     ...typography.labelSmall,
-    color: '#FFE9A8', // warm highlight so the free-delivery nudge stands out on green
+    color: '#FFC876',
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 1,
   },
   bar: {
-    backgroundColor: colors.success || '#1FB574', // Vibrant success green instead of black
-    borderRadius: radius.lg,
+    backgroundColor: '#1A1A1A',
+    borderRadius: radius.pill,
     minHeight: 62,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.24)',
-  },
-  badge: {
-    backgroundColor: 'rgba(255,255,255,0.2)', // Semi-transparent glass capsule badge
-    borderRadius: radius.pill,
-    height: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
-    marginRight: spacing.sm,
-    gap: 4,
-  },
-  badgeText: {
-    ...typography.label,
-    color: '#FFFFFF',
-    fontWeight: '800',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   textContainer: {
     flex: 1,
     justifyContent: 'center',
+    paddingLeft: spacing.md,
   },
   title: {
     ...typography.labelLarge,
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 14,
-  },
-  subtitle: {
-    ...typography.labelSmall,
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 11,
-    marginTop: 1,
-  },
-  rightContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+    fontSize: 13,
   },
   total: {
     ...typography.labelLarge,
     color: '#FFFFFF',
     fontWeight: '900',
-    fontSize: 15,
+    fontSize: 16,
   },
-  arrowIconWrapper: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)', // Matching semi-transparent circle
+  totalLabel: {
+    ...typography.labelSmall,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  viewCartPill: {
+    backgroundColor: colors.saffron,
+    borderRadius: radius.pill,
+    height: 40,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    gap: 4,
   },
 });
 

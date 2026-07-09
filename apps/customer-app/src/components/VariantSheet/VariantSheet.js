@@ -62,11 +62,14 @@ export default function VariantSheet({ visible, product, onClose }) {
             contentContainerStyle={{ paddingBottom: spacing.lg }}
             showsVerticalScrollIndicator={false}
           >
-            {variants.map((variant) => {
+            {variants.map((variant, index) => {
               const quantity = quantityForVariant(variant.id);
               const isOut = variant.available === false;
               return (
-                <View key={variant.id} style={styles.row}>
+                <View
+                  key={variant.id}
+                  style={[styles.row, index === variants.length - 1 && styles.rowLast]}
+                >
                   <View style={styles.rowText}>
                     <Text style={[styles.rowLabel, isOut && styles.rowLabelDisabled]} numberOfLines={1}>
                       {variant.label}
@@ -151,7 +154,7 @@ const styles = StyleSheet.create({
   },
   body: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
   },
   row: {
     flexDirection: 'row',
@@ -160,7 +163,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderBottomWidth: borderWidth.thin,
     borderBottomColor: colors.border,
-    gap: spacing.md,
+    gap: spacing.sm,
+  },
+  rowLast: {
+    borderBottomWidth: 0,
   },
   rowText: {
     flex: 1,
@@ -178,7 +184,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 2,
+    marginTop: 1,
   },
   rowPrice: {
     ...typography.label,

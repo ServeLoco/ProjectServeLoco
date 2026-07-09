@@ -63,7 +63,7 @@ const uploadMiddleware = (req, res, next) => {
   });
 };
 
-router.get('/:id', asyncHandler(getImage));
+router.get('/:id', requireAdmin, asyncHandler(getImage));
 router.get('/', requireAdmin, asyncHandler(getImages));
 router.post('/', requireAdmin, uploadLimiter, uploadMiddleware, asyncHandler(uploadImage));
 router.delete('/:id', requireAdmin, asyncHandler(deleteImage));

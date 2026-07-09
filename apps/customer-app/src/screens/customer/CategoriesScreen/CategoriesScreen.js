@@ -7,8 +7,6 @@ import {
   Animated,
   TouchableOpacity,
   LayoutAnimation,
-  Platform,
-  UIManager,
   RefreshControl,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -28,10 +26,6 @@ import { colors, typography, spacing, radius, shadows, layout } from '../../../t
 import { useCartStore } from '../../../stores';
 import { productsApi } from '../../../api';
 import { asArray, normalizeCategory } from '../../../utils';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 
 export default function CategoriesScreen() {
