@@ -308,6 +308,7 @@ function normalizeSession(payload = {}) {
   return {
     token: pickFirst(data.token, data.jwt, data.accessToken, data.access_token),
     user: normalizeProfile(user),
+    shop: data.shop ?? null,
   };
 }
 

@@ -18,6 +18,7 @@ export {
 } from './sessionTokens';
 
 export { authApi } from './authApi';
+export { shopApi } from './shopApi';
 export { productsApi } from './productsApi';
 export { imagesApi } from './imagesApi';
 export { cartApi } from './cartApi';

@@ -282,7 +282,22 @@ export function useLocalNotifications(navigationRef) {
   // separate check here before navigating.
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-      const orderId = response.notification.request.content.data?.orderId;
+      const data = response.notification.request.content.data || {};
+
+      // Shop-owner order notification → navigate to the ShopOrders tab.
+      if (data.type === 'shop_order') {
+        const tryNavigateShop = () => {
+          if (navigationRef?.current?.isReady()) {
+            navigationRef.current.navigate('ShopOrders');
+          } else {
+            setTimeout(tryNavigateShop, 200);
+          }
+        };
+        tryNavigateShop();
+        return;
+      }
+
+      const orderId = data.orderId;
       if (!orderId) return;
 
       // Wait for navigator to be ready before navigating

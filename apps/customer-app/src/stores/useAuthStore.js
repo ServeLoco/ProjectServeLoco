@@ -15,6 +15,7 @@ export const useAuthStore = create(
       token: null,
       user: null,
       profile: null,
+      shop: null,
       isAuthenticated: false,
       hasHydrated: false,
       sessionChecked: false,
@@ -76,6 +77,7 @@ export const useAuthStore = create(
           const updates = {
             user: fresh.user || fresh,
             profile: fresh.user || fresh,
+            shop: fresh.shop ?? null,
             isAuthenticated: true,
           };
           if (fresh.token) {
@@ -93,7 +95,7 @@ export const useAuthStore = create(
         }
       },
 
-      setSession: (token, user) => {
+      setSession: (token, user, shop = null) => {
         // Clear any previous user's cart when a new session starts.
         // Prevents cart bleed across user accounts on the same device.
         try {
@@ -106,7 +108,7 @@ export const useAuthStore = create(
         } catch (_) {
           // Best-effort; never block sign-in on this.
         }
-        set({ token, user, profile: user, isAuthenticated: true });
+        set({ token, user, profile: user, shop, isAuthenticated: true });
       },
 
       logout: () => {
@@ -127,6 +129,7 @@ export const useAuthStore = create(
           token: null,
           user: null,
           profile: null,
+          shop: null,
           isAuthenticated: false,
           previewStartedAt: Date.now(),
         });
@@ -154,6 +157,7 @@ export const useAuthStore = create(
         token: state.token,
         user: state.user,
         profile: state.profile,
+        shop: state.shop,
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {

@@ -263,7 +263,9 @@ describe('expoPush.sendPushToMany', () => {
   });
 
   it('returns early when userIds is empty', async () => {
-    await sendPushToMany(pool, [], { title: 'Hi', body: 'There' });
+    await expect(
+      sendPushToMany(pool, [], { title: 'Hi', body: 'There' })
+    ).resolves.toEqual({ recipients: 0, tokensFound: 0, sent: 0, failed: 0 });
     expect(pool.query).not.toHaveBeenCalled();
     expect(mockSendPushNotificationsAsync).not.toHaveBeenCalled();
   });
