@@ -3,6 +3,7 @@ const { signAdminToken } = require('../utils/auth');
 const { pool } = require('../db/mysql');
 const { validatePagination } = require('../validators');
 const notificationService = require('../utils/notificationService');
+const { notifyShopsForOrder } = require('../utils/shops');
 const realtimeEvents = require('../realtime/orderEvents');
 const orderAutoAccept = require('../realtime/orderAutoAccept');
 const adminInbox = require('../utils/adminNotifications');
@@ -573,6 +574,10 @@ const updateOrderStatus = async (req, res) => {
         event: eventName
       }).then(result => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result))
         .catch(err => console.error('[notify]', err.message));
+    }
+
+    if (status === 'Accepted') {
+      notifyShopsForOrder(updatedOrder); // fire-and-forget; owners get socket + push
     }
 
     realtimeEvents.emitOrderStatusUpdated(updatedOrder);

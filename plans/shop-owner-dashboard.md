@@ -273,7 +273,7 @@ AND (p.shop_id IS NULL OR EXISTS (
 **Files:** `apps/api/src/utils/shops.js` (extend), `apps/api/src/controllers/adminController.js`, `apps/api/src/realtime/orderAutoAccept.js`
 
 **Steps:**
-- [ ] 8.1 In `utils/shops.js`, add and export:
+- [x] 8.1 In `utils/shops.js`, add and export:
   ```js
   // Fire-and-forget fan-out to the owners of every shop with items in this
   // order. Never throws (callers are inside order-status paths that must not
@@ -305,16 +305,19 @@ AND (p.shop_id IS NULL OR EXISTS (
   };
   ```
   (Requires inline inside the function to avoid a circular import chain through `realtime/socket` at module load — keep them inline.)
-- [ ] 8.2 In `adminController.js` `updateOrderStatus`: inside the existing `if (currentStatus !== status) { ... }` block, next to the `if (eventName) { notificationService.createOrderNotification(...) }` call, add:
+  NOTE (done): notifyShopsForOrder added to utils/shops.js with inline requires for emitToCustomer + expoPush (avoids circular import). Exported alongside getShopForUser.
+- [x] 8.2 In `adminController.js` `updateOrderStatus`: inside the existing `if (currentStatus !== status) { ... }` block, next to the `if (eventName) { notificationService.createOrderNotification(...) }` call, add:
   ```js
   if (status === 'Accepted') {
     notifyShopsForOrder(updatedOrder); // fire-and-forget; owners get socket + push
   }
   ```
   Import `notifyShopsForOrder` from `../utils/shops` at the top.
-- [ ] 8.3 In `orderAutoAccept.js` `schedule` timer callback: inside the `if (order) { ... }` success block, after the existing `realtimeEvents.emitOrderAutoAccepted(order);` line, add `notifyShopsForOrder(order);` with the matching require at the top.
-- [ ] 8.4 The customer app already registers push tokens on login (`users.push_token`) — shop owners are `users` rows, so no token work is needed. Note this; change nothing.
-- [ ] 8.5 Run `npm test` in `apps/api`. If tests mock `../utils/shops`, add the new export to the mock.
+- [x] 8.3 In `orderAutoAccept.js` `schedule` timer callback: inside the `if (order) { ... }` success block, after the existing `realtimeEvents.emitOrderAutoAccepted(order);` line, add `notifyShopsForOrder(order);` with the matching require at the top.
+  NOTE (done): Added `if (status === 'Accepted') { notifyShopsForOrder(updatedOrder); }` in updateOrderStatus (after the eventName notification block, before emitOrderStatusUpdated). Added `notifyShopsForOrder(order);` in orderAutoAccept.js schedule timer callback (after emitOrderAutoAccepted). Both import notifyShopsForOrder from ../utils/shops at the top. Per the plan's literal wording ("the `schedule` timer callback"), only the schedule path was instrumented — the rehydratePendingOrders startup path was NOT touched (plan didn't mention it).
+- [x] 8.4 The customer app already registers push tokens on login (`users.push_token`) — shop owners are `users` rows, so no token work is needed. Note this; change nothing.
+- [x] 8.5 Run `npm test` in `apps/api`. If tests mock `../utils/shops`, add the new export to the mock.
+  NOTE (done): No test mocks `../utils/shops` (shopsAdmin.test.js uses the real module with a mocked pool). notifyShopsForOrder is fire-and-forget + fully try/catch-wrapped, so it can't break the order-status paths. `npm test` → 46 suites, 490 passed, 1 skipped (unchanged from TASK 7, all green). Push tokens already registered via existing users.push_token flow — no change (8.4).
 
 ---
 

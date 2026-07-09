@@ -1,6 +1,7 @@
 const { pool } = require('../db/mysql');
 const realtimeEvents = require('./orderEvents');
 const notificationService = require('../utils/notificationService');
+const { notifyShopsForOrder } = require('../utils/shops');
 
 const AUTO_ACCEPT_MS = 120_000;
 
@@ -44,6 +45,7 @@ const schedule = (orderId, orderNumber) => {
       const order = updated[0];
       if (order) {
         realtimeEvents.emitOrderAutoAccepted(order);
+        notifyShopsForOrder(order);
 
         // Notify the customer — same path as manual admin accept.
         // Fire-and-forget; the result is passed to emitNotificationCreated
