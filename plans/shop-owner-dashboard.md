@@ -119,7 +119,7 @@ What exists today (verified against code on 2026-07-09 — do NOT re-investigate
 **Files:** `apps/api/src/utils/shops.js` (new), `apps/api/src/controllers/authController.js`
 
 **Steps:**
-- [ ] 2.1 Create `apps/api/src/utils/shops.js`:
+- [x] 2.1 Create `apps/api/src/utils/shops.js`:
   ```js
   const { pool } = require('../db/mysql');
 
@@ -138,10 +138,11 @@ What exists today (verified against code on 2026-07-09 — do NOT re-investigate
 
   module.exports = { getShopForUser };
   ```
-- [ ] 2.2 In `authController.js` `firebaseVerify`: locate the final response (`res.status(isNewUser ? 201 : 200).json({ message, token, user: {...} })`). Before it, `const shop = await getShopForUser(user.id);`. Add ONE new top-level field to the JSON: `shop` (the object from 2.1, or `null`). Do not alter `message`, `token`, or any `user` subfield.
-- [ ] 2.3 In `authController.js` `me`: the response object is built as `const response = { user };`. After that line add `response.shop = await getShopForUser(userId);`. Nothing else changes (the sliding token-refresh block stays exactly as is).
-- [ ] 2.4 Add `const { getShopForUser } = require('../utils/shops');` at the top of `authController.js`, next to the existing requires.
-- [ ] 2.5 Run `npm test` in `apps/api`. If an existing auth test asserts the exact response keys of `firebaseVerify`/`me`, extend the assertion to include `shop: null` — do not weaken other assertions.
+- [x] 2.2 In `authController.js` `firebaseVerify`: locate the final response (`res.status(isNewUser ? 201 : 200).json({ message, token, user: {...} })`). Before it, `const shop = await getShopForUser(user.id);`. Add ONE new top-level field to the JSON: `shop` (the object from 2.1, or `null`). Do not alter `message`, `token`, or any `user` subfield.
+- [x] 2.3 In `authController.js` `me`: the response object is built as `const response = { user };`. After that line add `response.shop = await getShopForUser(userId);`. Nothing else changes (the sliding token-refresh block stays exactly as is).
+- [x] 2.4 Add `const { getShopForUser } = require('../utils/shops');` at the top of `authController.js`, next to the existing requires.
+- [x] 2.5 Run `npm test` in `apps/api`. If an existing auth test asserts the exact response keys of `firebaseVerify`/`me`, extend the assertion to include `shop: null` — do not weaken other assertions.
+  NOTE (done): Created `utils/shops.js` (getShopForUser), added require + `shop` field to both `me` and `verifyFirebaseToken` responses. No existing auth test asserts exact response keys of these endpoints (roleProtection only checks 403 status; pushTokenHygiene hits other endpoints), so no test changes needed. `npm test` → 44 suites, 481 passed, 1 skipped (matches baseline).
 
 ---
 

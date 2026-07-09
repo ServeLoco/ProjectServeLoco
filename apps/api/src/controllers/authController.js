@@ -2,6 +2,7 @@ const { pool } = require('../db/mysql');
 const { signCustomerToken, verifyToken } = require('../utils/auth');
 const { getFirebaseAuth } = require('../config/firebase');
 const adminInbox = require('../utils/adminNotifications');
+const { getShopForUser } = require('../utils/shops');
 
 // Sliding-window token renewal. We refresh whenever the token has used
 // more than half of its own lifetime. This auto-adapts to whatever
@@ -34,6 +35,7 @@ const me = async (req, res) => {
   // midpoint rule makes the refresh window scale with whatever
   // JWT_EXPIRES_IN is set to in production.
   const response = { user };
+  response.shop = await getShopForUser(userId);
   try {
     const authHeader = req.headers.authorization || '';
     const rawToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
@@ -326,9 +328,12 @@ const verifyFirebaseToken = async (req, res) => {
 
   const token = signCustomerToken(user.id);
 
+  const shop = await getShopForUser(user.id);
+
   res.status(isNewUser ? 201 : 200).json({
     message: isNewUser ? 'Registration successful' : 'Login successful',
     token,
+    shop,
     user: {
       id: user.id,
       name: user.name,
