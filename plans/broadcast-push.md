@@ -190,11 +190,13 @@ NOTE (done): TASK 3 implemented — in `handleSend` (`apps/admin/src/pages/Notif
 
 ## VERIFICATION (after all tasks)
 
-- [ ] `cd apps/api && npm test` — full suite green (watch `expoPush.test.js`, `notifications.test.js`, `pushTokenHygiene.test.js`).
-- [ ] `cd apps/api && npm run lint` and `cd apps/admin && npm run lint`.
+- [x] `cd apps/api && npm test` — full suite green (watch `expoPush.test.js`, `notifications.test.js`, `pushTokenHygiene.test.js`).
+- [x] `cd apps/api && npm run lint` and `cd apps/admin && npm run lint`.
 - [ ] Manual: `POST /api/admin/notifications` with `{"title":"t","body":"b","type":"info","target":"everyone"}` (admin bearer) → 201, existing fields intact, `pushEligibleCount` present. Repeat with `target:"phones"` → `matchedPhones`/`unmatchedPhones` still present.
 - [ ] With a local DB where every `push_token` is NULL: API log prints `[expoPush] sendPushToMany: 0 of N target users have a valid push token`; admin UI shows the ⚠️ banner.
 - [ ] Regression: change an order's status from the admin panel → single-user push path (`sendPushToUser`) behaves as before.
+
+NOTE (verification): Automated checks pass — `apps/api` full suite green (481 passed, 1 skipped; `expoPush.test.js`, `notifications.test.js`, `pushTokenHygiene.test.js` all pass), `apps/api` lint 0 errors, `apps/admin` lint 0 errors + build succeeds. The three remaining checkboxes are live-DB/manual checks needing a running MySQL/Mongo + admin bearer (not available in this headless env); their automated equivalents are green: (a) 201 + `pushEligibleCount` for `target:"everyone"` → `notifications.test.js`; the `target:"phones"` path is additive-only in `adminController.js`, so `matchedPhones`/`unmatchedPhones` are preserved; (b) zero-token `console.warn` → expoPush unit test "warns and sends nothing when no target users have a valid push token"; (c) `sendPushToUser` regression → its tests still resolve to `undefined` and only gained `tallyTickets` logging (return/flow unchanged). Owner to run the live-DB smoke before prod.
 
 ## DO NOT ATTEMPT (owner/manual — context only)
 
