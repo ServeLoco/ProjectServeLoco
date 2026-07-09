@@ -97,6 +97,114 @@ const attachComboItems = async (products = []) => {
   });
 };
 
+// Embed purchasable variants (sizes/types) into a page of product responses.
+// Models on attachComboItems: ONE batch query for all product ids, then attach.
+// Only real products (not combos) can have variants — combos live in the
+// `combos` table whose ids share a namespace with `products`, so filtering
+// them out avoids accidental product_variants.product_id collisions.
+// Returns available = 0 variants too (client shows them disabled as "Out");
+// filters ONLY deleted = 1.
+const attachVariants = async (products = []) => {
+  const productIds = products
+    .filter(p => !p.is_combo)
+    .map(p => p.id)
+    .filter(Boolean);
+
+  const variantsMap = {};
+  if (productIds.length > 0) {
+    const [rows] = await pool.query(
+      `SELECT id, product_id, label, price, original_price, available, is_default, display_order
+       FROM product_variants
+       WHERE product_id IN (?) AND deleted = 0
+       ORDER BY display_order ASC, id ASC`,
+      [productIds]
+    );
+    rows.forEach(v => {
+      if (!variantsMap[v.product_id]) variantsMap[v.product_id] = [];
+      variantsMap[v.product_id].push(v);
+    });
+  }
+
+  products.forEach(product => {
+    const variantRows = variantsMap[product.id] || [];
+    product.variants = variantRows.map(v => ({
+      id: v.id,
+      productId: v.product_id, product_id: v.product_id,
+      label: v.label,
+      price: Number(v.price),
+      originalPrice: v.original_price, original_price: v.original_price,
+      available: Boolean(v.available),
+      isDefault: Boolean(v.is_default), is_default: Boolean(v.is_default),
+      displayOrder: v.display_order, display_order: v.display_order,
+    }));
+    product.hasVariants = product.has_variants = product.variants.length > 0;
+    product.minPrice = product.min_price = product.variants.length
+      ? Math.min(...product.variants.map(v => v.price))
+      : Number(product.price);
+    product.variantPrompt = product.variant_prompt ?? null;
+  });
+};
+
+// Variant upsert + products.price re-sync. Called on the SAME connection
+// and transaction as the caller's product INSERT/UPDATE (never opens its
+// own transaction) so a variant-sync failure rolls back the product write
+// too — otherwise a partial failure could commit a product row whose price
+// disagrees with its default variant, or leave a variantless product behind
+// on a 500. `variants === undefined` and `variantPrompt === undefined` mean
+// "not sent" → leave untouched (partial-update safety). UPSERT by id (never
+// delete-and-reinsert — live carts and order snapshots reference variant
+// ids). The products.price sync is the load-bearing backward-compat
+// invariant: products.price must ALWAYS equal the default variant's price.
+const syncProductVariants = async (connection, productId, variants, variantPrompt) => {
+  if (variants === undefined && variantPrompt === undefined) return;
+
+  if (variantPrompt !== undefined) {
+    await connection.query(
+      'UPDATE products SET variant_prompt = ? WHERE id = ?',
+      [variantPrompt || null, productId]
+    );
+  }
+
+  if (variants !== undefined) {
+    const payloadIds = new Set();
+    for (const v of variants) {
+      if (v.id) {
+        payloadIds.add(Number(v.id));
+        // AND product_id = ? prevents cross-product id abuse.
+        await connection.query(
+          'UPDATE product_variants SET label = ?, price = ?, original_price = ?, available = ?, is_default = ?, display_order = ?, deleted = 0 WHERE id = ? AND product_id = ?',
+          [v.label, v.price, v.original_price, v.available ? 1 : 0, v.is_default ? 1 : 0, v.display_order, v.id, productId]
+        );
+      } else {
+        const [insertResult] = await connection.query(
+          'INSERT INTO product_variants (product_id, label, price, original_price, available, is_default, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [productId, v.label, v.price, v.original_price, v.available ? 1 : 0, v.is_default ? 1 : 0, v.display_order]
+        );
+        payloadIds.add(Number(insertResult.insertId));
+      }
+    }
+
+    // Soft-delete existing non-deleted variants NOT in the payload.
+    if (payloadIds.size > 0) {
+      await connection.query(
+        'UPDATE product_variants SET deleted = 1 WHERE product_id = ? AND deleted = 0 AND id NOT IN (?)',
+        [productId, [...payloadIds]]
+      );
+    } else {
+      await connection.query(
+        'UPDATE product_variants SET deleted = 1 WHERE product_id = ? AND deleted = 0',
+        [productId]
+      );
+    }
+
+    // THE LOAD-BEARING SYNC: products.price = default variant's price.
+    if (variants.length > 0) {
+      const defaultVariant = variants.find(v => v.is_default) || variants[0];
+      await connection.query('UPDATE products SET price = ? WHERE id = ?', [defaultVariant.price, productId]);
+    }
+  }
+};
+
 const getProducts = async (req, res) => {
   const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit, offerId, offer_id } = req.query;
   const requestedType = type || storeType || store_type;
@@ -119,7 +227,7 @@ const getProducts = async (req, res) => {
 
     // 2. Fetch products attached to offer
     let query = `
-      SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order
+      SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt
       FROM offer_products op
       JOIN products p ON op.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
@@ -141,6 +249,7 @@ const getProducts = async (req, res) => {
 
     const [rows] = await pool.query(query, params);
     await resolveImageUrls(rows);
+    await attachVariants(rows);
     const filteredRows = rows.filter(r => isWithinTimeWindow(r.available_from_time, r.available_until_time));
     return res.status(200).json({ data: { products: filteredRows }, products: filteredRows });
   }
@@ -150,7 +259,7 @@ const getProducts = async (req, res) => {
     finalIsCombo = 'false';
   }
 
-  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order
+  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt
     FROM products p LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0`;
   
@@ -191,6 +300,7 @@ const getProducts = async (req, res) => {
 
   await resolveImageUrls(rows);
   await attachComboItems(rows);
+  await attachVariants(rows);
 
   const filteredRows = rows.filter(r => isWithinTimeWindow(r.available_from_time, r.available_until_time));
 
@@ -233,6 +343,7 @@ const getProductById = async (req, res) => {
   const product = rows[0];
   await resolveImageUrls([product]);
   await attachComboItems([product]);
+  await attachVariants([product]);
 
   // Annotate the response with whether the product is in its daily time window.
   // The product is still returned so the customer app can show an
@@ -244,7 +355,7 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
   // Normal products require category. Combos are bundles and do not require category.
-  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time, variants, variant_prompt } = req.validatedData;
 
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
   if (finalDisplayOrder > 0) {
@@ -254,27 +365,43 @@ const createProduct = async (req, res) => {
     }
   }
 
-  const [result] = await pool.query(
-    'INSERT INTO products (name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label, available_from_time, available_until_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [
-      name, price, category_id, unit, description, image_id, 
-      available !== undefined ? available : true,
-      false,
-      featured !== undefined ? featured : false,
-      finalDisplayOrder,
-      original_price || null,
-      discount_label || null,
-      available_from_time || null,
-      available_until_time || null
-    ]
-  );
-  res.status(201).json({ message: 'Product created', id: result.insertId });
+  // Product row + variant sync run on one connection/transaction so a
+  // variant-sync failure rolls back the product row too, instead of leaving
+  // a committed product whose price disagrees with its default variant.
+  const connection = await pool.getConnection();
+  let insertId;
+  try {
+    await connection.beginTransaction();
+    const [result] = await connection.query(
+      'INSERT INTO products (name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label, available_from_time, available_until_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        name, price, category_id, unit, description, image_id,
+        available !== undefined ? available : true,
+        false,
+        featured !== undefined ? featured : false,
+        finalDisplayOrder,
+        original_price || null,
+        discount_label || null,
+        available_from_time || null,
+        available_until_time || null
+      ]
+    );
+    insertId = result.insertId;
+    await syncProductVariants(connection, insertId, variants, variant_prompt);
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+  res.status(201).json({ message: 'Product created', id: insertId });
 };
 
 const updateProduct = async (req, res) => {
   // Normal products require category. Combos are bundles and do not require category.
   const { id } = req.params;
-  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time, variants, variant_prompt } = req.validatedData;
 
   const [existing] = await pool.query('SELECT id, image_id FROM products WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
@@ -290,21 +417,37 @@ const updateProduct = async (req, res) => {
     }
   }
 
-  await pool.query(
-    'UPDATE products SET name = ?, price = ?, category_id = ?, unit = ?, description = ?, image_id = ?, available = ?, is_combo = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ?, available_from_time = ?, available_until_time = ? WHERE id = ?',
-    [
-      name, price, category_id, unit, description, image_id, available,
-      false,
-      featured !== undefined ? featured : false,
-      finalDisplayOrder,
-      original_price || null,
-      discount_label || null,
-      available_from_time || null,
-      available_until_time || null,
-      id
-    ]
-  );
   await pool.query('DELETE FROM product_combo_items WHERE combo_product_id = ?', [id]);
+
+  // Product row + variant sync run on one connection/transaction so a
+  // variant-sync failure rolls back the product row update too, instead of
+  // leaving products.price out of sync with its default variant.
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.query(
+      'UPDATE products SET name = ?, price = ?, category_id = ?, unit = ?, description = ?, image_id = ?, available = ?, is_combo = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ?, available_from_time = ?, available_until_time = ? WHERE id = ?',
+      [
+        name, price, category_id, unit, description, image_id, available,
+        false,
+        featured !== undefined ? featured : false,
+        finalDisplayOrder,
+        original_price || null,
+        discount_label || null,
+        available_from_time || null,
+        available_until_time || null,
+        id
+      ]
+    );
+    await syncProductVariants(connection, Number(id), variants, variant_prompt);
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+
   if (previousImageId && String(previousImageId) !== String(image_id)) {
     await cleanupOrphanedImage(previousImageId);
   }
@@ -372,6 +515,7 @@ const getAdminProducts = async (req, res) => {
   const [rows] = await pool.query(query, params);
 
   await resolveImageUrls(rows);
+  await attachVariants(rows);
   res.status(200).json({ 
     data: { products: rows }, 
     products: rows,
@@ -399,6 +543,7 @@ const getAdminProductById = async (req, res) => {
 
   const product = rows[0];
   await resolveImageUrls([product]);
+  await attachVariants([product]);
   res.status(200).json({ data: product });
 };
 
@@ -464,7 +609,8 @@ module.exports = {
   getAdminProductById,
   deleteProduct,
   updateProductAvailability,
-  updateProductImage
+  updateProductImage,
+  attachVariants
 };
 
 const bulkUpdateProducts = async (req, res) => {

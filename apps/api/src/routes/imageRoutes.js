@@ -63,6 +63,9 @@ const uploadMiddleware = (req, res, next) => {
   });
 };
 
+// Public: product photos and the UPI QR image are fetched by id from the
+// customer app (imagesApi.getImage) with no admin token. Locking this down
+// broke UPI checkout — see plans/analytics.md audit.
 router.get('/:id', asyncHandler(getImage));
 router.get('/', requireAdmin, asyncHandler(getImages));
 router.post('/', requireAdmin, uploadLimiter, uploadMiddleware, asyncHandler(uploadImage));

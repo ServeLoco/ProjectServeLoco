@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { login, me, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
+const { login, me, revokeSessions, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage, bulkUpdateProducts, bulkDeleteProducts } = require('../controllers/productController');
@@ -146,6 +146,7 @@ const categorySchema = (req) => {
 
 const productSchema = (req) => {
   const rawComboItems = normalizeField(req, 'comboItems', 'combo_items');
+  const rawVariants = normalizeField(req, 'variants', 'variants');
   const data = {
     name: normalizeField(req, 'name', 'name'),
     price: normalizeField(req, 'price', 'price'),
@@ -165,7 +166,17 @@ const productSchema = (req) => {
       product_id: item.productId || item.product_id || item.id,
       quantity: item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1),
       display_order: item.displayOrder || item.display_order || index,
-    })) : undefined
+    })) : undefined,
+    variants: Array.isArray(rawVariants) ? rawVariants.map((v, i) => ({
+      id: v.id || null,
+      label: v.label,
+      price: v.price,
+      original_price: v.originalPrice ?? v.original_price ?? null,
+      available: v.available !== undefined ? Boolean(v.available) : true,
+      is_default: Boolean(v.isDefault ?? v.is_default),
+      display_order: v.displayOrder ?? v.display_order ?? i,
+    })) : undefined,
+    variant_prompt: normalizeField(req, 'variantPrompt', 'variant_prompt'),
   };
   const errors = {};
   if (!isString(data.name)) errors.name = 'Name is required';
@@ -203,6 +214,63 @@ const productSchema = (req) => {
       item.quantity = Number(item.quantity) || 1;
       item.display_order = isNonNegativeInteger(item.display_order) ? Number(item.display_order) : i;
     }
+  }
+  // Variant validation: labels non-empty ≤ 100 chars, unique (case-insensitive),
+  // numeric price per row, exactly one is_default (auto-mark index 0 if none),
+  // max 20 variants, variant_prompt ≤ 100 chars if present.
+  if (data.variants !== undefined) {
+    if (data.variants.length > 20) {
+      errors.variants = 'A product can have at most 20 variants';
+    }
+    const labels = new Set();
+    for (let i = 0; i < data.variants.length; i++) {
+      const v = data.variants[i];
+      // A truthy id must be a valid numeric id — otherwise the upsert's
+      // UPDATE ... WHERE id = ? silently matches zero rows and the row the
+      // caller thought they were editing vanishes with no error surfaced.
+      if (v.id && !isId(v.id)) {
+        errors.variants = `Variant ${i + 1}: id must be a valid numeric id`;
+      } else if (v.id) {
+        v.id = Number(v.id);
+      }
+      if (!isString(v.label) || String(v.label).trim() === '' || String(v.label).length > 100) {
+        errors.variants = `Variant ${i + 1}: label must be a non-empty string of at most 100 characters`;
+      }
+      const lowerLabel = String(v.label || '').toLowerCase().trim();
+      if (labels.has(lowerLabel)) {
+        errors.variants = `Variant ${i + 1}: duplicate label "${v.label}"`;
+      }
+      labels.add(lowerLabel);
+      if (!isNumericAmount(v.price)) {
+        errors.variants = `Variant ${i + 1}: valid price is required`;
+      } else {
+        v.price = Number(v.price);
+      }
+      if (v.original_price !== null && v.original_price !== undefined && v.original_price !== '') {
+        if (!isNumericAmount(v.original_price)) {
+          errors.variants = `Variant ${i + 1}: original price must be a valid amount`;
+        } else {
+          v.original_price = Number(v.original_price);
+        }
+      } else {
+        v.original_price = null;
+      }
+    }
+    if (data.variants.length > 0) {
+      const defaultCount = data.variants.filter(v => v.is_default).length;
+      if (defaultCount === 0) {
+        data.variants[0].is_default = true;
+      } else if (defaultCount > 1) {
+        errors.variants = 'Exactly one variant must be marked as default';
+      }
+    }
+  }
+  if (data.variant_prompt !== undefined && data.variant_prompt !== null && data.variant_prompt !== '') {
+    if (!isString(data.variant_prompt) || String(data.variant_prompt).length > 100) {
+      errors.variant_prompt = 'Choice prompt must be a string of at most 100 characters';
+    }
+  } else if (data.variant_prompt === '') {
+    data.variant_prompt = null;
   }
   
   if (data.available !== undefined) {
@@ -546,6 +614,7 @@ const couponDuplicateSchema = () => ({ errors: [], data: {} });
 // Routes
 router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(login));
 router.get('/me', requireAdmin, me);
+router.post('/revoke-sessions', requireAdmin, asyncHandler(revokeSessions));
 
 // Customers
 router.get('/customers', requireAdmin, validate(paginationSchema), asyncHandler(getAdminCustomers));
@@ -653,5 +722,9 @@ router.post('/notifications', requireAdmin, asyncHandler(createAdminNotification
 router.get('/notification-templates', requireAdmin, asyncHandler(getNotificationTemplates));
 router.patch('/notification-templates/:id', requireAdmin, asyncHandler(updateNotificationTemplate));
 router.post('/notification-templates/:id/reset', requireAdmin, asyncHandler(resetNotificationTemplate));
+
+// Analytics (admin) — sub-router from analyticsRoutes; already wraps requireAdmin.
+const { adminRouter: analyticsAdminRouter } = require('./analyticsRoutes');
+router.use('/analytics', analyticsAdminRouter);
 
 module.exports = router;

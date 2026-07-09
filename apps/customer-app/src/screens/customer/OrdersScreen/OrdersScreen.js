@@ -8,8 +8,6 @@ import {
   Animated,
   TouchableOpacity,
   LayoutAnimation,
-  Platform,
-  UIManager,
   RefreshControl,
   Alert,
   ActivityIndicator,
@@ -34,10 +32,6 @@ import {
   isRecentRealtimeEvent,
   mergeOrderRealtimePatch,
 } from '../../../utils/realtimeOrder';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 const FILTER_CHIPS = [
   { label: 'All', value: 'All' },

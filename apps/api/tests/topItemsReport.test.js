@@ -8,6 +8,7 @@ jest.mock('../src/db/mysql', () => ({
   pool: { query: jest.fn() }
 }));
 jest.mock('../src/middleware/authMiddleware', () => ({
+  requireCustomer: (req, res, next) => next(),
   requireAdmin: (req, res, next) => next()
 }));
 

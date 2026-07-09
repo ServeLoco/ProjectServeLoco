@@ -38,6 +38,12 @@ const updateNotificationTemplate = async (req, res) => {
       message: 'Title and body are required'
     });
   }
+  if (String(title).length > 255) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Title too long (max 255 characters)' });
+  }
+  if (String(body).length > 240) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Body too long (max 240 characters)' });
+  }
 
   const [result] = await pool.query(
     `UPDATE notification_templates

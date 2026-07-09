@@ -29,7 +29,13 @@ const formatMoney = (value) => {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric.toFixed(2) : '0.00';
 };
-const escapeCsvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+const escapeCsvCell = (value) => {
+  let s = String(value ?? '');
+  // Prevent formula injection: neutralize leading =,+,-,@ that spreadsheet
+  // apps (Excel/LibreOffice) evaluate as formulas when a CSV is opened.
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
+};
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')

@@ -1,6 +1,7 @@
 const { pool } = require('../db/mysql');
 const { normalizeStoreType } = require('../utils/storeMode');
 const config = require('../config/env');
+const { attachVariants } = require('./productController');
 
 const SECTION_TYPES = ['offer_banner', 'category_grid', 'product_block', 'combo_block'];
 const STORE_TYPES = ['packed', 'fast_food', 'all'];
@@ -347,7 +348,13 @@ const mapProductRows = (rows) => rows.map(r => ({
   categoryName: r.category_name,
   categoryType: r.category_type,
   comboItems: r.combo_items || [],
-  isCombo: r.is_combo || r.isCombo || false
+  isCombo: r.is_combo || r.isCombo || false,
+  variants: r.variants || [],
+  hasVariants: r.hasVariants || r.has_variants || false,
+  has_variants: r.hasVariants || r.has_variants || false,
+  minPrice: r.minPrice ?? r.min_price ?? r.price,
+  min_price: r.minPrice ?? r.min_price ?? r.price,
+  variantPrompt: r.variantPrompt ?? r.variant_prompt ?? null,
 }));
 
 const mapOfferRows = (rows) => rows
@@ -452,6 +459,7 @@ const getDashboard = async (req, res) => {
         );
         await resolveImageUrls(rows);
         await attachComboItems(rows);
+        await attachVariants(rows);
 
         let filteredRows = rows;
         if (expectedStoreType && expectedStoreType !== 'all') {
@@ -611,6 +619,7 @@ const getSectionItems = async (req, res) => {
       );
       await resolveImageUrls(rows);
       await attachComboItems(rows);
+      await attachVariants(rows);
 
       items = rows.map(r => ({
         id: r.id,
@@ -629,7 +638,13 @@ const getSectionItems = async (req, res) => {
         categoryId: r.category_id,
         categoryName: r.category_name,
         categoryType: r.category_type,
-        comboItems: r.combo_items || []
+        comboItems: r.combo_items || [],
+        variants: r.variants || [],
+        hasVariants: r.hasVariants || r.has_variants || false,
+        has_variants: r.hasVariants || r.has_variants || false,
+        minPrice: r.minPrice ?? r.min_price ?? r.price,
+        min_price: r.minPrice ?? r.min_price ?? r.price,
+        variantPrompt: r.variantPrompt ?? r.variant_prompt ?? null,
       }));
     } else if (section.section_type === 'combo_block') {
       const comboStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND p.store_type = ?' : '';

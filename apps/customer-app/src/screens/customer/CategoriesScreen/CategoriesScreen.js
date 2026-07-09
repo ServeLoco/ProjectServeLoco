@@ -7,8 +7,6 @@ import {
   Animated,
   TouchableOpacity,
   LayoutAnimation,
-  Platform,
-  UIManager,
   RefreshControl,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -27,11 +25,8 @@ import {
 import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
 import { productsApi } from '../../../api';
+import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, normalizeCategory } from '../../../utils';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 
 export default function CategoriesScreen() {
@@ -122,6 +117,7 @@ export default function CategoriesScreen() {
   };
 
   const handleCategoryPress = (category) => {
+    trackEvent('category_view', { categoryId: Number(category.id) });
     navigation.navigate('ProductList', { categoryId: category.id, categoryName: category.name, storeType: normalizedStoreType });
   };
 

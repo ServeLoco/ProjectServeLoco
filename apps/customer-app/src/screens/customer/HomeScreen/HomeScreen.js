@@ -33,6 +33,7 @@ import {
   ReconnectingPill,
   ExitAppModal,
   ErrorState,
+  VariantSheet,
 } from '../../../components';
 import { colors, typography, spacing, radius, layout } from '../../../theme';
 import { useCartStore, useSettingsStore } from '../../../stores';
@@ -67,7 +68,9 @@ export default function HomeScreen() {
   const addCombo = useCartStore(state => state.addCombo);
   const decrementCombo = useCartStore(state => state.decrementCombo);
   const getComboQuantity = useCartStore(state => state.getComboQuantity);
+  const getProductQuantity = useCartStore(state => state.getProductQuantity);
   const updateQuantity = useCartStore(state => state.updateQuantity);
+  const [variantSheetProduct, setVariantSheetProduct] = useState(null);
   const removeItem = useCartStore(state => state.removeItem);
   const shopStatus = useSettingsStore(state => state.shopStatus);
   const setSettings = useSettingsStore(state => state.setSettings);
@@ -90,7 +93,7 @@ export default function HomeScreen() {
     [items]
   );
   const cartDisplayTotal = useMemo(
-    () => items.reduce((total, item) => total + ((Number(item.product?.price) || 0) * (Number(item.quantity) || 0)), 0),
+    () => items.reduce((total, item) => total + ((Number(item.variant?.price ?? item.product?.price) || 0) * (Number(item.quantity) || 0)), 0),
     [items]
   );
 
@@ -328,17 +331,14 @@ export default function HomeScreen() {
     });
   };
 
-  const getQty = React.useCallback((productId) => {
-    const item = items.find(i => i.product.id === productId && (i.type || 'product') !== 'combo');
-    return item ? item.quantity : 0;
-  }, [items]);
-
   const handleAddToCart = React.useCallback((product) => {
     requireAuth(null, () => {
       if (product.isCombo || product.is_combo || product.comboItems?.length) {
         addCombo(product);
+      } else if ((product.variants?.length ?? 0) > 1) {
+        setVariantSheetProduct(product);
       } else {
-        addItem(product);
+        addItem(product, 1, product.variants?.[0] ?? null);
       }
     });
   }, [requireAuth, addCombo, addItem]);
@@ -348,10 +348,15 @@ export default function HomeScreen() {
       if (product.isCombo || product.is_combo || product.comboItems?.length) {
         addCombo(product);
       } else {
-        addItem(product);
+        // Reuse the variant already in the cart for this product (single-
+        // variant products are stored WITH their variant attached — adding
+        // with variant=null here would miss the match and create a
+        // duplicate line instead of incrementing it).
+        const existing = items.find(i => i.product.id === product.id && (i.type || 'product') !== 'combo');
+        addItem(product, 1, existing?.variant ?? product.variants?.[0] ?? null);
       }
     });
-  }, [requireAuth, addCombo, addItem]);
+  }, [requireAuth, addCombo, addItem, items]);
 
   const handleDecrement = React.useCallback((product) => {
     if (product.isCombo || product.is_combo || product.comboItems?.length) {
@@ -359,13 +364,15 @@ export default function HomeScreen() {
       return;
     }
 
-    const currentQty = getQty(product.id);
+    const existing = items.find(i => i.product.id === product.id && (i.type || 'product') !== 'combo');
+    const variantId = existing?.variant?.id ?? null;
+    const currentQty = existing?.quantity || 0;
     if (currentQty <= 1) {
-      removeItem(product.id);
+      removeItem(product.id, 'product', variantId);
     } else {
-      updateQuantity(product.id, currentQty - 1);
+      updateQuantity(product.id, currentQty - 1, 'product', variantId);
     }
-  }, [decrementCombo, getQty, removeItem, updateQuantity]);
+  }, [decrementCombo, items, removeItem, updateQuantity]);
 
   const handleCartPress = React.useCallback(() => {
     navigation.navigate('Cart');
@@ -407,6 +414,7 @@ export default function HomeScreen() {
         updateQuantity={updateQuantity}
         removeItem={removeItem}
         requireAuth={requireAuth}
+        onOpenVariantSheet={setVariantSheetProduct}
       />
 
       {/* Search backdrop — dims the dashboard so the dropdown reads clearly */}
@@ -651,6 +659,7 @@ export default function HomeScreen() {
                           }}
                         >
                           <ProductCard
+                            product={item}
                             name={item.name}
                             price={item.price}
                             originalPrice={item.originalPrice}
@@ -659,11 +668,10 @@ export default function HomeScreen() {
                             isCombo={isItemCombo}
                             comboItems={item.comboItems}
                             imageUri={item.imageUri}
-                            quantity={isItemCombo ? getComboQuantity(item) : getQty(item.id)}
+                            quantity={isItemCombo ? getComboQuantity(item) : getProductQuantity(item.id)}
                             onAdd={() => handleAddToCart(item)}
                             onIncrement={() => handleIncrement(item)}
                             onDecrement={() => handleDecrement(item)}
-                            onPress={() => handleProductPress(item)}
                             disabled={!item.available}
                             compact
                           />
@@ -706,6 +714,12 @@ export default function HomeScreen() {
       />
       <ReconnectingPill />
 
+      <VariantSheet
+        visible={!!variantSheetProduct}
+        product={variantSheetProduct}
+        onClose={() => setVariantSheetProduct(null)}
+      />
+
       <ExitAppModal
         visible={isExitModalOpen}
         cartItemCount={cartItemCount}
@@ -734,6 +748,7 @@ function HomeHeader({
   updateQuantity,
   removeItem,
   requireAuth,
+  onOpenVariantSheet,
 }) {
   const pulseOpacity = pulseAnim.interpolate({
     inputRange: [1, 1.45],
@@ -874,15 +889,22 @@ function HomeHeader({
   };
 
   const getProductQuantity = (productId) => {
-    const found = cartItems.find(
-      (item) => String(item.product.id) === String(productId) && item.type !== 'combo'
-    );
-    return Number(found?.quantity) || 0;
+    // Sum across all variants of this product (a multi-variant product can
+    // have several separate cart lines — e.g. 2x Veg + 1x Chicken).
+    return cartItems
+      .filter((item) => String(item.product.id) === String(productId) && item.type !== 'combo')
+      .reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
   };
 
   const handleBuyPress = (product) => {
     if (!addItem) return;
-    const doAdd = () => addItem(product, 1);
+    const doAdd = () => {
+      if ((product.variants?.length ?? 0) > 1) {
+        if (onOpenVariantSheet) onOpenVariantSheet(product);
+        return;
+      }
+      addItem(product, 1, product.variants?.[0] ?? null);
+    };
     if (requireAuth) {
       requireAuth(null, doAdd);
     } else {
@@ -890,19 +912,30 @@ function HomeHeader({
     }
   };
 
+  // Reuse the variant already in the cart for this product — single-variant
+  // products are stored WITH their variant attached, so incrementing without
+  // it would miss the match and silently no-op instead of updating the line.
+  const findCartVariant = (productId) => {
+    const found = cartItems.find(
+      (item) => String(item.product.id) === String(productId) && item.type !== 'combo'
+    );
+    return found?.variant?.id ?? null;
+  };
+
   const handleIncrement = (product) => {
     if (!updateQuantity) return;
     const current = getProductQuantity(product.id);
-    updateQuantity(product.id, current + 1, 'product');
+    updateQuantity(product.id, current + 1, 'product', findCartVariant(product.id));
   };
 
   const handleDecrement = (product) => {
     if (!updateQuantity) return;
     const current = getProductQuantity(product.id);
+    const variantId = findCartVariant(product.id);
     if (current <= 1 && removeItem) {
-      removeItem(product.id, 'product');
+      removeItem(product.id, 'product', variantId);
     } else {
-      updateQuantity(product.id, current - 1, 'product');
+      updateQuantity(product.id, current - 1, 'product', variantId);
     }
   };
 
@@ -1122,6 +1155,7 @@ function HomeHeader({
               ItemSeparatorComponent={() => <View style={styles.searchDropdownDivider} />}
               renderItem={({ item }) => {
                 const qty = getProductQuantity(item.id);
+                const isMultiVariant = (item.variants?.length ?? 0) > 1;
                 return (
                   <TouchableOpacity
                     activeOpacity={0.75}
@@ -1160,7 +1194,28 @@ function HomeHeader({
                         ) : null}
                       </View>
                     </View>
-                    {qty > 0 ? (
+                    {qty > 0 && isMultiVariant ? (
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={(e) => {
+                          e.stopPropagation?.();
+                          handleBuyPress(item);
+                        }}
+                        style={styles.searchResultBuyBtn}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${qty} in cart. Tap to change ${item.name} options`}
+                        hitSlop={6}
+                      >
+                        <LinearGradient
+                          colors={[colors.saffron, colors.saffronDark]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.searchResultBuyGradient}
+                        >
+                          <Text style={styles.searchResultBuyText}>{qty} in cart</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    ) : qty > 0 ? (
                       <View style={styles.searchResultStepper}>
                         <TouchableOpacity
                           activeOpacity={0.7}

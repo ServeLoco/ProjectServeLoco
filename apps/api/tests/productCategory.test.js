@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 jest.mock('../src/db/mysql', () => ({
   pool: {
     query: jest.fn(),
+    getConnection: jest.fn(),
     escape: jest.fn(value => `'${value}'`)
   }
 }));
@@ -43,7 +44,16 @@ describe('Product and Category Tests', () => {
   });
 
   it('should create a product', async () => {
-    pool.query.mockResolvedValueOnce([{ insertId: 1 }]); // insert product
+    // Product INSERT now runs on a transaction connection (variant sync
+    // shares the same transaction), not directly on pool.query.
+    const mockConn = {
+      beginTransaction: jest.fn(),
+      query: jest.fn().mockResolvedValueOnce([{ insertId: 1 }]), // insert product
+      commit: jest.fn(),
+      rollback: jest.fn(),
+      release: jest.fn(),
+    };
+    pool.getConnection.mockResolvedValueOnce(mockConn);
 
     const res = await request(app)
       .post('/api/admin/products')
@@ -58,7 +68,9 @@ describe('Product and Category Tests', () => {
       });
 
     expect(res.statusCode).toEqual(201);
-    expect(pool.query).toHaveBeenCalledTimes(1);
+    expect(mockConn.query).toHaveBeenCalledTimes(1);
+    expect(mockConn.commit).toHaveBeenCalledTimes(1);
+    expect(pool.query).not.toHaveBeenCalled();
   });
 
   it('should fetch products', async () => {

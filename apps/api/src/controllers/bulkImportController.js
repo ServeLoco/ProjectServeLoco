@@ -12,6 +12,13 @@ const UPLOAD_DIR = path.join(__dirname, '../../', config.UPLOAD_DIR);
 const MAX_IMAGE_BYTES = parseInt(config.MAX_IMAGE_SIZE_MB || '5') * 1024 * 1024;
 const MAX_ZIP_ENTRIES = 500;
 const MAX_ZIP_UNCOMPRESSED_BYTES = 50 * 1024 * 1024; // 50 MB
+// Zip central-directory size fields are attacker-controlled metadata, not a
+// guarantee of what getData() actually inflates. A crafted entry can declare
+// a small size while its DEFLATE stream expands far larger, spiking memory
+// before the post-decompression MAX_IMAGE_BYTES check below ever runs. Reject
+// entries whose declared size already exceeds the per-image cap, and any
+// entry with a compression ratio typical of a zip-bomb, before decompressing.
+const MAX_COMPRESSION_RATIO = 200;
 
 // Normalize mode aliases to canonical DB values
 const NORMALISE_MODE = {
@@ -382,6 +389,10 @@ const parseAndValidate = async (req) => {
           entry.entryName.startsWith('/') ||
           entry.entryName.startsWith('\\')
         ) continue;
+        const declaredSize = entry.header?.size || 0;
+        const compressedSize = entry.header?.compressedSize || 0;
+        if (declaredSize > MAX_IMAGE_BYTES) continue;
+        if (compressedSize > 0 && declaredSize / compressedSize > MAX_COMPRESSION_RATIO) continue;
         zipEntryMap[path.basename(entry.entryName)] = entry;
       }
     } catch (e) {

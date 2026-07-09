@@ -12,7 +12,6 @@ import {
   Linking,
   LayoutAnimation,
   Platform,
-  UIManager,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { CommonActions, useNavigation } from '@react-navigation/native';
@@ -28,14 +27,11 @@ import {
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../../stores';
 import { cartApi, ordersApi, imagesApi } from '../../../api';
+import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, buildProgressHintText, normalizeCartCalculation, normalizeImageUrl, normalizeOrder } from '../../../utils';
 import { isCodBlockedDuringNight } from '../../../utils/nightDelivery';
 import { formatEtaMinutes } from '../../../utils/formatEta';
 import { uuidv4 } from '../../../utils/uuid';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 const requestLocationPermission = async () => {
   const { status } = await Location.requestForegroundPermissionsAsync();
@@ -97,6 +93,7 @@ export default function CheckoutScreen() {
     const type = item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');
     return {
       productId: item.product.id,
+      variantId: item.variant?.id ?? null,
       quantity: item.quantity,
       type,
       isCombo: type === 'combo',
@@ -150,6 +147,16 @@ export default function CheckoutScreen() {
   // Synchronous double-submit guard. React state is async, so isSubmitting alone
   // does not protect against a fast double-tap on Place Order.
   const isSubmittingRef = useRef(false);
+  const orderPlacedRef = useRef(false);
+
+  // Analytics: checkout_start on mount, checkout_abandon on unmount if no order
+  // was placed. Fire-and-forget — never blocks the checkout flow.
+  useEffect(() => {
+    trackEvent('checkout_start');
+    return () => {
+      if (!orderPlacedRef.current) trackEvent('checkout_abandon');
+    };
+  }, []);
 
   // Idempotency-Key for this Place Order attempt. Kept across retries so
   // the server can recognise "same attempt, please don't double-charge".
@@ -471,6 +478,8 @@ export default function CheckoutScreen() {
         })
       );
       clearCart();
+      orderPlacedRef.current = true;
+      trackEvent('order_placed', { orderId: Number(orderId) || undefined });
       // Order created successfully — clear the key so a future checkout
       // session generates a fresh one.
       idempotencyKeyRef.current = null;

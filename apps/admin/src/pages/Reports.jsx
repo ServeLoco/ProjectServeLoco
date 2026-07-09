@@ -3,7 +3,13 @@ import { ReportsApi } from '../api';
 import './Reports.css';
 
 import { GENERIC_ERROR } from '../utils/constants';
-const escapeCsvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+const escapeCsvCell = (value) => {
+  let s = String(value ?? '');
+  // Prevent formula injection: neutralize leading =,+,-,@ that spreadsheet
+  // apps (Excel/LibreOffice) evaluate as formulas when a CSV is opened.
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
+};
 
 export default function Reports() {
   const [period, setPeriod] = useState('today'); // today, week, month, all

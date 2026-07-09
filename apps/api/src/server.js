@@ -4,6 +4,7 @@ const db = require('./db');
 const { pool } = require('./db/mysql');
 const { closeRealtime, initRealtime } = require('./realtime/socket');
 const orderAutoAccept = require('./realtime/orderAutoAccept');
+const { startRollupScheduler, stopRollupScheduler } = require('./services/analytics/rollup');
 
 const PORT = config.PORT;
 let server;
@@ -82,6 +83,8 @@ const startServer = async () => {
       console.log(`Server is running on port ${PORT} (JWT_EXPIRES_IN=${jwtExpires})`);
     });
     initRealtime(server);
+    // Daily analytics rollup — backfills yesterday on startup, then runs at 00:05.
+    startRollupScheduler();
     // Auto-accept any orders that were Pending before this restart.
     orderAutoAccept.rehydratePendingOrders().catch(() => {});
     // Run the deletion sweep once at startup, then once a day.
@@ -104,6 +107,7 @@ if (require.main === module) startServer();
 const shutdown = async () => {
   console.log('SIGTERM/SIGINT signal received: closing HTTP server and database connections');
   orderAutoAccept.clearAll();
+  stopRollupScheduler();
   if (global.__purgeTimer) clearInterval(global.__purgeTimer);
   await closeRealtime();
 

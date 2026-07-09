@@ -14,11 +14,13 @@ import {
   QuantityStepper,
   Button,
   ProductImage,
+  VariantSheet,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
 import { useAuthGate } from '../../../hooks';
 import { productsApi } from '../../../api';
+import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, normalizeProduct } from '../../../utils';
 
 export default function ProductDetailScreen() {
@@ -40,8 +42,10 @@ export default function ProductDetailScreen() {
   const addCombo = useCartStore(state => state.addCombo);
   const decrementCombo = useCartStore(state => state.decrementCombo);
   const getComboQuantity = useCartStore(state => state.getComboQuantity);
+  const getProductQuantity = useCartStore(state => state.getProductQuantity);
   const updateQuantity = useCartStore(state => state.updateQuantity);
   const removeItem = useCartStore(state => state.removeItem);
+  const [variantSheetProduct, setVariantSheetProduct] = useState(null);
   const cartItemCount = useMemo(
     () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
     [items]
@@ -57,6 +61,7 @@ export default function ProductDetailScreen() {
   useEffect(() => {
     let isMounted = true;
 
+    trackEvent('product_view', { productId: Number(productId) });
     setIsLoading(true);
     setLoadError('');
 
@@ -101,20 +106,27 @@ export default function ProductDetailScreen() {
     };
   }, [bottomBarSlide, detailsFade, detailsSlide, imgFade, productId, productType, routeProduct, staggerRelatedAnims]);
 
-  const getQty = (id) => {
-    const item = items.find(i => i.product.id === id && (i.type || 'product') !== 'combo');
-    return item ? item.quantity : 0;
-  };
+  const findCartLine = (id) => items.find(i => i.product.id === id && (i.type || 'product') !== 'combo');
 
   const isComboProduct = (item) => item?.isCombo || item?.is_combo || item?.comboItems?.length;
+  const isMultiVariantProduct = (item) => (item?.variants?.length ?? 0) > 1;
 
   const handleAddToCart = (item) => requireAuth(null, () => {
     if (isComboProduct(item)) addCombo(item);
-    else addItem(item);
+    else if (isMultiVariantProduct(item)) setVariantSheetProduct(item);
+    else addItem(item, 1, item.variants?.[0] ?? null);
   });
   const handleIncrement = (item) => requireAuth(null, () => {
-    if (isComboProduct(item)) addCombo(item);
-    else addItem(item);
+    if (isComboProduct(item)) {
+      addCombo(item);
+      return;
+    }
+    // Reuse the variant already in the cart for this product — a
+    // single-variant product is stored WITH its variant attached, so
+    // adding with variant=null here would miss the match and create a
+    // duplicate line instead of incrementing it.
+    const existing = findCartLine(item.id);
+    addItem(item, 1, existing?.variant ?? item.variants?.[0] ?? null);
   });
   const handleDecrement = (item) => {
     if (isComboProduct(item)) {
@@ -122,9 +134,11 @@ export default function ProductDetailScreen() {
       return;
     }
 
-    const currentQty = getQty(item.id);
-    if (currentQty <= 1) removeItem(item.id);
-    else updateQuantity(item.id, currentQty - 1);
+    const existing = findCartLine(item.id);
+    const variantId = existing?.variant?.id ?? null;
+    const currentQty = existing?.quantity || 0;
+    if (currentQty <= 1) removeItem(item.id, 'product', variantId);
+    else updateQuantity(item.id, currentQty - 1, 'product', variantId);
   };
 
   if (isLoading) {
@@ -150,7 +164,17 @@ export default function ProductDetailScreen() {
     );
   }
 
-  const currentQty = isComboProduct(product) ? getComboQuantity(product) : getQty(product.id);
+  const currentQty = isComboProduct(product) ? getComboQuantity(product) : getProductQuantity(product.id);
+  const productIsMultiVariant = isMultiVariantProduct(product);
+  // Sum of actual line totals across this product's variant lines (each
+  // variant may be priced differently) rather than a naive price * qty.
+  const productCartTotal = productIsMultiVariant
+    ? (currentQty > 0
+        ? items
+            .filter(i => i.product.id === product.id && (i.type || 'product') !== 'combo')
+            .reduce((sum, i) => sum + (Number(i.variant?.price ?? i.product.price) || 0) * (Number(i.quantity) || 0), 0)
+        : (product.minPrice ?? product.min_price ?? product.price))
+    : product.price * (currentQty || 1);
 
   return (
     <AppScreen style={styles.container} safeAreaBottom={false}>
@@ -251,6 +275,7 @@ export default function ProductDetailScreen() {
                 ]}
               >
                 <ProductCard
+                  product={rel}
                   name={rel.name}
                   price={rel.price}
                   originalPrice={rel.originalPrice}
@@ -259,7 +284,7 @@ export default function ProductDetailScreen() {
                   isCombo={rel.isCombo}
                   comboItems={rel.comboItems}
                   imageUri={rel.imageUri}
-                  quantity={isComboProduct(rel) ? getComboQuantity(rel) : getQty(rel.id)}
+                  quantity={isComboProduct(rel) ? getComboQuantity(rel) : getProductQuantity(rel.id)}
                   onAdd={() => handleAddToCart(rel)}
                   onIncrement={() => handleIncrement(rel)}
                   onDecrement={() => handleDecrement(rel)}
@@ -281,13 +306,20 @@ export default function ProductDetailScreen() {
       >
         <View style={styles.bottomPriceCol}>
           <Text style={styles.bottomPriceLabel}>Total Price</Text>
-          <Text style={styles.bottomPriceVal}>Rs. {product.price * (currentQty || 1)}</Text>
+          <Text style={styles.bottomPriceVal}>Rs. {productCartTotal}</Text>
         </View>
 
         <View style={styles.bottomActionCol}>
-          {currentQty === 0 ? (
-            <Button 
-              label="Add to Cart" 
+          {productIsMultiVariant ? (
+            <Button
+              label={currentQty > 0 ? `${currentQty} in cart · Change options` : 'Choose options'}
+              onPress={() => handleAddToCart(product)}
+              disabled={!product.available}
+              style={{ flex: 1 }}
+            />
+          ) : currentQty === 0 ? (
+            <Button
+              label="Add to Cart"
               onPress={() => handleAddToCart(product)}
               disabled={!product.available}
               style={{ flex: 1 }}
@@ -301,9 +333,9 @@ export default function ProductDetailScreen() {
                 onDecrement={() => handleDecrement(product)}
                 disabled={!product.available}
               />
-              <Button 
-                label="View Cart" 
-                variant="outline" 
+              <Button
+                label="View Cart"
+                variant="outline"
                 onPress={() => navigation.navigate('Cart')}
                 style={styles.viewCartBtn}
               />
@@ -311,6 +343,12 @@ export default function ProductDetailScreen() {
           )}
         </View>
       </Animated.View>
+
+      <VariantSheet
+        visible={!!variantSheetProduct}
+        product={variantSheetProduct}
+        onClose={() => setVariantSheetProduct(null)}
+      />
 
     </AppScreen>
   );

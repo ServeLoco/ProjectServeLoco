@@ -55,4 +55,24 @@ describe('Curated Category Grid', () => {
     expect(pool.query.mock.calls[1][0]).toContain('dashboard_section_items');
     expect(pool.query.mock.calls).toHaveLength(2);
   });
+
+  it('embeds variants on a product_block section (dashboard cards must show the variant sheet)', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 1, slug: 'pizza-block', section_type: 'product_block', store_type: 'packed' }]]) // getDashboard sections
+      .mockResolvedValueOnce([[{ id: 12, name: 'Margherita Pizza', price: 149, is_combo: 0, available: 1, category_type: 'packed' }]]) // product_block query
+      .mockResolvedValueOnce([[
+        { id: 10, product_id: 12, label: 'Small', price: 149, original_price: null, available: 1, is_default: 1, display_order: 0 },
+        { id: 11, product_id: 12, label: 'Large', price: 349, original_price: null, available: 1, is_default: 0, display_order: 1 },
+      ]]); // attachVariants query
+
+    const res = await request(app).get('/api/dashboard?storeType=packed');
+
+    expect(res.statusCode).toEqual(200);
+    const productSection = res.body.data.sections.find(s => s.sectionType === 'product_block');
+    expect(productSection).toBeDefined();
+    const pizza = productSection.items[0];
+    expect(pizza.variants).toHaveLength(2);
+    expect(pizza.hasVariants).toBe(true);
+    expect(pizza.minPrice).toBe(149);
+  });
 });

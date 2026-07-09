@@ -174,7 +174,9 @@ export default function HomeScreen() {
         {!shopOpen && <ShopClosedBanner />}
         
         <div className="home-search" onClick={() => navigate(`/products?mode=search&storeType=${storeType}`)}>
-          <SearchIcon />
+          <span className="home-search-icon-ring">
+            <SearchIcon />
+          </span>
           <span>Search for food, snacks...</span>
         </div>
 

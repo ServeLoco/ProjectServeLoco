@@ -76,6 +76,8 @@ const buildReplayOrderJson = (existing, itemsRows, couponSnap, req) => {
     couponTitle: couponSnap.coupon_title || null,
     items: itemsRows.map(item => ({
       productId: item.product_id,
+      variantId: item.variant_id, variant_id: item.variant_id,
+      variantLabel: item.variant_label, variant_label: item.variant_label,
       name: item.product_name,
       quantity: item.quantity,
       unitPrice: item.unit_price,
@@ -160,7 +162,7 @@ const createOrder = async (req, res) => {
       if (Array.isArray(existingRows) && existingRows.length > 0) {
         const existing = existingRows[0];
         const [itemsRows] = await connection.query(
-          'SELECT product_id, item_type, product_name, quantity, unit_price, line_total FROM order_items WHERE order_id = ?',
+          'SELECT product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total FROM order_items WHERE order_id = ?',
           [existing.id]
         );
         const [couponRows] = await connection.query(
@@ -232,6 +234,26 @@ const createOrder = async (req, res) => {
       for (const row of comboRows) comboById.set(Number(row.id), row);
     }
 
+    // Batch fetch variants referenced by the order items (one query for all
+    // distinct non-null variant ids). Combos never carry a variant.
+    const variantById = new Map();
+    const variantIdsInOrder = [...new Set(
+      items
+        .filter(it => {
+          const isCombo = it.type === 'combo' || it.isCombo || it.is_combo;
+          const vid = it.variant_id || it.variantId || null;
+          return vid !== null && vid !== undefined && !isCombo;
+        })
+        .map(it => Number(it.variant_id || it.variantId))
+    )];
+    if (variantIdsInOrder.length > 0) {
+      const [variantRows] = await connection.query(
+        'SELECT id, product_id, label, price, available, deleted FROM product_variants WHERE id IN (?)',
+        [variantIdsInOrder]
+      );
+      for (const row of variantRows) variantById.set(Number(row.id), row);
+    }
+
     for (const item of items) {
       const isCombo = item.type === 'combo' || item.isCombo || item.is_combo;
       const productId = item.product_id || item.productId;
@@ -240,13 +262,38 @@ const createOrder = async (req, res) => {
       if (!product) throw new OrderError(`${isCombo ? 'Combo' : 'Product'} ID ${productId} is unavailable or does not exist`);
 
       const quantity = Number(item.quantity);
-      const unitPrice = toMoney(product.price);
+      const rawVariantId = item.variant_id || item.variantId || null;
+      const variantId = rawVariantId !== null && rawVariantId !== undefined ? Number(rawVariantId) : null;
+      let unitPrice;
+      let productName = product.name;
+      let variantLabel = null;
+
+      if (variantId !== null && !isCombo) {
+        // Server-authoritative variant pricing — independent of the cart path.
+        // ALL four conditions must hold (blocks forged cross-product variant ids).
+        const variant = variantById.get(variantId);
+        if (!variant || variant.deleted || !variant.available || Number(variant.product_id) !== Number(productId)) {
+          throw new OrderError('Selected option is unavailable or does not exist');
+        }
+        unitPrice = toMoney(variant.price);
+        variantLabel = variant.label;
+        productName = `${product.name} (${variant.label})`;
+      } else {
+        unitPrice = toMoney(product.price);
+      }
+
       const lineTotal = roundMoney(unitPrice * quantity);
 
       subtotal += lineTotal;
+      // Combos never carry a variant — force null so an unvalidated
+      // client-sent variantId is never persisted as if it had been checked.
+      const effectiveVariantId = isCombo ? null : variantId;
+      const effectiveVariantLabel = isCombo ? null : variantLabel;
       orderItems.push({
         product_id: product.id,
-        product_name: product.name,
+        variant_id: effectiveVariantId,
+        variant_label: effectiveVariantLabel,
+        product_name: productName,
         quantity,
         unit_price: unitPrice,
         line_total: lineTotal,
@@ -406,7 +453,7 @@ const createOrder = async (req, res) => {
         }
         const existing2 = existingRows2[0];
         const [itemsRows2] = await pool.query(
-          'SELECT product_id, item_type, product_name, quantity, unit_price, line_total FROM order_items WHERE order_id = ?',
+          'SELECT product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total FROM order_items WHERE order_id = ?',
           [existing2.id]
         );
         const [couponRows2] = await pool.query(
@@ -420,13 +467,13 @@ const createOrder = async (req, res) => {
     }
 
     if (orderItems.length > 0) {
-      const placeholders = orderItems.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const placeholders = orderItems.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
       const values = [];
       for (const oi of orderItems) {
-        values.push(orderId, oi.product_id, oi.item_type || 'product', oi.product_name, oi.quantity, oi.unit_price, oi.line_total);
+        values.push(orderId, oi.product_id, oi.variant_id || null, oi.variant_label || null, oi.item_type || 'product', oi.product_name, oi.quantity, oi.unit_price, oi.line_total);
       }
       await connection.query(
-        `INSERT INTO order_items (order_id, product_id, item_type, product_name, quantity, unit_price, line_total) VALUES ${placeholders}`,
+        `INSERT INTO order_items (order_id, product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total) VALUES ${placeholders}`,
         values
       );
     }
@@ -482,6 +529,8 @@ const createOrder = async (req, res) => {
       couponDropped,
       items: orderItems.map(item => ({
         productId: item.product_id,
+        variantId: item.variant_id, variant_id: item.variant_id,
+        variantLabel: item.variant_label, variant_label: item.variant_label,
         name: item.product_name,
         quantity: item.quantity,
         unitPrice: item.unit_price,

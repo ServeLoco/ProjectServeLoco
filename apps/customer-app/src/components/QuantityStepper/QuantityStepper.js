@@ -4,17 +4,10 @@ import {
   Text,
   TouchableOpacity,
   View,
-  LayoutAnimation,
-  UIManager,
-  Platform,
   Animated,
 } from 'react-native';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 import AppIcon from '../AppIcon';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 /**
  * QuantityStepper
@@ -44,9 +37,13 @@ function QuantityStepper({
 
   useEffect(() => {
     const previousQuantity = Math.max(0, Number(prevQuantity.current) || 0);
-    if ((previousQuantity === 0 && normalizedQuantity > 0) || (previousQuantity > 0 && normalizedQuantity === 0)) {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    } else if (previousQuantity > 0 && normalizedQuantity > 0 && previousQuantity !== normalizedQuantity) {
+    // Note: deliberately not using LayoutAnimation.configureNext here — it's a
+    // global, unscoped API that also animates unrelated views committing in
+    // the same frame (e.g. a ProductCard behind this sheet swapping from its
+    // "in cart" pill back to the Buy pebble), and if that animation gets
+    // interrupted (e.g. by the sheet closing mid-flight) the other view can
+    // get stuck invisible. Scale-pulse below is self-contained instead.
+    if (previousQuantity > 0 && normalizedQuantity > 0 && previousQuantity !== normalizedQuantity) {
       scaleAnim.setValue(1.3);
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -150,6 +147,8 @@ const styles = StyleSheet.create({
   },
   addBtnDense: {
     height: 32,
+    width: 'auto',
+    alignSelf: 'flex-start',
     minWidth: 52,
     paddingHorizontal: 8,
     borderRadius: radius.sm,
@@ -199,6 +198,8 @@ const styles = StyleSheet.create({
   },
   stepperDense: {
     height: 32,
+    width: 'auto',
+    alignSelf: 'flex-start',
     minWidth: 68,
     borderRadius: radius.sm,
   },

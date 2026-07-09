@@ -21,6 +21,14 @@ const queryRows = async (sql, params) => {
   return Array.isArray(result) ? result[0] || [] : [];
 };
 
+// Account-level lockout, independent of the per-IP login rate limiter — a
+// distributed brute force (many source IPs) would otherwise never trip the
+// per-IP bucket. There is one shared owner account, so a single counter row
+// is enough (see admin_auth_state).
+const LOCKOUT_THRESHOLD = 10;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+const skipLockoutCheck = () => process.env.NODE_ENV === 'test';
+
 const login = async (req, res) => {
   const { id, password } = req.validatedData;
 
@@ -28,9 +36,18 @@ const login = async (req, res) => {
   const ownerPasswordHash = process.env.ADMIN_PASSWORD_HASH || config.ADMIN_PASSWORD_HASH;
   const ownerPassword = process.env.ADMIN_PASSWORD || config.ADMIN_PASSWORD;
 
-  if (id === ownerId) {
-    let isMatch = false;
+  if (!skipLockoutCheck()) {
+    const [[state]] = await pool.query('SELECT locked_until FROM admin_auth_state WHERE id = 1');
+    if (state?.locked_until && new Date(state.locked_until).getTime() > Date.now()) {
+      return res.status(423).json({
+        code: 'ACCOUNT_LOCKED',
+        message: 'Too many failed login attempts. Try again later.'
+      });
+    }
+  }
 
+  let isMatch = false;
+  if (id === ownerId) {
     // Prefer ADMIN_PASSWORD_HASH (bcrypt) when set; otherwise fall back to
     // a constant-time plaintext comparison against ADMIN_PASSWORD.
     if (ownerPasswordHash) {
@@ -40,15 +57,39 @@ const login = async (req, res) => {
       const b = Buffer.from(String(ownerPassword));
       isMatch = a.length === b.length && crypto.timingSafeEqual(a, b);
     }
+  }
 
-    if (isMatch) {
-      const token = signAdminToken(id);
-      return res.status(200).json({
-        message: 'Admin login successful',
-        token,
-        user: { id, role: 'admin' }
-      });
+  if (isMatch) {
+    if (!skipLockoutCheck()) {
+      await pool.query('UPDATE admin_auth_state SET failed_attempts = 0, locked_until = NULL WHERE id = 1');
     }
+    const token = signAdminToken(id);
+    return res.status(200).json({
+      message: 'Admin login successful',
+      token,
+      user: { id, role: 'admin' }
+    });
+  }
+
+  if (!skipLockoutCheck()) {
+    // Single atomic UPDATE — the previous read-then-write (SELECT, then
+    // UPDATE with the computed value) let two concurrent failed logins read
+    // the same starting count and both write attempts+1, silently losing an
+    // increment under a real distributed brute force. MySQL row-locks the
+    // UPDATE itself, so this can't lose a count no matter how concurrent.
+    //
+    // ORDER MATTERS: MySQL evaluates SET assignments left-to-right using the
+    // UPDATED values (nonstandard). locked_until must be assigned first, while
+    // failed_attempts still holds its original value — the reverse order would
+    // zero failed_attempts before the locked_until CASE reads it, and the
+    // lockout would never engage.
+    await pool.query(
+      `UPDATE admin_auth_state
+         SET locked_until = CASE WHEN failed_attempts + 1 >= ? THEN ? ELSE locked_until END,
+             failed_attempts = CASE WHEN failed_attempts + 1 >= ? THEN 0 ELSE failed_attempts + 1 END
+       WHERE id = 1`,
+      [LOCKOUT_THRESHOLD, new Date(Date.now() + LOCKOUT_DURATION_MS), LOCKOUT_THRESHOLD]
+    );
   }
 
   return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid admin credentials' });
@@ -59,6 +100,20 @@ const me = (req, res) => {
   res.status(200).json({
     user: { id: adminId, role: 'admin' }
   });
+};
+
+// Kill switch for a leaked admin token: any token issued before this moment
+// (including the caller's own) stops working on its next request. Does not
+// touch JWT_SECRET, so customer sessions are unaffected.
+const revokeSessions = async (req, res) => {
+  // Whole-second precision to match JWT `iat` (also whole seconds). The
+  // revocation check below uses a strict "<" so a token issued in the same
+  // second as this revoke is still treated as valid — it can only exist
+  // because the admin already re-logged-in after triggering the revoke.
+  await pool.query(
+    'UPDATE admin_auth_state SET revoked_before = NOW() WHERE id = 1'
+  );
+  res.status(200).json({ message: 'All admin sessions revoked. Log in again to continue.' });
 };
 
 const getAdminCustomers = async (req, res) => {
@@ -841,6 +896,7 @@ const deleteAdminNotification = async (req, res) => {
 module.exports = {
   login,
   me,
+  revokeSessions,
   getAdminCustomers,
   setBlockStatus,
   setTrustStatus,
@@ -866,30 +922,22 @@ module.exports = {
 
 const getInbox = async (req, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
-  try {
-    const [rows] = await pool.query(
-      `SELECT id, type, title, body, related_url, related_id, read_at, created_at
-         FROM admin_notifications
-        ORDER BY created_at DESC, id DESC
-        LIMIT ?`,
-      [limit]
-    );
-    const [[count]] = await pool.query(
-      'SELECT COUNT(*) AS n FROM admin_notifications WHERE read_at IS NULL'
-    );
-    res.status(200).json({ data: rows, unread_count: Number(count.n) || 0 });
-  } catch (e) {
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
-  }
+  const [rows] = await pool.query(
+    `SELECT id, type, title, body, related_url, related_id, read_at, created_at
+       FROM admin_notifications
+      ORDER BY created_at DESC, id DESC
+      LIMIT ?`,
+    [limit]
+  );
+  const [[count]] = await pool.query(
+    'SELECT COUNT(*) AS n FROM admin_notifications WHERE read_at IS NULL'
+  );
+  res.status(200).json({ data: rows, unread_count: Number(count.n) || 0 });
 };
 
 const getInboxUnreadCount = async (req, res) => {
-  try {
-    const count = await adminInbox.getUnreadCount();
-    res.status(200).json({ count });
-  } catch (e) {
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
-  }
+  const count = await adminInbox.getUnreadCount();
+  res.status(200).json({ count });
 };
 
 const markInboxRead = async (req, res) => {
@@ -897,26 +945,18 @@ const markInboxRead = async (req, res) => {
   if (!Number.isFinite(id) || id <= 0) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid id' });
   }
-  try {
-    await pool.query(
-      'UPDATE admin_notifications SET read_at = NOW() WHERE id = ? AND read_at IS NULL',
-      [id]
-    );
-    adminInbox.broadcastUnreadCount();
-    res.status(200).json({ message: 'Marked as read' });
-  } catch (e) {
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
-  }
+  await pool.query(
+    'UPDATE admin_notifications SET read_at = NOW() WHERE id = ? AND read_at IS NULL',
+    [id]
+  );
+  adminInbox.broadcastUnreadCount();
+  res.status(200).json({ message: 'Marked as read' });
 };
 
 const markAllInboxRead = async (req, res) => {
-  try {
-    await pool.query('UPDATE admin_notifications SET read_at = NOW() WHERE read_at IS NULL');
-    adminInbox.broadcastUnreadCount();
-    res.status(200).json({ message: 'All marked as read' });
-  } catch (e) {
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
-  }
+  await pool.query('UPDATE admin_notifications SET read_at = NOW() WHERE read_at IS NULL');
+  adminInbox.broadcastUnreadCount();
+  res.status(200).json({ message: 'All marked as read' });
 };
 
 const dismissInbox = async (req, res) => {
@@ -924,13 +964,9 @@ const dismissInbox = async (req, res) => {
   if (!Number.isFinite(id) || id <= 0) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid id' });
   }
-  try {
-    await pool.query('DELETE FROM admin_notifications WHERE id = ?', [id]);
-    adminInbox.broadcastUnreadCount();
-    res.status(200).json({ message: 'Dismissed' });
-  } catch (e) {
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
-  }
+  await pool.query('DELETE FROM admin_notifications WHERE id = ?', [id]);
+  adminInbox.broadcastUnreadCount();
+  res.status(200).json({ message: 'Dismissed' });
 };
 
 module.exports.getInbox = getInbox;

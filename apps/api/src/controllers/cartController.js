@@ -29,14 +29,18 @@ const calculateCart = async (req, res) => {
     const item = items[index];
     const productId = item.product_id || item.productId;
     const isCombo = item.type === 'combo' || item.isCombo || item.is_combo;
+    const rawVariantId = item.variant_id || item.variantId || null;
 
     if (!isId(productId)) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Item ${index + 1}: valid product_id is required` });
     }
+    if (rawVariantId !== null && rawVariantId !== undefined && !isId(rawVariantId)) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Item ${index + 1}: valid variant_id is required` });
+    }
     if (!isPositiveInteger(item.quantity)) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Item ${index + 1}: quantity must be a whole number between 1 and 999` });
     }
-    normalizedItems.push({ productId: Number(productId), quantity: Number(item.quantity), isCombo });
+    normalizedItems.push({ productId: Number(productId), variantId: rawVariantId !== null && rawVariantId !== undefined ? Number(rawVariantId) : null, quantity: Number(item.quantity), isCombo });
   }
   const totalItemCount = normalizedItems.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -62,11 +66,24 @@ const calculateCart = async (req, res) => {
     comboRows.forEach(c => { comboMap[c.id] = c; });
   }
 
+  // Batch fetch variants referenced by the cart (one query for all distinct
+  // non-null variant ids). Two lines with the same productId but different
+  // variantIds are legal — no dedup is done on variants, only on ids.
+  const variantIds = [...new Set(normalizedItems.filter(i => i.variantId !== null).map(i => i.variantId))];
+  const variantMap = {};
+  if (variantIds.length > 0) {
+    const [variantRows] = await pool.query(
+      'SELECT id, product_id, label, price, available, deleted FROM product_variants WHERE id IN (?)',
+      [variantIds]
+    );
+    variantRows.forEach(v => { variantMap[v.id] = v; });
+  }
+
   let subtotal = 0;
   const processedItems = [];
 
   for (let index = 0; index < normalizedItems.length; index++) {
-    const { productId, quantity, isCombo } = normalizedItems[index];
+    const { productId, variantId, quantity, isCombo } = normalizedItems[index];
     const product = isCombo ? comboMap[productId] : productMap[productId];
 
     if (!product) {
@@ -76,10 +93,45 @@ const calculateCart = async (req, res) => {
       });
     }
 
-    const unitPrice = toMoney(product.price);
+    let unitPrice;
+    let lineName = product.name;
+    let variantLabel = null;
+
+    if (variantId !== null && !isCombo) {
+      // Server-authoritative variant pricing: ALL four conditions must hold.
+      const variant = variantMap[variantId];
+      if (!variant || variant.deleted || !variant.available || Number(variant.product_id) !== productId) {
+        return res.status(400).json({
+          code: 'VALIDATION_ERROR',
+          message: `Item ${index + 1}: selected option is unavailable or does not exist`
+        });
+      }
+      unitPrice = toMoney(variant.price);
+      variantLabel = variant.label;
+      lineName = `${product.name} (${variant.label})`;
+    } else {
+      // No variantId (old-client path) or a combo → base product/combo price.
+      unitPrice = toMoney(product.price);
+    }
+
     const lineTotal = roundMoney(unitPrice * quantity);
     subtotal += lineTotal;
-    processedItems.push({ id: product.id, name: product.name, quantity, unitPrice, lineTotal, type: isCombo ? 'combo' : 'product' });
+    // Combos never carry a variant — force null so an unvalidated client-sent
+    // variantId is never echoed back as if it had been checked.
+    const effectiveVariantId = isCombo ? null : variantId;
+    const effectiveVariantLabel = isCombo ? null : variantLabel;
+    processedItems.push({
+      id: product.id,
+      name: lineName,
+      quantity,
+      unitPrice,
+      lineTotal,
+      type: isCombo ? 'combo' : 'product',
+      variantId: effectiveVariantId,
+      variant_id: effectiveVariantId,
+      variantLabel: effectiveVariantLabel,
+      variant_label: effectiveVariantLabel,
+    });
   }
 
   const { latitude, longitude, lat, lng } = req.body;

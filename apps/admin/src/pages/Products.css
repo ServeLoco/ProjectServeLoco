@@ -674,6 +674,96 @@
   background: var(--danger-bg);
 }
 
+/* ── Variant editor ──────────────────────────────────────── */
+.variant-editor {
+  margin-top: 0.5rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--bg-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.variant-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.variant-editor-header .form-label {
+  margin: 0;
+}
+
+.variant-row {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  background: var(--surface-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.variant-row-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.variant-row-top .variant-label-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.variant-default-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.variant-remove {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0.3rem 0.55rem;
+}
+
+.variant-row-prices {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.6rem;
+  align-items: end;
+}
+
+.variant-row-prices .form-group {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.checkbox-label.variant-available-label {
+  min-height: auto;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .variant-row-prices {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .checkbox-label.variant-available-label {
+    grid-column: 1 / -1;
+  }
+}
+
 /* ── Products responsive ────────────────────────────────── */
 
 /* Tablet */

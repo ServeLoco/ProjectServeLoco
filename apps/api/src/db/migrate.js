@@ -175,7 +175,34 @@ const migrate = async () => {
     await ensureColumn('products', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER discount_label');
     await ensureColumn('products', 'available_from_time', 'available_from_time TIME NULL AFTER deleted');
     await ensureColumn('products', 'available_until_time', 'available_until_time TIME NULL AFTER available_from_time');
+    // Free-text sheet subtitle ("Choose size", "Choose type"). NULL -> client
+    // shows "Choose an option".
+    await ensureColumn('products', 'variant_prompt', 'variant_prompt VARCHAR(100) NULL AFTER available_until_time');
     console.log('Products table ready.');
+
+    // Product Variants Table — purchasable child rows (sizes/types) of a
+    // product, each with its own label + price. products.price ALWAYS mirrors
+    // the default variant's price (the backward-compat keystone). Variant rows
+    // are soft-deleted (deleted = 1) so live carts / order snapshots that hold
+    // variant ids keep resolving. has_variants is DERIVED client-side.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_variants (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        product_id INT NOT NULL,
+        label VARCHAR(100) NOT NULL,
+        price DECIMAL(10,2) NOT NULL,
+        original_price DECIMAL(10,2) NULL,
+        available BOOLEAN DEFAULT TRUE,
+        is_default BOOLEAN DEFAULT FALSE,
+        display_order INT NOT NULL DEFAULT 0,
+        deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+        INDEX idx_variant_product (product_id, deleted, available)
+      );
+    `);
+    console.log('Product variants table ready.');
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS product_combo_items (
@@ -369,6 +396,11 @@ const migrate = async () => {
       );
     `);
     await ensureColumn('order_items', 'item_type', 'item_type VARCHAR(50) DEFAULT "product" AFTER product_id');
+    // Variant snapshot columns. Deliberately NO foreign key on variant_id —
+    // order snapshots must outlive catalog rows (the product FK is dropped
+    // below for the same reason).
+    await ensureColumn('order_items', 'variant_id', 'variant_id INT NULL AFTER product_id');
+    await ensureColumn('order_items', 'variant_label', 'variant_label VARCHAR(100) NULL AFTER variant_id');
     const [orderItemProductFks] = await connection.query(`
       SELECT CONSTRAINT_NAME
       FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
@@ -1091,6 +1123,30 @@ const migrate = async () => {
       );
     `);
     console.log('Images table ready.');
+
+    // Admin session revocation + brute-force lockout — single row (there is
+    // one shared owner admin account, not a users table).
+    // - revoked_before: any admin JWT whose `iat` is at or before this is
+    //   rejected by requireAdmin even though its signature/expiry are still
+    //   valid. Kill switch for a leaked token that doesn't require rotating
+    //   JWT_SECRET (which would also nuke every customer session).
+    // - failed_attempts / locked_until: account-level lockout independent of
+    //   the per-IP login rate limiter, so a distributed brute force (many
+    //   source IPs) still gets stopped.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS admin_auth_state (
+        id INT PRIMARY KEY DEFAULT 1,
+        revoked_before TIMESTAMP NULL DEFAULT NULL,
+        failed_attempts INT NOT NULL DEFAULT 0,
+        locked_until TIMESTAMP NULL DEFAULT NULL
+      );
+    `);
+    await ensureColumn('admin_auth_state', 'failed_attempts', 'failed_attempts INT NOT NULL DEFAULT 0');
+    await ensureColumn('admin_auth_state', 'locked_until', 'locked_until TIMESTAMP NULL DEFAULT NULL');
+    await connection.query(`
+      INSERT IGNORE INTO admin_auth_state (id, revoked_before) VALUES (1, NULL)
+    `);
+    console.log('Admin auth state table ready.');
 
     // Switch the 5 image-reference columns from VARCHAR (holding the legacy
     // Mongo ObjectId hex string) to INT (holding the new `images.id`). Only

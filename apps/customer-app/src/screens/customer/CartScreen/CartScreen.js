@@ -7,8 +7,6 @@ import {
   Animated,
   TouchableOpacity,
   LayoutAnimation,
-  Platform,
-  UIManager,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -29,13 +27,12 @@ import { cartApi } from '../../../api';
 import { buildProgressHintText, normalizeCartCalculation, useReducedMotion } from '../../../utils';
 import CouponSheet from './CouponSheet';
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
 const getItemType = (item) =>
   item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');
-const getItemKey = (item) => `${getItemType(item)}-${item.product.id}`;
+// Includes variant id — two lines of the same product with different
+// variants (e.g. 2x Veg + 1x Chicken) must get distinct keys, otherwise
+// React collides them and quantity controls would target the wrong line.
+const getItemKey = (item) => `${getItemType(item)}-${item.product.id}-${item.variant?.id ?? 'base'}`;
 
 export default function CartScreen() {
   const navigation = useNavigation();
@@ -169,6 +166,7 @@ export default function CartScreen() {
       const payload = {
         items: validItems.map(item => ({
           productId: item.product.id,
+          variantId: item.variant?.id ?? null,
           quantity: item.quantity,
           type: item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product'),
           isCombo: (item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product')) === 'combo',
@@ -214,9 +212,9 @@ export default function CartScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, appliedCouponCode, appliedCouponId, couponAutoApplyDisabled]);
 
-  const handleRemove = (id, type = 'product') => {
+  const handleRemove = (id, type = 'product', variantId = null) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    removeItem(id, type);
+    removeItem(id, type, variantId);
   };
 
   const handleClear = () => {
@@ -869,12 +867,15 @@ export default function CartScreen() {
                         <Text style={styles.itemName} numberOfLines={2}>
                           {item.product.name}
                         </Text>
+                        {item.variant?.label && (
+                          <Text style={styles.itemUnit} numberOfLines={1}>{item.variant.label}</Text>
+                        )}
                         <View style={styles.itemMetaRow}>
                           <Text style={styles.itemUnit} numberOfLines={1}>
                             {item.product.unit}
                           </Text>
                           <Text style={styles.itemMetaDot}>·</Text>
-                          <Text style={styles.itemPrice}>₹{item.product.price}</Text>
+                          <Text style={styles.itemPrice}>₹{item.variant?.price ?? item.product.price}</Text>
                         </View>
                         {!item.product.available && (
                           <Text style={styles.itemUnavailable}>Currently unavailable</Text>
@@ -885,15 +886,15 @@ export default function CartScreen() {
                         <QuantityStepper
                           compact
                           quantity={item.quantity}
-                          onIncrement={() => updateQuantity(item.product.id, item.quantity + 1, itemType)}
+                          onIncrement={() => updateQuantity(item.product.id, item.quantity + 1, itemType, item.variant?.id ?? null)}
                           onDecrement={() => {
-                            if (item.quantity <= 1) handleRemove(item.product.id, itemType);
-                            else updateQuantity(item.product.id, item.quantity - 1, itemType);
+                            if (item.quantity <= 1) handleRemove(item.product.id, itemType, item.variant?.id ?? null);
+                            else updateQuantity(item.product.id, item.quantity - 1, itemType, item.variant?.id ?? null);
                           }}
                         />
                         <TouchableOpacity
                           style={styles.removeBtn}
-                          onPress={() => handleRemove(item.product.id, itemType)}
+                          onPress={() => handleRemove(item.product.id, itemType, item.variant?.id ?? null)}
                           accessibilityRole="button"
                           accessibilityLabel="Remove item"
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

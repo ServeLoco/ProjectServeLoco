@@ -3,21 +3,18 @@ import { StyleSheet, Text, TouchableOpacity, View, Animated } from 'react-native
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, layout } from '../../theme';
 import ProductImage from '../ProductImage';
-import QuantityStepper from '../QuantityStepper';
 import AppIcon from '../AppIcon';
 
 /**
- * ProductCard
- * Full-bleed image card matching the CategoryCard hero style:
- *   - Big image fills the whole card
- *   - Dark gradient strip at the bottom for white overlay text
- *   - Product name in white on the scrim
- *   - Discount % pill on the scrim
- *   - Add button at the bottom-right of the card
+ * ProductCard — "Redesign v2" (Claude Design: Product Card Redesign.dc.html)
+ * Full-bleed image card:
+ *   - Duotone vignette + bottom scrim for legibility
+ *   - Corner-fold ribbon (not a diagonal strip) for discounts
+ *   - Glass name plate with a saffron accent edge
+ *   - Fixed 72x28 "pebble" buy/stepper control, dark-ink text on saffron
  *
- * Tapping the image opens the product detail (onPress).
- * Tapping the Add button adds 1 to cart.
- * Once added, the Add button swaps to the - qty + stepper inline.
+ * Buy control never grows/shrinks the price row — same footprint in every
+ * state (Buy, stepper, variant "Buy ⌄", "{n} in cart", Out).
  *
  * Props:
  *   product      - { id, name, price, unit, imageUrl, available, discountLabel }
@@ -28,6 +25,21 @@ import AppIcon from '../AppIcon';
  *   onPress      - called when card body is tapped (open detail)
  *   style        - container style
  */
+// Fixed-footprint pebble control's gradient background — hoisted to module
+// scope (not defined inside ProductCard's render body) so it keeps a stable
+// component identity across re-renders. A component redefined inline on
+// every render forces React to unmount/remount the clipped LinearGradient
+// natively every time, which on Android can leave it permanently blank.
+const PebbleGradient = () => (
+  <LinearGradient
+    colors={['#FF9A5C', '#FF7A3A', '#E05A1A']}
+    locations={[0, 0.45, 1]}
+    start={{ x: 0, y: 0 }}
+    end={{ x: 1, y: 1 }}
+    style={StyleSheet.absoluteFillObject}
+  />
+);
+
 function ProductCard({
   product = {},
   name,
@@ -39,8 +51,6 @@ function ProductCard({
   available,
   disabled,
   discountLabel,
-  isCombo,
-  comboItems,
   quantity = 0,
   onAdd,
   onIncrement,
@@ -56,9 +66,16 @@ function ProductCard({
   const resolvedImageUrl = product.imageUrl ?? product.imageUri ?? imageUrl ?? imageUri;
   const resolvedDisabled = product.disabled ?? disabled ?? false;
   const resolvedAvailable = product.available ?? available ?? product.isAvailable ?? !resolvedDisabled;
-  const resolvedComboItems = product.comboItems ?? product.combo_items ?? comboItems ?? [];
-  const resolvedIsCombo = Boolean(product.isCombo ?? product.is_combo ?? isCombo ?? resolvedComboItems.length > 0);
   const isUnavailable = !resolvedAvailable;
+
+  // Multi-variant products (e.g. pizza sizes, burger types) show the plain
+  // lowest variant price and open the VariantSheet on tap instead of a bare
+  // +/- stepper — a "+" can't know which variant to increment.
+  const resolvedVariants = product.variants ?? [];
+  const isMultiVariant = resolvedVariants.length > 1;
+  const displayPrice = Math.floor(Number(
+    isMultiVariant ? (product.minPrice ?? product.min_price ?? resolvedPrice) : resolvedPrice
+  ));
 
   const pressAnim = useRef(new Animated.Value(0)).current;
 
@@ -67,10 +84,6 @@ function ProductCard({
     : 0;
 
   const resolvedDiscountLabel = product.discountLabel ?? discountLabel ?? (discountPct > 0 ? `${discountPct}% OFF` : null);
-
-  const overlappingComboImages = resolvedComboItems
-    .map(item => item.imageUrl ?? item.image_url ?? item.imageUri)
-    .filter(Boolean);
 
   const handlePressIn = () => {
     Animated.spring(pressAnim, {
@@ -94,6 +107,100 @@ function ProductCard({
     outputRange: [1, 0.97],
   });
 
+  const pebbleStyle = [styles.pebble, compact && styles.pebbleCompact];
+  const stepBtnStyle = [styles.stepBtn, compact && styles.stepBtnCompact];
+  const pebbleLabelStyle = [styles.pebbleLabel, compact && styles.pebbleLabelCompact];
+  const stepGlyphStyle = [styles.stepGlyph, compact && styles.stepGlyphCompact];
+  const stepQtyStyle = [styles.stepQty, compact && styles.stepQtyCompact];
+  const iconSize = compact ? 10 : 12;
+
+  const renderControl = () => {
+    if (isUnavailable) {
+      return (
+        <View key="out" style={[styles.outPill, compact && styles.outPillCompact]}>
+          <Text style={[styles.outText, compact && styles.outTextCompact]}>Out</Text>
+        </View>
+      );
+    }
+
+    if (isMultiVariant) {
+      if (quantity > 0) {
+        return (
+          <TouchableOpacity
+            key="in-cart"
+            onPress={onAdd}
+            activeOpacity={0.8}
+            style={[styles.inCartPill, compact && styles.inCartPillCompact]}
+            accessibilityRole="button"
+            accessibilityLabel={`${quantity} in cart. Tap to change ${resolvedName} options`}
+          >
+            <Text style={[styles.inCartText, compact && styles.inCartTextCompact]} numberOfLines={1}>{quantity} in cart</Text>
+          </TouchableOpacity>
+        );
+      }
+      return (
+        <TouchableOpacity
+          key="buy-variant"
+          onPress={onAdd}
+          activeOpacity={0.8}
+          style={pebbleStyle}
+          collapsable={false}
+          accessibilityRole="button"
+          accessibilityLabel={`Choose options for ${resolvedName}`}
+        >
+          <PebbleGradient />
+          <Text style={pebbleLabelStyle}>Buy</Text>
+          <AppIcon name="down" size={compact ? 9 : 11} color="#1A0D05" strokeWidth={3} />
+        </TouchableOpacity>
+      );
+    }
+
+    if (quantity > 0) {
+      return (
+        <View key="stepper" style={pebbleStyle} collapsable={false}>
+          <PebbleGradient />
+          <TouchableOpacity
+            onPress={onDecrement}
+            activeOpacity={0.7}
+            style={stepBtnStyle}
+            accessibilityRole="button"
+            accessibilityLabel="Decrease quantity"
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <Text style={stepGlyphStyle}>−</Text>
+          </TouchableOpacity>
+          <Text style={stepQtyStyle}>{quantity}</Text>
+          <TouchableOpacity
+            onPress={onIncrement}
+            activeOpacity={0.7}
+            style={stepBtnStyle}
+            accessibilityRole="button"
+            accessibilityLabel="Increase quantity"
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <Text style={stepGlyphStyle}>+</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <TouchableOpacity
+        key="buy"
+        onPress={onAdd}
+        activeOpacity={0.8}
+        style={pebbleStyle}
+        collapsable={false}
+        accessibilityRole="button"
+        accessibilityLabel={`Add ${resolvedName} to cart`}
+      >
+        <PebbleGradient />
+        <AppIcon name="add" size={iconSize} color="#1A0D05" strokeWidth={3} />
+        <Text style={pebbleLabelStyle}>Buy</Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <Animated.View style={[styles.card, compact && styles.cardCompact, style, { transform: [{ scale: cardScale }] }]}>
       <TouchableOpacity
@@ -111,130 +218,80 @@ function ProductCard({
             uri={resolvedImageUrl}
             width="100%"
             height="100%"
-            borderRadius={radius.lg}
             resizeMode="cover"
             priority="high"
           />
 
-          {/* Discount ribbon (top-right) — green gradient */}
-          {resolvedDiscountLabel ? (
-            <View style={styles.discountRibbon}>
-              <LinearGradient
-                colors={[colors.success, colors.successDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFillObject}
-              />
-              <Text style={styles.discountText} numberOfLines={1}>
-                {resolvedDiscountLabel}
-              </Text>
-            </View>
-          ) : null}
+          {/* Duotone vignette — darkens the top corners slightly */}
+          <LinearGradient
+            colors={['rgba(10,8,6,0.22)', 'rgba(10,8,6,0)']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 0.35 }}
+            pointerEvents="none"
+            style={StyleSheet.absoluteFillObject}
+          />
 
-          {/* Floating combo thumbnails (bottom-left, above scrim) */}
-          {resolvedIsCombo && overlappingComboImages.length > 0 ? (
-            <View style={styles.comboThumbnailStack}>
-              {overlappingComboImages.slice(0, 3).map((uri, idx) => (
-                <View
-                  key={`${uri}-${idx}`}
-                  style={[
-                    styles.comboThumbnailCircle,
-                    { marginLeft: idx === 0 ? 0 : -7, zIndex: 10 - idx },
-                  ]}
-                >
-                  <ProductImage uri={uri} width={20} height={20} borderRadius={10} priority="low" />
-                </View>
-              ))}
-              {overlappingComboImages.length > 3 ? (
-                <View style={[styles.comboThumbnailCircle, styles.comboThumbnailMore, { marginLeft: -7, zIndex: 1 }]}>
-                  <Text style={styles.comboThumbnailMoreText}>+{overlappingComboImages.length - 3}</Text>
-                </View>
-              ) : null}
-            </View>
-          ) : null}
+          {/* Out-of-stock wash */}
+          {isUnavailable ? <View style={styles.oosWash} pointerEvents="none" /> : null}
 
-          {/* Top-right unit badge (e.g. "500 g" or "1 L") */}
+          {/* Bottom scrim for white text legibility */}
+          <LinearGradient
+            colors={['rgba(10,8,6,0)', 'rgba(10,8,6,0.86)']}
+            pointerEvents="none"
+            style={styles.bottomScrim}
+          />
+
+          {/* Unit badge (top-left) */}
           {resolvedUnit ? (
-            <View style={styles.unitBadge}>
-              <Text style={styles.unitBadgeText} numberOfLines={1}>
+            <View style={[styles.unitBadge, compact && styles.unitBadgeCompact]}>
+              <Text style={[styles.unitBadgeText, compact && styles.unitBadgeTextCompact]} numberOfLines={1}>
                 {resolvedUnit}
               </Text>
             </View>
           ) : null}
 
-          {/* Bottom dark scrim for white text legibility */}
-          <LinearGradient
-            colors={[
-              'rgba(8,12,20,0)',
-              'rgba(8,12,20,0.06)',
-              'rgba(8,12,20,0.16)',
-              'rgba(8,12,20,0.32)',
-              'rgba(8,12,20,0.52)',
-              'rgba(8,12,20,0.74)',
-              'rgba(8,12,20,0.9)',
-            ]}
-            locations={[0, 0.16, 0.34, 0.52, 0.68, 0.84, 1]}
-            pointerEvents="none"
-            style={styles.bottomScrim}
-          />
+          {/* Corner-fold discount ribbon (top-right) */}
+          {resolvedDiscountLabel && !isUnavailable ? (
+            <View style={[styles.ribbonMask, compact && styles.ribbonMaskCompact]} pointerEvents="none">
+              <LinearGradient
+                colors={['#34D399', '#0F9D63']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.ribbonStrip, compact && styles.ribbonStripCompact]}
+              >
+                <Text style={[styles.ribbonText, compact && styles.ribbonTextCompact]} numberOfLines={1}>
+                  {resolvedDiscountLabel}
+                </Text>
+              </LinearGradient>
+            </View>
+          ) : null}
 
-          {/* Bottom strip: full-width name, then price + Add button row */}
-          <View style={styles.bottomStrip}>
-            {/* Product name — full width, no flex constraint */}
-            <Text style={styles.name} numberOfLines={2}>
-              {resolvedName}
-            </Text>
+          {/* Bottom stack: glass name plate, then price + control row */}
+          <View style={[styles.bottomStrip, compact && styles.bottomStripCompact]}>
+            <View style={[styles.namePlate, compact && styles.namePlateCompact]}>
+              <View style={styles.namePlateEdge} />
+              <Text style={[styles.name, compact && styles.nameCompact]} numberOfLines={2}>
+                {resolvedName}
+              </Text>
+            </View>
 
-            {/* Price row + Add button side-by-side */}
             <View style={styles.priceActionRow}>
               <View style={styles.priceBlock}>
-                <View style={styles.priceRow}>
-                  <Text style={styles.price} numberOfLines={1}>
-                    ₹{resolvedPrice}
+                {isMultiVariant ? (
+                  <Text style={[styles.fromPrefix, compact && styles.fromPrefixCompact]}>from</Text>
+                ) : null}
+                <Text style={[styles.price, compact && styles.priceCompact]} numberOfLines={1}>
+                  ₹{displayPrice}
+                </Text>
+                {!isMultiVariant && resolvedOriginalPrice ? (
+                  <Text style={[styles.originalPrice, compact && styles.originalPriceCompact]} numberOfLines={1}>
+                    ₹{Math.floor(Number(resolvedOriginalPrice))}
                   </Text>
-                  {resolvedOriginalPrice ? (
-                    <Text style={styles.originalPrice} numberOfLines={1}>
-                      ₹{Math.floor(Number(resolvedOriginalPrice))}
-                    </Text>
-                  ) : null}
-                </View>
+                ) : null}
               </View>
 
-              {/* Add button (or stepper when quantity > 0) at right */}
               <View style={styles.bottomRight}>
-                {isUnavailable ? (
-                  <View style={styles.unavailablePill}>
-                    <Text style={styles.unavailableText}>Out</Text>
-                  </View>
-                ) : quantity > 0 ? (
-                  <QuantityStepper
-                    quantity={quantity}
-                    onAdd={onAdd}
-                    onIncrement={onIncrement}
-                    onDecrement={onDecrement}
-                    disabled={isUnavailable}
-                    compact
-                    dense
-                  />
-                ) : (
-                  <TouchableOpacity
-                    onPress={onAdd}
-                    disabled={isUnavailable}
-                    activeOpacity={0.8}
-                    style={styles.addButton}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Add ${resolvedName} to cart`}
-                  >
-                    <LinearGradient
-                      colors={[colors.saffron, colors.saffronDark]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={StyleSheet.absoluteFillObject}
-                    />
-                    <AppIcon name="plus" size={12} color={colors.textInverse} strokeWidth={2.8} />
-                    <Text style={styles.addLabel}>Buy</Text>
-                  </TouchableOpacity>
-                )}
+                {renderControl()}
               </View>
             </View>
           </View>
@@ -249,7 +306,7 @@ const styles = StyleSheet.create({
   card: {
     width: layout.productCardWidth,
     backgroundColor: colors.bgSurface,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     shadowColor: '#B8860B',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.32,
@@ -272,7 +329,7 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 0.78,
     backgroundColor: colors.bgSkeletonBase,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -280,83 +337,10 @@ const styles = StyleSheet.create({
     aspectRatio: 0.82,
   },
 
-  // Combo tag (top-left)
-  comboTag: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.pill,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#0E1116',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.10,
-    shadowRadius: 3,
-    elevation: 2,
-    zIndex: 10,
-  },
-  comboTagText: {
-    fontSize: 8,
-    fontWeight: '900',
-    color: colors.saffronDark,
-    letterSpacing: 0.5,
-  },
-
-  // Discount ribbon (top-right) with saffron gradient
-  discountRibbon: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    overflow: 'hidden',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderBottomLeftRadius: radius.md,
-    shadowColor: colors.successDark,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.30,
-    shadowRadius: 4,
-    elevation: 3,
-    zIndex: 10,
-  },
-  discountText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.4,
-  },
-
-  // Floating combo thumbnails
-  comboThumbnailStack: {
-    position: 'absolute',
-    bottom: 60,
-    left: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  comboThumbnailCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  comboThumbnailMore: {
-    backgroundColor: colors.saffron,
-    borderColor: '#FFFFFF',
-  },
-  comboThumbnailMoreText: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    fontWeight: '900',
+  // Out-of-stock dark wash over the image
+  oosWash: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10,10,12,0.58)',
   },
 
   // Bottom dark gradient strip — white text overlay
@@ -365,7 +349,76 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: '58%',
+    height: '46%',
+  },
+
+  // Unit badge (top-left)
+  unitBadge: {
+    position: 'absolute',
+    top: 9,
+    left: 9,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(8,8,10,0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    zIndex: 10,
+  },
+  unitBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  unitBadgeCompact: {
+    top: 6,
+    left: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  unitBadgeTextCompact: {
+    fontSize: 9,
+  },
+
+  // Corner-fold ribbon — a 54x54 clipped corner with a rotated strip inside,
+  // instead of a diagonal strip bleeding off the card edge.
+  ribbonMask: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 54,
+    height: 54,
+    overflow: 'hidden',
+    zIndex: 10,
+  },
+  ribbonStrip: {
+    position: 'absolute',
+    top: 10,
+    right: -16,
+    width: 78,
+    paddingVertical: 3,
+    transform: [{ rotate: '45deg' }],
+    alignItems: 'center',
+  },
+  ribbonText: {
+    color: '#05130C',
+    fontSize: 8.5,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  ribbonMaskCompact: {
+    width: 42,
+    height: 42,
+  },
+  ribbonStripCompact: {
+    top: 7,
+    right: -14,
+    width: 62,
+    paddingVertical: 2,
+  },
+  ribbonTextCompact: {
+    fontSize: 7,
   },
 
   // Bottom strip content
@@ -374,17 +427,63 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 8,
+    paddingHorizontal: 9,
+    paddingBottom: 9,
     flexDirection: 'column',
     alignItems: 'stretch',
-    gap: 6,
+    gap: 7,
     zIndex: 5,
   },
+  bottomStripCompact: {
+    paddingHorizontal: 6,
+    paddingBottom: 6,
+    gap: 5,
+  },
+
+  // Glass name plate — frosted-look panel (approximated, no real blur) with
+  // a saffron accent edge, distinct from the unit badge's plain pill.
+  namePlate: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    backgroundColor: 'rgba(30,26,22,0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    borderRadius: radius.md,
+    paddingVertical: 5,
+    paddingRight: 9,
+    paddingLeft: 12,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  namePlateEdge: {
+    position: 'absolute',
+    left: 0,
+    top: 4,
+    bottom: 4,
+    width: 2.5,
+    borderRadius: 2,
+    backgroundColor: colors.saffron,
+  },
+  name: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 15,
+    letterSpacing: -0.1,
+  },
+  namePlateCompact: {
+    paddingVertical: 4,
+    paddingRight: 7,
+    paddingLeft: 10,
+  },
+  nameCompact: {
+    fontSize: 11,
+    lineHeight: 14,
+  },
+
   priceActionRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     gap: 6,
   },
@@ -392,117 +491,148 @@ const styles = StyleSheet.create({
     flex: 1,
     flexShrink: 1,
     minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  fromPrefix: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.55)',
+  },
+  fromPrefixCompact: {
+    fontSize: 8,
+  },
+  price: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+    letterSpacing: -0.3,
+  },
+  priceCompact: {
+    fontSize: 13,
+  },
+  originalPrice: {
+    color: 'rgba(255,255,255,0.42)',
+    textDecorationLine: 'line-through',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  originalPriceCompact: {
+    fontSize: 9.5,
   },
   bottomRight: {
     flexShrink: 0,
     alignItems: 'flex-end',
   },
 
-  // Top-right unit badge (e.g. "500 g" or "1 L")
-  unitBadge: {
-    position: 'absolute',
-    top: 7,
-    left: 7,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+  // Pebble control — fixed 72x28 footprint shared by Buy/stepper/variant,
+  // dark-ink text on the saffron gradient (never full-width, never flex:1).
+  pebble: {
+    width: 72,
+    height: 28,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(8,12,20,0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-    zIndex: 10,
-  },
-  unitBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.3,
-  },
-
-  // Product name on scrim — full width, left-aligned
-  name: {
-    color: colors.textInverse,
-    fontWeight: '800',
-    fontSize: 12.5,
-    lineHeight: 15,
-    letterSpacing: -0.1,
-    textShadowColor: 'rgba(0,0,0,0.55)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-
-  // Price row
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flexWrap: 'wrap',
-  },
-  originalPrice: {
-    color: 'rgba(255,255,255,0.60)',
-    textDecorationLine: 'line-through',
-    fontSize: 9,
-    lineHeight: 11,
-    fontWeight: '600',
-  },
-  price: {
-    color: colors.textInverse,
-    fontWeight: '800',
-    fontSize: 13,
-    lineHeight: 15,
-  },
-
-  // "X% OFF" pill on the price row
-  discountPill: {
-    backgroundColor: colors.success,
-    borderRadius: radius.pill,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-  },
-  discountPillText: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-  },
-
-  // Add button — saffron gradient pill with + icon
-  addButton: {
-    flexGrow: 1,
+    overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
-    shadowColor: colors.saffronDark,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.32,
-    shadowRadius: 4,
+    shadowColor: '#E05A1A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
     elevation: 3,
-    minWidth: 56,
   },
-  addLabel: {
-    color: colors.textInverse,
+  pebbleCompact: {
+    width: 58,
+    height: 24,
+  },
+  pebbleLabel: {
+    color: '#1A0D05',
     fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.4,
+    fontWeight: '700',
+  },
+  pebbleLabelCompact: {
+    fontSize: 10,
+  },
+  stepBtn: {
+    width: 22,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnCompact: {
+    width: 18,
+    height: 24,
+  },
+  stepGlyph: {
+    color: '#1A0D05',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  stepGlyphCompact: {
+    fontSize: 12,
+  },
+  stepQty: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#1A0D05',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  stepQtyCompact: {
+    fontSize: 10.5,
   },
 
-  // Out-of-stock pill
-  unavailablePill: {
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  // "{n} in cart" — inverted glass pill for multi-variant products
+  inCartPill: {
+    width: 72,
+    height: 28,
     borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1.5,
+    borderColor: colors.saffron,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
   },
-  unavailableText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+  inCartPillCompact: {
+    width: 58,
+    height: 24,
+  },
+  inCartText: {
+    color: '#FFAB7A',
+    fontSize: 9.5,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  inCartTextCompact: {
+    fontSize: 8.5,
+  },
+
+  // Out-of-stock pill — fixed footprint, no handlers
+  outPill: {
+    width: 72,
+    height: 28,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  outPillCompact: {
+    width: 58,
+    height: 24,
+  },
+  outText: {
+    color: 'rgba(243,241,236,0.55)',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  outTextCompact: {
+    fontSize: 10,
   },
 });
 

@@ -7,8 +7,6 @@ import {
   FlatList,
   TouchableOpacity,
   LayoutAnimation,
-  Platform,
-  UIManager,
   ScrollView,
   RefreshControl,
   useWindowDimensions,
@@ -24,16 +22,13 @@ import {
   SkeletonRow,
   EmptyState,
   ErrorState,
+  VariantSheet,
 } from '../../../components';
 import { colors, typography, spacing, radius, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
 import { useAuthGate } from '../../../hooks';
 import { productsApi, dashboardApi } from '../../../api';
 import { asArray, normalizeProduct } from '../../../utils';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 const SORT_OPTIONS = ['Popular', 'Price Low to High', 'Price High to Low'];
 
@@ -61,8 +56,10 @@ export default function ProductListScreen() {
   const addCombo = useCartStore(state => state.addCombo);
   const decrementCombo = useCartStore(state => state.decrementCombo);
   const getComboQuantity = useCartStore(state => state.getComboQuantity);
+  const getProductQuantity = useCartStore(state => state.getProductQuantity);
   const updateQuantity = useCartStore(state => state.updateQuantity);
   const removeItem = useCartStore(state => state.removeItem);
+  const [variantSheetProduct, setVariantSheetProduct] = useState(null);
 
   // State
   const [searchQuery, setSearchQuery] = useState(initialQuery);
@@ -79,7 +76,7 @@ export default function ProductListScreen() {
     [items]
   );
   const cartDisplayTotal = useMemo(
-    () => items.reduce((total, item) => total + ((Number(item.product?.price) || 0) * (Number(item.quantity) || 0)), 0),
+    () => items.reduce((total, item) => total + ((Number(item.variant?.price ?? item.product?.price) || 0) * (Number(item.quantity) || 0)), 0),
     [items]
   );
 
@@ -180,17 +177,14 @@ export default function ProductListScreen() {
   }, [searchQuery, mode]);
 
   // Callbacks
-  const getQty = useCallback((productId) => {
-    const item = items.find(i => i.product.id === productId && (i.type || 'product') !== 'combo');
-    return item ? item.quantity : 0;
-  }, [items]);
-
   const handleAddToCart = useCallback((product) => {
     requireAuth(null, () => {
       if (product.isCombo || product.is_combo || product.comboItems?.length) {
         addCombo(product);
+      } else if ((product.variants?.length ?? 0) > 1) {
+        setVariantSheetProduct(product);
       } else {
-        addItem(product);
+        addItem(product, 1, product.variants?.[0] ?? null);
       }
     });
   }, [requireAuth, addCombo, addItem]);
@@ -200,10 +194,15 @@ export default function ProductListScreen() {
       if (product.isCombo || product.is_combo || product.comboItems?.length) {
         addCombo(product);
       } else {
-        addItem(product);
+        // Reuse the variant already in the cart for this product — a
+        // single-variant product is stored WITH its variant attached, so
+        // adding with variant=null here would miss the match and create a
+        // duplicate line instead of incrementing it.
+        const existing = items.find(i => i.product.id === product.id && (i.type || 'product') !== 'combo');
+        addItem(product, 1, existing?.variant ?? product.variants?.[0] ?? null);
       }
     });
-  }, [requireAuth, addCombo, addItem]);
+  }, [requireAuth, addCombo, addItem, items]);
 
   const handleDecrement = useCallback((product) => {
     if (product.isCombo || product.is_combo || product.comboItems?.length) {
@@ -211,22 +210,15 @@ export default function ProductListScreen() {
       return;
     }
 
-    const currentQty = getQty(product.id);
+    const existing = items.find(i => i.product.id === product.id && (i.type || 'product') !== 'combo');
+    const variantId = existing?.variant?.id ?? null;
+    const currentQty = existing?.quantity || 0;
     if (currentQty <= 1) {
-      removeItem(product.id);
+      removeItem(product.id, 'product', variantId);
     } else {
-      updateQuantity(product.id, currentQty - 1);
+      updateQuantity(product.id, currentQty - 1, 'product', variantId);
     }
-  }, [decrementCombo, getQty, removeItem, updateQuantity]);
-
-  const handleProductPress = useCallback((product) => {
-    const isCombo = product.isCombo || product.is_combo || product.comboItems?.length;
-    navigation.navigate('ProductDetail', {
-      id: product.id,
-      type: isCombo ? 'combo' : 'product',
-      product,
-    });
-  }, [navigation]);
+  }, [decrementCombo, items, removeItem, updateQuantity]);
 
   // Renders
   const renderItem = ({ item }) => {
@@ -238,24 +230,26 @@ export default function ProductListScreen() {
 
     return (
       <View style={[styles.productWrap, { width: cardWidth }]}>
-        <TouchableOpacity activeOpacity={0.9} onPress={() => handleProductPress(item)}>
-          <ProductCard
-            name={item.name}
-            price={item.price}
-            originalPrice={item.originalPrice}
-            discountLabel={item.discountLabel}
-            unit={item.unit}
-            isCombo={item.isCombo}
-            comboItems={item.comboItems}
-            imageUri={item.imageUri}
-            quantity={item.isCombo || item.is_combo || item.comboItems?.length ? getComboQuantity(item) : getQty(item.id)}
-            onAdd={() => handleAddToCart(item)}
-            onIncrement={() => handleIncrement(item)}
-            onDecrement={() => handleDecrement(item)}
-            disabled={!item.available}
-            style={{ width: '100%' }}
-          />
-        </TouchableOpacity>
+        {/* Card body tap intentionally does nothing — purchases happen on the
+            card itself (Buy button / variant sheet), there is no product page
+            in the customer flow. */}
+        <ProductCard
+          product={item}
+          name={item.name}
+          price={item.price}
+          originalPrice={item.originalPrice}
+          discountLabel={item.discountLabel}
+          unit={item.unit}
+          isCombo={item.isCombo}
+          comboItems={item.comboItems}
+          imageUri={item.imageUri}
+          quantity={item.isCombo || item.is_combo || item.comboItems?.length ? getComboQuantity(item) : getProductQuantity(item.id)}
+          onAdd={() => handleAddToCart(item)}
+          onIncrement={() => handleIncrement(item)}
+          onDecrement={() => handleDecrement(item)}
+          disabled={!item.available}
+          style={{ width: '100%' }}
+        />
         {showModeBadge && (
           <View style={[styles.modeBadge, { backgroundColor: modeBadgeColor }]}>
             <Text style={[styles.modeBadgeText, { color: modeBadgeTextColor }]}>{modeBadgeLabel}</Text>
@@ -393,6 +387,12 @@ export default function ProductListScreen() {
         itemCount={cartItemCount}
         totalAmount={cartDisplayTotal}
         onPress={() => navigation.navigate('Cart')}
+      />
+
+      <VariantSheet
+        visible={!!variantSheetProduct}
+        product={variantSheetProduct}
+        onClose={() => setVariantSheetProduct(null)}
       />
     </AppScreen>
   );
