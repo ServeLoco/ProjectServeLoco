@@ -470,9 +470,39 @@ const getAdminOrderById = async (req, res) => {
   }
 
   const order = orderRows[0];
-  const [itemsRows] = await pool.query('SELECT * FROM order_items WHERE order_id = ?', [id]);
+  const [itemsRows] = await pool.query('SELECT oi.*, s.name AS shop_name FROM order_items oi LEFT JOIN shops s ON s.id = oi.shop_id WHERE oi.order_id = ?', [id]);
 
   order.items = itemsRows;
+
+  // Per-shop confirmation state: one entry per distinct non-null shop_id among
+  // the items. Orders with only house/combo items (shop_id IS NULL) get [].
+  const shopMap = new Map();
+  for (const it of itemsRows) {
+    if (it.shop_id === null || it.shop_id === undefined) continue;
+    const sid = it.shop_id;
+    if (!shopMap.has(sid)) {
+      shopMap.set(sid, { shopId: sid, shop_name: it.shop_name || null, items: [] });
+    }
+    shopMap.get(sid).items.push(it);
+  }
+  order.shopConfirmations = Array.from(shopMap.values()).map(e => {
+    const confirmed = e.items.length > 0 && e.items.every(it => it.shop_confirmed_at !== null);
+    const confirmedAt = e.items
+      .map(it => it.shop_confirmed_at)
+      .filter(Boolean)
+      .sort()
+      .pop() || null;
+    return {
+      shopId: e.shopId,
+      shop_id: e.shopId,
+      shopName: e.shop_name,
+      shop_name: e.shop_name,
+      confirmed,
+      confirmedAt,
+      confirmed_at: confirmedAt,
+    };
+  });
+
   res.status(200).json({ data: order });
 };
 

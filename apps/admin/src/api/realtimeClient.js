@@ -3,7 +3,7 @@ import { API_ORIGIN } from './client';
 import { storage } from '../utils/storage';
 
 const TOKEN_KEY = 'admin_token';
-const ADMIN_ORDER_EVENTS = ['admin.order.created', 'admin.order.updated'];
+const ADMIN_ORDER_EVENTS = ['admin.order.created', 'admin.order.updated', 'admin.order.shop_confirmed'];
 const ADMIN_NOTIFICATION_EVENTS = ['admin.notification.created', 'admin.notification.unread_count', 'admin.order.auto_accepted'];
 const ADMIN_ANALYTICS_EVENTS = ['analytics.live'];
 const LIFECYCLE_EVENTS = ['connected', 'reconnected', 'disconnected', 'visible'];

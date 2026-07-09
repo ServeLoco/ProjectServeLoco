@@ -177,6 +177,14 @@ export default function Orders() {
         return;
       }
 
+      if (eventName === 'admin.order.shop_confirmed') {
+        const eventOrderId = getRealtimeOrderId(payload);
+        if (eventOrderId && selectedOrderRef.current && String(selectedOrderRef.current.id) === eventOrderId) {
+          queueSelectedRefresh(eventOrderId);
+        }
+        return;
+      }
+
       const eventOrderId = getRealtimeOrderId(payload);
       if (!eventOrderId) return;
 
@@ -824,6 +832,20 @@ export default function Orders() {
 
               <div className="detail-section">
                 <h4>Items</h4>
+                {selectedOrder.shopConfirmations && selectedOrder.shopConfirmations.length > 0 && (
+                  <div style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {selectedOrder.shopConfirmations.map(sc => (
+                      <span key={sc.shopId} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                        padding: '4px 10px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 600,
+                        background: sc.confirmed ? 'rgba(34, 197, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                        color: sc.confirmed ? '#15803d' : '#b45309',
+                      }}>
+                        {sc.shopName} {sc.confirmed ? '✓ Confirmed' : '⏳ Waiting'}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {(selectedOrder.items || []).map((item, idx) => (
                   <div key={idx} className="item-row">
                     <span>{item.quantity}x {item.product_name}</span>
