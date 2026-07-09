@@ -89,16 +89,16 @@ function SegmentedControl({
             },
           ]}
         >
-          {/* Base black gradient — deep charcoal to true black */}
+          {/* Base saffron gradient — lighter on the left, deeper on the right */}
           <LinearGradient
-            colors={['#2A2A2A', '#000000']}
+            colors={[colors.saffron, colors.saffronDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[StyleSheet.absoluteFillObject, { borderRadius: 17 }]}
           />
           {/* Top-left highlight wash — adds a glossy lift */}
           <LinearGradient
-            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0)']}
+            colors={['rgba(255,255,255,0.32)', 'rgba(255,255,255,0)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[StyleSheet.absoluteFillObject, { borderRadius: 17 }]}
@@ -106,7 +106,7 @@ function SegmentedControl({
           />
           {/* Bottom edge darkening — adds depth */}
           <LinearGradient
-            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.35)']}
+            colors={['rgba(0,0,0,0)', 'rgba(122, 36, 0, 0.18)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
             style={[StyleSheet.absoluteFillObject, { borderRadius: 17 }]}
@@ -172,9 +172,9 @@ const styles = StyleSheet.create({
     top: 7,
     bottom: 7,
     left: 7,
-    backgroundColor: '#000000',
+    backgroundColor: colors.saffron,
     borderRadius: 17,
-    shadowColor: '#000000',
+    shadowColor: '#C8490F',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.32,
     shadowRadius: 10,
