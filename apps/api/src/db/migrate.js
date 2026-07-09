@@ -97,6 +97,27 @@ const migrate = async () => {
       'push_token VARCHAR(255) NULL DEFAULT NULL AFTER deletion_reason');
     console.log('Users table ready.');
 
+    // Shops Table — one row per physical shop. Shop owners are normal users who
+    // log in through the same Firebase OTP flow as customers; owner_user_id
+    // points at a users row. is_open = the owner's day-to-day toggle;
+    // active = admin-level kill switch; a shop is customer-visible only when
+    // BOTH is_open AND active are 1. v1 assumes 0-or-1 shop per user; if data
+    // ever contains more than one, the lowest id wins (see utils/shops.js).
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS shops (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        owner_user_id INT NULL,
+        is_open BOOLEAN DEFAULT TRUE,
+        active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL,
+        INDEX idx_shop_owner (owner_user_id)
+      );
+    `);
+    console.log('Shops table ready.');
+
     // Password Reset Requests Table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS password_reset_requests (
@@ -178,6 +199,10 @@ const migrate = async () => {
     // Free-text sheet subtitle ("Choose size", "Choose type"). NULL -> client
     // shows "Choose an option".
     await ensureColumn('products', 'variant_prompt', 'variant_prompt VARCHAR(100) NULL AFTER available_until_time');
+    // Shop linkage. NULL = "house" product with no owning shop (always passes
+    // the shop-open visibility filter). FK deliberately omitted so shop
+    // deletion policy stays in application code; integrity enforced by admin UI.
+    await ensureColumn('products', 'shop_id', 'shop_id INT NULL AFTER category_id');
     console.log('Products table ready.');
 
     // Product Variants Table — purchasable child rows (sizes/types) of a
@@ -365,6 +390,7 @@ const migrate = async () => {
       // Index already exists (unique) — fine.
     }
     await ensureIndex('products', 'idx_products_available_deleted', 'available, deleted');
+    await ensureIndex('products', 'idx_products_shop', 'shop_id');
     // NOTE: indexes for `notifications` and `offer_products` are added after
     // those tables are created later in this file (a fresh DB has no such
     // tables yet at this point).
@@ -401,6 +427,12 @@ const migrate = async () => {
     // below for the same reason).
     await ensureColumn('order_items', 'variant_id', 'variant_id INT NULL AFTER product_id');
     await ensureColumn('order_items', 'variant_label', 'variant_label VARCHAR(100) NULL AFTER variant_id');
+    // Shop snapshot at purchase time (same rationale as product_name/unit_price
+    // snapshots: order history must not change when catalog rows change). No FK.
+    await ensureColumn('order_items', 'shop_id', 'shop_id INT NULL AFTER variant_label');
+    // Per-shop confirmation. NULL = pending; timestamp = when the shop owner
+    // pressed Confirm. Informational for the admin; does NOT gate order status.
+    await ensureColumn('order_items', 'shop_confirmed_at', 'shop_confirmed_at TIMESTAMP NULL DEFAULT NULL AFTER shop_id');
     const [orderItemProductFks] = await connection.query(`
       SELECT CONSTRAINT_NAME
       FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
@@ -412,6 +444,7 @@ const migrate = async () => {
     for (const fk of orderItemProductFks) {
       await connection.query(`ALTER TABLE order_items DROP FOREIGN KEY ${fk.CONSTRAINT_NAME}`);
     }
+    await ensureIndex('order_items', 'idx_order_items_shop', 'shop_id, order_id');
     console.log('Order Items table ready.');
 
     // Settings Table
