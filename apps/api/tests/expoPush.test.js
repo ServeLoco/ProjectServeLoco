@@ -24,7 +24,7 @@ jest.mock('expo-server-sdk', () => ({
 const { pool } = require('../src/db/mysql');
 jest.mock('../src/db/mysql', () => ({ pool: { query: jest.fn() } }));
 
-const { sendPushToUser, sendPushToMany, cleanupDeadTokens } = require('../src/utils/expoPush');
+const { sendPushToUser, sendPushToMany, cleanupDeadTokens, countPushEligible } = require('../src/utils/expoPush');
 
 const VALID_TOKEN_A = 'ExponentPushToken[AAAA]';
 const VALID_TOKEN_B = 'ExponentPushToken[BBBB]';
@@ -249,7 +249,7 @@ describe('expoPush.sendPushToMany', () => {
 
     await expect(
       sendPushToMany(pool, [1, 2], { title: 'Hi', body: 'There' })
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ recipients: 2, tokensFound: 2, sent: 0, failed: 2 });
 
     expect(chunk1Mock).toHaveBeenCalledTimes(1);
     expect(chunk2Mock).toHaveBeenCalledTimes(1);
@@ -273,7 +273,7 @@ describe('expoPush.sendPushToMany', () => {
 
     await expect(
       sendPushToMany(pool, [1, 2, 3], { title: 'Hi', body: 'There' })
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ recipients: 3, tokensFound: 0, sent: 0, failed: 0 });
 
     expect(mockSendPushNotificationsAsync).not.toHaveBeenCalled();
   });
@@ -289,6 +289,82 @@ describe('expoPush.sendPushToMany', () => {
 
     await expect(
       sendPushToMany(pool, [1], { title: 'Hi', body: 'There' })
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ recipients: 1, tokensFound: 1, sent: 0, failed: 1 });
+  });
+
+  it('tallies mixed tickets into sent/failed counts', async () => {
+    pool.query
+      .mockResolvedValueOnce([[
+        { push_token: VALID_TOKEN_A },
+        { push_token: VALID_TOKEN_B },
+        { push_token: VALID_TOKEN_C },
+      ]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]); // UPDATE for the DeviceNotRegistered ticket
+    mockSendPushNotificationsAsync = jest.fn(async () => [
+      { status: 'error', details: { error: 'DeviceNotRegistered' } },
+      { status: 'ok', id: 't-2' },
+      { status: 'error', details: { error: 'MessageTooBig' } },
+    ]);
+
+    await expect(
+      sendPushToMany(pool, [1, 2, 3], { title: 'Hi', body: 'There' })
+    ).resolves.toEqual({ recipients: 3, tokensFound: 3, sent: 1, failed: 2 });
+  });
+
+  it('warns and sends nothing when no target users have a valid push token', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    pool.query.mockResolvedValueOnce([[]]); // SELECT returns no rows
+
+    await expect(
+      sendPushToMany(pool, [1, 2, 3], { title: 'Hi', body: 'There' })
+    ).resolves.toEqual({ recipients: 3, tokensFound: 0, sent: 0, failed: 0 });
+
+    expect(mockSendPushNotificationsAsync).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    warnSpy.mockRestore();
+  });
+
+  it('logs InvalidCredentials ticket errors without nulling the token', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    pool.query.mockResolvedValueOnce([[{ push_token: VALID_TOKEN_A }]]); // SELECT only — no UPDATE expected
+    mockSendPushNotificationsAsync = jest.fn(async () => [
+      { status: 'error', details: { error: 'InvalidCredentials' }, message: 'bad creds' },
+    ]);
+
+    await sendPushToMany(pool, [1], { title: 'Hi', body: 'There' });
+
+    expect(mockSendPushNotificationsAsync).toHaveBeenCalledTimes(1);
+    const loggedInvalidCreds = errorSpy.mock.calls.some(args =>
+      args.some(arg => String(arg).includes('InvalidCredentials'))
+    );
+    expect(loggedInvalidCreds).toBe(true);
+
+    const updateCalls = pool.query.mock.calls.filter(
+      ([sql]) => /UPDATE users SET push_token = NULL WHERE push_token = \?/i.test(sql)
+    );
+    expect(updateCalls).toHaveLength(0);
+    errorSpy.mockRestore();
+  });
+});
+
+describe('expoPush.countPushEligible', () => {
+  it('returns the count of users with a non-null push token', async () => {
+    pool.query.mockResolvedValueOnce([[{ cnt: 2 }]]);
+    await expect(countPushEligible(pool, [1, 2, 3])).resolves.toBe(2);
+  });
+
+  it('returns 0 for an empty result set', async () => {
+    pool.query.mockResolvedValueOnce([[]]);
+    await expect(countPushEligible(pool, [1, 2])).resolves.toBe(0);
+  });
+
+  it('returns null when the pool query rejects', async () => {
+    pool.query.mockRejectedValueOnce(new Error('db down'));
+    await expect(countPushEligible(pool, [1, 2])).resolves.toBeNull();
+  });
+
+  it('returns 0 without querying when userIds is empty', async () => {
+    await expect(countPushEligible(pool, [])).resolves.toBe(0);
+    expect(pool.query).not.toHaveBeenCalled();
   });
 });

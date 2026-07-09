@@ -45,6 +45,7 @@ const sendPushToUser = async (pool, userId, opts) => {
     if (!token || !Expo.isExpoPushToken(token)) return;
 
     const tickets = await expo.sendPushNotificationsAsync([buildMessage(token, opts)]);
+    tallyTickets(tickets, 'sendPushToUser');
     await cleanupDeadTokens(pool, tickets, [token]);
   } catch (err) {
     console.error('[expoPush] sendPushToUser failed:', err.message);
@@ -60,7 +61,9 @@ const sendPushToUser = async (pool, userId, opts) => {
  * @param {{ title: string, body: string, data?: object, categoryId?: string }} opts
  */
 const sendPushToMany = async (pool, userIds, opts) => {
-  if (!userIds || userIds.length === 0) return;
+  const stats = { recipients: userIds?.length || 0, tokensFound: 0, sent: 0, failed: 0 };
+
+  if (!userIds || userIds.length === 0) return stats;
 
   try {
     const placeholders = userIds.map(() => '?').join(',');
@@ -74,7 +77,12 @@ const sendPushToMany = async (pool, userIds, opts) => {
       .filter(t => Expo.isExpoPushToken(t))
       .map(token => buildMessage(token, opts));
 
-    if (messages.length === 0) return;
+    stats.tokensFound = messages.length;
+
+    if (messages.length === 0) {
+      console.warn('[expoPush] sendPushToMany: 0 of %d target users have a valid push token — no device pushes sent', userIds.length);
+      return stats;
+    }
 
     const chunks = expo.chunkPushNotifications(messages);
     for (const chunk of chunks) {
@@ -83,13 +91,34 @@ const sendPushToMany = async (pool, userIds, opts) => {
         tickets = await expo.sendPushNotificationsAsync(chunk);
       } catch (err) {
         console.error('[expoPush] chunk send failed:', err.message);
+        stats.failed += chunk.length;
         continue;
       }
+      const { ok, failed } = tallyTickets(tickets, 'sendPushToMany');
+      stats.sent += ok;
+      stats.failed += failed;
       await cleanupDeadTokens(pool, tickets, chunk.map(m => m.to));
     }
+    return stats;
   } catch (err) {
     console.error('[expoPush] sendPushToMany failed:', err.message);
+    return stats;
   }
+};
+
+// Log every error ticket (Expo only nulls tokens for DeviceNotRegistered;
+// other errors like InvalidCredentials were previously invisible).
+const tallyTickets = (tickets, context) => {
+  let ok = 0, failed = 0;
+  for (const ticket of tickets || []) {
+    if (ticket?.status === 'error') {
+      failed++;
+      console.error('[expoPush] %s ticket error: %s — %s', context, ticket.details?.error || 'unknown', ticket.message || '');
+    } else {
+      ok++;
+    }
+  }
+  return { ok, failed };
 };
 
 /**
@@ -117,4 +146,22 @@ const cleanupDeadTokens = async (pool, tickets, tokens) => {
   }
 };
 
-module.exports = { sendPushToUser, sendPushToMany, cleanupDeadTokens };
+// How many of userIds can actually receive a device push.
+// Never throws; returns null on query failure (callers treat null as "unknown",
+// 0 as a definite "no devices" — do not collapse the two).
+const countPushEligible = async (pool, userIds) => {
+  if (!userIds || userIds.length === 0) return 0;
+  try {
+    const placeholders = userIds.map(() => '?').join(',');
+    const [rows] = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM users WHERE id IN (${placeholders}) AND push_token IS NOT NULL`,
+      userIds
+    );
+    return Number(rows?.[0]?.cnt ?? 0);
+  } catch (err) {
+    console.error('[expoPush] countPushEligible failed:', err.message);
+    return null;
+  }
+};
+
+module.exports = { sendPushToUser, sendPushToMany, cleanupDeadTokens, countPushEligible };
