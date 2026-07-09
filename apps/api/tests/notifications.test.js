@@ -217,6 +217,7 @@ describe('Notifications API', () => {
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
     expect(res.body.data).toHaveProperty('batchId');
+    expect(res.body.data).toHaveProperty('pushEligibleCount');
     batchId = res.body.data.batchId;
   });
 

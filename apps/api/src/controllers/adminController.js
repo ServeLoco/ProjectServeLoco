@@ -861,6 +861,7 @@ const createAdminNotification = async (req, res) => {
     data: {
       batchId: result.batchId,
       recipientCount: result.count,
+      pushEligibleCount: result.pushEligibleCount ?? null,
       ...(target === 'phones'
         ? { matchedPhones: resolvedPhones, unmatchedPhones }
         : {}),

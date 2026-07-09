@@ -225,10 +225,14 @@ const createBroadcastNotification = async ({
       await tx.commit();
     }
 
-    // Batch push — fire after commit so tokens are read from a stable DB state.
-    expoPush.sendPushToMany(pool, targetUserIds, { title, body }).catch(() => {});
+    // Surfaced to the admin client: how many recipients can receive a device push.
+    const pushEligibleCount = await expoPush.countPushEligible(pool, targetUserIds);
 
-    return { batchId, count: targetUserIds.length };
+    // Batch push — fire after commit so tokens are read from a stable DB state.
+    // data.type mirrors the order-flow push payload (createNotification).
+    expoPush.sendPushToMany(pool, targetUserIds, { title, body, data: { type: type || 'info' } }).catch(() => {});
+
+    return { batchId, count: targetUserIds.length, pushEligibleCount };
   } catch (error) {
     if (ownsConnection) {
       await tx.rollback();

@@ -125,7 +125,7 @@ NOTE (done): TASK 1 implemented — added internal `tallyTickets` (logs every er
 **Files:** `apps/api/src/utils/notificationService.js`, `apps/api/src/controllers/adminController.js`, `apps/api/tests/notifications.test.js`
 
 **Steps:**
-- [ ] 2.1 In `notificationService.js`, function `createBroadcastNotification`, locate (after the commit):
+- [x] 2.1 In `notificationService.js`, function `createBroadcastNotification`, locate (after the commit):
   ```js
   // Batch push — fire after commit so tokens are read from a stable DB state.
   expoPush.sendPushToMany(pool, targetUserIds, { title, body }).catch(() => {});
@@ -144,17 +144,19 @@ NOTE (done): TASK 1 implemented — added internal `tallyTickets` (logs every er
   return { batchId, count: targetUserIds.length, pushEligibleCount };
   ```
   The COUNT is awaited (indexed PK lookup, milliseconds); the send stays fire-and-forget.
-- [ ] 2.2 In `adminController.js`, function `createAdminNotification`, in the final `res.status(201).json({ ... })` block, add one field inside `data`, directly after `recipientCount: result.count,`:
+- [x] 2.2 In `adminController.js`, function `createAdminNotification`, in the final `res.status(201).json({ ... })` block, add one field inside `data`, directly after `recipientCount: result.count,`:
   ```js
   pushEligibleCount: result.pushEligibleCount ?? null,
   ```
   Change nothing else in the response (additive only — `batchId`, `recipientCount`, `matchedPhones`, `unmatchedPhones` all stay).
-- [ ] 2.3 In `apps/api/tests/notifications.test.js`, in the broadcast-creation test, add `expect(res.body.data).toHaveProperty('pushEligibleCount');`. If the mock pool doesn't recognize the new `SELECT COUNT(*)` query, either let the helper's defensive fallback return a value or add a mock branch matching `SELECT COUNT(*)` + `push_token IS NOT NULL` returning `[[{ cnt: 0 }]]` — whichever keeps the suite green with the smallest change.
-- [ ] 2.4 Run `npm test` in `apps/api` — all green.
+- [x] 2.3 In `apps/api/tests/notifications.test.js`, in the broadcast-creation test, add `expect(res.body.data).toHaveProperty('pushEligibleCount');`. If the mock pool doesn't recognize the new `SELECT COUNT(*)` query, either let the helper's defensive fallback return a value or add a mock branch matching `SELECT COUNT(*)` + `push_token IS NOT NULL` returning `[[{ cnt: 0 }]]` — whichever keeps the suite green with the smallest change.
+- [x] 2.4 Run `npm test` in `apps/api` — all green.
 
 **Do NOT:** await `sendPushToMany`; change `createNotification` / `createOrderNotification`; touch the socket-emit block in `createAdminNotification`.
 
 **Done when:** `POST /api/admin/notifications` responds 201 with all existing fields intact plus `data.pushEligibleCount` (number, or null when the count query failed); tests pass.
+
+NOTE (done): TASK 2 implemented — `createBroadcastNotification` now awaits `expoPush.countPushEligible(pool, targetUserIds)` and returns `pushEligibleCount`; the Expo send stays fire-and-forget but now passes `data: { type: type || 'info' }` (mirrors order-flow payload). `createAdminNotification` adds `pushEligibleCount: result.pushEligibleCount ?? null` additively inside `data` after `recipientCount` (all existing fields preserved). `notifications.test.js` adds `expect(res.body.data).toHaveProperty('pushEligibleCount')` — the mock pool's defensive `return [[]]` fallback makes `countPushEligible` return 0, so the field is present. Did NOT await `sendPushToMany` or touch `createNotification`/`createOrderNotification`/socket-emit. Full API suite green (481 passed, 1 skipped), lint clean (0 errors).
 
 ---
 
