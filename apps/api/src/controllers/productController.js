@@ -371,13 +371,20 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
   // Normal products require category. Combos are bundles and do not require category.
-  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time, variants, variant_prompt } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time, variants, variant_prompt, shop_id } = req.validatedData;
 
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
   if (finalDisplayOrder > 0) {
     const [existing] = await pool.query('SELECT name FROM products WHERE category_id = ? AND display_order = ? AND deleted = 0 LIMIT 1', [category_id, finalDisplayOrder]);
     if (existing.length > 0) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by ${existing[0].name} in this category.` });
+    }
+  }
+
+  if (shop_id !== undefined && shop_id !== null) {
+    const [shopRows] = await pool.query('SELECT id FROM shops WHERE id = ?', [shop_id]);
+    if (shopRows.length === 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Unknown shop_id' });
     }
   }
 
@@ -389,7 +396,7 @@ const createProduct = async (req, res) => {
   try {
     await connection.beginTransaction();
     const [result] = await connection.query(
-      'INSERT INTO products (name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label, available_from_time, available_until_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO products (name, price, category_id, unit, description, image_id, available, is_combo, featured, display_order, original_price, discount_label, available_from_time, available_until_time, shop_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         name, price, category_id, unit, description, image_id,
         available !== undefined ? available : true,
@@ -399,7 +406,8 @@ const createProduct = async (req, res) => {
         original_price || null,
         discount_label || null,
         available_from_time || null,
-        available_until_time || null
+        available_until_time || null,
+        shop_id || null
       ]
     );
     insertId = result.insertId;
@@ -417,7 +425,7 @@ const createProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   // Normal products require category. Combos are bundles and do not require category.
   const { id } = req.params;
-  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time, variants, variant_prompt } = req.validatedData;
+  const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time, variants, variant_prompt, shop_id } = req.validatedData;
 
   const [existing] = await pool.query('SELECT id, image_id FROM products WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
@@ -433,6 +441,13 @@ const updateProduct = async (req, res) => {
     }
   }
 
+  if (shop_id !== undefined && shop_id !== null) {
+    const [shopRows] = await pool.query('SELECT id FROM shops WHERE id = ?', [shop_id]);
+    if (shopRows.length === 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Unknown shop_id' });
+    }
+  }
+
   await pool.query('DELETE FROM product_combo_items WHERE combo_product_id = ?', [id]);
 
   // Product row + variant sync run on one connection/transaction so a
@@ -442,7 +457,7 @@ const updateProduct = async (req, res) => {
   try {
     await connection.beginTransaction();
     await connection.query(
-      'UPDATE products SET name = ?, price = ?, category_id = ?, unit = ?, description = ?, image_id = ?, available = ?, is_combo = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ?, available_from_time = ?, available_until_time = ? WHERE id = ?',
+      'UPDATE products SET name = ?, price = ?, category_id = ?, unit = ?, description = ?, image_id = ?, available = ?, is_combo = ?, featured = ?, display_order = ?, original_price = ?, discount_label = ?, available_from_time = ?, available_until_time = ?, shop_id = ? WHERE id = ?',
       [
         name, price, category_id, unit, description, image_id, available,
         false,
@@ -452,6 +467,7 @@ const updateProduct = async (req, res) => {
         discount_label || null,
         available_from_time || null,
         available_until_time || null,
+        shop_id || null,
         id
       ]
     );
@@ -518,9 +534,10 @@ const getAdminProducts = async (req, res) => {
   const totalPages = Math.ceil(total / pagination.limit);
 
   const query = `
-    SELECT p.*, c.name as category_name, c.type as category_type 
+    SELECT p.*, c.name as category_name, c.type as category_type, p.shop_id, s.name as shop_name 
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id 
+    LEFT JOIN shops s ON s.id = p.shop_id 
     ${whereClause}
     ORDER BY p.display_order ASC, p.id DESC
     LIMIT ? OFFSET ?
@@ -547,9 +564,10 @@ const getAdminProducts = async (req, res) => {
 const getAdminProductById = async (req, res) => {
   const { id } = req.params;
   const [rows] = await pool.query(`
-    SELECT p.*, c.name as category_name 
+    SELECT p.*, c.name as category_name, p.shop_id, s.name as shop_name 
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id 
+    LEFT JOIN shops s ON s.id = p.shop_id 
     WHERE p.id = ?
   `, [id]);
   

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ProductsApi, CategoriesApi, ImagesApi } from '../api';
+import { ProductsApi, CategoriesApi, ImagesApi, ShopsApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
@@ -16,6 +16,7 @@ export default function Products() {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [shops, setShops] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -39,7 +40,7 @@ export default function Products() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
-  useEffect(() => { fetchCategories(); }, []);
+  useEffect(() => { fetchCategories(); fetchShops(); }, []);
 
   const paginationRef = useRef({ page: 1 });
   useEffect(() => { paginationRef.current = pagination; }, [pagination]);
@@ -56,6 +57,15 @@ export default function Products() {
       setCategories(res.data || []);
     } catch (err) {
       console.error('Failed to load categories', err);
+    }
+  };
+
+  const fetchShops = async () => {
+    try {
+      const res = await ShopsApi.list();
+      setShops(res.shops || []);
+    } catch (err) {
+      console.error('Failed to load shops', err);
     }
   };
 
@@ -277,6 +287,7 @@ export default function Products() {
               <th>Product</th>
               <th>Price</th>
               <th>Category</th>
+              <th>Shop</th>
               <th>Order</th>
               <th>Availability</th>
               <th>Actions</th>
@@ -284,9 +295,9 @@ export default function Products() {
           </thead>
           <tbody>
             {loading && products.length === 0 ? (
-              <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>Loading products...</td></tr>
+              <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>Loading products...</td></tr>
             ) : products.length === 0 ? (
-              <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>No products found.</td></tr>
+              <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No products found.</td></tr>
             ) : (
               products.map(p => (
                 <tr key={p.id} className={selectedIds.includes(p.id) ? 'selected' : ''}>
@@ -307,6 +318,7 @@ export default function Products() {
                     {p.original_price && <div style={{ fontSize: '0.8rem', textDecoration: 'line-through', color: 'var(--text-secondary)' }}>₹{p.original_price}</div>}
                   </td>
                   <td>{p.category_name}</td>
+                  <td>{p.shop_name || '—'}</td>
                   <td>{p.display_order || 0}</td>
                   <td>
                     <button
@@ -359,6 +371,7 @@ export default function Products() {
         <ProductFormDrawer
           product={editingProduct}
           categories={categories}
+          shops={shops}
           currentMode={filters.type}
           onClose={closeDrawer}
           onSave={() => { closeDrawer(); fetchProducts(pagination.page); }}
@@ -390,7 +403,7 @@ const normalizeVariants = (raw) => {
 };
 
 // Separate Component for the Drawer — unchanged from original
-function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }) {
+function ProductFormDrawer({ product, categories, shops, currentMode, onClose, onSave }) {
   const isEdit = !!product;
   const initialMode = product?.category_type || categories.find(c => String(c.id) === String(product?.category_id))?.type || currentMode || 'packed';
   const [productMode, setProductMode] = useState(initialMode);
@@ -425,6 +438,7 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
       available_from_time: '', available_until_time: '',
       variants: [],
       variant_prompt: '',
+      shop_id: '',
       hasVariants: false
     };
   });
@@ -654,6 +668,8 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
         available_until_time: untilTime,
         availableFromTime: fromTime,
         availableUntilTime: untilTime,
+        shop_id: formData.shop_id || null,
+        shopId: formData.shop_id || null,
       };
       // Send the variants field only in the intended shape.
       if (variantsPayload === undefined) {
@@ -918,6 +934,20 @@ function ProductFormDrawer({ product, categories, currentMode, onClose, onSave }
                     {fieldErrors.category_id}
                   </span>
                 )}
+              </div>
+              <div className="form-group">
+                <label className="form-label">Shop</label>
+                <select
+                  name="shop_id"
+                  className="form-select"
+                  value={formData.shop_id || ''}
+                  onChange={handleChange}
+                >
+                  <option value="">No shop (house item)</option>
+                  {shops.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="form-row">

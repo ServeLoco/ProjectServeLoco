@@ -178,6 +178,7 @@ const productSchema = (req) => {
       display_order: v.displayOrder ?? v.display_order ?? i,
     })) : undefined,
     variant_prompt: normalizeField(req, 'variantPrompt', 'variant_prompt'),
+    shop_id: normalizeField(req, 'shopId', 'shop_id'),
   };
   const errors = {};
   if (!isString(data.name)) errors.name = 'Name is required';
@@ -205,6 +206,15 @@ const productSchema = (req) => {
   if (data.available !== undefined && !isBoolean(data.available)) errors.available = 'Available must be boolean';
   if (data.is_combo !== undefined && !isBoolean(data.is_combo)) errors.is_combo = 'is_combo must be boolean';
   if (data.featured !== undefined && !isBoolean(data.featured)) errors.featured = 'featured must be boolean';
+  // shop_id: optional positive integer or null (null/'' = house product, no shop).
+  if (data.shop_id !== undefined && data.shop_id !== null && data.shop_id !== '') {
+    if (!isPositiveInteger(data.shop_id)) {
+      errors.shop_id = 'shop_id must be a positive integer or null';
+    } else {
+      data.shop_id = Number(data.shop_id);
+    }
+  }
+  if (data.shop_id === '' || data.shop_id === null) data.shop_id = null;
   if (data.combo_items !== undefined) {
     for (let i = 0; i < data.combo_items.length; i++) {
       const item = data.combo_items[i];
