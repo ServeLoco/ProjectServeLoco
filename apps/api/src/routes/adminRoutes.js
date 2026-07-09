@@ -5,6 +5,7 @@ const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, g
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage, bulkUpdateProducts, bulkDeleteProducts } = require('../controllers/productController');
 const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability } = require('../controllers/comboController');
+const { listShops, createShop, updateShop } = require('../controllers/shopAdminController');
 const { getNotificationTemplates, updateNotificationTemplate, resetNotificationTemplate } = require('../controllers/notificationTemplateController');
 const { previewBulkImport, commitBulkImport } = require('../controllers/bulkImportController');
 const {
@@ -628,6 +629,11 @@ router.get('/categories', requireAdmin, asyncHandler(getAdminCategories));
 router.post('/categories', requireAdmin, validate(categorySchema), asyncHandler(createCategory));
 router.put('/categories/:id', requireAdmin, validate(categorySchema), asyncHandler(updateCategory));
 router.delete('/categories/:id', requireAdmin, asyncHandler(deleteCategory));
+
+// Shops — admin shop CRUD (multi-shop / shop-owner feature).
+router.get('/shops', requireAdmin, asyncHandler(listShops));
+router.post('/shops', requireAdmin, asyncHandler(createShop));
+router.patch('/shops/:id', requireAdmin, asyncHandler(updateShop));
 
 router.get('/products', requireAdmin, asyncHandler(getAdminProducts));
 router.post('/products', requireAdmin, validate(productSchema), asyncHandler(createProduct));

@@ -203,19 +203,21 @@ AND (p.shop_id IS NULL OR EXISTS (
 **Files:** `apps/api/src/controllers/shopAdminController.js` (new), `apps/api/src/routes/adminRoutes.js`
 
 **Steps:**
-- [ ] 5.1 Create `shopAdminController.js` with three handlers (follow the style of `adminController.js`: `pool.query`, `asyncHandler`-wrapped at the route, `{ code, message }` error bodies):
+- [x] 5.1 Create `shopAdminController.js` with three handlers (follow the style of `adminController.js`: `pool.query`, `asyncHandler`-wrapped at the route, `{ code, message }` error bodies):
   - `listShops` — `GET`: every shop (including `active = 0`), each row joined with owner name/phone (`LEFT JOIN users u ON u.id = s.owner_user_id`) plus `(SELECT COUNT(*) FROM products p WHERE p.shop_id = s.id AND p.deleted = 0) AS product_count`. Respond `{ shops: [...] }` where each shop has `id, name, is_open, isOpen, active, owner_user_id, ownerUserId, owner_name, ownerName, owner_phone, ownerPhone, product_count, productCount, created_at`.
   - `createShop` — `POST` body `{ name, owner_phone }` (`owner_phone` optional). Validate `name` non-empty (400 `VALIDATION_ERROR` otherwise). If `owner_phone` given: look up `users` by exact phone; 404 `OWNER_NOT_FOUND` with message `'No user with that phone. Ask the shop owner to log in to the app once (OTP signup creates the account), then assign them.'` if absent. Reject (409 `OWNER_TAKEN`) if that user already owns an active shop. Insert, respond 201 with the created shop in the `listShops` row shape.
   - `updateShop` — `PATCH /:id` body may contain `name`, `owner_phone` (same lookup/validation as create; `null` clears the owner), `active` (boolean), `is_open` (boolean — admin override of the owner toggle). Only provided fields update. 404 if shop id unknown. Respond `{ message: 'Shop updated', shop: <row shape> }`.
-- [ ] 5.2 In `adminRoutes.js`, mount under the existing `requireAdmin` pattern used by neighboring routes:
+- [x] 5.2 In `adminRoutes.js`, mount under the existing `requireAdmin` pattern used by neighboring routes:
   ```js
   router.get('/shops', asyncHandler(listShops));
   router.post('/shops', asyncHandler(createShop));
   router.patch('/shops/:id', asyncHandler(updateShop));
   ```
   (Match however that file actually applies `requireAdmin` — router-level `use` or per-route — and follow it.)
-- [ ] 5.3 Add a test file `apps/api/tests/shopsAdmin.test.js` covering: create with unknown phone → 404 `OWNER_NOT_FOUND`; create valid → 201; second shop for same owner → 409; `PATCH active=false` → shop hidden from `getShopForUser`. Follow the mocking conventions of the existing tests in `apps/api/tests/`.
-- [ ] 5.4 Run `npm test` in `apps/api`.
+  NOTE (done): `shopAdminController.js` created with listShops/createShop/updateShop (mapShopRow duplicates both casings; fetchShopRow re-queries after write for row shape). Mounted per-route `requireAdmin` + `asyncHandler` (matching the file's convention) at GET/POST /shops + PATCH /shops/:id, inserted after the categories block. updateShop excludes the current shop from the OWNER_TAKEN check so re-saving the same owner isn't a false 409.
+- [x] 5.3 Add a test file `apps/api/tests/shopsAdmin.test.js` covering: create with unknown phone → 404 `OWNER_NOT_FOUND`; create valid → 201; second shop for same owner → 409; `PATCH active=false` → shop hidden from `getShopForUser`. Follow the mocking conventions of the existing tests in `apps/api/tests/`.
+- [x] 5.4 Run `npm test` in `apps/api`.
+  NOTE (done): `shopsAdmin.test.js` added (4 cases, supertest + mocked pool + admin JWT, mirrors adminValidation.test.js). `npm test` → 45 suites, 485 passed, 1 skipped (was 44/481; +1 suite +4 tests, all green).
 
 ---
 
