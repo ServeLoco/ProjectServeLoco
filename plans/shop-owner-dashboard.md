@@ -153,19 +153,20 @@ What exists today (verified against code on 2026-07-09 — do NOT re-investigate
 **Files:** `apps/api/src/controllers/orderController.js`
 
 **Steps:**
-- [ ] 3.1 In `createOrder`, find the product batch fetch:
+- [x] 3.1 In `createOrder`, find the product batch fetch:
   ```js
   'SELECT id, name, price FROM products WHERE id IN (?) AND available = 1 AND deleted = 0',
   ```
   Add `shop_id` to the SELECT list: `'SELECT id, name, price, shop_id FROM products WHERE id IN (?) AND available = 1 AND deleted = 0'`. Do NOT touch the combos fetch (combos have no shop).
-- [ ] 3.2 In the same function, find where line items are accumulated (`orderItems.push({ product_id: product.id, variant_id: effectiveVariantId, ... })`). Add one property: `shop_id: isCombo ? null : (product.shop_id || null),`.
-- [ ] 3.3 Find the bulk insert:
+- [x] 3.2 In the same function, find where line items are accumulated (`orderItems.push({ product_id: product.id, variant_id: effectiveVariantId, ... })`). Add one property: `shop_id: isCombo ? null : (product.shop_id || null),`.
+- [x] 3.3 Find the bulk insert:
   ```js
   `INSERT INTO order_items (order_id, product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total) VALUES ${placeholders}`
   ```
   Add `shop_id` to the column list (after `variant_label`), add one `?` to the per-row placeholder template (`'(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'`), and push `oi.shop_id || null` into `values` at the matching position.
-- [ ] 3.4 The Idempotency-Key replay SELECT (`'SELECT product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total FROM order_items WHERE order_id = ?'`) does NOT need `shop_id` — replay responses are customer-facing. Leave it alone.
-- [ ] 3.5 Run `npm test` in `apps/api`. Order-creation tests that assert the INSERT arguments will need the extra column/value added to their expectations — that is part of this task.
+- [x] 3.4 The Idempotency-Key replay SELECT (`'SELECT product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total FROM order_items WHERE order_id = ?'`) does NOT need `shop_id` — replay responses are customer-facing. Leave it alone.
+- [x] 3.5 Run `npm test` in `apps/api`. Order-creation tests that assert the INSERT arguments will need the extra column/value added to their expectations — that is part of this task.
+  NOTE (done): Added `shop_id` to product SELECT, to `orderItems.push`, and to the INSERT (column after variant_label, +1 placeholder, `oi.shop_id || null` value). Replay SELECT left untouched. The one test asserting insert values (`cartOrder.test.js` ~L788) checks indices [2]/[3] (variant_id/variant_label) which are unchanged by the insert-at-index-4 layout shift — passes as-is. `npm test` → 44 suites, 481 passed, 1 skipped (matches baseline).
 
 ---
 

@@ -219,7 +219,7 @@ const createOrder = async (req, res) => {
     if (productEntries.length > 0) {
       const productIds = productEntries.map(e => e.productId);
       const [prodRows] = await connection.query(
-        'SELECT id, name, price FROM products WHERE id IN (?) AND available = 1 AND deleted = 0',
+        'SELECT id, name, price, shop_id FROM products WHERE id IN (?) AND available = 1 AND deleted = 0',
         [productIds]
       );
       for (const row of prodRows) productById.set(Number(row.id), row);
@@ -293,6 +293,7 @@ const createOrder = async (req, res) => {
         product_id: product.id,
         variant_id: effectiveVariantId,
         variant_label: effectiveVariantLabel,
+        shop_id: isCombo ? null : (product.shop_id || null),
         product_name: productName,
         quantity,
         unit_price: unitPrice,
@@ -467,13 +468,13 @@ const createOrder = async (req, res) => {
     }
 
     if (orderItems.length > 0) {
-      const placeholders = orderItems.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const placeholders = orderItems.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
       const values = [];
       for (const oi of orderItems) {
-        values.push(orderId, oi.product_id, oi.variant_id || null, oi.variant_label || null, oi.item_type || 'product', oi.product_name, oi.quantity, oi.unit_price, oi.line_total);
+        values.push(orderId, oi.product_id, oi.variant_id || null, oi.variant_label || null, oi.shop_id || null, oi.item_type || 'product', oi.product_name, oi.quantity, oi.unit_price, oi.line_total);
       }
       await connection.query(
-        `INSERT INTO order_items (order_id, product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total) VALUES ${placeholders}`,
+        `INSERT INTO order_items (order_id, product_id, variant_id, variant_label, shop_id, item_type, product_name, quantity, unit_price, line_total) VALUES ${placeholders}`,
         values
       );
     }
