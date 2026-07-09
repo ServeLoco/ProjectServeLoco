@@ -55,7 +55,7 @@ const requireAdmin = async (req, res, next) => {
     if (process.env.NODE_ENV !== 'test') {
       const [rows] = await pool.query('SELECT revoked_before FROM admin_auth_state WHERE id = 1');
       const revokedBefore = rows[0]?.revoked_before;
-      if (revokedBefore && payload.iat && payload.iat * 1000 <= new Date(revokedBefore).getTime()) {
+      if (revokedBefore && payload.iat && payload.iat * 1000 < new Date(revokedBefore).getTime()) {
         return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Session is no longer valid. Please log in again.' });
       }
     }

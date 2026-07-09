@@ -72,16 +72,24 @@ const login = async (req, res) => {
   }
 
   if (!skipLockoutCheck()) {
-    const [[state]] = await pool.query('SELECT failed_attempts FROM admin_auth_state WHERE id = 1');
-    const attempts = (state?.failed_attempts || 0) + 1;
-    if (attempts >= LOCKOUT_THRESHOLD) {
-      await pool.query(
-        'UPDATE admin_auth_state SET failed_attempts = 0, locked_until = ? WHERE id = 1',
-        [new Date(Date.now() + LOCKOUT_DURATION_MS)]
-      );
-    } else {
-      await pool.query('UPDATE admin_auth_state SET failed_attempts = ? WHERE id = 1', [attempts]);
-    }
+    // Single atomic UPDATE — the previous read-then-write (SELECT, then
+    // UPDATE with the computed value) let two concurrent failed logins read
+    // the same starting count and both write attempts+1, silently losing an
+    // increment under a real distributed brute force. MySQL row-locks the
+    // UPDATE itself, so this can't lose a count no matter how concurrent.
+    //
+    // ORDER MATTERS: MySQL evaluates SET assignments left-to-right using the
+    // UPDATED values (nonstandard). locked_until must be assigned first, while
+    // failed_attempts still holds its original value — the reverse order would
+    // zero failed_attempts before the locked_until CASE reads it, and the
+    // lockout would never engage.
+    await pool.query(
+      `UPDATE admin_auth_state
+         SET locked_until = CASE WHEN failed_attempts + 1 >= ? THEN ? ELSE locked_until END,
+             failed_attempts = CASE WHEN failed_attempts + 1 >= ? THEN 0 ELSE failed_attempts + 1 END
+       WHERE id = 1`,
+      [LOCKOUT_THRESHOLD, new Date(Date.now() + LOCKOUT_DURATION_MS), LOCKOUT_THRESHOLD]
+    );
   }
 
   return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid admin credentials' });
@@ -98,8 +106,12 @@ const me = (req, res) => {
 // (including the caller's own) stops working on its next request. Does not
 // touch JWT_SECRET, so customer sessions are unaffected.
 const revokeSessions = async (req, res) => {
+  // Whole-second precision to match JWT `iat` (also whole seconds). The
+  // revocation check below uses a strict "<" so a token issued in the same
+  // second as this revoke is still treated as valid — it can only exist
+  // because the admin already re-logged-in after triggering the revoke.
   await pool.query(
-    'UPDATE admin_auth_state SET revoked_before = NOW(3) WHERE id = 1'
+    'UPDATE admin_auth_state SET revoked_before = NOW() WHERE id = 1'
   );
   res.status(200).json({ message: 'All admin sessions revoked. Log in again to continue.' });
 };
