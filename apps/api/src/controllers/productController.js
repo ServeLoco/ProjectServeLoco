@@ -231,7 +231,7 @@ const getProducts = async (req, res) => {
       FROM offer_products op
       JOIN products p ON op.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE op.offer_id = ? AND op.active = 1 AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0
+      WHERE op.offer_id = ? AND op.active = 1 AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))
     `;
     const params = [finalOfferId];
 
@@ -261,7 +261,7 @@ const getProducts = async (req, res) => {
 
   const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt
     FROM products p LEFT JOIN categories c ON p.category_id = c.id
-    WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0`;
+    WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))`;
   
   const comboQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, 1 as is_combo, p.featured, p.original_price, p.discount_label, NULL as category_id, NULL as category_name, p.store_type as category_type, 999 as cat_display_order, p.display_order as item_display_order
     FROM combos p
@@ -349,6 +349,22 @@ const getProductById = async (req, res) => {
   // The product is still returned so the customer app can show an
   // "available from 09:00 to 18:00" hint instead of a hard 404.
   product.in_time_window = isWithinTimeWindow(product.available_from_time, product.available_until_time);
+
+  // Shop visibility: a product whose shop is closed (is_open = 0) or
+  // deactivated (active = 0) behaves like available = 0 for customers. The
+  // product is still returned so deep-linked detail pages (e.g. from order
+  // history) can render, but it shows as unavailable. House products
+  // (shop_id IS NULL) are unaffected. Mirrors the in_time_window pattern above.
+  if (product.shop_id) {
+    const [shopRows] = await pool.query(
+      'SELECT is_open, active FROM shops WHERE id = ? LIMIT 1',
+      [product.shop_id]
+    );
+    const shop = shopRows[0];
+    if (!shop || !shop.is_open || !shop.active) {
+      product.available = 0;
+    }
+  }
 
   res.status(200).json({ data: product });
 };

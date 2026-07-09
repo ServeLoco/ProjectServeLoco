@@ -219,7 +219,7 @@ const createOrder = async (req, res) => {
     if (productEntries.length > 0) {
       const productIds = productEntries.map(e => e.productId);
       const [prodRows] = await connection.query(
-        'SELECT id, name, price, shop_id FROM products WHERE id IN (?) AND available = 1 AND deleted = 0',
+        'SELECT id, name, price, shop_id FROM products WHERE id IN (?) AND available = 1 AND deleted = 0 AND (shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = products.shop_id AND s.is_open = 1 AND s.active = 1))',
         [productIds]
       );
       for (const row of prodRows) productById.set(Number(row.id), row);

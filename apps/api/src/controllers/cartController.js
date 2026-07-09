@@ -51,7 +51,7 @@ const calculateCart = async (req, res) => {
   const productMap = {};
   if (productIds.length > 0) {
     const [prodRows] = await pool.query(
-      'SELECT id, name, price FROM products WHERE id IN (?) AND available = 1 AND deleted = 0',
+      'SELECT id, name, price FROM products WHERE id IN (?) AND available = 1 AND deleted = 0 AND (shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = products.shop_id AND s.is_open = 1 AND s.active = 1))',
       [productIds]
     );
     prodRows.forEach(p => { productMap[p.id] = p; });
