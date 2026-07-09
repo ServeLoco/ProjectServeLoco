@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { trackEvent } from '../api/analyticsClient';
 
 /**
  * useCartStore
@@ -70,6 +71,7 @@ export const useCartStore = create(
         } else {
           set({ items: [...items, { product, quantity, type: 'product', variant: variant || null }] });
         }
+        trackEvent('cart_add', { productId: Number(product.id), qty: quantity, price: Number(variant?.price ?? product?.price) || 0 });
       },
 
       addCombo: (combo, quantity = 1) => {
@@ -99,11 +101,13 @@ export const useCartStore = create(
 
       removeItem: (productId, type = 'product', variantId = null) => {
         const { items } = get();
+        const removed = items.find(i => String(i.product.id) === String(productId) && (i.type || 'product') === type && (i.variant?.id ?? null) === (variantId ?? null));
         set({ items: items.filter((item) =>
           !(item.product.id === productId &&
             (item.type || 'product') === type &&
             (item.variant?.id ?? null) === (variantId ?? null))
         ) });
+        trackEvent('cart_remove', { productId: Number(productId), qty: Number(removed?.quantity) || 0, price: Number(removed?.variant?.price ?? removed?.product?.price) || 0 });
       },
 
       updateQuantity: (productId, quantity, type = 'product', variantId = null) => {
@@ -112,6 +116,14 @@ export const useCartStore = create(
           get().removeItem(productId, type, variantId);
           return;
         }
+
+        const existing = items.find(item =>
+          item.product.id === productId &&
+          (item.type || 'product') === type &&
+          (item.variant?.id ?? null) === (variantId ?? null)
+        );
+        const previousQty = existing?.quantity || 0;
+        const delta = quantity - previousQty;
 
         const updatedItems = items.map((item) => {
           if (item.product.id === productId &&
@@ -123,6 +135,11 @@ export const useCartStore = create(
         });
 
         set({ items: updatedItems });
+
+        if (type === 'product' && delta !== 0 && existing) {
+          const price = Number(existing.variant?.price ?? existing.product?.price) || 0;
+          trackEvent(delta > 0 ? 'cart_add' : 'cart_remove', { productId: Number(productId), qty: Math.abs(delta), price });
+        }
       },
 
       clearCart: () => set({ items: [], appliedCouponCode: null, appliedCouponId: null, appliedCoupon: null, couponAutoApplyDisabled: false }),

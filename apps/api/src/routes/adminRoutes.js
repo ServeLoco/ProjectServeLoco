@@ -723,4 +723,8 @@ router.get('/notification-templates', requireAdmin, asyncHandler(getNotification
 router.patch('/notification-templates/:id', requireAdmin, asyncHandler(updateNotificationTemplate));
 router.post('/notification-templates/:id/reset', requireAdmin, asyncHandler(resetNotificationTemplate));
 
+// Analytics (admin) — sub-router from analyticsRoutes; already wraps requireAdmin.
+const { adminRouter: analyticsAdminRouter } = require('./analyticsRoutes');
+router.use('/analytics', analyticsAdminRouter);
+
 module.exports = router;

@@ -19,6 +19,7 @@ const PAGE_META = {
   '/images': { title: 'Images', subtitle: 'Media library' },
   '/reports': { title: 'Reports', subtitle: 'Sales & analytics' },
   '/health': { title: 'System Health', subtitle: 'Backend diagnostics' },
+  '/analytics': { title: 'Analytics', subtitle: 'Live presence & behavior' },
   '/bulk-import': { title: 'Bulk Import', subtitle: 'CSV + ZIP product import' },
 };
 

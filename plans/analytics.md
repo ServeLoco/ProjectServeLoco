@@ -293,3 +293,38 @@ endpoints, day-range selector 7/14/30):
   "App interactions" collected, linked to identity, for analytics purposes.
   This is a console form update, no code.
 - Add `.env.example` entries if any new config was introduced (target: none).
+
+---
+
+## Data Safety declaration
+
+**Play Console → App content → Data safety** must be updated to declare the
+analytics data collected by this feature:
+
+- **Category:** App interactions
+  - Collected: Yes
+  - Linked to identity: Yes (user account ID)
+  - Purpose: Analytics
+  - Description: Screen views, cart actions, checkout flow, and session
+    duration are collected to help us understand app usage and improve the
+    shopping experience.
+
+- **Category:** App interactions (optional detail)
+  - The app collects: screen names, product/category IDs (numeric only),
+    cart add/remove events, checkout start/abandon, order placed, session
+    length, platform (Android/iOS), and app version.
+  - The app does NOT collect: raw search text, location, contacts, device
+    identifiers (IMEI/ad ID), clipboard, or any data from outside the app.
+  - No background service — events fire only while the app is foregrounded.
+  - Data is retained for 30 days (auto-deleted via MongoDB TTL index); daily
+    summary docs are retained for 1 year.
+
+This is a **console form update only** — no code change required. The guardrails
+are enforced in code (event whitelist, field whitelist, no background service,
+admin-only endpoints, fire-and-forget writes).
+
+### .env.example
+
+No new config was introduced. Analytics uses the existing `MONGODB_URI` and
+`MONGODB_DATABASE` env vars already present in `.env.development` /
+`.env.production`. No additions needed.

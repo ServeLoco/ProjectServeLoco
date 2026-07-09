@@ -25,6 +25,7 @@ import {
 import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
 import { productsApi } from '../../../api';
+import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, normalizeCategory } from '../../../utils';
 
 
@@ -116,6 +117,7 @@ export default function CategoriesScreen() {
   };
 
   const handleCategoryPress = (category) => {
+    trackEvent('category_view', { categoryId: Number(category.id) });
     navigation.navigate('ProductList', { categoryId: category.id, categoryName: category.name, storeType: normalizedStoreType });
   };
 

@@ -1,8 +1,12 @@
 const { Server } = require('socket.io');
 const config = require('../config/env');
 const { verifyToken } = require('../utils/auth');
+const { createPresenceTracker } = require('./presence');
+const sessionStore = require('../services/analytics/sessionStore');
+const { pool } = require('../db/mysql');
 
 let io = null;
+let presenceTracker = null;
 
 const parseAllowedOrigins = () => {
   const origins = String(config.CORS_ORIGIN || '*')
@@ -26,7 +30,7 @@ const extractSocketToken = (socket) => {
   return null;
 };
 
-const authenticateSocket = (socket, next) => {
+const authenticateSocket = async (socket, next) => {
   const token = extractSocketToken(socket);
 
   if (!token) {
@@ -40,6 +44,17 @@ const authenticateSocket = (socket, next) => {
 
     if (!id || !['customer', 'admin'].includes(role)) {
       return next(new Error('FORBIDDEN_ROLE'));
+    }
+
+    // Mirror requireAdmin's revocation check (authMiddleware.js) — an admin
+    // hitting "revoke sessions" for a leaked token must also cut that
+    // token's realtime access, not just its REST access.
+    if (role === 'admin' && process.env.NODE_ENV !== 'test') {
+      const [rows] = await pool.query('SELECT revoked_before FROM admin_auth_state WHERE id = 1');
+      const revokedBefore = rows[0]?.revoked_before;
+      if (revokedBefore && payload.iat && payload.iat * 1000 < new Date(revokedBefore).getTime()) {
+        return next(new Error('AUTH_TOKEN_INVALID'));
+      }
     }
 
     socket.data.auth = { id, role };
@@ -81,8 +96,39 @@ const initRealtime = (server) => {
 
   io.use(authenticateSocket);
 
+  // Live analytics presence tracker — in-memory Map of online customers,
+  // emits `analytics.live` to the admin room every 5s. Fire-and-forget: a Mongo
+  // outage never affects socket connection handling (sessionStore swallows).
+  presenceTracker = createPresenceTracker({ sessionStore, emitToAdmins });
+
   io.on('connection', (socket) => {
     joinRoleRoom(socket);
+
+    // Analytics presence — customers only (admin sockets are never counted).
+    const auth = socket.data.auth;
+    if (auth && auth.role === 'customer') {
+      const platform = socket.handshake.auth?.platform || null;
+      const appVersion = socket.handshake.auth?.appVersion || null;
+      presenceTracker.addPresence(socket.id, {
+        userId: auth.id,
+        role: auth.role,
+        platform,
+        appVersion,
+      }).catch(() => {});
+    }
+
+    // Screen-change events from the customer app (analyticsClient.trackScreen).
+    socket.on('analytics:screen', (data) => {
+      if (presenceTracker && data && typeof data.screen === 'string') {
+        presenceTracker.updateScreen(socket.id, data.screen);
+      }
+    });
+
+    socket.on('disconnect', () => {
+      if (presenceTracker) {
+        presenceTracker.removePresence(socket.id).catch(() => {});
+      }
+    });
   });
 
   console.log('Realtime socket server initialized');
@@ -91,6 +137,11 @@ const initRealtime = (server) => {
 
 const closeRealtime = async () => {
   if (!io) return;
+
+  if (presenceTracker) {
+    presenceTracker.stop();
+    presenceTracker = null;
+  }
 
   await new Promise((resolve) => {
     io.close(resolve);

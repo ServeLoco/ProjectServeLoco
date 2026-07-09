@@ -160,3 +160,12 @@ export const CouponsApi = {
   duplicate: (id) => apiClient(`/admin/coupons/${id}/duplicate`, { method: 'POST' }),
   redemptions: (id, params) => apiClient(withQuery(`/admin/coupons/${id}/redemptions`, params), { method: 'GET' }),
 };
+
+export const AnalyticsApi = {
+  summary: (days) => apiClient(withQuery('/admin/analytics/summary', { days }), { method: 'GET' }),
+  products: (days) => apiClient(withQuery('/admin/analytics/products', { days }), { method: 'GET' }),
+  windowShoppers: (days) => apiClient(withQuery('/admin/analytics/window-shoppers', { days }), { method: 'GET' }),
+  user: (id, days) => apiClient(withQuery(`/admin/analytics/user/${id}`, { days }), { method: 'GET' }),
+  hourly: (days) => apiClient(withQuery('/admin/analytics/hourly', { days }), { method: 'GET' }),
+  activeUsers: (minutes, search) => apiClient(withQuery('/admin/analytics/active-users', { minutes, search }), { method: 'GET' }),
+};

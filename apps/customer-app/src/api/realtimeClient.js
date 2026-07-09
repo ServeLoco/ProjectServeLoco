@@ -1,4 +1,6 @@
 import { io } from 'socket.io-client';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { getRealtimeBaseUrl } from './realtimeConfig';
 
 const ORDER_EVENTS = [
@@ -139,8 +141,12 @@ function connectCustomerRealtime(token) {
 
   activeToken = token;
   hasConnected = false;
+  // Extend the auth payload with platform + appVersion for the analytics
+  // presence tracker (Task 2). Do not change anything else about connection
+  // handling — the server's authenticateSocket only reads `token`.
+  const appVersion = Constants.expoConfig?.version || Constants.manifest?.version || null;
   socket = io(getRealtimeBaseUrl(), {
-    auth: { token },
+    auth: { token, platform: Platform.OS, appVersion },
     reconnection: true,
     transports: ['websocket', 'polling'],
   });
@@ -173,9 +179,21 @@ function getRealtimeConnectionState() {
   };
 }
 
+// Emit an analytics screen-change event on the connected socket. Silently
+// no-ops if the socket isn't connected — analytics is fire-and-forget.
+function emitAnalyticsScreen(screen) {
+  if (!socket || !socket.connected || !screen) return;
+  try {
+    socket.emit('analytics:screen', { screen });
+  } catch (_) {
+    // never throw from analytics
+  }
+}
+
 export {
   connectCustomerRealtime,
   disconnectCustomerRealtime,
+  emitAnalyticsScreen,
   emitRealtimeForeground,
   getRealtimeConnectionState,
   subscribeNotificationEvents,

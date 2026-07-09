@@ -20,6 +20,7 @@ import { colors, typography, spacing, radius, shadows, layout } from '../../../t
 import { useCartStore } from '../../../stores';
 import { useAuthGate } from '../../../hooks';
 import { productsApi } from '../../../api';
+import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, normalizeProduct } from '../../../utils';
 
 export default function ProductDetailScreen() {
@@ -60,6 +61,7 @@ export default function ProductDetailScreen() {
   useEffect(() => {
     let isMounted = true;
 
+    trackEvent('product_view', { productId: Number(productId) });
     setIsLoading(true);
     setLoadError('');
 
