@@ -231,7 +231,7 @@ jobs:
           echo "=== Build complete, output: ==="
           ls -la /home/linux-server/Documents/builds/.tmp/villkro.aab 2>&1 || echo "NO .aab file produced"
 
-      - name: Submit .aab to Google Play (Internal testing)
+      - name: Submit .aab to Google Play (Production track)
         if: needs.detect-bump.outputs.bump == 'major'
         working-directory: ${{ env.APP_DIR }}
         env:
