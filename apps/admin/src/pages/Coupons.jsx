@@ -1,18 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CouponsApi, CustomersApi } from '../api';
 import { Loading, ErrorState, EmptyState } from '../components/SharedUI';
+import { useStoreModes } from '../hooks/useStoreModes';
 import './Coupons.css';
 
 const DISCOUNT_TYPES = [
   { value: 'flat', label: 'Flat Rs off' },
   { value: 'percent', label: 'Percentage % off' },
   { value: 'free_delivery', label: 'Free Delivery' },
-];
-
-const APPLIES_TO_OPTIONS = [
-  { value: 'all', label: 'All Orders' },
-  { value: 'packed', label: 'Packed Items Only' },
-  { value: 'fast_food', label: 'Fast Food Only' },
 ];
 
 const TARGET_AUDIENCE_OPTIONS = [
@@ -214,6 +209,11 @@ function CouponPreview({ form }) {
 }
 
 export default function Coupons() {
+  const { modes } = useStoreModes();
+  const appliesToOptions = [
+    { value: 'all', label: 'All Orders' },
+    ...modes.map(m => ({ value: m.slug, label: `${m.label} Only` })),
+  ];
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -422,7 +422,7 @@ export default function Coupons() {
       <div className="coupons-filters">
         <div className="coupons-filter"><label>Status</label><select value={filters.status} onChange={e => handleFilterChange('status', e.target.value)}>{STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
         <div className="coupons-filter"><label>Target Audience</label><select value={filters.target_audience} onChange={e => handleFilterChange('target_audience', e.target.value)}>{[{ value: '', label: 'All audiences' }, ...TARGET_AUDIENCE_OPTIONS].map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
-        <div className="coupons-filter"><label>Applies To</label><select value={filters.applies_to} onChange={e => handleFilterChange('applies_to', e.target.value)}>{[{ value: '', label: 'All categories' }, ...APPLIES_TO_OPTIONS].map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+        <div className="coupons-filter"><label>Applies To</label><select value={filters.applies_to} onChange={e => handleFilterChange('applies_to', e.target.value)}>{[{ value: '', label: 'All categories' }, ...appliesToOptions].map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
         <div className="coupons-filter"><label>State</label><select value={filters.active} onChange={e => handleFilterChange('active', e.target.value)}>{ACTIVE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
         <button type="button" className="coupons-filter-reset" onClick={handleFilterReset}>Reset</button>
       </div>
@@ -508,7 +508,7 @@ export default function Coupons() {
                     <div className="form-row"><label>Description</label><textarea value={form.description} onChange={e => handleFormChange('description', e.target.value)} placeholder="Shown to customers" rows={2} /></div>
                   )}
                   {showField('applies_to') && (
-                    <div className="form-row"><label>Applies To</label><select value={form.applies_to} onChange={e => handleFormChange('applies_to', e.target.value)}>{APPLIES_TO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+                    <div className="form-row"><label>Applies To</label><select value={form.applies_to} onChange={e => handleFormChange('applies_to', e.target.value)}>{appliesToOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
                   )}
                 </fieldset>
                 {(showField('discount_type') || showField('free_delivery_toggle')) && (

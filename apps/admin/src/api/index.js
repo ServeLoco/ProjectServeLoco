@@ -78,6 +78,12 @@ export const CategoriesApi = {
   delete: (id) => apiClient(`/admin/categories/${id}`, { method: 'DELETE' }),
 };
 
+export const StoreModesApi = {
+  list: () => apiClient('/admin/store-modes', { method: 'GET' }),
+  create: (data) => apiClient('/admin/store-modes', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/store-modes/${id}`, { method: 'PATCH', body: data }),
+};
+
 export const ShopsApi = {
   list: () => apiClient('/admin/shops', { method: 'GET' }),
   create: (data) => apiClient('/admin/shops', { method: 'POST', body: data }),

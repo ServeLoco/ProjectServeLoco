@@ -16,6 +16,7 @@ const NAV_GROUPS = [
       { path: '/products', label: 'Products', icon: '🏷️' },
       { path: '/combos', label: 'Combos', icon: '🍱' },
       { path: '/categories', label: 'Categories', icon: '🗂️' },
+      { path: '/store-modes', label: 'Store Modes', icon: '🔀' },
       { path: '/shops', label: 'Shops', icon: '🏪' },
       { path: '/offers', label: 'Offers', icon: '🎁' },
       { path: '/coupons', label: 'Coupons', icon: '🎟️' },

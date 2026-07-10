@@ -6,12 +6,14 @@ import OfferProductsPanel from '../components/OfferProductsPanel';
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
 import { useImageCropper } from '../hooks/useImageCropper';
+import { useStoreModes } from '../hooks/useStoreModes';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
 import './Offers.css';
 
 import { GENERIC_ERROR } from '../utils/constants';
 
 export default function Offers() {
+  const { modes } = useStoreModes();
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -76,21 +78,17 @@ export default function Offers() {
         </button>
       </header>
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-        <button 
-          className={`btn-secondary ${storeType === 'packed' ? 'active' : ''}`}
-          style={storeType === 'packed' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
-          onClick={() => setStoreType('packed')}
-        >
-          Packed Items
-        </button>
-        <button 
-          className={`btn-secondary ${storeType === 'fast_food' ? 'active' : ''}`}
-          style={storeType === 'fast_food' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
-          onClick={() => setStoreType('fast_food')}
-        >
-          Fast Food
-        </button>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+        {modes.map(m => (
+          <button
+            key={m.slug}
+            className={`btn-secondary ${storeType === m.slug ? 'active' : ''}`}
+            style={storeType === m.slug ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+            onClick={() => setStoreType(m.slug)}
+          >
+            {m.label}
+          </button>
+        ))}
       </div>
 
       {error && <div className="error-container" style={{ marginBottom: '2rem' }}>{error}</div>}
@@ -144,6 +142,7 @@ export default function Offers() {
 }
 
 function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
+  const { modes } = useStoreModes();
   const isEdit = !!offer;
   const [formData, setFormData] = useState(offer || {
     title: '',
@@ -263,8 +262,7 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
             <div className="form-group">
               <label className="form-label">Offer Mode</label>
               <select required name="store_type" className="form-select" value={formData.store_type} onChange={handleChange}>
-                <option value="packed">Packed Items</option>
-                <option value="fast_food">Fast Food</option>
+                {modes.map(m => <option key={m.slug} value={m.slug}>{m.label}</option>)}
               </select>
             </div>
 

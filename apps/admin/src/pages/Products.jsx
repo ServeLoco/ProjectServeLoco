@@ -7,6 +7,7 @@ import { useAdminRefresh } from '../hooks/useAdminRefresh';
 import { IMAGE_GUIDANCE, isWithinTimeWindow, formatTimeWindow } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
 import { useImageCropper } from '../hooks/useImageCropper';
+import { useStoreModes } from '../hooks/useStoreModes';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
 import MessageBanner from '../components/MessageBanner';
 import { GENERIC_ERROR } from '../utils/constants';
@@ -14,6 +15,7 @@ import './Products.css';
 
 export default function Products() {
   const navigate = useNavigate();
+  const { modes } = useStoreModes();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [shops, setShops] = useState([]);
@@ -195,21 +197,17 @@ export default function Products() {
         </div>
       </header>
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-        <button
-          className={`btn-secondary ${filters.type === 'packed' ? 'active' : ''}`}
-          style={filters.type === 'packed' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
-          onClick={() => setFilters(prev => ({ ...prev, type: 'packed', category_id: '' }))}
-        >
-          Packed Items
-        </button>
-        <button
-          className={`btn-secondary ${filters.type === 'fast_food' ? 'active' : ''}`}
-          style={filters.type === 'fast_food' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
-          onClick={() => setFilters(prev => ({ ...prev, type: 'fast_food', category_id: '' }))}
-        >
-          Fast Food
-        </button>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        {modes.map(m => (
+          <button
+            key={m.slug}
+            className={`btn-secondary ${filters.type === m.slug ? 'active' : ''}`}
+            style={filters.type === m.slug ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+            onClick={() => setFilters(prev => ({ ...prev, type: m.slug, category_id: '' }))}
+          >
+            {m.label}
+          </button>
+        ))}
       </div>
 
       <section className="products-filter-bar">

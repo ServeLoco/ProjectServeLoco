@@ -5,6 +5,7 @@ import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError }
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
 import { useImageCropper } from '../hooks/useImageCropper';
+import { useStoreModes } from '../hooks/useStoreModes';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
 import MessageBanner from '../components/MessageBanner';
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
@@ -13,6 +14,7 @@ import './Products.css';
 
 export default function Combos() {
   // Combos are bundles and do not require category.
+  const { modes } = useStoreModes();
   const [products, setProducts] = useState([]);
   const [comboProducts, setComboProducts] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
@@ -177,21 +179,17 @@ export default function Combos() {
         </button>
       </header>
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-        <button 
-          className={`btn-secondary ${filters.store_type === 'packed' ? 'active' : ''}`}
-          style={filters.store_type === 'packed' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
-          onClick={() => setFilters(prev => ({ ...prev, store_type: 'packed' }))}
-        >
-          Packed Items
-        </button>
-        <button 
-          className={`btn-secondary ${filters.store_type === 'fast_food' ? 'active' : ''}`}
-          style={filters.store_type === 'fast_food' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
-          onClick={() => setFilters(prev => ({ ...prev, store_type: 'fast_food' }))}
-        >
-          Fast Food
-        </button>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        {modes.map(m => (
+          <button
+            key={m.slug}
+            className={`btn-secondary ${filters.store_type === m.slug ? 'active' : ''}`}
+            style={filters.store_type === m.slug ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+            onClick={() => setFilters(prev => ({ ...prev, store_type: m.slug }))}
+          >
+            {m.label}
+          </button>
+        ))}
       </div>
 
       <section className="products-filter-bar">
@@ -343,6 +341,7 @@ export default function Combos() {
 
 // Separate Component for the Drawer
 function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) {
+  const { modes } = useStoreModes();
   const isEdit = !!product;
   const [formData, setFormData] = useState({
     name: '',
@@ -565,8 +564,7 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
               <div className="form-group">
                 <label className="form-label">Combo Mode</label>
                 <select required name="store_type" className="form-select" value={formData.store_type} onChange={handleChange}>
-                  <option value="packed">Packed Items</option>
-                  <option value="fast_food">Fast Food</option>
+                  {modes.map(m => <option key={m.slug} value={m.slug}>{m.label}</option>)}
                 </select>
               </div>
             </div>

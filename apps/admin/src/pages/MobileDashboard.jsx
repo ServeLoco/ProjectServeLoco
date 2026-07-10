@@ -6,6 +6,7 @@ import { GENERIC_ERROR } from '../utils/constants';
 
 import { readList } from '../utils/apiResponse';
 import { normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
+import { useStoreModes, modeLabel } from '../hooks/useStoreModes';
 
 const DEFAULT_MAX_VISIBLE_BY_SECTION = {
   offer_banner: 5,
@@ -16,6 +17,7 @@ const DEFAULT_MAX_VISIBLE_BY_SECTION = {
 
 
 export default function MobileDashboard() {
+  const { modes } = useStoreModes();
   const [sections, setSections] = useState([]);
   const [selectedSection, setSelectedSection] = useState(null);
   const [storeType, setStoreType] = useState('packed');
@@ -487,29 +489,21 @@ export default function MobileDashboard() {
           </button>
         </header>
 
-        <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem', marginBottom: '1rem' }}>
-        <button 
-          className={`btn-secondary ${storeType === 'packed' ? 'active' : ''}`}
-          style={storeType === 'packed' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
-          onClick={() => {
-            setStoreType('packed');
-            setSelectedSection(null);
-            setEditForm(null);
-          }}
-        >
-          Packed Items Layout
-        </button>
-        <button 
-          className={`btn-secondary ${storeType === 'fast_food' ? 'active' : ''}`}
-          style={storeType === 'fast_food' ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
-          onClick={() => {
-            setStoreType('fast_food');
-            setSelectedSection(null);
-            setEditForm(null);
-          }}
-        >
-          Fast Food Layout
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        {modes.map(m => (
+          <button
+            key={m.slug}
+            className={`btn-secondary ${storeType === m.slug ? 'active' : ''}`}
+            style={storeType === m.slug ? { background: 'var(--primary-color)', color: 'white', borderColor: 'var(--primary-color)' } : {}}
+            onClick={() => {
+              setStoreType(m.slug);
+              setSelectedSection(null);
+              setEditForm(null);
+            }}
+          >
+            {m.label} Layout
+          </button>
+        ))}
       </div>
 
         <div className="sections-list-container">
@@ -616,8 +610,7 @@ export default function MobileDashboard() {
                       onChange={handleEditFormChange}
                     >
                       <option value="all">All Stores (legacy)</option>
-                      <option value="packed">Packed Items Only</option>
-                      <option value="fast_food">Fast Food Only</option>
+                      {modes.map(m => <option key={m.slug} value={m.slug}>{m.label} Only</option>)}
                     </select>
                   </div>
                   <div className="form-group">
@@ -652,7 +645,7 @@ export default function MobileDashboard() {
                       >
                         <option value="">— None —</option>
                         {allCategories.map(c => (
-                          <option key={c.id} value={c.id}>{c.name} ({c.type === 'fast_food' ? 'Fast Food' : 'Packed'})</option>
+                          <option key={c.id} value={c.id}>{c.name} ({modeLabel(modes, c.type)})</option>
                         ))}
                       </select>
                       <div className="form-hint">When set, the customer app auto-pins this section to the chosen category and jumps straight to its products.</div>
@@ -669,7 +662,7 @@ export default function MobileDashboard() {
                       >
                         <option value="">— None —</option>
                         {allOffers.map(o => (
-                          <option key={o.id} value={o.id}>{o.title || `Offer #${o.id}`} ({o.store_type === 'fast_food' ? 'Fast Food' : o.store_type === 'packed' ? 'Packed' : 'All'})</option>
+                          <option key={o.id} value={o.id}>{o.title || `Offer #${o.id}`} ({o.store_type === 'all' ? 'All' : modeLabel(modes, o.store_type)})</option>
                         ))}
                       </select>
                       <div className="form-hint">When set, the banner is the dedicated rotation for this single offer instead of a multi-offer carousel.</div>
@@ -753,7 +746,7 @@ export default function MobileDashboard() {
                             <div className="item-subtitle-meta">
                               {item.item_type} • ID: {item.item_id}
                               {details.price && ` • ₹${details.price}`}
-                              {(details.store_type || details.type) && ` • ${(details.store_type || details.type) === 'fast_food' ? 'Fast Food' : 'Packed'}`}
+                              {(details.store_type || details.type) && ` • ${modeLabel(modes, details.store_type || details.type)}`}
                               {item.item_type === 'offer' && ` • ${details.active ? 'Active' : 'Inactive'}`}
                             </div>
                           </div>
@@ -830,8 +823,8 @@ export default function MobileDashboard() {
                               <div className="item-subtitle-meta">
                                 ID: {cand.id} 
                                 {cand.price && ` • ₹${cand.price}`} 
-                                {cand.store_type && ` • ${cand.store_type === 'fast_food' ? 'Fast Food' : 'Packed'}`} 
-                                {cand.type && ` • ${cand.type === 'fast_food' ? 'Fast Food' : 'Packed'}`}
+                                {cand.store_type && ` • ${modeLabel(modes, cand.store_type)}`}
+                                {cand.type && ` • ${modeLabel(modes, cand.type)}`}
                                 {isOfferBanner && ` • ${cand.active ? 'Active' : 'Inactive'}`}
                                 {isOfferBanner && ` • ${cand.isClickable || cand.is_clickable ? 'Clickable' : 'Image only'}`}
                                 {isOfferBanner && !hasImage && <span style={{color: 'var(--danger-color)'}}> • Missing image</span>}
@@ -926,7 +919,7 @@ export default function MobileDashboard() {
                     >
                       <option value="">— None —</option>
                       {allCategories.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.type === 'fast_food' ? 'Fast Food' : 'Packed'})</option>
+                        <option key={c.id} value={c.id}>{c.name} ({modeLabel(modes, c.type)})</option>
                       ))}
                     </select>
                     <div className="form-hint">When set, the customer app auto-pins this section to the chosen category and jumps straight to its products.</div>
@@ -944,7 +937,7 @@ export default function MobileDashboard() {
                     >
                       <option value="">— None —</option>
                       {allOffers.map(o => (
-                        <option key={o.id} value={o.id}>{o.title || `Offer #${o.id}`} ({o.store_type === 'fast_food' ? 'Fast Food' : o.store_type === 'packed' ? 'Packed' : 'All'})</option>
+                        <option key={o.id} value={o.id}>{o.title || `Offer #${o.id}`} ({o.store_type === 'all' ? 'All' : modeLabel(modes, o.store_type)})</option>
                       ))}
                     </select>
                     <div className="form-hint">When set, the banner is the dedicated rotation for this single offer instead of a multi-offer carousel.</div>
@@ -959,8 +952,7 @@ export default function MobileDashboard() {
                     value={newSectionForm.store_type} 
                     onChange={handleModalFormChange}
                   >
-                    <option value="packed">Packed Items Only</option>
-                    <option value="fast_food">Fast Food Only</option>
+                    {modes.map(m => <option key={m.slug} value={m.slug}>{m.label} Only</option>)}
                   </select>
                 </div>
 

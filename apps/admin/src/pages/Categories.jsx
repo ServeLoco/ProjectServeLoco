@@ -5,12 +5,14 @@ import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError }
 import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
 import { getImageUploadError } from '../utils/fileValidation';
 import { useImageCropper } from '../hooks/useImageCropper';
+import { useStoreModes, modeLabel } from '../hooks/useStoreModes';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
 import './Categories.css';
 
 import { GENERIC_ERROR } from '../utils/constants';
 
 export default function Categories() {
+  const { modes } = useStoreModes();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -113,9 +115,7 @@ export default function Categories() {
                     </div>
                   </td>
                   <td>
-                    <span className={`category-type ${c.type === 'fast_food' ? 'fast-food' : ''}`}>
-                      {c.type === 'fast_food' ? 'Fast Food' : c.type === 'packed' ? 'Packed Items' : c.type}
-                    </span>
+                    <span className="category-type">{modeLabel(modes, c.type)}</span>
                   </td>
                   <td>{c.display_order}</td>
                   <td>
@@ -148,6 +148,7 @@ export default function Categories() {
 }
 
 function CategoryFormDrawer({ category, onClose, onSave }) {
+  const { modes } = useStoreModes();
   const isEdit = !!category;
   const [formData, setFormData] = useState(category || {
     name: '',
@@ -289,8 +290,7 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
               <div className="form-group">
                 <label className="form-label">Type</label>
                 <select required name="type" className="form-select" value={formData.type} onChange={handleChange}>
-                  <option value="packed">Packed Items</option>
-                  <option value="fast_food">Fast Food</option>
+                  {modes.map(m => <option key={m.slug} value={m.slug}>{m.label}</option>)}
                 </select>
               </div>
             </div>

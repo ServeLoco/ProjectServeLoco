@@ -11,6 +11,7 @@ import Orders from './pages/Orders';
 import Products from './pages/Products';
 import Combos from './pages/Combos';
 import Categories from './pages/Categories';
+import StoreModes from './pages/StoreModes';
 import Shops from './pages/Shops';
 import Offers from './pages/Offers';
 import Coupons from './pages/Coupons';
@@ -74,6 +75,7 @@ function App() {
                   <Route path="/products" element={<Products />} />
                   <Route path="/combos" element={<Combos />} />
                   <Route path="/categories" element={<Categories />} />
+                  <Route path="/store-modes" element={<StoreModes />} />
                   <Route path="/shops" element={<Shops />} />
                   <Route path="/offers" element={<Offers />} />
                   <Route path="/coupons" element={<Coupons />} />
