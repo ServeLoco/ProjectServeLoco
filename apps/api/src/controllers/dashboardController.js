@@ -358,6 +358,9 @@ const mapProductRows = (rows) => rows.map(r => ({
   minPrice: r.minPrice ?? r.min_price ?? r.price,
   min_price: r.minPrice ?? r.min_price ?? r.price,
   variantPrompt: r.variantPrompt ?? r.variant_prompt ?? null,
+  shopId: r.shop_id ?? null,
+  shopIsOpen: r.shop_is_open === undefined ? 1 : r.shop_is_open,
+  shop_is_open: r.shop_is_open === undefined ? 1 : r.shop_is_open,
 }));
 
 const mapOfferRows = (rows) => rows
@@ -384,7 +387,16 @@ const mapOfferRows = (rows) => rows
 const getDashboard = async (req, res) => {
   // Dashboard category grid is derived from categories.
   const { storeType = 'packed' } = req.query;
+  const includeClosedShops = ['1', 'true'].includes(
+    String(req.query.includeClosedShops ?? req.query.include_closed_shops ?? '').toLowerCase()
+  );
   const expectedStoreType = await getExpectedStoreType(storeType);
+
+  const shopOpenWhere = includeClosedShops
+    ? '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.active = 1))'
+    : '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))';
+  const shopIsOpenSelect = 'IF(p.shop_id IS NULL OR (sh.is_open = 1 AND sh.active = 1), 1, 0) AS shop_is_open';
+  const shopJoin = 'LEFT JOIN shops sh ON sh.id = p.shop_id';
 
   try {
     let query = `
@@ -449,12 +461,13 @@ const getDashboard = async (req, res) => {
         items = mapCategoryRows(filteredRows);
       } else if (section.section_type === 'product_block') {
         const [rows] = await pool.query(
-          `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type
+          `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type, ${shopIsOpenSelect}
            FROM dashboard_section_items dsi
            JOIN products p ON p.id = dsi.item_id
            LEFT JOIN categories cat ON p.category_id = cat.id
+           ${shopJoin}
            WHERE dsi.section_id = ? AND dsi.item_type = 'product' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-             AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1)) AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
+             AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenWhere} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
@@ -535,7 +548,16 @@ const getDashboard = async (req, res) => {
 const getSectionItems = async (req, res) => {
   const { slug } = req.params;
   const { storeType = 'packed', page = 1, limit = 50 } = req.query;
+  const includeClosedShops = ['1', 'true'].includes(
+    String(req.query.includeClosedShops ?? req.query.include_closed_shops ?? '').toLowerCase()
+  );
   const expectedStoreType = await getExpectedStoreType(storeType);
+
+  const shopOpenWhere = includeClosedShops
+    ? '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.active = 1))'
+    : '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))';
+  const shopIsOpenSelect = 'IF(p.shop_id IS NULL OR (sh.is_open = 1 AND sh.active = 1), 1, 0) AS shop_is_open';
+  const shopJoin = 'LEFT JOIN shops sh ON sh.id = p.shop_id';
   const pageNumber = Math.max(1, Number(page) || 1);
   const limitNumber = Math.min(100, Math.max(1, Number(limit) || 50));
   const offset = (pageNumber - 1) * limitNumber;
@@ -607,12 +629,13 @@ const getSectionItems = async (req, res) => {
       const productStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND cat.type = ?' : '';
       const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
       const [rows] = await pool.query(
-        `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type
+        `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type, ${shopIsOpenSelect}
          FROM dashboard_section_items dsi
          JOIN products p ON p.id = dsi.item_id
          LEFT JOIN categories cat ON p.category_id = cat.id
+         ${shopJoin}
          WHERE dsi.section_id = ? AND dsi.item_type = 'product' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-           AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1)) AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
+           AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenWhere} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
            ${productStoreFilter}
            AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
            AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
@@ -648,6 +671,9 @@ const getSectionItems = async (req, res) => {
         minPrice: r.minPrice ?? r.min_price ?? r.price,
         min_price: r.minPrice ?? r.min_price ?? r.price,
         variantPrompt: r.variantPrompt ?? r.variant_prompt ?? null,
+        shopId: r.shop_id ?? null,
+        shopIsOpen: r.shop_is_open === undefined ? 1 : r.shop_is_open,
+        shop_is_open: r.shop_is_open === undefined ? 1 : r.shop_is_open,
       }));
     } else if (section.section_type === 'combo_block') {
       const comboStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND p.store_type = ?' : '';

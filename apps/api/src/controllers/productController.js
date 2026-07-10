@@ -215,6 +215,17 @@ const getProducts = async (req, res) => {
   let finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
   const finalOfferId = offerId || offer_id;
 
+  // Customer app can request that products from closed shops are included
+  // in the list (they are rendered as disabled cards rather than hidden).
+  // Cart/order checkout still refuses them; this just surfaces the flag.
+  const includeClosedShops = ['1', 'true'].includes(
+    String(req.query.includeClosedShops ?? req.query.include_closed_shops ?? '').toLowerCase()
+  );
+  const shopOpenClause = includeClosedShops
+    ? '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.active = 1))'
+    : '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))';
+  const shopIsOpenProjection = 'IF(p.shop_id IS NULL OR (sh.is_open = 1 AND sh.active = 1), 1, 0) AS shop_is_open';
+
   if (finalOfferId) {
     // 1. Validate the offer
     const [offers] = await pool.query('SELECT store_type, active, deleted, is_clickable FROM offers WHERE id = ?', [finalOfferId]);
@@ -227,11 +238,12 @@ const getProducts = async (req, res) => {
 
     // 2. Fetch products attached to offer
     let query = `
-      SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt
+      SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt, p.shop_id, ${shopIsOpenProjection}
       FROM offer_products op
       JOIN products p ON op.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE op.offer_id = ? AND op.active = 1 AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1)) AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
+      LEFT JOIN shops sh ON sh.id = p.shop_id
+      WHERE op.offer_id = ? AND op.active = 1 AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenClause} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
     `;
     const params = [finalOfferId];
 
@@ -251,6 +263,10 @@ const getProducts = async (req, res) => {
     await resolveImageUrls(rows);
     await attachVariants(rows);
     const filteredRows = rows.filter(r => isWithinTimeWindow(r.available_from_time, r.available_until_time));
+    filteredRows.forEach(r => {
+      r.shopId = r.shop_id ?? null;
+      r.shopIsOpen = r.shop_is_open === undefined ? 1 : r.shop_is_open;
+    });
     return res.status(200).json({ data: { products: filteredRows }, products: filteredRows });
   }
 
@@ -259,9 +275,10 @@ const getProducts = async (req, res) => {
     finalIsCombo = 'false';
   }
 
-  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt
+  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt, p.shop_id, ${shopIsOpenProjection}
     FROM products p LEFT JOIN categories c ON p.category_id = c.id
-    WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1)) AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))`;
+    LEFT JOIN shops sh ON sh.id = p.shop_id
+    WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenClause} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))`;
   
   const comboQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, 1 as is_combo, p.featured, p.original_price, p.discount_label, NULL as category_id, NULL as category_name, p.store_type as category_type, 999 as cat_display_order, p.display_order as item_display_order
     FROM combos p
@@ -303,6 +320,11 @@ const getProducts = async (req, res) => {
   await attachVariants(rows);
 
   const filteredRows = rows.filter(r => isWithinTimeWindow(r.available_from_time, r.available_until_time));
+
+  filteredRows.forEach(r => {
+    r.shopId = r.shop_id ?? null;
+    r.shopIsOpen = r.shop_is_open === undefined ? 1 : r.shop_is_open;
+  });
 
   res.status(200).json({ data: { products: filteredRows }, products: filteredRows });
 };
