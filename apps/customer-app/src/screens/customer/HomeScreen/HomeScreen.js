@@ -37,7 +37,7 @@ import {
 } from '../../../components';
 import { colors, typography, spacing, radius, layout } from '../../../theme';
 import { useCartStore, useSettingsStore } from '../../../stores';
-import { useAuthGate } from '../../../hooks';
+import { useAuthGate, useStoreModes } from '../../../hooks';
 
 
 import {
@@ -77,7 +77,8 @@ export default function HomeScreen() {
   const isSettingsStale = useSettingsStore(state => state.isStale);
   const markSettingsFetched = useSettingsStore(state => state.markFetched);
   
-  const [storeType, setStoreType] = useState('Fast Food');
+  const { modes } = useStoreModes();
+  const [storeType, setStoreType] = useState('fast_food');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dashboardSections, setDashboardSections] = useState([]);
@@ -87,7 +88,7 @@ export default function HomeScreen() {
   const [searchDismissSignal, setSearchDismissSignal] = useState(0);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const searchBackdropRef = useRef(null);
-  const currentApiStoreType = storeType === 'Fast Food' ? 'fast_food' : 'packed';
+  const currentApiStoreType = storeType;
   const cartItemCount = useMemo(
     () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
     [items]
@@ -508,7 +509,8 @@ export default function HomeScreen() {
           {/* Store Type Toggle */}
           <View style={styles.toggleContainer}>
             <SegmentedControl
-              options={['Packed Items', 'Fast Food']}
+              options={modes.map(m => m.slug)}
+              renderLabel={(slug) => modes.find(m => m.slug === slug)?.label || slug}
               selectedOption={storeType}
               onSelect={(val) => {
                 if (val !== storeType) {

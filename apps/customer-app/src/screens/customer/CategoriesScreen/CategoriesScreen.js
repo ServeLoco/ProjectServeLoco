@@ -24,6 +24,7 @@ import {
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
+import { useStoreModes } from '../../../hooks';
 import { productsApi } from '../../../api';
 import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, normalizeCategory } from '../../../utils';
@@ -42,17 +43,17 @@ export default function CategoriesScreen() {
     [items]
   );
   
+  const { modes } = useStoreModes();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const initialStoreType = route.params?.storeType === 'fast_food' ? 'Fast Food' : 'Packed Items';
-  const [storeType, setStoreType] = useState(initialStoreType);
+  const [storeType, setStoreType] = useState(route.params?.storeType || 'packed');
   const [activeChip, setActiveChip] = useState('All');
   const [categories, setCategories] = useState([]);
   const [chips, setChips] = useState(['All']);
   const [isError, setIsError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
-  
-  const normalizedStoreType = storeType === 'Fast Food' ? 'fast_food' : storeType === 'Packed Items' ? 'packed' : storeType;
+
+  const normalizedStoreType = storeType;
 
   const displayCategories = useMemo(() => categories.filter(category => {
     const type = String(category.type || '').toLowerCase();
@@ -76,9 +77,7 @@ export default function CategoriesScreen() {
     slideAnim.setValue(20);
     staggerAnims.forEach(anim => anim.setValue(0));
 
-    const normalizedStoreType = storeType === 'Fast Food' ? 'fast_food' : storeType === 'Packed Items' ? 'packed' : storeType;
-
-    productsApi.getCategories({ type: normalizedStoreType })
+    productsApi.getCategories({ type: storeType })
       .then(response => {
         const nextCategories = asArray(response, ['categories']).map(normalizeCategory);
         setCategories(nextCategories);
@@ -154,7 +153,8 @@ export default function CategoriesScreen() {
         {/* Segmented Control */}
         <View style={styles.toggleContainer}>
           <SegmentedControl
-            options={['Packed Items', 'Fast Food']}
+            options={modes.map(m => m.slug)}
+            renderLabel={(slug) => modes.find(m => m.slug === slug)?.label || slug}
             selectedOption={storeType}
             onSelect={(opt) => {
               LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);

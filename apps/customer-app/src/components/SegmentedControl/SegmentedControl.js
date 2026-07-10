@@ -5,17 +5,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 /**
  * SegmentedControl
- * Two-option segmented toggle with premium animation:
+ * N-option (2-5) segmented toggle with premium animation:
  *   - Smooth spring-animated saffron slider
  *   - Per-option press scale feedback
  *   - Subtle "land" pulse on the slider when it snaps into place
  *
  * Props:
- *   options    - array of exactly 2 strings e.g. ['Packed Items', 'Fast Food']
+ *   options    - array of 2-5 strings e.g. ['Packed Items', 'Fast Food']
  *   value      - current selected option (string)
  *   selectedOption - fallback current selected option
  *   onChange   - called with the newly selected option string
  *   onSelect   - fallback change handler
+ *   renderLabel - optional (option) => displayText, for options that are ids/slugs
  *   style      - container style override
  *   disabled   - disable interactivity
  */
@@ -25,16 +26,18 @@ function SegmentedControl({
   selectedOption,
   onChange,
   onSelect,
+  renderLabel,
   style,
   disabled,
 }) {
-  if (!options || options.length !== 2) return null;
+  if (!options || options.length < 2 || options.length > 5) return null;
   const activeValue = value ?? selectedOption;
   const handleChange = onChange || onSelect;
   const activeIndex = Math.max(0, options.indexOf(activeValue));
+  const optionCount = options.length;
 
   const [trackWidth, setTrackWidth] = useState(0);
-  const slideAnim = useRef(new Animated.Value(activeIndex === 1 ? 1 : 0)).current;
+  const slideAnim = useRef(new Animated.Value(activeIndex)).current;
   const landAnim = useRef(new Animated.Value(1)).current;
   const pressScales = useRef(options.map(() => new Animated.Value(1))).current;
 
@@ -67,11 +70,11 @@ function SegmentedControl({
     }).start();
   };
 
-  // Indicator width is half of the container width minus the padding (2 * inset)
-  const indicatorWidth = trackWidth ? (trackWidth - 14) / 2 : 0;
+  // Indicator width is 1/N of the container width minus the padding (2 * inset)
+  const indicatorWidth = trackWidth ? (trackWidth - 14) / optionCount : 0;
   const translateX = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, indicatorWidth],
+    inputRange: options.map((_, idx) => idx),
+    outputRange: options.map((_, idx) => indicatorWidth * idx),
   });
 
   return (
@@ -127,7 +130,7 @@ function SegmentedControl({
             style={styles.segment}
             accessibilityRole="button"
             accessibilityState={{ selected: isActive }}
-            accessibilityLabel={opt}
+            accessibilityLabel={renderLabel ? renderLabel(opt) : opt}
           >
             <Animated.View
               style={[
@@ -143,7 +146,7 @@ function SegmentedControl({
                 ]}
                 numberOfLines={1}
               >
-                {opt}
+                {renderLabel ? renderLabel(opt) : opt}
               </Text>
             </Animated.View>
           </TouchableOpacity>

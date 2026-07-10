@@ -26,11 +26,17 @@ import {
 } from '../../../components';
 import { colors, typography, spacing, radius, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
-import { useAuthGate } from '../../../hooks';
+import { useAuthGate, useStoreModes } from '../../../hooks';
 import { productsApi, dashboardApi } from '../../../api';
 import { asArray, normalizeProduct } from '../../../utils';
 
 const SORT_OPTIONS = ['Popular', 'Price Low to High', 'Price High to Low'];
+
+const MODE_BADGE_STYLES = {
+  packed: { emoji: '📦', bg: '#E8F5E9', text: '#2E7D32' },
+  fast_food: { emoji: '🍔', bg: '#FFF3E0', text: '#E65100' },
+  default: { emoji: '🏷️', bg: '#EDE7F6', text: '#5E35B1' },
+};
 
 export default function ProductListScreen() {
   const navigation = useNavigation();
@@ -49,6 +55,7 @@ export default function ProductListScreen() {
 
   const { width: windowWidth } = useWindowDimensions();
   const cardWidth = Math.floor((windowWidth - (spacing.lg * 2) - spacing.md) / 2);
+  const { modes } = useStoreModes();
 
   // Stores
   const items = useCartStore(state => state.items);
@@ -224,9 +231,10 @@ export default function ProductListScreen() {
   const renderItem = ({ item }) => {
     const itemStoreType = item.storeType || item.store_type || item.type;
     const showModeBadge = mode === 'search' && sectionStoreType === 'all' && !!itemStoreType;
-    const modeBadgeLabel = itemStoreType === 'fast_food' ? '🍔 Fast Food' : '📦 Packed';
-    const modeBadgeColor = itemStoreType === 'fast_food' ? '#FFF3E0' : '#E8F5E9';
-    const modeBadgeTextColor = itemStoreType === 'fast_food' ? '#E65100' : '#2E7D32';
+    const modeInfo = MODE_BADGE_STYLES[itemStoreType] || MODE_BADGE_STYLES.default;
+    const modeBadgeLabel = `${modeInfo.emoji} ${modes.find(m => m.slug === itemStoreType)?.label || itemStoreType}`;
+    const modeBadgeColor = modeInfo.bg;
+    const modeBadgeTextColor = modeInfo.text;
 
     return (
       <View style={[styles.productWrap, { width: cardWidth }]}>

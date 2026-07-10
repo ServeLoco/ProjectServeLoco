@@ -26,5 +26,6 @@ export { ordersApi } from './ordersApi';
 export { settingsApi } from './settingsApi';
 export { offersApi } from './offersApi';
 export { dashboardApi } from './dashboardApi';
+export { storeModesApi } from './storeModesApi';
 export * as notificationsApi from './notificationsApi';
 export { trackScreen, trackEvent, initAnalytics, stopAnalytics } from './analyticsClient';
