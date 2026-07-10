@@ -5,6 +5,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useNotificationStore } from '../../stores/notificationStore';
 import { useAuthStore } from '../../stores/authStore';
 import { subscribeRealtime } from '../../api/realtimeClient';
+import { useStoreModes } from '../../hooks/useStoreModes';
 
 import BottomNav from '../../components/BottomNav';
 import StickyMiniCart from '../../components/StickyMiniCart';
@@ -35,7 +36,8 @@ export default function HomeScreen() {
   
   const { fetchSettings, shopOpen } = useSettingsStore();
   const { unreadCount, fetchUnreadCount } = useNotificationStore();
-  
+  const { modes } = useStoreModes();
+
   const [storeType, setStoreType] = useState(() => {
     try {
       return localStorage.getItem('home-store-type') || 'fast_food';
@@ -156,18 +158,15 @@ export default function HomeScreen() {
       </div>
 
       <div className="store-type-tabs">
-        <button 
-          className={`store-type-tab ${storeType === 'packed' ? 'active' : ''}`}
-          onClick={() => setStoreType('packed')}
-        >
-          Packed Items
-        </button>
-        <button 
-          className={`store-type-tab ${storeType === 'fast_food' ? 'active' : ''}`}
-          onClick={() => setStoreType('fast_food')}
-        >
-          Fast Food
-        </button>
+        {modes.map(m => (
+          <button
+            key={m.slug}
+            className={`store-type-tab ${storeType === m.slug ? 'active' : ''}`}
+            onClick={() => setStoreType(m.slug)}
+          >
+            {m.label}
+          </button>
+        ))}
       </div>
 
       <div className="home-content">

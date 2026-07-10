@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { productsApi } from '../../api/productsApi';
+import { useStoreModes } from '../../hooks/useStoreModes';
 import BottomNav from '../../components/BottomNav';
 import CategoryCard from '../../components/CategoryCard';
 import ErrorState from '../../components/ErrorState';
 import './CategoriesScreen.css';
 
 export default function CategoriesScreen() {
+  const { modes } = useStoreModes();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,18 +30,15 @@ export default function CategoriesScreen() {
       </div>
       
       <div className="store-type-tabs cat-tabs">
-        <button 
-          className={`store-type-tab ${type === 'packed' ? 'active' : ''}`}
-          onClick={() => setType('packed')}
-        >
-          Packed Items
-        </button>
-        <button 
-          className={`store-type-tab ${type === 'fast_food' ? 'active' : ''}`}
-          onClick={() => setType('fast_food')}
-        >
-          Fast Food
-        </button>
+        {modes.map(m => (
+          <button
+            key={m.slug}
+            className={`store-type-tab ${type === m.slug ? 'active' : ''}`}
+            onClick={() => setType(m.slug)}
+          >
+            {m.label}
+          </button>
+        ))}
       </div>
 
       {error ? (
