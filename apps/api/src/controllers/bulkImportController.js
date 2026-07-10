@@ -6,6 +6,7 @@ const AdmZip = require('adm-zip');
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
 const s3 = require('../config/s3');
+const { normalizeStoreType } = require('../utils/storeMode');
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 const UPLOAD_DIR = path.join(__dirname, '../../', config.UPLOAD_DIR);
@@ -20,19 +21,13 @@ const MAX_ZIP_UNCOMPRESSED_BYTES = 50 * 1024 * 1024; // 50 MB
 // entry with a compression ratio typical of a zip-bomb, before decompressing.
 const MAX_COMPRESSION_RATIO = 200;
 
-// Normalize mode aliases to canonical DB values
-const NORMALISE_MODE = {
-  packed: 'packed',
-  'packed items': 'packed',
-  packed_items: 'packed',
-  fast: 'fast_food',
-  'fast food': 'fast_food',
-  fast_food: 'fast_food',
-};
-
-const normaliseMode = (raw) => {
+const normaliseMode = async (raw) => {
   if (!raw) return null;
-  return NORMALISE_MODE[String(raw).trim().toLowerCase()] || null;
+  try {
+    return await normalizeStoreType(raw, { fallback: false });
+  } catch {
+    return null;
+  }
 };
 
 const isValidZip = (buffer) =>
@@ -139,9 +134,9 @@ const validateRows = async (rawRows, zipEntryMap, categoryMap, categoryNameMap) 
 
     // ── mode (optional for validation)
     const modeRaw = String(raw.mode || '').trim();
-    const normalisedMode = modeRaw ? normaliseMode(modeRaw) : null;
+    const normalisedMode = modeRaw ? await normaliseMode(modeRaw) : null;
     if (modeRaw && !normalisedMode)
-      skipReasons.push(`unrecognised mode '${modeRaw}'. Accepted: packed, packed items, fast, fast food, fast_food`);
+      skipReasons.push(`unrecognised mode '${modeRaw}'. Accepted: packed, packed items, fast, fast food, fast_food, or any active store mode slug`);
 
     // ── category resolution
     let resolvedCategoryId = null;

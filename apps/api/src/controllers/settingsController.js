@@ -146,7 +146,7 @@ const getActiveOffer = async (req, res) => {
   const params = [];
 
   if (finalStoreType) {
-    const normalizedStoreType = normalizeStoreType(finalStoreType, { allowAll: true });
+    const normalizedStoreType = await normalizeStoreType(finalStoreType, { allowAll: true });
     if (normalizedStoreType !== 'all') {
       query += ' AND store_type = ?';
       params.push(normalizedStoreType);
@@ -299,7 +299,7 @@ const updateSettings = async (req, res) => {
 const createOffer = async (req, res) => {
   const { title, description, active, image_id, imageId, store_type, storeType, is_clickable, isClickable } = req.body;
   const finalImageId = image_id || imageId || null;
-  const finalStoreType = normalizeStoreType(store_type || storeType);
+  const finalStoreType = await normalizeStoreType(store_type || storeType);
   const clickableInput = is_clickable !== undefined ? is_clickable : isClickable;
   const finalIsClickable = (clickableInput === true || clickableInput === 'true' || clickableInput === 1 || clickableInput === '1') ? 1 : 0;
 
@@ -372,7 +372,7 @@ const updateOffer = async (req, res) => {
 
   const finalStoreTypeInput = req.body.store_type || req.body.storeType;
   const targetStoreType = finalStoreTypeInput !== undefined
-    ? normalizeStoreType(finalStoreTypeInput)
+    ? await normalizeStoreType(finalStoreTypeInput)
     : existingOffer.store_type;
   if (finalStoreTypeInput !== undefined) {
     updates.push('store_type = ?');
@@ -400,7 +400,7 @@ const getAdminOffers = async (req, res) => {
   const params = [];
 
   if (finalStoreType) {
-    const normalizedStoreType = normalizeStoreType(finalStoreType, { allowAll: true });
+    const normalizedStoreType = await normalizeStoreType(finalStoreType, { allowAll: true });
     if (normalizedStoreType !== 'all') {
       query += ' AND store_type = ?';
       params.push(normalizedStoreType);

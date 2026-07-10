@@ -1,13 +1,62 @@
+const { pool } = require('../db/mysql');
+const { createTtlCache } = require('./ttlCache');
+
+// Legacy string aliases for the two original hardcoded modes. Kept forever so
+// old app builds / bulk-import sheets / admin bookmarks that send these exact
+// strings keep working even after modes become admin-configurable.
+const LEGACY_ALIASES = {
+  packed: 'packed',
+  'packed items': 'packed',
+  packed_items: 'packed',
+  fast_food: 'fast_food',
+  'fast food': 'fast_food',
+  fastfood: 'fast_food',
+  fast: 'fast_food'
+};
+
+const CACHE_KEY = 'active_slugs';
+const cache = createTtlCache({ ttlMs: 30_000 });
+
 /**
- * Normalizes store mode values from UI or API to the canonical database string.
+ * Loads the set of currently-active store mode slugs from the DB, cached for
+ * 30s. Falls back to the two legacy system modes if the table is briefly
+ * unreachable (e.g. mid-migration) so validation never hard-fails startup.
+ */
+const loadActiveSlugs = async () => {
+  return cache.wrap(CACHE_KEY, async () => {
+    try {
+      const [rows] = await pool.query('SELECT slug FROM store_modes WHERE active = TRUE');
+      const slugs = new Set(rows.map(r => r.slug));
+      if (slugs.size === 0) return new Set(['packed', 'fast_food']);
+      return slugs;
+    } catch {
+      return new Set(['packed', 'fast_food']);
+    }
+  });
+};
+
+/** Call after any admin store-mode create/update/deactivate so reads see it immediately. */
+const invalidateStoreModeCache = () => cache.del(CACHE_KEY);
+
+/** Returns the active store mode slugs (excludes the 'all' sentinel) as an array. */
+const getActiveStoreModeSlugs = async () => Array.from(await loadActiveSlugs());
+
+// The two original hardcoded modes are is_system rows that can never be
+// deactivated (see storeModeController.updateStoreMode), so membership here
+// is always valid without a DB round-trip.
+const SYSTEM_SLUGS = new Set(['packed', 'fast_food']);
+const isSystemModeSlug = (slug) => SYSTEM_SLUGS.has(slug);
+
+/**
+ * Normalizes store mode values from UI or API to the canonical database slug.
  *
  * @param {string} value The incoming store mode value.
  * @param {Object} options Options for normalization.
- * @param {string} [options.fallback] A fallback mode if value is not provided (e.g. 'packed'). If false, throws error on missing.
+ * @param {string|false} [options.fallback] A fallback mode if value is not provided (e.g. 'packed'). If false, throws error on missing.
  * @param {boolean} [options.allowAll] Whether 'all' is a valid mode (useful for legacy APIs before full cleanup).
- * @returns {string} The canonical store mode ('packed', 'fast_food', or 'all' if allowed).
+ * @returns {Promise<string>} The canonical store mode slug (or 'all' if allowed).
  */
-const normalizeStoreType = (value, options = {}) => {
+const normalizeStoreType = async (value, options = {}) => {
   const { fallback = 'packed', allowAll = false } = options;
 
   if (!value) {
@@ -19,28 +68,26 @@ const normalizeStoreType = (value, options = {}) => {
 
   const normalizedValue = value.toString().trim().toLowerCase();
 
-  switch (normalizedValue) {
-    case 'packed':
-    case 'packed items':
-    case 'packed_items':
-      return 'packed';
-    
-    case 'fast_food':
-    case 'fast food':
-    case 'fastfood':
-      return 'fast_food';
-
-    case 'all':
-      if (allowAll) {
-        return 'all';
-      }
-      throw new Error('store_type "all" is not allowed in this context');
-
-    default:
-      throw new Error(`Invalid store_type: ${value}`);
+  if (normalizedValue === 'all') {
+    if (allowAll) return 'all';
+    throw new Error('store_type "all" is not allowed in this context');
   }
+
+  if (LEGACY_ALIASES[normalizedValue]) {
+    return LEGACY_ALIASES[normalizedValue];
+  }
+
+  const activeSlugs = await loadActiveSlugs();
+  if (activeSlugs.has(normalizedValue)) {
+    return normalizedValue;
+  }
+
+  throw new Error(`Invalid store_type: ${value}`);
 };
 
 module.exports = {
-  normalizeStoreType
+  normalizeStoreType,
+  invalidateStoreModeCache,
+  getActiveStoreModeSlugs,
+  isSystemModeSlug
 };

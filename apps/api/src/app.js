@@ -22,6 +22,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const realtimeRoutes = require('./routes/realtimeRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const shopRoutes = require('./routes/shopRoutes');
+const storeModeRoutes = require('./routes/storeModeRoutes');
 
 const app = express();
 
@@ -99,6 +100,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/realtime', realtimeRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/shop', shopRoutes);
+app.use('/api/store-modes', storeModeRoutes);
 app.use('/api/admin/images', imageRoutes); // alias for admin panel
 
 // Local/mobile clients may be configured with either the server root or /api.

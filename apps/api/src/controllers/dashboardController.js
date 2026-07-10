@@ -1,23 +1,19 @@
 const { pool } = require('../db/mysql');
-const { normalizeStoreType } = require('../utils/storeMode');
+const { normalizeStoreType, getActiveStoreModeSlugs, isSystemModeSlug } = require('../utils/storeMode');
 const config = require('../config/env');
 const { attachVariants } = require('./productController');
 
 const SECTION_TYPES = ['offer_banner', 'category_grid', 'product_block', 'combo_block'];
-const STORE_TYPES = ['packed', 'fast_food', 'all'];
 const SECTION_ITEM_TYPES = {
   offer_banner: 'offer',
   category_grid: 'category',
   product_block: 'product',
   combo_block: 'combo',
 };
-const STORE_SPECIFIC_TYPES = ['packed', 'fast_food'];
-const OFFER_BANNER_SLUG_SUFFIX = {
-  packed: 'packed',
-  fast_food: 'fast-food',
-};
+// Slug suffix must be URL-hyphenated; mode slugs use underscores (e.g. fast_food).
+const offerBannerSlugSuffix = (storeType) => storeType.replace(/_/g, '-');
 
-const getExpectedStoreType = (storeType) => {
+const getExpectedStoreType = async (storeType) => {
   if (!storeType) return 'all';
   return normalizeStoreType(storeType, { fallback: 'all', allowAll: true });
 };
@@ -51,15 +47,18 @@ const asNonNegativeInteger = (value, fallback = 0) => {
   return Number.isInteger(numeric) && numeric >= 0 ? numeric : null;
 };
 
-const validateSectionPayload = ({ title, slug, section_type, store_type, display_order, max_visible_items, starts_at, ends_at }, { partial = false } = {}) => {
+const validateSectionPayload = async ({ title, slug, section_type, store_type, display_order, max_visible_items, starts_at, ends_at }, { partial = false } = {}) => {
   if (!partial && (!title || !slug || !section_type)) {
     return 'Title, slug, and section type are required';
   }
   if (section_type !== undefined && !SECTION_TYPES.includes(section_type)) {
     return 'Invalid dashboard section type';
   }
-  if (store_type !== undefined && !STORE_TYPES.includes(store_type)) {
-    return 'Invalid store visibility';
+  if (store_type !== undefined && store_type !== 'all' && !isSystemModeSlug(store_type)) {
+    const activeSlugs = await getActiveStoreModeSlugs();
+    if (!activeSlugs.includes(store_type)) {
+      return 'Invalid store visibility';
+    }
   }
   if (slug !== undefined && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(slug))) {
     return 'Slug must use lowercase letters, numbers, and hyphens only';
@@ -145,11 +144,15 @@ const ensureModeSpecificOfferBannerSections = async () => {
        AND deleted_at IS NULL`
   );
 
+  if (sharedSections.length === 0) return;
+
+  const storeSpecificTypes = await getActiveStoreModeSlugs();
+
   for (const section of sharedSections) {
     const targetSectionIds = {};
 
-    for (const storeType of STORE_SPECIFIC_TYPES) {
-      const baseSlug = `${section.slug}-${OFFER_BANNER_SLUG_SUFFIX[storeType]}`;
+    for (const storeType of storeSpecificTypes) {
+      const baseSlug = `${section.slug}-${offerBannerSlugSuffix(storeType)}`;
       const [existingTargets] = await pool.query(
         `SELECT id
          FROM dashboard_sections
@@ -381,7 +384,7 @@ const mapOfferRows = (rows) => rows
 const getDashboard = async (req, res) => {
   // Dashboard category grid is derived from categories.
   const { storeType = 'packed' } = req.query;
-  const expectedStoreType = getExpectedStoreType(storeType);
+  const expectedStoreType = await getExpectedStoreType(storeType);
 
   try {
     let query = `
@@ -532,7 +535,7 @@ const getDashboard = async (req, res) => {
 const getSectionItems = async (req, res) => {
   const { slug } = req.params;
   const { storeType = 'packed', page = 1, limit = 50 } = req.query;
-  const expectedStoreType = getExpectedStoreType(storeType);
+  const expectedStoreType = await getExpectedStoreType(storeType);
   const pageNumber = Math.max(1, Number(page) || 1);
   const limitNumber = Math.min(100, Math.max(1, Number(limit) || 50));
   const offset = (pageNumber - 1) * limitNumber;
@@ -800,7 +803,7 @@ const createAdminSection = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be explicitly packed or fast_food for new sections.' });
   }
 
-  const validationError = validateSectionPayload(req.body);
+  const validationError = await validateSectionPayload(req.body);
   if (validationError) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: validationError });
   }
@@ -862,7 +865,7 @@ const updateAdminSection = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be explicitly packed or fast_food. "all" is no longer allowed.' });
   }
 
-  const validationError = validateSectionPayload(req.body, { partial: true });
+  const validationError = await validateSectionPayload(req.body, { partial: true });
   if (validationError) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: validationError });
   }

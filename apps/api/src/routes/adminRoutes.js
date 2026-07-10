@@ -3,6 +3,7 @@ const multer = require('multer');
 const { login, me, revokeSessions, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
+const { getAdminStoreModes, createStoreMode, updateStoreMode } = require('../controllers/storeModeController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage, bulkUpdateProducts, bulkDeleteProducts } = require('../controllers/productController');
 const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability } = require('../controllers/comboController');
 const { listShops, createShop, updateShop } = require('../controllers/shopAdminController');
@@ -639,6 +640,11 @@ router.get('/categories', requireAdmin, asyncHandler(getAdminCategories));
 router.post('/categories', requireAdmin, validate(categorySchema), asyncHandler(createCategory));
 router.put('/categories/:id', requireAdmin, validate(categorySchema), asyncHandler(updateCategory));
 router.delete('/categories/:id', requireAdmin, asyncHandler(deleteCategory));
+
+// Store Modes — admin-configurable list replacing the hardcoded packed/fast_food pair.
+router.get('/store-modes', requireAdmin, asyncHandler(getAdminStoreModes));
+router.post('/store-modes', requireAdmin, asyncHandler(createStoreMode));
+router.patch('/store-modes/:id', requireAdmin, asyncHandler(updateStoreMode));
 
 // Shops — admin shop CRUD (multi-shop / shop-owner feature).
 router.get('/shops', requireAdmin, asyncHandler(listShops));

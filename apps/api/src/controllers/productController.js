@@ -208,8 +208,8 @@ const syncProductVariants = async (connection, productId, variants, variantPromp
 const getProducts = async (req, res) => {
   const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit, offerId, offer_id } = req.query;
   const requestedType = type || storeType || store_type;
-  const normalizedType = requestedType 
-    ? normalizeStoreType(requestedType, { allowAll: true }) 
+  const normalizedType = requestedType
+    ? await normalizeStoreType(requestedType, { allowAll: true })
     : 'all';
   const finalCategoryId = categoryId || category_id;
   let finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
@@ -494,7 +494,7 @@ const getAdminProducts = async (req, res) => {
   const { categoryId, category_id, search, available, isCombo, is_combo, featured, type, page, limit } = req.query;
   const finalCategoryId = categoryId || category_id;
   const finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
-  const normalizedType = type ? normalizeStoreType(type, { allowAll: true }) : null;
+  const normalizedType = type ? await normalizeStoreType(type, { allowAll: true }) : null;
   const pagination = validatePagination(page, limit);
 
   let whereClause = 'WHERE p.deleted = 0';

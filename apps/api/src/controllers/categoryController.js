@@ -41,7 +41,7 @@ const attachImageUrls = async (rows) => {
 const getCategories = async (req, res) => {
   const type = req.query.type || req.query.storeType || req.query.store_type;
   const normalizedType = type
-    ? normalizeStoreType(type, { allowAll: true })
+    ? await normalizeStoreType(type, { allowAll: true })
     : 'all';
   const cacheKey = `categories:public:${normalizedType}`;
 
@@ -74,7 +74,7 @@ const getCategories = async (req, res) => {
 
 const getAdminCategories = async (req, res) => {
   const type = req.query.type || req.query.storeType || req.query.store_type;
-  const normalizedType = type ? normalizeStoreType(type, { allowAll: true }) : null;
+  const normalizedType = type ? await normalizeStoreType(type, { allowAll: true }) : null;
   const params = [];
   let query = `
     SELECT c.*, (

@@ -1,5 +1,6 @@
 const { pool } = require('../db/mysql');
 const { roundMoney } = require('../utils/money');
+const { getActiveStoreModeSlugs, isSystemModeSlug } = require('../utils/storeMode');
 
 // ─────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -165,7 +166,13 @@ const createCoupon = async (req, res) => {
 
   const autoApply = b.auto_apply !== undefined ? toBool(b.auto_apply) : false;
   const targetAudience = b.target_audience === 'selected' ? 'selected' : 'all';
-  const appliesTo = ['all', 'packed', 'fast_food'].includes(b.applies_to) ? b.applies_to : 'all';
+  let appliesTo = 'all';
+  if (b.applies_to === 'all' || isSystemModeSlug(b.applies_to)) {
+    appliesTo = b.applies_to;
+  } else if (b.applies_to !== undefined) {
+    const activeModeSlugs = await getActiveStoreModeSlugs();
+    if (activeModeSlugs.includes(b.applies_to)) appliesTo = b.applies_to;
+  }
 
   let result;
   try {
@@ -282,8 +289,9 @@ const updateCoupon = async (req, res) => {
   if (b.min_item_count !== undefined) { updates.push('min_item_count = ?'); params.push(toIntOrNull(b.min_item_count)); }
   if (b.max_order_amount !== undefined) { updates.push('max_order_amount = ?'); params.push(toMoneyOrNull(b.max_order_amount)); }
   if (b.applies_to !== undefined) {
-    if (!['all', 'packed', 'fast_food'].includes(b.applies_to)) {
-      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'applies_to must be all, packed, or fast_food' });
+    const activeModeSlugs = await getActiveStoreModeSlugs();
+    if (!['all', ...activeModeSlugs].includes(b.applies_to)) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `applies_to must be all, ${activeModeSlugs.join(', ')}` });
     }
     updates.push('applies_to = ?');
     params.push(b.applies_to);

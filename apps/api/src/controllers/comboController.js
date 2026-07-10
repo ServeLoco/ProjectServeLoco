@@ -169,7 +169,7 @@ const getAdminCombos = async (req, res) => {
   const params = [];
 
   if (finalStoreType) {
-    const normalizedStoreType = normalizeStoreType(finalStoreType, { allowAll: true });
+    const normalizedStoreType = await normalizeStoreType(finalStoreType, { allowAll: true });
     if (normalizedStoreType !== 'all') {
       whereClause += ' AND store_type = ?';
       params.push(normalizedStoreType);

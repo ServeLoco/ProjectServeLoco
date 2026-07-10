@@ -183,6 +183,30 @@ const migrate = async () => {
     await ensureColumn('categories', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER display_order');
     console.log('Categories table ready.');
 
+    // Store Modes Table — admin-configurable list of store "modes" (formerly
+    // the hardcoded packed/fast_food pair). slug is the canonical value stored
+    // on categories/combos/offers/dashboard_sections/coupons.applies_to.
+    // is_system rows (packed, fast_food) can't be deleted/renamed-slug to keep
+    // old app builds (which hardcode these two) working.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS store_modes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        slug VARCHAR(50) NOT NULL UNIQUE,
+        label VARCHAR(100) NOT NULL,
+        display_order INT NOT NULL DEFAULT 0,
+        active BOOLEAN DEFAULT TRUE,
+        is_system BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_store_mode_active (active, display_order)
+      );
+    `);
+    await connection.query(`
+      INSERT IGNORE INTO store_modes (slug, label, display_order, active, is_system)
+      VALUES ('packed', 'Packed Items', 1, TRUE, TRUE), ('fast_food', 'Fast Food', 2, TRUE, TRUE)
+    `);
+    console.log('Store modes table ready.');
+
     // Products Table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS products (
@@ -282,13 +306,14 @@ const migrate = async () => {
         display_order INT NOT NULL DEFAULT 0,
         discount_label VARCHAR(50),
         deleted BOOLEAN DEFAULT FALSE,
-        store_type ENUM('packed', 'fast_food') NOT NULL DEFAULT 'packed',
+        store_type VARCHAR(50) NOT NULL DEFAULT 'packed',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_combo_store_type (store_type)
       );
     `);
-    await ensureColumn('combos', 'store_type', 'store_type ENUM("packed", "fast_food") NOT NULL DEFAULT "packed" AFTER deleted');
+    await connection.query('ALTER TABLE combos MODIFY COLUMN store_type VARCHAR(50) NOT NULL DEFAULT "packed"');
+    await ensureColumn('combos', 'store_type', 'store_type VARCHAR(50) NOT NULL DEFAULT "packed" AFTER deleted');
     console.log('Combos table ready.');
 
     // Combo Items Table
@@ -550,7 +575,7 @@ const migrate = async () => {
         image_id VARCHAR(255),
         active BOOLEAN DEFAULT FALSE,
         deleted BOOLEAN DEFAULT FALSE,
-        store_type ENUM('packed', 'fast_food') NOT NULL DEFAULT 'packed',
+        store_type VARCHAR(50) NOT NULL DEFAULT 'packed',
         is_clickable BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -558,8 +583,9 @@ const migrate = async () => {
         INDEX idx_offer_store_type (store_type)
       );
     `);
+    await connection.query('ALTER TABLE offers MODIFY COLUMN store_type VARCHAR(50) NOT NULL DEFAULT "packed"');
     await ensureColumn('offers', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER active');
-    await ensureColumn('offers', 'store_type', 'store_type ENUM("packed", "fast_food") NOT NULL DEFAULT "packed" AFTER deleted');
+    await ensureColumn('offers', 'store_type', 'store_type VARCHAR(50) NOT NULL DEFAULT "packed" AFTER deleted');
     await ensureColumn('offers', 'is_clickable', 'is_clickable BOOLEAN DEFAULT FALSE AFTER store_type');
     console.log('Offers table ready.');
 
@@ -591,7 +617,7 @@ const migrate = async () => {
         title VARCHAR(255) NOT NULL,
         slug VARCHAR(255) NOT NULL,
         section_type ENUM('offer_banner', 'category_grid', 'product_block', 'combo_block') NOT NULL,
-        store_type ENUM('packed', 'fast_food', 'all') NOT NULL DEFAULT 'all',
+        store_type VARCHAR(50) NOT NULL DEFAULT 'all',
         active BOOLEAN DEFAULT TRUE,
         display_order INT NOT NULL DEFAULT 0,
         max_visible_items INT NOT NULL DEFAULT 6,
@@ -614,6 +640,7 @@ const migrate = async () => {
     await ensureColumn('dashboard_sections', 'ends_at', 'ends_at TIMESTAMP NULL DEFAULT NULL AFTER starts_at');
     await ensureColumn('dashboard_sections', 'version', 'version INT NOT NULL DEFAULT 1 AFTER ends_at');
     await ensureColumn('dashboard_sections', 'deleted_at', 'deleted_at TIMESTAMP NULL DEFAULT NULL AFTER version');
+    await connection.query('ALTER TABLE dashboard_sections MODIFY COLUMN store_type VARCHAR(50) NOT NULL DEFAULT "all"');
     console.log('Dashboard sections table ready.');
     try {
       await connection.query('ALTER TABLE dashboard_sections DROP INDEX unique_active_slug');
@@ -963,7 +990,7 @@ const migrate = async () => {
         min_order_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
         min_item_count INT NULL,
         max_order_amount DECIMAL(10,2) NULL,
-        applies_to ENUM('all','packed','fast_food') NOT NULL DEFAULT 'all',
+        applies_to VARCHAR(50) NOT NULL DEFAULT 'all',
 
         -- Scheduling / time window
         starts_at DATETIME NULL,
@@ -1010,6 +1037,7 @@ const migrate = async () => {
     // needing a separate discount_type. Ignored when discount_type is
     // already 'free_delivery' (that type already waives delivery alone).
     await ensureColumn('coupons', 'also_free_delivery', 'also_free_delivery TINYINT(1) NOT NULL DEFAULT 0 AFTER discount_type');
+    await connection.query('ALTER TABLE coupons MODIFY COLUMN applies_to VARCHAR(50) NOT NULL DEFAULT "all"');
     // Enforce code uniqueness among non-deleted coupons. A plain UNIQUE
     // index would block re-creating a soft-deleted code, so we scope
     // uniqueness to deleted = 0 (NULL is treated as distinct by MySQL,

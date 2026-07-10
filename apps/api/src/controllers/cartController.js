@@ -563,7 +563,7 @@ const getAvailableCoupons = async (req, res) => {
   if (cartStoreType && cartStoreType !== 'mixed') {
     try {
       const { normalizeStoreType } = require('../utils/storeMode');
-      cartStoreType = normalizeStoreType(cartStoreType, { allowAll: true });
+      cartStoreType = await normalizeStoreType(cartStoreType, { allowAll: true });
     } catch (_) {
       // Keep as-is if normalization fails.
     }
