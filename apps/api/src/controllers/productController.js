@@ -662,18 +662,22 @@ const bulkUpdateProducts = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No valid numeric product IDs provided.' });
   }
 
-  const ALLOWED = ['available', 'featured', 'category_id'];
+  const ALLOWED = ['available', 'featured', 'category_id', 'shop_id'];
   if (!updates || typeof updates !== 'object') {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: '`updates` object is required.' });
   }
-  const updateKeys = Object.keys(updates).filter(k => updates[k] !== undefined && updates[k] !== null && updates[k] !== '');
+  // shop_id: 0 is a valid sentinel meaning "clear assignment" — allow it through unlike other null-ish values
+  const updateKeys = Object.keys(updates).filter(k => {
+    if (k === 'shop_id' && updates[k] === 0) return true;
+    return updates[k] !== undefined && updates[k] !== null && updates[k] !== '';
+  });
   const disallowed = updateKeys.filter(k => !ALLOWED.includes(k));
   if (disallowed.length > 0) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Unsupported update fields: ${disallowed.join(', ')}. Allowed: ${ALLOWED.join(', ')}.` });
   }
   const validKeys = updateKeys.filter(k => ALLOWED.includes(k));
   if (validKeys.length === 0) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'At least one update field is required (available, featured, or category_id).' });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'At least one update field is required (available, featured, category_id, or shop_id).' });
   }
 
   if (updates.category_id !== undefined) {
@@ -686,6 +690,20 @@ const bulkUpdateProducts = async (req, res) => {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Category ID ${catId} does not exist or has been deleted.` });
     }
     updates.category_id = catId;
+  }
+
+  if (validKeys.includes('shop_id')) {
+    const rawShopId = parseInt(updates.shop_id, 10);
+    if (!Number.isFinite(rawShopId) || rawShopId < 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: '`shop_id` must be a non-negative integer (0 clears the assignment).' });
+    }
+    if (rawShopId > 0) {
+      const [shopRows] = await pool.query('SELECT id FROM shops WHERE id = ?', [rawShopId]);
+      if (shopRows.length === 0) {
+        return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Shop ID ${rawShopId} does not exist.` });
+      }
+    }
+    updates.shop_id = rawShopId;
   }
 
   const [existing] = await pool.query('SELECT id FROM products WHERE id IN (?) AND deleted = 0', [numericIds]);
@@ -710,6 +728,10 @@ const bulkUpdateProducts = async (req, res) => {
   if (validKeys.includes('category_id')) {
     setClauses.push('category_id = ?');
     setValues.push(updates.category_id);
+  }
+  if (validKeys.includes('shop_id')) {
+    setClauses.push('shop_id = ?');
+    setValues.push(updates.shop_id === 0 ? null : updates.shop_id);
   }
 
   setValues.push(validIds);

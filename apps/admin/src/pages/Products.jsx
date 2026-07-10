@@ -34,6 +34,7 @@ export default function Products() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [bulkCategoryId, setBulkCategoryId] = useState('');
+  const [bulkShopId, setBulkShopId] = useState('');
   // Inline delete confirmation state
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -151,6 +152,13 @@ export default function Products() {
     setBulkCategoryId('');
   };
 
+  const handleBulkAssignShop = async () => {
+    if (bulkShopId === '') return;
+    const label = bulkShopId === '0' ? 'unassigned from shop' : 'assigned to shop';
+    await runBulkUpdate({ shop_id: Number(bulkShopId) }, label);
+    setBulkShopId('');
+  };
+
   const handleBulkDelete = async () => {
     setBulkUpdating(true);
     setError(null);
@@ -247,6 +255,21 @@ export default function Products() {
                 ))}
               </select>
               <button className="btn-secondary" disabled={bulkUpdating || !bulkCategoryId} onClick={handleBulkMoveCategory}>Move</button>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <select
+                className="filter-select"
+                style={{ margin: 0 }}
+                value={bulkShopId}
+                onChange={e => setBulkShopId(e.target.value)}
+              >
+                <option value="">Assign to Shop...</option>
+                <option value="0">No shop (house item)</option>
+                {shops.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+              <button className="btn-secondary" disabled={bulkUpdating || bulkShopId === ''} onClick={handleBulkAssignShop}>Assign</button>
             </div>
             {!confirmDelete ? (
               <button
