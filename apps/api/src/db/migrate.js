@@ -118,6 +118,24 @@ const migrate = async () => {
     `);
     console.log('Shops table ready.');
 
+    // Product Groups — a shop owner's own bucket of products (e.g.
+    // "Starters") that can be disabled all at once. active=false hides every
+    // member product from customers exactly like a closed shop (see the
+    // visibility filter fragment in productController/cartController/etc).
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_groups (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        shop_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE CASCADE,
+        INDEX idx_product_group_shop (shop_id)
+      );
+    `);
+    console.log('Product groups table ready.');
+
     // Password Reset Requests Table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS password_reset_requests (
@@ -203,6 +221,9 @@ const migrate = async () => {
     // the shop-open visibility filter). FK deliberately omitted so shop
     // deletion policy stays in application code; integrity enforced by admin UI.
     await ensureColumn('products', 'shop_id', 'shop_id INT NULL AFTER category_id');
+    // Group linkage (shop owner's own grouping, e.g. "Starters"). NULL =
+    // ungrouped. No FK, same rationale as shop_id above.
+    await ensureColumn('products', 'group_id', 'group_id INT NULL AFTER shop_id');
     console.log('Products table ready.');
 
     // Product Variants Table — purchasable child rows (sizes/types) of a
@@ -391,6 +412,7 @@ const migrate = async () => {
     }
     await ensureIndex('products', 'idx_products_available_deleted', 'available, deleted');
     await ensureIndex('products', 'idx_products_shop', 'shop_id');
+    await ensureIndex('products', 'idx_products_group', 'group_id');
     // NOTE: indexes for `notifications` and `offer_products` are added after
     // those tables are created later in this file (a fresh DB has no such
     // tables yet at this point).
@@ -433,6 +455,15 @@ const migrate = async () => {
     // Per-shop confirmation. NULL = pending; timestamp = when the shop owner
     // pressed Confirm. Informational for the admin; does NOT gate order status.
     await ensureColumn('order_items', 'shop_confirmed_at', 'shop_confirmed_at TIMESTAMP NULL DEFAULT NULL AFTER shop_id');
+    // Per-shop rejection. NULL = not rejected; timestamp = when the shop
+    // owner pressed Reject. Mutually exclusive with shop_confirmed_at in
+    // practice (enforced by the controller, not the schema). Notifies the
+    // admin — does NOT gate order status, same as confirm.
+    await ensureColumn('order_items', 'shop_rejected_at', 'shop_rejected_at TIMESTAMP NULL DEFAULT NULL AFTER shop_confirmed_at');
+    // Per-shop "ready for pickup" mark. NULL = not ready; timestamp = when the
+    // shop owner pressed Ready. Only valid after shop_confirmed_at is set.
+    // Informational for the admin — does NOT gate order status.
+    await ensureColumn('order_items', 'shop_ready_at', 'shop_ready_at TIMESTAMP NULL DEFAULT NULL AFTER shop_rejected_at');
     const [orderItemProductFks] = await connection.query(`
       SELECT CONSTRAINT_NAME
       FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE

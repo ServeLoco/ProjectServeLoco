@@ -21,9 +21,11 @@ import {
   AppIcon,
   ConfirmModal,
 } from '../../../components';
+import * as Notifications from 'expo-notifications';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useAuthStore, useCartStore, useSettingsStore } from '../../../stores';
 import { authApi } from '../../../api';
+import { requestNotificationPermission } from '../../../hooks/useLocalNotifications';
 
 // Policy pages are served by the API itself at /policies/* (see apps/api/src/app.js).
 // Both the customer app's Linking.openURL and any web/marketing link should use
@@ -64,6 +66,15 @@ const MENU_SECTIONS = [
         label: 'My Orders',
         caption: 'Track current and past orders',
         action: 'orders',
+      },
+      {
+        key: 'notifications',
+        iconBg: colors.warningLight,
+        iconColor: colors.warning,
+        icon: 'notification',
+        label: 'Notifications',
+        caption: 'notifStatus',
+        action: 'notifications',
         isLast: true,
       },
     ],
@@ -157,6 +168,7 @@ export default function ProfileScreen() {
   const clearCart = useCartStore(state => state.clearCart);
   const supportPhone = useSettingsStore(state => state.supportPhone);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [notifStatus, setNotifStatus] = useState(null); // 'granted' | 'denied' | 'undetermined' | null (loading)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   // Two-step soft-delete flow: 'confirm' (inform user about 30-day grace,
@@ -179,8 +191,17 @@ export default function ProfileScreen() {
       .finally(() => setIsRefreshing(false));
   }, [setProfile]);
 
+  // Live OS permission state — re-checked whenever the screen (re)gains focus
+  // so a user who flips it in system Settings sees it reflected here too.
+  const refreshNotifStatus = React.useCallback(() => {
+    Notifications.getPermissionsAsync()
+      .then(({ status }) => setNotifStatus(status))
+      .catch(() => setNotifStatus('undetermined'));
+  }, []);
+
   useEffect(() => {
     loadProfile();
+    refreshNotifStatus();
 
     Animated.stagger(120, [
       Animated.parallel([
@@ -201,10 +222,11 @@ export default function ProfileScreen() {
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
         loadProfile(true);
+        refreshNotifStatus();
       }
     });
     return () => subscription?.remove?.();
-  }, [loadProfile]);
+  }, [loadProfile, refreshNotifStatus]);
 
   const handleHelpSupport = () => {
     if (supportPhone) {
@@ -260,8 +282,26 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleNotificationsRow = async () => {
+    if (notifStatus === 'denied') {
+      // Android/iOS won't re-show the system dialog once denied — the only
+      // way back is the app's own notification settings page.
+      Linking.openSettings().catch(() => {});
+      return;
+    }
+    if (notifStatus === 'granted') {
+      Alert.alert('Notifications are on', "You'll get order updates and offers on this device.");
+      return;
+    }
+    const result = await requestNotificationPermission();
+    setNotifStatus(result === 'granted' ? 'granted' : result === 'denied' ? 'denied' : 'undetermined');
+  };
+
   const handleRowAction = (action) => {
     switch (action) {
+      case 'notifications':
+        handleNotificationsRow();
+        break;
       case 'editProfile':
         navigation.navigate('EditProfile');
         break;
@@ -510,6 +550,11 @@ export default function ProfileScreen() {
                 {section.rows.map((row) => {
                   const caption = row.caption === 'supportPhone'
                     ? (supportPhone ? `Chat on WhatsApp (+91 ${supportPhone.replace(/[^0-9]/g, '').slice(-10)})` : 'Contact shop support')
+                    : row.caption === 'notifStatus'
+                    ? (notifStatus === 'granted' ? 'On — order and offer updates'
+                      : notifStatus === 'denied' ? 'Off — tap to enable in Settings'
+                      : notifStatus === null ? 'Checking…'
+                      : 'Off — tap to enable')
                     : row.caption;
                   return (
                     <MenuRow

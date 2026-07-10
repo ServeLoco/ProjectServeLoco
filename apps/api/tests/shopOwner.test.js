@@ -72,15 +72,17 @@ describe('Shop-owner API - /api/shop', () => {
       // orders query: SQL filters status IN ('Accepted','Preparing') + shop_id,
       // so the mock returns only an Accepted + a Preparing order (no Pending/Delivered).
       .mockResolvedValueOnce([[
-        { id: 10, order_number: 'ORD-10', status: 'Accepted', note: 'extra onions', created_at: '2026-07-09 10:00:00' },
-        { id: 11, order_number: 'ORD-11', status: 'Preparing', note: null, created_at: '2026-07-09 10:05:00' },
+        { id: 10, order_number: 'ORD-10', status: 'Accepted', note: 'extra onions', created_at: '2026-07-09 10:00:00', delivery_type: 'standard' },
+        { id: 11, order_number: 'ORD-11', status: 'Preparing', note: null, created_at: '2026-07-09 10:05:00', delivery_type: 'fast' },
       ]])
+      // settings query: delivery-time minutes used to compute expectedMinutes.
+      .mockResolvedValueOnce([[{ standard_delivery_minutes: 55, fast_delivery_minutes: 20 }]])
       // items query: SQL filters shop_id = 1, so only this shop's items are returned
       // (no other-shop items, no prices, no customer PII).
       .mockResolvedValueOnce([[
-        { id: 101, order_id: 10, product_name: 'Burger', quantity: 2, variant_label: 'Double', shop_confirmed_at: null },
-        { id: 102, order_id: 10, product_name: 'Fries', quantity: 1, variant_label: null, shop_confirmed_at: '2026-07-09 10:01:00' },
-        { id: 103, order_id: 11, product_name: 'Burger', quantity: 1, variant_label: 'Single', shop_confirmed_at: null },
+        { id: 101, order_id: 10, product_name: 'Burger', quantity: 2, variant_label: 'Double', shop_confirmed_at: null, shop_rejected_at: null },
+        { id: 102, order_id: 10, product_name: 'Fries', quantity: 1, variant_label: null, shop_confirmed_at: '2026-07-09 10:01:00', shop_rejected_at: null },
+        { id: 103, order_id: 11, product_name: 'Burger', quantity: 1, variant_label: 'Single', shop_confirmed_at: null, shop_rejected_at: null },
       ]]);
 
     const res = await request(app)
@@ -108,8 +110,55 @@ describe('Shop-owner API - /api/shop', () => {
     expect(ord10.items[0]).not.toHaveProperty('line_total');
     // confirmed = all my items have shop_confirmed_at. ORD-10 has one unconfirmed -> false.
     expect(ord10.confirmed).toBe(false);
+    expect(ord10.rejected).toBe(false);
+    // expectedMinutes keyed by delivery_type: standard -> 55, fast -> 20.
+    expect(ord10.expectedMinutes).toBe(55);
+    const ord11 = orders.find(o => o.id === 11);
+    expect(ord11.expectedMinutes).toBe(20);
     // No other-shop items leaked in (mock only returned shop 1 items).
     expect(orders.flatMap(o => o.items).every(it => it.productName !== 'Pizza')).toBe(true);
+  });
+
+  it('GET /orders/history returns every status, most recent first, no expectedMinutes', async () => {
+    pool.query
+      .mockResolvedValueOnce([SHOP_ROW]) // requireShopOwner lookup
+      .mockResolvedValueOnce([[
+        { id: 20, order_number: 'ORD-20', status: 'Delivered', note: null, created_at: '2026-07-10 09:00:00', delivery_type: 'standard' },
+        { id: 21, order_number: 'ORD-21', status: 'Cancelled', note: null, created_at: '2026-07-09 12:00:00', delivery_type: 'fast' },
+      ]])
+      .mockResolvedValueOnce([[
+        { id: 201, order_id: 20, product_name: 'Burger', quantity: 1, variant_label: null, shop_confirmed_at: '2026-07-10 09:01:00', shop_rejected_at: null },
+        { id: 211, order_id: 21, product_name: 'Fries', quantity: 2, variant_label: null, shop_confirmed_at: null, shop_rejected_at: '2026-07-09 12:01:00' },
+      ]]);
+
+    const res = await request(app)
+      .get('/api/shop/orders/history')
+      .set('Authorization', `Bearer ${customerToken(7)}`);
+
+    expect(res.statusCode).toEqual(200);
+    const orders = res.body.orders;
+    expect(orders).toHaveLength(2);
+    expect(orders.map(o => o.status)).toEqual(['Delivered', 'Cancelled']);
+    // History includes terminal statuses getMyOrders never returns.
+    const delivered = orders.find(o => o.id === 20);
+    expect(delivered.confirmed).toBe(true);
+    const cancelled = orders.find(o => o.id === 21);
+    expect(cancelled.rejected).toBe(true);
+    // No expectedMinutes in the history payload (that's a live-queue-only field).
+    expect(delivered).not.toHaveProperty('expectedMinutes');
+  });
+
+  it('GET /orders/history returns empty array when the shop has no orders', async () => {
+    pool.query
+      .mockResolvedValueOnce([SHOP_ROW]) // requireShopOwner lookup
+      .mockResolvedValueOnce([[]]);       // orders query -> none
+
+    const res = await request(app)
+      .get('/api/shop/orders/history')
+      .set('Authorization', `Bearer ${customerToken(7)}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.orders).toEqual([]);
   });
 
   it('confirmMyOrder is idempotent - second call still 200, no error', async () => {
@@ -154,6 +203,45 @@ describe('Shop-owner API - /api/shop', () => {
 
     const res = await request(app)
       .patch('/api/shop/orders/999/confirm')
+      .set('Authorization', `Bearer ${customerToken(7)}`);
+
+    expect(res.statusCode).toEqual(404);
+    expect(res.body.code).toBe('NOT_FOUND');
+  });
+
+  it('rejectMyOrder is idempotent - second call still 200', async () => {
+    pool.query
+      .mockResolvedValueOnce([SHOP_ROW])             // requireShopOwner lookup
+      .mockResolvedValueOnce([[{ cnt: 1 }]])           // COUNT items for this shop
+      .mockResolvedValueOnce([{ affectedRows: 1 }]); // UPDATE (1 newly rejected)
+
+    const res1 = await request(app)
+      .patch('/api/shop/orders/10/reject')
+      .set('Authorization', `Bearer ${customerToken(7)}`);
+
+    expect(res1.statusCode).toEqual(200);
+    expect(res1.body.message).toBe('Order rejected');
+
+    pool.query
+      .mockResolvedValueOnce([SHOP_ROW])             // requireShopOwner lookup
+      .mockResolvedValueOnce([[{ cnt: 1 }]])           // COUNT (still present)
+      .mockResolvedValueOnce([{ affectedRows: 0 }]); // UPDATE (0 newly rejected - idempotent)
+
+    const res2 = await request(app)
+      .patch('/api/shop/orders/10/reject')
+      .set('Authorization', `Bearer ${customerToken(7)}`);
+
+    expect(res2.statusCode).toEqual(200);
+    expect(res2.body.message).toBe('Order rejected');
+  });
+
+  it("rejectMyOrder -> 404 when the order has none of this shop's items", async () => {
+    pool.query
+      .mockResolvedValueOnce([SHOP_ROW])   // requireShopOwner lookup
+      .mockResolvedValueOnce([[{ cnt: 0 }]]); // COUNT -> no items for this shop
+
+    const res = await request(app)
+      .patch('/api/shop/orders/999/reject')
       .set('Authorization', `Bearer ${customerToken(7)}`);
 
     expect(res.statusCode).toEqual(404);

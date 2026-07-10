@@ -7,8 +7,12 @@
 //   2. Place it at apps/customer-app/google-services.json
 //   3. Run: npx expo prebuild --clean
 //   4. Run: npx expo run:android
+//
+// v22 modular API — this is an already-initialized auth instance, not a
+// function. Pass it as the first arg to modular functions, e.g.
+// signInWithPhoneNumber(auth, phoneNumber), getIdToken(auth.currentUser).
+// See https://rnfirebase.io/migrating-to-v22
 
-import auth from '@react-native-firebase/auth';
+import { getAuth } from '@react-native-firebase/auth';
 
-export { auth };
-
+export const auth = getAuth();

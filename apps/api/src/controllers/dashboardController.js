@@ -451,7 +451,7 @@ const getDashboard = async (req, res) => {
            JOIN products p ON p.id = dsi.item_id
            LEFT JOIN categories cat ON p.category_id = cat.id
            WHERE dsi.section_id = ? AND dsi.item_type = 'product' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-             AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))
+             AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1)) AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
@@ -609,7 +609,7 @@ const getSectionItems = async (req, res) => {
          JOIN products p ON p.id = dsi.item_id
          LEFT JOIN categories cat ON p.category_id = cat.id
          WHERE dsi.section_id = ? AND dsi.item_type = 'product' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-           AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))
+           AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1)) AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
            ${productStoreFilter}
            AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
            AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())

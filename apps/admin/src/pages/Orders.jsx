@@ -177,7 +177,7 @@ export default function Orders() {
         return;
       }
 
-      if (eventName === 'admin.order.shop_confirmed') {
+      if (eventName === 'admin.order.shop_confirmed' || eventName === 'admin.order.shop_ready') {
         const eventOrderId = getRealtimeOrderId(payload);
         if (eventOrderId && selectedOrderRef.current && String(selectedOrderRef.current.id) === eventOrderId) {
           queueSelectedRefresh(eventOrderId);
@@ -834,16 +834,23 @@ export default function Orders() {
                 <h4>Items</h4>
                 {selectedOrder.shopConfirmations && selectedOrder.shopConfirmations.length > 0 && (
                   <div style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {selectedOrder.shopConfirmations.map(sc => (
-                      <span key={sc.shopId} style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
-                        padding: '4px 10px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 600,
-                        background: sc.confirmed ? 'rgba(34, 197, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                        color: sc.confirmed ? '#15803d' : '#b45309',
-                      }}>
-                        {sc.shopName} {sc.confirmed ? '✓ Confirmed' : '⏳ Waiting'}
-                      </span>
-                    ))}
+                    {selectedOrder.shopConfirmations.map(sc => {
+                      const label = sc.rejected ? '✕ Cancelled' : sc.ready ? '✓ Ready' : sc.confirmed ? '✓ Confirmed' : '⏳ Waiting';
+                      const background = sc.rejected
+                        ? 'rgba(239, 68, 68, 0.15)'
+                        : sc.ready ? 'rgba(59, 130, 246, 0.15)'
+                        : sc.confirmed ? 'rgba(34, 197, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+                      const color = sc.rejected ? '#b91c1c' : sc.ready ? '#1d4ed8' : sc.confirmed ? '#15803d' : '#b45309';
+                      return (
+                        <span key={sc.shopId} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                          padding: '4px 10px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 600,
+                          background, color,
+                        }}>
+                          {sc.shopName} {label}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
                 {(selectedOrder.items || []).map((item, idx) => (

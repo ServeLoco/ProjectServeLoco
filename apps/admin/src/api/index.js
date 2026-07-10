@@ -80,6 +80,10 @@ export const CategoriesApi = {
 
 export const ShopsApi = {
   list: () => apiClient('/admin/shops', { method: 'GET' }),
+  create: (data) => apiClient('/admin/shops', { method: 'POST', body: data }),
+  // Backend route is PATCH, not PUT (unlike CategoriesApi.update) — the
+  // shops endpoint only updates fields present in the payload.
+  update: (id, data) => apiClient(`/admin/shops/${id}`, { method: 'PATCH', body: data }),
 };
 
 export const OffersApi = {

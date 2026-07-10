@@ -11,8 +11,19 @@ const shopApi = {
   toggleProduct: (id, available) =>
     apiClient.patch(`/shop/products/${id}/toggle`, { available, isAvailable: available }, { auth: 'customer' }),
   getMyOrders: () => apiClient.get('/shop/orders', { auth: 'customer' }),
+  getOrderHistory: () => apiClient.get('/shop/orders/history', { auth: 'customer' }),
   confirmOrder: (orderId) =>
     apiClient.patch(`/shop/orders/${orderId}/confirm`, {}, { auth: 'customer' }),
+  rejectOrder: (orderId) =>
+    apiClient.patch(`/shop/orders/${orderId}/reject`, {}, { auth: 'customer' }),
+  readyOrder: (orderId) =>
+    apiClient.patch(`/shop/orders/${orderId}/ready`, {}, { auth: 'customer' }),
+  getMyGroups: () => apiClient.get('/shop/groups', { auth: 'customer' }),
+  createGroup: (name) => apiClient.post('/shop/groups', { name }, { auth: 'customer' }),
+  updateGroup: (id, data) => apiClient.patch(`/shop/groups/${id}`, data, { auth: 'customer' }),
+  deleteGroup: (id) => apiClient.delete(`/shop/groups/${id}`, { auth: 'customer' }),
+  assignProductGroup: (productId, groupId) =>
+    apiClient.patch(`/shop/products/${productId}/group`, { group_id: groupId, groupId }, { auth: 'customer' }),
 };
 
 export { shopApi };

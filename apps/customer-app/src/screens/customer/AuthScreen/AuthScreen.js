@@ -26,6 +26,7 @@ import { useAuthStore } from '../../../stores';
 import { authApi } from '../../../api';
 import { requestNotificationPermission } from '../../../hooks/useLocalNotifications';
 import { loginLogo } from '../../../assets';
+import { getIdToken, signInWithPhoneNumber } from '@react-native-firebase/auth';
 import { auth } from '../../../config/firebase';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -192,7 +193,7 @@ export default function AuthScreen() {
     setIsLoading(true);
     try {
       const fullPhone = `${COUNTRY_CODE}${cleanPhone}`;
-      const result = await auth().signInWithPhoneNumber(fullPhone);
+      const result = await signInWithPhoneNumber(auth, fullPhone);
       setConfirmation(result);
       setIsLoading(false);
       animateToStep('otp');
@@ -241,7 +242,7 @@ export default function AuthScreen() {
       let idToken;
       try {
         const userCredential = await confirmation.confirm(code);
-        idToken = await userCredential.user.getIdToken();
+        idToken = await getIdToken(userCredential.user);
       } catch (confirmErr) {
         // Fallback for Android auto-verification
         // If Play Services auto-verified the SMS, the confirmation object is consumed
@@ -249,12 +250,12 @@ export default function AuthScreen() {
         // already signed in. Only fall back in those specific cases — otherwise an
         // unrelated error combined with a signed-in user from a previous session
         // would mix two accounts.
-        const currentUser = auth().currentUser;
+        const currentUser = auth.currentUser;
         if (
           currentUser &&
           (confirmErr.code === 'auth/code-expired' || confirmErr.code === 'auth/session-expired')
         ) {
-          idToken = await currentUser.getIdToken(true);
+          idToken = await getIdToken(currentUser, true);
         } else if (
           confirmErr.code === 'auth/session-expired' ||
           confirmErr.code === 'auth/code-expired'
@@ -266,7 +267,7 @@ export default function AuthScreen() {
           // prompt them to enter the new code.
           const cleanPhoneRetry = phone.replace(/\D/g, '').slice(-10);
           const retryPhone = `${COUNTRY_CODE}${cleanPhoneRetry}`;
-          const fresh = await auth().signInWithPhoneNumber(retryPhone);
+          const fresh = await signInWithPhoneNumber(auth, retryPhone);
           setConfirmation(fresh);
           setOtp(['', '', '', '', '', '']);
           setResendTimer(45);
@@ -337,8 +338,8 @@ export default function AuthScreen() {
     setIsLoading(true);
     try {
       // Re-get a fresh ID token in case the old one expired
-      const currentUser = auth().currentUser;
-      const idToken = currentUser ? await currentUser.getIdToken(true) : firebaseIdToken;
+      const currentUser = auth.currentUser;
+      const idToken = currentUser ? await getIdToken(currentUser, true) : firebaseIdToken;
 
       const session = await authApi.firebaseVerify({
         idToken,
@@ -412,7 +413,7 @@ export default function AuthScreen() {
       const cleanPhone = phone.replace(/\D/g, '').slice(-10);
       const fullPhone = `${COUNTRY_CODE}${cleanPhone}`;
       const forceResendingToken = confirmation?.verificationId || undefined;
-      const result = await auth().signInWithPhoneNumber(fullPhone, forceResendingToken);
+      const result = await signInWithPhoneNumber(auth, fullPhone, forceResendingToken);
       setConfirmation(result);
       setResendTimer(45);
       setIsLoading(false);

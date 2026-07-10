@@ -68,18 +68,19 @@ jest.mock('expo-linear-gradient', () => {
 
 // Mock @react-native-firebase/auth — native module not available in Jest/Node.
 // AuthScreen imports this, so any test that touches AuthScreen needs the mock.
+// Modular API (v22+): getAuth() returns an instance; signInWithPhoneNumber and
+// getIdToken are standalone functions taking that instance/user as first arg.
 jest.mock('@react-native-firebase/auth', () => {
-  const mockAuth = () => ({
-    currentUser: null,
+  const mockAuthInstance = { currentUser: null };
+  return {
+    __esModule: true,
+    getAuth: jest.fn(() => mockAuthInstance),
     signInWithPhoneNumber: jest.fn(async () => ({
       confirm: jest.fn(async () => ({
         user: { getIdToken: jest.fn(async () => 'mock-id-token') },
       })),
     })),
-  });
-  return {
-    __esModule: true,
-    default: mockAuth,
+    getIdToken: jest.fn(async (user) => (user?.getIdToken ? user.getIdToken() : 'mock-id-token')),
   };
 });
 

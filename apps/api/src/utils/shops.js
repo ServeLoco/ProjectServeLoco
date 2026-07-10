@@ -42,4 +42,33 @@ const notifyShopsForOrder = async (order) => {
   }
 };
 
-module.exports = { getShopForUser, notifyShopsForOrder };
+// Fire-and-forget fan-out when an order a shop was already preparing
+// (Accepted/Preparing) gets cancelled — otherwise the order just vanishes
+// from the shop owner's list with no explanation and they keep cooking it.
+const notifyShopsOrderCancelled = async (order) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT DISTINCT s.id AS shop_id, s.name AS shop_name, s.owner_user_id
+       FROM order_items oi JOIN shops s ON s.id = oi.shop_id
+       WHERE oi.order_id = ? AND s.active = 1 AND s.owner_user_id IS NOT NULL`,
+      [order.id]
+    );
+    if (rows.length === 0) return;
+    const { emitToCustomer } = require('../realtime/socket');
+    const expoPush = require('./expoPush');
+    for (const row of rows) {
+      emitToCustomer(row.owner_user_id, 'shop.order.cancelled', {
+        orderId: order.id, orderNumber: order.order_number, shopId: row.shop_id,
+      });
+    }
+    expoPush.sendPushToMany(pool, rows.map(r => r.owner_user_id), {
+      title: 'Order cancelled',
+      body: `Order ${order.order_number} was cancelled. Please stop preparing it.`,
+      data: { type: 'shop_order', orderId: order.id },
+    }).catch(() => {});
+  } catch (e) {
+    console.error('[shops] notifyShopsOrderCancelled failed for order', order?.id, e.message);
+  }
+};
+
+module.exports = { getShopForUser, notifyShopsForOrder, notifyShopsOrderCancelled };

@@ -231,7 +231,7 @@ const getProducts = async (req, res) => {
       FROM offer_products op
       JOIN products p ON op.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE op.offer_id = ? AND op.active = 1 AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))
+      WHERE op.offer_id = ? AND op.active = 1 AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1)) AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
     `;
     const params = [finalOfferId];
 
@@ -261,7 +261,7 @@ const getProducts = async (req, res) => {
 
   const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt
     FROM products p LEFT JOIN categories c ON p.category_id = c.id
-    WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))`;
+    WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND (p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1)) AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))`;
   
   const comboQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, 1 as is_combo, p.featured, p.original_price, p.discount_label, NULL as category_id, NULL as category_name, p.store_type as category_type, 999 as cat_display_order, p.display_order as item_display_order
     FROM combos p
@@ -427,11 +427,15 @@ const updateProduct = async (req, res) => {
   const { id } = req.params;
   const { name, price, category_id, unit, description, image_id, available, featured, display_order, original_price, discount_label, available_from_time, available_until_time, variants, variant_prompt, shop_id } = req.validatedData;
 
-  const [existing] = await pool.query('SELECT id, image_id FROM products WHERE id = ? AND deleted = 0', [id]);
+  const [existing] = await pool.query('SELECT id, image_id, shop_id FROM products WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
   const previousImageId = existing[0].image_id;
+  // shop_id is a full-replace field like the rest of this endpoint, but a
+  // caller that omits the key entirely (vs. sending shop_id: null to clear
+  // it) must not silently wipe an existing assignment.
+  const finalShopId = shop_id !== undefined ? shop_id : existing[0].shop_id;
 
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
   if (finalDisplayOrder > 0) {
@@ -441,8 +445,8 @@ const updateProduct = async (req, res) => {
     }
   }
 
-  if (shop_id !== undefined && shop_id !== null) {
-    const [shopRows] = await pool.query('SELECT id FROM shops WHERE id = ?', [shop_id]);
+  if (finalShopId !== undefined && finalShopId !== null) {
+    const [shopRows] = await pool.query('SELECT id FROM shops WHERE id = ?', [finalShopId]);
     if (shopRows.length === 0) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Unknown shop_id' });
     }
@@ -467,7 +471,7 @@ const updateProduct = async (req, res) => {
         discount_label || null,
         available_from_time || null,
         available_until_time || null,
-        shop_id || null,
+        finalShopId || null,
         id
       ]
     );

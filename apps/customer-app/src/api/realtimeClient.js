@@ -10,6 +10,7 @@ const ORDER_EVENTS = [
   'order.payment.updated',
   'order.updated',
   'shop.order.assigned',
+  'shop.order.cancelled',
 ];
 
 const NOTIFICATION_EVENTS = [

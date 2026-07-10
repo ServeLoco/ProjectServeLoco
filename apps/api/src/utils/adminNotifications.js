@@ -4,6 +4,7 @@ const { emitToAdmins } = require('../realtime/socket');
 const TYPES = {
   NEW_ORDER: 'new_order',
   NEW_CUSTOMER: 'new_customer',
+  SHOP_REJECTED: 'shop_rejected',
 };
 
 /**

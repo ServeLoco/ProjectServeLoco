@@ -24,3 +24,8 @@ export {
   motionConfig,
 } from './motion';
 export { layout } from './layout';
+
+// `motion` namespace object (e.g. motion.tapMs, motion.easingModal) — matches
+// the import shown in the file header so consumers can use motion.<token>.
+import * as motion from './motion';
+export { motion };

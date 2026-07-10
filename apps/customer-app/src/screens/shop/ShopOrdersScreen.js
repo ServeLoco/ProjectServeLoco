@@ -1,137 +1,232 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
-  ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View,
+  ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { colors, spacing, typography } from '../../theme';
+import { colors, spacing, typography, radius, shadows } from '../../theme';
 import { shopApi, subscribeRealtime } from '../../api';
+import AppIcon from '../../components/AppIcon';
+
+// Visual treatment per order status, using the app's existing color tokens.
+const STATUS_STYLE = {
+  Pending: { bg: colors.warningLight, text: colors.warning, dot: colors.warning },
+  Accepted: { bg: colors.saffronLight, text: colors.saffronDark, dot: colors.saffron },
+  Preparing: { bg: colors.saffronLight, text: colors.saffronDark, dot: colors.saffron },
+  'Out for Delivery': { bg: colors.infoLight, text: colors.info, dot: colors.info },
+  Delivered: { bg: colors.successLight, text: colors.successDark, dot: colors.success },
+  Cancelled: { bg: colors.errorLight, text: colors.error, dot: colors.error },
+};
 
 /**
  * ShopOrdersScreen
- * Lists orders with this shop's items (status Accepted/Preparing, server-filtered).
- * Polls on focus AND subscribes to the `shop.order.assigned` socket event to refetch.
- * Each card shows the shop's items + a Confirm button (or Confirmed state).
+ * Full order history for this shop — every order it has ever had items on,
+ * any status, most recent first (server caps at 100 rows). The live
+ * Dashboard tab shows Accepted/Preparing; this is the "all orders received"
+ * view, redesigned to match the premium partner app aesthetic.
  */
 export default function ShopOrdersScreen() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [confirmingId, setConfirmingId] = useState(null);
-  const mountedRef = useRef(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
-
-  const fetchOrders = useCallback(async () => {
+  const fetchHistory = useCallback(async () => {
     try {
-      const res = await shopApi.getMyOrders();
-      if (mountedRef.current) setOrders(res.orders || []);
+      const res = await shopApi.getOrderHistory();
+      setOrders(res.orders || []);
+      setLoadError(false);
     } catch (_) {
-      // keep last list on transient error
+      setLoadError(true);
     } finally {
-      if (mountedRef.current) setLoading(false);
+      setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
-  // Poll on focus.
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchHistory();
+  }, [fetchHistory]);
+
   useFocusEffect(
     useCallback(() => {
-      fetchOrders();
-    }, [fetchOrders])
+      fetchHistory();
+    }, [fetchHistory])
   );
 
-  // Subscribe to the shop.order.assigned socket event → refetch.
   useEffect(() => {
-    const unsubscribe = subscribeRealtime('shop.order.assigned', () => {
-      fetchOrders();
-    });
-    return unsubscribe;
-  }, [fetchOrders]);
+    const unsubAssigned = subscribeRealtime('shop.order.assigned', () => fetchHistory());
+    const unsubCancelled = subscribeRealtime('shop.order.cancelled', () => fetchHistory());
+    const unsubForeground = subscribeRealtime('lifecycle.foreground', () => fetchHistory());
+    const unsubReconnected = subscribeRealtime('lifecycle.reconnected', () => fetchHistory());
+    return () => {
+      unsubAssigned();
+      unsubCancelled();
+      unsubForeground();
+      unsubReconnected();
+    };
+  }, [fetchHistory]);
 
-  const handleConfirm = useCallback(async (orderId) => {
-    setConfirmingId(orderId);
-    try {
-      await shopApi.confirmOrder(orderId);
-      // Mark this order's items as confirmed locally (idempotent server-side).
-      setOrders(prev =>
-        prev.map(o => (o.id === orderId ? { ...o, confirmed: true } : o))
-      );
-    } catch (_) {
-      // leave as-is; the user can retry
-    } finally {
-      setConfirmingId(null);
-    }
-  }, []);
+  const summary = useMemo(() => {
+    const total = orders.length;
+    const delivered = orders.filter(o => o.status === 'Delivered').length;
+    const cancelled = orders.filter(o => o.status === 'Cancelled').length;
+    const active = orders.filter(o => o.status === 'Pending' || o.status === 'Accepted' || o.status === 'Preparing' || o.status === 'Out for Delivery').length;
+    return { total, delivered, cancelled, active };
+  }, [orders]);
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.orderNumber}>#{item.orderNumber || item.order_number}</Text>
-        <View style={[styles.statusBadge, item.status === 'Accepted' ? styles.badgeAccepted : styles.badgePreparing]}>
-          <Text style={styles.statusText}>{item.status}</Text>
+  const renderOrder = ({ item }) => {
+    const statusStyle = STATUS_STYLE[item.status] || { bg: colors.bgSurface, text: colors.textSecondary, dot: colors.textTertiary };
+    return (
+      <View style={styles.card}>
+        <View style={[styles.cardAccent, { backgroundColor: statusStyle.dot }]} />
+        <View style={styles.cardBody}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.orderNumber}>#{item.orderNumber || item.order_number}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusStyle.dot }]} />
+              <Text style={[styles.statusText, { color: statusStyle.text }]}>{item.status}</Text>
+            </View>
+          </View>
+          {(item.items || []).map((it, idx) => (
+            <View key={idx} style={styles.itemRow}>
+              <View style={styles.qtyChip}>
+                <Text style={styles.qtyChipText}>{it.quantity}x</Text>
+              </View>
+              <Text style={styles.itemText}>
+                {it.productName || it.product_name}
+              </Text>
+            </View>
+          ))}
+          {item.rejected && (
+            <View style={styles.rejectedNote}>
+              <AppIcon name="close" size={12} color={colors.error} />
+              <Text style={styles.rejectedNoteText}>You rejected this order</Text>
+            </View>
+          )}
         </View>
       </View>
-
-      {(item.items || []).map((it, idx) => (
-        <Text key={idx} style={styles.itemText}>
-          {it.quantity}x {it.productName || it.product_name}
-          {it.variantLabel || it.variant_label ? ` (${it.variantLabel || it.variant_label})` : ''}
-        </Text>
-      ))}
-
-      {item.confirmed ? (
-        <View style={styles.confirmedBadge}>
-          <Text style={styles.confirmedText}>Confirmed ✓</Text>
-        </View>
-      ) : (
-        <TouchableOpacity
-          style={styles.confirmBtn}
-          onPress={() => handleConfirm(item.id)}
-          disabled={confirmingId === item.id}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.confirmBtnText}>
-            {confirmingId === item.id ? 'Confirming…' : 'Confirm'}
-          </Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.title}>Orders</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Orders</Text>
+        <Text style={styles.subtitle}>Every order your shop has received</Text>
+      </View>
+
+      {orders.length > 0 && (
+        <View style={styles.summaryRow}>
+          <SummaryPill label="Total" value={summary.total} color={colors.textPrimary} />
+          <SummaryPill label="Active" value={summary.active} color={colors.saffron} />
+          <SummaryPill label="Delivered" value={summary.delivered} color={colors.success} />
+          <SummaryPill label="Cancelled" value={summary.cancelled} color={colors.error} />
+        </View>
+      )}
+
       {loading && orders.length === 0 ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+        <ActivityIndicator style={{ marginTop: spacing.xl }} color={colors.saffron} />
+      ) : orders.length === 0 ? (
+        <FlatList
+          data={[]}
+          keyExtractor={() => 'empty'}
+          renderItem={null}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.saffron} />}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconWrap}>
+                <AppIcon name="orders" size={32} color={colors.saffronDark} />
+              </View>
+              <Text style={styles.emptyTitle}>{loadError ? 'Could not load orders' : 'No orders yet'}</Text>
+              <Text style={styles.emptyText}>
+                {loadError ? 'Pull down to try again.' : 'Every order your shop has received will show up here.'}
+              </Text>
+            </View>
+          }
+        />
       ) : (
         <FlatList
           data={orders}
           keyExtractor={(item) => String(item.id)}
-          renderItem={renderItem}
-          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl }}
-          ListEmptyComponent={<Text style={styles.empty}>No orders to prepare right now.</Text>}
+          renderItem={renderOrder}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.saffron} />}
         />
       )}
     </SafeAreaView>
   );
 }
 
+function SummaryPill({ label, value, color }) {
+  return (
+    <View style={styles.summaryPill}>
+      <Text style={[styles.summaryValue, { color }]}>{value}</Text>
+      <Text style={styles.summaryLabel}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgApp },
-  title: { ...typography.heading, fontSize: 22, fontWeight: '700', color: colors.textPrimary, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
-  card: { backgroundColor: colors.bgCard, borderRadius: 14, padding: spacing.md, marginBottom: spacing.md, borderWidth: 1, borderColor: colors.border },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  orderNumber: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-  badgeAccepted: { backgroundColor: 'rgba(31,181,116,0.12)' },
-  badgePreparing: { backgroundColor: 'rgba(244,166,42,0.15)' },
-  statusText: { fontSize: 12, fontWeight: '600' },
-  itemText: { fontSize: 15, color: colors.textSecondary, marginTop: 4 },
-  confirmBtn: { marginTop: 12, backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  confirmBtnText: { color: colors.textInverse, fontWeight: '700', fontSize: 15 },
-  confirmedBadge: { marginTop: 12, backgroundColor: 'rgba(31,181,116,0.12)', borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
-  confirmedText: { color: colors.success, fontWeight: '700', fontSize: 15 },
-  empty: { textAlign: 'center', color: colors.textSecondary, marginTop: 40, fontSize: 15 },
+  header: {
+    paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
+  },
+  title: { ...typography.display, fontSize: 26, color: colors.textPrimary },
+  subtitle: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 2, fontWeight: '500' },
+  summaryRow: {
+    flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.md,
+  },
+  summaryPill: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.bgSurface, borderRadius: radius.lg,
+    borderWidth: 1, borderColor: colors.border, paddingVertical: spacing.sm,
+    ...shadows.xs,
+  },
+  summaryValue: { ...typography.priceLarge, fontSize: 22, fontWeight: '800' },
+  summaryLabel: { ...typography.captionMedium, color: colors.textSecondary, marginTop: 2 },
+  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+  card: {
+    flexDirection: 'row', backgroundColor: colors.bgSurface, borderRadius: radius.xl,
+    marginBottom: spacing.md, borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
+    ...shadows.sm,
+  },
+  cardAccent: {
+    width: 6, backgroundColor: colors.saffron,
+  },
+  cardBody: { flex: 1, padding: spacing.md },
+  cardHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm,
+  },
+  orderNumber: { ...typography.h3, color: colors.textPrimary },
+  statusBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4,
+  },
+  statusDot: { width: 6, height: 6, borderRadius: radius.circle },
+  statusText: { fontWeight: '800', fontSize: 12 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs },
+  qtyChip: {
+    backgroundColor: colors.saffronLight, borderRadius: radius.sm, paddingHorizontal: 8,
+    paddingVertical: 2, marginRight: spacing.sm, minWidth: 36, alignItems: 'center',
+  },
+  qtyChipText: { color: colors.saffronDark, fontWeight: '800', fontSize: 13 },
+  itemText: { flex: 1, ...typography.body, color: colors.textSecondary, fontWeight: '500' },
+  rejectedNote: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm,
+    paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border,
+  },
+  rejectedNoteText: { color: colors.error, fontSize: 12, fontWeight: '700' },
+  emptyState: { alignItems: 'center', paddingHorizontal: spacing.xl, marginTop: spacing.xl },
+  emptyIconWrap: {
+    width: 72, height: 72, borderRadius: radius.circle, backgroundColor: colors.saffronLight,
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+  },
+  emptyTitle: { ...typography.h3, color: colors.textPrimary },
+  emptyText: {
+    ...typography.body, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.xs,
+    lineHeight: 20, maxWidth: 260,
+  },
 });

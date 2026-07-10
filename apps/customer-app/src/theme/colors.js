@@ -67,6 +67,9 @@ const palette = {
 };
 
 export const colors = {
+  white: palette.white,
+  grey100: palette.grey100,
+
   // --- Backgrounds ---
   bgApp: palette.offWhite,
   bgSurface: palette.white,
@@ -95,6 +98,7 @@ export const colors = {
 
   // --- Success Accent (cool green) ---
   success: palette.success500,
+  success100: palette.success100,
   successLight: palette.success50,
   successDark: palette.success600,
   successText: palette.white,
@@ -106,7 +110,7 @@ export const colors = {
 
   // --- Warning ---
   warning: palette.warning500,
-  warningLight: '#FFFDF5',
+  warningLight: '#FFF6DC',
 
   // --- Info ---
   info: palette.info500,

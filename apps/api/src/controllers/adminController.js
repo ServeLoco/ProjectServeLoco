@@ -3,7 +3,7 @@ const { signAdminToken } = require('../utils/auth');
 const { pool } = require('../db/mysql');
 const { validatePagination } = require('../validators');
 const notificationService = require('../utils/notificationService');
-const { notifyShopsForOrder } = require('../utils/shops');
+const { notifyShopsForOrder, notifyShopsOrderCancelled } = require('../utils/shops');
 const realtimeEvents = require('../realtime/orderEvents');
 const orderAutoAccept = require('../realtime/orderAutoAccept');
 const adminInbox = require('../utils/adminNotifications');
@@ -487,11 +487,22 @@ const getAdminOrderById = async (req, res) => {
   }
   order.shopConfirmations = Array.from(shopMap.values()).map(e => {
     const confirmed = e.items.length > 0 && e.items.every(it => it.shop_confirmed_at !== null);
-    const confirmedAt = e.items
-      .map(it => it.shop_confirmed_at)
-      .filter(Boolean)
-      .sort()
-      .pop() || null;
+    const confirmedTimestamps = e.items.map(it => it.shop_confirmed_at).filter(Boolean);
+    // .sort() on Date objects/strings is lexicographic, not chronological
+    // (e.g. "Fri Aug" sorts before "Thu Jul") — compare as epoch ms instead.
+    const confirmedAt = confirmedTimestamps.length > 0
+      ? confirmedTimestamps.reduce((latest, ts) => (new Date(ts) > new Date(latest) ? ts : latest))
+      : null;
+    const ready = e.items.length > 0 && e.items.every(it => it.shop_ready_at !== null);
+    const readyTimestamps = e.items.map(it => it.shop_ready_at).filter(Boolean);
+    const readyAt = readyTimestamps.length > 0
+      ? readyTimestamps.reduce((latest, ts) => (new Date(ts) > new Date(latest) ? ts : latest))
+      : null;
+    const rejected = e.items.length > 0 && e.items.every(it => it.shop_rejected_at !== null);
+    const rejectedTimestamps = e.items.map(it => it.shop_rejected_at).filter(Boolean);
+    const rejectedAt = rejectedTimestamps.length > 0
+      ? rejectedTimestamps.reduce((latest, ts) => (new Date(ts) > new Date(latest) ? ts : latest))
+      : null;
     return {
       shopId: e.shopId,
       shop_id: e.shopId,
@@ -500,6 +511,12 @@ const getAdminOrderById = async (req, res) => {
       confirmed,
       confirmedAt,
       confirmed_at: confirmedAt,
+      ready,
+      readyAt,
+      ready_at: readyAt,
+      rejected,
+      rejectedAt,
+      rejected_at: rejectedAt,
     };
   });
 
@@ -606,8 +623,17 @@ const updateOrderStatus = async (req, res) => {
         .catch(err => console.error('[notify]', err.message));
     }
 
-    if (status === 'Accepted') {
+    // Shop owners must hear about an order the first time it leaves Pending —
+    // an admin can jump straight from Pending to Preparing (skipping
+    // Accepted), which would otherwise never fire the fan-out.
+    if (currentStatus === 'Pending' && (status === 'Accepted' || status === 'Preparing')) {
       notifyShopsForOrder(updatedOrder); // fire-and-forget; owners get socket + push
+    }
+
+    // A shop already notified/preparing must be told when the order dies
+    // underneath them — otherwise it silently disappears from their list.
+    if (status === 'Cancelled' && (currentStatus === 'Accepted' || currentStatus === 'Preparing')) {
+      notifyShopsOrderCancelled(updatedOrder);
     }
 
     realtimeEvents.emitOrderStatusUpdated(updatedOrder);

@@ -212,9 +212,15 @@ export function useLocalNotifications(navigationRef) {
         const status = await requestNotificationPermission();
         if (status !== 'granted' || cancelled) return;
 
-        const tokenObj = await Notifications.getExpoPushTokenAsync({
-          projectId: EXPO_PROJECT_ID,
-        });
+        // getExpoPushTokenAsync can hang forever when the FCM handshake
+        // fails silently (misconfigured Firebase, no Play services). Race it
+        // against a timeout so the failure is visible instead of a dead end.
+        const tokenObj = await Promise.race([
+          Notifications.getExpoPushTokenAsync({ projectId: EXPO_PROJECT_ID }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('getExpoPushTokenAsync timed out after 15s')), 15000)
+          ),
+        ]);
         const token = tokenObj?.data;
         if (!token || cancelled) return;
 
@@ -284,11 +290,12 @@ export function useLocalNotifications(navigationRef) {
     const subscription = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data || {};
 
-      // Shop-owner order notification → navigate to the ShopOrders tab.
+      // Shop-owner order notification → navigate to the Dashboard tab (the
+      // new-order popup lives there, not a separate Orders tab, per v2).
       if (data.type === 'shop_order') {
         const tryNavigateShop = () => {
           if (navigationRef?.current?.isReady()) {
-            navigationRef.current.navigate('ShopOrders');
+            navigationRef.current.navigate('ShopDashboard');
           } else {
             setTimeout(tryNavigateShop, 200);
           }
