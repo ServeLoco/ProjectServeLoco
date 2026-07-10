@@ -90,8 +90,12 @@ const updateStoreMode = async (req, res) => {
     params.push(cleanLabel);
   }
   if (display_order !== undefined) {
+    const order = Number(display_order);
+    if (!Number.isInteger(order) || order < 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'display_order must be a non-negative integer' });
+    }
     updates.push('display_order = ?');
-    params.push(Number(display_order));
+    params.push(order);
   }
   if (active !== undefined) {
     updates.push('active = ?');

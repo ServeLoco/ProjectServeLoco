@@ -39,7 +39,13 @@ function SegmentedControl({
   const [trackWidth, setTrackWidth] = useState(0);
   const slideAnim = useRef(new Animated.Value(activeIndex)).current;
   const landAnim = useRef(new Animated.Value(1)).current;
-  const pressScales = useRef(options.map(() => new Animated.Value(1))).current;
+  // Options can grow after mount (store modes load async), so top up the ref
+  // instead of capturing a fixed-length array on first render.
+  const pressScalesRef = useRef([]);
+  while (pressScalesRef.current.length < options.length) {
+    pressScalesRef.current.push(new Animated.Value(1));
+  }
+  const pressScales = pressScalesRef.current;
 
   useEffect(() => {
     Animated.spring(slideAnim, {

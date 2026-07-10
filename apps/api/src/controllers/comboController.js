@@ -241,7 +241,13 @@ const getAdminComboById = async (req, res) => {
 };
 
 const createCombo = async (req, res) => {
-  const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items, store_type } = req.validatedData;
+  const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items, store_type: rawStoreType } = req.validatedData;
+  let store_type;
+  try {
+    store_type = await normalizeStoreType(rawStoreType, { fallback: false });
+  } catch (e) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: e.message });
+  }
   const finalDisplayOrder = display_order !== undefined ? display_order : 0;
   const validatedComboItems = await validateComboItems(combo_items, store_type);
 
@@ -280,7 +286,15 @@ const createCombo = async (req, res) => {
 
 const updateCombo = async (req, res) => {
   const { id } = req.params;
-  const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items, store_type } = req.validatedData;
+  const { name, price, unit, description, image_id, available, featured, display_order, original_price, discount_label, combo_items, store_type: rawStoreType } = req.validatedData;
+  let store_type;
+  if (rawStoreType) {
+    try {
+      store_type = await normalizeStoreType(rawStoreType, { fallback: false });
+    } catch (e) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: e.message });
+    }
+  }
 
   const [existing] = await pool.query('SELECT id, store_type, image_id FROM combos WHERE id = ? AND deleted = 0', [id]);
   if (existing.length === 0) {

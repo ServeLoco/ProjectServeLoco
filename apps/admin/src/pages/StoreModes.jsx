@@ -33,6 +33,25 @@ export default function StoreModes() {
       await StoreModesApi.update(mode.id, { active: !mode.active });
       fetchModes();
     } catch (err) {
+      // Deactivating a mode that still has categories/combos/offers returns a
+      // 400 asking for force=true — confirm with the admin, then retry forced.
+      if (mode.active && /force=true/i.test(err.message || '')) {
+        const proceed = window.confirm(
+          `${err.message}\n\nHide "${mode.label}" anyway? Items assigned to it will disappear from the customer apps until the mode is re-activated.`
+        );
+        if (proceed) {
+          try {
+            await StoreModesApi.update(mode.id, { active: false, force: true });
+            fetchModes();
+            return;
+          } catch (err2) {
+            console.error(err2);
+            setError(err2.message || GENERIC_ERROR);
+            return;
+          }
+        }
+        return;
+      }
       console.error(err);
       setError(err.message || GENERIC_ERROR);
     }

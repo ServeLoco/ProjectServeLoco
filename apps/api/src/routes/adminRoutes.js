@@ -340,8 +340,10 @@ const comboSchema = (req) => {
   }
   
   if (data.available !== undefined && !isBoolean(data.available)) errors.available = 'Available must be boolean';
-  if (!data.store_type || !['packed', 'fast_food'].includes(data.store_type)) {
-    errors.store_type = 'Store type is required and must be either packed or fast_food';
+  // Format check only — the controller validates the slug against the
+  // store_modes table (this schema fn is sync, so no DB access here).
+  if (!data.store_type || !/^[a-z][a-z0-9_]{1,30}$/.test(String(data.store_type))) {
+    errors.store_type = 'Store type is required and must be a valid store mode slug';
   }
   if (data.featured !== undefined && !isBoolean(data.featured)) errors.featured = 'featured must be boolean';
   if (data.combo_items !== undefined) {

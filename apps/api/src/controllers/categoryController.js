@@ -99,7 +99,13 @@ const getAdminCategories = async (req, res) => {
 };
 
 const createCategory = async (req, res) => {
-  const { name, type, image_id, active } = req.validatedData;
+  const { name, type: rawType, image_id, active } = req.validatedData;
+  let type;
+  try {
+    type = await normalizeStoreType(rawType, { fallback: false });
+  } catch (e) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: e.message });
+  }
   const slug = req.validatedData.slug || slugify(name);
   const displayOrder = req.validatedData.display_order ?? 0;
 
@@ -120,7 +126,13 @@ const createCategory = async (req, res) => {
 
 const updateCategory = async (req, res) => {
   const { id } = req.params;
-  const { name, type, image_id, active } = req.validatedData;
+  const { name, type: rawType, image_id, active } = req.validatedData;
+  let type;
+  try {
+    type = await normalizeStoreType(rawType, { fallback: false });
+  } catch (e) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: e.message });
+  }
   const slug = req.validatedData.slug || slugify(name);
   const displayOrder = req.validatedData.display_order ?? 0;
 
