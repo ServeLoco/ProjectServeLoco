@@ -541,7 +541,14 @@ export default function HomeScreen() {
 
             if (section.sectionType === 'category_grid') {
               const normalizedItems = section.items.map(normalizeCategory);
-              const visibleItems = normalizedItems.slice(0, 4);
+              // Honour the admin-configured `max_visible_items` from the
+              // dashboard section. The API already caps `section.items` at
+              // that value, but re-applying the cap here defends against any
+              // future payload that exceeds it and lets the rail reflect the
+              // admin's intent even when the API limit grows.
+              // Fallback: show whatever the API sent (no client-side truncation).
+              const maxVisible = Number(section.maxVisibleItems) || normalizedItems.length;
+              const visibleItems = normalizedItems.slice(0, maxVisible);
               // "See all" pill is shown at the end of the rail when the
               // admin has more categories than are displayed here.
               // Primary signal: API's `hasMore`. Fallback: totalItems > items.
