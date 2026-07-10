@@ -154,6 +154,24 @@ describe('api mappers', () => {
     expect(result.availableFromTime).toBeNull();
     expect(result.availableUntilTime).toBeNull();
   });
+
+  it('maps snake_case shop_is_open: 1 to shopIsOpen true', () => {
+    const result = normalizeProduct({ id: 4, name: 'Open Shop Item', price: '60', shop_is_open: 1 });
+    expect(result.shopIsOpen).toBe(true);
+    expect(result.shop_is_open).toBe(true);
+  });
+
+  it('maps camelCase shopIsOpen: 0 to false', () => {
+    const result = normalizeProduct({ id: 5, name: 'Closed Shop Item', price: '70', shopIsOpen: 0 });
+    expect(result.shopIsOpen).toBe(false);
+    expect(result.shop_is_open).toBe(false);
+  });
+
+  it('defaults shopIsOpen to true when the server field is absent', () => {
+    const result = normalizeProduct({ id: 6, name: 'Legacy Item', price: '80' });
+    expect(result.shopIsOpen).toBe(true);
+    expect(result.shop_is_open).toBe(true);
+  });
 });
 
   it('normalizes profile whatsapp field correctly', () => {

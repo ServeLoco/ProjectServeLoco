@@ -125,7 +125,7 @@ export default function HomeScreen() {
       : Promise.resolve(null);
 
     Promise.allSettled([
-      dashboardApi.getDashboard({ storeType: currentApiStoreType }),
+      dashboardApi.getDashboard({ storeType: currentApiStoreType, include_closed_shops: 1 }),
       settingsPromise,
       notificationsApi.getUnreadCount().catch(() => 0),
     ]).then(([dashboardResult, settingsResult, notificationsResult]) => {

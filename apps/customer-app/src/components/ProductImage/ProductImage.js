@@ -20,6 +20,7 @@ const FALLBACK_SOURCE = fallbackProductImage;
  *   style        - container style
  *   resizeMode   - 'cover' | 'contain' | 'fill' | 'none' | 'scale-down' (default: 'cover')
  *   priority     - 'low' | 'normal' | 'high' (default: 'normal'; use 'high' for hero images)
+ *   filter       - optional React Native filter array forwarded to the image
  */
 function ProductImage({
   uri,
@@ -30,6 +31,7 @@ function ProductImage({
   style,
   resizeMode = 'cover',
   priority = 'normal',
+  filter,
 }) {
   const [error, setError] = useState(false);
 
@@ -51,6 +53,7 @@ function ProductImage({
           contentFit={resizeMode}
           priority={priority}
           transition={200}
+          filter={filter}
         />
       ) : showFallback ? (
         <View style={[styles.placeholder, { borderRadius }]}>
@@ -66,6 +69,7 @@ function ProductImage({
           priority={priority}
           transition={200}
           onError={() => setError(true)}
+          filter={filter}
         />
       ) : null}
     </View>

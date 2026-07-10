@@ -103,6 +103,7 @@ export default function ProductListScreen() {
         response = await dashboardApi.getSectionItems(sectionSlug, {
           available: showAvailableOnly ? true : undefined,
           storeType: sectionStoreType,
+          include_closed_shops: 1,
         });
         filtered = asArray(response, ['items']).map(normalizeProduct);
       } else {
@@ -121,6 +122,7 @@ export default function ProductListScreen() {
           sort: sortBy,
           type: sectionStoreType !== 'all' ? sectionStoreType : undefined,
           storeType: sectionStoreType !== 'all' ? sectionStoreType : undefined,
+          include_closed_shops: 1,
         });
         filtered = asArray(response, ['products']).map(normalizeProduct);
         if (mode !== 'combos') {
@@ -144,7 +146,7 @@ export default function ProductListScreen() {
 
       // Availability Filter
       if (showAvailableOnly) {
-        filtered = filtered.filter(p => p.available);
+        filtered = filtered.filter(p => p.available && p.shopIsOpen !== false);
       }
 
       // Sorting

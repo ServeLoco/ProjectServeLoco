@@ -66,6 +66,7 @@ function ProductCard({
   const resolvedImageUrl = product.imageUrl ?? product.imageUri ?? imageUrl ?? imageUri;
   const resolvedDisabled = product.disabled ?? disabled ?? false;
   const resolvedAvailable = product.available ?? available ?? product.isAvailable ?? !resolvedDisabled;
+  const isShopClosed = product.shopIsOpen === false || product.shop_is_open === false || product.shopIsOpen === 0 || product.shop_is_open === 0;
   const isUnavailable = !resolvedAvailable;
 
   // Multi-variant products (e.g. pizza sizes, burger types) show the plain
@@ -115,6 +116,14 @@ function ProductCard({
   const iconSize = compact ? 10 : 12;
 
   const renderControl = () => {
+    if (isShopClosed) {
+      return (
+        <View key="closed" style={[styles.outPill, compact && styles.outPillCompact]}>
+          <Text style={[styles.outText, compact && styles.outTextCompact]}>Closed</Text>
+        </View>
+      );
+    }
+
     if (isUnavailable) {
       return (
         <View key="out" style={[styles.outPill, compact && styles.outPillCompact]}>
@@ -204,23 +213,40 @@ function ProductCard({
   return (
     <Animated.View style={[styles.card, compact && styles.cardCompact, style, { transform: [{ scale: cardScale }] }]}>
       <TouchableOpacity
-        activeOpacity={1}
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
+        activeOpacity={isShopClosed ? 1 : 1}
+        onPress={isShopClosed ? null : onPress}
+        onPressIn={isShopClosed ? null : handlePressIn}
+        onPressOut={isShopClosed ? null : handlePressOut}
+        disabled={isShopClosed}
         style={styles.touchable}
         accessibilityRole="button"
         accessibilityLabel={resolvedName}
+        accessibilityState={{ disabled: isShopClosed }}
       >
         <View style={[styles.cardInner, compact && styles.cardInnerCompact]}>
-          {/* Full-bleed image */}
+          {/* Full-bleed image — grayscale when the product's shop is closed */}
           <ProductImage
             uri={resolvedImageUrl}
             width="100%"
             height="100%"
             resizeMode="cover"
             priority="high"
+            filter={isShopClosed ? [{ grayscale: 1 }] : undefined}
           />
+
+          {/* Closed-shop white wash (reinforces muted look, esp. on iOS) */}
+          {isShopClosed ? (
+            <View style={styles.closedWash} pointerEvents="none">
+              <View style={styles.closedWashInner} />
+            </View>
+          ) : null}
+
+          {/* "Shop closed" label — centered horizontally, just above vertical center */}
+          {isShopClosed ? (
+            <View style={styles.shopClosedLabel} pointerEvents="none">
+              <Text style={styles.shopClosedText}>Shop closed</Text>
+            </View>
+          ) : null}
 
           {/* Duotone vignette — darkens the top corners slightly */}
           <LinearGradient
@@ -251,7 +277,7 @@ function ProductCard({
           ) : null}
 
           {/* Corner-fold discount ribbon (top-right) */}
-          {resolvedDiscountLabel && !isUnavailable ? (
+          {resolvedDiscountLabel && !isUnavailable && !isShopClosed ? (
             <View style={[styles.ribbonMask, compact && styles.ribbonMaskCompact]} pointerEvents="none">
               <LinearGradient
                 colors={['#34D399', '#0F9D63']}
@@ -341,6 +367,35 @@ const styles = StyleSheet.create({
   oosWash: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(10,10,12,0.58)',
+  },
+
+  // Closed-shop muted overlay + centered label
+  closedWash: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closedWashInner: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+  },
+  shopClosedLabel: {
+    position: 'absolute',
+    top: '38%',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  shopClosedText: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    color: '#1A0D05',
+    fontSize: 13,
+    fontWeight: '700',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    textAlign: 'center',
   },
 
   // Bottom dark gradient strip — white text overlay
