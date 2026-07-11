@@ -310,7 +310,7 @@ function ProductCard({
               <View style={styles.priceBlock}>
                 <Text style={[styles.price, compact && styles.priceCompact]} numberOfLines={1}>
                   {isMultiVariant && variantMinPrice > 0 && variantMaxPrice > 0 && variantMinPrice !== variantMaxPrice
-                    ? `₹${variantMinPrice} - ₹${variantMaxPrice}`
+                    ? `₹${variantMinPrice} → ₹${variantMaxPrice}`
                     : `₹${displayPrice}`}
                 </Text>
                 {!isMultiVariant && resolvedOriginalPrice ? (
