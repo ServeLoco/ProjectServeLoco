@@ -231,6 +231,11 @@ const maybeAutoCancelOrderWhenAllShopsRejected = async (orderId) => {
     notifyShopsOrderCancelled(updatedOrder);
     realtimeEvents.emitOrderStatusUpdated(updatedOrder);
 
+    try {
+      const { revokeOffersForOrder } = require('../services/riderAssignment');
+      await revokeOffersForOrder(orderId);
+    } catch (_) { /* best-effort */ }
+
     return updatedOrder;
   } catch (e) {
     console.error('[shops] maybeAutoCancelOrderWhenAllShopsRejected failed for order', orderId, e.message);

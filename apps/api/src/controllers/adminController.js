@@ -629,12 +629,19 @@ const updateOrderStatus = async (req, res) => {
     // Accepted), which would otherwise never fire the fan-out.
     if (currentStatus === 'Pending' && (status === 'Accepted' || status === 'Preparing')) {
       notifyShopsForOrder(updatedOrder); // fire-and-forget; owners get socket + push
+      // House-only orders (no shop items) start rider assignment immediately.
+      const { startAssignmentIfHouseOnly } = require('../services/riderAssignment');
+      startAssignmentIfHouseOnly(updatedOrder.id).catch((e) =>
+        console.error('[rider-assign] house start on admin accept failed:', e.message)
+      );
     }
 
     // A shop already notified/preparing must be told when the order dies
     // underneath them — otherwise it silently disappears from their list.
     if (status === 'Cancelled' && (currentStatus === 'Accepted' || currentStatus === 'Preparing')) {
       notifyShopsOrderCancelled(updatedOrder);
+      const { revokeOffersForOrder } = require('../services/riderAssignment');
+      revokeOffersForOrder(updatedOrder.id).catch(() => {});
     }
 
     realtimeEvents.emitOrderStatusUpdated(updatedOrder);

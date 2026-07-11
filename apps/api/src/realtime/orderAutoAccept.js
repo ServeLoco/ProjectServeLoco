@@ -47,6 +47,12 @@ const schedule = (orderId, orderNumber) => {
         realtimeEvents.emitOrderAutoAccepted(order);
         notifyShopsForOrder(order);
 
+        // House-only orders (no shop items) start rider assignment immediately.
+        const { startAssignmentIfHouseOnly } = require('../services/riderAssignment');
+        startAssignmentIfHouseOnly(order.id).catch((e) =>
+          console.error('[rider-assign] house start on auto-accept failed:', e.message)
+        );
+
         // Notify the customer — same path as manual admin accept.
         // Fire-and-forget; the result is passed to emitNotificationCreated
         // so the customer's bell icon and socket update in real-time too.

@@ -370,8 +370,28 @@ const startAssignment = async (orderId) => {
 };
 
 /**
+ * House-only orders (no shop-linked items): start assignment on platform Accepted.
+ * No-ops when the order has any shop_id lines (shops must confirm first).
+ */
+const startAssignmentIfHouseOnly = async (orderId) => {
+  try {
+    const [items] = await pool.query(
+      'SELECT shop_id FROM order_items WHERE order_id = ? AND shop_id IS NOT NULL LIMIT 1',
+      [orderId]
+    );
+    if (items.length > 0) {
+      return { started: false, reason: 'has_shops' };
+    }
+    return startAssignment(orderId);
+  } catch (e) {
+    console.error('[rider-assign] startAssignmentIfHouseOnly failed:', e.message);
+    return { started: false, error: e.message };
+  }
+};
+
+/**
  * Start assignment only when all shops on the order have confirmed.
- * House-only orders (no shop_id items): caller should call startAssignment directly.
+ * House-only orders (no shop_id items): caller should call startAssignmentIfHouseOnly / startAssignment.
  */
 const maybeStartRiderAssignment = async (orderId) => {
   try {
@@ -696,6 +716,7 @@ const revokeOffersForOrder = async (orderId) => {
 module.exports = {
   RIDER_OFFER_TIMEOUT_SEC,
   startAssignment,
+  startAssignmentIfHouseOnly,
   maybeStartRiderAssignment,
   createOffer,
   acceptOffer,

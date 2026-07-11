@@ -274,6 +274,12 @@ const confirmMyOrder = async (req, res) => {
     shopName: req.shop.name,
   });
 
+  // Rider auto-assign starts only when ALL shops on the order have confirmed.
+  const { maybeStartRiderAssignment } = require('../services/riderAssignment');
+  maybeStartRiderAssignment(Number(orderId)).catch((e) =>
+    console.error('[rider-assign] maybeStart after shop confirm failed:', e.message)
+  );
+
   res.status(200).json({ message: 'Order confirmed' });
 };
 

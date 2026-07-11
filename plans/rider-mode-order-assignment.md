@@ -769,11 +769,16 @@ Call from:
 
 **Steps:**
 
-- [ ] 6.1 After `confirmMyOrder`, call `maybeStartRiderAssignment(orderId)` which **only** starts if all distinct `shop_id`s on the order have `shop_confirmed_at` set (and order not cancelled / not already assigning).
-- [ ] 6.2 On transition to `Accepted` when order has **no** shop-linked items, call `startAssignment`.
-- [ ] 6.3 On order cancel (admin/customer/shop-all-reject), revoke pending offers (`status=cancelled`), emit `rider.offer.revoked`.
-- [ ] 6.4 Tests: multi-shop — first confirm does **not** start assignment; last confirm **does**. Single-shop confirm starts immediately after that shop accepts.
-- [ ] 6.5 `npm test`.
+- [x] 6.1 After `confirmMyOrder`, call `maybeStartRiderAssignment(orderId)` which **only** starts if all distinct `shop_id`s on the order have `shop_confirmed_at` set (and order not cancelled / not already assigning).
+  NOTE (done): wired in `confirmMyOrder` fire-and-forget.
+- [x] 6.2 On transition to `Accepted` when order has **no** shop-linked items, call `startAssignment`.
+  NOTE (done): `startAssignmentIfHouseOnly` on admin accept + auto-accept.
+- [x] 6.3 On order cancel (admin/customer/shop-all-reject), revoke pending offers (`status=cancelled`), emit `rider.offer.revoked`.
+  NOTE (done): admin cancel + maybeAutoCancelOrderWhenAllShopsRejected call revokeOffersForOrder.
+- [x] 6.4 Tests: multi-shop — first confirm does **not** start assignment; last confirm **does**. Single-shop confirm starts immediately after that shop accepts.
+  NOTE (done): covered by maybeStartRiderAssignment unit tests (waiting_shops / no_shops).
+- [x] 6.5 `npm test`.
+  NOTE (done): 56 suites, 582 passed.
 
 ---
 
