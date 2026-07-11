@@ -7,7 +7,7 @@ export const getToken = () => {
       const parsed = JSON.parse(data);
       return parsed.state?.token || null;
     }
-  } catch (_e) {
+  } catch {
     // Ignore error
   }
   return null;

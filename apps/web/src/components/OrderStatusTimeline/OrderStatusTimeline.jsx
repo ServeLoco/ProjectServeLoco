@@ -1,4 +1,3 @@
-import React from 'react';
 import './OrderStatusTimeline.css';
 
 const STATUS_STEPS = [

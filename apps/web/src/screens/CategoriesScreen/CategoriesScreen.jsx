@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { productsApi } from '../../api/productsApi';
 import BottomNav from '../../components/BottomNav';
 import CategoryCard from '../../components/CategoryCard';
