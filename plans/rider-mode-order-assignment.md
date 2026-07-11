@@ -651,12 +651,18 @@ Call from:
 
 **Steps:**
 
-- [ ] 1.1 Create `riders` table (section 6.1) after shops block; log `Riders table ready.`
-- [ ] 1.2 Create `rider_order_offers` table (section 6.3). Prefer **no** broken unique on `(order_id, status)`; add indexes listed; enforce single pending in service layer.
-- [ ] 1.3 `ensureColumn` on `orders`: `rider_id`, `rider_assigned_at`, `rider_picked_up_at`, `rider_assignment_status`.
-- [ ] 1.4 Indexes: `idx_orders_rider`, offer indexes.
-- [ ] 1.5 Seed nothing by default.
-- [ ] 1.6 `npm test` in `apps/api`.
+- [x] 1.1 Create `riders` table (section 6.1) after shops block; log `Riders table ready.`
+  NOTE (done): `riders` table + `idx_riders_online` after shops block.
+- [x] 1.2 Create `rider_order_offers` table (section 6.3). Prefer **no** broken unique on `(order_id, status)`; add indexes listed; enforce single pending in service layer.
+  NOTE (done): Table after order_items with `uq_offer_order_rider` + indexes; no unique on status.
+- [x] 1.3 `ensureColumn` on `orders`: `rider_id`, `rider_assigned_at`, `rider_picked_up_at`, `rider_assignment_status`.
+  NOTE (done): Four ensureColumns after idempotency columns.
+- [x] 1.4 Indexes: `idx_orders_rider`, offer indexes.
+  NOTE (done): `idx_orders_rider (rider_id, status)`; offer indexes in CREATE TABLE.
+- [x] 1.5 Seed nothing by default.
+  NOTE (done): No seed rows.
+- [x] 1.6 `npm test` in `apps/api`.
+  NOTE (done): 53 suites, 543 passed, 1 skipped.
 
 **Acceptance:** Fresh migrate + re-run migrate both succeed; existing tests green.
 
@@ -668,12 +674,18 @@ Call from:
 
 **Steps:**
 
-- [ ] 2.1 `getRiderForUser(userId)` → rider shape or null (mirror `getShopForUser`).
-- [ ] 2.2 `listEligibleRiders({ excludeIds = [] })` — active, online, heartbeat fresh, no open assignment, not in excludeIds.
-- [ ] 2.3 `countCompletedDeliveriesToday(riderId, timezone)`.
-- [ ] 2.4 `selectRiderByLeastOrders(riders)` — pure function, unit-tested for ties/random seed injectability.
-- [ ] 2.5 `syncDeliveryAvailabilityFromRiders()` as section 12.
-- [ ] 2.6 `npm test`.
+- [x] 2.1 `getRiderForUser(userId)` → rider shape or null (mirror `getShopForUser`).
+  NOTE (done): `utils/riders.js` riderShape + getRiderForUser.
+- [x] 2.2 `listEligibleRiders({ excludeIds = [] })` — active, online, heartbeat fresh, no open assignment, not in excludeIds.
+  NOTE (done): SQL with heartbeat TTL + NOT EXISTS open assignment + excludeIds.
+- [x] 2.3 `countCompletedDeliveriesToday(riderId, timezone)`.
+  NOTE (done): Asia/Kolkata via `+05:30` CONVERT_TZ day boundary.
+- [x] 2.4 `selectRiderByLeastOrders(riders)` — pure function, unit-tested for ties/random seed injectability.
+  NOTE (done): pure + inject random; selectEligibleRider attaches counts.
+- [x] 2.5 `syncDeliveryAvailabilityFromRiders()` as section 12.
+  NOTE (done): ON/OFF from countActiveRiders; bust cache + socket + syncGlobalShopOpenState.
+- [x] 2.6 `npm test`.
+  NOTE (done): 54 suites, 560 passed (incl. ridersUtils).
 
 ---
 
