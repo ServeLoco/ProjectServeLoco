@@ -69,18 +69,13 @@ function ProductCard({
   const isShopClosed = product.shopIsOpen === false || product.shop_is_open === false || product.shopIsOpen === 0 || product.shop_is_open === 0;
   const isUnavailable = !resolvedAvailable;
 
-  // Multi-variant products (e.g. pizza sizes, burger types) show a price
-  // range and open the VariantSheet on tap instead of a bare +/- stepper —
-  // a "+" can't know which variant to increment.
+  // Multi-variant products (e.g. pizza sizes, burger types) show the plain
+  // lowest variant price and open the VariantSheet on tap instead of a bare
+  // +/- stepper — a "+" can't know which variant to increment.
   const resolvedVariants = product.variants ?? [];
   const isMultiVariant = resolvedVariants.length > 1;
-  const variantPrices = isMultiVariant
-    ? resolvedVariants.map(v => Number(v.price ?? v.salePrice ?? 0)).filter(p => !isNaN(p) && p > 0)
-    : [];
-  const variantMinPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : 0;
-  const variantMaxPrice = variantPrices.length > 0 ? Math.max(...variantPrices) : 0;
   const displayPrice = Math.floor(Number(
-    isMultiVariant ? (variantMinPrice || resolvedPrice) : resolvedPrice
+    isMultiVariant ? (product.minPrice ?? product.min_price ?? resolvedPrice) : resolvedPrice
   ));
 
   const pressAnim = useRef(new Animated.Value(0)).current;
@@ -308,10 +303,11 @@ function ProductCard({
 
             <View style={styles.priceActionRow}>
               <View style={styles.priceBlock}>
+                {isMultiVariant ? (
+                  <Text style={[styles.fromPrefix, compact && styles.fromPrefixCompact]}>from</Text>
+                ) : null}
                 <Text style={[styles.price, compact && styles.priceCompact]} numberOfLines={1}>
-                  {isMultiVariant && variantMinPrice > 0 && variantMaxPrice > 0 && variantMinPrice !== variantMaxPrice
-                    ? `₹${variantMinPrice} - ${variantMaxPrice}`
-                    : `₹${displayPrice}`}
+                  ₹{displayPrice}
                 </Text>
                 {!isMultiVariant && resolvedOriginalPrice ? (
                   <Text style={[styles.originalPrice, compact && styles.originalPriceCompact]} numberOfLines={1}>
