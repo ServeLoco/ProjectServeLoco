@@ -3,6 +3,18 @@ import { StoreModesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { GENERIC_ERROR } from '../utils/constants';
 import './Categories.css';
+import './StoreModes.css';
+
+const MODE_ICONS = {
+  packed: '📦',
+  fast_food: '🍔',
+  sweets: '🍬',
+  house: '🏠',
+};
+
+function modeIcon(slug) {
+  return MODE_ICONS[slug] || '🔀';
+}
 
 export default function StoreModes() {
   const [modes, setModes] = useState([]);
@@ -33,8 +45,6 @@ export default function StoreModes() {
       await StoreModesApi.update(mode.id, { active: !mode.active });
       fetchModes();
     } catch (err) {
-      // Deactivating a mode that still has categories/combos/offers returns a
-      // 400 asking for force=true — confirm with the admin, then retry forced.
       if (mode.active && /force=true/i.test(err.message || '')) {
         const proceed = window.confirm(
           `${err.message}\n\nHide "${mode.label}" anyway? Items assigned to it will disappear from the customer apps until the mode is re-activated.`
@@ -82,67 +92,97 @@ export default function StoreModes() {
     <div className="categories-container">
       <header className="categories-header">
         <h1 className="categories-title">Store Modes</h1>
-        <button className="btn-primary" onClick={() => setDrawerOpen(true)}>
+        <button type="button" className="btn-primary" onClick={() => setDrawerOpen(true)}>
           + New Mode
         </button>
       </header>
 
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', maxWidth: '640px' }}>
-        Modes power the mode-switcher capsule on the customer app home screen
-        (e.g. "Packed Items", "Fast Food"). Add a new mode here, then assign
-        categories/products/offers to it from their respective pages.
+      <p className="store-modes-intro">
+        Modes power the <strong>mode-switcher capsule</strong> on the customer app home screen
+        (e.g. Packed Items, Fast Food). Add a mode here, then assign categories, products,
+        and offers to it from their respective pages.
       </p>
 
       {error && <div className="error-container" style={{ marginBottom: '2rem' }}>{error}</div>}
 
-      <section className="categories-table-wrapper">
-        <table className="categories-table">
-          <thead>
-            <tr>
-              <th>Order</th>
-              <th>Label</th>
-              <th>Slug</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && modes.length === 0 ? (
-              <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>Loading store modes...</td></tr>
-            ) : sortedModes.length === 0 ? (
-              <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>No store modes found.</td></tr>
-            ) : (
-              sortedModes.map((m, idx) => (
-                <tr key={m.id}>
-                  <td>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <button className="action-link" disabled={idx === 0} onClick={() => move(m, -1)}>↑</button>
-                      <button className="action-link" disabled={idx === sortedModes.length - 1} onClick={() => move(m, 1)}>↓</button>
+      <section className="categories-grid-wrapper">
+        {loading && modes.length === 0 ? (
+          <div className="categories-state">Loading store modes...</div>
+        ) : sortedModes.length === 0 ? (
+          <div className="categories-state categories-state-empty">
+            <p>No store modes yet.</p>
+            <button type="button" className="btn-primary" onClick={() => setDrawerOpen(true)}>
+              Create your first mode
+            </button>
+          </div>
+        ) : (
+          <div className="store-modes-grid">
+            {sortedModes.map((m, idx) => (
+              <article
+                key={m.id}
+                className={`store-mode-card ${m.active ? 'store-mode-card--active' : 'store-mode-card--hidden'}`}
+              >
+                <div className="store-mode-card-header">
+                  <div className="store-mode-card-icon-wrap">
+                    <span className="store-mode-card-icon" aria-hidden="true">
+                      {modeIcon(m.slug)}
+                    </span>
+                    <div>
+                      <span className="store-mode-card-order-badge">#{m.display_order ?? idx + 1}</span>
+                      <div className="store-mode-reorder">
+                        <button
+                          type="button"
+                          className="btn-table-action"
+                          disabled={idx === 0}
+                          onClick={() => move(m, -1)}
+                          aria-label={`Move ${m.label} up`}
+                          title="Move up"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-table-action"
+                          disabled={idx === sortedModes.length - 1}
+                          onClick={() => move(m, 1)}
+                          aria-label={`Move ${m.label} down`}
+                          title="Move down"
+                        >
+                          ↓
+                        </button>
+                      </div>
                     </div>
-                  </td>
-                  <td>
-                    <span className="category-name">{m.label}</span>
-                    {m.is_system ? <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>(system)</span> : null}
-                  </td>
-                  <td><code>{m.slug}</code></td>
-                  <td>
-                    <button
-                      className={`availability-toggle ${m.active ? 'in-stock' : 'out-of-stock'}`}
-                      onClick={() => toggleActive(m)}
-                      disabled={m.is_system && m.active}
-                      title={m.is_system && m.active ? 'System modes cannot be deactivated' : ''}
-                    >
-                      {m.active ? 'Active' : 'Hidden'}
-                    </button>
-                  </td>
-                  <td>
-                    <RenameAction mode={m} onSaved={fetchModes} />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  </div>
+                  <span className={`store-mode-card-status ${m.active ? 'is-active' : 'is-hidden'}`}>
+                    {m.active ? 'Active' : 'Hidden'}
+                  </span>
+                </div>
+
+                <div className="store-mode-card-body">
+                  <h2 className="store-mode-card-name">{m.label}</h2>
+                  <p className="store-mode-card-slug">{m.slug}</p>
+                  <div className="store-mode-card-meta">
+                    {m.is_system ? (
+                      <span className="store-mode-system-badge">System mode</span>
+                    ) : (
+                      <span className="store-mode-system-badge">Custom mode</span>
+                    )}
+                    <span className="category-card-order">Display order {m.display_order ?? 0}</span>
+                  </div>
+                  {m.is_system && m.active ? (
+                    <p className="store-mode-card-hint">Built-in mode — cannot be hidden while active.</p>
+                  ) : null}
+                </div>
+
+                <StoreModeCardFooter
+                  mode={m}
+                  onToggle={() => toggleActive(m)}
+                  onSaved={fetchModes}
+                />
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       {drawerOpen && (
@@ -152,22 +192,47 @@ export default function StoreModes() {
   );
 }
 
-function RenameAction({ mode, onSaved }) {
+function StoreModeCardFooter({ mode, onToggle, onSaved }) {
   const [editing, setEditing] = useState(false);
+
+  return (
+    <div className={`store-mode-card-footer ${editing ? 'is-editing' : ''}`}>
+      {!editing ? (
+        <>
+          <button
+            type="button"
+            className={`availability-toggle ${mode.active ? 'in-stock' : 'out-of-stock'}`}
+            onClick={onToggle}
+            disabled={mode.is_system && mode.active}
+            title={mode.is_system && mode.active ? 'System modes cannot be deactivated' : ''}
+          >
+            {mode.active ? 'Active' : 'Hidden'}
+          </button>
+          <button type="button" className="action-link" onClick={() => setEditing(true)}>
+            Rename
+          </button>
+        </>
+      ) : (
+        <RenameForm
+          mode={mode}
+          onSaved={() => { setEditing(false); onSaved(); }}
+          onCancel={() => setEditing(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function RenameForm({ mode, onSaved, onCancel }) {
   const [label, setLabel] = useState(mode.label);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-
-  if (!editing) {
-    return <button className="action-link" onClick={() => setEditing(true)}>Rename</button>;
-  }
 
   const save = async () => {
     try {
       setSaving(true);
       setError(null);
       await StoreModesApi.update(mode.id, { label });
-      setEditing(false);
       onSaved();
     } catch (err) {
       console.error(err);
@@ -177,17 +242,19 @@ function RenameAction({ mode, onSaved }) {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+    <div className="store-mode-rename-form">
       <input
         className="form-input"
-        style={{ padding: '0.25rem 0.5rem', width: '140px' }}
         value={label}
         onChange={e => setLabel(e.target.value)}
         disabled={saving}
+        aria-label={`Rename ${mode.label}`}
       />
-      <button className="action-link" onClick={save} disabled={saving}>Save</button>
-      <button className="action-link" onClick={() => setEditing(false)} disabled={saving}>Cancel</button>
-      {error && <span style={{ color: 'var(--danger-color, #d33)', fontSize: '0.75rem' }}>{error}</span>}
+      <button type="button" className="action-link" onClick={save} disabled={saving}>Save</button>
+      <button type="button" className="action-link" onClick={() => { onCancel(); setError(null); }} disabled={saving}>
+        Cancel
+      </button>
+      {error && <span className="store-mode-rename-error">{error}</span>}
     </div>
   );
 }
@@ -198,12 +265,12 @@ function NewModeDrawer({ onClose, onSave }) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
 
+  const slugify = (value) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
   const handleLabelChange = (value) => {
     setLabel(value);
     setSlug(prev => (prev === slugify(label) || prev === '' ? slugify(value) : prev));
   };
-
-  const slugify = (value) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
