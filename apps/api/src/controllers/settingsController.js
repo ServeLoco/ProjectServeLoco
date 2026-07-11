@@ -248,22 +248,30 @@ const updateSettings = async (req, res) => {
   }
 
   // Master gate: delivery_available off means the business isn't
-  // delivering, full stop — a manual attempt to open the "Shop Status"
-  // banner can't override that. (The auto-open/auto-close side of this
-  // rule, triggered by individual shops opening/closing, lives in
-  // syncGlobalShopOpenState.)
+  // delivering, full stop — shop_open can't be open alongside it. (The
+  // auto-open/auto-close side of this rule, triggered by individual shops
+  // opening/closing, lives in syncGlobalShopOpenState.)
   if (hasValue(body.shop_open)) {
     const wantsOpen = body.shop_open === true || body.shop_open === 'true' || body.shop_open === 1 || body.shop_open === '1';
     if (wantsOpen) {
-      let deliveryAvailable;
       if (hasValue(body.delivery_available)) {
-        deliveryAvailable = body.delivery_available === true || body.delivery_available === 'true' || body.delivery_available === 1 || body.delivery_available === '1';
+        // Same request carries both fields (the Settings page "save all"
+        // sends the whole form). If delivery is being turned off, silently
+        // coerce shop_open closed instead of rejecting — the admin's intent
+        // is clearly "delivery off", and the post-write sync would force
+        // shop_open to 0 anyway.
+        const deliveryAvailable = body.delivery_available === true || body.delivery_available === 'true' || body.delivery_available === 1 || body.delivery_available === '1';
+        if (!deliveryAvailable) {
+          body.shop_open = 0;
+        }
       } else {
+        // shop_open-only request (the Dashboard's standalone toggle) — an
+        // explicit attempt to open while delivery is off gets a clear error.
         const [currentRows] = await pool.query('SELECT delivery_available FROM settings LIMIT 1');
-        deliveryAvailable = currentRows.length > 0 ? Boolean(currentRows[0].delivery_available) : true;
-      }
-      if (!deliveryAvailable) {
-        return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot open Shop Status while delivery is turned off.' });
+        const deliveryAvailable = currentRows.length > 0 ? Boolean(currentRows[0].delivery_available) : true;
+        if (!deliveryAvailable) {
+          return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot open Shop Status while delivery is turned off.' });
+        }
       }
     }
   }

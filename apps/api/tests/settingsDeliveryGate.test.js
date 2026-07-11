@@ -43,16 +43,31 @@ describe('PATCH /api/admin/settings — delivery_available master gate', () => {
     expect(res.body.message).toMatch(/delivery is turned off/);
   });
 
-  it('rejects shop_open: true, delivery_available: false in the same request', async () => {
-    // No current-state lookup needed — delivery_available is in the body.
+  it('coerces shop_open closed when delivery_available: false arrives in the same request', async () => {
+    // The admin Settings page "save all" sends the whole form, so a stale
+    // shop_open: true can ride along with delivery_available: false. That
+    // must NOT reject — the intent is "delivery off"; shop_open is coerced
+    // to 0 in the same write.
+    pool.query
+      .mockResolvedValueOnce([[{ id: 1 }]])                  // existence check
+      .mockResolvedValueOnce([{}])                           // UPDATE (shop_open coerced to 0)
+      .mockResolvedValueOnce([[{ delivery_available: 0 }]])  // sync: settings lookup
+      .mockResolvedValueOnce([{ affectedRows: 0 }])          // sync: UPDATE (already 0)
+      .mockResolvedValueOnce([[{ delivery_available: 0, shop_open: 0 }]]); // return updated
+
     const res = await request(app)
       .patch('/api/admin/settings')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ shop_open: true, delivery_available: false });
 
-    expect(res.statusCode).toEqual(400);
-    expect(res.body.code).toBe('VALIDATION_ERROR');
-    expect(pool.query).not.toHaveBeenCalled();
+    expect(res.statusCode).toEqual(200);
+    // The UPDATE wrote shop_open = 0, not 1 — coercion happened before the
+    // write. shop_open is first in the controller's fields list, so it's the
+    // first SET clause and the first param.
+    const updateCall = pool.query.mock.calls[1];
+    expect(updateCall[0]).toMatch(/UPDATE settings SET shop_open = \?/);
+    expect(updateCall[1][0]).toBe(0);
+    expect(res.body.data.shop_open).toBe(0);
   });
 
   it('allows shop_open: true when delivery_available is currently on', async () => {
