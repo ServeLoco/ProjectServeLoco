@@ -322,6 +322,15 @@ const updateSettings = async (req, res) => {
   const [updatedRows] = await pool.query('SELECT * FROM settings LIMIT 1');
   const updatedSettings = await attachSettingsImageUrls(updatedRows[0]);
 
+  // Manual admin flip of the global banner (or a delivery_available change
+  // that re-derived it above) — push the final value to customer apps so
+  // their "shop closed" banner updates without waiting for a settings poll.
+  if (body.shop_open !== undefined || body.delivery_available !== undefined) {
+    const { emitToAllCustomers } = require('../realtime/socket');
+    const finalOpen = Boolean(updatedSettings?.shop_open);
+    emitToAllCustomers('settings.shop_open.updated', { shopOpen: finalOpen, shop_open: finalOpen });
+  }
+
   res.status(200).json({ message: 'Settings updated successfully', data: updatedSettings });
 };
 
@@ -553,5 +562,9 @@ module.exports = {
   getOfferProducts,
   addOfferProduct,
   removeOfferProduct,
-  reorderOfferProducts
+  reorderOfferProducts,
+  // For code that writes settings outside this controller (e.g.
+  // syncGlobalShopOpenState flipping shop_open) — without this, public
+  // /api/settings keeps serving the stale cached value for up to 15s.
+  bustSettingsCache: () => settingsCache.del(SETTINGS_KEY),
 };

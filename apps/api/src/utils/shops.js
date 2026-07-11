@@ -84,27 +84,48 @@ const notifyShopsOrderCancelled = async (order) => {
 // respects it directly on manual shop_open writes.
 const syncGlobalShopOpenState = async () => {
   try {
+    let changed = false;
+    let globalOpen = null;
+
     const [settingsRows] = await pool.query('SELECT delivery_available FROM settings LIMIT 1');
     if (settingsRows.length === 0) return;
 
     const deliveryAvailable = Boolean(settingsRows[0].delivery_available);
     if (!deliveryAvailable) {
-      await pool.query('UPDATE settings SET shop_open = 0 WHERE shop_open = 1');
-      return;
+      const [result] = await pool.query('UPDATE settings SET shop_open = 0 WHERE shop_open = 1');
+      changed = result.affectedRows > 0;
+      globalOpen = false;
+    } else {
+      const [shopRows] = await pool.query(
+        `SELECT
+           SUM(active = 1) AS total_active,
+           SUM(active = 1 AND is_open = 1) AS total_open
+         FROM shops`
+      );
+      const totalActive = Number(shopRows[0]?.total_active) || 0;
+      if (totalActive === 0) return;
+
+      const totalOpen = Number(shopRows[0]?.total_open) || 0;
+      const desiredOpen = totalOpen > 0 ? 1 : 0;
+      const [result] = await pool.query('UPDATE settings SET shop_open = ? WHERE shop_open != ?', [desiredOpen, desiredOpen]);
+      changed = result.affectedRows > 0;
+      globalOpen = Boolean(desiredOpen);
     }
 
-    const [shopRows] = await pool.query(
-      `SELECT
-         SUM(active = 1) AS total_active,
-         SUM(active = 1 AND is_open = 1) AS total_open
-       FROM shops`
-    );
-    const totalActive = Number(shopRows[0]?.total_active) || 0;
-    if (totalActive === 0) return;
+    if (changed) {
+      // The public /api/settings response is served from a 15s TTL cache
+      // that only updateSettings normally busts — clear it here too, or the
+      // customer app keeps reading the stale shop_open we just changed.
+      // Lazy require: settingsController requires this file at load time,
+      // so a top-level require here would be a circular import.
+      const { bustSettingsCache } = require('../controllers/settingsController');
+      bustSettingsCache();
 
-    const totalOpen = Number(shopRows[0]?.total_open) || 0;
-    const desiredOpen = totalOpen > 0 ? 1 : 0;
-    await pool.query('UPDATE settings SET shop_open = ? WHERE shop_open != ?', [desiredOpen, desiredOpen]);
+      // Let connected customer apps flip their "shop closed" banner
+      // immediately instead of waiting for the next settings poll.
+      const { emitToAllCustomers } = require('../realtime/socket');
+      emitToAllCustomers('settings.shop_open.updated', { shopOpen: globalOpen, shop_open: globalOpen });
+    }
   } catch (e) {
     console.error('[shops] syncGlobalShopOpenState failed:', e.message);
   }

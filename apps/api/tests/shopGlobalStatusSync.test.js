@@ -19,6 +19,7 @@ const request = require('supertest');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../src/db/mysql');
+const { emitToAllCustomers } = require('../src/realtime/socket');
 const { syncGlobalShopOpenState } = require('../src/utils/shops');
 
 jest.mock('../src/db/mysql', () => ({
@@ -36,32 +37,59 @@ describe('syncGlobalShopOpenState (unit)', () => {
   });
 
   it('forces shop_open closed when delivery_available is off, regardless of open shops', async () => {
-    pool.query.mockResolvedValueOnce([[{ delivery_available: 0 }]]); // settings lookup
+    pool.query
+      .mockResolvedValueOnce([[{ delivery_available: 0 }]]) // settings lookup
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);         // UPDATE shop_open = 0
 
     await syncGlobalShopOpenState();
 
     expect(pool.query).toHaveBeenCalledTimes(2);
     expect(pool.query).toHaveBeenNthCalledWith(2, 'UPDATE settings SET shop_open = 0 WHERE shop_open = 1');
+    expect(emitToAllCustomers).toHaveBeenCalledWith(
+      'settings.shop_open.updated',
+      expect.objectContaining({ shopOpen: false, shop_open: false })
+    );
   });
 
   it('auto-opens shop_open when delivery is available and a shop is open', async () => {
     pool.query
       .mockResolvedValueOnce([[{ delivery_available: 1 }]])              // settings lookup
-      .mockResolvedValueOnce([[{ total_active: 3, total_open: 1 }]]);    // shops SUM
+      .mockResolvedValueOnce([[{ total_active: 3, total_open: 1 }]])     // shops SUM
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);                     // UPDATE shop_open = 1
 
     await syncGlobalShopOpenState();
 
     expect(pool.query).toHaveBeenNthCalledWith(3, 'UPDATE settings SET shop_open = ? WHERE shop_open != ?', [1, 1]);
+    expect(emitToAllCustomers).toHaveBeenCalledWith(
+      'settings.shop_open.updated',
+      expect.objectContaining({ shopOpen: true, shop_open: true })
+    );
   });
 
   it('auto-closes shop_open when delivery is available but zero shops are open', async () => {
     pool.query
       .mockResolvedValueOnce([[{ delivery_available: 1 }]])
-      .mockResolvedValueOnce([[{ total_active: 3, total_open: 0 }]]);
+      .mockResolvedValueOnce([[{ total_active: 3, total_open: 0 }]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
 
     await syncGlobalShopOpenState();
 
     expect(pool.query).toHaveBeenNthCalledWith(3, 'UPDATE settings SET shop_open = ? WHERE shop_open != ?', [0, 0]);
+    expect(emitToAllCustomers).toHaveBeenCalledWith(
+      'settings.shop_open.updated',
+      expect.objectContaining({ shopOpen: false, shop_open: false })
+    );
+  });
+
+  it('does not emit when the value was already correct (no row changed)', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ delivery_available: 1 }]])
+      .mockResolvedValueOnce([[{ total_active: 3, total_open: 1 }]])
+      .mockResolvedValueOnce([{ affectedRows: 0 }]); // shop_open already 1
+
+    await syncGlobalShopOpenState();
+
+    expect(emitToAllCustomers).not.toHaveBeenCalled();
   });
 
   it('no-ops in single-vendor deployments (no active shops at all)', async () => {

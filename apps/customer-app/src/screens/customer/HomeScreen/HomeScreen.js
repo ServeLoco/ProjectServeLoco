@@ -194,10 +194,11 @@ export default function HomeScreen() {
     };
   }, [loadHomeData]);
 
-  // Quiet background re-fetch of just the dashboard sections — no loading
-  // skeleton, no re-triggered entry animation. Used to catch a shop closing
-  // (shop_is_open flipping) while Home stays mounted, without the jarring
-  // full reload loadHomeData(false) would cause on every focus.
+  // Quiet background re-fetch of the dashboard sections AND settings — no
+  // loading skeleton, no re-triggered entry animation. Used to catch a shop
+  // closing (shop_is_open flipping) or the global Shop Status banner
+  // (settings.shop_open) changing while Home stays mounted, without the
+  // jarring full reload loadHomeData(false) would cause on every focus.
   const refreshDashboardSilently = React.useCallback(() => {
     dashboardApi.getDashboard({ storeType: currentApiStoreType, include_closed_shops: 1 })
       .then(response => {
@@ -205,7 +206,15 @@ export default function HomeScreen() {
         if (sectionsData) setDashboardSections(sectionsData);
       })
       .catch(() => {});
-  }, [currentApiStoreType]);
+    settingsApi.getSettings()
+      .then(response => {
+        if (response !== null && response !== undefined) {
+          setSettings(normalizeSettings(response));
+          markSettingsFetched();
+        }
+      })
+      .catch(() => {});
+  }, [currentApiStoreType, setSettings, markSettingsFetched]);
 
   useFocusEffect(
     React.useCallback(() => {

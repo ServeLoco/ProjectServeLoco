@@ -20,6 +20,7 @@ const NOTIFICATION_EVENTS = [
 
 const SHOP_EVENTS = [
   'shop.status.updated',
+  'settings.shop_open.updated',
 ];
 
 const LIFECYCLE_EVENTS = [
