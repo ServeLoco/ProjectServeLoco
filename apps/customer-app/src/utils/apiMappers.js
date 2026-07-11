@@ -50,6 +50,19 @@ function normalizeImageUrl(url) {
   }
 }
 
+function imageRecordToUrl(image) {
+  if (!image || typeof image !== 'object') return null;
+  const directUrl = normalizeImageUrl(pickFirst(image.url, image.imageUrl, image.image_url));
+  if (directUrl) return directUrl;
+
+  const filename = pickFirst(image.filename, image.file_name);
+  if (!filename) return null;
+
+  const origin = getApiOrigin();
+  if (!origin) return null;
+  return `${origin}/uploads/${encodeURIComponent(filename)}`;
+}
+
 function asArray(payload, keys = []) {
   if (Array.isArray(payload)) return payload;
 
@@ -202,7 +215,7 @@ function normalizeSettings(payload = {}) {
     deliveryAvailable: asBoolean(pickFirst(settings.deliveryAvailable, settings.delivery_available), true),
     supportPhone: pickFirst(settings.supportPhone, settings.support_phone, settings.whatsapp_number, null),
     upiId: pickFirst(settings.upiId, settings.upi_id, null),
-    upiQrImageId: pickFirst(settings.upiQrImageId, settings.upi_qr_image_id, null),
+    upiQrImageId: toIdString(pickFirst(settings.upiQrImageId, settings.upi_qr_image_id, null)),
     upiQrImageUrl: normalizeImageUrl(pickFirst(settings.upiQrImageUrl, settings.upi_qr_image_url, settings.upiQrUrl, settings.upi_qr_url, null)),
     activeOffer,
     nightCharge: numberOrZero(pickFirst(settings.nightCharge, settings.night_charge)),
@@ -487,6 +500,7 @@ export {
   normalizeCategory,
   normalizeDashboard,
   normalizeImageUrl,
+  imageRecordToUrl,
   normalizeOrder,
   normalizeProduct,
   normalizeProfile,

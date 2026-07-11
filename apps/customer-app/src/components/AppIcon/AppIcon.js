@@ -35,6 +35,7 @@ import {
   Star,
   Ticket,
   Trash2,
+  TriangleAlert,
   Upload,
   User,
   X,
@@ -81,6 +82,7 @@ const ICONS = {
   settings: Settings,
   ticket: Ticket,
   upload: Upload,
+  warning: TriangleAlert,
   whatsapp: MessageCircle,
 };
 

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   LayoutAnimation,
   RefreshControl,
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
@@ -30,9 +31,13 @@ import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, normalizeCategory } from '../../../utils';
 
 
+const CATEGORY_IMAGE_ASPECT_RATIO = 0.9;
+
 export default function CategoriesScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+  const { width: windowWidth } = useWindowDimensions();
+  const categoryImageWidth = Math.floor((windowWidth - spacing.md * 2) * 0.28);
   const items = useCartStore(state => state.items);
   const cartItemCount = useMemo(
     () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
@@ -132,11 +137,14 @@ export default function CategoriesScreen() {
   const renderSkeletonList = () => (
     <View style={styles.list}>
       {[1, 2, 3, 4, 5, 6].map((k) => (
-        <View key={k} style={styles.skeletonListItem}>
-          <LoadingSkeleton style={styles.skeletonListImage} />
-          <View style={styles.skeletonListTextWrapper}>
-            <LoadingSkeleton style={styles.skeletonListLine} />
+        <View key={k} style={styles.skeletonCard}>
+          <View style={styles.skeletonAccent} />
+          <LoadingSkeleton style={[styles.skeletonCardImage, { width: categoryImageWidth }]} />
+          <View style={styles.skeletonCardBody}>
+            <LoadingSkeleton style={styles.skeletonCardTitle} />
+            <LoadingSkeleton style={styles.skeletonCardPill} />
           </View>
+          <LoadingSkeleton style={styles.skeletonCardArrow} />
         </View>
       ))}
     </View>
@@ -249,28 +257,36 @@ export default function CategoriesScreen() {
                     >
                       <PressableScale
                         onPress={() => handleCategoryPress(cat)}
-                        style={styles.categoryListRow}
-                        scaleTo={0.97}
+                        style={styles.categoryCard}
+                        scaleTo={0.98}
                         accessibilityRole="button"
                         accessibilityLabel={cat.name}
                       >
-                        <View style={styles.listImageWrapper}>
+                        <View style={styles.categoryAccent} />
+                        <View style={[styles.categoryImageFrame, { width: categoryImageWidth }]}>
                           <ProductImage
                             uri={cat.imageUri}
                             width="100%"
                             height="100%"
-                            borderRadius={radius.sm}
-                            resizeMode="contain"
+                            borderRadius={radius.lg}
+                            resizeMode="cover"
+                            priority="high"
                           />
                         </View>
-                        <View style={styles.listTextContainer}>
-                          <Text style={styles.categoryListRowName}>{cat.name}</Text>
+                        <View style={styles.categoryBody}>
+                          <Text style={styles.categoryName} numberOfLines={2}>
+                            {cat.name}
+                          </Text>
                           {cat.count !== undefined && (
-                            <Text style={styles.categoryListRowCount}>{cat.count} items</Text>
+                            <View style={styles.categoryCountPill}>
+                              <Text style={styles.categoryCountText}>
+                                {cat.count} {cat.count === 1 ? 'item' : 'items'}
+                              </Text>
+                            </View>
                           )}
                         </View>
-                        <View style={styles.chevronWrapper}>
-                          <AppIcon name="chevronRight" size={18} color={colors.textSecondary} />
+                        <View style={styles.categoryArrow}>
+                          <AppIcon name="chevronRight" size={18} color={colors.textPrimary} />
                         </View>
                       </PressableScale>
                     </Animated.View>
@@ -373,75 +389,131 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingTop: spacing.sm,
+    gap: spacing.sm,
   },
   listItem: {
-    marginBottom: spacing.xs,
+    marginBottom: 0,
   },
-  categoryListRow: {
+  categoryCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.bgSurface,
     borderRadius: radius.lg,
-    padding: spacing.md,
-    ...shadows.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  listImageWrapper: {
-    width: 52,
-    height: 52,
-    backgroundColor: '#F5F6F8',
-    borderRadius: radius.md,
-    padding: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  listTextContainer: {
-    flex: 1,
-    marginLeft: spacing.md,
-    justifyContent: 'center',
-  },
-  categoryListRowName: {
-    ...typography.labelLarge,
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  categoryListRowCount: {
-    ...typography.labelSmall,
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  chevronWrapper: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingRight: spacing.md,
     paddingLeft: spacing.sm,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.saffron + '28',
+    shadowColor: colors.saffron,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  skeletonListItem: {
+  categoryAccent: {
+    width: 4,
+    alignSelf: 'stretch',
+    borderRadius: radius.pill,
+    backgroundColor: colors.saffron,
+    marginRight: spacing.sm,
+  },
+  categoryImageFrame: {
+    aspectRatio: CATEGORY_IMAGE_ASPECT_RATIO,
+    backgroundColor: colors.bgSkeletonBase,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E6B800',
+    shadowColor: '#B8860B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.32,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  categoryBody: {
+    flex: 1,
+    marginLeft: spacing.md,
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  categoryName: {
+    ...typography.labelLarge,
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: -0.2,
+    lineHeight: 20,
+  },
+  categoryCountPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.successLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: colors.success + '30',
+  },
+  categoryCountText: {
+    ...typography.labelSmall,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.successDark,
+  },
+  categoryArrow: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: colors.saffronLight,
+    borderWidth: 1,
+    borderColor: colors.saffron + '35',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.sm,
+  },
+  skeletonCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.bgSurface,
     borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.xs,
+    paddingVertical: spacing.md,
+    paddingRight: spacing.md,
+    paddingLeft: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  skeletonListImage: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.md,
+  skeletonAccent: {
+    width: 4,
+    alignSelf: 'stretch',
+    borderRadius: radius.pill,
+    backgroundColor: colors.saffronLight,
+    marginRight: spacing.sm,
   },
-  skeletonListTextWrapper: {
+  skeletonCardImage: {
+    aspectRatio: CATEGORY_IMAGE_ASPECT_RATIO,
+    borderRadius: radius.lg,
+  },
+  skeletonCardBody: {
     flex: 1,
     marginLeft: spacing.md,
     justifyContent: 'center',
+    gap: spacing.xs,
   },
-  skeletonListLine: {
-    height: 16,
-    width: '60%',
+  skeletonCardTitle: {
+    height: 18,
+    width: '68%',
     borderRadius: radius.xs,
+  },
+  skeletonCardPill: {
+    height: 22,
+    width: 72,
+    borderRadius: radius.pill,
+  },
+  skeletonCardArrow: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    marginLeft: spacing.sm,
   },
   emptyState: {
     flex: 1,
