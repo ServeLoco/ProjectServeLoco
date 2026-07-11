@@ -553,8 +553,8 @@ const styles = StyleSheet.create({
   },
   fromPrefix: {
     fontSize: 9,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.55)',
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.92)',
   },
   fromPrefixCompact: {
     fontSize: 8,
