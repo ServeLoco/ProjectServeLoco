@@ -809,10 +809,14 @@ Call from:
 
 **Steps:**
 
-- [ ] 8.1 Customer: rider assigned, picked up, out for delivery, delivered, cancelled no-rider (reuse status_cancelled where possible).
-- [ ] 8.2 Shop owners: push when rider assigned / cancelled for their order.
-- [ ] 8.3 Admin inbox types from section 6.5.
-- [ ] 8.4 `npm test`.
+- [x] 8.1 Customer: rider assigned, picked up, out for delivery, delivered, cancelled no-rider (reuse status_cancelled where possible).
+  NOTE (done): rider_assigned/picked_up templates+fallbacks; fail uses status_cancelled; status patch uses existing events.
+- [x] 8.2 Shop owners: push when rider assigned / cancelled for their order.
+  NOTE (done): notifyShopsRiderAssigned + notifyShopsRiderAssignmentFailed.
+- [x] 8.3 Admin inbox types from section 6.5.
+  NOTE (done): types added in TASK 5; failAssignment uses them.
+- [x] 8.4 `npm test`.
+  NOTE (done): 58 suites, 598 passed.
 
 ---
 

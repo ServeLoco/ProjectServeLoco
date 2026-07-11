@@ -239,6 +239,10 @@ const failAssignment = async (orderId, reason = 'No riders available') => {
     }
 
     notifyShopsOrderCancelled(updated);
+    try {
+      const { notifyShopsRiderAssignmentFailed } = require('../utils/shops');
+      notifyShopsRiderAssignmentFailed(updated);
+    } catch (_) { /* best-effort */ }
     realtimeEvents.emitOrderStatusUpdated(updated);
 
     try {
@@ -511,7 +515,7 @@ const acceptOffer = async (offerId, riderId) => {
       });
     } catch (_) { /* best-effort */ }
 
-    // Customer notification — rider assigned
+    // Customer + shop notifications — rider assigned
     try {
       const notificationService = require('../utils/notificationService');
       const realtimeEvents = require('../realtime/orderEvents');
@@ -522,6 +526,8 @@ const acceptOffer = async (offerId, riderId) => {
       }).then((result) => {
         if (result) realtimeEvents.emitNotificationCreated(updated.customer_id, result);
       }).catch(() => {});
+      const { notifyShopsRiderAssigned } = require('../utils/shops');
+      notifyShopsRiderAssigned(updated);
     } catch (_) { /* best-effort */ }
 
     log('acceptOffer', { offerId, orderId: offer.order_id, riderId });

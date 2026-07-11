@@ -75,6 +75,60 @@ const notifyShopsOrderCancelled = async (order) => {
   }
 };
 
+// Notify shops when a rider is assigned to their order.
+const notifyShopsRiderAssigned = async (order) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT DISTINCT s.id AS shop_id, s.name AS shop_name, s.owner_user_id
+       FROM order_items oi JOIN shops s ON s.id = oi.shop_id
+       WHERE oi.order_id = ? AND s.active = 1 AND s.owner_user_id IS NOT NULL`,
+      [order.id]
+    );
+    if (rows.length === 0) return;
+    const { emitToCustomer } = require('../realtime/socket');
+    const expoPush = require('./expoPush');
+    for (const row of rows) {
+      emitToCustomer(row.owner_user_id, 'shop.order.rider_assigned', {
+        orderId: order.id, orderNumber: order.order_number, shopId: row.shop_id,
+      });
+    }
+    expoPush.sendPushToMany(pool, rows.map(r => r.owner_user_id), {
+      title: 'Rider assigned',
+      body: `A rider accepted order ${order.order_number}.`,
+      data: { type: 'shop_order', orderId: order.id },
+    }).catch(() => {});
+  } catch (e) {
+    console.error('[shops] notifyShopsRiderAssigned failed for order', order?.id, e.message);
+  }
+};
+
+// Notify shops when rider assignment failed and the order was cancelled.
+const notifyShopsRiderAssignmentFailed = async (order) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT DISTINCT s.id AS shop_id, s.name AS shop_name, s.owner_user_id
+       FROM order_items oi JOIN shops s ON s.id = oi.shop_id
+       WHERE oi.order_id = ? AND s.active = 1 AND s.owner_user_id IS NOT NULL`,
+      [order.id]
+    );
+    if (rows.length === 0) return;
+    const { emitToCustomer } = require('../realtime/socket');
+    const expoPush = require('./expoPush');
+    for (const row of rows) {
+      emitToCustomer(row.owner_user_id, 'shop.order.rider_failed', {
+        orderId: order.id, orderNumber: order.order_number, shopId: row.shop_id,
+      });
+    }
+    expoPush.sendPushToMany(pool, rows.map(r => r.owner_user_id), {
+      title: 'No rider available',
+      body: `Order ${order.order_number} was cancelled — no rider accepted.`,
+      data: { type: 'shop_order', orderId: order.id },
+    }).catch(() => {});
+  } catch (e) {
+    console.error('[shops] notifyShopsRiderAssignmentFailed failed for order', order?.id, e.message);
+  }
+};
+
 // If every active multi-vendor shop is now closed, auto-close the global
 // "Shop Status" banner (settings.shop_open) too — so the admin dashboard
 // tracks reality instead of needing a separate manual flip every time a
@@ -248,5 +302,7 @@ module.exports = {
   notifyShopsForOrder,
   syncGlobalShopOpenState,
   notifyShopsOrderCancelled,
+  notifyShopsRiderAssigned,
+  notifyShopsRiderAssignmentFailed,
   maybeAutoCancelOrderWhenAllShopsRejected,
 };
