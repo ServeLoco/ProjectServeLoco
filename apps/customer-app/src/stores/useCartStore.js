@@ -144,6 +144,29 @@ export const useCartStore = create(
 
       clearCart: () => set({ items: [], appliedCouponCode: null, appliedCouponId: null, appliedCoupon: null, couponAutoApplyDisabled: false }),
 
+      // Drops every cart line whose product belongs to a shop that just
+      // closed (or went inactive). Combos and house products (shopId null)
+      // are never shop-scoped and are left alone. Returns the removed items
+      // so the caller can show a toast — silent removal would look like the
+      // items vanished for no reason.
+      removeItemsByShop: (shopId) => {
+        const { items } = get();
+        const targetId = String(shopId);
+        const removedItems = items.filter(item => String(item.product?.shopId ?? item.product?.shop_id ?? '') === targetId);
+        if (removedItems.length === 0) return [];
+
+        set({ items: items.filter(item => String(item.product?.shopId ?? item.product?.shop_id ?? '') !== targetId) });
+        removedItems.forEach(item => {
+          trackEvent('cart_remove', {
+            productId: Number(item.product.id),
+            qty: Number(item.quantity) || 0,
+            price: Number(item.variant?.price ?? item.product?.price) || 0,
+            reason: 'shop_closed',
+          });
+        });
+        return removedItems;
+      },
+
       // Selectors (computed properties)
       get totalItems() {
         return get().items.reduce((total, item) => total + item.quantity, 0);

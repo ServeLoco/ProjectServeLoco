@@ -11,6 +11,7 @@ export {
   subscribeOrderEvents,
   subscribeRealtime,
   subscribeRealtimeLifecycle,
+  subscribeShopEvents,
 } from './realtimeClient';
 export {
   clearTokenProviders,

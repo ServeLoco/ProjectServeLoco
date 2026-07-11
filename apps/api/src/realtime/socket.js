@@ -70,6 +70,9 @@ const joinRoleRoom = (socket) => {
 
   if (auth.role === 'customer') {
     socket.join(`customer:${auth.id}`);
+    // Shared room for broadcasts that apply to every customer regardless
+    // of identity (e.g. a shop's open/closed status).
+    socket.join('customers');
     return;
   }
 
@@ -169,6 +172,8 @@ const emitToCustomer = (customerId, eventName, payload) => {
 
 const emitToAdmins = (eventName, payload) => emitToRoom('admin', eventName, payload);
 
+const emitToAllCustomers = (eventName, payload) => emitToRoom('customers', eventName, payload);
+
 const getRealtimeStatus = () => ({
   enabled: Boolean(io),
   connectedSockets: io?.engine?.clientsCount || 0,
@@ -177,6 +182,7 @@ const getRealtimeStatus = () => ({
 module.exports = {
   closeRealtime,
   emitToAdmins,
+  emitToAllCustomers,
   emitToCustomer,
   getRealtimeStatus,
   initRealtime,

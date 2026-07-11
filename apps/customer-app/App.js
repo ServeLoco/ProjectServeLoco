@@ -6,7 +6,7 @@ import { RootNavigator, navigationRef } from './src/navigation';
 import { colors } from './src/theme';
 import { setCustomerTokenProvider, settingsApi } from './src/api';
 import { setCustomerLogoutHandler } from './src/api/httpClient';
-import { useCustomerRealtime, useLocalNotifications, useNetworkStatus } from './src/hooks';
+import { useCustomerRealtime, useLocalNotifications, useNetworkStatus, useShopStatusSync } from './src/hooks';
 import { useAuthStore } from './src/stores';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OfflineBanner } from './src/components/OfflineBanner';
@@ -34,6 +34,7 @@ function isUpdateRequired(current, required) {
 function App() {
   useCustomerRealtime();
   useLocalNotifications(navigationRef);
+  useShopStatusSync();
   const { isOnline } = useNetworkStatus();
 
   // Force-update gate: check server's minimum_version against installed version

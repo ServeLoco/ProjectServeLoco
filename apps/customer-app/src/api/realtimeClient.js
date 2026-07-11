@@ -18,6 +18,10 @@ const NOTIFICATION_EVENTS = [
   'notification.unread_count.updated',
 ];
 
+const SHOP_EVENTS = [
+  'shop.status.updated',
+];
+
 const LIFECYCLE_EVENTS = [
   'connected',
   'reconnected',
@@ -91,6 +95,14 @@ function subscribeNotificationEvents(handler) {
   return () => unsubscribers.forEach(unsubscribe => unsubscribe());
 }
 
+function subscribeShopEvents(handler) {
+  const unsubscribers = SHOP_EVENTS.map(eventName =>
+    subscribeRealtime(eventName, payload => handler({ eventName, payload }))
+  );
+
+  return () => unsubscribers.forEach(unsubscribe => unsubscribe());
+}
+
 function subscribeRealtimeLifecycle(handler) {
   const unsubscribers = LIFECYCLE_EVENTS.map(eventName =>
     subscribeRealtime(`lifecycle.${eventName}`, payload => handler({ eventName, payload }))
@@ -105,6 +117,10 @@ function bindSocketEvents(nextSocket) {
   });
 
   NOTIFICATION_EVENTS.forEach(eventName => {
+    nextSocket.on(eventName, payload => emitLocal(eventName, payload));
+  });
+
+  SHOP_EVENTS.forEach(eventName => {
     nextSocket.on(eventName, payload => emitLocal(eventName, payload));
   });
 
@@ -202,4 +218,5 @@ export {
   subscribeOrderEvents,
   subscribeRealtime,
   subscribeRealtimeLifecycle,
+  subscribeShopEvents,
 };

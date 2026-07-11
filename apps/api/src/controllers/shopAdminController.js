@@ -1,4 +1,5 @@
 const { pool } = require('../db/mysql');
+const { emitToAllCustomers } = require('../realtime/socket');
 
 // Maps a raw shops + users JOIN row to the admin response shape. The response
 // duplicates fields in both camelCase and snake_case because different clients
@@ -145,6 +146,17 @@ const updateShop = async (req, res) => {
   }
 
   const shop = await fetchShopRow(id);
+
+  // Either flag flipping to closed/inactive hides the shop's products from
+  // customers — notify connected clients so open carts/screens can react
+  // immediately instead of waiting for a manual refresh.
+  if (is_open !== undefined || active !== undefined) {
+    emitToAllCustomers('shop.status.updated', {
+      shopId: shop.id,
+      isOpen: Boolean(shop.is_open) && Boolean(shop.active),
+    });
+  }
+
   res.status(200).json({ message: 'Shop updated', shop });
 };
 

@@ -47,6 +47,7 @@ import {
   settingsApi,
   subscribeNotificationEvents,
   subscribeRealtimeLifecycle,
+  subscribeShopEvents,
 } from '../../../api';
 import {
   asArray,
@@ -285,9 +286,19 @@ export default function HomeScreen() {
       }
     });
 
+    // Live push for a shop opening/closing while this screen stays mounted
+    // and foregrounded — the focus/foreground refreshes above don't cover
+    // that case. Any shop.status.updated event just re-fetches the whole
+    // dashboard rather than patching a single section; simpler and cheap
+    // enough given how rarely shops toggle.
+    const unsubscribeShopEvents = subscribeShopEvents(() => {
+      refreshDashboardSilently();
+    });
+
     return () => {
       unsubscribeNotifications();
       unsubscribeLifecycle();
+      unsubscribeShopEvents();
       if (unreadRefreshTimer.current) {
         clearTimeout(unreadRefreshTimer.current);
       }
