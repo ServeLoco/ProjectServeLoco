@@ -695,10 +695,14 @@ Call from:
 
 **Steps:**
 
-- [ ] 3.1 On `firebaseVerify` success and `me`, attach `rider: await getRiderForUser(userId)` (null if none).
-- [ ] 3.2 Do not change JWT claims.
-- [ ] 3.3 If both shop and rider exist, return both; client applies D2 priority (document). Optional: log warning.
-- [ ] 3.4 `npm test`.
+- [x] 3.1 On `firebaseVerify` success and `me`, attach `rider: await getRiderForUser(userId)` (null if none).
+  NOTE (done): `me`, firebaseVerify success path, and race path all return `rider`.
+- [x] 3.2 Do not change JWT claims.
+  NOTE (done): JWT still role customer only.
+- [x] 3.3 If both shop and rider exist, return both; client applies D2 priority (document). Optional: log warning.
+  NOTE (done): returns both + console.warn on dual role.
+- [x] 3.4 `npm test`.
+  NOTE (done): 54 suites green.
 
 ---
 
