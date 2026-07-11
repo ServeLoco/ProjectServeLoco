@@ -176,7 +176,7 @@ const ensureModeSpecificOfferBannerSections = async () => {
           title, slug, section_type, store_type, active, display_order,
           max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id,
           starts_at, ends_at, version
-        ) VALUES (?, ?, 'offer_banner', ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        ) VALUES (?, ?, 'offer_banner', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
         [
           section.title,
           slug,
@@ -185,6 +185,8 @@ const ensureModeSpecificOfferBannerSections = async () => {
           section.display_order,
           section.max_visible_items,
           section.show_see_all,
+          section.show_hot_badge,
+          section.section_icon,
           section.linked_category_id,
           section.linked_offer_id,
           section.starts_at,
