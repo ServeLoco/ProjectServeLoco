@@ -80,7 +80,7 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [togglingShop, setTogglingShop] = useState(false);
+  const [togglingDelivery, setTogglingDelivery] = useState(false);
   const refreshTimerRef = useRef(null);
 
   const fetchDashboardData = useCallback(async (showLoading = true) => {
@@ -118,18 +118,25 @@ export default function Dashboard() {
     };
   }, [queueDashboardRefresh]);
 
-  const handleToggleShopStatus = async () => {
+  // Shop Status (settings.shop_open) is no longer manually toggled here —
+  // the API auto-derives it from delivery_available + whether any shop is
+  // open (see syncGlobalShopOpenState). This button only controls the
+  // master gate; Shop Status below just reflects the outcome.
+  const handleToggleDelivery = async () => {
     if (!metrics) return;
-    setTogglingShop(true);
-    const newStatus = !metrics.shop_open;
+    setTogglingDelivery(true);
+    const newStatus = !metrics.delivery_available;
     try {
-      await SettingsApi.update({ shop_open: newStatus });
-      setMetrics((prev) => ({ ...prev, shop_open: newStatus }));
+      await SettingsApi.update({ delivery_available: newStatus });
+      // The API re-derives shop_open server-side when delivery_available
+      // changes — refetch metrics instead of guessing the new shop_open
+      // value locally.
+      await fetchDashboardData(false);
     } catch (err) {
       console.error(err);
       setError(GENERIC_ERROR);
     } finally {
-      setTogglingShop(false);
+      setTogglingDelivery(false);
     }
   };
 
@@ -161,7 +168,7 @@ export default function Dashboard() {
 
   if (!metrics) return null;
 
-  const { sales = {}, latest_orders = [], product_alerts = [], top_products = [], shop_open } = metrics;
+  const { sales = {}, latest_orders = [], product_alerts = [], top_products = [], shop_open, delivery_available } = metrics;
 
   return (
     <div className="dashboard-container">
@@ -173,17 +180,32 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="shop-status-card">
-          <span className="status-label">Shop Status</span>
-          <button
-            className={`status-toggle ${shop_open ? 'open' : 'closed'}`}
-            onClick={handleToggleShopStatus}
-            disabled={togglingShop}
-            aria-label={shop_open ? 'Shop is open. Click to close.' : 'Shop is closed. Click to open.'}
-          >
-            <span className="status-dot" aria-hidden="true" />
-            {togglingShop ? 'Updating...' : shop_open ? 'Open' : 'Closed'}
-          </button>
+        <div className="shop-status-group">
+          <div className="shop-status-card">
+            <span className="status-label">Delivery Available</span>
+            <button
+              className={`status-toggle ${delivery_available ? 'open' : 'closed'}`}
+              onClick={handleToggleDelivery}
+              disabled={togglingDelivery}
+              aria-label={delivery_available ? 'Delivery is available. Click to turn off.' : 'Delivery is off. Click to turn on.'}
+            >
+              <span className="status-dot" aria-hidden="true" />
+              {togglingDelivery ? 'Updating...' : delivery_available ? 'Available' : 'Off'}
+            </button>
+          </div>
+
+          <div className="shop-status-card">
+            <span className="status-label">Shop Status</span>
+            <span
+              className={`status-toggle status-toggle-readonly ${shop_open ? 'open' : 'closed'}`}
+              aria-label={shop_open ? 'Shop is open (automatic).' : 'Shop is closed (automatic).'}
+              title="Auto-set from Delivery Available + whether any shop is open"
+            >
+              <span className="status-dot" aria-hidden="true" />
+              {shop_open ? 'Open' : 'Closed'}
+              <span className="status-auto-tag">Auto</span>
+            </span>
+          </div>
         </div>
       </header>
 

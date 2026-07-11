@@ -236,7 +236,7 @@ const getDashboard = async (req, res) => {
     LIMIT 5
   `);
 
-  const [settingsRow] = await queryRows('SELECT shop_open FROM settings LIMIT 1');
+  const [settingsRow] = await queryRows('SELECT shop_open, delivery_available FROM settings LIMIT 1');
 
   res.status(200).json({
     data: {
@@ -252,6 +252,7 @@ const getDashboard = async (req, res) => {
         pendingPaymentTotal: metricsRow.pending_payment_total || metricsRow.pendingPaymentTotal || 0
       },
       shop_open: settingsRow ? !!settingsRow.shop_open : true,
+      delivery_available: settingsRow ? !!settingsRow.delivery_available : true,
       latest_orders: latestOrders,
       product_alerts: unavailableProducts,
       top_products: topProducts
