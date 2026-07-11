@@ -847,11 +847,16 @@ Call from:
 
 **Steps:**
 
-- [ ] 10.1 Persist `rider` in auth store; setSession(token, user, shop, rider).
-- [ ] 10.2 Branch navigator (section 9.1).
-- [ ] 10.3 `riderApi.js` thin client.
-- [ ] 10.4 Empty dashboard with online toggle wired to API.
-- [ ] 10.5 `npx jest` in customer-app for store/nav tests if present; add minimal tests.
+- [x] 10.1 Persist `rider` in auth store; setSession(token, user, shop, rider).
+  NOTE (done): useAuthStore rider + AuthScreen + normalizeSession.
+- [x] 10.2 Branch navigator (section 9.1).
+  NOTE (done): RootNavigator shop → rider → customer.
+- [x] 10.3 `riderApi.js` thin client.
+  NOTE (done): full offer/assignment client stubs.
+- [x] 10.4 Empty dashboard with online toggle wired to API.
+  NOTE (done): RiderDashboardScreen + history tab shell.
+- [x] 10.5 `npx jest` in customer-app for store/nav tests if present; add minimal tests.
+  NOTE (done): customer-app 15 suites / 116 passed.
 
 ---
 

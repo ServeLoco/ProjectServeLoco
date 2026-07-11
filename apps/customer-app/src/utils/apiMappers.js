@@ -317,6 +317,19 @@ function normalizeProfile(user = {}) {
   };
 }
 
+function normalizeRider(rider) {
+  if (!rider || typeof rider !== 'object') return null;
+  return {
+    id: rider.id,
+    displayName: pickFirst(rider.displayName, rider.display_name, null),
+    display_name: pickFirst(rider.displayName, rider.display_name, null),
+    isOnline: asBoolean(pickFirst(rider.isOnline, rider.is_online), false),
+    is_online: asBoolean(pickFirst(rider.isOnline, rider.is_online), false),
+    active: asBoolean(rider.active, true),
+    phone: rider.phone || null,
+  };
+}
+
 function normalizeSession(payload = {}) {
   const data = payload?.data || payload;
   const user = data.user || data.customer || data.profile || data;
@@ -325,6 +338,7 @@ function normalizeSession(payload = {}) {
     token: pickFirst(data.token, data.jwt, data.accessToken, data.access_token),
     user: normalizeProfile(user),
     shop: data.shop ?? null,
+    rider: normalizeRider(data.rider),
   };
 }
 

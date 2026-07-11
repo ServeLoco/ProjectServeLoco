@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import CustomerNavigator from './CustomerNavigator';
 import ShopOwnerNavigator from './ShopOwnerNavigator';
+import RiderNavigator from './RiderNavigator';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { OfflineBanner } from '../components';
 import { trackScreen, initAnalytics, stopAnalytics } from '../api/analyticsClient';
@@ -43,6 +44,7 @@ export default function RootNavigator() {
   const { isReachable, isDeviceOffline } = useNetworkStatus();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const shop = useAuthStore((s) => s.shop);
+  const rider = useAuthStore((s) => s.rider);
   const showOffline = !isReachable;
   const message = isDeviceOffline
     ? 'You appear to be offline.'
@@ -64,10 +66,13 @@ export default function RootNavigator() {
           if (screen) trackScreen(screen);
         }}
       >
-        {/* Authenticated shop owners land on the shop dashboard instead of the
-            customer home. Unauthenticated flow (login screens) still runs inside
-            CustomerNavigator, so we only branch when authenticated + shop. */}
-        {isAuthenticated && shop ? <ShopOwnerNavigator /> : <CustomerNavigator />}
+        {/* Role shells (D2: shop and rider are mutually exclusive).
+            Unauthenticated login still runs inside CustomerNavigator. */}
+        {isAuthenticated && shop
+          ? <ShopOwnerNavigator />
+          : isAuthenticated && rider
+            ? <RiderNavigator />
+            : <CustomerNavigator />}
       </NavigationContainer>
     </>
   );

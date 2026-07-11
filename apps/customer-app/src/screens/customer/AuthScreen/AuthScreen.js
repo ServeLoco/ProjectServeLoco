@@ -163,8 +163,8 @@ export default function AuthScreen() {
     [stepFade, stepSlide]
   );
 
-  const handleSuccess = useCallback((token, user, shop = null) => {
-    setSession(token, user, shop);
+  const handleSuccess = useCallback((token, user, shop = null, rider = null) => {
+    setSession(token, user, shop, rider);
     setTimeout(() => {
       requestNotificationPermission().catch(() => {});
     }, 800);
@@ -290,7 +290,7 @@ export default function AuthScreen() {
       try {
         const session = await authApi.firebaseVerify(payload);
         if (!session.token) throw new Error('Response did not include a session token');
-        handleSuccess(session.token, session.user, session.shop);
+        handleSuccess(session.token, session.user, session.shop, session.rider);
       } catch (backendErr) {
         // If backend says name is required (new user without name),
         // show the name step.
@@ -347,7 +347,7 @@ export default function AuthScreen() {
       });
       if (!session.token) throw new Error('Response did not include a session token');
       setIsLoading(false);
-      handleSuccess(session.token, session.user, session.shop);
+      handleSuccess(session.token, session.user, session.shop, session.rider);
     } catch (err) {
       setIsLoading(false);
       setErrorMsg(err.message || 'Failed to create account');

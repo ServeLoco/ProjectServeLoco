@@ -20,6 +20,7 @@ export {
 
 export { authApi } from './authApi';
 export { shopApi } from './shopApi';
+export { riderApi } from './riderApi';
 export { productsApi } from './productsApi';
 export { imagesApi } from './imagesApi';
 export { cartApi } from './cartApi';
