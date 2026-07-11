@@ -1,6 +1,6 @@
 const { pool } = require('../db/mysql');
+const { maybeAutoCancelOrderWhenAllShopsRejected, syncGlobalShopOpenState } = require('../utils/shops');
 const { emitToAdmins, emitToAllCustomers } = require('../realtime/socket');
-const { syncGlobalShopOpenState } = require('../utils/shops');
 
 const shopShape = (s) => ({
   id: s.id,
@@ -307,6 +307,11 @@ const rejectMyOrder = async (req, res) => {
     relatedUrl: `/orders?id=${orderId}`,
     relatedId: String(orderId),
   });
+
+  // When every shop on the order has rejected (single- or multi-shop), cancel
+  // the order automatically so the admin orders page reflects it without a
+  // manual status change.
+  await maybeAutoCancelOrderWhenAllShopsRejected(orderId);
 
   res.status(200).json({ message: 'Order rejected' });
 };

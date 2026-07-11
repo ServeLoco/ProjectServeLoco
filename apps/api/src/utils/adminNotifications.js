@@ -5,6 +5,7 @@ const TYPES = {
   NEW_ORDER: 'new_order',
   NEW_CUSTOMER: 'new_customer',
   SHOP_REJECTED: 'shop_rejected',
+  ORDER_AUTO_CANCELLED: 'order_auto_cancelled',
 };
 
 /**

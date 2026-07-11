@@ -1,5 +1,9 @@
 const { pool } = require('../db/mysql');
 
+const getCancelledPaymentStatus = (paymentMethod) => (
+  paymentMethod === 'UPI' ? 'Refunded' : 'Failed'
+);
+
 // Returns the ACTIVE shop owned by this user, or null. One shop per user
 // by design (v1); if data ever contains more, the lowest id wins.
 const getShopForUser = async (userId) => {
@@ -131,9 +135,113 @@ const syncGlobalShopOpenState = async () => {
   }
 };
 
+// When every shop with items on an order has rejected them, cancel the order
+// automatically (same side effects as an admin cancel) and notify the admin.
+// Fire-and-forget from shop reject — must never throw back to the shop owner.
+const maybeAutoCancelOrderWhenAllShopsRejected = async (orderId) => {
+  try {
+    const [orderRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+    if (orderRows.length === 0) return null;
+
+    const order = orderRows[0];
+    const currentStatus = order.status;
+    if (currentStatus !== 'Accepted' && currentStatus !== 'Preparing') return null;
+
+    const [items] = await pool.query(
+      'SELECT shop_id, shop_rejected_at FROM order_items WHERE order_id = ? AND shop_id IS NOT NULL',
+      [orderId]
+    );
+    if (items.length === 0) return null;
+
+    const byShop = new Map();
+    for (const it of items) {
+      if (!byShop.has(it.shop_id)) byShop.set(it.shop_id, []);
+      byShop.get(it.shop_id).push(it);
+    }
+    for (const shopItems of byShop.values()) {
+      if (!shopItems.every(it => it.shop_rejected_at !== null)) return null;
+    }
+
+    const cancelledPaymentStatus = getCancelledPaymentStatus(order.payment_method);
+    const cancelReason = 'Auto-cancelled: all shops rejected the order';
+
+    const connection = await pool.getConnection();
+    let cancelled = false;
+    try {
+      await connection.beginTransaction();
+      const [cancelResult] = await connection.query(
+        'UPDATE orders SET status = ?, payment_status = ?, cancel_reason = ? WHERE id = ? AND status = ?',
+        ['Cancelled', cancelledPaymentStatus, cancelReason, orderId, currentStatus]
+      );
+      if (cancelResult.affectedRows === 0) {
+        await connection.rollback();
+        return null;
+      }
+      if (order.coupon_id) {
+        await connection.query(
+          "UPDATE coupon_redemptions SET status = 'cancelled' WHERE order_id = ? AND coupon_id = ?",
+          [orderId, order.coupon_id]
+        );
+      }
+      await connection.commit();
+      cancelled = true;
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+
+    if (!cancelled) return null;
+
+    const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+    const updatedOrder = updatedRows[0];
+
+    const [shopRows] = await pool.query(
+      `SELECT DISTINCT s.name
+         FROM order_items oi
+         JOIN shops s ON s.id = oi.shop_id
+        WHERE oi.order_id = ?`,
+      [orderId]
+    );
+    const shopNames = shopRows.map(row => row.name).filter(Boolean).join(', ');
+
+    const adminInbox = require('./adminNotifications');
+    await adminInbox.createAdminNotification({
+      type: adminInbox.TYPES.ORDER_AUTO_CANCELLED,
+      title: `Order #${updatedOrder.order_number || orderId} auto-cancelled`,
+      body: shopNames
+        ? `All shops (${shopNames}) rejected this order. It was cancelled automatically.`
+        : 'All shops rejected this order. It was cancelled automatically.',
+      relatedUrl: `/orders?id=${orderId}`,
+      relatedId: String(orderId),
+    });
+
+    const notificationService = require('./notificationService');
+    const realtimeEvents = require('../realtime/orderEvents');
+
+    notificationService.createOrderNotification({
+      userId: updatedOrder.customer_id,
+      order: updatedOrder,
+      event: 'status_cancelled',
+    })
+      .then(result => realtimeEvents.emitNotificationCreated(updatedOrder.customer_id, result))
+      .catch(err => console.error('[notify]', err.message));
+
+    notifyShopsOrderCancelled(updatedOrder);
+    realtimeEvents.emitOrderStatusUpdated(updatedOrder);
+
+    return updatedOrder;
+  } catch (e) {
+    console.error('[shops] maybeAutoCancelOrderWhenAllShopsRejected failed for order', orderId, e.message);
+    return null;
+  }
+};
+
 module.exports = {
   getShopForUser,
   notifyShopsForOrder,
   syncGlobalShopOpenState,
   notifyShopsOrderCancelled,
+  maybeAutoCancelOrderWhenAllShopsRejected,
 };
