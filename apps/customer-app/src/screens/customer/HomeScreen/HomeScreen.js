@@ -106,6 +106,9 @@ export default function HomeScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const hotBadgePulse = useRef(new Animated.Value(1)).current;
   const unreadRefreshTimer = useRef(null);
+  // Skip the first focus event — the mount effect below already loads the
+  // dashboard once. Without this, every screen would double-fetch on mount.
+  const hasFocusedOnceRef = useRef(false);
 
   // Staggered entry for cards
   const staggerCatAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
@@ -190,6 +193,19 @@ export default function HomeScreen() {
     };
   }, [loadHomeData]);
 
+  // Quiet background re-fetch of just the dashboard sections — no loading
+  // skeleton, no re-triggered entry animation. Used to catch a shop closing
+  // (shop_is_open flipping) while Home stays mounted, without the jarring
+  // full reload loadHomeData(false) would cause on every focus.
+  const refreshDashboardSilently = React.useCallback(() => {
+    dashboardApi.getDashboard({ storeType: currentApiStoreType, include_closed_shops: 1 })
+      .then(response => {
+        const sectionsData = response?.data?.sections;
+        if (sectionsData) setDashboardSections(sectionsData);
+      })
+      .catch(() => {});
+  }, [currentApiStoreType]);
+
   useFocusEffect(
     React.useCallback(() => {
       let isActive = true;
@@ -200,8 +216,20 @@ export default function HomeScreen() {
         .catch(() => {});
       // Returning to this screen — close any active search and release focus
       setSearchDismissSignal(prev => prev + 1);
+
+      // Silently re-fetch the dashboard on refocus (e.g. back from Cart /
+      // Product Detail) so a shop that closed while this screen was
+      // backgrounded shows as closed immediately, instead of only after a
+      // manual pull-to-refresh or app restart. Skip the very first focus —
+      // the mount effect already loaded it once.
+      if (hasFocusedOnceRef.current) {
+        refreshDashboardSilently();
+      } else {
+        hasFocusedOnceRef.current = true;
+      }
+
       return () => { isActive = false; };
-    }, [])
+    }, [refreshDashboardSilently])
   );
 
   // Exit-app confirmation on hardware/gesture back. Only registered while
@@ -250,6 +278,10 @@ export default function HomeScreen() {
     const unsubscribeLifecycle = subscribeRealtimeLifecycle(({ eventName }) => {
       if (eventName === 'reconnected' || eventName === 'foreground') {
         queueUnreadRefresh();
+        // App was backgrounded (or the socket dropped) — a shop may have
+        // opened/closed in the meantime. Refresh dashboard sections so
+        // shop_is_open is current before the user can tap Buy again.
+        refreshDashboardSilently();
       }
     });
 
@@ -260,7 +292,7 @@ export default function HomeScreen() {
         clearTimeout(unreadRefreshTimer.current);
       }
     };
-  }, [queueUnreadRefresh]);
+  }, [queueUnreadRefresh, refreshDashboardSilently]);
 
   useEffect(() => {
     // Pre-warm expo-image's disk cache for every image that will render on the
