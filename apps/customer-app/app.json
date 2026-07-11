@@ -37,6 +37,7 @@
       "bundleIdentifier": "com.yashsiwach.villkro"
     },
     "android": {
+      "softwareKeyboardLayoutMode": "resize",
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "ACCESS_FINE_LOCATION",
