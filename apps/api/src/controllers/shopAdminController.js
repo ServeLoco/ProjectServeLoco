@@ -74,6 +74,17 @@ const createShop = async (req, res) => {
     if (existing.length > 0) {
       return res.status(409).json({ code: 'OWNER_TAKEN', message: 'That user already owns an active shop.' });
     }
+    // D2: one phone = shop owner OR rider, not both
+    const [riderRows] = await pool.query(
+      'SELECT id FROM riders WHERE user_id = ? AND active = 1 LIMIT 1',
+      [ownerUserId]
+    );
+    if (riderRows.length > 0) {
+      return res.status(409).json({
+        code: 'ROLE_CONFLICT',
+        message: 'That user is a rider. One phone can be shop owner OR rider, not both.',
+      });
+    }
   }
 
   const [result] = await pool.query(
@@ -125,6 +136,16 @@ const updateShop = async (req, res) => {
       );
       if (taken.length > 0) {
         return res.status(409).json({ code: 'OWNER_TAKEN', message: 'That user already owns an active shop.' });
+      }
+      const [riderRows] = await pool.query(
+        'SELECT id FROM riders WHERE user_id = ? AND active = 1 LIMIT 1',
+        [ownerUserId]
+      );
+      if (riderRows.length > 0) {
+        return res.status(409).json({
+          code: 'ROLE_CONFLICT',
+          message: 'That user is a rider. One phone can be shop owner OR rider, not both.',
+        });
       }
       sets.push('owner_user_id = ?');
       values.push(ownerUserId);

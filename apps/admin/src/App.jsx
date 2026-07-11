@@ -13,6 +13,7 @@ import Combos from './pages/Combos';
 import Categories from './pages/Categories';
 import StoreModes from './pages/StoreModes';
 import Shops from './pages/Shops';
+import Riders from './pages/Riders';
 import Offers from './pages/Offers';
 import Coupons from './pages/Coupons';
 import MobileDashboard from './pages/MobileDashboard';
@@ -77,6 +78,7 @@ function App() {
                   <Route path="/categories" element={<Categories />} />
                   <Route path="/store-modes" element={<StoreModes />} />
                   <Route path="/shops" element={<Shops />} />
+                  <Route path="/riders" element={<Riders />} />
                   <Route path="/offers" element={<Offers />} />
                   <Route path="/coupons" element={<Coupons />} />
                   <Route path="/mobile-dashboard" element={<MobileDashboard />} />

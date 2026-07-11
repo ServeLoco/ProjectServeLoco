@@ -92,6 +92,12 @@ export const ShopsApi = {
   update: (id, data) => apiClient(`/admin/shops/${id}`, { method: 'PATCH', body: data }),
 };
 
+export const RidersApi = {
+  list: () => apiClient('/admin/riders', { method: 'GET' }),
+  create: (data) => apiClient('/admin/riders', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/riders/${id}`, { method: 'PATCH', body: data }),
+};
+
 export const OffersApi = {
   list: (params) => apiClient(withQuery('/admin/offers', params), { method: 'GET' }),
   create: (data) => apiClient('/admin/offers', { method: 'POST', body: data }),

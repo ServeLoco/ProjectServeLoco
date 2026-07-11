@@ -254,7 +254,9 @@ export default function Settings() {
           <div className="toggle-switch-wrapper">
             <div style={{ flex: 1 }}>
               <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Delivery Available</strong>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Toggle delivery services on or off.</span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Auto-managed by rider online status (ON when any rider is online, OFF when none). Manual toggle still works as an override until the next rider event.
+              </span>
             </div>
             <label className="toggle-switch">
               <input type="checkbox" name="delivery_available" checked={settings.delivery_available} onChange={handleChange} />

@@ -1,3 +1,52 @@
+/* ── Drawer (create shop / rider) ─────────────────────────── */
+.shop-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 80;
+  display: flex;
+  justify-content: flex-end;
+}
+.shop-drawer {
+  width: min(420px, 100%);
+  background: var(--surface-color);
+  height: 100%;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-lg, 0 10px 40px rgba(0,0,0,0.2));
+  overflow-y: auto;
+}
+.shop-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.shop-drawer-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.shop-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.form-input {
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-color);
+  background: var(--input-bg, transparent);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
 /* ── Shops container ───────────────────────────────────────── */
 .shops-container {
   padding: 0;

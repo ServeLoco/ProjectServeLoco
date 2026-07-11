@@ -399,7 +399,14 @@ const getAdminOrders = async (req, res) => {
   const { status, paymentStatus, payment_status, paymentMethod, payment_method, search, dateFrom, from, dateTo, to, page, limit } = req.query;
   const pagination = validatePagination(page, limit);
 
-  let query = 'SELECT id, order_number, customer_id, customer_name, phone, whatsapp_number, address, latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total, delivery_type, payment_method, payment_status, status, note, cancel_reason, created_at, updated_at FROM orders WHERE 1=1';
+  let query = `SELECT o.id, o.order_number, o.customer_id, o.customer_name, o.phone, o.whatsapp_number, o.address,
+    o.latitude, o.longitude, o.map_url, o.subtotal, o.delivery_charge, o.night_charge, o.total, o.delivery_type,
+    o.payment_method, o.payment_status, o.status, o.note, o.cancel_reason, o.created_at, o.updated_at,
+    o.rider_id, o.rider_assigned_at, o.rider_picked_up_at, o.rider_assignment_status,
+    r.display_name AS rider_name
+    FROM orders o
+    LEFT JOIN riders r ON r.id = o.rider_id
+    WHERE 1=1`;
   const params = [];
 
   const finalStatus = status;
@@ -409,50 +416,59 @@ const getAdminOrders = async (req, res) => {
   const finalDateTo = dateTo || to;
 
   if (finalStatus) {
-    query += ' AND status = ?';
+    query += ' AND o.status = ?';
     params.push(finalStatus);
   }
 
   if (finalPaymentStatus) {
-    query += ' AND payment_status = ?';
+    query += ' AND o.payment_status = ?';
     params.push(finalPaymentStatus);
   }
 
   if (finalPaymentMethod) {
-    query += ' AND payment_method = ?';
+    query += ' AND o.payment_method = ?';
     params.push(finalPaymentMethod);
   }
 
   if (search) {
-    query += ' AND (order_number LIKE ? OR customer_name LIKE ? OR phone LIKE ?)';
+    query += ' AND (o.order_number LIKE ? OR o.customer_name LIKE ? OR o.phone LIKE ?)';
     const searchWildcard = `%${search}%`;
     params.push(searchWildcard, searchWildcard, searchWildcard);
   }
 
   if (finalDateFrom) {
-    query += ' AND DATE(created_at) >= ?';
+    query += ' AND DATE(o.created_at) >= ?';
     params.push(finalDateFrom);
   }
 
   if (finalDateTo) {
-    query += ' AND DATE(created_at) <= ?';
+    query += ' AND DATE(o.created_at) <= ?';
     params.push(finalDateTo);
   }
 
   // Count total for pagination
-  const countQueryStr = query.replace('SELECT id, order_number, customer_id, customer_name, phone, whatsapp_number, address, latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total, delivery_type, payment_method, payment_status, status, note, cancel_reason, created_at, updated_at FROM orders', 'SELECT COUNT(*) as total FROM orders');
+  const countQueryStr = query.replace(
+    /SELECT[\s\S]+?FROM orders o/,
+    'SELECT COUNT(*) as total FROM orders o'
+  );
   const [countRows] = await pool.query(countQueryStr, params);
   const total = countRows[0].total;
 
   // Sorting and Pagination
-  query += ` ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`;
+  query += ` ORDER BY o.created_at DESC, o.id DESC LIMIT ? OFFSET ?`;
   const offset = (pagination.page - 1) * pagination.limit;
   params.push(pagination.limit, offset);
 
   const [rows] = await pool.query(query, params);
 
   res.status(200).json({
-    data: rows,
+    data: rows.map((row) => ({
+      ...row,
+      riderId: row.rider_id,
+      riderName: row.rider_name,
+      riderAssignmentStatus: row.rider_assignment_status,
+      rider_assignment_status: row.rider_assignment_status,
+    })),
     pagination: {
       total,
       page: pagination.page,
@@ -465,12 +481,25 @@ const getAdminOrders = async (req, res) => {
 const getAdminOrderById = async (req, res) => {
   const { id } = req.params;
 
-  const [orderRows] = await pool.query('SELECT id, order_number, customer_id, customer_name, phone, whatsapp_number, address, latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total, delivery_type, payment_method, payment_status, status, note, cancel_reason, created_at, updated_at FROM orders WHERE id = ?', [id]);
+  const [orderRows] = await pool.query(
+    `SELECT o.id, o.order_number, o.customer_id, o.customer_name, o.phone, o.whatsapp_number, o.address,
+      o.latitude, o.longitude, o.map_url, o.subtotal, o.delivery_charge, o.night_charge, o.total, o.delivery_type,
+      o.payment_method, o.payment_status, o.status, o.note, o.cancel_reason, o.created_at, o.updated_at,
+      o.rider_id, o.rider_assigned_at, o.rider_picked_up_at, o.rider_assignment_status,
+      r.display_name AS rider_name
+     FROM orders o
+     LEFT JOIN riders r ON r.id = o.rider_id
+     WHERE o.id = ?`,
+    [id]
+  );
   if (orderRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
 
   const order = orderRows[0];
+  order.riderId = order.rider_id;
+  order.riderName = order.rider_name;
+  order.riderAssignmentStatus = order.rider_assignment_status;
   const [itemsRows] = await pool.query('SELECT oi.*, s.name AS shop_name FROM order_items oi LEFT JOIN shops s ON s.id = oi.shop_id WHERE oi.order_id = ?', [id]);
 
   order.items = itemsRows;

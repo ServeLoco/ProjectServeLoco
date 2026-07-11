@@ -1,6 +1,6 @@
 # ProjectServeLoco — Rider Mode & Order Assignment
 
-Spec date: 2026-07-11 · Updated: 2026-07-12 · Branch: `feat/riderMode` · Status: **PLAN — TASK 1–7 done; TASK 8+ OPEN**  
+Spec date: 2026-07-11 · Updated: 2026-07-12 · Branch: `feat/riderMode` · Status: **PLAN — TASK 1–8 done; TASK 9+ OPEN**  
 Instruction spec for an implementing AI. Follow it literally.
 
 This plan turns the rider workflow diagram + rules into buildable work. It maps **what already exists**, **what must be built**, and **task-by-task steps** with files, acceptance criteria, and test commands.
@@ -826,12 +826,18 @@ Call from:
 
 **Steps:**
 
-- [ ] 9.1 Admin API list/create/patch riders (link existing user by phone). Create **fails** if user is already a shop owner (D2).
-- [ ] 9.2 When setting `shops.owner_user_id`, **fail** if that user is already a rider (D2).
-- [ ] 9.3 Admin **Riders** page (sidebar entry): list, create by phone, activate/deactivate, show online state. **No** self-signup. **No** manual order→rider assign control.
-- [ ] 9.4 Orders list/detail show rider name + assignment status + cancel reason (read-only).
-- [ ] 9.5 Settings copy: Delivery Available auto-follows rider online count.
-- [ ] 9.6 Lint admin; smoke-test builds if CI requires.
+- [x] 9.1 Admin API list/create/patch riders (link existing user by phone). Create **fails** if user is already a shop owner (D2).
+  NOTE (done): adminRiderController + routes; ROLE_CONFLICT on shop owner.
+- [x] 9.2 When setting `shops.owner_user_id`, **fail** if that user is already a rider (D2).
+  NOTE (done): createShop/updateShop rider check.
+- [x] 9.3 Admin **Riders** page (sidebar entry): list, create by phone, activate/deactivate, show online state. **No** self-signup. **No** manual order→rider assign control.
+  NOTE (done): Riders.jsx + sidebar + App route.
+- [x] 9.4 Orders list/detail show rider name + assignment status + cancel reason (read-only).
+  NOTE (done): admin orders SELECT joins riders for rider_name + assignment fields.
+- [x] 9.5 Settings copy: Delivery Available auto-follows rider online count.
+  NOTE (done): Settings.jsx helper text.
+- [x] 9.6 Lint admin; smoke-test builds if CI requires.
+  NOTE (done): admin lint clean; API 59 suites / 602 passed.
 
 ---
 

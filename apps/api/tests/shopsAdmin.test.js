@@ -54,6 +54,7 @@ describe('Admin Shop CRUD — /api/admin/shops', () => {
     pool.query
       .mockResolvedValueOnce([[{ id: 7 }]])           // users lookup (phone found)
       .mockResolvedValueOnce([[]])                     // OWNER_TAKEN check (no existing shop)
+      .mockResolvedValueOnce([[]])                     // ROLE_CONFLICT rider check (not a rider)
       .mockResolvedValueOnce([{ insertId: 1 }])        // INSERT shops
       .mockResolvedValueOnce([[{                       // fetchShopRow re-query
         id: 1, name: 'Burger Point', is_open: 1, active: 1,
