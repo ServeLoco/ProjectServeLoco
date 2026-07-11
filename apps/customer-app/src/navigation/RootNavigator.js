@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import CustomerNavigator from './CustomerNavigator';
 import ShopOwnerNavigator from './ShopOwnerNavigator';

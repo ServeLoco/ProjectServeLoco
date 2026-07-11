@@ -1,4 +1,3 @@
-import React from 'react';
 import './ShopClosedBanner.css';
 
 const AlertIcon = () => (

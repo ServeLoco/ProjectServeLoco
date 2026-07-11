@@ -177,7 +177,9 @@ export const useCartStore = create(
       // a coupon once permanently blocks auto-apply on this device until the
       // cart happens to be cleared.
       partialize: (state) => {
-        const { couponAutoApplyDisabled, ...rest } = state;
+        // Omit session-only flag from persistence (do not use unused destructure).
+        const rest = { ...state };
+        delete rest.couponAutoApplyDisabled;
         return rest;
       },
       // Strip stale/corrupt items from older app versions so legacy entries

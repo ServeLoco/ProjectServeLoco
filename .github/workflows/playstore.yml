@@ -37,12 +37,15 @@ jobs:
       run:
         working-directory: ${{ env.APP_DIR }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      # No cache: 'npm' on self-hosted — GitHub Actions cache re-downloads multi-GB
+      # ~/.npm from the cloud every run (~2.5GB, often 10–20+ min). The runner already
+      # keeps a local ~/.npm between jobs, so npm ci is fast without remote cache.
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
-          cache: "npm"
-          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
+          # Self-hosted: never download GitHub remote npm cache (was multi-GB / 10–20+ min).
+          package-manager-cache: false
       - run: npm ci
       - run: npm run lint
       - run: npm test -- --ci
@@ -58,7 +61,7 @@ jobs:
       bump: ${{ steps.decide.outputs.bump }}
       message: ${{ steps.decide.outputs.message }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 50
 
@@ -151,12 +154,13 @@ jobs:
     runs-on: [self-hosted, linux, x64, villkro-android]
     needs: detect-bump
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      # Self-hosted: skip GitHub remote npm cache (see Lint & Test job comment).
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
-          cache: "npm"
-          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
+          # Self-hosted: never download GitHub remote npm cache (was multi-GB / 10–20+ min).
+          package-manager-cache: false
 
       - name: Setup build directory in Documents (no /tmp usage)
         run: |

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { couponsApi } from '../../api/couponsApi';
 import { formatPrice } from '../../utils/formatters';
 import './CouponSheet.css';

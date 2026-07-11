@@ -27,14 +27,7 @@ export function useNetworkStatus({
   healthPath = '/ping',
   failureThreshold = 2,
 } = {}) {
-  // Best-effort: try the navigator.onLine hint when present. It works on web
-  // and is a partial signal on React Native. We treat it as a hint, not truth.
-  const initialOnline =
-    typeof globalThis !== 'undefined' &&
-    typeof globalThis.navigator !== 'undefined' &&
-    typeof globalThis.navigator.onLine === 'boolean'
-      ? globalThis.navigator.onLine
-      : true;
+  // Best-effort: navigator.onLine is a partial signal on RN; start optimistic.
   const [isReachable, setIsReachable] = useState(true);
   const [lastCheckedAt, setLastCheckedAt] = useState(null);
   const [isDeviceOffline, setIsDeviceOffline] = useState(false);

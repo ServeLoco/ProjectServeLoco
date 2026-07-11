@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { signInWithPhoneNumber, RecaptchaVerifier } from 'firebase/auth';
 import { auth } from '../../config/firebase';
@@ -156,7 +156,7 @@ export default function AuthScreen() {
       console.error('[firebase] sendOtp error:', err);
       // Reset recaptcha on error so it can be re-rendered
       if (recaptchaRef.current) {
-        try { recaptchaRef.current.clear(); } catch (_) { /* best-effort */ }
+        try { recaptchaRef.current.clear(); } catch { /* best-effort */ }
         recaptchaRef.current = null;
       }
       if (err.code === 'auth/invalid-phone-number') {
@@ -284,7 +284,7 @@ export default function AuthScreen() {
 
     // Reset recaptcha verifier for resend
     if (recaptchaRef.current) {
-      try { recaptchaRef.current.clear(); } catch (_) { /* best-effort */ }
+      try { recaptchaRef.current.clear(); } catch { /* best-effort */ }
       recaptchaRef.current = null;
     }
 
@@ -300,7 +300,7 @@ export default function AuthScreen() {
       otpRefs.current[0]?.focus();
     } catch (err) {
       if (recaptchaRef.current) {
-        try { recaptchaRef.current.clear(); } catch (_) { /* best-effort */ }
+        try { recaptchaRef.current.clear(); } catch { /* best-effort */ }
         recaptchaRef.current = null;
       }
       const cleanMsg = err.message?.includes(']') ? err.message.split('] ')[1] : err.message;
