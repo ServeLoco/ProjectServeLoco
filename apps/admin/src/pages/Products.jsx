@@ -425,6 +425,7 @@ const normalizeVariants = (raw) => {
 
 // Separate Component for the Drawer — unchanged from original
 function ProductFormDrawer({ product, categories, shops, currentMode, onClose, onSave }) {
+  const { modes } = useStoreModes();
   const isEdit = !!product;
   const initialMode = product?.category_type || categories.find(c => String(c.id) === String(product?.category_id))?.type || currentMode || 'packed';
   const [productMode, setProductMode] = useState(initialMode);
@@ -930,8 +931,7 @@ function ProductFormDrawer({ product, categories, shops, currentMode, onClose, o
               <div className="form-group">
                 <label className="form-label">Product Mode</label>
                 <select required name="product_mode" className="form-select" value={productMode} onChange={handleModeChange}>
-                  <option value="packed">Packed Items</option>
-                  <option value="fast_food">Fast Food</option>
+                  {modes.map(m => <option key={m.slug} value={m.slug}>{m.label}</option>)}
                 </select>
               </div>
               <div className="form-group">
@@ -945,9 +945,9 @@ function ProductFormDrawer({ product, categories, shops, currentMode, onClose, o
                   aria-invalid={Boolean(fieldErrors.category_id)}
                   aria-errormessage={fieldErrors.category_id ? 'category_id-error' : undefined}
                 >
-                  <option value="">Select {productMode === 'fast_food' ? 'Fast Food' : 'Packed Items'} Category</option>
+                  <option value="">Select {modes.find(m => m.slug === productMode)?.label || productMode} Category</option>
                   {categories.filter(c => c.type === productMode).map(c => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.type === 'fast_food' ? 'Fast Food' : 'Packed Items'})</option>
+                    <option key={c.id} value={c.id}>{c.name} ({modes.find(m => m.slug === c.type)?.label || c.type})</option>
                   ))}
                 </select>
                 {fieldErrors.category_id && (

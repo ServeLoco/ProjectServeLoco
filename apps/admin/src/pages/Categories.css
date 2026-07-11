@@ -67,93 +67,172 @@
   outline: none;
 }
 
-/* ── Table ──────────────────────────────────────────────── */
-.categories-table-wrapper {
-  background: var(--surface-color);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-color);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+/* ── Category card grid ─────────────────────────────────── */
+.categories-grid-wrapper {
   margin-bottom: 1.25rem;
 }
 
-.categories-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 600px;
-}
-
-.categories-table th,
-.categories-table td {
-  padding: 1rem 1.25rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color);
-  vertical-align: middle;
-}
-
-.categories-table th {
-  font-size: 0.72rem;
-  font-weight: 800;
+.categories-state {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  background: var(--table-header-bg);
-  white-space: nowrap;
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  font-weight: 600;
 }
 
-.categories-table tbody tr {
-  transition: background-color var(--transition-fast);
-}
-
-.categories-table tbody tr:hover {
-  background-color: var(--surface-hover);
-}
-
-.categories-table tbody tr:nth-child(even) {
-  background: rgba(148, 163, 184, 0.04);
-}
-
-.categories-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-/* ── Category item ─────────────────────────────────────── */
-.category-info {
+.categories-state-empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 1rem;
 }
 
-.category-thumbnail {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
-  object-fit: contain;
-  background: var(--bg-color);
-  border: 1px solid var(--border-color);
-  flex-shrink: 0;
+.categories-state-empty p {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
-.category-details {
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.category-card {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
-.category-name {
-  font-weight: 600;
+.category-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+
+.category-card--active {
+  border-left: 4px solid var(--primary-color);
+}
+
+.category-card--hidden {
+  opacity: 0.78;
+  border-left: 4px solid var(--border-strong);
+}
+
+.category-card-media {
+  position: relative;
+  height: 168px;
+  background: linear-gradient(180deg, var(--surface-soft) 0%, var(--bg-color) 100%);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.category-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.85rem;
+}
+
+.category-card-status {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.category-card-status.is-active {
+  background: var(--success-bg);
+  color: var(--success-text);
+  border-color: var(--success-border);
+}
+
+.category-card-status.is-hidden {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-color: var(--danger-border);
+}
+
+.category-card-body {
+  padding: 1rem 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.category-card-name {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 800;
   color: var(--text-primary);
-  font-size: 0.95rem;
+  line-height: 1.25;
+  font-family: 'Outfit', 'Inter', sans-serif;
 }
 
-.category-slug {
+.category-card-slug {
+  margin: 0;
   font-size: 0.78rem;
   color: var(--text-muted);
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.category-card-desc {
+  margin: 0.15rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.category-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.category-card-order {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--surface-soft);
+  border: 1px solid var(--border-color);
+}
+
+.category-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--table-header-bg);
 }
 
 /* ── Category type ─────────────────────────────────────── */
@@ -496,19 +575,13 @@
     grid-template-columns: 1fr;
   }
 
-  .categories-table th,
-  .categories-table td {
-    padding: 0.75rem 0.85rem;
-    font-size: 0.82rem;
+  .categories-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.85rem;
   }
 
-  .categories-table th {
-    font-size: 0.65rem;
-  }
-
-  .category-thumbnail {
-    width: 40px;
-    height: 40px;
+  .category-card-media {
+    height: 148px;
   }
 
   .drawer-content {
@@ -554,19 +627,18 @@
 
 /* Small mobile */
 @media (max-width: 480px) {
-  .categories-table th,
-  .categories-table td {
-    padding: 0.65rem 0.7rem;
-    font-size: 0.8rem;
+  .categories-grid {
+    grid-template-columns: 1fr;
   }
 
-  .category-info {
-    gap: 0.6rem;
+  .category-card-footer {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .category-thumbnail {
-    width: 36px;
-    height: 36px;
+  .category-card-footer .action-link {
+    text-align: center;
+    padding: 0.45rem 0;
   }
 
   .btn-table-action {

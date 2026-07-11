@@ -21,13 +21,13 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 9px;
-  background: var(--danger-color, #ef4444);
-  color: #fff;
+  background: var(--danger-color);
+  color: var(--text-on-primary);
   font-size: 0.65rem;
   font-weight: 700;
   line-height: 18px;
   text-align: center;
-  box-shadow: 0 0 0 2px var(--bg-surface, #fff);
+  box-shadow: 0 0 0 2px var(--surface-color);
   pointer-events: none;
 }
 
@@ -38,11 +38,11 @@
   width: 380px;
   max-width: calc(100vw - 1rem);
   max-height: 70vh;
-  background: var(--bg-surface, #fff);
-  color: var(--text-primary, #111);
-  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  background: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-lg);
   z-index: 9999;
   display: flex;
   flex-direction: column;
@@ -60,19 +60,20 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
-  background: var(--bg-surface, #fff);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-strong);
 }
 
 .admin-bell-panel-header h3 {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .admin-bell-panel-count {
   font-size: 0.75rem;
-  color: var(--text-secondary, #555);
+  color: var(--text-secondary);
 }
 
 .admin-bell-panel-body {
@@ -87,7 +88,7 @@
   align-items: center;
   text-align: center;
   padding: 32px 20px;
-  color: var(--text-secondary, #555);
+  color: var(--text-secondary);
 }
 
 .admin-bell-empty-icon {
@@ -99,13 +100,14 @@
 .admin-bell-empty p {
   margin: 0 0 4px;
   font-weight: 600;
-  color: var(--text-primary, #111);
+  color: var(--text-primary);
 }
 
 .admin-bell-empty small {
   font-size: 0.78rem;
   max-width: 280px;
   line-height: 1.4;
+  color: var(--text-muted);
 }
 
 .admin-bell-list {
@@ -117,12 +119,12 @@
 .admin-bell-item {
   display: flex;
   align-items: stretch;
-  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.05));
+  border-bottom: 1px solid var(--border-color);
   transition: background-color 0.1s ease;
 }
 
 .admin-bell-item:hover {
-  background: var(--bg-app, #f8fafc);
+  background: var(--surface-hover);
 }
 
 .admin-bell-item:last-child {
@@ -130,11 +132,11 @@
 }
 
 .admin-bell-item.unread {
-  background: rgba(37, 99, 235, 0.04);
+  background: var(--badge-info-bg);
 }
 
 .admin-bell-item.unread:hover {
-  background: rgba(37, 99, 235, 0.08);
+  background: var(--badge-preparing-bg);
 }
 
 .admin-bell-item-main {
@@ -164,7 +166,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-app, #f1f5f9);
+  background: var(--surface-soft);
   border-radius: 8px;
 }
 
@@ -179,13 +181,13 @@
 .admin-bell-item-title {
   font-weight: 600;
   font-size: 0.85rem;
-  color: var(--text-primary, #111);
+  color: var(--text-primary);
   line-height: 1.3;
 }
 
 .admin-bell-item-text {
   font-size: 0.78rem;
-  color: var(--text-secondary, #555);
+  color: var(--text-secondary);
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -199,7 +201,7 @@
   gap: 8px;
   margin-top: 4px;
   font-size: 0.7rem;
-  color: var(--text-tertiary, #888);
+  color: var(--text-muted);
 }
 
 .admin-bell-item-type {
@@ -209,15 +211,15 @@
   font-size: 0.65rem;
   padding: 2px 6px;
   border-radius: 4px;
-  background: var(--bg-app, #f1f5f9);
-  color: var(--text-secondary, #555);
+  background: var(--surface-soft);
+  color: var(--text-secondary);
 }
 
 .admin-bell-item-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--primary-color, #2563eb);
+  background: var(--info-color);
   flex-shrink: 0;
   margin-top: 8px;
 }
@@ -227,7 +229,7 @@
   border: none;
   font-size: 1.2rem;
   line-height: 1;
-  color: var(--text-tertiary, #999);
+  color: var(--text-muted);
   padding: 0 12px;
   cursor: pointer;
   align-self: stretch;
@@ -236,8 +238,8 @@
 }
 
 .admin-bell-item-dismiss:hover {
-  color: var(--danger-color, #ef4444);
-  background: rgba(239, 68, 68, 0.06);
+  color: var(--danger-color);
+  background: var(--danger-soft);
 }
 
 @media (max-width: 640px) {

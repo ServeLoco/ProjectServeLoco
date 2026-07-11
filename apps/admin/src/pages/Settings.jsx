@@ -191,7 +191,7 @@ export default function Settings() {
         fast_delivery_charge: Number(settings.fast_delivery_charge || 0),
         standard_delivery_minutes: Number.parseInt(settings.standard_delivery_minutes, 10) || 60,
         fast_delivery_minutes: Number.parseInt(settings.fast_delivery_minutes, 10) || 30,
-        upi_qr_image_id: settings.upi_qr_image_id,
+        upi_qr_image_id: settings.upi_qr_image_id || null,
         minimum_version: minVer || null,
         current_version: curVer || null,
       };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CategoriesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
@@ -53,6 +53,11 @@ export default function Categories() {
     setEditingCategory(null);
   };
 
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)),
+    [categories],
+  );
+
   const toggleActive = async (category) => {
     try {
       // Send the full category payload — backend uses PUT semantics, so omitting
@@ -86,54 +91,64 @@ export default function Categories() {
 
       {error && <div className="error-container" style={{ marginBottom: '2rem' }}>{error}</div>}
 
-      <section className="categories-table-wrapper">
-        <table className="categories-table">
-          <thead>
-            <tr>
-              <th>Category</th>
-              <th>Type</th>
-              <th>Order</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && categories.length === 0 ? (
-              <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>Loading categories...</td></tr>
-            ) : categories.length === 0 ? (
-              <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>No categories found.</td></tr>
-            ) : (
-              categories.map(c => (
-                <tr key={c.id}>
-                  <td>
-                    <div className="category-info">
-                      <img src={normalizeImageUrl(c.imageUrl || c.image_url) || FALLBACK_IMAGE} onError={handleImageError} alt={c.name} className="category-thumbnail" />
-                      <div>
-                        <span className="category-name">{c.name}</span>
-                        <span className="category-slug">/{c.slug}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
+      <section className="categories-grid-wrapper">
+        {loading && categories.length === 0 ? (
+          <div className="categories-state">Loading categories...</div>
+        ) : categories.length === 0 ? (
+          <div className="categories-state categories-state-empty">
+            <p>No categories yet.</p>
+            <button type="button" className="btn-primary" onClick={openCreateDrawer}>
+              Create your first category
+            </button>
+          </div>
+        ) : (
+          <div className="categories-grid">
+            {sortedCategories.map((c) => (
+              <article
+                key={c.id}
+                className={`category-card ${c.active ? 'category-card--active' : 'category-card--hidden'}`}
+              >
+                <div className="category-card-media">
+                  <img
+                    src={normalizeImageUrl(c.imageUrl || c.image_url) || FALLBACK_IMAGE}
+                    onError={handleImageError}
+                    alt={c.name}
+                    className="category-card-image"
+                    loading="lazy"
+                  />
+                  <span className={`category-card-status ${c.active ? 'is-active' : 'is-hidden'}`}>
+                    {c.active ? 'Active' : 'Hidden'}
+                  </span>
+                </div>
+
+                <div className="category-card-body">
+                  <h2 className="category-card-name">{c.name}</h2>
+                  <p className="category-card-slug">/{c.slug}</p>
+                  {c.description ? (
+                    <p className="category-card-desc">{c.description}</p>
+                  ) : null}
+                  <div className="category-card-meta">
                     <span className="category-type">{modeLabel(modes, c.type)}</span>
-                  </td>
-                  <td>{c.display_order}</td>
-                  <td>
-                    <button 
-                      className={`availability-toggle ${c.active ? 'in-stock' : 'out-of-stock'}`}
-                      onClick={() => toggleActive(c)}
-                    >
-                      {c.active ? 'Active' : 'Hidden'}
-                    </button>
-                  </td>
-                  <td>
-                    <button className="action-link" onClick={() => openEditDrawer(c)}>Edit</button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    <span className="category-card-order">Order {c.display_order ?? 0}</span>
+                  </div>
+                </div>
+
+                <div className="category-card-footer">
+                  <button
+                    type="button"
+                    className={`availability-toggle ${c.active ? 'in-stock' : 'out-of-stock'}`}
+                    onClick={() => toggleActive(c)}
+                  >
+                    {c.active ? 'Active' : 'Hidden'}
+                  </button>
+                  <button type="button" className="action-link" onClick={() => openEditDrawer(c)}>
+                    Edit
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       {drawerOpen && (
@@ -228,6 +243,14 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isEdit && category.type && formData.type !== category.type) {
+      const fromLabel = modes.find(m => m.slug === category.type)?.label || category.type;
+      const toLabel = modes.find(m => m.slug === formData.type)?.label || formData.type;
+      const proceed = window.confirm(
+        `Changing "${category.name}" from ${fromLabel} to ${toLabel} moves EVERY product in this category to ${toLabel} too. Continue?`
+      );
+      if (!proceed) return;
+    }
     try {
       setFormError(null);
       setSaving(true);

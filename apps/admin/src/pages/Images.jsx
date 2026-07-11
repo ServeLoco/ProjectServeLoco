@@ -17,6 +17,7 @@ export default function Images() {
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showUnusedOnly, setShowUnusedOnly] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -66,17 +67,6 @@ export default function Images() {
     onCropped: uploadImageFile,
   });
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this image permanently? It will fail if currently in use.')) return;
-    try {
-      await ImagesApi.delete(id);
-      setImages(prev => prev.filter(img => img.id !== id));
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || err?.message || GENERIC_ERROR);
-    }
-  };
-
   const handleCopyUrl = (url) => {
     navigator.clipboard.writeText(normalizeImageUrl(url));
     setUploadMessage({ type: 'success', text: 'URL copied to clipboard.' });
@@ -113,6 +103,44 @@ export default function Images() {
     });
   }, [images, searchQuery, showUnusedOnly]);
 
+  const handleBulkDeleteUnused = async () => {
+    const targets = filteredImages.filter((img) => !img.in_use);
+    if (targets.length === 0) return;
+
+    const label = targets.length === 1 ? '1 unused image' : `${targets.length} unused images`;
+    if (!window.confirm(`Delete ${label} permanently? This cannot be undone.`)) return;
+
+    setBulkDeleting(true);
+    setError(null);
+    const deletedIds = [];
+    let failCount = 0;
+
+    for (const img of targets) {
+      try {
+        await ImagesApi.delete(img.id);
+        deletedIds.push(img.id);
+      } catch (err) {
+        console.error(err);
+        failCount += 1;
+      }
+    }
+
+    if (deletedIds.length > 0) {
+      setImages((prev) => prev.filter((img) => !deletedIds.includes(img.id)));
+    }
+
+    if (failCount > 0) {
+      setError(`Failed to delete ${failCount} image${failCount === 1 ? '' : 's'}.`);
+    } else if (deletedIds.length > 0) {
+      setUploadMessage({
+        type: 'success',
+        text: `Deleted ${deletedIds.length} unused image${deletedIds.length === 1 ? '' : 's'}.`,
+      });
+    }
+
+    setBulkDeleting(false);
+  };
+
   return (
     <div className="images-container">
       <header className="images-header">
@@ -133,16 +161,15 @@ export default function Images() {
 
       {/* Search + filter bar */}
       {!loading || images.length > 0 ? (
-        <div className="filter-bar" style={{ display: 'flex', gap: 12, alignItems: 'center', margin: '1rem 0', flexWrap: 'wrap' }}>
+        <div className="filter-bar images-filter-bar">
           <input
             type="text"
-            className="filter-search"
+            className="filter-input filter-search images-filter-search"
             placeholder="Search by filename, original name, alt text, or URL…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ flex: 1, minWidth: 220 }}
           />
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+          <label className="images-filter-checkbox">
             <input
               type="checkbox"
               checked={showUnusedOnly}
@@ -150,11 +177,29 @@ export default function Images() {
             />
             Show unused only
           </label>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+          <span className="images-filter-count">
             {filteredImages.length} / {images.length}
           </span>
         </div>
       ) : null}
+
+      {showUnusedOnly && filteredImages.length > 0 && (
+        <div className="bulk-actions-bar images-bulk-actions-bar">
+          <span className="bulk-actions-info">
+            {filteredImages.length} unused image{filteredImages.length === 1 ? '' : 's'} shown
+          </span>
+          <div className="bulk-actions-buttons">
+            <button
+              type="button"
+              className="btn-danger"
+              onClick={handleBulkDeleteUnused}
+              disabled={bulkDeleting}
+            >
+              {bulkDeleting ? 'Deleting…' : `Delete all (${filteredImages.length})`}
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading && images.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '2rem' }}>Loading image library...</div>
@@ -184,14 +229,8 @@ export default function Images() {
                 </div>
               </div>
               <div className="image-actions">
-                <button className="btn-icon" onClick={() => handleCopyUrl(img.url)}>Copy URL</button>
-                <button
-                  className="btn-icon danger"
-                  onClick={() => handleDelete(img.id)}
-                  title={img.in_use ? "Cannot delete image in use" : "Delete image"}
-                  disabled={img.in_use}
-                >
-                  Delete
+                <button type="button" className="btn-icon" onClick={() => handleCopyUrl(img.url)}>
+                  Copy URL
                 </button>
               </div>
             </div>

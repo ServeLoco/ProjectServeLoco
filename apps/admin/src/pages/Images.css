@@ -112,10 +112,38 @@
 
 .image-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0.75rem 1rem;
   background: var(--bg-color);
   border-top: 1px solid var(--border-color);
+}
+
+.images-filter-bar {
+  margin: 1rem 0 !important;
+}
+
+.images-filter-search {
+  flex: 1;
+  min-width: 220px;
+}
+
+.images-filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.images-filter-count {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.images-bulk-actions-bar {
+  margin-top: -0.35rem;
 }
 
 .btn-icon {
