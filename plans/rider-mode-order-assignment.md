@@ -712,12 +712,18 @@ Call from:
 
 **Steps:**
 
-- [ ] 4.1 `requireRider` — 403 `Not a rider` if no active rider row.
-- [ ] 4.2 Mount `app.use('/api/rider', riderRoutes)`.
-- [ ] 4.3 Implement `GET /me`, `PATCH /me/online`, `POST /me/heartbeat` (no assignment yet).
-- [ ] 4.4 Online toggle calls `syncDeliveryAvailabilityFromRiders`.
-- [ ] 4.5 Tests for 403 non-rider, toggle open/close.
-- [ ] 4.6 `npm test`.
+- [x] 4.1 `requireRider` — 403 `Not a rider` if no active rider row.
+  NOTE (done): `middleware/riderMiddleware.js`.
+- [x] 4.2 Mount `app.use('/api/rider', riderRoutes)`.
+  NOTE (done): mounted in `app.js`.
+- [x] 4.3 Implement `GET /me`, `PATCH /me/online`, `POST /me/heartbeat` (no assignment yet).
+  NOTE (done): riderController + riderRoutes.
+- [x] 4.4 Online toggle calls `syncDeliveryAvailabilityFromRiders`.
+  NOTE (done): awaited after online/offline update.
+- [x] 4.5 Tests for 403 non-rider, toggle open/close.
+  NOTE (done): `tests/riderApi.test.js` (7 cases).
+- [x] 4.6 `npm test`.
+  NOTE (done): 55 suites, 567 passed.
 
 ---
 
