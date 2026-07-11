@@ -6,6 +6,9 @@ const TYPES = {
   NEW_CUSTOMER: 'new_customer',
   SHOP_REJECTED: 'shop_rejected',
   ORDER_AUTO_CANCELLED: 'order_auto_cancelled',
+  RIDER_ASSIGNMENT_FAILED: 'rider_assignment_failed',
+  RIDER_ZERO_AVAILABLE: 'rider_zero_available',
+  ORDER_CANCELLED_NO_RIDER: 'order_cancelled_no_rider',
 };
 
 /**
