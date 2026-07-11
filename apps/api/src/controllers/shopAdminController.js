@@ -1,6 +1,6 @@
 const { pool } = require('../db/mysql');
 const { emitToAllCustomers } = require('../realtime/socket');
-const { autoCloseGlobalShopIfAllShopsClosed } = require('../utils/shops');
+const { syncGlobalShopOpenState } = require('../utils/shops');
 
 // Maps a raw shops + users JOIN row to the admin response shape. The response
 // duplicates fields in both camelCase and snake_case because different clients
@@ -156,9 +156,9 @@ const updateShop = async (req, res) => {
       shopId: shop.id,
       isOpen: Boolean(shop.is_open) && Boolean(shop.active),
     });
-    if (!shop.is_open || !shop.active) {
-      await autoCloseGlobalShopIfAllShopsClosed();
-    }
+    // Keep the global "Shop Status" banner in sync in both directions —
+    // see syncGlobalShopOpenState.
+    await syncGlobalShopOpenState();
   }
 
   res.status(200).json({ message: 'Shop updated', shop });

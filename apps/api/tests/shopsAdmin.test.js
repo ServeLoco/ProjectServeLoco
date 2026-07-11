@@ -108,8 +108,10 @@ describe('Admin Shop CRUD — /api/admin/shops', () => {
         owner_user_id: 7, owner_name: 'Reza', owner_phone: '9999999999',
         product_count: 0, created_at: '2026-07-09 00:00:00'
       }]])
-      // autoCloseGlobalShopIfAllShopsClosed's SUM query — no other shops in
-      // this mock, so it no-ops (total_active 0) without touching settings.
+      // syncGlobalShopOpenState: settings lookup (delivery available), then
+      // the shops SUM query — no other shops in this mock (total_active 0),
+      // so it no-ops without touching settings.shop_open.
+      .mockResolvedValueOnce([[{ delivery_available: 1 }]])
       .mockResolvedValueOnce([[{ total_active: 0, total_open: 0 }]]);
 
     const res = await request(app)

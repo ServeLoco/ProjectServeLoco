@@ -72,35 +72,47 @@ const notifyShopsOrderCancelled = async (order) => {
 };
 
 // If every active multi-vendor shop is now closed, auto-close the global
-// "Shop Status" banner (settings.shop_open) too, so the admin dashboard
-// doesn't keep showing "Open" while every shop that could fulfil an order
-// is closed. One-directional by design: re-opening any single shop does
-// NOT auto-reopen the global banner — that always requires an explicit
-// admin action, so a deliberate "we're fully closed" flip is never
-// silently undone by one shop owner flipping back on.
+// "Shop Status" banner (settings.shop_open) too — so the admin dashboard
+// tracks reality instead of needing a separate manual flip every time a
+// shop opens or closes. delivery_available is the master gate: if it's
+// off, shop_open is forced closed no matter how many shops are open (the
+// business isn't delivering, full stop — products still show in the menu,
+// they just can't be ordered). If delivery_available is on, shop_open
+// tracks whether any active shop is currently open.
 // No-ops in single-vendor deployments (shops table empty/no active rows) —
-// nothing to auto-close based on.
-const autoCloseGlobalShopIfAllShopsClosed = async () => {
+// delivery_available is the sole gate there, and settingsController already
+// respects it directly on manual shop_open writes.
+const syncGlobalShopOpenState = async () => {
   try {
-    const [rows] = await pool.query(
+    const [settingsRows] = await pool.query('SELECT delivery_available FROM settings LIMIT 1');
+    if (settingsRows.length === 0) return;
+
+    const deliveryAvailable = Boolean(settingsRows[0].delivery_available);
+    if (!deliveryAvailable) {
+      await pool.query('UPDATE settings SET shop_open = 0 WHERE shop_open = 1');
+      return;
+    }
+
+    const [shopRows] = await pool.query(
       `SELECT
          SUM(active = 1) AS total_active,
          SUM(active = 1 AND is_open = 1) AS total_open
        FROM shops`
     );
-    const totalActive = Number(rows[0]?.total_active) || 0;
-    const totalOpen = Number(rows[0]?.total_open) || 0;
-    if (totalActive === 0 || totalOpen > 0) return;
+    const totalActive = Number(shopRows[0]?.total_active) || 0;
+    if (totalActive === 0) return;
 
-    await pool.query('UPDATE settings SET shop_open = 0 WHERE shop_open = 1');
+    const totalOpen = Number(shopRows[0]?.total_open) || 0;
+    const desiredOpen = totalOpen > 0 ? 1 : 0;
+    await pool.query('UPDATE settings SET shop_open = ? WHERE shop_open != ?', [desiredOpen, desiredOpen]);
   } catch (e) {
-    console.error('[shops] autoCloseGlobalShopIfAllShopsClosed failed:', e.message);
+    console.error('[shops] syncGlobalShopOpenState failed:', e.message);
   }
 };
 
 module.exports = {
-  autoCloseGlobalShopIfAllShopsClosed,
   getShopForUser,
   notifyShopsForOrder,
+  syncGlobalShopOpenState,
   notifyShopsOrderCancelled,
 };

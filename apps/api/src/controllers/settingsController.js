@@ -3,6 +3,7 @@ const { normalizeStoreType } = require('../utils/storeMode');
 const { createTtlCache } = require('../utils/ttlCache');
 const config = require('../config/env');
 const { cleanupOrphanedImage } = require('./imageController');
+const { syncGlobalShopOpenState } = require('../utils/shops');
 
 // Settings is a singleton (1 row), read by every app open and every public
 // endpoint. 15-second cache eliminates most SELECTs while keeping settings fresh.
@@ -246,6 +247,27 @@ const updateSettings = async (req, res) => {
     }
   }
 
+  // Master gate: delivery_available off means the business isn't
+  // delivering, full stop — a manual attempt to open the "Shop Status"
+  // banner can't override that. (The auto-open/auto-close side of this
+  // rule, triggered by individual shops opening/closing, lives in
+  // syncGlobalShopOpenState.)
+  if (hasValue(body.shop_open)) {
+    const wantsOpen = body.shop_open === true || body.shop_open === 'true' || body.shop_open === 1 || body.shop_open === '1';
+    if (wantsOpen) {
+      let deliveryAvailable;
+      if (hasValue(body.delivery_available)) {
+        deliveryAvailable = body.delivery_available === true || body.delivery_available === 'true' || body.delivery_available === 1 || body.delivery_available === '1';
+      } else {
+        const [currentRows] = await pool.query('SELECT delivery_available FROM settings LIMIT 1');
+        deliveryAvailable = currentRows.length > 0 ? Boolean(currentRows[0].delivery_available) : true;
+      }
+      if (!deliveryAvailable) {
+        return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot open Shop Status while delivery is turned off.' });
+      }
+    }
+  }
+
   const updates = [];
   const params = [];
 
@@ -283,6 +305,13 @@ const updateSettings = async (req, res) => {
 
   await pool.query(`UPDATE settings SET ${updates.join(', ')} WHERE id = ?`, [...params, settingsId]);
   settingsCache.del(SETTINGS_KEY);
+  // delivery_available just changed — re-derive shop_open from it (forces
+  // closed if delivery just went off, or auto-opens if it just came back on
+  // and some shop is open).
+  if (body.delivery_available !== undefined) {
+    await syncGlobalShopOpenState();
+    settingsCache.del(SETTINGS_KEY);
+  }
   if (
     body.upi_qr_image_id !== undefined &&
     previousImageId &&
