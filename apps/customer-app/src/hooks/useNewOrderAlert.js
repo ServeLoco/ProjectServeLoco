@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { playNotificationChime } from '../utils/notificationChime';
 
 const REPEAT_MS = 8000;
 const NOTIFICATION_ID = 'serveloco-new-order-alert';
@@ -37,6 +38,10 @@ export function useNewOrderAlert(active) {
           ? { channelId: 'serveloco-orders' }
           : null,
       }).catch(() => {});
+      // The repeating alert only runs while the shop-owner dashboard is
+      // foregrounded — OEM skins that mute foreground notification sounds
+      // would make it silent, so play the chime through the audio stack.
+      playNotificationChime();
     };
 
     if (!active) {

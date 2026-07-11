@@ -6,6 +6,7 @@ import Constants from 'expo-constants';
 import { subscribeNotificationEvents } from '../api/realtimeClient';
 import { authApi } from '../api/authApi';
 import { useAuthStore } from '../stores';
+import { playNotificationChime } from '../utils/notificationChime';
 
 // Expo project ID from app.json — used to get a valid push token.
 const EXPO_PROJECT_ID =
@@ -279,6 +280,11 @@ export function useLocalNotifications(navigationRef) {
           ? { channelId: 'serveloco-orders' }
           : null,
       });
+
+      // Local notifications only fire while the app is foregrounded, and
+      // several Android OEM skins mute the channel sound for the foreground
+      // app — play the chime ourselves so the alert is audible.
+      playNotificationChime();
 
       console.log('[useLocalNotifications] Notification scheduled successfully');
     });

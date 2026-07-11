@@ -57,6 +57,11 @@ jest.mock('expo-notifications', () => ({
   addPushTokenListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
 
+// Mock expo-audio — native module not available in Node/Jest environment
+jest.mock('expo-audio', () => ({
+  createAudioPlayer: jest.fn(() => ({ play: jest.fn(), seekTo: jest.fn() })),
+}));
+
 // Mock expo-linear-gradient
 jest.mock('expo-linear-gradient', () => {
   const React = require('react');
