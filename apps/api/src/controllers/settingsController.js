@@ -147,7 +147,14 @@ const getActiveOffer = async (req, res) => {
   const params = [];
 
   if (finalStoreType) {
-    const normalizedStoreType = await normalizeStoreType(finalStoreType, { allowAll: true });
+    // A client can hold a stale/deactivated mode slug — fall back to 'all'
+    // instead of erroring the public active-offer endpoint.
+    let normalizedStoreType = 'all';
+    try {
+      normalizedStoreType = await normalizeStoreType(finalStoreType, { allowAll: true });
+    } catch {
+      normalizedStoreType = 'all';
+    }
     if (normalizedStoreType !== 'all') {
       query += ' AND store_type = ?';
       params.push(normalizedStoreType);

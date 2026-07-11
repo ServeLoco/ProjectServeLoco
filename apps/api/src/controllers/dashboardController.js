@@ -15,7 +15,14 @@ const offerBannerSlugSuffix = (storeType) => storeType.replace(/_/g, '-');
 
 const getExpectedStoreType = async (storeType) => {
   if (!storeType) return 'all';
-  return normalizeStoreType(storeType, { fallback: 'all', allowAll: true });
+  // A client can hold a stale/deactivated mode slug (e.g. web's
+  // localStorage-persisted storeType) after an admin deactivates a custom
+  // mode — fall back to 'all' instead of erroring the whole dashboard fetch.
+  try {
+    return await normalizeStoreType(storeType, { fallback: 'all', allowAll: true });
+  } catch {
+    return 'all';
+  }
 };
 
 const getStoredImageUrl = (image) => image?.url ||
@@ -832,7 +839,7 @@ const createAdminSection = async (req, res) => {
   const { title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at } = req.body;
 
   if (store_type === 'all' || !store_type) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be explicitly packed or fast_food for new sections.' });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be an explicit store mode slug for new sections. "all" is not allowed.' });
   }
 
   const validationError = await validateSectionPayload(req.body);
@@ -897,7 +904,7 @@ const updateAdminSection = async (req, res) => {
   const { title, slug, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version } = req.body;
 
   if (store_type === 'all') {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be explicitly packed or fast_food. "all" is no longer allowed.' });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be an explicit store mode slug. "all" is no longer allowed.' });
   }
 
   const validationError = await validateSectionPayload(req.body, { partial: true });

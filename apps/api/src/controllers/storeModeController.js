@@ -3,6 +3,9 @@ const { invalidateStoreModeCache } = require('../utils/storeMode');
 
 const RESERVED_SLUGS = new Set(['all']);
 const SLUG_PATTERN = /^[a-z][a-z0-9_]{1,30}$/;
+// SegmentedControl on the customer/web capsule only renders 2-5 options —
+// more active modes than that makes the capsule disappear entirely.
+const MAX_ACTIVE_MODES = 5;
 
 // Public endpoint: GET /api/store-modes — active modes for the customer/web capsule.
 const getStoreModes = async (req, res) => {
@@ -40,6 +43,11 @@ const createStoreMode = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `A mode with slug "${cleanSlug}" already exists` });
   }
 
+  const [[{ activeCount }]] = await pool.query('SELECT COUNT(*) as activeCount FROM store_modes WHERE active = TRUE');
+  if (Number(activeCount) >= MAX_ACTIVE_MODES) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Cannot have more than ${MAX_ACTIVE_MODES} active store modes at once. Deactivate one first.` });
+  }
+
   const [[{ maxOrder }]] = await pool.query('SELECT COALESCE(MAX(display_order), 0) as maxOrder FROM store_modes');
 
   const [result] = await pool.query(
@@ -61,6 +69,13 @@ const updateStoreMode = async (req, res) => {
 
   if (existing.is_system && active === false) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `"${existing.label}" is a system mode and cannot be deactivated` });
+  }
+
+  if (active === true && !existing.active) {
+    const [[{ activeCount }]] = await pool.query('SELECT COUNT(*) as activeCount FROM store_modes WHERE active = TRUE');
+    if (Number(activeCount) >= MAX_ACTIVE_MODES) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Cannot have more than ${MAX_ACTIVE_MODES} active store modes at once. Deactivate one first.` });
+    }
   }
 
   if (active === false) {

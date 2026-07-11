@@ -312,8 +312,8 @@ const migrate = async () => {
         INDEX idx_combo_store_type (store_type)
       );
     `);
-    await connection.query('ALTER TABLE combos MODIFY COLUMN store_type VARCHAR(50) NOT NULL DEFAULT "packed"');
     await ensureColumn('combos', 'store_type', 'store_type VARCHAR(50) NOT NULL DEFAULT "packed" AFTER deleted');
+    await connection.query('ALTER TABLE combos MODIFY COLUMN store_type VARCHAR(50) NOT NULL DEFAULT "packed"');
     console.log('Combos table ready.');
 
     // Combo Items Table
@@ -583,9 +583,9 @@ const migrate = async () => {
         INDEX idx_offer_store_type (store_type)
       );
     `);
-    await connection.query('ALTER TABLE offers MODIFY COLUMN store_type VARCHAR(50) NOT NULL DEFAULT "packed"');
     await ensureColumn('offers', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER active');
     await ensureColumn('offers', 'store_type', 'store_type VARCHAR(50) NOT NULL DEFAULT "packed" AFTER deleted');
+    await connection.query('ALTER TABLE offers MODIFY COLUMN store_type VARCHAR(50) NOT NULL DEFAULT "packed"');
     await ensureColumn('offers', 'is_clickable', 'is_clickable BOOLEAN DEFAULT FALSE AFTER store_type');
     console.log('Offers table ready.');
 

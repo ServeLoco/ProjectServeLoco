@@ -208,9 +208,17 @@ const syncProductVariants = async (connection, productId, variants, variantPromp
 const getProducts = async (req, res) => {
   const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit, offerId, offer_id } = req.query;
   const requestedType = type || storeType || store_type;
-  const normalizedType = requestedType
-    ? await normalizeStoreType(requestedType, { allowAll: true })
-    : 'all';
+  // A client can hold a stale/deactivated mode slug (e.g. web's
+  // localStorage-persisted storeType) after an admin deactivates a custom
+  // mode — fall back to 'all' instead of erroring the whole product list.
+  let normalizedType = 'all';
+  if (requestedType) {
+    try {
+      normalizedType = await normalizeStoreType(requestedType, { allowAll: true });
+    } catch {
+      normalizedType = 'all';
+    }
+  }
   const finalCategoryId = categoryId || category_id;
   let finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
   const finalOfferId = offerId || offer_id;
