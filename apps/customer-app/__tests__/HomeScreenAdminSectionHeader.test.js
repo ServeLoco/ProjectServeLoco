@@ -22,12 +22,11 @@ describe('HomeScreen reads admin-controlled show_hot_badge and section_icon', ()
     expect(source).toMatch(/section\.showHotBadge\s*===\s*true/);
   });
 
-  it('renders the HOT badge when showHotBadge is true (not just for combo blocks)', () => {
-    // The new condition combines isComboBlock OR showHotBadge so admins can
-    // toggle HOT on any section type.
-    const matches = source.match(/isComboBlock\s*\|\|\s*section\.showHotBadge\s*===\s*true/g);
-    expect(matches).not.toBeNull();
-    expect(matches.length).toBeGreaterThanOrEqual(1);
+  it('renders the HOT badge only when showHotBadge is true (no combo hard-code)', () => {
+    // The admin toggle is the sole source of truth: combo blocks must not
+    // force the badge on, so admins can turn it off per section.
+    expect(source).toMatch(/\{section\.showHotBadge\s*===\s*true\s*&&/);
+    expect(source).not.toMatch(/isComboBlock\s*\|\|\s*section\.showHotBadge/);
   });
 
   it('reads sectionIcon from the section payload', () => {

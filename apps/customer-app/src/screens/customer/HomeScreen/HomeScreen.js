@@ -672,7 +672,7 @@ export default function HomeScreen() {
                   <View style={styles.sectionHeader}>
                     <View style={styles.titleRow}>
                       <View style={styles.headerIndicator} />
-                      {(section.sectionIcon === 'box' || (!section.sectionIcon && section.sectionType === 'category_grid')) && (
+                      {section.sectionIcon === 'box' && (
                         <AppIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                       )}
                       {(section.sectionIcon === 'shoppingBag' || (!section.sectionIcon && section.sectionType === 'product_block')) && (
@@ -685,7 +685,7 @@ export default function HomeScreen() {
                         <AppIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                       )}
                       <Text style={styles.sectionTitlePremium}>{section.title}</Text>
-                      {(isComboBlock || section.showHotBadge === true) && (
+                      {section.showHotBadge === true && (
                         <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
                           <LinearGradient
                             colors={['#FF6B6B', '#FF8E53']}
