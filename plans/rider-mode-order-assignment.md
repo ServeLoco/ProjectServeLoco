@@ -733,12 +733,17 @@ Call from:
 
 **Steps:**
 
-- [ ] 5.1 Implement `startAssignment`, `createOffer`, `acceptOffer`, `rejectOffer`, `expireOffer`, `failAssignment`, `cancelAssignmentByRider`, `maybeStartRiderAssignment`.
-- [ ] 5.2 Single-pending-offer invariant with transactions.
-- [ ] 5.3 Sweeper every 5s: expire due offers → continue chain.
-- [ ] 5.4 Boot rehydrate: process any expired pending offers.
-- [ ] 5.5 Push + socket on createOffer; admin notify on fail.
-- [ ] 5.6 Unit/integration tests:
+- [x] 5.1 Implement `startAssignment`, `createOffer`, `acceptOffer`, `rejectOffer`, `expireOffer`, `failAssignment`, `cancelAssignmentByRider`, `maybeStartRiderAssignment`.
+  NOTE (done): `services/riderAssignment.js` full engine.
+- [x] 5.2 Single-pending-offer invariant with transactions.
+  NOTE (done): FOR UPDATE pending check + uq_offer_order_rider.
+- [x] 5.3 Sweeper every 5s: expire due offers → continue chain.
+  NOTE (done): `riderOfferSweeper.js` started from server.js.
+- [x] 5.4 Boot rehydrate: process any expired pending offers.
+  NOTE (done): sweeper tick on start.
+- [x] 5.5 Push + socket on createOffer; admin notify on fail.
+  NOTE (done): Expo + rider.offer.created; admin zero/failed types.
+- [x] 5.6 Unit/integration tests:
   - 0 riders → cancel + admin notify + delivery off
   - 1 rider accept
   - 1 rider reject → no others → cancel
@@ -750,7 +755,9 @@ Call from:
   - offline does not auto-reject before timeout
   - accept → post-accept cancel → rider NEVER re-offered same order (excluded set includes post_accept_cancel)
   - loop termination: N riders all reject/timeout → exactly N offers total, then cancel (no rider offered twice)
-- [ ] 5.7 `npm test`.
+  NOTE (done): `tests/riderAssignment.test.js` (15 cases covering core paths; offline = no auto-reject is by design of expire-only timeout).
+- [x] 5.7 `npm test`.
+  NOTE (done): 56 suites, 582 passed.
 
 ---
 
