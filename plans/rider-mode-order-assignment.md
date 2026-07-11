@@ -1,16 +1,18 @@
 # ProjectServeLoco — Rider Mode & Order Assignment
 
-Spec date: 2026-07-11 · Branch: `feat/store-modes` · Status: **PLAN — all tasks OPEN**  
+Spec date: 2026-07-11 · Updated: 2026-07-11 (owner answers locked) · Branch: `feat/store-modes` · Status: **PLAN — decisions LOCKED, all tasks OPEN**  
 Instruction spec for an implementing AI. Follow it literally.
 
 This plan turns the rider workflow diagram + rules into buildable work. It maps **what already exists**, **what must be built**, and **task-by-task steps** with files, acceptance criteria, and test commands.
+
+**Product-owner answers (2026-07-11) are locked in §4 and §5. Do not re-ask. Do not invent policy.**
 
 ---
 
 ## 0. How to read this file
 
 1. Read **BACKGROUND** + **EXISTING vs NEW** first — do not re-derive those from the codebase unless a path has moved.
-2. Read **LOCKED DECISIONS** and **OPEN QUESTIONS** before coding. Do not invent product policy for open questions; stop and ask.
+2. Read **LOCKED DECISIONS** (§4) before coding. All former open questions are **RESOLVED** in §5.
 3. Execute tasks **in order** (TASK 1 → last). Later tasks assume earlier ones are done.
 4. Same AI rules as shop-owner specs: surgical changes only, additive API shapes (camelCase + snake_case where the surrounding response already duplicates), one commit per task, run tests after each backend/app task.
 
@@ -109,34 +111,40 @@ Rider rules require **server-authoritative** 2-minute timer and **exactly one ri
 
 ## 2. TARGET PRODUCT FLOW (from diagram + rules)
 
-### 2.1 Happy path
+### 2.1 Happy path (matches diagram step 1–assign)
 
 ```
 1. Customer places order
 2. Platform accepts order (admin or auto-accept) → shops notified
-3. Shop(s) Accept (confirm) their items
-4. Rider assignment engine starts  ← NEW
-5. Exactly one eligible rider gets popup + push (2 min timer)
-6. Rider Accepts → order assigned to rider
-7. Rider progresses: Picked up → Out for Delivery → Delivered
-8. Customer / shop / admin notified at each step
+3. Shop owner(s) Accept (confirm) their items
+4. When ALL shops on that order have accepted → Rider assignment starts  ← NEW
+5. Backend: GET current active riders (online & available)
+6. Exactly ONE selected rider gets popup + Expo push (2 min server timer)
+7. Rider Accepts → order assigned; notify shop + customer; rider starts delivery
+8. Rider and/or Admin: Picked up → Out for Delivery → Delivered
+9. Customer / shop / admin notified at each step
 ```
 
-### 2.2 Assignment rules (authoritative)
+**Diagram note:** The flowchart box still shows “Timer: 30–45 Seconds” and “IMPORTANT RULES #4: 30–45 sec”. **Owner override: use 2 minutes (120s) everywhere.** Ignore 30–45s in the image.
+
+### 2.2 Assignment rules (authoritative — auto-assign only)
+
+There is **no admin manual rider pick** in v1. Assignment is 100% the engine below.
 
 | Situation | Behavior |
 |---|---|
-| 0 active riders when assignment starts | Cancel order; Admin Orders page shows cancelled; admin notification; `delivery_available = OFF` |
-| 1 active rider | Send Accept/Reject popup + push; start **2-minute** server timer |
-| >1 active riders | Pick rider with **least completed deliveries today**; ties → random; send popup to **only that one** |
-| Rider Accepts | Assign order; notify shop + customer; stop assignment |
-| Rider Rejects | Exclude that rider for this order; re-fetch active riders; continue |
-| Timer expires (2 min, no accept) | Treat as Reject; same as reject |
-| Rider goes offline while popup is open | **Do NOT auto-reject**; keep offer until timer ends; if they return online within window they can still accept |
-| Rider Accepts then later Cancels assignment | Treat as Reject; re-run assignment excluding them |
-| No eligible riders left | Cancel order; admin notify; show on Admin Orders |
-| Same order to multiple riders at once | **Forbidden** |
-| Same rider offered same order again after reject | **Forbidden** |
+| **0 active riders** when assignment starts (or after re-check) | `Delivery Available = OFF`; **Cancel order**; show on Admin Order page; **Notify Admin** |
+| **1 active rider** | Send Accept/Reject popup + push to that rider only; start **2-minute** server timer |
+| **>1 active riders** | Select rider with **least orders completed today**; if tie → **pick random** among ties; send popup to **only that one** |
+| Rider **Accepts** | Assign order to that rider; notify shop; notify customer; rider starts delivery; stop assignment |
+| Rider **Rejects** | Exclude that rider for this order forever; **re-fetch latest active riders**; if another eligible → offer them (same selection rules); if none → cancel + notify admin |
+| **Timeout (2 min, no accept)** | Treat exactly as **Rejected** → same re-fetch / reassign / cancel chain |
+| Rider goes **offline** after receiving popup | **Do NOT reject**. Offer stays pending for remaining time. On app restart / dashboard open, popup still shows until accept/reject/timeout. Only reject if not accepted in 2 min. |
+| Rider **Accepts then cancels later** (before pickup only) | Treat as **Rejected**; remove rider from order; re-fetch active riders; continue flow excluding them |
+| Rider tries to cancel **after pickup** | **Forbidden** (API 400) |
+| No eligible riders left | Cancel order; Admin Order page; Admin notification |
+| Same order offered to **multiple riders at once** | **Forbidden** (no duplicate accept) |
+| Same rider offered same order again after reject/timeout/cancel | **Forbidden** |
 
 ### 2.3 Delivery availability auto rules
 
@@ -150,7 +158,7 @@ Rider rules require **server-authoritative** 2-minute timer and **exactly one ri
 - Linked to a `riders` row with `active = 1` (admin kill switch).
 - `is_online = 1` (rider toggled on / heartbeat not expired).
 - `is_available = 1` (not busy on another active delivery — see decisions).
-- Soft presence: last heartbeat within `RIDER_HEARTBEAT_TTL_SEC` (default 90s) **OR** explicit online toggle with heartbeat refresh — pick one implementation (TASK 3) and document it in code comments.
+- Soft presence: last heartbeat within `RIDER_HEARTBEAT_TTL_SEC` (default 90s) **OR** explicit online toggle with heartbeat refresh — pick one implementation (TASK 2 query + TASK 4 endpoints) and document it in code comments.
 
 ### 2.4 Notifications matrix
 
@@ -177,11 +185,11 @@ Rider rules require **server-authoritative** 2-minute timer and **exactly one ri
 | Admin inbox | `adminNotifications.js` | New types for rider failures |
 | Order status pipeline | `adminController.updateOrderStatus`, `orderEvents` | Extend with rider-driven transitions |
 | Delivery gate | `settings.delivery_available` | Auto-toggle from rider presence |
-| Shop confirm hook point | `confirmMyOrder` | **Trigger** assignment when all shops confirmed (recommended) |
-| Auto-accept + admin accept | `orderAutoAccept`, `updateOrderStatus` | Still put order into Accepted → shops first; **not** the rider start trigger |
+| Shop confirm hook point | `confirmMyOrder` | **Trigger** assignment when **all** shops on the order have confirmed |
+| Auto-accept + admin accept | `orderAutoAccept`, `updateOrderStatus` | Still put order into Accepted → shops first; **not** the rider start trigger (except house-only items with no shop) |
 | Cancel side-effects | coupon cancel, payment_status mapping, shop cancel notify | When assignment fails and order cancels |
-| Admin Orders UI | `apps/admin/src/pages/Orders.jsx` | Show rider fields + cancel reasons |
-| Admin Settings | delivery toggle UI | Show “auto-managed by riders” state / still allow emergency manual override |
+| Admin Orders UI | `apps/admin/src/pages/Orders.jsx` | Show rider fields + cancel reasons (read-only assignment; no manual assign) |
+| Admin Settings | delivery toggle UI | Label that Delivery Available is auto-managed by rider online state |
 
 ### 3.2 Must build (net-new)
 
@@ -195,8 +203,8 @@ Rider rules require **server-authoritative** 2-minute timer and **exactly one ri
 | API routes | `/api/rider/*` for me, toggle, offers, accept, reject, cancel-assignment, delivery status |
 | Realtime | Socket rooms for riders (or reuse `customer:{id}` like shops); events `rider.offer.*` |
 | Customer app UI | Rider navigator: Dashboard (online toggle + active job), Offers popup, History |
-| Admin UI | Riders CRUD (link user phone → rider), order detail rider panel, notifications |
-| Tests | Unit + integration for selection, exclusion, timeout, cancel, delivery gate |
+| Admin UI | **Riders page** (admin-only create/link user phone → rider), order detail rider panel, notifications |
+| Tests | Unit + integration for selection, exclusion, timeout, cancel, delivery gate, mutual exclusion |
 | Notification templates | New event keys for rider-assigned / picked-up / etc. |
 
 ### 3.3 Explicit non-goals (v1)
@@ -204,51 +212,54 @@ Rider rules require **server-authoritative** 2-minute timer and **exactly one ri
 - Separate rider APK / different auth stack
 - GPS live tracking map / route optimization
 - Rider payouts / cash settlement
-- Multi-rider batching (one rider many orders) — optional later
+- Multi-rider batching (one rider many orders)
 - Customer choosing a specific rider
-- Replacing admin’s ability to force status manually (admin override stays)
-- Combos / multi-shop pickup optimization UI (schema supports multi-shop; UI can show shop addresses list only)
+- **Admin manual assign / force-pick a rider** (engine auto-assign only)
+- Rider self-signup
+- Same phone/user as both shop owner and rider
+- Combos / multi-shop pickup optimization UI (schema supports multi-shop; UI can show shop names/addresses list only)
 
 ---
 
-## 4. LOCKED DECISIONS (v1 defaults)
+## 4. LOCKED DECISIONS (owner-confirmed 2026-07-11)
 
-These are **recommended locked defaults** so implementation can start. If the product owner changes any, update this section before coding that task.
+**Do not change these without an explicit product-owner update.**
 
-| # | Decision | Default |
+| # | Decision | LOCKED value |
 |---|---|---|
-| D1 | App surface | Same Expo app as customer/shop. Login OTP → if user is a rider, show **RiderNavigator** (priority rules in D2). |
-| D2 | Identity priority | If user is **both** shop owner and rider (rare): prefer **shop** on login, with a switcher later (v1 can forbid dual assignment in admin — only one of `shops.owner_user_id` / `riders.user_id` per user). **Recommended v1: enforce mutually exclusive roles in admin UI.** |
+| D1 | App surface | Same Expo app as customer/shop. Login OTP → if user is a **rider** (and not shop), show **RiderNavigator**. |
+| D2 | One role per phone/user | **Hard mutual exclusion.** One `users` row / phone is **either** shop owner **or** rider **or** plain customer — **never** shop+rider. Admin create-rider rejects if user owns a shop; assign-shop-owner rejects if user is a rider. UI is completely different per role. |
 | D3 | JWT | Still `role: 'customer'`. Capability from DB (`requireRider` looks up `riders` by `user_id`). |
-| D4 | Assignment trigger | Start when **all shops with items on the order have confirmed** (`shop_confirmed_at` set for every distinct `shop_id` on the order). House-only / no-shop items: start when order reaches `Accepted` (no shops to wait for). |
-| D5 | Offer timer | **120 seconds**, server-side. Client shows remaining from `offer_expires_at`. Image’s “30–45s” is obsolete; rules text wins. |
-| D6 | Offline during offer | Do not reject for offline; only timeout or explicit reject. Offer stays on rider dashboard when app restarts (poll + socket rehydrate). |
-| D7 | Post-accept cancel | Rider can cancel assignment only before `Out for Delivery` (or before first pickup mark — see D9). Treated as reject → reassignment. |
-| D8 | Selection metric | “Least orders **completed** today” = count of orders with `rider_id = X` and `status = 'Delivered'` and `DATE(updated_at or delivered_at) = CURDATE()` in app timezone (use `Asia/Kolkata` or existing app TZ constant if any; document in code). |
-| D9 | Status after accept | On accept: set `orders.rider_id`, `orders.rider_assigned_at`, keep status `Accepted` or `Preparing` (do **not** jump to Out for Delivery). Rider marks **Picked up** (new soft field or status — see D10). Admin or rider can move to Out for Delivery / Delivered. |
-| D10 | New status values | Prefer **minimal ENUM change**: do **not** add new `orders.status` values in v1. Use columns: `rider_id`, `rider_assigned_at`, `rider_picked_up_at`. “Picked up” is a timestamp; “Out for Delivery” / “Delivered” stay existing statuses (rider endpoints call same compare-and-set rules as admin, or dedicated rider status endpoints that only allow those transitions for assigned rider). |
-| D11 | Zero riders at offer start | Cancel order with reason `No riders available`; admin notification type `rider_assignment_failed`. |
-| D12 | delivery_available | Auto-managed from active rider count. Admin manual PATCH still works as override; next rider online/offline event re-syncs to truth (document in Settings UI). |
-| D13 | Concurrent capacity | v1: a rider with an **active assignment** (`rider_id` set and status not in Delivered/Cancelled) is **not available** for new offers (`is_available` false). |
-| D14 | Push channel | Expo push via existing helper; data payload includes `{ type: 'rider_offer', orderId, offerId, expiresAt }`. |
-| D15 | Multi-instance API | Timers must survive multi-process: use **DB `offer_expires_at` + periodic sweeper** (every 5–10s) and/or single-leader in-memory timers with rehydrate on boot (same pattern as `orderAutoAccept.rehydratePendingOrders`). Prefer **DB + sweeper** for correctness. |
+| D4 | Assignment trigger | Start when **all shop owners on that order have Accepted** (`shop_confirmed_at` set for every distinct non-null `shop_id` on the order). First shop alone is not enough. House-only / no-shop items: start when order reaches `Accepted`. |
+| D5 | Offer timer | **120 seconds (2 minutes)**, server-side. Client shows remaining from `expires_at`. Diagram “30–45s” is **wrong / obsolete**. |
+| D6 | Offline during offer | Do **not** reject for offline. Offer stays pending full 2 min. App restart / dashboard reopen still shows popup until accept, reject, or timeout. |
+| D7 | Post-accept cancel | Allowed **only before pickup** (`rider_picked_up_at IS NULL`). Treated as reject → reassignment excluding that rider. **After pickup: cannot cancel.** |
+| D8 | Selection metric | Least **completed deliveries today** (`status = 'Delivered'`, `rider_id = X`, calendar day in **`Asia/Kolkata`**). Ties → random among tied riders. After reject, re-select among remaining eligible (exclude rejectors) with same rule. |
+| D9 | Status after accept | Set `orders.rider_id`, `rider_assigned_at`; do **not** auto-jump to Out for Delivery. Rider marks **Picked up** (`rider_picked_up_at`). |
+| D10 | Who sets Out for Delivery / Delivered | **Both rider and admin** may advance status (rider only for orders assigned to them; admin global as today). Minimal ENUM: no new status values; use timestamps + existing statuses. |
+| D11 | Zero / exhausted riders | Cancel order (`cancel_reason` e.g. `No riders available` / `No rider accepted`); Admin Orders page; Admin notification. Sync `delivery_available = OFF` when zero active riders globally. |
+| D12 | delivery_available | **Automatic** from active rider count: any rider online → ON; zero online → OFF. Call existing `syncGlobalShopOpenState` after flips. |
+| D13 | Concurrent capacity | Rider with an active assignment (order with their `rider_id` and status not Delivered/Cancelled) is **not** eligible for new offers. |
+| D14 | Push / alert | Expo push + Socket.IO in-app popup (see §16). Payload `{ type: 'rider_offer', orderId, offerId, expiresAt }`. **One rider at a time.** |
+| D15 | Multi-instance API | DB `expires_at` + periodic sweeper (5–10s) + boot rehydrate. Never rely only on in-memory timers. |
+| D16 | Rider creation | **Admin only.** New Admin panel **Riders** page: create by linking existing customer phone/user; activate/deactivate. No self-signup. |
+| D17 | Assignment mode | **Auto-assign engine only** (diagram rules). No admin “pick this rider” UI in v1. Admin can still cancel order / change status. |
 
 ---
 
-## 5. OPEN QUESTIONS (ask product owner before / during build)
+## 5. RESOLVED QUESTIONS (was open — now closed)
 
-Answer these and paste answers under each line. Tasks that depend on an answer are marked `(needs Qn)`.
+| # | Question | Owner answer | Plan impact |
+|---|---|---|---|
+| Q1 | When does rider assignment start? | When **all** shop owners accept (confirm) the order | D4; `maybeStartRiderAssignment` after last confirm |
+| Q2 | Who marks Out for Delivery / Delivered? | **Both** rider and admin | D10; rider status endpoints + existing admin PATCH |
+| Q3 | Cancel after pickup? | **No** | D7; API rejects cancel if `rider_picked_up_at` set |
+| Q4 | Admin manual assign? | **No** — only the auto rules you specified | D17; remove retry-manual-assign as product feature (optional internal recover endpoint not required) |
+| Q5 | Rider create? | **Admin only** + admin panel page | D16; TASK 9 Riders page |
+| Q6 | Timezone for “today”? | **Yes → Asia/Kolkata** | D8 |
+| Q7 | Same user shop + rider? | **No** — one phone = one role only (UI differs) | D2; enforce on admin create |
 
-1. **Q1 — Multi-shop trigger:** Confirm D4 (all shops confirm) vs start on first shop confirm vs start on platform `Accepted` without waiting for shops.
-2. **Q2 — Who marks Out for Delivery / Delivered:** Rider only, admin only, or both?
-3. **Q3 — Cancel after accept window:** Can rider cancel after marking picked up? (Default D7: no.)
-4. **Q4 — Customer refund messaging:** When cancelled for no rider, is cancel_reason customer-visible as-is?
-5. **Q5 — Admin manual assign:** Need admin UI to force-assign a rider in v1, or engine-only?
-6. **Q6 — Rider self-signup:** Admin-only create (recommended) vs rider requests access?
-7. **Q7 — Timezone for “today’s completed count”:** Confirm `Asia/Kolkata` or server local.
-8. **Q8 — Dual role:** Strict mutual exclusion (recommended) or allow shop+rider with mode switcher?
-
-Until answered, implementers use **LOCKED DECISIONS defaults**.
+No remaining product questions. Implementers execute tasks.
 
 ---
 
@@ -306,8 +317,10 @@ CREATE TABLE IF NOT EXISTS rider_order_offers (
   expires_at TIMESTAMP NOT NULL,
   responded_at TIMESTAMP NULL DEFAULT NULL,
   reject_reason VARCHAR(64) NULL,           -- 'manual' | 'timeout' | 'post_accept_cancel' | 'admin'
-  UNIQUE KEY uq_order_pending_offer (order_id, status), -- NOTE: MySQL unique with ENUM is imperfect;
-  -- Prefer application lock: only one status='pending' per order_id enforced in transactions.
+  -- NO unique key on (order_id, status): multiple rejected/expired rows per order are expected.
+  -- "Only one status='pending' per order" is enforced in the service layer (see below).
+  UNIQUE KEY uq_offer_order_rider (order_id, rider_id), -- HARD no-re-offer guarantee: a rider can
+  -- ever get at most ONE offer row per order → assignment loop always terminates at DB level.
   INDEX idx_offer_rider_status (rider_id, status),
   INDEX idx_offer_expires (status, expires_at),
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
@@ -323,9 +336,13 @@ SELECT id FROM rider_order_offers WHERE order_id = ? AND status = 'pending' FOR 
 
 inside a transaction before insert.
 
-### 6.4 Rejected riders set
+### 6.4 Rejected riders set (anti-loop memory)
 
-Derived from `rider_order_offers` where `status IN ('rejected','expired')` for that `order_id`. No separate table needed.
+Derived from `rider_order_offers` where `status IN ('rejected','expired')` for that `order_id`. No separate table needed — DB rows are the persistent “rejected riders” memory (survive restarts; per-order, so a rider excluded here is still eligible for *other* orders).
+
+**Post-accept cancel counts as rejected:** when a rider cancels after accepting (§7.9), UPDATE their `accepted` offer row to `status='rejected', reject_reason='post_accept_cancel'` (audit preserved via reject_reason + responded_at). Do **not** insert a second row. `status='cancelled'` is reserved for offers revoked because the *order* was cancelled — those riders are not “rejectors”.
+
+**Loop termination invariant:** every re-selection excludes all riders with an existing offer row for this order; `uq_offer_order_rider` makes re-offering the same rider impossible at DB level. Each cycle shrinks the eligible pool by ≥1, pool is finite → flow always ends in **accepted** or **failAssignment (cancel)**. Never loops.
 
 ### 6.5 Admin notification types (add to `TYPES`)
 
@@ -430,14 +447,17 @@ notify customer + shops + admin socket
 - Rider app on cold start: `GET /api/rider/offers/active` returns pending offer with `secondsRemaining`.
 - Going offline does not call reject API.
 
-### 7.9 Post-accept cancel
+### 7.9 Post-accept cancel (before pickup only)
 
 ```
 rider cancels assignment:
-  clear order.rider_id, rider_assigned_at, rider_picked_up_at
+  if rider_picked_up_at IS NOT NULL → 400 CANNOT_CANCEL_AFTER_PICKUP
+  clear order.rider_id, rider_assigned_at
   set rider_assignment_status = 'searching'
-  insert synthetic reject offer row (or mark accepted offer cancelled) with reject_reason='post_accept_cancel'
-  onRejectOrExpire flow excluding that rider
+  UPDATE their accepted offer row → status='rejected', reject_reason='post_accept_cancel'
+  (same row, no new insert — see §6.4; keeps them in the excluded set → they can NEVER
+   be re-offered this order, so no accept→cancel→re-offer loop)
+  onRejectOrExpire flow excluding that rider (re-fetch active, least-orders, one popup, …)
 ```
 
 ---
@@ -475,7 +495,7 @@ Both casings where surrounding responses already do: `isOnline` / `is_online`.
 | POST | `/offers/:offerId/accept` | Accept |
 | POST | `/offers/:offerId/reject` | Reject |
 | GET | `/assignments/current` | Active assigned order (if any) with customer address + shop list |
-| POST | `/assignments/:orderId/cancel` | Post-accept cancel → reassignment |
+| POST | `/assignments/:orderId/cancel` | Post-accept cancel → reassignment (**400 if already picked up**) |
 | POST | `/assignments/:orderId/picked-up` | Set `rider_picked_up_at` |
 | PATCH | `/assignments/:orderId/status` | Allowed: `Out for Delivery`, `Delivered` (only if `orders.rider_id` is this rider) |
 | GET | `/assignments/history` | Paginated past deliveries |
@@ -485,9 +505,11 @@ Both casings where surrounding responses already do: `isOnline` / `is_online`.
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/admin/riders` | List riders |
-| POST | `/api/admin/riders` | Create: `{ userId }` or `{ phone }` + displayName |
+| POST | `/api/admin/riders` | Create: `{ userId }` or `{ phone }` + displayName. **Reject 400** if user owns a shop. |
 | PATCH | `/api/admin/riders/:id` | Update active, displayName |
-| POST | `/api/admin/orders/:id/retry-rider-assignment` | Manual restart if failed/stuck (optional v1; Q5) |
+| — | *(no manual assign endpoint)* | Assignment is engine-only (D17) |
+
+When admin creates/updates a **shop** owner (`owner_user_id`), reject if that user is already a rider (D2).
 
 ### 8.4 Public / settings
 
@@ -513,13 +535,15 @@ Reuse `emitToCustomer` for riders (same as shops). Optional later: dedicated `ri
 ### 9.1 Auth & navigation
 
 1. Extend `useAuthStore`: `rider` field next to `shop`; hydrate from login/me.
-2. `RootNavigator` branch order:
+2. `RootNavigator` branch order (D2 guarantees shop and rider are never both set for one user):
 
 ```js
 if (isAuthenticated && shop) return <ShopOwnerNavigator />;
 if (isAuthenticated && rider) return <RiderNavigator />;
 return <CustomerNavigator />;
 ```
+
+Admin must never create overlapping roles; if data is corrupt and both exist, prefer shop and log error.
 
 3. New `RiderNavigator` tabs (v1):
    - **Dashboard** — online toggle, active job card, empty state
@@ -601,6 +625,10 @@ if changed:
   syncGlobalShopOpenState()  // existing
   emit settings.delivery_available.updated to customers
 ```
+
+**Definition for the gate:** `countActiveRiders()` counts riders that are `active=1 AND is_online=1 AND heartbeat fresh` — **ignoring** whether they are busy on a delivery. This follows the diagram literally (“Delivery OFF only when all riders offline”). Busy-ness (D13) only affects *offer eligibility*, not the gate.
+
+> ⚠️ **OWNER CHECK (non-blocking):** consequence of this definition — if the *only* online rider is mid-delivery, customers can still place orders, and those orders will be **cancelled at assignment** (zero eligible riders, D11/D13). Alternatives if unwanted: (a) gate counts only *eligible* (non-busy) riders → delivery flips OFF while the sole rider is on a job; or (b) engine waits/retries instead of cancelling when all online riders are busy → new policy, not in locked rules. Default implemented: literal diagram behavior above. Change requires an owner update to D11/D12/D13.
 
 Call from:
 
@@ -698,20 +726,24 @@ Call from:
   - timeout → next rider
   - double accept → one 409
   - offline does not auto-reject before timeout
+  - accept → post-accept cancel → rider NEVER re-offered same order (excluded set includes post_accept_cancel)
+  - loop termination: N riders all reject/timeout → exactly N offers total, then cancel (no rider offered twice)
 - [ ] 5.7 `npm test`.
 
 ---
 
-### TASK 6 — Wire shop confirm + house-item Accepted  `[P0]`
+### TASK 6 — Wire shop accept (all shops) + house-item Accepted  `[P0]`
 
 **Files:** `shopOwnerController.js`, `adminController.js` (status Accepted path), `orderAutoAccept.js`
 
+**Owner rule:** “when shop accept orders, riders get alert” = when **every** shop on the order has Accepted/confirmed.
+
 **Steps:**
 
-- [ ] 6.1 After `confirmMyOrder`, call `maybeStartRiderAssignment`.
+- [ ] 6.1 After `confirmMyOrder`, call `maybeStartRiderAssignment(orderId)` which **only** starts if all distinct `shop_id`s on the order have `shop_confirmed_at` set (and order not cancelled / not already assigning).
 - [ ] 6.2 On transition to `Accepted` when order has **no** shop-linked items, call `startAssignment`.
 - [ ] 6.3 On order cancel (admin/customer/shop-all-reject), revoke pending offers (`status=cancelled`), emit `rider.offer.revoked`.
-- [ ] 6.4 Tests covering multi-shop: assignment starts only after last shop confirms.
+- [ ] 6.4 Tests: multi-shop — first confirm does **not** start assignment; last confirm **does**. Single-shop confirm starts immediately after that shop accepts.
 - [ ] 6.5 `npm test`.
 
 ---
@@ -744,17 +776,18 @@ Call from:
 
 ---
 
-### TASK 9 — Admin: Riders CRUD + order fields  `[P1]`
+### TASK 9 — Admin: Riders page + order fields + mutual exclusion  `[P1]`
 
-**Files:** `adminController` or new `adminRiderController`, `adminRoutes`, admin React pages
+**Files:** `adminController` or new `adminRiderController`, `adminRoutes`, admin React pages, shop-owner assign path if any
 
 **Steps:**
 
-- [ ] 9.1 Admin API list/create/patch riders (link existing user by phone).
-- [ ] 9.2 Admin page Riders.
-- [ ] 9.3 Orders list/detail show rider name + assignment status + cancel reason.
-- [ ] 9.4 Settings copy for auto delivery availability.
-- [ ] 9.5 Lint admin; smoke-test builds if CI requires.
+- [ ] 9.1 Admin API list/create/patch riders (link existing user by phone). Create **fails** if user is already a shop owner (D2).
+- [ ] 9.2 When setting `shops.owner_user_id`, **fail** if that user is already a rider (D2).
+- [ ] 9.3 Admin **Riders** page (sidebar entry): list, create by phone, activate/deactivate, show online state. **No** self-signup. **No** manual order→rider assign control.
+- [ ] 9.4 Orders list/detail show rider name + assignment status + cancel reason (read-only).
+- [ ] 9.5 Settings copy: Delivery Available auto-follows rider online count.
+- [ ] 9.6 Lint admin; smoke-test builds if CI requires.
 
 ---
 
@@ -820,7 +853,7 @@ Not code — run and tick:
 - [ ] 14.4 Two riders: lower completed-today gets offer first.
 - [ ] 14.5 Timeout after 2 min → next rider.
 - [ ] 14.6 Kill app during popup → reopen before 2 min → popup still there → accept works.
-- [ ] 14.7 Accept then cancel assignment → other rider offered.
+- [ ] 14.7 Accept then cancel assignment → other rider offered; canceller never gets this order again.
 - [ ] 14.8 Never two riders with pending offer for same order (DB check).
 - [ ] 14.9 Multi-shop: first shop confirm does not start assignment; second does.
 - [ ] 14.10 Rider offline auto sets delivery off; online sets on.
@@ -832,7 +865,7 @@ Not code — run and tick:
 | Wave | Tasks | Outcome |
 |---|---|---|
 | W1 Foundation | 1–4 | Schema + identity + online toggle + delivery gate |
-| W2 Engine | 5–7 | Full assignment with HTTP + tests |
+| W2 Engine | 5, 7 | Full assignment with HTTP + tests |
 | W3 Integration | 6, 8 | Shop confirm trigger + notifications |
 | W4 Admin | 9 | Ops can create riders and see failures |
 | W5 Mobile | 10–12 | Riders can work the full loop |
@@ -890,6 +923,7 @@ Do **not** broadcast to all riders. Do **not** send a second offer while one is 
 | Dual shop+rider user | Enforce mutual exclusion in admin create |
 | Cancelling paid UPI order | Reuse existing cancel payment_status mapping (`Refunded` for UPI) |
 | Diagram 30–45s vs rules 2 min | Code uses 120s constant only |
+| Sole online rider is busy → new orders insta-cancel at assignment | Documented in §12 OWNER CHECK; gate stays ON per diagram; owner may change D11/D12/D13 |
 
 ---
 
@@ -966,18 +1000,42 @@ Feature is done when:
 
 | Product rule | Tasks |
 |---|---|
-| Shop accept → riders alerted | 6, 5, 11 |
+| When **all** shops accept → riders get alert | 6, 5, 11 |
+| How to send alert (push + socket + popup) | 5, 8, 11, §16 |
 | Zero riders → delivery OFF; any online → ON | 2, 4, 12 |
-| One rider popup accept/reject | 5, 7, 11 |
-| Multi rider least orders / random tie | 2, 5 |
+| One rider → popup accept/reject | 5, 7, 11 |
+| Multi rider → least orders today; tie random | 2, 5 |
+| Reject → re-check active → next / cancel | 5 |
 | 2 min timeout = reject | 5, 7, 11 |
-| Offline after popup ≠ immediate reject | 5, 11 |
-| Post-accept cancel = reject + reassign | 5, 7, 12 |
+| Offline after popup ≠ reject until 2 min | 5, 11 |
+| Accept then cancel (before pickup) = reject + reassign | 5, 7, 12 |
+| No cancel after pickup | 5, 7, 12 |
 | One rider at a time / no duplicate accept | 5, 7 |
-| Admin notify on failure | 5, 8, 9 |
+| Admin notify + order cancelled on failure | 5, 8, 9 |
 | Customer/shop notify | 8 |
-| Rider push + popup | 5, 8, 11 |
+| Admin-only rider create (Riders page) | 9 |
+| One phone = shop **or** rider, not both | 3, 9 |
+| Auto-assign only (no manual assign) | 5, 9 |
 
 ---
 
-*End of plan. Update OPEN QUESTIONS answers in section 5 before changing LOCKED DECISIONS.*
+## 22. DIAGRAM ↔ IMPLEMENTATION MAP
+
+| Diagram box | Implementation |
+|---|---|
+| 1. SHOP ACCEPTS ORDER | Last `confirmMyOrder` for multi-shop / single shop confirm (D4) |
+| 2. GET CURRENT ACTIVE RIDERS | `listEligibleRiders()` |
+| 3. ACTIVE RIDERS AVAILABLE? | empty → fail; else count |
+| ZERO RIDER AVAILABLE | cancel + delivery OFF + admin notify + admin orders |
+| 4. COUNT ACTIVE RIDERS | branch 5A / 5B |
+| 5A ONLY 1 | offer that rider, 120s timer |
+| 5B MORE THAN 1 | least orders today → random tie → offer one |
+| RIDER RESPONSE accept | assign + notify shop/customer |
+| REJECT / TIMEOUT | re-get active, exclude rejected, loop or cancel |
+| ANY RIDER LEFT? | yes → back to count/select; no → CANCEL ORDER |
+| NOTIFICATION / ALERT FLOW | offer row + Expo push + socket + popup |
+| AUTOMATIC DELIVERY AVAILABILITY | `syncDeliveryAvailabilityFromRiders` |
+
+---
+
+*End of plan. Decisions locked 2026-07-11. Implement TASK 1 → N in order.*
