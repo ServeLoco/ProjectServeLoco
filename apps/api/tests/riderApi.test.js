@@ -61,7 +61,10 @@ describe('Rider API skeleton - /api/rider', () => {
   });
 
   it('GET /me returns shaped rider for active rider', async () => {
-    pool.query.mockResolvedValueOnce([[RIDER_ROW]]);
+    pool.query
+      .mockResolvedValueOnce([[RIDER_ROW]]) // requireRider
+      .mockResolvedValueOnce([[]]) // current assignment
+      .mockResolvedValueOnce([[]]); // active offer
 
     const res = await request(app)
       .get('/api/rider/me')
@@ -76,6 +79,8 @@ describe('Rider API skeleton - /api/rider', () => {
       is_online: false,
       active: true,
     }));
+    expect(res.body.currentAssignment).toBeNull();
+    expect(res.body.activeOffer).toBeNull();
   });
 
   it('PATCH /me/online true sets online + heartbeat and syncs delivery', async () => {

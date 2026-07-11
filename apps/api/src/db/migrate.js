@@ -1006,7 +1006,9 @@ const migrate = async () => {
       { event_key: 'status_cancelled',         title: '❌ Order Cancelled',          body: 'Your order was cancelled. Contact us if you need help.' },
       { event_key: 'payment_paid',             title: '💰 Payment Received',        body: 'Your payment has been confirmed. Thank you!' },
       { event_key: 'payment_failed',           title: '⚠️ Payment Issue',           body: 'Payment failed. Please try again or contact support.' },
-      { event_key: 'payment_refunded',         title: '💸 Refund Processed',        body: 'Your payment has been refunded successfully.' }
+      { event_key: 'payment_refunded',         title: '💸 Refund Processed',        body: 'Your payment has been refunded successfully.' },
+      { event_key: 'rider_assigned',           title: '🛵 Rider Assigned',          body: 'A delivery partner has accepted your order and will pick it up soon.' },
+      { event_key: 'rider_picked_up',          title: '📦 Order Picked Up',         body: 'Your order has been picked up and is heading your way.' },
     ];
 
     for (const t of defaultTemplates) {

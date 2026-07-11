@@ -511,14 +511,14 @@ const acceptOffer = async (offerId, riderId) => {
       });
     } catch (_) { /* best-effort */ }
 
-    // Customer notification — best-effort (templates may not have rider_assigned yet)
+    // Customer notification — rider assigned
     try {
       const notificationService = require('../utils/notificationService');
       const realtimeEvents = require('../realtime/orderEvents');
       notificationService.createOrderNotification({
         userId: updated.customer_id,
         order: updated,
-        event: 'status_preparing', // reuse until rider_assigned template exists (TASK 8)
+        event: 'rider_assigned',
       }).then((result) => {
         if (result) realtimeEvents.emitNotificationCreated(updated.customer_id, result);
       }).catch(() => {});
@@ -688,13 +688,14 @@ const cancelAssignmentByRider = async (orderId, riderId) => {
  */
 const revokeOffersForOrder = async (orderId) => {
   try {
-    const [pending] = await pool.query(
+    const queryResult = await pool.query(
       `SELECT o.id AS offer_id, o.rider_id, r.user_id
        FROM rider_order_offers o
        JOIN riders r ON r.id = o.rider_id
        WHERE o.order_id = ? AND o.status = 'pending'`,
       [orderId]
     );
+    const pending = Array.isArray(queryResult?.[0]) ? queryResult[0] : [];
     await pool.query(
       `UPDATE rider_order_offers
        SET status = 'cancelled', responded_at = NOW(), reject_reason = 'admin'

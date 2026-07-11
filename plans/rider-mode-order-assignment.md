@@ -1,6 +1,6 @@
 # ProjectServeLoco — Rider Mode & Order Assignment
 
-Spec date: 2026-07-11 · Updated: 2026-07-12 · Branch: `feat/riderMode` · Status: **PLAN — TASK 1–6 done; TASK 7+ OPEN**  
+Spec date: 2026-07-11 · Updated: 2026-07-12 · Branch: `feat/riderMode` · Status: **PLAN — TASK 1–7 done; TASK 8+ OPEN**  
 Instruction spec for an implementing AI. Follow it literally.
 
 This plan turns the rider workflow diagram + rules into buildable work. It maps **what already exists**, **what must be built**, and **task-by-task steps** with files, acceptance criteria, and test commands.
@@ -788,12 +788,18 @@ Call from:
 
 **Steps:**
 
-- [ ] 7.1 `GET /offers/active`, accept, reject.
-- [ ] 7.2 Current assignment + history.
-- [ ] 7.3 Cancel assignment post-accept.
-- [ ] 7.4 Picked-up + status patch (Out for Delivery, Delivered) with ownership checks.
-- [ ] 7.5 Notification templates / `createOrderNotification` events for rider_assigned, picked_up (if templates table used — add migration seeds).
-- [ ] 7.6 `npm test`.
+- [x] 7.1 `GET /offers/active`, accept, reject.
+  NOTE (done): rider routes + controller wired to assignment engine.
+- [x] 7.2 Current assignment + history.
+  NOTE (done): GET assignments/current + history with pagination.
+- [x] 7.3 Cancel assignment post-accept.
+  NOTE (done): POST assignments/:orderId/cancel.
+- [x] 7.4 Picked-up + status patch (Out for Delivery, Delivered) with ownership checks.
+  NOTE (done): picked-up + PATCH status with forward-only + ownership.
+- [x] 7.5 Notification templates / `createOrderNotification` events for rider_assigned, picked_up (if templates table used — add migration seeds).
+  NOTE (done): migrate seeds + fallbacks in notificationService; accept uses rider_assigned.
+- [x] 7.6 `npm test`.
+  NOTE (done): 57 suites, 594 passed (incl. riderApi.offers).
 
 ---
 

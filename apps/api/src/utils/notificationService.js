@@ -143,6 +143,16 @@ const createOrderNotification = async ({ userId, order, event, connection = pool
         body = 'Your payment has been refunded successfully.';
         type = 'info';
         break;
+      case 'rider_assigned':
+        title = '🛵 Rider Assigned';
+        body = 'A delivery partner has accepted your order and will pick it up soon.';
+        type = 'info';
+        break;
+      case 'rider_picked_up':
+        title = '📦 Order Picked Up';
+        body = 'Your order has been picked up and is heading your way.';
+        type = 'info';
+        break;
       default:
         return null;
     }
