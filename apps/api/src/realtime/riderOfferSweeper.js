@@ -3,9 +3,10 @@
  * DB is source of truth (expires_at); works across multi-instance APIs.
  */
 
+const config = require('../config/env');
 const { expireDueOffers } = require('../services/riderAssignment');
 
-const RIDER_SWEEPER_MS = Number(process.env.RIDER_SWEEPER_MS) || 5000;
+const RIDER_SWEEPER_MS = config.RIDER_SWEEPER_MS || 5000;
 
 let timer = null;
 let running = false;

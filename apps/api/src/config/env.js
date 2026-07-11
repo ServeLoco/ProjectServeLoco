@@ -56,7 +56,13 @@ const config = {
   S3_REGION: process.env.S3_REGION,
   S3_PUBLIC_URL: process.env.S3_PUBLIC_URL,
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
-  AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY
+  AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+
+  // Rider assignment engine (optional overrides; defaults match product rules)
+  RIDER_OFFER_TIMEOUT_SEC: Number(process.env.RIDER_OFFER_TIMEOUT_SEC) || 120,
+  RIDER_HEARTBEAT_TTL_SEC: Number(process.env.RIDER_HEARTBEAT_TTL_SEC) || 90,
+  RIDER_SWEEPER_MS: Number(process.env.RIDER_SWEEPER_MS) || 5000,
+  RIDER_TODAY_TZ: process.env.RIDER_TODAY_TZ || '+05:30',
 };
 
 // Validation

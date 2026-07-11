@@ -1,12 +1,13 @@
 const { pool } = require('../db/mysql');
+const config = require('../config/env');
 
 // Soft presence window: a rider who toggled online but has not heartbeated
 // within this many seconds is treated as offline for eligibility + delivery gate.
-const RIDER_HEARTBEAT_TTL_SEC = Number(process.env.RIDER_HEARTBEAT_TTL_SEC) || 90;
+const RIDER_HEARTBEAT_TTL_SEC = config.RIDER_HEARTBEAT_TTL_SEC || 90;
 
 // Calendar day for "least orders completed today" (D8 = Asia/Kolkata).
 // Use fixed offset so MySQL does not require named timezone tables loaded.
-const RIDER_TODAY_TZ = process.env.RIDER_TODAY_TZ || '+05:30';
+const RIDER_TODAY_TZ = config.RIDER_TODAY_TZ || '+05:30';
 
 const riderShape = (r) => {
   if (!r) return null;

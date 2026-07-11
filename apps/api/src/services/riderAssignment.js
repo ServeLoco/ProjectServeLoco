@@ -6,13 +6,14 @@
  */
 
 const { pool } = require('../db/mysql');
+const config = require('../config/env');
 const {
   listEligibleRiders,
   selectEligibleRider,
   syncDeliveryAvailabilityFromRiders,
 } = require('../utils/riders');
 
-const RIDER_OFFER_TIMEOUT_SEC = Number(process.env.RIDER_OFFER_TIMEOUT_SEC) || 120;
+const RIDER_OFFER_TIMEOUT_SEC = config.RIDER_OFFER_TIMEOUT_SEC || 120;
 
 const getCancelledPaymentStatus = (paymentMethod) => (
   paymentMethod === 'UPI' ? 'Refunded' : 'Failed'

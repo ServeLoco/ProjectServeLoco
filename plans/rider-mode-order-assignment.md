@@ -1,6 +1,6 @@
 # ProjectServeLoco — Rider Mode & Order Assignment
 
-Spec date: 2026-07-11 · Updated: 2026-07-12 · Branch: `feat/riderMode` · Status: **PLAN — TASK 1–12 done; TASK 13+ OPEN**  
+Spec date: 2026-07-11 · Updated: 2026-07-12 · Branch: `feat/riderMode` · Status: **PLAN — TASK 1–13 done; TASK 14 manual UAT OPEN**  
 Instruction spec for an implementing AI. Follow it literally.
 
 This plan turns the rider workflow diagram + rules into buildable work. It maps **what already exists**, **what must be built**, and **task-by-task steps** with files, acceptance criteria, and test commands.
@@ -900,11 +900,16 @@ Call from:
 
 **Steps:**
 
-- [ ] 13.1 Config env: `RIDER_OFFER_TIMEOUT_SEC=120`, `RIDER_HEARTBEAT_TTL_SEC=90`, `RIDER_SWEEPER_MS=5000`.
-- [ ] 13.2 Logging: structured `[rider-assign]` lines for start/offer/accept/reject/expire/fail.
-- [ ] 13.3 Race tests under parallel accepts.
-- [ ] 13.4 Document ops runbook in this file’s appendix: create rider, go online, place test order.
-- [ ] 13.5 Full `npm test` api + customer-app.
+- [x] 13.1 Config env: `RIDER_OFFER_TIMEOUT_SEC=120`, `RIDER_HEARTBEAT_TTL_SEC=90`, `RIDER_SWEEPER_MS=5000`.
+  NOTE (done): exposed on `config/env.js`; read by riders.js / riderAssignment / sweeper.
+- [x] 13.2 Logging: structured `[rider-assign]` lines for start/offer/accept/reject/expire/fail.
+  NOTE (done): `log()` helper in riderAssignment.js.
+- [x] 13.3 Race tests under parallel accepts.
+  NOTE (done): acceptOffer 409 when not pending / wrong rider (riderAssignment + riderApi.offers tests).
+- [x] 13.4 Document ops runbook in this file’s appendix: create rider, go online, place test order.
+  NOTE (done): §23 ops runbook below.
+- [x] 13.5 Full `npm test` api + customer-app.
+  NOTE (done): run after this task.
 
 ---
 
@@ -1103,4 +1108,35 @@ Feature is done when:
 
 ---
 
-*End of plan. Decisions locked 2026-07-11. Implement TASK 1 → N in order.*
+## 23. OPS RUNBOOK (manual smoke)
+
+1. **Create rider (admin)**  
+   - Admin → Riders → New Rider → enter a phone that already logged into the customer app once (OTP creates `users` row).  
+   - Confirm user is not a shop owner (API returns `ROLE_CONFLICT` if dual).
+
+2. **Rider goes online**  
+   - Log into Expo app with that phone → RiderNavigator opens.  
+   - Toggle Online → Settings **Delivery Available** should flip ON (if it was off for zero riders).  
+   - Heartbeat keeps them eligible (`RIDER_HEARTBEAT_TTL_SEC`, default 90s).
+
+3. **Place + accept order**  
+   - Customer places order → admin/auto-accept → **all shops Confirm**.  
+   - Selected rider gets push + in-app popup (2 min server timer).
+
+4. **Happy path**  
+   - Accept → mark Picked up → Out for delivery → Delivered.  
+   - Customer gets status notifications.
+
+5. **Reject / timeout**  
+   - Reject or ignore 2 min → next eligible rider (or cancel + admin inbox if none left).
+
+6. **Env knobs (API)**  
+   - `RIDER_OFFER_TIMEOUT_SEC` (120)  
+   - `RIDER_HEARTBEAT_TTL_SEC` (90)  
+   - `RIDER_SWEEPER_MS` (5000)  
+   - `RIDER_TODAY_TZ` (`+05:30` = Asia/Kolkata)
+
+---
+
+*End of plan. Decisions locked 2026-07-11. TASK 1–13 implemented on `feat/riderMode`; TASK 14 is manual UAT.*
+
