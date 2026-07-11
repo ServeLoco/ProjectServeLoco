@@ -267,12 +267,17 @@ export function useLocalNotifications(navigationRef) {
           // when the notification relates to an order.
           ...(orderId ? { categoryIdentifier: 'order_update' } : {}),
           ...(Platform.OS === 'android' && {
-            channelId: 'serveloco-orders',
             // Tint the notification icon with the brand saffron color.
             color: BRAND_COLOR,
           }),
         },
-        trigger: null, // fire immediately
+        // Android: channelId must be on the trigger, not in content — in
+        // content it's silently ignored and the notification lands on the
+        // OS fallback channel, which has no sound/heads-up. A bare
+        // { channelId } trigger still fires immediately.
+        trigger: Platform.OS === 'android'
+          ? { channelId: 'serveloco-orders' }
+          : null,
       });
 
       console.log('[useLocalNotifications] Notification scheduled successfully');

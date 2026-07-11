@@ -28,9 +28,14 @@ export function useNewOrderAlert(active) {
           title: 'New order waiting',
           body: 'Accept or reject the order to keep the queue moving.',
           sound: 'default',
-          ...(Platform.OS === 'android' && { channelId: 'serveloco-orders' }),
         },
-        trigger: null,
+        // Android: channelId must be on the trigger, not in content — in
+        // content it's silently ignored and the notification lands on the
+        // OS fallback channel, which has no sound/heads-up. A bare
+        // { channelId } trigger still fires immediately.
+        trigger: Platform.OS === 'android'
+          ? { channelId: 'serveloco-orders' }
+          : null,
       }).catch(() => {});
     };
 
