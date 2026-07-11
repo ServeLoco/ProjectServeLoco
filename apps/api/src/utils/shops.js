@@ -71,4 +71,36 @@ const notifyShopsOrderCancelled = async (order) => {
   }
 };
 
-module.exports = { getShopForUser, notifyShopsForOrder, notifyShopsOrderCancelled };
+// If every active multi-vendor shop is now closed, auto-close the global
+// "Shop Status" banner (settings.shop_open) too, so the admin dashboard
+// doesn't keep showing "Open" while every shop that could fulfil an order
+// is closed. One-directional by design: re-opening any single shop does
+// NOT auto-reopen the global banner — that always requires an explicit
+// admin action, so a deliberate "we're fully closed" flip is never
+// silently undone by one shop owner flipping back on.
+// No-ops in single-vendor deployments (shops table empty/no active rows) —
+// nothing to auto-close based on.
+const autoCloseGlobalShopIfAllShopsClosed = async () => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+         SUM(active = 1) AS total_active,
+         SUM(active = 1 AND is_open = 1) AS total_open
+       FROM shops`
+    );
+    const totalActive = Number(rows[0]?.total_active) || 0;
+    const totalOpen = Number(rows[0]?.total_open) || 0;
+    if (totalActive === 0 || totalOpen > 0) return;
+
+    await pool.query('UPDATE settings SET shop_open = 0 WHERE shop_open = 1');
+  } catch (e) {
+    console.error('[shops] autoCloseGlobalShopIfAllShopsClosed failed:', e.message);
+  }
+};
+
+module.exports = {
+  autoCloseGlobalShopIfAllShopsClosed,
+  getShopForUser,
+  notifyShopsForOrder,
+  notifyShopsOrderCancelled,
+};

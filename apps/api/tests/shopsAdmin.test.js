@@ -107,7 +107,10 @@ describe('Admin Shop CRUD — /api/admin/shops', () => {
         id: 1, name: 'Burger Point', is_open: 1, active: 0,
         owner_user_id: 7, owner_name: 'Reza', owner_phone: '9999999999',
         product_count: 0, created_at: '2026-07-09 00:00:00'
-      }]]);
+      }]])
+      // autoCloseGlobalShopIfAllShopsClosed's SUM query — no other shops in
+      // this mock, so it no-ops (total_active 0) without touching settings.
+      .mockResolvedValueOnce([[{ total_active: 0, total_open: 0 }]]);
 
     const res = await request(app)
       .patch('/api/admin/shops/1')

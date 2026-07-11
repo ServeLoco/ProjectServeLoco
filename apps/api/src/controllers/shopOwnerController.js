@@ -1,5 +1,6 @@
 const { pool } = require('../db/mysql');
 const { emitToAdmins, emitToAllCustomers } = require('../realtime/socket');
+const { autoCloseGlobalShopIfAllShopsClosed } = require('../utils/shops');
 
 const shopShape = (s) => ({
   id: s.id,
@@ -41,6 +42,9 @@ const toggleMyShop = async (req, res) => {
   await pool.query('UPDATE shops SET is_open = ? WHERE id = ?', [isOpen ? 1 : 0, req.shop.id]);
   const [rows] = await pool.query('SELECT id, name, is_open, active FROM shops WHERE id = ?', [req.shop.id]);
   emitToAllCustomers('shop.status.updated', { shopId: req.shop.id, isOpen: Boolean(isOpen) });
+  if (!isOpen) {
+    await autoCloseGlobalShopIfAllShopsClosed();
+  }
   res.status(200).json({ message: 'Shop updated', shop: shopShape(rows[0]) });
 };
 
