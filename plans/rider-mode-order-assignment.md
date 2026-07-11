@@ -1,6 +1,6 @@
 # ProjectServeLoco — Rider Mode & Order Assignment
 
-Spec date: 2026-07-11 · Updated: 2026-07-11 (owner answers locked) · Branch: `feat/store-modes` · Status: **PLAN — decisions LOCKED, all tasks OPEN**  
+Spec date: 2026-07-11 · Updated: 2026-07-12 · Branch: `feat/riderMode` · Status: **PLAN — decisions LOCKED; TASK 1 done, rest OPEN**  
 Instruction spec for an implementing AI. Follow it literally.
 
 This plan turns the rider workflow diagram + rules into buildable work. It maps **what already exists**, **what must be built**, and **task-by-task steps** with files, acceptance criteria, and test commands.

@@ -118,6 +118,27 @@ const migrate = async () => {
     `);
     console.log('Shops table ready.');
 
+    // Riders — delivery partners. Same Firebase OTP login as customers;
+    // user_id points at a users row. active = admin kill switch; is_online =
+    // day-to-day toggle (with last_heartbeat_at for soft presence). v1: one
+    // phone is either shop owner OR rider, never both (enforced in admin API).
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS riders (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL UNIQUE,
+        display_name VARCHAR(255) NOT NULL,
+        phone VARCHAR(20) NULL,
+        active BOOLEAN DEFAULT TRUE,
+        is_online BOOLEAN DEFAULT FALSE,
+        last_heartbeat_at TIMESTAMP NULL DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_riders_online (active, is_online, last_heartbeat_at)
+      );
+    `);
+    console.log('Riders table ready.');
+
     // Product Groups — a shop owner's own bucket of products (e.g.
     // "Starters") that can be disabled all at once. active=false hides every
     // member product from customers exactly like a closed shop (see the
@@ -395,6 +416,14 @@ const migrate = async () => {
     // window and returns the existing order instead of inserting a new row.
     await ensureColumn('orders', 'idempotency_key', 'idempotency_key VARCHAR(64) DEFAULT NULL AFTER delivery_type');
     await ensureColumn('orders', 'idempotency_key_created_at', 'idempotency_key_created_at DATETIME DEFAULT NULL AFTER idempotency_key');
+    // Rider assignment (auto engine). No FK — integrity enforced in service layer
+    // (same pattern as products.shop_id). rider_assignment_status tracks engine
+    // progress; rider_picked_up_at is soft "picked up" without a new status enum.
+    await ensureColumn('orders', 'rider_id', 'rider_id INT NULL AFTER cancel_reason');
+    await ensureColumn('orders', 'rider_assigned_at', 'rider_assigned_at TIMESTAMP NULL DEFAULT NULL AFTER rider_id');
+    await ensureColumn('orders', 'rider_picked_up_at', 'rider_picked_up_at TIMESTAMP NULL DEFAULT NULL AFTER rider_assigned_at');
+    await ensureColumn('orders', 'rider_assignment_status',
+      "rider_assignment_status ENUM('none','searching','offered','assigned','failed') DEFAULT 'none' AFTER rider_picked_up_at");
 
     // Performance indexes for common order filter queries
     const ensureIndex = async (tableName, indexName, columns) => {
@@ -438,6 +467,7 @@ const migrate = async () => {
     await ensureIndex('products', 'idx_products_available_deleted', 'available, deleted');
     await ensureIndex('products', 'idx_products_shop', 'shop_id');
     await ensureIndex('products', 'idx_products_group', 'group_id');
+    await ensureIndex('orders', 'idx_orders_rider', 'rider_id, status');
     // NOTE: indexes for `notifications` and `offer_products` are added after
     // those tables are created later in this file (a fresh DB has no such
     // tables yet at this point).
@@ -502,6 +532,28 @@ const migrate = async () => {
     }
     await ensureIndex('order_items', 'idx_order_items_shop', 'shop_id, order_id');
     console.log('Order Items table ready.');
+
+    // Rider order offers — sequential Accept/Reject attempts (one pending offer
+    // per order enforced in the assignment service, not via a partial unique).
+    // uq_offer_order_rider guarantees a rider is never re-offered the same order.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS rider_order_offers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id INT NOT NULL,
+        rider_id INT NOT NULL,
+        status ENUM('pending','accepted','rejected','expired','cancelled') NOT NULL DEFAULT 'pending',
+        offered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP NOT NULL,
+        responded_at TIMESTAMP NULL DEFAULT NULL,
+        reject_reason VARCHAR(64) NULL,
+        UNIQUE KEY uq_offer_order_rider (order_id, rider_id),
+        INDEX idx_offer_rider_status (rider_id, status),
+        INDEX idx_offer_expires (status, expires_at),
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+        FOREIGN KEY (rider_id) REFERENCES riders(id) ON DELETE CASCADE
+      );
+    `);
+    console.log('Rider order offers table ready.');
 
     // Settings Table
     await connection.query(`
