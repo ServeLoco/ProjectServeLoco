@@ -5,3 +5,5 @@ export * from './useNetworkStatus';
 export * from './useRealtimeConnectionState';
 export * from './useShopStatusSync';
 export * from './useStoreModes';
+export * from './useRiderOfferAlert';
+export * from './useNewOrderAlert';

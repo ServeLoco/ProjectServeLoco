@@ -866,12 +866,18 @@ Call from:
 
 **Steps:**
 
-- [ ] 11.1 Popup UI (address + shops + countdown from expiresAt).
-- [ ] 11.2 Socket subscribe `rider.offer.created` / expired / revoked.
-- [ ] 11.3 Cold-start rehydrate active offer.
-- [ ] 11.4 Heartbeat while online.
-- [ ] 11.5 Accept/reject call API; errors show inline.
-- [ ] 11.6 Tests for remaining-time calculation helper.
+- [x] 11.1 Popup UI (address + shops + countdown from expiresAt).
+  NOTE (done): RiderOfferPopup — server expiresAt countdown.
+- [x] 11.2 Socket subscribe `rider.offer.created` / expired / revoked.
+  NOTE (done): dashboard socket handlers + re-fetch offer.
+- [x] 11.3 Cold-start rehydrate active offer.
+  NOTE (done): fetchAll + getActiveOffer on mount/foreground.
+- [x] 11.4 Heartbeat while online.
+  NOTE (done): 35s interval + AppState active.
+- [x] 11.5 Accept/reject call API; errors show inline.
+  NOTE (done): popup inline errors; API accept/reject.
+- [x] 11.6 Tests for remaining-time calculation helper.
+  NOTE (done): __tests__/riderOfferTime.test.js (5 cases).
 
 ---
 
@@ -879,10 +885,14 @@ Call from:
 
 **Steps:**
 
-- [ ] 12.1 Job card: navigate / call customer (tel link), mark picked up, out for delivery, delivered.
-- [ ] 12.2 Cancel assignment with confirm modal.
-- [ ] 12.3 History tab.
-- [ ] 12.4 Logout clears online state best-effort (`isOnline: false` on logout).
+- [x] 12.1 Job card: navigate / call customer (tel link), mark picked up, out for delivery, delivered.
+  NOTE (done): RiderDashboardScreen job card actions.
+- [x] 12.2 Cancel assignment with confirm modal.
+  NOTE (done): Alert confirm; blocked after pickup.
+- [x] 12.3 History tab.
+  NOTE (done): RiderHistoryScreen (from TASK 10).
+- [x] 12.4 Logout clears online state best-effort (`isOnline: false` on logout).
+  NOTE (done): handleLogout calls setOnline(false) first.
 
 ---
 
