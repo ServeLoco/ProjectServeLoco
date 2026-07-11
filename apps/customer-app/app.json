@@ -23,7 +23,9 @@
           "icon": "./assets/icon/adaptive-icon-foreground.png",
           "color": "#FF6B35"
         }
-      ]
+      ],
+      "expo-audio",
+      "expo-asset"
     ],
     "ios": {
       "supportsTablet": true,
