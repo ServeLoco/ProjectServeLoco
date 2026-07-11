@@ -41,6 +41,8 @@ export default function MobileDashboard() {
     display_order: 0,
     max_visible_items: DEFAULT_MAX_VISIBLE_BY_SECTION.product_block,
     show_see_all: 1,
+    show_hot_badge: 0,
+    section_icon: '',
     linked_category_id: '',
     linked_offer_id: '',
     starts_at: '',
@@ -120,6 +122,8 @@ export default function MobileDashboard() {
         display_order: section.display_order || 0,
         max_visible_items: section.max_visible_items !== undefined ? section.max_visible_items : 6,
         show_see_all: section.show_see_all === 1 || section.show_see_all === true ? 1 : 0,
+        show_hot_badge: section.show_hot_badge === 1 || section.show_hot_badge === true ? 1 : 0,
+        section_icon: section.section_icon || '',
         linked_category_id: section.linked_category_id || '',
         linked_offer_id: section.linked_offer_id || '',
         starts_at: formatDateToLocalInput(section.starts_at),
@@ -233,6 +237,8 @@ export default function MobileDashboard() {
         display_order: Number(newSectionForm.display_order),
         max_visible_items: Number(newSectionForm.max_visible_items),
         show_see_all: Number(newSectionForm.show_see_all),
+        show_hot_badge: Number(newSectionForm.show_hot_badge),
+        section_icon: newSectionForm.section_icon || null,
         linked_category_id: newSectionForm.linked_category_id ? Number(newSectionForm.linked_category_id) : null,
         linked_offer_id: newSectionForm.linked_offer_id ? Number(newSectionForm.linked_offer_id) : null,
         starts_at: localInputToUtcIso(newSectionForm.starts_at),
@@ -252,6 +258,8 @@ export default function MobileDashboard() {
         display_order: 0,
         max_visible_items: DEFAULT_MAX_VISIBLE_BY_SECTION.product_block,
         show_see_all: 1,
+        show_hot_badge: 0,
+        section_icon: '',
         linked_category_id: '',
         linked_offer_id: '',
         starts_at: '',
@@ -286,6 +294,8 @@ export default function MobileDashboard() {
         display_order: Number(editForm.display_order),
         max_visible_items: Number(editForm.max_visible_items),
         show_see_all: Number(editForm.show_see_all),
+        show_hot_badge: Number(editForm.show_hot_badge),
+        section_icon: editForm.section_icon || null,
         linked_category_id: editForm.linked_category_id ? Number(editForm.linked_category_id) : null,
         linked_offer_id: editForm.linked_offer_id ? Number(editForm.linked_offer_id) : null,
         starts_at: localInputToUtcIso(editForm.starts_at),
@@ -693,26 +703,60 @@ export default function MobileDashboard() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '2rem', marginTop: '0.25rem' }}>
-                  <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input 
-                      type="checkbox" 
-                      name="active" 
-                      checked={editForm.active === 1} 
-                      onChange={e => handleEditFormChange({ target: { name: 'active', checked: e.target.checked, type: 'checkbox' } })} 
-                    />
-                    Active (Visible on Dashboard)
-                  </label>
-                  
-                  <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input 
-                      type="checkbox" 
-                      name="show_see_all" 
-                      checked={editForm.show_see_all === 1} 
-                      onChange={e => handleEditFormChange({ target: { name: 'show_see_all', checked: e.target.checked, type: 'checkbox' } })} 
-                    />
-                    Show "See All" button
-                  </label>
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Section Icon (shown before title in customer app)</label>
+                    <select
+                      name="section_icon"
+                      className="form-select"
+                      value={editForm.section_icon || ''}
+                      onChange={handleEditFormChange}
+                    >
+                      <option value="">— Default (based on section type) —</option>
+                      <option value="box">Box (categories)</option>
+                      <option value="shoppingBag">Shopping Bag (products)</option>
+                      <option value="star">Star (combos / special)</option>
+                      <option value="ticket">Ticket (offers)</option>
+                      <option value="home">Home</option>
+                      <option value="heart">Heart (favourites)</option>
+                      <option value="clock">Clock (timed)</option>
+                      <option value="search">Search</option>
+                      <option value="settings">Settings</option>
+                    </select>
+                    <div className="form-hint">Leave blank to use the section-type default icon.</div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Display</label>
+                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem' }}>
+                      <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input 
+                          type="checkbox" 
+                          name="active" 
+                          checked={editForm.active === 1} 
+                          onChange={e => handleEditFormChange({ target: { name: 'active', checked: e.target.checked, type: 'checkbox' } })} 
+                        />
+                        Active
+                      </label>
+                      <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input 
+                          type="checkbox" 
+                          name="show_see_all" 
+                          checked={editForm.show_see_all === 1} 
+                          onChange={e => handleEditFormChange({ target: { name: 'show_see_all', checked: e.target.checked, type: 'checkbox' } })} 
+                        />
+                        "See All"
+                      </label>
+                      <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input 
+                          type="checkbox" 
+                          name="show_hot_badge" 
+                          checked={editForm.show_hot_badge === 1} 
+                          onChange={e => handleEditFormChange({ target: { name: 'show_hot_badge', checked: e.target.checked, type: 'checkbox' } })} 
+                        />
+                        HOT badge
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="form-actions-row">
@@ -1001,25 +1045,59 @@ export default function MobileDashboard() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '2rem', marginTop: '0.5rem' }}>
-                  <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input 
-                      type="checkbox" 
-                      name="active" 
-                      checked={newSectionForm.active === 1} 
-                      onChange={e => handleModalFormChange({ target: { name: 'active', checked: e.target.checked, type: 'checkbox' } })} 
-                    />
-                    Active Immediately
-                  </label>
-                  <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input 
-                      type="checkbox" 
-                      name="show_see_all" 
-                      checked={newSectionForm.show_see_all === 1} 
-                      onChange={e => handleModalFormChange({ target: { name: 'show_see_all', checked: e.target.checked, type: 'checkbox' } })} 
-                    />
-                    Show "See All"
-                  </label>
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Section Icon</label>
+                    <select
+                      name="section_icon"
+                      className="form-select"
+                      value={newSectionForm.section_icon || ''}
+                      onChange={handleModalFormChange}
+                    >
+                      <option value="">— Default (based on section type) —</option>
+                      <option value="box">Box (categories)</option>
+                      <option value="shoppingBag">Shopping Bag (products)</option>
+                      <option value="star">Star (combos / special)</option>
+                      <option value="ticket">Ticket (offers)</option>
+                      <option value="home">Home</option>
+                      <option value="heart">Heart (favourites)</option>
+                      <option value="clock">Clock (timed)</option>
+                      <option value="search">Search</option>
+                      <option value="settings">Settings</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Display</label>
+                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem' }}>
+                      <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input 
+                          type="checkbox" 
+                          name="active" 
+                          checked={newSectionForm.active === 1} 
+                          onChange={e => handleModalFormChange({ target: { name: 'active', checked: e.target.checked, type: 'checkbox' } })} 
+                        />
+                        Active
+                      </label>
+                      <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input 
+                          type="checkbox" 
+                          name="show_see_all" 
+                          checked={newSectionForm.show_see_all === 1} 
+                          onChange={e => handleModalFormChange({ target: { name: 'show_see_all', checked: e.target.checked, type: 'checkbox' } })} 
+                        />
+                        "See All"
+                      </label>
+                      <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input 
+                          type="checkbox" 
+                          name="show_hot_badge" 
+                          checked={newSectionForm.show_hot_badge === 1} 
+                          onChange={e => handleModalFormChange({ target: { name: 'show_hot_badge', checked: e.target.checked, type: 'checkbox' } })} 
+                        />
+                        HOT badge
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
 

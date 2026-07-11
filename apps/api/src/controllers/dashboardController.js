@@ -174,7 +174,7 @@ const ensureModeSpecificOfferBannerSections = async () => {
       const [insertResult] = await pool.query(
         `INSERT INTO dashboard_sections (
           title, slug, section_type, store_type, active, display_order,
-          max_visible_items, show_see_all, linked_category_id, linked_offer_id,
+          max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id,
           starts_at, ends_at, version
         ) VALUES (?, ?, 'offer_banner', ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
         [
@@ -400,7 +400,7 @@ const getDashboard = async (req, res) => {
 
   try {
     let query = `
-      SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at
+      SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at
       FROM dashboard_sections
       WHERE active = 1 AND deleted_at IS NULL
         AND (starts_at IS NULL OR starts_at <= NOW())
@@ -522,6 +522,8 @@ const getDashboard = async (req, res) => {
           displayOrder: section.display_order,
           maxVisibleItems: section.max_visible_items,
           showSeeAll: section.show_see_all === 1 || section.show_see_all === true,
+          showHotBadge: section.show_hot_badge === 1 || section.show_hot_badge === true,
+          sectionIcon: section.section_icon || null,
           totalItems,
           hasMore: totalItems > visibleItems.length,
           items: visibleItems
@@ -564,7 +566,7 @@ const getSectionItems = async (req, res) => {
 
   try {
     let sectionQuery = `
-      SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at
+      SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at
       FROM dashboard_sections
       WHERE slug = ? AND active = 1 AND deleted_at IS NULL
         AND (starts_at IS NULL OR starts_at <= NOW())
@@ -724,7 +726,9 @@ const getSectionItems = async (req, res) => {
           title: section.title,
           slug: section.slug,
           sectionType: section.section_type,
-          storeType: section.store_type
+          storeType: section.store_type,
+          showHotBadge: section.show_hot_badge === 1 || section.show_hot_badge === true,
+          sectionIcon: section.section_icon || null
         },
         items
       }
@@ -744,7 +748,7 @@ const getAdminSections = async (req, res) => {
       await ensureModeSpecificOfferBannerSections();
     }
 
-    let query = 'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE deleted_at IS NULL';
+    let query = 'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE deleted_at IS NULL';
     const params = [];
     if (store_type) {
       query += ' AND (store_type = ? OR (store_type = "all" AND section_type != "offer_banner"))';
@@ -765,7 +769,7 @@ const getAdminSectionById = async (req, res) => {
   const { id } = req.params;
   try {
     const [sections] = await pool.query(
-      'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL',
+      'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL',
       [id]
     );
     if (sections.length === 0) {
@@ -823,7 +827,7 @@ const getAdminSectionById = async (req, res) => {
  * Admin: POST /api/admin/dashboard-sections
  */
 const createAdminSection = async (req, res) => {
-  const { title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at } = req.body;
+  const { title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at } = req.body;
 
   if (store_type === 'all' || !store_type) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be explicitly packed or fast_food for new sections.' });
@@ -858,15 +862,18 @@ const createAdminSection = async (req, res) => {
 
     const [result] = await pool.query(
       `INSERT INTO dashboard_sections (
-        title, slug, section_type, store_type, active, display_order, 
-        max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        title, slug, section_type, store_type, active, display_order,
+        max_visible_items, show_see_all, show_hot_badge, section_icon,
+        linked_category_id, linked_offer_id, starts_at, ends_at, version
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
       [
-        title, slug, section_type, store_type, 
-        active !== undefined ? active : 1, 
+        title, slug, section_type, store_type,
+        active !== undefined ? active : 1,
         finalDisplayOrder,
         maxVisibleItems,
         show_see_all !== undefined ? show_see_all : 1,
+        show_hot_badge !== undefined ? (show_hot_badge ? 1 : 0) : 0,
+        section_icon || null,
         linked_category_id || null,
         linked_offer_id || null,
         starts_at || null,
@@ -885,7 +892,7 @@ const createAdminSection = async (req, res) => {
  */
 const updateAdminSection = async (req, res) => {
   const { id } = req.params;
-  const { title, slug, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version } = req.body;
+  const { title, slug, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version } = req.body;
 
   if (store_type === 'all') {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be explicitly packed or fast_food. "all" is no longer allowed.' });
@@ -941,7 +948,8 @@ const updateAdminSection = async (req, res) => {
     await pool.query(
       `UPDATE dashboard_sections SET
         title = ?, slug = ?, store_type = ?, active = ?, display_order = ?,
-        max_visible_items = ?, show_see_all = ?, linked_category_id = ?, linked_offer_id = ?,
+        max_visible_items = ?, show_see_all = ?, show_hot_badge = ?, section_icon = ?,
+        linked_category_id = ?, linked_offer_id = ?,
         starts_at = ?, ends_at = ?, version = ?
        WHERE id = ?`,
       [
@@ -952,6 +960,8 @@ const updateAdminSection = async (req, res) => {
         display_order !== undefined ? finalDisplayOrder : existingSection.display_order,
         max_visible_items !== undefined ? asPositiveInteger(max_visible_items, existingSection.max_visible_items) : existingSection.max_visible_items,
         show_see_all !== undefined ? show_see_all : existingSection.show_see_all,
+        show_hot_badge !== undefined ? (show_hot_badge ? 1 : 0) : existingSection.show_hot_badge,
+        section_icon !== undefined ? section_icon : existingSection.section_icon,
         linked_category_id !== undefined ? linked_category_id : existingSection.linked_category_id,
         linked_offer_id !== undefined ? linked_offer_id : existingSection.linked_offer_id,
         starts_at !== undefined ? starts_at : existingSection.starts_at,
@@ -1022,7 +1032,7 @@ const addAdminSectionItem = async (req, res) => {
 
   try {
     const [sections] = await pool.query(
-      'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL',
+      'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL',
       [id]
     );
     if (sections.length === 0) {

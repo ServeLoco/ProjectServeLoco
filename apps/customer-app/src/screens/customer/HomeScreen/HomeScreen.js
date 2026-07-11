@@ -582,7 +582,26 @@ export default function HomeScreen() {
                   <View style={styles.sectionHeader}>
                     <View style={styles.titleRow}>
                       <View style={styles.headerIndicator} />
+                      {(section.sectionIcon === 'box' || (!section.sectionIcon && section.sectionType === 'category_grid')) && (
+                        <AppIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                      )}
+                      {section.sectionIcon && section.sectionIcon !== 'box' && (
+                        <AppIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                      )}
                       <Text style={styles.sectionTitlePremium}>{section.title || 'Shop by Category'}</Text>
+                      {section.showHotBadge === true && (
+                        <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
+                          <LinearGradient
+                            colors={['#FF6B6B', '#FF8E53']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.hotBadgeGradient}
+                          >
+                            <AppIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
+                            <Text style={styles.hotBadgeText}>HOT</Text>
+                          </LinearGradient>
+                        </Animated.View>
+                      )}
                     </View>
                   </View>
                   <Animated.FlatList
@@ -653,17 +672,20 @@ export default function HomeScreen() {
                   <View style={styles.sectionHeader}>
                     <View style={styles.titleRow}>
                       <View style={styles.headerIndicator} />
-                      {section.sectionType === 'category_grid' && (
+                      {(section.sectionIcon === 'box' || (!section.sectionIcon && section.sectionType === 'category_grid')) && (
                         <AppIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                       )}
-                      {section.sectionType === 'product_block' && (
+                      {(section.sectionIcon === 'shoppingBag' || (!section.sectionIcon && section.sectionType === 'product_block')) && (
                         <AppIcon name="shoppingBag" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
                       )}
-                      {isComboBlock && (
+                      {(section.sectionIcon === 'star' || (!section.sectionIcon && isComboBlock)) && (
                         <AppIcon name="star" size={14} color={colors.primary} fill={colors.primary} style={styles.sectionTypeIcon} />
                       )}
+                      {section.sectionIcon && section.sectionIcon !== 'box' && section.sectionIcon !== 'shoppingBag' && section.sectionIcon !== 'star' && (
+                        <AppIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                      )}
                       <Text style={styles.sectionTitlePremium}>{section.title}</Text>
-                      {isComboBlock && (
+                      {(isComboBlock || section.showHotBadge === true) && (
                         <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
                           <LinearGradient
                             colors={['#FF6B6B', '#FF8E53']}

@@ -622,6 +622,8 @@ const migrate = async () => {
         display_order INT NOT NULL DEFAULT 0,
         max_visible_items INT NOT NULL DEFAULT 6,
         show_see_all BOOLEAN DEFAULT TRUE,
+        show_hot_badge BOOLEAN DEFAULT FALSE,
+        section_icon VARCHAR(50) DEFAULT NULL,
         linked_category_id INT DEFAULT NULL,
         linked_offer_id INT DEFAULT NULL,
         starts_at TIMESTAMP NULL DEFAULT NULL,
@@ -640,6 +642,8 @@ const migrate = async () => {
     await ensureColumn('dashboard_sections', 'ends_at', 'ends_at TIMESTAMP NULL DEFAULT NULL AFTER starts_at');
     await ensureColumn('dashboard_sections', 'version', 'version INT NOT NULL DEFAULT 1 AFTER ends_at');
     await ensureColumn('dashboard_sections', 'deleted_at', 'deleted_at TIMESTAMP NULL DEFAULT NULL AFTER version');
+    await ensureColumn('dashboard_sections', 'show_hot_badge', 'show_hot_badge BOOLEAN DEFAULT FALSE AFTER show_see_all');
+    await ensureColumn('dashboard_sections', 'section_icon', "section_icon VARCHAR(50) DEFAULT NULL AFTER show_hot_badge");
     await connection.query('ALTER TABLE dashboard_sections MODIFY COLUMN store_type VARCHAR(50) NOT NULL DEFAULT "all"');
     console.log('Dashboard sections table ready.');
     try {
@@ -746,8 +750,8 @@ const migrate = async () => {
       if (existing.length > 0) return { id: existing[0].id, isNew: false };
 
       const [result] = await connection.query(`
-        INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all)
-        VALUES (?, ?, ?, 'all', ?, ?, ?)
+        INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon)
+        VALUES (?, ?, ?, 'all', ?, ?, ?, 0, NULL)
       `, [title, slug, sectionType, displayOrder, maxVisibleItems, showSeeAll]);
       return { id: result.insertId, isNew: true };
     };
@@ -883,16 +887,16 @@ const migrate = async () => {
     for (const sec of allOfferSections) {
       // 1. Create packed section
       const [packedResult] = await connection.query(
-        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at)
-         VALUES (?, ?, ?, 'packed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [sec.title, sec.slug + '-packed', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at]
+        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at)
+         VALUES (?, ?, ?, 'packed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [sec.title, sec.slug + '-packed', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.show_hot_badge, sec.section_icon, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at]
       );
       const packedId = packedResult.insertId;
 
       // 2. Create fast_food section
       const [fastFoodResult] = await connection.query(
-        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at)
-         VALUES (?, ?, ?, 'fast_food', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at)
+         VALUES (?, ?, ?, 'fast_food', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [sec.title, sec.slug + '-fast-food', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at]
       );
       const fastFoodId = fastFoodResult.insertId;
