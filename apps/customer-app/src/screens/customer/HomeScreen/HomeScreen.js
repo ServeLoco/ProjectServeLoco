@@ -104,8 +104,9 @@ export default function HomeScreen() {
 
   // Notification badge pulse
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const hotBadgePulse = useRef(new Animated.Value(1)).current;
   const unreadRefreshTimer = useRef(null);
-  
+
   // Staggered entry for cards
   const staggerCatAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
   const staggerComboAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
@@ -304,10 +305,28 @@ export default function HomeScreen() {
     );
     pulseLoop.start();
 
+    // HOT badge subtle pulse (scale 1 -> 1.08)
+    const hotPulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(hotBadgePulse, {
+          toValue: 1.08,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(hotBadgePulse, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    hotPulseLoop.start();
+
     return () => {
       pulseLoop.stop();
+      hotPulseLoop.stop();
     };
-  }, [pulseAnim]);
+  }, [pulseAnim, hotBadgePulse]);
 
   const handleSearchPress = (query) => {
     // Search across both modes (packed + fast food) so users
@@ -634,11 +653,28 @@ export default function HomeScreen() {
                   <View style={styles.sectionHeader}>
                     <View style={styles.titleRow}>
                       <View style={styles.headerIndicator} />
+                      {section.sectionType === 'category_grid' && (
+                        <AppIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                      )}
+                      {section.sectionType === 'product_block' && (
+                        <AppIcon name="shoppingBag" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                      )}
+                      {isComboBlock && (
+                        <AppIcon name="star" size={14} color={colors.primary} fill={colors.primary} style={styles.sectionTypeIcon} />
+                      )}
                       <Text style={styles.sectionTitlePremium}>{section.title}</Text>
                       {isComboBlock && (
-                        <View style={styles.hotBadge}>
-                          <Text style={styles.hotBadgeText}>HOT</Text>
-                        </View>
+                        <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
+                          <LinearGradient
+                            colors={['#FF6B6B', '#FF8E53']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.hotBadgeGradient}
+                          >
+                            <AppIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
+                            <Text style={styles.hotBadgeText}>HOT</Text>
+                          </LinearGradient>
+                        </Animated.View>
                       )}
                     </View>
                   </View>
@@ -2176,22 +2212,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: radius.xs,
   },
+  sectionTypeIcon: {
+    marginRight: 2,
+  },
   sectionTitlePremium: {
     ...typography.h3,
     color: colors.textPrimary,
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
   hotBadge: {
-    backgroundColor: 'rgba(255, 75, 75, 0.1)',
-    borderRadius: radius.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: radius.md,
     marginLeft: spacing.xs,
+    overflow: 'hidden',
+  },
+  hotBadgeGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  hotBadgeIcon: {
+    marginTop: 0,
   },
   hotBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: colors.error || '#FF4B4B',
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   sectionSubtitle: {
     ...typography.caption,
