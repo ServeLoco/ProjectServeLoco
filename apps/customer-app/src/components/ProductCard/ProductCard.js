@@ -63,7 +63,9 @@ function ProductCard({
   const resolvedPrice = product.price ?? price;
   const resolvedOriginalPrice = product.originalPrice ?? product.original_price ?? originalPrice;
   const resolvedUnit = product.unit ?? unit;
-  const resolvedImageUrl = product.imageUrl ?? product.imageUri ?? imageUrl ?? imageUri;
+  // Prefer server thumbnail on cards; fall back to full-size when no thumb.
+  const resolvedImageUrl =
+    product.thumbUrl ?? product.thumb_url ?? product.imageUrl ?? product.imageUri ?? imageUrl ?? imageUri;
   const resolvedDisabled = product.disabled ?? disabled ?? false;
   const resolvedAvailable = product.available ?? available ?? product.isAvailable ?? !resolvedDisabled;
   const isShopClosed = product.shopIsOpen === false || product.shop_is_open === false || product.shopIsOpen === 0 || product.shop_is_open === 0;

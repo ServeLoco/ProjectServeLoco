@@ -263,7 +263,7 @@ export default function CategoriesScreen() {
                         <View style={styles.categoryAccent} />
                         <View style={[styles.categoryImageFrame, { width: categoryImageWidth }]}>
                           <ProductImage
-                            uri={cat.imageUri}
+                            uri={cat.thumbUrl || cat.imageUri}
                             width="100%"
                             height="100%"
                             borderRadius={radius.lg}

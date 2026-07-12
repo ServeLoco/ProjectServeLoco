@@ -147,6 +147,8 @@ function normalizeProduct(item = {}) {
   const isCombo = asBoolean(pickFirst(item.isCombo, item.is_combo), false);
   const comboItems = getComboItems(item);
   const imageUrl = normalizeImageUrl(pickFirst(item.imageUrl, item.image_url, item.image, item.url, null));
+  // Thumbnail for list cards (null when legacy image has no thumb yet).
+  const thumbUrl = normalizeImageUrl(pickFirst(item.thumbUrl, item.thumb_url, null));
   const variants = asArray(item.variants, ['variants'])
     .map(normalizeVariant)
     .sort((a, b) => a.displayOrder - b.displayOrder);
@@ -167,6 +169,8 @@ function normalizeProduct(item = {}) {
     available: asBoolean(pickFirst(item.available, item.isAvailable, item.is_available, item.inStock), true),
     imageUrl,
     imageUri: imageUrl,
+    thumbUrl,
+    thumb_url: thumbUrl,
     description: pickFirst(item.description, item.shortDescription, item.short_description, ''),
     isCombo,
     is_combo: isCombo,
@@ -191,6 +195,7 @@ function normalizeProduct(item = {}) {
 function normalizeCategory(item = {}) {
   const id = toIdString(pickFirst(item.id, item._id, item.categoryId, item.category_id, item.name));
   const imageUrl = normalizeImageUrl(pickFirst(item.imageUrl, item.image_url, item.image, null));
+  const thumbUrl = normalizeImageUrl(pickFirst(item.thumbUrl, item.thumb_url, null));
 
   return {
     ...item,
@@ -200,6 +205,8 @@ function normalizeCategory(item = {}) {
     productCount: pickFirst(item.count, item.productCount, item.product_count, item.productsCount, 0),
     imageUrl,
     imageUri: imageUrl,
+    thumbUrl,
+    thumb_url: thumbUrl,
     type: pickFirst(item.type, item.storeType, item.store_type, ''),
     displayOrder: numberOrZero(pickFirst(item.displayOrder, item.display_order, item.order, 0)),
     subcategories: asArray(item.subcategories || item.children || item.chips, ['subcategories']),
