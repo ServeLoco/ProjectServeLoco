@@ -132,7 +132,8 @@ HomeScreen is NOT migrated to this hook (see DO NOT TOUCH).
 - Keep pull-to-refresh (if present) calling `refresh()`.
 - Skeleton only on true first visit per mode.
 
-### [ ] TASK 4 — ProductListScreen: stop pointless refetches
+### [x] TASK 4 — ProductListScreen: stop pointless refetches
+> sortBy + showAvailableOnly now client-only via displayProducts useMemo; removed from fetch params and effect deps.
 
 **Modify** `ProductListScreen.js`, `fetchProducts` effect (~line 173):
 

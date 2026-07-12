@@ -101,7 +101,6 @@ export default function ProductListScreen() {
 
       if (sectionSlug) {
         response = await dashboardApi.getSectionItems(sectionSlug, {
-          available: showAvailableOnly ? true : undefined,
           storeType: sectionStoreType,
           include_closed_shops: 1,
         });
@@ -115,11 +114,10 @@ export default function ProductListScreen() {
           categoryId: queryCategoryId,
           q: searchQuery || undefined,
           search: searchQuery || undefined,
-          available: showAvailableOnly ? true : undefined,
+          // showAvailableOnly + sortBy are applied client-side only (see displayProducts).
           offerId: offerId || undefined,
           isCombo: mode === 'combos',
           featured: mode === 'combos' ? true : undefined,
-          sort: sortBy,
           type: sectionStoreType !== 'all' ? sectionStoreType : undefined,
           storeType: sectionStoreType !== 'all' ? sectionStoreType : undefined,
           include_closed_shops: 1,
@@ -144,18 +142,6 @@ export default function ProductListScreen() {
         filtered = filtered.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
       }
 
-      // Availability Filter
-      if (showAvailableOnly) {
-        filtered = filtered.filter(p => p.available && p.shopIsOpen !== false);
-      }
-
-      // Sorting
-      if (sortBy === 'Price Low to High') {
-        filtered.sort((a, b) => a.price - b.price);
-      } else if (sortBy === 'Price High to Low') {
-        filtered.sort((a, b) => b.price - a.price);
-      } // Popular keeps default order
-
       setProducts(filtered);
     } catch (err) {
       setIsError(true);
@@ -169,11 +155,25 @@ export default function ProductListScreen() {
     fetchProducts(true);
   };
 
-  // Initial fetch and dependency fetch
+  // Client-side only: availability filter + sort (no network).
+  const displayProducts = useMemo(() => {
+    let list = products;
+    if (showAvailableOnly) {
+      list = list.filter(p => p.available && p.shopIsOpen !== false);
+    }
+    if (sortBy === 'Price Low to High') {
+      list = [...list].sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'Price High to Low') {
+      list = [...list].sort((a, b) => b.price - a.price);
+    }
+    return list;
+  }, [products, showAvailableOnly, sortBy]);
+
+  // Initial fetch and dependency fetch (sort/availability are client-side only).
   useEffect(() => {
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCategory, showAvailableOnly, sortBy, offerId, sectionSlug, sectionStoreType, mode, route.params?.categoryId]);
+  }, [activeCategory, offerId, sectionSlug, sectionStoreType, mode, route.params?.categoryId]);
 
   // Debounced Search
   useEffect(() => {
@@ -360,11 +360,11 @@ export default function ProductListScreen() {
           renderSkeleton()
         ) : isError ? (
           renderErrorState()
-        ) : products.length === 0 ? (
+        ) : displayProducts.length === 0 ? (
           renderEmptyState()
         ) : (
           <FlatList
-            data={products}
+            data={displayProducts}
             keyExtractor={item => item.id}
             renderItem={renderItem}
             numColumns={2}
