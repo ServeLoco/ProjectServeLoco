@@ -55,6 +55,7 @@ describe('Admin Shop CRUD — /api/admin/shops', () => {
       .mockResolvedValueOnce([[{ id: 7 }]])           // users lookup (phone found)
       .mockResolvedValueOnce([[]])                     // OWNER_TAKEN check (no existing shop)
       .mockResolvedValueOnce([[]])                     // ROLE_CONFLICT rider check (not a rider)
+      .mockResolvedValueOnce([[]])                     // ROLE_CONFLICT mobile-admin check (not a mobile admin)
       .mockResolvedValueOnce([{ insertId: 1 }])        // INSERT shops
       .mockResolvedValueOnce([[{                       // fetchShopRow re-query
         id: 1, name: 'Burger Point', is_open: 1, active: 1,
@@ -73,6 +74,22 @@ describe('Admin Shop CRUD — /api/admin/shops', () => {
     expect(res.body.shop.isOpen).toBe(true);
     expect(res.body.shop.ownerUserId).toBe(7);
     expect(res.body.shop.ownerPhone).toBe('9999999999');
+  });
+
+  it('POST /shops for a user who is an active mobile admin → 409 ROLE_CONFLICT', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 7 }]]) // users lookup (phone found)
+      .mockResolvedValueOnce([[]])          // OWNER_TAKEN check (no existing shop)
+      .mockResolvedValueOnce([[]])          // rider check (not a rider)
+      .mockResolvedValueOnce([[{ id: 2 }]]); // active mobile admin for this phone
+
+    const res = await request(app)
+      .post('/api/admin/shops')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'Burger Point', owner_phone: '9999999999' });
+
+    expect(res.statusCode).toEqual(409);
+    expect(res.body.code).toBe('ROLE_CONFLICT');
   });
 
   it('POST /shops for a user who already owns an active shop → 409 OWNER_TAKEN', async () => {

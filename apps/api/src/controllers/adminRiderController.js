@@ -1,5 +1,6 @@
 const { pool } = require('../db/mysql');
 const { syncDeliveryAvailabilityFromRiders, RIDER_HEARTBEAT_TTL_SEC } = require('../utils/riders');
+const { isActiveMobileAdminPhone } = require('../utils/mobileAdmins');
 
 const mapRiderRow = (row) => {
   const isOnline = Boolean(row.is_online);
@@ -81,6 +82,14 @@ const createRider = async (req, res) => {
     });
   }
 
+  // Symmetric with admin's own exclusivity check (mobileAdminController).
+  if (userRow.phone && await isActiveMobileAdminPhone(userRow.phone)) {
+    return res.status(409).json({
+      code: 'ROLE_CONFLICT',
+      message: 'That phone is already assigned as a mobile admin. Remove or deactivate that role first.',
+    });
+  }
+
   const [existing] = await pool.query('SELECT id FROM riders WHERE user_id = ? LIMIT 1', [uid]);
   if (existing.length > 0) {
     return res.status(409).json({
@@ -90,11 +99,19 @@ const createRider = async (req, res) => {
   }
 
   const name = String(displayName || display_name || userRow.name || 'Rider').trim() || 'Rider';
-  const [result] = await pool.query(
-    `INSERT INTO riders (user_id, display_name, phone, active, is_online)
-     VALUES (?, ?, ?, 1, 0)`,
-    [uid, name, userRow.phone || null]
-  );
+  let result;
+  try {
+    [result] = await pool.query(
+      `INSERT INTO riders (user_id, display_name, phone, active, is_online)
+       VALUES (?, ?, ?, 1, 0)`,
+      [uid, name, userRow.phone || null]
+    );
+  } catch (e) {
+    if (e && e.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ code: 'ALREADY_RIDER', message: 'That user is already a rider.' });
+    }
+    throw e;
+  }
 
   const [rows] = await pool.query(
     `SELECT r.*, u.name AS user_name, u.phone AS user_phone
@@ -148,7 +165,17 @@ const updateRider = async (req, res) => {
      FROM riders r JOIN users u ON u.id = r.user_id WHERE r.id = ?`,
     [id]
   );
-  res.status(200).json({ rider: mapRiderRow(rows[0]), message: 'Rider updated' });
+  const rider = mapRiderRow(rows[0]);
+
+  try {
+    const { emitToAdmins } = require('../realtime/socket');
+    emitToAdmins('admin.rider.updated', {
+      ...rider,
+      reason: active !== undefined ? (active ? 'activated' : 'deactivated') : 'updated',
+    });
+  } catch (_) { /* best-effort */ }
+
+  res.status(200).json({ rider, message: 'Rider updated' });
 };
 
 module.exports = {

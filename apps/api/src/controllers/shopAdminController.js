@@ -1,6 +1,7 @@
 const { pool } = require('../db/mysql');
 const { emitToAllCustomers } = require('../realtime/socket');
 const { syncGlobalShopOpenState } = require('../utils/shops');
+const { isActiveMobileAdminPhone } = require('../utils/mobileAdmins');
 
 // Maps a raw shops + users JOIN row to the admin response shape. The response
 // duplicates fields in both camelCase and snake_case because different clients
@@ -85,6 +86,12 @@ const createShop = async (req, res) => {
         message: 'That user is a rider. One phone can be shop owner OR rider, not both.',
       });
     }
+    if (await isActiveMobileAdminPhone(phone)) {
+      return res.status(409).json({
+        code: 'ROLE_CONFLICT',
+        message: 'That phone is already assigned as a mobile admin. Remove or deactivate that role first.',
+      });
+    }
   }
 
   const [result] = await pool.query(
@@ -145,6 +152,12 @@ const updateShop = async (req, res) => {
         return res.status(409).json({
           code: 'ROLE_CONFLICT',
           message: 'That user is a rider. One phone can be shop owner OR rider, not both.',
+        });
+      }
+      if (await isActiveMobileAdminPhone(phone)) {
+        return res.status(409).json({
+          code: 'ROLE_CONFLICT',
+          message: 'That phone is already assigned as a mobile admin. Remove or deactivate that role first.',
         });
       }
       sets.push('owner_user_id = ?');

@@ -8,6 +8,7 @@ const { createProduct, updateProduct, getAdminProducts, getAdminProductById, del
 const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability } = require('../controllers/comboController');
 const { listShops, createShop, updateShop } = require('../controllers/shopAdminController');
 const { listRiders, createRider, updateRider } = require('../controllers/adminRiderController');
+const { listMobileAdmins, createMobileAdmin, updateMobileAdmin } = require('../controllers/mobileAdminController');
 const { getNotificationTemplates, updateNotificationTemplate, resetNotificationTemplate } = require('../controllers/notificationTemplateController');
 const { previewBulkImport, commitBulkImport } = require('../controllers/bulkImportController');
 const {
@@ -657,6 +658,11 @@ router.patch('/shops/:id', requireAdmin, asyncHandler(updateShop));
 router.get('/riders', requireAdmin, asyncHandler(listRiders));
 router.post('/riders', requireAdmin, asyncHandler(createRider));
 router.patch('/riders/:id', requireAdmin, asyncHandler(updateRider));
+
+// Mobile Admins — phones granted Admin Mode in the phone app (ADMIN TASK 2).
+router.get('/mobile-admins', requireAdmin, asyncHandler(listMobileAdmins));
+router.post('/mobile-admins', requireAdmin, asyncHandler(createMobileAdmin));
+router.patch('/mobile-admins/:id', requireAdmin, asyncHandler(updateMobileAdmin));
 
 router.get('/products', requireAdmin, asyncHandler(getAdminProducts));
 router.post('/products', requireAdmin, validate(productSchema), asyncHandler(createProduct));

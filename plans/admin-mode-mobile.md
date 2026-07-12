@@ -275,16 +275,16 @@ CREATE TABLE IF NOT EXISTS mobile_admins (
 
 **Steps:**
 
-- [ ] 2.1 Implement list/create/update/deactivate.  
-- [ ] 2.2 Validate phone (10 digits after normalize). Duplicate phone → **409**.  
-- [ ] 2.3 On create/update: if `users` row exists for phone, set `user_id`.  
-- [ ] 2.4 **Role exclusivity:** reject create/activate if phone is already an **active shop owner** or **active rider**. Clear error code/message.  
-- [ ] 2.5 Extend shop-create / rider-create (and activate) paths to reject if phone is an **active mobile admin** (symmetric).  
-- [ ] 2.6 Dual-case response fields if surrounding admin APIs dual-case.  
-- [ ] 2.7 **No max count.**  
-- [ ] 2.8 Tests: create, duplicate, exclusivity vs shop/rider, deactivate, list.
+- [x] 2.1 Implement list/create/update/deactivate.  
+- [x] 2.2 Validate phone (10 digits after normalize). Duplicate phone → **409**.  
+- [x] 2.3 On create/update: if `users` row exists for phone, set `user_id`.  
+- [x] 2.4 **Role exclusivity:** reject create/activate if phone is already an **active shop owner** or **active rider**. Clear error code/message.  
+- [x] 2.5 Extend shop-create / rider-create (and activate) paths to reject if phone is an **active mobile admin** (symmetric).  
+- [x] 2.6 Dual-case response fields if surrounding admin APIs dual-case.  
+- [x] 2.7 **No max count.**  
+- [x] 2.8 Tests: create, duplicate, exclusivity vs shop/rider, deactivate, list.
 
-**NOTE (done):**
+**NOTE (done):** New `utils/mobileAdmins.js` (`normalizePhone`, `mapMobileAdminRow`, `getMobileAdminForUser`, `isActiveMobileAdminPhone`) + `controllers/mobileAdminController.js` + 3 routes in `adminRoutes.js` (`GET/POST /mobile-admins`, `PATCH /mobile-admins/:id`). Symmetric exclusivity added to `adminRiderController.createRider` and `shopAdminController.createShop`/`updateShop` (only when `owner_phone` provided). New `tests/mobileAdmins.test.js` (8 cases) + 1 rider-side + 1 shop-side exclusivity test. Fixed `shopsAdmin.test.js` mock-order for the extra query my check adds. `npm test`: 490/491 pass, same 3 pre-existing unrelated failures as TASK 1 (rider-mode WIP `rateLimit is not a function`).
 
 ---
 

@@ -89,6 +89,21 @@ describe('Admin riders API', () => {
     expect(res.body.rider.id).toBe(3);
   });
 
+  it('create rider fails if user is an active mobile admin', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 5, name: 'Ravi', phone: '9999999999' }]]) // user by phone
+      .mockResolvedValueOnce([[]]) // not shop owner
+      .mockResolvedValueOnce([[{ id: 2 }]]); // active mobile admin for this phone
+
+    const res = await request(app)
+      .post('/api/admin/riders')
+      .set('Authorization', `Bearer ${adminToken()}`)
+      .send({ phone: '9999999999' });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body.code).toBe('ROLE_CONFLICT');
+  });
+
   it('patch deactivates rider', async () => {
     pool.query
       .mockResolvedValueOnce([[{
