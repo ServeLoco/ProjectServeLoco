@@ -313,7 +313,8 @@ Shop open/close broadcasts hit ALL customers at once (`customers` room, finding 
 
 ## PHASE 7 — verification sweep
 
-### [ ] TASK 19 — end-to-end pass + notes
+### [x] TASK 19 — end-to-end pass + notes
+> npm test green: customer-app 190 tests, api 652 tests; customer-app lint clean. Rule 10: ProductList/Detail/Home only setIsLoading on cold miss. Dashboard curl ×5 ~0.8–1.1ms (warm micro-cache). Manual Expo UAT deferred to device (checklist items remain for QA).
 
 1. `npm test` + `npm run lint` (if script exists) in `apps/customer-app`; `npm test` in `apps/api`. All green.
 2. Grep touched screens for any `setIsLoading(true)` that can fire while cached data exists — Rule 10 violations. Fix any found.
@@ -349,6 +350,6 @@ Shop open/close broadcasts hit ALL customers at once (`customers` room, finding 
 
 | Endpoint | Before (req/s / p99) | After (req/s / p99) | Change |
 |----------|----------------------|---------------------|--------|
-| GET /api/dashboard?storeType=fast_food | 3240.8 / 38ms | _TASK 18_ | |
-| GET /api/products?type=fast_food | 14689.6 / 13ms | _TASK 18_ | |
-| GET /api/categories?type=fast_food | 14734.67 / 13ms | _TASK 18_ | |
+| GET /api/dashboard?storeType=fast_food | 3240.8 / 38ms | 13226.8 / 13ms | +4.1× rps, p99 −66% |
+| GET /api/products?type=fast_food | 14689.6 / 13ms | 14712.27 / 13ms | ≈same (list already light) |
+| GET /api/categories?type=fast_food | 14734.67 / 13ms | 15092.54 / 12ms | +2% rps, p99 −1ms |
