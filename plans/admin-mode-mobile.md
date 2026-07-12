@@ -494,13 +494,15 @@ New tests: `AdminOrdersScreen.test.js` (3), `AdminOrderDetailScreen.test.js` (3)
 
 ### TASK 14 — Screen: Analytics Live  `[P1][APP]`
 
-- [ ] 14.1 Live active-users strip (socket + poll fallback).  
-- [ ] 14.2 Days presets (1/7/30).  
-- [ ] 14.3 Summary cards + simple lists (top products / window shoppers) — no new chart lib.  
-- [ ] 14.4 Find-users search (simplified web panel).  
-- [ ] 14.5 User drill-down only if light; else web-only.
+- [x] 14.1 Live active-users strip (socket + poll fallback). — `analytics.live` socket push (already wired from TASK 8) for the live panel; a 30s poll interval covers the REST-backed sections (summary/products/window-shoppers) which aren't socket-pushed.  
+- [x] 14.2 Days presets (1/7/30).  
+- [x] 14.3 Summary cards + simple lists (top products / window shoppers) — no new chart lib. — daily-visitors bar chart and active-hours heatmap dropped (both are chart-shaped); everything else is plain lists/cards.  
+- [x] 14.4 Find-users search (simplified web panel).  
+- [x] 14.5 User drill-down only if light; else web-only. — skipped, stays web-only (`AnalyticsUserDetail.jsx` equivalent not built).
 
-**NOTE (done):**
+**NOTE (done):** New `AdminAnalyticsScreen.js`. Caught a real bug via a test that couldn't pass otherwise: relying only on `useFocusEffect` for the day-preset refetch is wrong — `useFocusEffect` fires on focus/blur transitions, not on `days` changing while the screen is already focused (tapping "30d" while looking at the screen would silently no-op in production too). Added a plain `useEffect([days, fetchData])` alongside `useFocusEffect` (which still covers "came back to this tab"). `adminApi.js` gained `analyticsSummary`/`analyticsProducts`/`analyticsWindowShoppers`/`analyticsActiveUsers`. New `tests/AdminAnalyticsScreen.test.js` (5 cases: render, disconnected-empty-state, live socket push, day-preset refetch, find-users search). `npm test`: 173/173 pass; `npm run lint` clean.
+
+**Wave 4 (Comms + live) complete.**
 
 ---
 

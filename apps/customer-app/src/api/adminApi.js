@@ -49,6 +49,12 @@ const adminApi = {
   listNotificationTemplates: () => apiClient.get('/admin/notification-templates', { auth: 'admin' }),
   updateNotificationTemplate: (id, data) => apiClient.patch(`/admin/notification-templates/${id}`, data, { auth: 'admin' }),
   resetNotificationTemplate: (id) => apiClient.post(`/admin/notification-templates/${id}/reset`, {}, { auth: 'admin' }),
+
+  // ADMIN TASK 14 — Analytics (live + summary; no chart-lib views — see plan 14.3)
+  analyticsSummary: (days) => apiClient.get(`/admin/analytics/summary${buildQueryString({ days })}`, { auth: 'admin' }),
+  analyticsProducts: (days) => apiClient.get(`/admin/analytics/products${buildQueryString({ days })}`, { auth: 'admin' }),
+  analyticsWindowShoppers: (days) => apiClient.get(`/admin/analytics/window-shoppers${buildQueryString({ days })}`, { auth: 'admin' }),
+  analyticsActiveUsers: (minutes, search) => apiClient.get(`/admin/analytics/active-users${buildQueryString({ minutes, search })}`, { auth: 'admin' }),
 };
 
 export { adminApi };
