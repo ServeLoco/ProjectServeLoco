@@ -205,7 +205,8 @@ STOP condition: if uploads bypass the server (e.g. presigned direct-to-S3), tick
 
 ## PHASE 4 — server latency (apps/api)
 
-### [ ] TASK 10 — parallelize dashboard section loading
+### [x] TASK 10 — parallelize dashboard section loading
+> Promise.all per-section item load; order preserved via map+filter+displayOrder sort.
 
 `dashboardController.js` `GET /api/dashboard` (~line 430) awaits each section's item query + `resolveImageUrls` + `attachVariants` + `attachComboItems` serially in a for-loop. 4 sections ≈ 4× serial DB round-trip chains — the biggest server-side latency on Home.
 

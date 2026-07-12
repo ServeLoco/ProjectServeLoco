@@ -433,14 +433,14 @@ const getDashboard = async (req, res) => {
     query += ' ORDER BY display_order ASC, id ASC';
 
     const [sections] = await pool.query(query, params);
-    const resultSections = [];
 
-    for (const section of sections) {
+    // Build each section's items in parallel (Promise.all preserves input order).
+    const buildSection = async (section) => {
       let items = [];
 
       if (section.section_type === 'offer_banner') {
         const offerStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND o.store_type = ?' : '';
-        const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType] : [section.id];
+        const itemParams = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType] : [section.id];
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, o.* 
            FROM dashboard_section_items dsi
@@ -451,7 +451,7 @@ const getDashboard = async (req, res) => {
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
-          params
+          itemParams
         );
         await resolveImageUrls(rows);
         items = mapOfferRows(rows);
@@ -502,7 +502,7 @@ const getDashboard = async (req, res) => {
         items = mapProductRows(filteredRows);
       } else if (section.section_type === 'combo_block') {
         const comboStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND p.store_type = ?' : '';
-        const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType] : [section.id];
+        const itemParams = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType] : [section.id];
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, p.store_type as category_type
            FROM dashboard_section_items dsi
@@ -513,7 +513,7 @@ const getDashboard = async (req, res) => {
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
-          params
+          itemParams
         );
         await resolveImageUrls(rows);
         await attachComboItems(rows);
@@ -529,25 +529,28 @@ const getDashboard = async (req, res) => {
       const totalItems = items.length;
 
       // Hide empty sections by default
-      if (visibleItems.length > 0) {
-        resultSections.push({
-          id: section.id,
-          title: section.title,
-          slug: section.slug,
-          sectionType: section.section_type,
-          storeType: section.store_type,
-          displayOrder: section.display_order,
-          maxVisibleItems: section.max_visible_items,
-          showSeeAll: section.show_see_all === 1 || section.show_see_all === true,
-          showHotBadge: section.show_hot_badge === 1 || section.show_hot_badge === true,
-          sectionIcon: section.section_icon || null,
-          totalItems,
-          hasMore: totalItems > visibleItems.length,
-          items: visibleItems
-        });
-      }
-    }
+      if (visibleItems.length === 0) return null;
 
+      return {
+        id: section.id,
+        title: section.title,
+        slug: section.slug,
+        sectionType: section.section_type,
+        storeType: section.store_type,
+        displayOrder: section.display_order,
+        maxVisibleItems: section.max_visible_items,
+        showSeeAll: section.show_see_all === 1 || section.show_see_all === true,
+        showHotBadge: section.show_hot_badge === 1 || section.show_hot_badge === true,
+        sectionIcon: section.section_icon || null,
+        totalItems,
+        hasMore: totalItems > visibleItems.length,
+        items: visibleItems
+      };
+    };
+
+    const built = await Promise.all(sections.map(buildSection));
+    const resultSections = built.filter(Boolean);
+    // Stable display order (also matches original sections order from SQL).
     resultSections.sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
 
     res.status(200).json({
