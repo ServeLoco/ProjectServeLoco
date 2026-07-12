@@ -104,18 +104,22 @@ const emitNotificationCreated = async (userId, notificationResult) => {
   return null;
 };
 
-const emitNotificationRow = async (userId, notification) => {
-  if (!userId || !notification) return null;
-
-  const payload = normalizeNotification(notification);
-  emitToCustomer(userId, 'notification.created', payload);
-
+const emitUnreadCountUpdated = async (userId) => {
+  if (!userId) return;
   try {
     const unreadCount = await notificationService.getUnreadCount(userId);
     emitToCustomer(userId, 'notification.unread_count.updated', { unreadCount });
   } catch (error) {
     console.error('Realtime unread count emit failed:', error.message);
   }
+};
+
+const emitNotificationRow = async (userId, notification) => {
+  if (!userId || !notification) return null;
+
+  const payload = normalizeNotification(notification);
+  emitToCustomer(userId, 'notification.created', payload);
+  await emitUnreadCountUpdated(userId);
 
   return payload;
 };
@@ -123,6 +127,7 @@ const emitNotificationRow = async (userId, notification) => {
 module.exports = {
   emitNotificationCreated,
   emitNotificationRow,
+  emitUnreadCountUpdated,
   emitOrderCancelled,
   emitOrderCreated,
   emitOrderPaymentUpdated,

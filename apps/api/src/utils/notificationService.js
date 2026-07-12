@@ -242,6 +242,14 @@ const createBroadcastNotification = async ({
     // data.type mirrors the order-flow push payload (createNotification).
     expoPush.sendPushToMany(pool, targetUserIds, { title, body, data: { type: type || 'info' } }).catch(() => {});
 
+    // Socket badge updates for every recipient (orderEvents only covered order paths).
+    try {
+      const { emitUnreadCountUpdated } = require('../realtime/orderEvents');
+      await Promise.all(targetUserIds.map((uid) => emitUnreadCountUpdated(uid)));
+    } catch (err) {
+      console.error('Broadcast unread_count emit failed:', err.message);
+    }
+
     return { batchId, count: targetUserIds.length, pushEligibleCount };
   } catch (error) {
     if (ownsConnection) {
