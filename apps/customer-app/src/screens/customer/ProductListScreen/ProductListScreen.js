@@ -554,7 +554,8 @@ export default function ProductListScreen() {
             maxToRenderPerBatch={6}
             windowSize={7}
             onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.4}
+            // Start next page ~60% from the end so scroll rarely waits on the footer spinner.
+            onEndReachedThreshold={0.6}
             ListFooterComponent={
               isLoadingMore ? (
                 <View style={styles.loadMoreFooter}>

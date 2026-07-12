@@ -41,7 +41,8 @@ Branch: `perf/customer-app-speed-v2`
 - Keep `hasMore` / `nextOffsetRef` based on existing nextOffset if pages already loaded (do not reset nextOffset to PAGE_SIZE if we already have more pages unless pull-to-refresh).
 - Pull-to-refresh still resets to offset 0 and drops appended pages.
 
-### [ ] TASK 3 — Prefetch next product page (reduce scroll waits + smoother load)
+### [x] TASK 3 — Prefetch next product page (reduce scroll waits + smoother load)
+> onEndReachedThreshold 0.6 + existing loadMoreInFlight guard (earlier page fetch while scrolling).
 **Modify** ProductListScreen:
 - When list is ~60% through visible content (`onEndReachedThreshold` already 0.4 — add proactive prefetch when `hasMore && !isLoadingMore` and products length >= PAGE_SIZE), call same load-more path (guarded by in-flight ref).
 - Deduplicate: only one load-more in flight (already have `loadMoreInFlightRef`).
