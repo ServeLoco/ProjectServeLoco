@@ -1,4 +1,3 @@
-
 import './CategoryChip.css';
 
 export default function CategoryChip({ label, active, onClick }) {

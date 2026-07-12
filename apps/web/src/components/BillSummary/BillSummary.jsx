@@ -1,4 +1,3 @@
-
 import { useSettingsStore } from '../../stores/settingsStore';
 import './BillSummary.css';
 
