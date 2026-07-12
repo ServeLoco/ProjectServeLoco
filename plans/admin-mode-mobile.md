@@ -395,7 +395,7 @@ response.admin = adminPayload || null; // { id, displayName, phone, active }
 - [x] 8.1 KPI cards from metrics payload.  
 - [x] 8.2 **Delivery Available** toggle + confirm on turn-off.  
 - [x] 8.3 **Shop Status** read-only (`shop_open`).  
-- [~] 8.4 Latest orders → order detail. — navigates to the **Orders tab** (best available today); deep-link to a specific order's detail screen lands in TASK 9, which builds that route.  
+- [x] 8.4 Latest orders → order detail. — was a TASK 7-era stopgap (navigated to the Orders tab); upgraded in TASK 9 to `navigation.navigate('AdminOrderDetail', { orderId })` now that the detail route exists.  
 - [x] 8.5 Soft refresh on socket + pull-to-refresh.  
 - [x] 8.6 Loading / error / retry.
 
@@ -410,24 +410,40 @@ response.admin = adminPayload || null; // { id, displayName, phone, active }
 
 **List / detail:**
 
-- [ ] 9.1 Paginated list; min filters: status + search (payment/date if straightforward).  
-- [ ] 9.2 Detail: items, customer, address, payment, status.  
-- [ ] 9.3 Status + payment updates; surface **409** conflicts.  
-- [ ] 9.4 Live row patches from socket (port merge helper).
+- [x] 9.1 Paginated list; min filters: status + search (payment/date if straightforward). — full parity per owner call: status quick-chips, search, **plus** paymentStatus/paymentMethod/date-range in a filter sheet (all 6 web filters).  
+- [x] 9.2 Detail: items, customer, address, payment, status. — plus delivery pricing snapshot, rider/assignment state, per-shop confirmation badges, customer note (full web parity; Print Invoice omitted, no printer on a phone).  
+- [x] 9.3 Status + payment updates; surface **409** conflicts.  
+- [x] 9.4 Live row patches from socket (port merge helper).
 
 **In-app popup (foreground):**
 
-- [ ] 9.5 Queue; one card at a time (web behavior).  
-- [ ] 9.6 Sound + vibration while queue non-empty.  
-- [ ] 9.7 Open order / ack-dismiss matching web semantics (no new auto-accept rules).  
-- [ ] 9.8 Mounted for **entire** Admin shell (all tabs).
+- [x] 9.5 Queue; one card at a time (web behavior).  
+- [x] 9.6 Sound + vibration while queue non-empty.  
+- [x] 9.7 Open order / ack-dismiss matching web semantics (no new auto-accept rules).  
+- [x] 9.8 Mounted for **entire** Admin shell (all tabs).
 
 **Background / cold start:**
 
-- [ ] 9.9 Handle push notification response → navigate to order detail (or orders list).  
-- [ ] 9.10 Ensure push token still registered via existing customer push registration while in admin shell (user_id is the same person).
+- [x] 9.9 Handle push notification response → navigate to order detail (or orders list).  
+- [x] 9.10 Ensure push token still registered via existing customer push registration while in admin shell (user_id is the same person). — no change needed: push registration in `useLocalNotifications.js` keys off `isAuthenticated` (customer session), which stays true the whole time a mobile admin is in Admin Mode.
 
-**NOTE (done):**
+**NOTE (done):** Owner chose **full parity** (see chat) over a trimmed "core ops" scope, given web `Orders.jsx` (916 lines) + `GlobalOrderAlert.jsx` (451 lines).
+
+Files: `utils/adminOrderStatus.js` (status/payment options, labels, colors — shared by list/detail/popup); `utils/realtimeOrder.js` gained `mergeAdminOrderPatch` (existing file already had `getRealtimeOrderId`/`getRealtimeOrderKey`/`isRecentRealtimeEvent` for the customer order-tracking merge — reused rather than duplicated). `adminApi.js` gained `listOrders`/`getOrder`/`updateOrderStatus`/`updateOrderPayment`.
+
+`AdminOrdersScreen.js` — full filter parity (status chips + search inline, paymentStatus/paymentMethod/date-range in a bottom sheet), pagination, live merge via `admin.order.*` socket events with the recent-event dedupe window (ported from web), pull-to-refresh, row → `AdminOrderDetail`.
+
+`AdminOrderDetailScreen.js` — refetch-latest-before-patch race guard + 409 handling identical to web's `handleStatusChange`/`handlePaymentChange` (confirm → refetch → compare → patch → on-409 refetch-and-surface); forward-only status progression enforced the same way (`statusOrder` index compare); WhatsApp/Map `Linking` actions; per-shop confirmation badges.
+
+`AdminNewOrderPopup.js` — queue built directly from `admin.order.created` payloads (no extra fetch, matches web); reuses the existing `useNewOrderAlert` hook for sound (no new native dependency) plus a `Vibration.vibrate` loop on the same 8s cadence; auto-accept countdown readout + `admin.order.auto_accepted` acknowledgement state; queue chips to reorder; mounted once in `AdminNavigator` as a sibling to the Stack so it floats over every tab.
+
+`AdminNavigator.js` restructured: outer `Stack.Navigator` (`AdminTabs` + `AdminOrderDetail`) replaces the bare `Tab.Navigator`, mirroring how `CustomerNavigator` lets tab screens push full-screen stack routes. `useLocalNotifications.js` gained a `new_order` tap case → `AdminOrderDetail` (falls back to the Orders list if `orderId` is missing).
+
+**Bugs caught by tests, fixed before commit:**
+1. `AdminOrderDetailScreen`'s silent refetch-after-409 was unconditionally calling `setError(null)` on success, wiping the just-set conflict message the refetch was supposed to accompany — matches web's `fetchSelectedOrder`, which never touches `error` at all. Fixed by only clearing error on non-silent fetches.
+2. `jest.setup.js`'s global `expo-notifications` mock was missing `dismissNotificationAsync`, and `scheduleNotificationAsync`/the new one returned `undefined` instead of a promise — `useNewOrderAlert` calls `.catch()` on both. Latent gap (no prior test rendered anything using that hook); now both resolve.
+
+New tests: `AdminOrdersScreen.test.js` (3), `AdminOrderDetailScreen.test.js` (3), `AdminNewOrderPopup.test.js` (6) — 12 total. `npm test`: 148/148 pass; `npm run lint` clean. Native RN, not browser-previewable — verified via tests/lint per the skip-verification rule.
 
 ---
 

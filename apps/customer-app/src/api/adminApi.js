@@ -1,4 +1,5 @@
 import { apiClient } from './httpClient';
+import { buildQueryString } from './queryString';
 
 const adminApi = {
   // Exchanges the current customer session for an admin JWT. Only succeeds
@@ -10,6 +11,20 @@ const adminApi = {
   // Dashboard only ever sends delivery_available — the full settings form
   // (charges, UPI, app versions…) stays web-only per plan §0 out-of-scope.
   updateSettings: (payload) => apiClient.patch('/admin/settings', payload, { auth: 'admin' }),
+
+  // ADMIN TASK 9 — Orders (same filters/mutations as apps/admin Orders.jsx)
+  listOrders: (params) => apiClient.get(`/admin/orders${buildQueryString(params)}`, { auth: 'admin' }),
+  getOrder: (id) => apiClient.get(`/admin/orders/${id}`, { auth: 'admin' }),
+  updateOrderStatus: (id, status, cancelReason) => apiClient.patch(
+    `/admin/orders/${id}/status`,
+    cancelReason ? { status, cancel_reason: cancelReason } : { status },
+    { auth: 'admin' }
+  ),
+  updateOrderPayment: (id, paymentStatus) => apiClient.patch(
+    `/admin/orders/${id}/payment`,
+    { payment_status: paymentStatus, paymentStatus },
+    { auth: 'admin' }
+  ),
 };
 
 export { adminApi };

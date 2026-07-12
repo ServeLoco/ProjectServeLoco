@@ -136,7 +136,7 @@ export default function AdminDashboardScreen() {
     <TouchableOpacity
       style={styles.orderRow}
       activeOpacity={0.8}
-      onPress={() => navigation.navigate('AdminOrders')}
+      onPress={() => navigation.navigate('AdminOrderDetail', { orderId: item.id })}
     >
       <View style={{ flex: 1 }}>
         <Text style={styles.orderNumber}>#{item.order_number || item.orderNumber || item.id}</Text>

@@ -315,6 +315,25 @@ export function useLocalNotifications(navigationRef) {
         return;
       }
 
+      // New-order push to a mobile admin (ADMIN TASK 4/9.9) — deep-link to
+      // that order's detail; fall back to the Orders list if the id is
+      // somehow missing (matches plan §5.4).
+      if (data.type === 'new_order') {
+        const tryNavigateAdmin = () => {
+          if (navigationRef?.current?.isReady()) {
+            if (data.orderId) {
+              navigationRef.current.navigate('AdminOrderDetail', { orderId: data.orderId });
+            } else {
+              navigationRef.current.navigate('AdminOrders');
+            }
+          } else {
+            setTimeout(tryNavigateAdmin, 200);
+          }
+        };
+        tryNavigateAdmin();
+        return;
+      }
+
       const orderId = data.orderId;
       if (!orderId) return;
 

@@ -1,18 +1,22 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, shadows, radius } from '../theme';
 import AppIcon from '../components/AppIcon';
 import { useAdminRealtime } from '../hooks/useAdminRealtime';
 import {
   AdminDashboardScreen,
   AdminOrdersScreen,
+  AdminOrderDetailScreen,
+  AdminNewOrderPopup,
   AdminPeopleScreen,
   AdminNotificationsScreen,
   AdminAnalyticsScreen,
 } from '../screens/admin';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
 function TabIcon({ name, focused, size, color }) {
   return (
@@ -26,18 +30,10 @@ function TabIcon({ name, focused, size, color }) {
 }
 
 /**
- * AdminNavigator — mobile Admin Mode shell (ADMIN TASK 7).
- * Tabs per plans/admin-mode-mobile.md §5.1: Home, Orders, People, Alerts, Live.
- * No role switcher — an active mobile admin phone stays in Admin Mode until
- * logout or web deactivates it (see RootNavigator).
- *
- * NOTE: the global AdminNewOrderPopup host (§5.2 / TASK 9.8) and the push
- * notification tap → order-detail routing (TASK 9.9) are not mounted yet —
- * both depend on the Orders screen/detail stack that TASK 9 builds.
+ * AdminTabs — the 5 bottom tabs (ADMIN TASK 7).
+ * Per plans/admin-mode-mobile.md §5.1: Home, Orders, People, Alerts, Live.
  */
-export default function AdminNavigator() {
-  useAdminRealtime();
-
+function AdminTabs() {
   return (
     <Tab.Navigator
       initialRouteName="AdminHome"
@@ -108,6 +104,29 @@ export default function AdminNavigator() {
         }}
       />
     </Tab.Navigator>
+  );
+}
+
+/**
+ * AdminNavigator — mobile Admin Mode shell. Wraps AdminTabs in a Stack so
+ * AdminOrderDetail can push a full-screen route (covering the tab bar) from
+ * any tab, matching how CustomerNavigator lets tab screens push ProductDetail
+ * etc. AdminNewOrderPopup is mounted once here, as a sibling to the Stack, so
+ * it floats above every tab (ADMIN TASK 9.8) regardless of navigation state.
+ * No role switcher — an active mobile admin phone stays in Admin Mode until
+ * logout or web deactivates it (see RootNavigator).
+ */
+export default function AdminNavigator() {
+  useAdminRealtime();
+
+  return (
+    <>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="AdminTabs" component={AdminTabs} />
+        <Stack.Screen name="AdminOrderDetail" component={AdminOrderDetailScreen} />
+      </Stack.Navigator>
+      <AdminNewOrderPopup />
+    </>
   );
 }
 
