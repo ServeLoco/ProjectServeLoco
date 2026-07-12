@@ -9,6 +9,7 @@ const NAV_GROUPS = [
       { path: '/', label: 'Dashboard', icon: '⚡' },
       { path: '/orders', label: 'Orders', icon: '📦' },
       { path: '/riders', label: 'Riders', icon: '🛵' },
+      { path: '/mobile-admins', label: 'Mobile Admins', icon: '📲' },
     ],
   },
   {

@@ -14,6 +14,7 @@ import Categories from './pages/Categories';
 import StoreModes from './pages/StoreModes';
 import Shops from './pages/Shops';
 import Riders from './pages/Riders';
+import MobileAdmins from './pages/MobileAdmins';
 import Offers from './pages/Offers';
 import Coupons from './pages/Coupons';
 import MobileDashboard from './pages/MobileDashboard';
@@ -79,6 +80,7 @@ function App() {
                   <Route path="/store-modes" element={<StoreModes />} />
                   <Route path="/shops" element={<Shops />} />
                   <Route path="/riders" element={<Riders />} />
+                  <Route path="/mobile-admins" element={<MobileAdmins />} />
                   <Route path="/offers" element={<Offers />} />
                   <Route path="/coupons" element={<Coupons />} />
                   <Route path="/mobile-dashboard" element={<MobileDashboard />} />

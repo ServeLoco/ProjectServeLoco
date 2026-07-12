@@ -347,15 +347,15 @@ response.admin = adminPayload || null; // { id, displayName, phone, active }
 
 **Goal:** Owner assigns numbers from laptop.
 
-- [ ] 5.1 `MobileAdminsApi` in `apps/admin/src/api/index.js`.  
-- [ ] 5.2 Page `MobileAdmins.jsx` (+ css): table phone, name, active, created.  
-- [ ] 5.3 Add / edit name / deactivate (and reactivate).  
-- [ ] 5.4 UX aligned with Riders page (phone-first).  
-- [ ] 5.5 Help text: “These numbers open Admin Mode in the VillKro phone app after OTP. One number = one role (not shop/rider).”  
-- [ ] 5.6 Sidebar + route in `App.jsx`.  
-- [ ] 5.7 Surface exclusivity errors from API cleanly.
+- [x] 5.1 `MobileAdminsApi` in `apps/admin/src/api/index.js`.  
+- [x] 5.2 Page `MobileAdmins.jsx` (+ css): table phone, name, active, created.  
+- [x] 5.3 Add / edit name / deactivate (and reactivate).  
+- [x] 5.4 UX aligned with Riders page (phone-first).  
+- [x] 5.5 Help text: “These numbers open Admin Mode in the VillKro phone app after OTP. One number = one role (not shop/rider).”  
+- [x] 5.6 Sidebar + route in `App.jsx`.  
+- [x] 5.7 Surface exclusivity errors from API cleanly.
 
-**NOTE (done):**
+**NOTE (done):** New `MobileAdmins.jsx` reuses `Shops.css` (no new CSS file needed). One drawer form for both add and edit (editingId toggles copy/verb). API errors render inline in the drawer via `formError`, table-level errors via the existing `error-container` pattern. Nav: Sidebar "📲 Mobile Admins" under Operations, route `/mobile-admins` in `App.jsx`. **Browser-verified live**: stopped+restarted the already-running api/admin dev servers under preview management, logged into the real admin panel, navigated to the page, added a mobile admin (phone `9998887770`), confirmed it appeared in the table, toggled Active→Inactive via PATCH, then deleted the test row from the dev DB directly. `npm run lint` clean; no new console errors (pre-existing unrelated Dashboard.jsx key-warning only).
 
 ---
 

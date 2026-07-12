@@ -98,6 +98,12 @@ export const RidersApi = {
   update: (id, data) => apiClient(`/admin/riders/${id}`, { method: 'PATCH', body: data }),
 };
 
+export const MobileAdminsApi = {
+  list: () => apiClient('/admin/mobile-admins', { method: 'GET' }),
+  create: (data) => apiClient('/admin/mobile-admins', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/mobile-admins/${id}`, { method: 'PATCH', body: data }),
+};
+
 export const OffersApi = {
   list: (params) => apiClient(withQuery('/admin/offers', params), { method: 'GET' }),
   create: (data) => apiClient('/admin/offers', { method: 'POST', body: data }),
