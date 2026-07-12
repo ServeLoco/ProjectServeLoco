@@ -1,5 +1,6 @@
 const { pool } = require('../db/mysql');
 const { emitToAdmins } = require('../realtime/socket');
+const { sendPushToMany } = require('./expoPush');
 
 const TYPES = {
   NEW_ORDER: 'new_order',
@@ -42,6 +43,13 @@ const createAdminNotification = async ({ type, title, body, relatedUrl = null, r
       emitToAdmins('admin.notification.created', notification);
       // Fire-and-forget updated badge count so all open admin tabs refresh.
       broadcastUnreadCount();
+      // Background push to mobile admin phones (D4 — foreground gets the
+      // socket event above; backgrounded/killed apps need a device push).
+      // Only for new orders (ADMIN TASK 4); the INSERT IGNORE above already
+      // means this only runs once per order even if callers double-fire.
+      if (type === TYPES.NEW_ORDER) {
+        await notifyMobileAdminsPush({ title, body, type, relatedId });
+      }
     }
     return notification;
   } catch (e) {
@@ -65,6 +73,27 @@ const getUnreadCount = async () => {
 const broadcastUnreadCount = async () => {
   const n = await getUnreadCount();
   emitToAdmins('admin.notification.unread_count', { count: n });
+};
+
+/**
+ * Fan out an Expo push to every active mobile admin with a linked, push-token
+ * capable device. Fire-and-forget — never throws (mirrors createAdminNotification).
+ */
+const notifyMobileAdminsPush = async ({ title, body, type, relatedId }) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT user_id FROM mobile_admins WHERE active = 1 AND user_id IS NOT NULL'
+    );
+    const userIds = rows.map((r) => r.user_id);
+    if (userIds.length === 0) return;
+    await sendPushToMany(pool, userIds, {
+      title,
+      body,
+      data: { type, orderId: relatedId },
+    });
+  } catch (e) {
+    console.error('[adminNotifications] mobile admin push fan-out failed:', e.message);
+  }
 };
 
 module.exports = {

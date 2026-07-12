@@ -10,11 +10,22 @@ jest.mock('../src/db/mysql', () => ({
 
 // expo-server-sdk mock: isExpoPushToken accepts the ExponentPushToken[...] shape
 // the test uses, matching the project's tests/__mocks__/expo-server-sdk.js.
-jest.mock('expo-server-sdk', () => ({
-  Expo: {
-    isExpoPushToken: (t) => typeof t === 'string' && t.startsWith('ExponentPushToken['),
-  },
-}));
+// A constructable class (not a plain object) — utils/expoPush.js does `new Expo()`
+// at module load time (adminNotifications.js now requires it transitively too).
+jest.mock('expo-server-sdk', () => {
+  class Expo {
+    static isExpoPushToken(t) {
+      return typeof t === 'string' && t.startsWith('ExponentPushToken[');
+    }
+    chunkPushNotifications(messages) {
+      return [messages];
+    }
+    async sendPushNotificationsAsync() {
+      return [];
+    }
+  }
+  return { Expo };
+});
 
 const app = express();
 app.use(express.json());

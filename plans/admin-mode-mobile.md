@@ -330,12 +330,14 @@ response.admin = adminPayload || null; // { id, displayName, phone, active }
 
 **Steps:**
 
-- [ ] 4.1 Inventory where new-order / order events notify “admin” (`adminInbox`, orderController, etc.).  
-- [ ] 4.2 Add fan-out: resolve **active** `mobile_admins` with non-null `user_id` + push token → `sendPushToMany` (or existing helper) with title/body suitable for “New order #…”.  
-- [ ] 4.3 Payload must include `orderId` (and type) so the app can deep-link.  
-- [ ] 4.4 Do **not** break customer / shop / rider push routes.  
-- [ ] 4.5 Do not spam: one push per event per admin user (dedupe if multiple code paths).  
-- [ ] 4.6 Tests or fixture covering “active mobile admin with token receives push path” (mock send).
+- [x] 4.1 Inventory where new-order / order events notify “admin” (`adminInbox`, orderController, etc.).  
+- [x] 4.2 Add fan-out: resolve **active** `mobile_admins` with non-null `user_id` + push token → `sendPushToMany` (or existing helper) with title/body suitable for “New order #…”.  
+- [x] 4.3 Payload must include `orderId` (and type) so the app can deep-link.  
+- [x] 4.4 Do **not** break customer / shop / rider push routes.  
+- [x] 4.5 Do not spam: one push per event per admin user (dedupe if multiple code paths).  
+- [x] 4.6 Tests or fixture covering “active mobile admin with token receives push path” (mock send).
+
+**NOTE (done):** Single call site confirmed (`orderController.js:549` → `adminInbox.createAdminNotification`). Fan-out added centrally inside `createAdminNotification` (`utils/adminNotifications.js`), gated to `type === TYPES.NEW_ORDER` — any future caller gets it free, and the existing `INSERT IGNORE` dedupe (early-return on duplicate) already gives "one push per event." New `notifyMobileAdminsPush` queries `mobile_admins WHERE active=1 AND user_id IS NOT NULL`, calls `sendPushToMany` with `data: { type, orderId: relatedId }`. Awaited internally, but the call site still doesn't await `createAdminNotification` — order-creation critical path unaffected. New `tests/adminNotificationsPush.test.js` (4 cases). **Regression caught+fixed:** `adminNotifications.js` now transitively requires `expoPush.js`, which does `new Expo()` at module load — broke `tests/pushTokenHygiene.test.js`'s inline `expo-server-sdk` mock (plain object, not a class). Fixed that mock to a proper class matching `tests/__mocks__/expo-server-sdk.js`. `npm test`: 498/499 pass, same 3 pre-existing unrelated failures.
 
 **NOTE (done):**
 
