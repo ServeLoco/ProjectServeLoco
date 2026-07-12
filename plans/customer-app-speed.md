@@ -273,7 +273,8 @@ Filenames are collision-unique (finding N) → a URL's content never changes →
 3. S3 mode: check `s3.uploadBuffer` sets `CacheControl`; if not, add the same immutable header for NEW uploads (do not rewrite existing objects).
 4. Verify: `curl -sI` one disk image → `Cache-Control` with `immutable` present, exactly once.
 
-### [ ] TASK 15 — general API rate limiter (abuse cost cap)
+### [x] TASK 15 — general API rate limiter (abuse cost cap)
+> 300 req/min on /api after /health+/ping; tests for 429 + health exempt.
 
 Route-specific limiters exist (auth/upload/analytics); everything else is unbounded — one buggy loop or scraper = unbounded DB cost. `trust proxy` is already set (finding O), so per-IP limiting behind nginx is correct.
 
