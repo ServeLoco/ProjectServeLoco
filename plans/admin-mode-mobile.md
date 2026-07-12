@@ -483,12 +483,12 @@ New tests: `AdminOrdersScreen.test.js` (3), `AdminOrderDetailScreen.test.js` (3)
 
 ### TASK 13 — Screen: Notifications  `[P1][APP]`
 
-- [ ] 13.1 Broadcast composer (title, body, type, target everyone/phones).  
-- [ ] 13.2 History list.  
-- [ ] 13.3 Template settings (event templates list/update/reset).  
-- [ ] 13.4 System keyboard for emoji (no heavy picker required).
+- [x] 13.1 Broadcast composer (title, body, type, target everyone/phones).  
+- [x] 13.2 History list.  
+- [x] 13.3 Template settings (event templates list/update/reset).  
+- [x] 13.4 System keyboard for emoji (no heavy picker required).
 
-**NOTE (done):**
+**NOTE (done):** New `AdminNotificationsScreen.js` — top segmented control (Broadcast/Templates), mirrors `apps/admin/src/pages/Notifications.jsx`'s validation rules exactly (80/240 char limits, phone-list parsing/dedup, confirm-before-send with recipient-count description). Templates panel: enable/disable `Switch`, inline edit with Save/Cancel, confirm-before-reset. Deliberately dropped from web: the quick-template chips and custom emoji-picker grid (native keyboard emoji suffices per plan 13.4) — no other functional cut. `adminApi.js` gained `listNotifications`/`createNotification`/`deleteNotification`/`listNotificationTemplates`/`updateNotificationTemplate`/`resetNotificationTemplate`. New `tests/AdminNotificationsScreen.test.js` (6 cases: validation, confirm+send+history-refresh, phones-target validation, template list, toggle, confirm+reset). `npm test`: 168/168 pass; `npm run lint` clean.
 
 ---
 

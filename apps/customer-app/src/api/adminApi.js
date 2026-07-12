@@ -41,6 +41,14 @@ const adminApi = {
   getCustomer: (id) => apiClient.get(`/admin/customers/${id}`, { auth: 'admin' }),
   updateCustomerBlock: (id, blocked) => apiClient.patch(`/admin/customers/${id}/block`, { blocked }, { auth: 'admin' }),
   updateCustomerTrust: (id, trusted) => apiClient.patch(`/admin/customers/${id}/trust`, { trusted }, { auth: 'admin' }),
+
+  // ADMIN TASK 13 — Notifications (broadcast + templates)
+  listNotifications: (params) => apiClient.get(`/admin/notifications${buildQueryString(params)}`, { auth: 'admin' }),
+  createNotification: (data) => apiClient.post('/admin/notifications', data, { auth: 'admin' }),
+  deleteNotification: (id) => apiClient.delete(`/admin/notifications/${id}`, { auth: 'admin' }),
+  listNotificationTemplates: () => apiClient.get('/admin/notification-templates', { auth: 'admin' }),
+  updateNotificationTemplate: (id, data) => apiClient.patch(`/admin/notification-templates/${id}`, data, { auth: 'admin' }),
+  resetNotificationTemplate: (id) => apiClient.post(`/admin/notification-templates/${id}/reset`, {}, { auth: 'admin' }),
 };
 
 export { adminApi };
