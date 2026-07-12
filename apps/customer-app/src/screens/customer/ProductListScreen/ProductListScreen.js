@@ -86,6 +86,9 @@ export default function ProductListScreen() {
   // Next SQL offset advances by PAGE_SIZE always (time-window may shrink pages).
   const nextOffsetRef = useRef(0);
   const loadMoreInFlightRef = useRef(false);
+  // Monotonic gens so a slow response for an old category/search cannot overwrite.
+  const fetchGenRef = useRef(0);
+  const loadMoreGenRef = useRef(0);
   const cartItemCount = useMemo(
     () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
     [items]
@@ -96,13 +99,15 @@ export default function ProductListScreen() {
   );
 
   /**
-   * @param {boolean|{ refresh?: boolean, loadMore?: boolean }} opts
+   * @param {boolean|{ refresh?: boolean, loadMore?: boolean, silent?: boolean }} opts
    *   boolean true = pull-to-refresh (legacy)
+   *   silent = revalidate page 0 without dropping already-loaded pages
    */
   const fetchProducts = async (opts = false) => {
     const options = typeof opts === 'boolean' ? { refresh: opts } : (opts || {});
     const refresh = !!options.refresh;
     const loadMore = !!options.loadMore;
+    const silent = !!options.silent && !refresh && !loadMore;
 
     const isOriginalCategory = activeCategory === initialCategory;
     const queryCategoryId = isOriginalCategory ? route.params?.categoryId : undefined;
@@ -133,25 +138,43 @@ export default function ProductListScreen() {
     const cacheKey = `products:${stableKey(requestParams)}`;
     const cached = getCached(cacheKey);
 
+    let gen;
     if (loadMore) {
       if (loadMoreInFlightRef.current || !hasMore) return;
       loadMoreInFlightRef.current = true;
+      gen = ++loadMoreGenRef.current;
       setIsLoadingMore(true);
-    } else if (refresh) {
-      setIsRefreshing(true);
-    } else if (cached) {
-      // Instant paint from cache; revalidate silently below (no skeleton).
-      const cachedProducts = Array.isArray(cached.data) ? cached.data : (cached.data?.products || []);
-      const cachedHasMore = Array.isArray(cached.data) ? false : !!cached.data?.hasMore;
-      setProducts(cachedProducts);
-      setHasMore(cachedHasMore);
-      nextOffsetRef.current = PAGE_SIZE;
-      setIsLoading(false);
-      setIsError(false);
     } else {
-      setIsLoading(true);
-      setIsError(false);
+      // New primary fetch invalidates any in-flight load-more.
+      gen = ++fetchGenRef.current;
+      loadMoreGenRef.current += 1;
+      loadMoreInFlightRef.current = false;
+      if (refresh) {
+        setIsRefreshing(true);
+      } else if (cached && !silent) {
+        // Instant paint from cache; revalidate silently below (no skeleton).
+        // Do not apply page-0 cache over a multi-page list on silent paths.
+        const cachedProducts = Array.isArray(cached.data) ? cached.data : (cached.data?.products || []);
+        const cachedHasMore = Array.isArray(cached.data) ? false : !!cached.data?.hasMore;
+        setProducts(cachedProducts);
+        setHasMore(cachedHasMore);
+        nextOffsetRef.current = PAGE_SIZE;
+        setIsLoading(false);
+        setIsError(false);
+      } else if (!cached && !silent) {
+        setIsLoading(true);
+        setIsError(false);
+      } else {
+        // silent revalidate with or without cache: keep current list painted
+        setIsLoading(false);
+      }
     }
+
+    const isStale = () => (
+      loadMore
+        ? gen !== loadMoreGenRef.current
+        : gen !== fetchGenRef.current
+    );
 
     try {
       let response;
@@ -164,6 +187,7 @@ export default function ProductListScreen() {
           storeType: sectionStoreType,
           include_closed_shops: 1,
         });
+        if (isStale()) return;
         filtered = asArray(response, ['items']).map(normalizeProduct);
         pageHasMore = false;
       } else {
@@ -182,6 +206,7 @@ export default function ProductListScreen() {
           limit: PAGE_SIZE,
           offset: pageOffset,
         });
+        if (isStale()) return;
         filtered = asArray(response, ['products']).map(normalizeProduct);
         pageHasMore = !!(
           response?.hasMore ?? response?.has_more ?? response?.data?.hasMore ?? response?.data?.has_more
@@ -203,26 +228,49 @@ export default function ProductListScreen() {
         filtered = filtered.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
       }
 
+      if (isStale()) return;
+
       setCached(cacheKey, { products: filtered, hasMore: pageHasMore });
       if (loadMore) {
         setProducts(prev => [...prev, ...filtered]);
+        setHasMore(pageHasMore);
+        // Advance by SQL page size, never by received row count.
+        nextOffsetRef.current = pageOffset + PAGE_SIZE;
+      } else if (silent) {
+        // Revalidate page 0 only: replace first window, keep later pages.
+        setProducts(prev => {
+          if (prev.length <= PAGE_SIZE) return filtered;
+          return [...filtered, ...prev.slice(PAGE_SIZE)];
+        });
+        if (nextOffsetRef.current <= PAGE_SIZE) {
+          nextOffsetRef.current = PAGE_SIZE;
+          setHasMore(pageHasMore);
+        } else {
+          // Already load-more'd: keep ability to fetch further if page0 or prior said so.
+          setHasMore(pageHasMore || nextOffsetRef.current > PAGE_SIZE);
+        }
       } else {
         setProducts(filtered);
+        setHasMore(pageHasMore);
+        nextOffsetRef.current = pageOffset + PAGE_SIZE;
       }
-      setHasMore(pageHasMore);
-      // Advance by SQL page size, never by received row count.
-      nextOffsetRef.current = pageOffset + PAGE_SIZE;
       setIsError(false);
     } catch (err) {
+      if (isStale()) return;
       // Keep cached list on revalidation failure; error only when nothing to show.
-      if (!loadMore && !getCached(cacheKey)) {
+      if (!loadMore && !silent && !getCached(cacheKey)) {
         setIsError(true);
       }
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-      setIsLoadingMore(false);
-      loadMoreInFlightRef.current = false;
+      if (!isStale()) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+        setIsLoadingMore(false);
+        if (loadMore) loadMoreInFlightRef.current = false;
+      } else if (loadMore && gen === loadMoreGenRef.current) {
+        loadMoreInFlightRef.current = false;
+        setIsLoadingMore(false);
+      }
     }
   };
 
@@ -293,7 +341,8 @@ export default function ProductListScreen() {
             };
         const focusKey = `products:${stableKey(requestParams)}`;
         if (!isFresh(focusKey, 15_000)) {
-          fetchProducts(false);
+          // silent: refresh page 0 without dropping already-loaded pages
+          fetchProducts({ silent: true });
         }
       } else {
         hasFocusedOnceRef.current = true;
