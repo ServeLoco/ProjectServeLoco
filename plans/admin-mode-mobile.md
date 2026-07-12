@@ -392,14 +392,14 @@ response.admin = adminPayload || null; // { id, displayName, phone, active }
 
 **APIs:** `GET /admin/dashboard`, `PATCH /admin/settings` `{ delivery_available }`
 
-- [ ] 8.1 KPI cards from metrics payload.  
-- [ ] 8.2 **Delivery Available** toggle + confirm on turn-off.  
-- [ ] 8.3 **Shop Status** read-only (`shop_open`).  
-- [ ] 8.4 Latest orders → order detail.  
-- [ ] 8.5 Soft refresh on socket + pull-to-refresh.  
-- [ ] 8.6 Loading / error / retry.
+- [x] 8.1 KPI cards from metrics payload.  
+- [x] 8.2 **Delivery Available** toggle + confirm on turn-off.  
+- [x] 8.3 **Shop Status** read-only (`shop_open`).  
+- [~] 8.4 Latest orders → order detail. — navigates to the **Orders tab** (best available today); deep-link to a specific order's detail screen lands in TASK 9, which builds that route.  
+- [x] 8.5 Soft refresh on socket + pull-to-refresh.  
+- [x] 8.6 Loading / error / retry.
 
-**NOTE (done):**
+**NOTE (done):** Built the admin realtime spine this task needed: new `adminRealtimeClient.js` (separate socket from the customer one — Admin Mode's own JWT joins the server's `admin` room; event names mirror `apps/admin/src/api/realtimeClient.js` so web/mobile stay in sync) + `useAdminRealtime` hook, mounted in `AdminNavigator`. `adminApi.js` gained `getDashboard`/`updateSettings`. Real `AdminDashboardScreen` replaces the TASK 7 placeholder: 4 KPI cards (today's sales/orders, pending orders/payments), Delivery Available toggle with a confirm-on-turn-off `Alert` (phone taps are easier to mis-hit than a desktop click — web has no confirm, mobile does, intentional), read-only Shop Status pill, latest-orders list with pull-to-refresh, soft refresh on `admin.order.*` socket events + reconnect/foreground. New `tests/AdminDashboardScreen.test.js` (3 cases: KPI + status rendering, confirm-then-apply delivery-off flow, retry state on load failure). Had to fix `RootNavigator.adminMode.test.js`: it asserted on the static "Dashboard" placeholder text from TASK 7, which no longer renders synchronously now that the real screen shows a loading spinner first — switched the assertion to the admin-only "People" tab label, which is present immediately. `npm test`: 136/136 pass; `npm run lint` clean. Native RN, not browser-previewable — verified via tests/lint per the skip-verification rule.
 
 ---
 

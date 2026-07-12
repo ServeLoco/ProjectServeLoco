@@ -14,6 +14,15 @@ export {
   subscribeShopEvents,
 } from './realtimeClient';
 export {
+  connectAdminRealtime,
+  disconnectAdminRealtime,
+  emitAdminRealtimeForeground,
+  getAdminRealtimeConnectionState,
+  subscribeAdminOrderEvents,
+  subscribeAdminRealtime,
+  subscribeAdminRealtimeLifecycle,
+} from './adminRealtimeClient';
+export {
   clearTokenProviders,
   setAdminTokenProvider,
   setCustomerTokenProvider,

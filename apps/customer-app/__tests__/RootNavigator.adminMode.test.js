@@ -43,7 +43,9 @@ describe('RootNavigator — admin routing', () => {
 
     const text = root.root.findAll((node) => node.type === 'Text' && typeof node.props.children === 'string')
       .map((n) => n.props.children).join(' | ');
-    expect(text).toContain('Dashboard');
+    // AdminDashboardScreen loads asynchronously (spinner first) — assert on
+    // the tab bar instead, which renders synchronously and is Admin-only.
+    expect(text).toContain('People');
   });
 
   it('does not route to admin when adminToken has not minted yet', async () => {
@@ -60,6 +62,6 @@ describe('RootNavigator — admin routing', () => {
 
     const text = root.root.findAll((node) => node.type === 'Text' && typeof node.props.children === 'string')
       .map((n) => n.props.children).join(' | ');
-    expect(text).not.toContain('Dashboard');
+    expect(text).not.toContain('People');
   });
 });

@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { colors, shadows, radius } from '../theme';
 import AppIcon from '../components/AppIcon';
+import { useAdminRealtime } from '../hooks/useAdminRealtime';
 import {
   AdminDashboardScreen,
   AdminOrdersScreen,
@@ -35,6 +36,8 @@ function TabIcon({ name, focused, size, color }) {
  * both depend on the Orders screen/detail stack that TASK 9 builds.
  */
 export default function AdminNavigator() {
+  useAdminRealtime();
+
   return (
     <Tab.Navigator
       initialRouteName="AdminHome"
