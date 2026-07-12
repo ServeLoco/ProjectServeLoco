@@ -294,7 +294,8 @@ Two sub-commits — API first, then app.
 2. **Drop the per-focus unread poll** — and ONLY that. Verified current state: HomeScreen ALREADY subscribes to `notification.unread_count.updated` (badge set directly from `payload.unreadCount`), to `notification.created` (debounced `queueUnreadRefresh`), and to lifecycle `reconnected`/`foreground` events as a catch-up backstop. All of that stays untouched. Delete exactly two polls: the `getUnreadCount()` call inside the `useFocusEffect` (~line 236) and nothing else — the `getUnreadCount()` inside `loadHomeData` remains as the cold-start baseline. Safe only because 16a made the socket event fire from every notification path.
 3. Grep customer-app for `setInterval` that hits the network; list findings in the commit message (fix only if trivially redundant — otherwise just document).
 
-### [ ] TASK 17 — broadcast thundering herd jitter
+### [x] TASK 17 — broadcast thundering herd jitter
+> Home shop-status handler: setTimeout(refetch, random*3000); clear on unmount/newer event.
 
 Shop open/close broadcasts hit ALL customers at once (`customers` room, finding Q); every connected client refetching in the same second is a self-inflicted spike. TASK 11's micro-cache makes the DB safe; this spreads the network spike.
 

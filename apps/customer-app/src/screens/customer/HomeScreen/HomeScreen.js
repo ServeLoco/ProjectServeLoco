@@ -314,17 +314,22 @@ export default function HomeScreen() {
 
     // Live push for a shop opening/closing while this screen stays mounted
     // and foregrounded — the focus/foreground refreshes above don't cover
-    // that case. Any shop.status.updated event just re-fetches the whole
-    // dashboard rather than patching a single section; simpler and cheap
-    // enough given how rarely shops toggle.
+    // that case. Jitter 0–3s so 10k clients don't thundering-herd the API
+    // when admin toggles a shop (TASK 17).
+    let shopRefetchTimer = null;
     const unsubscribeShopEvents = subscribeShopEvents(() => {
-      refreshDashboardSilently();
+      if (shopRefetchTimer) clearTimeout(shopRefetchTimer);
+      shopRefetchTimer = setTimeout(() => {
+        shopRefetchTimer = null;
+        refreshDashboardSilently();
+      }, Math.random() * 3000);
     });
 
     return () => {
       unsubscribeNotifications();
       unsubscribeLifecycle();
       unsubscribeShopEvents();
+      if (shopRefetchTimer) clearTimeout(shopRefetchTimer);
       if (unreadRefreshTimer.current) {
         clearTimeout(unreadRefreshTimer.current);
       }
