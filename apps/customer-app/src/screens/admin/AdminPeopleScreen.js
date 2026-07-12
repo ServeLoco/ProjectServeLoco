@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, radius } from '../../theme';
 import AdminRidersScreen from './AdminRidersScreen';
 import AdminShopsScreen from './AdminShopsScreen';
-import AdminPlaceholderScreen from './AdminPlaceholderScreen';
+import AdminCustomersScreen from './AdminCustomersScreen';
 
 const SEGMENTS = [
   { key: 'riders', label: 'Riders' },
@@ -13,9 +13,7 @@ const SEGMENTS = [
 ];
 
 /**
- * AdminPeopleScreen — segmented People tab (ADMIN TASK 10-12).
- * Riders is real (TASK 10); Shops/Customers are placeholders until their
- * tasks land.
+ * AdminPeopleScreen — segmented People tab (ADMIN TASK 10-12: Riders/Shops/Customers).
  */
 export default function AdminPeopleScreen() {
   const [segment, setSegment] = useState('riders');
@@ -40,7 +38,7 @@ export default function AdminPeopleScreen() {
 
       {segment === 'riders' ? <AdminRidersScreen /> : null}
       {segment === 'shops' ? <AdminShopsScreen /> : null}
-      {segment === 'customers' ? <AdminPlaceholderScreen title="Customers" subtitle="Lands in ADMIN TASK 12." /> : null}
+      {segment === 'customers' ? <AdminCustomersScreen /> : null}
     </SafeAreaView>
   );
 }

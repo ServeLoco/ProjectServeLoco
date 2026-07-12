@@ -35,6 +35,12 @@ const adminApi = {
   listShops: () => apiClient.get('/admin/shops', { auth: 'admin' }),
   createShop: (data) => apiClient.post('/admin/shops', data, { auth: 'admin' }),
   updateShop: (id, data) => apiClient.patch(`/admin/shops/${id}`, data, { auth: 'admin' }),
+
+  // ADMIN TASK 12 — Customers
+  listCustomers: (params) => apiClient.get(`/admin/customers${buildQueryString(params)}`, { auth: 'admin' }),
+  getCustomer: (id) => apiClient.get(`/admin/customers/${id}`, { auth: 'admin' }),
+  updateCustomerBlock: (id, blocked) => apiClient.patch(`/admin/customers/${id}/block`, { blocked }, { auth: 'admin' }),
+  updateCustomerTrust: (id, trusted) => apiClient.patch(`/admin/customers/${id}/trust`, { trusted }, { auth: 'admin' }),
 };
 
 export { adminApi };

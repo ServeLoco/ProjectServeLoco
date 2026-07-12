@@ -471,11 +471,13 @@ New tests: `AdminOrdersScreen.test.js` (3), `AdminOrderDetailScreen.test.js` (3)
 
 ### TASK 12 — Screen: Customers  `[P1][APP]`
 
-- [ ] 12.1 Search + trusted/blocked filters.  
-- [ ] 12.2 Detail drawer.  
-- [ ] 12.3 Trust / block with confirm (same severity as web).
+- [x] 12.1 Search + trusted/blocked filters.  
+- [x] 12.2 Detail drawer.  
+- [x] 12.3 Trust / block with confirm (same severity as web).
 
-**NOTE (done):**
+**NOTE (done):** New `AdminCustomersScreen.js`, wired as the "Customers" segment (People tab now fully real — Riders/Shops/Customers, no placeholders left). Search (debounced 400ms) + trusted/blocked filter chip rows, paginated list, detail sheet with contact info + Call/WhatsApp `Linking` actions, trust/block toggles — **both directions confirmed** (unlike the Shop/Dashboard asymmetric toggles), matching web's `handleToggleTrust`/`handleToggleBlock` which confirm every flip. `adminApi.js` gained `listCustomers`/`getCustomer`/`updateCustomerBlock`/`updateCustomerTrust`. New `tests/AdminCustomersScreen.test.js` (5 cases: render+badges, open detail, confirm-block, confirm-revoke-trust, filter chip refetch). `npm test`: 162/162 pass; `npm run lint` clean.
+
+**Wave 3 (Directory) complete** — Riders/Shops/Customers all real.
 
 ---
 
