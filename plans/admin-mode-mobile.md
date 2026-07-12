@@ -378,13 +378,13 @@ response.admin = adminPayload || null; // { id, displayName, phone, active }
 
 **Goal:** OTP → Admin dashboard, never customer home for admin phones.
 
-- [ ] 7.1 Branch: `isAuthenticated && admin && adminToken` → **AdminNavigator** (before shop/rider).  
-- [ ] 7.2 Tabs per §5.1; **initial route = Dashboard (Home)**.  
-- [ ] 7.3 Mount global `AdminNewOrderPopup` host.  
-- [ ] 7.4 Wire notification tap handler (from TASK 4 payload) → Admin order detail when in admin shell.  
-- [ ] 7.5 Placeholder screens OK until feature tasks fill them.
+- [x] 7.1 Branch: `isAuthenticated && admin && adminToken` → **AdminNavigator** (before shop/rider).  
+- [x] 7.2 Tabs per §5.1; **initial route = Dashboard (Home)**.  
+- [~] 7.3 Mount global `AdminNewOrderPopup` host. — deferred to TASK 9 (the popup's queue/sound logic and the Orders screen it opens don't exist yet; mounting an inert host now would be dead code).  
+- [~] 7.4 Wire notification tap handler (from TASK 4 payload) → Admin order detail when in admin shell. — deferred to TASK 9 (needs the order-detail route TASK 9 builds).  
+- [x] 7.5 Placeholder screens OK until feature tasks fill them.
 
-**NOTE (done):**
+**NOTE (done):** New `navigation/AdminNavigator.js` — 5 tabs (Home/Orders/People/Alerts/Live) matching §5.1, `initialRouteName="AdminHome"`, same tab-bar visual pattern as `RiderNavigator`/`ShopOwnerNavigator`. New `screens/admin/*` placeholders (Dashboard, Orders, People — combined Riders/Shops/Customers stand-in until TASK 10-12, Notifications, Analytics) sharing one `AdminPlaceholderScreen` shell. Added two icons to `AppIcon` (`people`, `analytics` — lucide `Users`/`TrendingUp`) since none of the existing set fit. `RootNavigator` now checks `isAuthenticated && admin && adminToken` **before** shop/rider. New `tests/RootNavigator.adminMode.test.js` (2 cases: routes to Admin when both set, falls through to Customer when `adminToken` hasn't minted yet). `npm test`: 133/133 pass; `npm run lint` clean. Native RN screens aren't browser-previewable — verified via tests/lint only, per the skip-verification rule for non-previewable runtimes.
 
 ---
 

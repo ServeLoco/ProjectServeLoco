@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import CustomerNavigator from './CustomerNavigator';
 import ShopOwnerNavigator from './ShopOwnerNavigator';
 import RiderNavigator from './RiderNavigator';
+import AdminNavigator from './AdminNavigator';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { OfflineBanner } from '../components';
 import { trackScreen, initAnalytics, stopAnalytics } from '../api/analyticsClient';
@@ -45,6 +46,8 @@ export default function RootNavigator() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const shop = useAuthStore((s) => s.shop);
   const rider = useAuthStore((s) => s.rider);
+  const admin = useAuthStore((s) => s.admin);
+  const adminToken = useAuthStore((s) => s.adminToken);
   const showOffline = !isReachable;
   const message = isDeviceOffline
     ? 'You appear to be offline.'
@@ -66,13 +69,18 @@ export default function RootNavigator() {
           if (screen) trackScreen(screen);
         }}
       >
-        {/* Role shells (D2: shop and rider are mutually exclusive).
+        {/* Role shells (D2: admin/shop/rider are mutually exclusive).
+            Admin checked first — an active mobile admin phone never sees
+            the customer home, even if role data is still settling right
+            after login (see plans/admin-mode-mobile.md §7.1).
             Unauthenticated login still runs inside CustomerNavigator. */}
-        {isAuthenticated && shop
-          ? <ShopOwnerNavigator />
-          : isAuthenticated && rider
-            ? <RiderNavigator />
-            : <CustomerNavigator />}
+        {isAuthenticated && admin && adminToken
+          ? <AdminNavigator />
+          : isAuthenticated && shop
+            ? <ShopOwnerNavigator />
+            : isAuthenticated && rider
+              ? <RiderNavigator />
+              : <CustomerNavigator />}
       </NavigationContainer>
     </>
   );

@@ -36,8 +36,10 @@ import {
   Ticket,
   Trash2,
   TriangleAlert,
+  TrendingUp,
   Upload,
   User,
+  Users,
   X,
 } from 'lucide-react-native';
 import { colors } from '../../theme';
@@ -73,6 +75,8 @@ const ICONS = {
   navigation: Navigation,
   notification: Bell,
   orders: Package,
+  analytics: TrendingUp,
+  people: Users,
   pencil: Edit3,
   phone: Phone,
   profile: User,

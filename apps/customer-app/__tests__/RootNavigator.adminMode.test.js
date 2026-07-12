@@ -1,0 +1,65 @@
+/**
+ * ADMIN TASK 7 — RootNavigator routes an active mobile admin (admin +
+ * adminToken both set) into AdminNavigator instead of CustomerNavigator,
+ * even before shop/rider checks.
+ */
+import React from 'react';
+import ReactTestRenderer from 'react-test-renderer';
+import RootNavigator from '../src/navigation/RootNavigator';
+import { useAuthStore } from '../src/stores';
+
+jest.mock('../src/hooks/useNetworkStatus', () => ({
+  useNetworkStatus: () => ({ isOnline: true, isReachable: true, lastCheckedAt: null }),
+}));
+jest.mock('../src/api/analyticsClient', () => ({
+  trackScreen: () => {},
+  initAnalytics: () => {},
+  stopAnalytics: () => {},
+}));
+
+const INITIAL_STATE = useAuthStore.getState();
+let root;
+
+describe('RootNavigator — admin routing', () => {
+  afterEach(() => {
+    if (root) {
+      ReactTestRenderer.act(() => { root.unmount(); });
+      root = null;
+    }
+    useAuthStore.setState(INITIAL_STATE, true);
+  });
+
+  it('renders AdminNavigator (Dashboard placeholder) when admin + adminToken are set', async () => {
+    await ReactTestRenderer.act(async () => {
+      useAuthStore.setState({
+        isAuthenticated: true,
+        admin: { id: 4, active: true },
+        adminToken: 'admin-jwt',
+        shop: null,
+        rider: null,
+      });
+      root = ReactTestRenderer.create(<RootNavigator />);
+    });
+
+    const text = root.root.findAll((node) => node.type === 'Text' && typeof node.props.children === 'string')
+      .map((n) => n.props.children).join(' | ');
+    expect(text).toContain('Dashboard');
+  });
+
+  it('does not route to admin when adminToken has not minted yet', async () => {
+    await ReactTestRenderer.act(async () => {
+      useAuthStore.setState({
+        isAuthenticated: true,
+        admin: { id: 4, active: true },
+        adminToken: null,
+        shop: null,
+        rider: null,
+      });
+      root = ReactTestRenderer.create(<RootNavigator />);
+    });
+
+    const text = root.root.findAll((node) => node.type === 'Text' && typeof node.props.children === 'string')
+      .map((n) => n.props.children).join(' | ');
+    expect(text).not.toContain('Dashboard');
+  });
+});
