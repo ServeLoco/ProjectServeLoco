@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, Animated } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, layout } from '../../theme';
 import ProductImage from '../ProductImage';
@@ -66,6 +67,9 @@ function ProductCard({
   // Prefer server thumbnail on cards; fall back to full-size when no thumb.
   const resolvedImageUrl =
     product.thumbUrl ?? product.thumb_url ?? product.imageUrl ?? product.imageUri ?? imageUrl ?? imageUri;
+  // Full-size URL for detail pre-warm (may equal card URL when no thumb).
+  const fullImageUrl =
+    product.imageUrl ?? product.imageUri ?? imageUrl ?? imageUri ?? null;
   const resolvedDisabled = product.disabled ?? disabled ?? false;
   const resolvedAvailable = product.available ?? available ?? product.isAvailable ?? !resolvedDisabled;
   const isShopClosed = product.shopIsOpen === false || product.shop_is_open === false || product.shopIsOpen === 0 || product.shop_is_open === 0;
@@ -89,6 +93,10 @@ function ProductCard({
   const resolvedDiscountLabel = product.discountLabel ?? discountLabel ?? (discountPct > 0 ? `${discountPct}% OFF` : null);
 
   const handlePressIn = () => {
+    // Warm full-size image into expo-image cache before navigation/detail paint.
+    if (fullImageUrl && typeof fullImageUrl === 'string') {
+      ExpoImage.prefetch(fullImageUrl).catch(() => {});
+    }
     Animated.spring(pressAnim, {
       toValue: 1,
       friction: 6,

@@ -47,7 +47,8 @@ Branch: `perf/customer-app-speed-v2`
 - When list is ~60% through visible content (`onEndReachedThreshold` already 0.4 — add proactive prefetch when `hasMore && !isLoadingMore` and products length >= PAGE_SIZE), call same load-more path (guarded by in-flight ref).
 - Deduplicate: only one load-more in flight (already have `loadMoreInFlightRef`).
 
-### [ ] TASK 4 — Prefetch product full image on card press-in
+### [x] TASK 4 — Prefetch product full image on card press-in
+> ProductCard onPressIn ExpoImage.prefetch(full imageUrl); buy flow unchanged.
 **Why:** Detail opens with full-size image already in expo-image cache.
 
 **Modify** ProductCard and/or ProductListScreen/Home card handlers:
