@@ -4,7 +4,7 @@ import {
   TouchableOpacity, ActivityIndicator, Platform,
 } from 'react-native';
 import { AppScreen, AppHeader, AppIcon, ErrorState } from '../../../components';
-import { colors, typography, spacing, radius } from '../../../theme';
+import { colors } from '../../../theme';
 import { notificationsApi, subscribeNotificationEvents, subscribeRealtimeLifecycle } from '../../../api';
 import { useAuthStore } from '../../../stores';
 import { mapNotification } from '../../../utils';

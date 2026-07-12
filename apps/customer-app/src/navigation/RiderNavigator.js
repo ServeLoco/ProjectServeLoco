@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { colors, shadows, spacing, radius } from '../theme';
+import { colors, shadows, radius } from '../theme';
 import AppIcon from '../components/AppIcon';
 import { RiderDashboardScreen, RiderHistoryScreen } from '../screens/rider';
 
@@ -10,30 +10,31 @@ const Tab = createBottomTabNavigator();
 function TabIcon({ name, focused, size, color }) {
   return (
     <View style={styles.iconWrap}>
-      <AppIcon name={name} color={color} size={size} />
-      {focused && <View style={styles.activeDot} />}
+      <View style={[styles.iconBubble, focused && styles.iconBubbleActive]}>
+        <AppIcon name={name} color={focused ? colors.saffronDark : color} size={size - 1} />
+      </View>
+      {focused ? <View style={styles.activeDot} /> : <View style={styles.activeDotSpacer} />}
     </View>
   );
 }
 
 /**
- * RiderNavigator
- * Shown when authenticated user is a rider (not a shop owner).
+ * RiderNavigator — delivery partner shell.
  */
 export default function RiderNavigator() {
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.saffron,
+        tabBarActiveTintColor: colors.saffronDark,
         tabBarInactiveTintColor: colors.navInactive,
-        tabBarLabelStyle: { fontWeight: '700', fontSize: 12 },
+        tabBarLabelStyle: { fontWeight: '700', fontSize: 11, marginTop: 2 },
         tabBarStyle: {
           backgroundColor: colors.navBg,
           borderTopWidth: 0,
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 6,
+          height: 68,
+          paddingBottom: 10,
+          paddingTop: 8,
           ...shadows.navBar,
         },
         sceneContainerStyle: { backgroundColor: colors.bgApp },
@@ -43,9 +44,9 @@ export default function RiderNavigator() {
         name="RiderDashboard"
         component={RiderDashboardScreen}
         options={{
-          title: 'Dashboard',
+          title: 'Ride',
           tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="home" color={color} size={size} focused={focused} />
+            <TabIcon name="navigation" color={color} size={size} focused={focused} />
           ),
         }}
       />
@@ -67,13 +68,28 @@ const styles = StyleSheet.create({
   iconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 26,
+    minHeight: 30,
+  },
+  iconBubble: {
+    width: 36,
+    height: 28,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconBubbleActive: {
+    backgroundColor: colors.saffronLight,
   },
   activeDot: {
     width: 4,
     height: 4,
     borderRadius: radius.circle,
     backgroundColor: colors.saffron,
-    marginTop: spacing.xs - 1,
+    marginTop: 2,
+  },
+  activeDotSpacer: {
+    width: 4,
+    height: 4,
+    marginTop: 2,
   },
 });

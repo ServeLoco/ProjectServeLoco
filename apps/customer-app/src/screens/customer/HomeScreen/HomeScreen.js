@@ -469,7 +469,6 @@ export default function HomeScreen() {
       safeAreaBottom={false}
       safeAreaTop={true}
       statusBarStyle="dark-content"
-      statusBarBg={colors.bgApp}
     >
       <HomeHeader
         unreadCount={unreadCount}

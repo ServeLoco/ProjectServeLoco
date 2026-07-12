@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cartApi } from '../../api/cartApi';
 import { useCartStore } from '../../stores/cartStore';
@@ -30,7 +30,6 @@ export default function CartScreen() {
   const items = useCartStore((state) => state.items);
   const updateQty = useCartStore((state) => state.updateQty);
   const removeItem = useCartStore((state) => state.removeItem);
-  const settings = useSettingsStore((state) => state.settings);
   const shopStatus = useSettingsStore((state) => state.shopStatus);
   // Primary check: shopStatus === 'closed' means the shop is closed. Defaults to 'open'.
   const storeClosed = shopStatus === 'closed';

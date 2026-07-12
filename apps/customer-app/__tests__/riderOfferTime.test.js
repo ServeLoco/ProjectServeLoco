@@ -35,3 +35,16 @@ describe('formatCountdown', () => {
     expect(formatCountdown(120)).toBe('2:00');
   });
 });
+
+/** UAT 14.6 — kill app / restart must not reset a fresh 2 minutes */
+describe('UAT 14.6 app restart countdown continuity', () => {
+  it('uses absolute expiresAt so reopening mid-offer shows remaining time only', () => {
+    const started = Date.parse('2026-07-12T12:00:00.000Z');
+    const expiresAt = new Date(started + 120_000).toISOString();
+    // App killed at t+90s, reopened:
+    const reopenAt = started + 90_000;
+    expect(remainingSecondsFromExpiresAt(expiresAt, reopenAt)).toBe(30);
+    // Not a fresh 120
+    expect(remainingSecondsFromExpiresAt(expiresAt, reopenAt)).not.toBe(120);
+  });
+});

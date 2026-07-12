@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore, selectCartTotalItems, selectCartDisplayTotal } from '../stores/cartStore';
 import { formatPrice } from '../utils/formatters';

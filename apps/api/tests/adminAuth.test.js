@@ -1,8 +1,6 @@
 const request = require('supertest');
 const express = require('express');
 const adminRoutes = require('../src/routes/adminRoutes');
-const { pool } = require('../src/db/mysql');
-const jwt = require('jsonwebtoken');
 
 jest.mock('../src/db/mysql', () => ({
   pool: {
@@ -13,8 +11,6 @@ jest.mock('../src/db/mysql', () => ({
 const app = express();
 app.use(express.json());
 app.use('/api/admin', adminRoutes);
-
-const bcrypt = require('bcrypt');
 
 describe('Admin Auth Tests', () => {
   beforeEach(() => {

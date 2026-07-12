@@ -1,8 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import { RidersApi } from '../api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { RidersApi, subscribeRealtime, connectAdminRealtime } from '../api';
 import { readList } from '../utils/apiResponse';
 import { GENERIC_ERROR } from '../utils/constants';
 import './Shops.css';
+
+function mergeRiderUpdate(list, payload) {
+  if (!payload || payload.id == null) return list;
+  const id = Number(payload.id);
+  const idx = list.findIndex((r) => Number(r.id) === id);
+  if (idx < 0) {
+    // New rider from another admin tab — soft-append if we have a name.
+    if (payload.displayName || payload.display_name) {
+      return [...list, {
+        ...payload,
+        isOnline: Boolean(payload.isOnline ?? payload.is_online),
+        is_online: Boolean(payload.isOnline ?? payload.is_online),
+        heartbeatFresh: Boolean(payload.heartbeatFresh ?? payload.heartbeat_fresh),
+        heartbeat_fresh: Boolean(payload.heartbeatFresh ?? payload.heartbeat_fresh),
+        active: payload.active !== undefined ? Boolean(payload.active) : true,
+      }];
+    }
+    return list;
+  }
+  const next = [...list];
+  const prev = next[idx];
+  const isOnline = payload.isOnline !== undefined || payload.is_online !== undefined
+    ? Boolean(payload.isOnline ?? payload.is_online)
+    : Boolean(prev.isOnline ?? prev.is_online);
+  next[idx] = {
+    ...prev,
+    ...payload,
+    isOnline,
+    is_online: isOnline,
+    heartbeatFresh: payload.heartbeatFresh !== undefined || payload.heartbeat_fresh !== undefined
+      ? Boolean(payload.heartbeatFresh ?? payload.heartbeat_fresh)
+      : (isOnline ? true : Boolean(prev.heartbeatFresh ?? prev.heartbeat_fresh)),
+    heartbeat_fresh: payload.heartbeatFresh !== undefined || payload.heartbeat_fresh !== undefined
+      ? Boolean(payload.heartbeatFresh ?? payload.heartbeat_fresh)
+      : (isOnline ? true : Boolean(prev.heartbeatFresh ?? prev.heartbeat_fresh)),
+    active: payload.active !== undefined ? Boolean(payload.active) : prev.active,
+    displayName: payload.displayName || payload.display_name || prev.displayName || prev.display_name,
+    display_name: payload.displayName || payload.display_name || prev.displayName || prev.display_name,
+    lastHeartbeatAt: payload.lastHeartbeatAt ?? payload.last_heartbeat_at ?? prev.lastHeartbeatAt,
+    last_heartbeat_at: payload.lastHeartbeatAt ?? payload.last_heartbeat_at ?? prev.last_heartbeat_at,
+  };
+  return next;
+}
 
 export default function Riders() {
   const [riders, setRiders] = useState([]);
@@ -12,14 +55,11 @@ export default function Riders() {
   const [phone, setPhone] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [liveHint, setLiveHint] = useState('');
 
-  useEffect(() => {
-    fetchRiders();
-  }, []);
-
-  const fetchRiders = async () => {
+  const fetchRiders = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       const res = await RidersApi.list();
       setRiders(readList(res, ['riders']));
@@ -27,9 +67,44 @@ export default function Riders() {
       console.error(err);
       setError(err.message || GENERIC_ERROR);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchRiders();
+  }, [fetchRiders]);
+
+  // Realtime online/offline + heartbeat without full page refresh.
+  useEffect(() => {
+    connectAdminRealtime();
+    const off = subscribeRealtime('admin.rider.updated', (payload) => {
+      setRiders((prev) => mergeRiderUpdate(prev, payload));
+      const name = payload?.displayName || payload?.display_name || `Rider #${payload?.id}`;
+      const online = Boolean(payload?.isOnline ?? payload?.is_online);
+      if (payload?.reason === 'online' || payload?.reason === 'offline') {
+        setLiveHint(`${name} went ${online ? 'online' : 'offline'}`);
+      } else if (payload?.reason === 'heartbeat') {
+        setLiveHint(`${name} heartbeat`);
+      } else if (payload?.reason === 'deactivated' || payload?.reason === 'activated') {
+        setLiveHint(`${name} ${payload.reason}`);
+      }
+    });
+    // Soft re-sync when tab becomes visible / socket reconnects.
+    const offVisible = subscribeRealtime('lifecycle.visible', () => fetchRiders({ silent: true }));
+    const offReconn = subscribeRealtime('lifecycle.reconnected', () => fetchRiders({ silent: true }));
+    return () => {
+      off();
+      offVisible();
+      offReconn();
+    };
+  }, [fetchRiders]);
+
+  useEffect(() => {
+    if (!liveHint) return undefined;
+    const t = setTimeout(() => setLiveHint(''), 2500);
+    return () => clearTimeout(t);
+  }, [liveHint]);
 
   const openCreate = () => {
     setPhone('');
@@ -87,6 +162,22 @@ export default function Riders() {
         </div>
       )}
 
+      {liveHint ? (
+        <div
+          style={{
+            marginBottom: '0.75rem',
+            padding: '0.55rem 0.85rem',
+            borderRadius: 10,
+            background: 'rgba(255, 122, 58, 0.12)',
+            color: 'var(--text-primary)',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+          }}
+        >
+          Live · {liveHint}
+        </div>
+      ) : null}
+
       <section className="shops-table-wrapper">
         <table className="shops-table">
           <thead>
@@ -120,8 +211,28 @@ export default function Riders() {
                   </td>
                   <td>{r.phone || r.userPhone || '—'}</td>
                   <td>
-                    <span className={`availability-toggle ${r.isOnline || r.is_online ? 'in-stock' : 'out-of-stock'}`}>
-                      {r.isOnline || r.is_online ? 'Online' : 'Offline'}
+                    <span
+                      className={`availability-toggle ${r.isOnline || r.is_online ? 'in-stock' : 'out-of-stock'}`}
+                      style={{ pointerEvents: 'none', cursor: 'default' }}
+                    >
+                      {(r.isOnline || r.is_online) ? (
+                        <>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              background: 'currentColor',
+                              marginRight: 6,
+                              boxShadow: '0 0 0 3px rgba(31, 181, 116, 0.25)',
+                            }}
+                          />
+                          Online
+                        </>
+                      ) : (
+                        'Offline'
+                      )}
                     </span>
                   </td>
                   <td>

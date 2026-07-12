@@ -1,4 +1,3 @@
-import React from 'react';
 import { getStatusLabel, getStatusColor } from '../utils/formatters';
 import './OrderStatusBadge.css';
 

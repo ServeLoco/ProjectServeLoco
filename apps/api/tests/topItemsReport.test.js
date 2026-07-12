@@ -2,7 +2,6 @@ const request = require('supertest');
 const express = require('express');
 const adminRoutes = require('../src/routes/adminRoutes');
 const { pool } = require('../src/db/mysql');
-const authMiddleware = require('../src/middleware/authMiddleware');
 
 jest.mock('../src/db/mysql', () => ({
   pool: { query: jest.fn() }

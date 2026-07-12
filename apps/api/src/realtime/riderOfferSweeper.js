@@ -4,20 +4,34 @@
  */
 
 const config = require('../config/env');
-const { expireDueOffers } = require('../services/riderAssignment');
+const { expireDueOffers, recoverStuckAssignments } = require('../services/riderAssignment');
 
 const RIDER_SWEEPER_MS = config.RIDER_SWEEPER_MS || 5000;
 
 let timer = null;
 let running = false;
 
+let missingTableLogged = false;
+
 const tick = async () => {
   if (running) return;
   running = true;
   try {
     await expireDueOffers();
+    await recoverStuckAssignments();
+    missingTableLogged = false;
   } catch (e) {
-    console.error('[rider-sweeper] tick failed:', e.message);
+    // Avoid log spam every 5s when migrations have not been applied yet.
+    const missing = e && (e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146
+      || /doesn't exist/i.test(e.message || ''));
+    if (missing) {
+      if (!missingTableLogged) {
+        console.error('[rider-sweeper] rider tables missing — run npm run db:migrate:dev once. Further ticks suppressed until fixed.');
+        missingTableLogged = true;
+      }
+    } else {
+      console.error('[rider-sweeper] tick failed:', e.message);
+    }
   } finally {
     running = false;
   }

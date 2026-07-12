@@ -1,4 +1,3 @@
-import React from 'react';
 import './QuantityControl.css';
 
 export default function QuantityControl({ quantity, onIncrease, onDecrease }) {

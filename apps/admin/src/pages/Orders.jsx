@@ -800,6 +800,34 @@ export default function Orders() {
                 </div>
               </div>
 
+              {(selectedOrder.riderId || selectedOrder.rider_id || selectedOrder.riderAssignmentStatus === 'searching' || selectedOrder.riderAssignmentStatus === 'offered' || selectedOrder.riderAssignmentStatus === 'failed') && (
+                <div className="detail-section">
+                  <h4>Delivery / Rider</h4>
+                  {selectedOrder.riderId || selectedOrder.rider_id ? (
+                    <>
+                      <div className="detail-row"><span>Rider:</span> <strong>{selectedOrder.riderName || `#${selectedOrder.riderId || selectedOrder.rider_id}`}</strong></div>
+                      <div className="detail-row"><span>Assigned:</span> <strong>{formatDateTime(selectedOrder.rider_assigned_at)}</strong></div>
+                      {selectedOrder.rider_picked_up_at && (
+                        <div className="detail-row"><span>Picked up:</span> <strong>{formatDateTime(selectedOrder.rider_picked_up_at)}</strong></div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="detail-row">
+                      <span>Assignment:</span>
+                      <strong style={{ color: selectedOrder.riderAssignmentStatus === 'failed' ? '#b91c1c' : 'inherit' }}>
+                        {selectedOrder.riderAssignmentStatus === 'searching' ? 'Searching for a rider…'
+                          : selectedOrder.riderAssignmentStatus === 'offered' ? 'Offer sent — awaiting rider response'
+                          : selectedOrder.riderAssignmentStatus === 'failed' ? 'No rider accepted — order cancelled'
+                          : 'Not started'}
+                      </strong>
+                    </div>
+                  )}
+                  {selectedOrder.status === 'Cancelled' && selectedOrder.cancel_reason && (
+                    <div className="detail-row"><span>Cancel reason:</span> <strong>{selectedOrder.cancel_reason}</strong></div>
+                  )}
+                </div>
+              )}
+
               <div className="detail-section">
                 <h4>Order Status Management</h4>
                 <div className="status-update-row">

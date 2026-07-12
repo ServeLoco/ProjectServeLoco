@@ -7,13 +7,15 @@ import { colors } from '../../theme';
  * AppScreen
  * Base screen wrapper with safe-area, status bar, and background color.
  *
+ * On Android 15+ status/nav bar colors via Window APIs are deprecated (edge-to-edge).
+ * We only set barStyle for icon contrast; the SafeAreaView bg draws under the bar.
+ *
  * Props:
  *   children       - screen content
  *   style          - additional style for the inner content container
  *   bg             - background color override (default: colors.bgApp)
  *   edges          - SafeAreaView edges (default: ['top','bottom','left','right'])
  *   statusBarStyle - 'dark-content' | 'light-content' (default: 'dark-content')
- *   statusBarBg    - status bar background color
  *   noPadding      - if true, removes horizontal screen padding
  */
 function AppScreen({
@@ -26,7 +28,6 @@ function AppScreen({
   safeAreaLeft = true,
   safeAreaRight = true,
   statusBarStyle = 'dark-content',
-  statusBarBg,
   noPadding = false,
 }) {
   const resolvedEdges = edges || [
@@ -41,10 +42,8 @@ function AppScreen({
       edges={resolvedEdges}
       style={[styles.safeArea, { backgroundColor: bg }]}
     >
-      <StatusBar
-        barStyle={statusBarStyle}
-        backgroundColor={statusBarBg || bg}
-      />
+      {/* barStyle only — no backgroundColor (deprecated on Android 15+) */}
+      <StatusBar barStyle={statusBarStyle} />
       <View style={[styles.content, noPadding && styles.noPadding, style]}>
         {children}
       </View>

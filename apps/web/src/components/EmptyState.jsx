@@ -1,4 +1,4 @@
-import React from 'react';
+
 import './EmptyState.css';
 
 export default function EmptyState({ title, message, icon }) {

@@ -5,6 +5,7 @@ const { validatePagination } = require('../validators');
 const notificationService = require('../utils/notificationService');
 const { notifyShopsForOrder, notifyShopsOrderCancelled } = require('../utils/shops');
 const realtimeEvents = require('../realtime/orderEvents');
+const { emitToCustomer } = require('../realtime/socket');
 const orderAutoAccept = require('../realtime/orderAutoAccept');
 const adminInbox = require('../utils/adminNotifications');
 const bcrypt = require('bcrypt');
@@ -627,7 +628,11 @@ const updateOrderStatus = async (req, res) => {
       return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'Order was updated by someone else.', order: freshRows[0] });
     }
   } else {
-    const [updateResult] = await pool.query('UPDATE orders SET status = ? WHERE id = ? AND status = ?', [status, id, currentStatus]);
+    const setDeliveredAt = status === 'Delivered' ? ', delivered_at = NOW()' : '';
+    const [updateResult] = await pool.query(
+      `UPDATE orders SET status = ?${setDeliveredAt} WHERE id = ? AND status = ?`,
+      [status, id, currentStatus]
+    );
     if (updateResult.affectedRows === 0) {
       const [freshRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
       return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'Order was updated by someone else.', order: freshRows[0] });
@@ -671,6 +676,31 @@ const updateOrderStatus = async (req, res) => {
       notifyShopsOrderCancelled(updatedOrder);
       const { revokeOffersForOrder } = require('../services/riderAssignment');
       revokeOffersForOrder(updatedOrder.id).catch(() => {});
+    }
+
+    // A rider already en route must be told the order died underneath them —
+    // otherwise they keep driving to a cancelled order (any prior status,
+    // since a rider can be assigned as early as 'Accepted').
+    if (status === 'Cancelled' && updatedOrder.rider_id) {
+      (async () => {
+        try {
+          const [riderRows] = await pool.query('SELECT user_id FROM riders WHERE id = ?', [updatedOrder.rider_id]);
+          if (riderRows[0]) {
+            emitToCustomer(riderRows[0].user_id, 'rider.assignment.updated', {
+              orderId: updatedOrder.id,
+              status: 'cancelled',
+            });
+            const expoPush = require('../utils/expoPush');
+            await expoPush.sendPushToUser(pool, riderRows[0].user_id, {
+              title: 'Order cancelled',
+              body: `Order ${updatedOrder.order_number} was cancelled by admin.`,
+              data: { type: 'rider_assignment', orderId: updatedOrder.id },
+            });
+          }
+        } catch (e) {
+          console.error('[rider-assign] notify rider of admin cancel failed:', e.message);
+        }
+      })();
     }
 
     realtimeEvents.emitOrderStatusUpdated(updatedOrder);

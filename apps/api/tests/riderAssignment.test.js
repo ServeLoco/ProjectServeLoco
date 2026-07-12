@@ -175,10 +175,12 @@ describe('acceptOffer', () => {
   it('assigns on success', async () => {
     const future = new Date(Date.now() + 120000);
     const conn = makeConn([
-      [[{ id: 1, order_id: 10, rider_id: 3, status: 'pending', expires_at: future }]],
-      [[{ id: 10, status: 'Accepted', rider_id: null, customer_id: 5, order_number: 'O' }]],
-      [{ affectedRows: 1 }],
-      [{ affectedRows: 1 }],
+      [[{ id: 1, order_id: 10, rider_id: 3, status: 'pending', expires_at: future }]], // offer select
+      [[{ is_expired: 0 }]], // expiry check (SQL-side)
+      [[{ id: 10, status: 'Accepted', rider_id: null, customer_id: 5, order_number: 'O' }]], // order select
+      [[]], // busy-rider check — empty = not busy
+      [{ affectedRows: 1 }], // offer update
+      [{ affectedRows: 1 }], // order update
     ]);
     pool.getConnection.mockResolvedValue(conn);
     pool.query.mockResolvedValueOnce([[{

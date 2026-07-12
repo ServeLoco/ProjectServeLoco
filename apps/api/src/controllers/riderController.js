@@ -50,8 +50,9 @@ const shapeOffer = (row) => {
     seconds_remaining: secondsRemaining,
     orderNumber: row.order_number,
     order_number: row.order_number,
+    // Address is needed for the accept/reject decision; customer phone is
+    // withheld until the rider actually accepts (see shapeOrderSummary).
     address: row.address || null,
-    phone: row.phone || null,
     customerName: row.customer_name || null,
     customer_name: row.customer_name || null,
   };
@@ -123,6 +124,20 @@ const setOnline = async (req, res) => {
   await syncDeliveryAvailabilityFromRiders();
 
   const rider = riderShape(req.rider);
+
+  // Realtime fan-out so admin Riders page updates without refresh.
+  try {
+    const { emitToAdmins } = require('../realtime/socket');
+    emitToAdmins('admin.rider.updated', {
+      ...rider,
+      lastHeartbeatAt: rider.lastHeartbeatAt,
+      last_heartbeat_at: rider.last_heartbeat_at,
+      heartbeatFresh: Boolean(raw),
+      heartbeat_fresh: Boolean(raw),
+      reason: raw ? 'online' : 'offline',
+    });
+  } catch (_) { /* best-effort */ }
+
   res.status(200).json({
     message: 'Rider online status updated',
     rider,
@@ -154,9 +169,20 @@ const heartbeat = async (req, res) => {
   );
   req.rider = rows[0];
 
+  const rider = riderShape(req.rider);
+  try {
+    const { emitToAdmins } = require('../realtime/socket');
+    emitToAdmins('admin.rider.updated', {
+      ...rider,
+      heartbeatFresh: true,
+      heartbeat_fresh: true,
+      reason: 'heartbeat',
+    });
+  } catch (_) { /* best-effort */ }
+
   res.status(200).json({
     message: 'Heartbeat recorded',
-    rider: riderShape(req.rider),
+    rider,
   });
 };
 
@@ -403,8 +429,9 @@ const updateAssignmentStatus = async (req, res) => {
     );
   }
 
+  const setDeliveredAt = status === 'Delivered' ? ', delivered_at = NOW()' : '';
   const [updateResult] = await pool.query(
-    'UPDATE orders SET status = ? WHERE id = ? AND status = ? AND rider_id = ?',
+    `UPDATE orders SET status = ?${setDeliveredAt} WHERE id = ? AND status = ? AND rider_id = ?`,
     [status, orderId, order.status, req.rider.id]
   );
   if (updateResult.affectedRows === 0) {

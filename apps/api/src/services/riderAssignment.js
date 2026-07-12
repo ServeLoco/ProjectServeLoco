@@ -91,12 +91,13 @@ const createOffer = async (orderId, rider) => {
       [orderId]
     );
     const order = orderRows[0];
-    if (!order || order.status === 'Cancelled' || order.rider_id) {
+    if (!order || order.status === 'Cancelled' || order.status === 'Delivered' || order.rider_id) {
       await connection.rollback();
       return null;
     }
 
-    const expiresAt = new Date(Date.now() + RIDER_OFFER_TIMEOUT_SEC * 1000);
+    const [expRows] = await connection.query('SELECT DATE_ADD(NOW(), INTERVAL ? SECOND) AS e', [RIDER_OFFER_TIMEOUT_SEC]);
+    const expiresAt = expRows[0].e;
     const [insertResult] = await connection.query(
       `INSERT INTO rider_order_offers (order_id, rider_id, status, expires_at)
        VALUES (?, ?, 'pending', ?)`,
@@ -206,7 +207,11 @@ const failAssignment = async (orderId, reason = 'No riders available') => {
     };
 
     const adminInbox = require('../utils/adminNotifications');
-    const notifType = reason === 'No riders available' || /zero|no rider/i.test(reason)
+    // reason is exactly 'No riders available' (zero eligible at start) or
+    // 'No rider accepted' (pool exhausted after reject/timeout chain) — see
+    // callers below. Exact match avoids the exhaustion case also matching
+    // /no rider/i and firing the wrong (and duplicate) notification type.
+    const notifType = reason === 'No riders available'
       ? adminInbox.TYPES.RIDER_ZERO_AVAILABLE
       : adminInbox.TYPES.ORDER_CANCELLED_NO_RIDER;
     await adminInbox.createAdminNotification({
@@ -216,14 +221,6 @@ const failAssignment = async (orderId, reason = 'No riders available') => {
       relatedUrl: `/orders?id=${orderId}`,
       relatedId: String(orderId),
     });
-    // Also fire assignment_failed for admin filter convenience
-    await adminInbox.createAdminNotification({
-      type: adminInbox.TYPES.RIDER_ASSIGNMENT_FAILED,
-      title: `Rider assignment failed #${updated.order_number || orderId}`,
-      body: cancelReason,
-      relatedUrl: `/orders?id=${orderId}`,
-      relatedId: String(orderId),
-    }).catch(() => {});
 
     const notificationService = require('../utils/notificationService');
     const realtimeEvents = require('../realtime/orderEvents');
@@ -269,7 +266,7 @@ const failAssignment = async (orderId, reason = 'No riders available') => {
  */
 const continueAssignment = async (orderId) => {
   const order = await loadOrder(orderId);
-  if (!order || order.status === 'Cancelled' || order.rider_id) {
+  if (!order || order.status === 'Cancelled' || order.status === 'Delivered' || order.rider_id) {
     return { continued: false };
   }
 
@@ -462,7 +459,11 @@ const acceptOffer = async (offerId, riderId) => {
       await connection.rollback();
       return { ok: false, code: 'CONFLICT', message: 'Offer is no longer pending', status: 409 };
     }
-    if (new Date(offer.expires_at).getTime() <= Date.now()) {
+    const [expiredCheck] = await connection.query(
+      'SELECT (expires_at <= NOW()) AS is_expired FROM rider_order_offers WHERE id = ?',
+      [offerId]
+    );
+    if (expiredCheck[0]?.is_expired) {
       await connection.query(
         `UPDATE rider_order_offers
          SET status = 'expired', responded_at = NOW(), reject_reason = 'timeout'
@@ -480,9 +481,31 @@ const acceptOffer = async (offerId, riderId) => {
       [offer.order_id]
     );
     const order = orderRows[0];
-    if (!order || order.status === 'Cancelled' || order.rider_id) {
+    if (!order || order.status === 'Cancelled' || order.status === 'Delivered' || order.rider_id) {
       await connection.rollback();
+      // Admin took the order out of play (delivered/reassigned) while offer was pending.
+      await connection.query(
+        `UPDATE rider_order_offers SET status = 'cancelled', responded_at = NOW(), reject_reason = 'admin'
+         WHERE id = ? AND status = 'pending'`,
+        [offerId]
+      ).catch(() => {});
       return { ok: false, code: 'CONFLICT', message: 'Order not assignable', status: 409 };
+    }
+
+    // Bug fix: rider must not hold two concurrent assignments (D13).
+    const [busyRows] = await connection.query(
+      `SELECT id FROM orders WHERE rider_id = ? AND status NOT IN ('Delivered', 'Cancelled') LIMIT 1`,
+      [riderId]
+    );
+    if (busyRows.length > 0) {
+      await connection.rollback();
+      await pool.query(
+        `UPDATE rider_order_offers SET status = 'rejected', responded_at = NOW(), reject_reason = 'rider_busy'
+         WHERE id = ? AND status = 'pending'`,
+        [offerId]
+      ).catch(() => {});
+      setImmediate(() => continueAssignment(offer.order_id).catch(() => {}));
+      return { ok: false, code: 'CONFLICT', message: 'You already have an active delivery', status: 409 };
     }
 
     await connection.query(
@@ -634,6 +657,31 @@ const expireDueOffers = async () => {
 };
 
 /**
+ * Recover orders stuck 'searching'/'offered' with no rider and no pending
+ * offer — e.g. process crashed between startAssignment's commit and
+ * createOffer. Boot rehydrate + periodic sweep both call this.
+ */
+const recoverStuckAssignments = async () => {
+  const [rows] = await pool.query(
+    `SELECT o.id FROM orders o
+     WHERE o.rider_assignment_status IN ('searching', 'offered')
+       AND o.rider_id IS NULL
+       AND o.status NOT IN ('Delivered', 'Cancelled')
+       AND NOT EXISTS (
+         SELECT 1 FROM rider_order_offers ro
+         WHERE ro.order_id = o.id AND ro.status = 'pending'
+       )
+     LIMIT 50`
+  );
+  const results = [];
+  for (const row of rows) {
+    log('recoverStuckAssignments — resuming', row.id);
+    results.push(await continueAssignment(row.id));
+  }
+  return results;
+};
+
+/**
  * Rider cancels after accept, before pickup. Treat as reject → reassignment.
  */
 const cancelAssignmentByRider = async (orderId, riderId) => {
@@ -734,6 +782,7 @@ module.exports = {
   failAssignment,
   cancelAssignmentByRider,
   continueAssignment,
+  recoverStuckAssignments,
   getExcludedRiderIdsForOrder,
   revokeOffersForOrder,
 };

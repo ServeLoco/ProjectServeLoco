@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { productsApi } from '../../api/productsApi';
 import { useStoreModes } from '../../hooks/useStoreModes';
 import BottomNav from '../../components/BottomNav';

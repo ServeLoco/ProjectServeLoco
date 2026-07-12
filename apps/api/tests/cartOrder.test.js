@@ -282,7 +282,7 @@ describe('Cart and Order Tests', () => {
   it('should create an order when customer is inside delivery radius', async () => {
     const mockConnection = {
       beginTransaction: jest.fn(),
-      query: jest.fn((sql, params) => { console.log('QUERY:', sql); return Promise.resolve(); }),
+      query: jest.fn((sql, _params) => { console.log('QUERY:', sql); return Promise.resolve(); }),
       commit: jest.fn(),
       rollback: jest.fn(),
       release: jest.fn()

@@ -446,6 +446,10 @@ const migrate = async () => {
     await ensureColumn('orders', 'rider_picked_up_at', 'rider_picked_up_at TIMESTAMP NULL DEFAULT NULL AFTER rider_assigned_at');
     await ensureColumn('orders', 'rider_assignment_status',
       "rider_assignment_status ENUM('none','searching','offered','assigned','failed') DEFAULT 'none' AFTER rider_picked_up_at");
+    // Stamped exactly when status transitions to Delivered — countCompletedDeliveriesToday
+    // (D8, Asia/Kolkata "today") keys off this instead of updated_at, which drifts if the
+    // row is touched again later (e.g. an unrelated admin edit) after delivery.
+    await ensureColumn('orders', 'delivered_at', 'delivered_at TIMESTAMP NULL DEFAULT NULL AFTER rider_assignment_status');
 
     // Performance indexes for common order filter queries
     const ensureIndex = async (tableName, indexName, columns) => {
@@ -1366,4 +1370,10 @@ const migrate = async () => {
   }
 };
 
-migrate();
+// CLI: `node src/db/migrate.js` / npm run db:migrate*
+// Also importable from initDB for `npm run dev` (which does not shell-run migrate).
+if (require.main === module) {
+  migrate();
+}
+
+module.exports = { migrate };

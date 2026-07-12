@@ -1,6 +1,4 @@
-const config = require('../config/env');
-
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, _next) => {
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal Server Error';
   let code = err.code || 'SERVER_ERROR';
@@ -44,7 +42,7 @@ const errorHandler = (err, req, res, next) => {
   res.status(statusCode).json(response);
 };
 
-const notFoundHandler = (req, res, next) => {
+const notFoundHandler = (req, res, _next) => {
   res.status(404).json({
     code: 'NOT_FOUND',
     message: `Route ${req.originalUrl} not found`

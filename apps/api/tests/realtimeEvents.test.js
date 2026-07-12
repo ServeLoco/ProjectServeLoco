@@ -370,7 +370,7 @@ describe('Realtime order events', () => {
   });
 
   it('emitOrderCreated and emitOrderStatusUpdated emit different event names', () => {
-    const createdPayload = realtimeEvents.emitOrderCreated({
+    realtimeEvents.emitOrderCreated({
       id: 110, order_number: 'OD-110', customer_id: 70,
       status: 'Pending', payment_status: 'Pending', total: 100,
       updated_at: '2026-05-29T23:00:00.000Z',

@@ -7,7 +7,6 @@ if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'tr
 
 const { pool } = require('./mysql');
 const { getDb, connect } = require('./mongodb');
-const { ObjectId } = require('mongodb');
 
 async function seedDemoData() {
   console.log('Seeding demo data...');

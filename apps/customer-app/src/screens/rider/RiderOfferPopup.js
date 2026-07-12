@@ -1,6 +1,14 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  Modal, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Animated, ScrollView, Linking,
+  Modal,
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  Animated,
+  ScrollView,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,9 +20,8 @@ import {
 } from '../../utils/riderOfferTime';
 
 /**
- * RiderOfferPopup
- * Non-dismissible Accept/Reject modal. Countdown is derived from server
- * expiresAt so app restart / background does not reset the 2-minute window.
+ * Premium non-dismissible Accept/Reject offer modal.
+ * Countdown is always derived from server expiresAt.
  */
 export default function RiderOfferPopup({ offer, onAccept, onReject }) {
   const [busy, setBusy] = useState(null);
@@ -22,15 +29,16 @@ export default function RiderOfferPopup({ offer, onAccept, onReject }) {
   const [secondsLeft, setSecondsLeft] = useState(0);
 
   const enter = useRef(new Animated.Value(0)).current;
+  const ringPulse = useRef(new Animated.Value(1)).current;
   const offerKey = offer?.id || offer?.offerId;
 
   useEffect(() => {
     if (!offer) return;
     enter.setValue(0);
-    Animated.timing(enter, {
+    Animated.spring(enter, {
       toValue: 1,
-      duration: motion.screenMs,
-      easing: motion.easingModal,
+      friction: 8,
+      tension: 80,
       useNativeDriver: true,
     }).start();
   }, [offerKey, enter, offer]);
@@ -40,7 +48,6 @@ export default function RiderOfferPopup({ offer, onAccept, onReject }) {
     setError(null);
   }, [offerKey]);
 
-  // Tick from server expiresAt every second
   useEffect(() => {
     if (!offer) return undefined;
     const expiresAt = offer.expiresAt || offer.expires_at;
@@ -49,6 +56,30 @@ export default function RiderOfferPopup({ offer, onAccept, onReject }) {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [offerKey, offer]);
+
+  // Urgent pulse when < 30s
+  useEffect(() => {
+    if (secondsLeft > 30 || secondsLeft <= 0) {
+      ringPulse.setValue(1);
+      return undefined;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(ringPulse, {
+          toValue: 1.06,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+        Animated.timing(ringPulse, {
+          toValue: 1,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [secondsLeft <= 30, ringPulse, secondsLeft]);
 
   const handleAccept = useCallback(async () => {
     setError(null);
@@ -74,69 +105,123 @@ export default function RiderOfferPopup({ offer, onAccept, onReject }) {
 
   if (!offer) return null;
 
-  const scale = enter.interpolate({ inputRange: [0, 1], outputRange: [motion.modalScaleStart, 1] });
+  const scale = enter.interpolate({
+    inputRange: [0, 1],
+    outputRange: [motion.modalScaleStart || 0.92, 1],
+  });
   const countdownLabel = formatCountdown(secondsLeft);
   const countdownUrgent = secondsLeft <= 30;
   const shops = offer.shops || [];
   const phone = offer.phone;
+  const progress = Math.min(1, Math.max(0, secondsLeft / 120));
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={() => {}}>
       <View style={styles.overlay}>
         <SafeAreaView style={styles.wrap}>
           <Animated.View style={[styles.sheet, { opacity: enter, transform: [{ scale }] }]}>
-            <View style={styles.topAccent} />
+            <LinearGradient
+              colors={[colors.brandGradientStart, colors.brandGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.topBar}
+            />
 
             <View style={styles.badgeRow}>
               <View style={styles.newBadge}>
-                <AppIcon name="notification" size={14} color={colors.textInverse} />
+                <AppIcon name="navigation" size={14} color={colors.textInverse} />
                 <Text style={styles.newBadgeText}>Delivery offer</Text>
+              </View>
+              <View style={[styles.timerChip, countdownUrgent && styles.timerChipUrgent]}>
+                <AppIcon
+                  name="clock"
+                  size={13}
+                  color={countdownUrgent ? colors.error : colors.saffronDark}
+                />
+                <Text style={[styles.timerChipText, countdownUrgent && styles.timerChipTextUrgent]}>
+                  {secondsLeft > 0 ? countdownLabel : '0:00'}
+                </Text>
               </View>
             </View>
 
-            <Text style={styles.orderNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+            <Text
+              style={styles.orderNumber}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
               #{offer.orderNumber || offer.order_number}
             </Text>
+            <Text style={styles.countdownHint}>
+              {secondsLeft > 0
+                ? countdownUrgent
+                  ? 'Hurry — respond before this offer expires'
+                  : 'Respond within the timer to claim this delivery'
+                : 'Time expired — wait for the next offer'}
+            </Text>
 
-            <View style={[styles.countdownPill, countdownUrgent && styles.countdownPillUrgent]}>
-              <AppIcon name="clock" size={14} color={countdownUrgent ? colors.error : colors.textSecondary} />
-              <Text style={[styles.countdownText, countdownUrgent && styles.countdownTextUrgent]}>
-                {secondsLeft > 0 ? `Respond within ${countdownLabel}` : 'Time expired'}
-              </Text>
+            {/* Progress bar */}
+            <View style={styles.progressTrack}>
+              <Animated.View
+                style={[
+                  styles.progressFill,
+                  countdownUrgent && styles.progressFillUrgent,
+                  { width: `${progress * 100}%`, transform: [{ scaleY: ringPulse }] },
+                ]}
+              />
             </View>
 
             {offer.address ? (
               <View style={styles.addressCard}>
-                <AppIcon name="navigation" size={16} color={colors.saffron} />
-                <Text style={styles.addressText}>{offer.address}</Text>
+                <View style={styles.addressIconWrap}>
+                  <AppIcon name="map" size={18} color={colors.saffronDark} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Drop-off address</Text>
+                  <Text style={styles.addressText}>{offer.address}</Text>
+                </View>
               </View>
             ) : null}
 
-            {(offer.customerName || offer.customer_name) ? (
-              <Text style={styles.customerLine}>
-                {offer.customerName || offer.customer_name}
-                {phone ? ` · ${phone}` : ''}
-              </Text>
-            ) : null}
-
-            {phone ? (
-              <TouchableOpacity
-                style={styles.callBtn}
-                onPress={() => Linking.openURL(`tel:${phone}`)}
-              >
-                <AppIcon name="phone" size={16} color={colors.info} />
-                <Text style={styles.callBtnText}>Call customer</Text>
-              </TouchableOpacity>
+            {(offer.customerName || offer.customer_name || phone) ? (
+              <View style={styles.customerCard}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {(offer.customerName || offer.customer_name || 'C').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.customerName}>
+                    {offer.customerName || offer.customer_name || 'Customer'}
+                  </Text>
+                  {phone ? <Text style={styles.customerPhone}>{phone}</Text> : null}
+                </View>
+                {phone ? (
+                  <TouchableOpacity
+                    style={styles.callBtn}
+                    onPress={() => Linking.openURL(`tel:${phone}`)}
+                    activeOpacity={0.85}
+                  >
+                    <AppIcon name="phone" size={16} color={colors.info} />
+                    <Text style={styles.callBtnText}>Call</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
             ) : null}
 
             {shops.length > 0 ? (
               <>
-                <Text style={styles.itemsLabel}>Pickup shops</Text>
-                <ScrollView style={styles.itemsCard} showsVerticalScrollIndicator={false}>
-                  {shops.map((s) => (
-                    <View key={s.id} style={styles.itemRow}>
-                      <AppIcon name="box" size={14} color={colors.saffron} />
-                      <Text style={styles.itemName}>{s.name}</Text>
+                <Text style={styles.sectionLabel}>Pickup shops</Text>
+                <ScrollView style={styles.shopsCard} showsVerticalScrollIndicator={false}>
+                  {shops.map((s, idx) => (
+                    <View
+                      key={s.id}
+                      style={[styles.shopRow, idx === shops.length - 1 && styles.shopRowLast]}
+                    >
+                      <View style={styles.shopIndex}>
+                        <Text style={styles.shopIndexText}>{idx + 1}</Text>
+                      </View>
+                      <Text style={styles.shopName}>{s.name}</Text>
                     </View>
                   ))}
                 </ScrollView>
@@ -159,7 +244,7 @@ export default function RiderOfferPopup({ offer, onAccept, onReject }) {
                 onPress={handleReject}
               />
               <PressButton
-                label="Accept"
+                label="Accept ride"
                 variant="accept"
                 busy={busy === 'accept'}
                 disabled={busy !== null || secondsLeft <= 0}
@@ -185,7 +270,7 @@ function PressButton({ label, variant, busy, disabled, onPress }) {
       onPressOut={handleOut}
       onPress={onPress}
       disabled={disabled}
-      style={[styles.actionBtn, { transform: [{ scale }], opacity: disabled ? 0.75 : 1 }]}
+      style={[styles.actionBtn, { transform: [{ scale }], opacity: disabled ? 0.72 : 1 }]}
     >
       {isAccept ? (
         <LinearGradient
@@ -229,75 +314,199 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...shadows.modal,
   },
-  topAccent: {
-    position: 'absolute', top: 0, left: 0, right: 0, height: 6,
-    backgroundColor: colors.saffron,
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 6,
   },
   badgeRow: {
-    flexDirection: 'row', alignItems: 'center',
-    marginTop: spacing.sm, marginBottom: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
   newBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: colors.saffron, borderRadius: radius.pill,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.saffron,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
   },
   newBadgeText: {
-    color: colors.textInverse, fontWeight: '800', fontSize: 13, letterSpacing: 0.3,
+    color: colors.textInverse,
+    fontWeight: '800',
+    fontSize: 13,
+    letterSpacing: 0.3,
   },
+  timerChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.saffronLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  timerChipUrgent: { backgroundColor: colors.errorLight },
+  timerChipText: {
+    fontWeight: '800',
+    fontSize: 14,
+    color: colors.saffronDark,
+    fontVariant: ['tabular-nums'],
+  },
+  timerChipTextUrgent: { color: colors.error },
   orderNumber: {
-    ...typography.h2, color: colors.textPrimary, marginBottom: spacing.sm,
+    ...typography.display,
+    fontSize: 28,
+    color: colors.textPrimary,
+    marginBottom: 4,
   },
-  countdownPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+  countdownHint: {
+    ...typography.caption,
+    color: colors.textSecondary,
     marginBottom: spacing.md,
+    fontWeight: '500',
   },
-  countdownPillUrgent: {},
-  countdownText: {
-    color: colors.textSecondary, fontWeight: '700', fontSize: 13,
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.grey100,
+    overflow: 'hidden',
+    marginBottom: spacing.lg,
   },
-  countdownTextUrgent: { color: colors.error },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: colors.saffron,
+  },
+  progressFillUrgent: { backgroundColor: colors.error },
+
   addressCard: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
-    backgroundColor: colors.bgApp, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.border,
-    padding: spacing.md, marginBottom: spacing.sm,
-  },
-  addressText: { flex: 1, ...typography.body, color: colors.textPrimary, fontWeight: '500' },
-  customerLine: {
-    ...typography.caption, color: colors.textSecondary, marginBottom: spacing.sm,
-  },
-  callBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+    flexDirection: 'row',
+    gap: spacing.md,
+    backgroundColor: colors.saffronLight,
+    borderRadius: radius.lg,
+    padding: spacing.md,
     marginBottom: spacing.md,
   },
-  callBtnText: { color: colors.info, fontWeight: '700', fontSize: 14 },
-  itemsLabel: {
-    ...typography.labelSmall, color: colors.textSecondary, textTransform: 'uppercase',
-    letterSpacing: 0.6, marginBottom: spacing.sm,
+  addressIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.bgSurface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  itemsCard: {
-    backgroundColor: colors.bgApp, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginBottom: spacing.lg,
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.saffronDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  addressText: {
+    ...typography.body,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+
+  customerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.circle,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: { fontWeight: '800', fontSize: 17, color: colors.textPrimary },
+  customerName: { ...typography.bodyBold, color: colors.textPrimary },
+  customerPhone: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+  callBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.infoLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  callBtnText: { color: colors.info, fontWeight: '800', fontSize: 13 },
+
+  sectionLabel: {
+    ...typography.labelSmall,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: spacing.sm,
+  },
+  shopsCard: {
+    backgroundColor: colors.bgApp,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
     maxHeight: 120,
   },
-  itemRow: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xs,
+  shopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
-  itemName: { flex: 1, ...typography.bodyLarge, color: colors.textPrimary, fontWeight: '500' },
+  shopRowLast: { borderBottomWidth: 0 },
+  shopIndex: {
+    width: 24,
+    height: 24,
+    borderRadius: radius.circle,
+    backgroundColor: colors.saffronLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shopIndexText: { color: colors.saffronDark, fontWeight: '800', fontSize: 12 },
+  shopName: { flex: 1, ...typography.body, color: colors.textPrimary, fontWeight: '600' },
+
   errorPill: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs,
-    backgroundColor: colors.errorLight, borderRadius: radius.pill,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.xs, marginBottom: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.errorLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.md,
   },
   errorText: { color: colors.error, fontWeight: '600', fontSize: 13, flexShrink: 1 },
+
   actionRow: { flexDirection: 'row', gap: spacing.md },
   actionBtn: { flex: 1, borderRadius: radius.button, overflow: 'hidden' },
   gradientFill: {
-    minHeight: 52, borderRadius: radius.button, alignItems: 'center', justifyContent: 'center',
+    minHeight: 54,
+    borderRadius: radius.button,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rejectFill: {
-    borderWidth: 1.5, borderColor: colors.error, backgroundColor: colors.errorLight,
+    borderWidth: 1.5,
+    borderColor: colors.error,
+    backgroundColor: colors.errorLight,
   },
   btnInner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   actionBtnText: { fontWeight: '800', fontSize: 16 },

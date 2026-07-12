@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import { Fragment } from 'react';
 import OrderStatusBadge from '../OrderStatusBadge';
 import { formatPrice, formatDate } from '../../utils/formatters';
 import './OrderCard.css';

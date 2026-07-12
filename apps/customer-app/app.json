@@ -2,7 +2,7 @@
   "expo": {
     "name": "VillKro",
     "slug": "villkro",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -46,7 +46,7 @@
         "POST_NOTIFICATIONS"
       ],
       "package": "com.yashsiwach.villkro",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/icon/adaptive-icon-background.png",

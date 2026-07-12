@@ -4,7 +4,6 @@ const AdmZip = require('adm-zip');
 const jwt = require('jsonwebtoken');
 const adminRoutes = require('../src/routes/adminRoutes');
 const { pool } = require('../src/db/mysql');
-const { getDb } = require('../src/db/mongodb');
 
 jest.mock('../src/db/mysql', () => ({
   pool: {

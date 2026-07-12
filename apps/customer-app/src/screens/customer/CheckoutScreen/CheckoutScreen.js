@@ -30,7 +30,7 @@ import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../../stores';
 import { cartApi, ordersApi, imagesApi, settingsApi } from '../../../api';
 import { trackEvent } from '../../../api/analyticsClient';
-import { asArray, buildProgressHintText, imageRecordToUrl, normalizeCartCalculation, normalizeImageUrl, normalizeOrder, normalizeSettings } from '../../../utils';
+import { asArray, buildProgressHintText, imageRecordToUrl, normalizeCartCalculation, normalizeOrder, normalizeSettings } from '../../../utils';
 import { isCodBlockedDuringNight } from '../../../utils/nightDelivery';
 import { formatEtaMinutes } from '../../../utils/formatEta';
 import { uuidv4 } from '../../../utils/uuid';

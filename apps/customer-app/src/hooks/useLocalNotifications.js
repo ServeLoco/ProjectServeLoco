@@ -315,19 +315,44 @@ export function useLocalNotifications(navigationRef) {
         return;
       }
 
+      // Rider delivery offer → open rider dashboard (popup rehydrates there).
+      if (data.type === 'rider_offer') {
+        const tryNavigateRider = () => {
+          if (navigationRef?.current?.isReady()) {
+            navigationRef.current.navigate('RiderDashboard');
+          } else {
+            setTimeout(tryNavigateRider, 200);
+          }
+        };
+        tryNavigateRider();
+        return;
+      }
+
       // New-order push to a mobile admin (ADMIN TASK 4/9.9) — deep-link to
       // that order's detail; fall back to the Orders list if the id is
       // somehow missing (matches plan §5.4).
+      // Cold start race: validateSession + mintAdminSession are async, so the
+      // Admin shell may not be mounted yet. Retry until adminToken is live
+      // (or ~10s) before navigating.
       if (data.type === 'new_order') {
+        let attempts = 0;
+        const maxAttempts = 50;
         const tryNavigateAdmin = () => {
-          if (navigationRef?.current?.isReady()) {
+          attempts += 1;
+          const { admin, adminToken } = useAuthStore.getState();
+          const navReady = navigationRef?.current?.isReady?.();
+          if (!navReady || !(admin && adminToken)) {
+            if (attempts < maxAttempts) setTimeout(tryNavigateAdmin, 200);
+            return;
+          }
+          try {
             if (data.orderId) {
               navigationRef.current.navigate('AdminOrderDetail', { orderId: data.orderId });
             } else {
               navigationRef.current.navigate('AdminOrders');
             }
-          } else {
-            setTimeout(tryNavigateAdmin, 200);
+          } catch (_) {
+            if (attempts < maxAttempts) setTimeout(tryNavigateAdmin, 200);
           }
         };
         tryNavigateAdmin();

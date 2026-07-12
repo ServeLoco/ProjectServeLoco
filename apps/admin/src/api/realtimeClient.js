@@ -6,6 +6,7 @@ const TOKEN_KEY = 'admin_token';
 const ADMIN_ORDER_EVENTS = ['admin.order.created', 'admin.order.updated', 'admin.order.shop_confirmed', 'admin.order.shop_ready'];
 const ADMIN_NOTIFICATION_EVENTS = ['admin.notification.created', 'admin.notification.unread_count', 'admin.order.auto_accepted'];
 const ADMIN_ANALYTICS_EVENTS = ['analytics.live'];
+const ADMIN_RIDER_EVENTS = ['admin.rider.updated'];
 const LIFECYCLE_EVENTS = ['connected', 'reconnected', 'disconnected', 'visible'];
 
 let socket = null;
@@ -88,6 +89,10 @@ function bindSocketEvents(nextSocket) {
   });
 
   ADMIN_ANALYTICS_EVENTS.forEach(eventName => {
+    nextSocket.on(eventName, payload => emitLocal(eventName, payload));
+  });
+
+  ADMIN_RIDER_EVENTS.forEach(eventName => {
     nextSocket.on(eventName, payload => emitLocal(eventName, payload));
   });
 

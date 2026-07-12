@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import AuthScreen from './screens/AuthScreen/AuthScreen';

@@ -2,7 +2,6 @@ const request = require('supertest');
 const express = require('express');
 const authRoutes = require('../src/routes/authRoutes');
 const adminRoutes = require('../src/routes/adminRoutes');
-const { pool } = require('../src/db/mysql');
 const jwt = require('jsonwebtoken');
 
 jest.mock('../src/db/mysql', () => ({

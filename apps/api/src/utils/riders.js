@@ -32,15 +32,23 @@ const riderShape = (r) => {
  */
 const getRiderForUser = async (userId) => {
   if (!userId) return null;
-  const [rows] = await pool.query(
-    `SELECT id, user_id, display_name, phone, active, is_online, last_heartbeat_at
-     FROM riders
-     WHERE user_id = ? AND active = 1
-     LIMIT 1`,
-    [userId]
-  );
-  if (rows.length === 0) return null;
-  return riderShape(rows[0]);
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, user_id, display_name, phone, active, is_online, last_heartbeat_at
+       FROM riders
+       WHERE user_id = ? AND active = 1
+       LIMIT 1`,
+      [userId]
+    );
+    if (rows.length === 0) return null;
+    return riderShape(rows[0]);
+  } catch (e) {
+    // Table missing mid-migrate / old DB — never break /auth/me for customers.
+    if (e && (e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146)) {
+      return null;
+    }
+    throw e;
+  }
 };
 
 /**
@@ -89,6 +97,10 @@ const listEligibleRiders = async ({ excludeIds = [] } = {}) => {
          WHERE o.rider_id = r.id
            AND o.status NOT IN ('Delivered', 'Cancelled')
        )
+       AND NOT EXISTS (
+         SELECT 1 FROM rider_order_offers ro
+         WHERE ro.rider_id = r.id AND ro.status = 'pending'
+       )
        ${excludeClause}
      ORDER BY r.id ASC`,
     params
@@ -108,7 +120,7 @@ const countCompletedDeliveriesToday = async (riderId) => {
      FROM orders
      WHERE rider_id = ?
        AND status = 'Delivered'
-       AND DATE(CONVERT_TZ(COALESCE(updated_at, created_at), @@session.time_zone, ?)) =
+       AND DATE(CONVERT_TZ(COALESCE(delivered_at, updated_at, created_at), @@session.time_zone, ?)) =
            DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', ?))`,
     [riderId, RIDER_TODAY_TZ, RIDER_TODAY_TZ]
   );
@@ -138,16 +150,33 @@ const selectRiderByLeastOrders = (riders, opts = {}) => {
 };
 
 /**
+ * Completed-today counts for a batch of riders in one query (avoids N+1).
+ */
+const countCompletedDeliveriesTodayBatch = async (riderIds) => {
+  const ids = (riderIds || []).map(Number).filter((n) => Number.isFinite(n) && n > 0);
+  if (ids.length === 0) return {};
+  const [rows] = await pool.query(
+    `SELECT rider_id, COUNT(*) AS cnt
+     FROM orders
+     WHERE rider_id IN (${ids.map(() => '?').join(',')})
+       AND status = 'Delivered'
+       AND DATE(CONVERT_TZ(COALESCE(delivered_at, updated_at, created_at), @@session.time_zone, ?)) =
+           DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', ?))
+     GROUP BY rider_id`,
+    [...ids, RIDER_TODAY_TZ, RIDER_TODAY_TZ]
+  );
+  const map = {};
+  for (const row of rows) map[row.rider_id] = Number(row.cnt) || 0;
+  return map;
+};
+
+/**
  * Attach completedToday to each eligible rider and pick by least orders.
  */
 const selectEligibleRider = async (riders, opts = {}) => {
   if (!riders || riders.length === 0) return null;
-  const withCounts = await Promise.all(
-    riders.map(async (r) => ({
-      ...r,
-      completedToday: await countCompletedDeliveriesToday(r.id),
-    }))
-  );
+  const counts = await countCompletedDeliveriesTodayBatch(riders.map((r) => r.id));
+  const withCounts = riders.map((r) => ({ ...r, completedToday: counts[r.id] || 0 }));
   return selectRiderByLeastOrders(withCounts, opts);
 };
 
@@ -213,6 +242,7 @@ module.exports = {
   countActiveRiders,
   listEligibleRiders,
   countCompletedDeliveriesToday,
+  countCompletedDeliveriesTodayBatch,
   selectRiderByLeastOrders,
   selectEligibleRider,
   syncDeliveryAvailabilityFromRiders,
