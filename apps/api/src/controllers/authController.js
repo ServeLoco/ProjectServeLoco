@@ -4,6 +4,7 @@ const { getFirebaseAuth } = require('../config/firebase');
 const adminInbox = require('../utils/adminNotifications');
 const { getShopForUser } = require('../utils/shops');
 const { getRiderForUser } = require('../utils/riders');
+const { getMobileAdminForUser } = require('../utils/mobileAdmins');
 
 // Sliding-window token renewal. We refresh whenever the token has used
 // more than half of its own lifetime. This auto-adapts to whatever
@@ -38,6 +39,7 @@ const me = async (req, res) => {
   const response = { user };
   response.shop = await getShopForUser(userId);
   response.rider = await getRiderForUser(userId);
+  response.admin = await getMobileAdminForUser(userId);
   // D2: one phone is shop OR rider, not both. If corrupt data has both, log once.
   if (response.shop && response.rider) {
     console.warn('[auth] user', userId, 'has both shop and rider rows — mutual exclusion violated');
@@ -296,11 +298,13 @@ const verifyFirebaseToken = async (req, res) => {
       const raceToken = signCustomerToken(existingUser.id);
       const raceShop = await getShopForUser(existingUser.id);
       const raceRider = await getRiderForUser(existingUser.id);
+      const raceAdmin = await getMobileAdminForUser(existingUser.id);
       return res.status(200).json({
         message: 'Login successful',
         token: raceToken,
         shop: raceShop,
         rider: raceRider,
+        admin: raceAdmin,
         user: {
           id: existingUser.id,
           name: existingUser.name,
@@ -340,6 +344,7 @@ const verifyFirebaseToken = async (req, res) => {
 
   const shop = await getShopForUser(user.id);
   const rider = await getRiderForUser(user.id);
+  const admin = await getMobileAdminForUser(user.id);
   if (shop && rider) {
     console.warn('[auth] user', user.id, 'has both shop and rider rows — mutual exclusion violated');
   }
@@ -349,6 +354,7 @@ const verifyFirebaseToken = async (req, res) => {
     token,
     shop,
     rider,
+    admin,
     user: {
       id: user.id,
       name: user.name,

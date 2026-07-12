@@ -1,5 +1,6 @@
 const { pool } = require('../db/mysql');
 const { normalizePhone, mapMobileAdminRow } = require('../utils/mobileAdmins');
+const { signAdminToken } = require('../utils/auth');
 
 const fetchMobileAdminRow = async (id) => {
   const [rows] = await pool.query(
@@ -140,8 +141,49 @@ const updateMobileAdmin = async (req, res) => {
   res.status(200).json({ mobileAdmin, mobile_admin: mobileAdmin, message: 'Mobile admin updated' });
 };
 
+// POST /api/admin/mobile-session — requireCustomer. OTP-logged-in phones that
+// are active mobile admins mint an admin JWT here (dual-token design, §2 of
+// plans/admin-mode-mobile.md) — no customer-JWT-on-admin-routes rewrite needed.
+const mintMobileSession = async (req, res) => {
+  const userId = req.user.id;
+
+  const [rows] = await pool.query(
+    'SELECT id, phone, user_id, active FROM mobile_admins WHERE user_id = ? AND active = 1 LIMIT 1',
+    [userId]
+  );
+  let mobileAdmin = rows[0] || null;
+
+  if (!mobileAdmin) {
+    // Not yet backfilled: owner may have added this phone before it ever
+    // logged in. Look up by phone and backfill user_id now.
+    const [userRows] = await pool.query('SELECT phone FROM users WHERE id = ?', [userId]);
+    const phone = userRows[0]?.phone;
+    if (phone) {
+      const [byPhone] = await pool.query(
+        'SELECT id, phone, user_id, active FROM mobile_admins WHERE phone = ? AND active = 1 LIMIT 1',
+        [phone]
+      );
+      mobileAdmin = byPhone[0] || null;
+      if (mobileAdmin && !mobileAdmin.user_id) {
+        await pool.query('UPDATE mobile_admins SET user_id = ? WHERE id = ?', [userId, mobileAdmin.id]);
+      }
+    }
+  }
+
+  if (!mobileAdmin) {
+    return res.status(403).json({ code: 'NOT_MOBILE_ADMIN', message: 'This phone is not an active mobile admin.' });
+  }
+
+  const token = signAdminToken(`mobile:${mobileAdmin.id}`);
+  res.status(200).json({
+    token,
+    user: { id: mobileAdmin.id, role: 'admin', mobileAdminId: mobileAdmin.id },
+  });
+};
+
 module.exports = {
   listMobileAdmins,
   createMobileAdmin,
   updateMobileAdmin,
+  mintMobileSession,
 };

@@ -300,25 +300,25 @@ CREATE TABLE IF NOT EXISTS mobile_admins (
 
 **Steps:**
 
-- [ ] 3.1 `getMobileAdminForUser` / by phone — only `active = true`.  
-- [ ] 3.2 firebase-verify + `/auth/me` response:
+- [x] 3.1 `getMobileAdminForUser` / by phone — only `active = true`.  
+- [x] 3.2 firebase-verify + `/auth/me` response:
 
 ```js
 response.admin = adminPayload || null; // { id, displayName, phone, active }
 // keep shop / rider fields as today (should be null if exclusivity holds)
 ```
 
-- [ ] 3.3 `POST /admin/mobile-session` with **`requireCustomer`**:  
+- [x] 3.3 `POST /admin/mobile-session` with **`requireCustomer`**:  
   - Verify active mobile_admin for this user/phone  
   - Backfill `user_id` if null  
   - `signAdminToken` with stable `sub` e.g. `mobile:<id>` (must pass `requireAdmin` + join `admin` room)  
   - Return `{ token, user: { id, role: 'admin', mobileAdminId } }`  
   - **403** if not active mobile admin  
-- [ ] 3.4 Rate-limit mobile-session (copy `loginLimiter` pattern, `adminRoutes.js:68`).  
-- [ ] 3.5 Confirm password **failed-attempt lockout** does not block mobile-session (it only gates the password login endpoint). Note: `revoke-sessions` **does** invalidate mobile admin JWTs (see §2.2) — that is intended; re-mint recovers.  
-- [ ] 3.6 Tests: non-admin 403; active 200 + admin role; inactive 403.
+- [x] 3.4 Rate-limit mobile-session (copy `loginLimiter` pattern, `adminRoutes.js:68`).  
+- [x] 3.5 Confirm password **failed-attempt lockout** does not block mobile-session (it only gates the password login endpoint). Note: `revoke-sessions` **does** invalidate mobile admin JWTs (see §2.2) — that is intended; re-mint recovers.  
+- [x] 3.6 Tests: non-admin 403; active 200 + admin role; inactive 403.
 
-**NOTE (done):**
+**NOTE (done):** `mintMobileSession` added to `mobileAdminController.js`, routed `POST /admin/mobile-session` behind new `mobileSessionLimiter` (20/15min — higher than password login since legit re-mint happens ~every 12h per admin) + `requireCustomer`. Looks up by `user_id` first, falls back to phone + backfills `user_id` if null. `admin` attached in all 3 authController response sites (`me`, firebase-verify success, firebase-verify race-winner branch) via `getMobileAdminForUser`. New `tests/mobileSession.test.js` (4 cases: wrong-role rejected, mint by user_id, backfill-by-phone, 403 not-admin). `npm test`: 494/495 pass, same 3 pre-existing unrelated failures.
 
 ---
 

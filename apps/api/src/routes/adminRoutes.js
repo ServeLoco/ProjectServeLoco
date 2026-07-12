@@ -8,7 +8,7 @@ const { createProduct, updateProduct, getAdminProducts, getAdminProductById, del
 const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability } = require('../controllers/comboController');
 const { listShops, createShop, updateShop } = require('../controllers/shopAdminController');
 const { listRiders, createRider, updateRider } = require('../controllers/adminRiderController');
-const { listMobileAdmins, createMobileAdmin, updateMobileAdmin } = require('../controllers/mobileAdminController');
+const { listMobileAdmins, createMobileAdmin, updateMobileAdmin, mintMobileSession } = require('../controllers/mobileAdminController');
 const { getNotificationTemplates, updateNotificationTemplate, resetNotificationTemplate } = require('../controllers/notificationTemplateController');
 const { previewBulkImport, commitBulkImport } = require('../controllers/bulkImportController');
 const {
@@ -32,7 +32,7 @@ const {
   reorderAdminSections,
   reorderAdminSectionItems
 } = require('../controllers/dashboardController');
-const { requireAdmin } = require('../middleware/authMiddleware');
+const { requireAdmin, requireCustomer } = require('../middleware/authMiddleware');
 const { validate, isString, isId, isBoolean, isNumericAmount, isPositiveInteger, isNonNegativeInteger, validatePagination, normalizeField } = require('../validators');
 const asyncHandler = require('../utils/asyncHandler');
 const rateLimit = require('express-rate-limit');
@@ -70,6 +70,12 @@ const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // Limit each IP to 5 login requests per `window`
   message: { code: 'TOO_MANY_REQUESTS', message: 'Too many login attempts, please try again later.' }
+});
+
+const mobileSessionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // higher than password login — legitimate re-mints happen every ~12h per admin JWT expiry
+  message: { code: 'TOO_MANY_REQUESTS', message: 'Too many session requests, please try again later.' }
 });
 
 const loginSchema = (req) => {
@@ -663,6 +669,10 @@ router.patch('/riders/:id', requireAdmin, asyncHandler(updateRider));
 router.get('/mobile-admins', requireAdmin, asyncHandler(listMobileAdmins));
 router.post('/mobile-admins', requireAdmin, asyncHandler(createMobileAdmin));
 router.patch('/mobile-admins/:id', requireAdmin, asyncHandler(updateMobileAdmin));
+
+// Mints an admin JWT for an OTP-logged-in phone that is an active mobile
+// admin (ADMIN TASK 3). Bearer = customer JWT, not admin JWT.
+router.post('/mobile-session', mobileSessionLimiter, requireCustomer, asyncHandler(mintMobileSession));
 
 router.get('/products', requireAdmin, asyncHandler(getAdminProducts));
 router.post('/products', requireAdmin, validate(productSchema), asyncHandler(createProduct));
