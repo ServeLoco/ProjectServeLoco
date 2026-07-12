@@ -339,6 +339,7 @@ function normalizeSession(payload = {}) {
     user: normalizeProfile(user),
     shop: data.shop ?? null,
     rider: normalizeRider(data.rider),
+    admin: data.admin ?? null,
   };
 }
 

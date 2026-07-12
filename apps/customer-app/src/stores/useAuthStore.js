@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCartStore } from './useCartStore';
 import { authApi } from '../api/authApi';
+import { adminApi } from '../api/adminApi';
 import { isJwtExpired } from '../utils/jwt';
 
 /**
@@ -17,6 +18,8 @@ export const useAuthStore = create(
       profile: null,
       shop: null,
       rider: null,
+      admin: null,
+      adminToken: null,
       isAuthenticated: false,
       hasHydrated: false,
       sessionChecked: false,
@@ -80,12 +83,19 @@ export const useAuthStore = create(
             profile: fresh.user || fresh,
             shop: fresh.shop ?? null,
             rider: fresh.rider ?? null,
+            admin: fresh.admin ?? null,
             isAuthenticated: true,
           };
           if (fresh.token) {
             updates.token = fresh.token;
           }
           useAuthStore.setState(updates);
+          if (updates.admin) {
+            // Fire-and-forget — the admin shell reacts once adminToken lands.
+            useAuthStore.getState().mintAdminSession();
+          } else {
+            useAuthStore.getState().clearAdminSession();
+          }
           return finish(true);
         } catch (err) {
           const status = err && err.status;
@@ -97,7 +107,7 @@ export const useAuthStore = create(
         }
       },
 
-      setSession: (token, user, shop = null, rider = null) => {
+      setSession: (token, user, shop = null, rider = null, admin = null) => {
         // Clear any previous user's cart when a new session starts.
         // Prevents cart bleed across user accounts on the same device.
         try {
@@ -110,10 +120,30 @@ export const useAuthStore = create(
         } catch (_) {
           // Best-effort; never block sign-in on this.
         }
-        set({ token, user, profile: user, shop, rider, isAuthenticated: true });
+        set({ token, user, profile: user, shop, rider, admin, isAuthenticated: true });
+        if (admin) {
+          // Fire-and-forget — mints the admin JWT so AdminNavigator can render.
+          useAuthStore.getState().mintAdminSession();
+        }
       },
 
       setRider: (rider) => set({ rider }),
+
+      // Exchanges the current customer session for an admin JWT (this phone
+      // is an active mobile admin). Returns the token, or null on failure —
+      // never throws (mirrors the fire-and-forget callers above).
+      mintAdminSession: async () => {
+        try {
+          const { token } = await adminApi.mintSession();
+          useAuthStore.setState({ adminToken: token || null });
+          return token || null;
+        } catch (_) {
+          useAuthStore.setState({ admin: null, adminToken: null });
+          return null;
+        }
+      },
+
+      clearAdminSession: () => set({ admin: null, adminToken: null }),
 
       logout: () => {
         // Fire-and-forget: tell the server to null this user's push token so a
@@ -135,6 +165,8 @@ export const useAuthStore = create(
           profile: null,
           shop: null,
           rider: null,
+          admin: null,
+          adminToken: null,
           isAuthenticated: false,
           previewStartedAt: Date.now(),
         });
@@ -164,6 +196,8 @@ export const useAuthStore = create(
         profile: state.profile,
         shop: state.shop,
         rider: state.rider,
+        admin: state.admin,
+        adminToken: state.adminToken,
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {

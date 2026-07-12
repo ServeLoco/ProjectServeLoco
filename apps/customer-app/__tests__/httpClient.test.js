@@ -5,7 +5,13 @@
  * 401-handler paths.
  */
 
-import { apiClient, setCustomerLogoutHandler } from '../src/api/httpClient';
+import {
+  apiClient,
+  setAdminReMintHandler,
+  setAdminSessionClearHandler,
+  setCustomerLogoutHandler,
+} from '../src/api/httpClient';
+import { setAdminTokenProvider } from '../src/api/sessionTokens';
 
 describe('httpClient', () => {
   let originalFetch;
@@ -20,6 +26,9 @@ describe('httpClient', () => {
   afterEach(() => {
     global.fetch = originalFetch;
     setCustomerLogoutHandler(null);
+    setAdminReMintHandler(null);
+    setAdminSessionClearHandler(null);
+    setAdminTokenProvider(null);
     jest.clearAllTimers();
   });
 
@@ -55,6 +64,46 @@ describe('httpClient', () => {
     // Allow the synchronous triggerLogout to run
     await new Promise((r) => setImmediate(r));
     expect(logoutHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('re-mints and retries once on a 401 for admin-authed requests', async () => {
+    let currentAdminToken = 'stale-token';
+    setAdminTokenProvider(() => currentAdminToken);
+    const reMint = jest.fn().mockImplementation(async () => {
+      currentAdminToken = 'fresh-token';
+      return 'fresh-token';
+    });
+    setAdminReMintHandler(reMint);
+    const clear = jest.fn();
+    setAdminSessionClearHandler(clear);
+
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce(jsonResponse(401, { code: 'UNAUTHORIZED' }))
+      .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
+
+    const out = await apiClient.get('/admin/dashboard', { auth: 'admin' });
+    expect(out).toEqual({ ok: true });
+    expect(reMint).toHaveBeenCalledTimes(1);
+    expect(clear).not.toHaveBeenCalled();
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    // Second call must carry the re-minted token, not the stale one.
+    expect(global.fetch.mock.calls[1][1].headers.Authorization).toBe('Bearer fresh-token');
+  });
+
+  it('clears the admin session when re-mint itself is rejected', async () => {
+    setAdminTokenProvider(() => 'stale-token');
+    const reMint = jest.fn().mockResolvedValue(null);
+    setAdminReMintHandler(reMint);
+    const clear = jest.fn();
+    setAdminSessionClearHandler(clear);
+
+    global.fetch = jest.fn().mockResolvedValue(jsonResponse(401, { code: 'UNAUTHORIZED' }));
+
+    await expect(apiClient.get('/admin/dashboard', { auth: 'admin' })).rejects.toMatchObject({ status: 401 });
+    expect(reMint).toHaveBeenCalledTimes(1);
+    expect(clear).toHaveBeenCalledTimes(1);
+    // No infinite loop — one initial call, no further retry after remint fails.
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it('does NOT trigger logout on a 401 for public requests', async () => {

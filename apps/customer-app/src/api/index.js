@@ -15,10 +15,12 @@ export {
 } from './realtimeClient';
 export {
   clearTokenProviders,
+  setAdminTokenProvider,
   setCustomerTokenProvider,
 } from './sessionTokens';
 
 export { authApi } from './authApi';
+export { adminApi } from './adminApi';
 export { shopApi } from './shopApi';
 export { riderApi } from './riderApi';
 export { productsApi } from './productsApi';

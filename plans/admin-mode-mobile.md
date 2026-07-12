@@ -363,14 +363,14 @@ response.admin = adminPayload || null; // { id, displayName, phone, active }
 
 **Goal:** Dual token + mint after OTP.
 
-- [ ] 6.1 Store: `admin`, `adminToken`, set/clear helpers; clear on logout.  
-- [ ] 6.2 After login/me: if `admin` present → `POST /admin/mobile-session` → store `adminToken`.  
-- [ ] 6.3 `validateSession`: refresh me; if admin gone → clear adminToken → fall through to non-admin shell.  
-- [ ] 6.4 `adminApi.js` — only endpoints needed for v1 screens; always Authorization = **adminToken**.  
-- [ ] 6.5 Admin realtime client connects with adminToken; disconnect on logout.  
-- [ ] 6.6 Admin API 401 → one re-mint attempt; fail → clear admin session + error. **Re-mint is routine**: admin JWT expires every 12h (§2.2) while customer JWT lasts 30d — treat silent re-mint as the happy path, no error UI unless re-mint itself 403s.
+- [x] 6.1 Store: `admin`, `adminToken`, set/clear helpers; clear on logout.  
+- [x] 6.2 After login/me: if `admin` present → `POST /admin/mobile-session` → store `adminToken`.  
+- [x] 6.3 `validateSession`: refresh me; if admin gone → clear adminToken → fall through to non-admin shell.  
+- [x] 6.4 `adminApi.js` — only endpoints needed for v1 screens; always Authorization = **adminToken**.  
+- [~] 6.5 Admin realtime client connects with adminToken; disconnect on logout. — token plumbing (`setAdminTokenProvider`) is in place; actual socket connect/disconnect wiring deferred to TASK 7 since it needs `AdminNavigator`'s mount/unmount lifecycle to hang off of (matches how `useCustomerRealtime` only connects once `CustomerNavigator` is live).  
+- [x] 6.6 Admin API 401 → one re-mint attempt; fail → clear admin session + error. **Re-mint is routine**: admin JWT expires every 12h (§2.2) while customer JWT lasts 30d — treat silent re-mint as the happy path, no error UI unless re-mint itself 403s.
 
-**NOTE (done):**
+**NOTE (done):** `sessionTokens.js` gained `getAdminToken`/`setAdminTokenProvider`. `httpClient.js` supports `auth: 'admin'`; a 401 on an admin-authed request calls a registered re-mint handler once (`_adminRetried` guard against loops) and retries with the fresh token, or calls the admin-session-clear handler if re-mint itself fails. New `adminApi.js` (`mintSession`). `useAuthStore` gained `admin`/`adminToken` state, `mintAdminSession`/`clearAdminSession` actions, wired into `setSession`, `validateSession`, `logout`, and `partialize`. `normalizeSession` now passes through `admin`. `AuthScreen.handleSuccess` forwards `session.admin`. `App.js` registers the admin token provider + re-mint/clear handlers alongside the existing customer ones. New tests: 2 in `httpClient.test.js` (re-mint+retry, clear-on-reject) + 7 in `useAuthStore.adminMode.test.js` (mint on session start, no-op without admin, mint failure clears state, explicit clear, validateSession clear/re-mint, logout clears). Caught a test-authoring bug along the way: `isJwtExpired` treats any non-3-part string as expired, so `validateSession` tests need a real (if unsigned) JWT shape or they silently exercise the logout path instead of `getMe`. `npm test`: 131/131 pass (customer-app), no regressions.
 
 ---
 

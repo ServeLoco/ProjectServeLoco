@@ -1,6 +1,6 @@
 import { ApiError, getErrorMessage } from './apiError';
 import { getApiBaseUrl } from './config';
-import { getCustomerToken } from './sessionTokens';
+import { getAdminToken, getCustomerToken } from './sessionTokens';
 
 // Defer the auth-store import to break a require cycle: useAuthStore pulls in
 // authApi, which pulls in this file. We only need the store at request time
@@ -11,6 +11,30 @@ export function setCustomerLogoutHandler(handler) {
 }
 function triggerLogout() {
   try { if (_logoutHandler) _logoutHandler(); } catch (_) { /* ignore logout errors */ }
+}
+
+// Admin JWT lives 12h (vs 30d for customer) — a 401 on an { auth: 'admin' }
+// request during normal use almost always just means the token expired, not
+// that the phone stopped being a mobile admin. Re-mint once via the same
+// customer session (POST /admin/mobile-session) and retry; only clear the
+// admin session if the re-mint itself is rejected (phone deactivated).
+let _adminReMintHandler = null;
+export function setAdminReMintHandler(handler) {
+  _adminReMintHandler = typeof handler === 'function' ? handler : null;
+}
+async function triggerAdminReMint() {
+  try {
+    return _adminReMintHandler ? await _adminReMintHandler() : null;
+  } catch (_) {
+    return null;
+  }
+}
+let _adminSessionClearHandler = null;
+export function setAdminSessionClearHandler(handler) {
+  _adminSessionClearHandler = typeof handler === 'function' ? handler : null;
+}
+function triggerAdminSessionClear() {
+  try { if (_adminSessionClearHandler) _adminSessionClearHandler(); } catch (_) { /* ignore */ }
 }
 
 // 8s timeout — long enough to survive a sluggish 3G connection, short
@@ -66,7 +90,9 @@ async function buildHeaders({ auth, body, headers }) {
     requestHeaders['Content-Type'] = 'application/json';
   }
 
-  const token = auth === 'customer' ? await getCustomerToken() : null;
+  const token = auth === 'customer' ? await getCustomerToken()
+    : auth === 'admin' ? await getAdminToken()
+    : null;
 
   if (token) {
     requestHeaders.Authorization = `Bearer ${token}`;
@@ -190,6 +216,17 @@ async function request(path, options = {}) {
     // case.
     if (options.auth === 'customer' && response.status === 401) {
       triggerLogout();
+    }
+
+    // Admin JWT expired (12h) — re-mint once via the still-valid customer
+    // session and retry this exact request. `_adminRetried` guards against
+    // an infinite loop if the re-minted token is somehow rejected too.
+    if (options.auth === 'admin' && response.status === 401 && !options._adminRetried) {
+      const freshToken = await triggerAdminReMint();
+      if (freshToken) {
+        return request(path, { ...options, _adminRetried: true });
+      }
+      triggerAdminSessionClear();
     }
 
     // Retry on transient 5xx / network errors. We treat network failures

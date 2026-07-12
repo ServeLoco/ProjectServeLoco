@@ -4,8 +4,8 @@ import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator, navigationRef } from './src/navigation';
 import { colors } from './src/theme';
-import { setCustomerTokenProvider, settingsApi } from './src/api';
-import { setCustomerLogoutHandler } from './src/api/httpClient';
+import { setAdminTokenProvider, setCustomerTokenProvider, settingsApi } from './src/api';
+import { setAdminReMintHandler, setAdminSessionClearHandler, setCustomerLogoutHandler } from './src/api/httpClient';
 import { useCustomerRealtime, useLocalNotifications, useNetworkStatus, useShopStatusSync } from './src/hooks';
 import { useAuthStore } from './src/stores';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
@@ -68,6 +68,13 @@ function App() {
     // Without this, every authenticated call goes out tokenless -> 401 ->
     // the logout handler above fires and bounces the user to Auth.
     setCustomerTokenProvider(() => useAuthStore.getState().token);
+
+    // Admin Mode token plumbing: how to read the current admin JWT, how to
+    // re-mint it on a 401 (12h expiry — see httpClient), and how to clear
+    // the admin session when re-mint itself is rejected (phone deactivated).
+    setAdminTokenProvider(() => useAuthStore.getState().adminToken);
+    setAdminReMintHandler(() => useAuthStore.getState().mintAdminSession());
+    setAdminSessionClearHandler(() => useAuthStore.getState().clearAdminSession());
 
     // Clear the image memory cache when the app comes back to the
     // foreground after being backgrounded for a while. expo-image's
@@ -174,7 +181,8 @@ function App() {
   // here so the first paint isn't a white flash.
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.bgApp} />
+      {/* barStyle only — status bar bg is deprecated under Android 15 edge-to-edge */}
+      <StatusBar barStyle="dark-content" />
       <ErrorBoundary>
         <ToastProvider>
           <View style={{ flex: 1, backgroundColor: colors.bgApp }}>
