@@ -22,7 +22,7 @@ import { useAuthGate } from '../../../hooks';
 import { productsApi } from '../../../api';
 import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, normalizeProduct } from '../../../utils';
-import { getCached, setCached } from '../../../utils/apiCache';
+import { getCached, setCached, isFresh } from '../../../utils/apiCache';
 
 function applyProductPayload(data) {
   const normalized = normalizeProduct(data);
@@ -174,11 +174,14 @@ export default function ProductDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       if (hasFocusedOnceRef.current) {
-        revalidateProductSilently();
+        // 15s freshness throttle; pull-to-refresh N/A here; realtime invalidation clears keys.
+        if (!cacheKey || !isFresh(cacheKey, 15_000)) {
+          revalidateProductSilently();
+        }
       } else {
         hasFocusedOnceRef.current = true;
       }
-    }, [revalidateProductSilently]),
+    }, [revalidateProductSilently, cacheKey]),
   );
 
   const findCartLine = (id) => items.find(i => i.product.id === id && (i.type || 'product') !== 'combo');

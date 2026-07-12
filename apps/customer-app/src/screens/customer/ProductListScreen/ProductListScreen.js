@@ -30,7 +30,7 @@ import { useCartStore } from '../../../stores';
 import { useAuthGate, useStoreModes } from '../../../hooks';
 import { productsApi, dashboardApi } from '../../../api';
 import { asArray, normalizeProduct } from '../../../utils';
-import { getCached, setCached, stableKey } from '../../../utils/apiCache';
+import { getCached, setCached, stableKey, isFresh } from '../../../utils/apiCache';
 
 const SORT_OPTIONS = ['Popular', 'Price Low to High', 'Price High to Low'];
 
@@ -267,11 +267,34 @@ export default function ProductListScreen() {
   }, [searchQuery, mode]);
 
   // Silent revalidate on refocus (skip first focus — mount effect already loaded).
+  // Freshness throttle 15s: skip network if list page-0 cache is still fresh.
   const hasFocusedOnceRef = useRef(false);
   useFocusEffect(
     useCallback(() => {
       if (hasFocusedOnceRef.current) {
-        fetchProducts(false);
+        const isOriginalCategory = activeCategory === initialCategory;
+        const queryCategoryId = isOriginalCategory ? route.params?.categoryId : undefined;
+        const requestParams = sectionSlug
+          ? { sectionSlug, storeType: sectionStoreType, include_closed_shops: 1 }
+          : {
+              category: activeCategory !== 'All' ? activeCategory : undefined,
+              categoryId: queryCategoryId,
+              q: searchQuery || undefined,
+              search: searchQuery || undefined,
+              offerId: offerId || undefined,
+              isCombo: mode === 'combos',
+              featured: mode === 'combos' ? true : undefined,
+              type: sectionStoreType !== 'all' ? sectionStoreType : undefined,
+              storeType: sectionStoreType !== 'all' ? sectionStoreType : undefined,
+              include_closed_shops: 1,
+              mode,
+              limit: PAGE_SIZE,
+              offset: 0,
+            };
+        const focusKey = `products:${stableKey(requestParams)}`;
+        if (!isFresh(focusKey, 15_000)) {
+          fetchProducts(false);
+        }
       } else {
         hasFocusedOnceRef.current = true;
       }
@@ -283,6 +306,7 @@ export default function ProductListScreen() {
       mode,
       searchQuery,
       route.params?.categoryId,
+      initialCategory,
     ]),
   );
 

@@ -49,6 +49,7 @@ import {
   subscribeRealtimeLifecycle,
   subscribeShopEvents,
 } from '../../../api';
+import { isFresh, setCached } from '../../../utils/apiCache';
 import {
   asArray,
   normalizeCategory,
@@ -232,12 +233,6 @@ export default function HomeScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      let isActive = true;
-      notificationsApi.getUnreadCount()
-        .then(count => {
-          if (isActive) setUnreadCount(count || 0);
-        })
-        .catch(() => {});
       // Returning to this screen — close any active search and release focus
       setSearchDismissSignal(prev => prev + 1);
 
@@ -246,14 +241,22 @@ export default function HomeScreen() {
       // backgrounded shows as closed immediately, instead of only after a
       // manual pull-to-refresh or app restart. Skip the very first focus —
       // the mount effect already loaded it once.
+      // Freshness throttle (15s): skip if we just revalidated (TASK 16).
+      // Unread badge uses socket events + loadHomeData cold-start; no focus poll.
       if (hasFocusedOnceRef.current) {
-        refreshDashboardSilently();
+        const cacheKey = `dashboard:${currentApiStoreType}`;
+        if (!isFresh(cacheKey, 15_000)) {
+          // Stamp before fetch so rapid re-focuses within 15s skip.
+          setCached(cacheKey, true);
+          refreshDashboardSilently();
+        }
       } else {
         hasFocusedOnceRef.current = true;
+        setCached(`dashboard:${currentApiStoreType}`, true);
       }
 
-      return () => { isActive = false; };
-    }, [refreshDashboardSilently])
+      return undefined;
+    }, [refreshDashboardSilently, currentApiStoreType])
   );
 
   // Exit-app confirmation on hardware/gesture back. Only registered while

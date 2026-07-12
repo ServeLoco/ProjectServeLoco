@@ -282,7 +282,8 @@ Route-specific limiters exist (auth/upload/analytics); everything else is unboun
 
 **Test**: extend an app-level test file: 429 after limit, health exempt.
 
-### [ ] TASK 16 — client request diet (multiplies across 10k installs)
+### [x] TASK 16 — client request diet (multiplies across 10k installs)
+> 16a: unread_count emit on mark/delete/broadcast. 16b: 15s isFresh throttle; drop Home focus getUnreadCount; setInterval findings: useNetworkStatus ping (keep), Home carousel local (keep), no customer list pollers.
 
 Two sub-commits — API first, then app.
 
