@@ -3,6 +3,7 @@ const fs = require('fs');
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
 const s3 = require('../config/s3');
+const { generateThumb, thumbFilenameFor } = require('../utils/imageThumbs');
 
 const MIME_MAP = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' };
 
@@ -55,6 +56,7 @@ const getImageUrl = (image) => {
 const normalizeImage = (row) => {
   if (!row) return row;
   const url = getImageUrl(row);
+  const thumbUrl = row.thumb_url || null;
 
   return {
     id: String(row.id),
@@ -67,9 +69,35 @@ const normalizeImage = (row) => {
     imageUrl: url,
     image_url: url,
     url,
+    thumbUrl,
+    thumb_url: thumbUrl,
     created_at: row.created_at || null,
     updated_at: row.updated_at || null
   };
+};
+
+/**
+ * Best-effort thumb generation. Never throws — returns null on failure.
+ * @returns {Promise<{ thumbFilename: string, thumbUrl: string }|null>}
+ */
+const storeThumb = async (buffer, originalFilename, ext, storageType) => {
+  try {
+    const thumb = await generateThumb(buffer, ext);
+    if (!thumb) return null;
+    const thumbFilename = thumbFilenameFor(originalFilename, thumb.ext);
+    let thumbUrl;
+    if (storageType === 's3') {
+      thumbUrl = await s3.uploadBuffer(thumbFilename, thumb.buffer, thumb.mimeType);
+    } else {
+      ensureUploadDir();
+      fs.writeFileSync(path.join(uploadDir, thumbFilename), thumb.buffer);
+      thumbUrl = `${config.PUBLIC_BASE_URL}${config.STATIC_UPLOAD_PATH}/${thumbFilename}`;
+    }
+    return { thumbFilename, thumbUrl };
+  } catch (err) {
+    console.error('[images] thumb generation failed:', err.message);
+    return null;
+  }
 };
 
 const uploadImage = async (req, res) => {
@@ -97,12 +125,16 @@ const uploadImage = async (req, res) => {
     storageType = 'disk';
   }
 
+  // Thumbnail is best-effort — upload must succeed even if thumb fails.
+  const thumbMeta = await storeThumb(buffer, filename, ext, storageType);
+  const thumbUrl = thumbMeta?.thumbUrl || null;
+
   const altText = req.body.altText || '';
 
   const [result] = await pool.query(
-    `INSERT INTO images (filename, original_name, mime_type, size, storage_type, url, alt_text)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [filename, safeOriginalName, mimetype, size, storageType, url, altText]
+    `INSERT INTO images (filename, original_name, mime_type, size, storage_type, url, alt_text, thumb_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [filename, safeOriginalName, mimetype, size, storageType, url, altText, thumbUrl]
   );
   const [savedRows] = await pool.query('SELECT * FROM images WHERE id = ?', [result.insertId]);
   const normalized = normalizeImage(savedRows[0]);
@@ -144,10 +176,24 @@ const deleteImageDocAndFile = async (id) => {
 
   if (image.storage_type === 's3') {
     await s3.deleteObject(image.filename);
+    // Best-effort delete of companion thumb (filename pattern or URL path).
+    if (image.thumb_url) {
+      try {
+        const thumbKey = path.basename(String(image.thumb_url).split('?')[0]);
+        if (thumbKey) await s3.deleteObject(thumbKey);
+      } catch (_) { /* ignore */ }
+    }
   } else if (image.storage_type === 'disk') {
     const filePath = path.join(__dirname, '../../', config.UPLOAD_DIR, image.filename);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
+    }
+    if (image.thumb_url) {
+      try {
+        const thumbKey = path.basename(String(image.thumb_url).split('?')[0]);
+        const thumbPath = path.join(__dirname, '../../', config.UPLOAD_DIR, thumbKey);
+        if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+      } catch (_) { /* ignore */ }
     }
   }
 

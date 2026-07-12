@@ -23,9 +23,10 @@ describe('Image Upload Security', () => {
     let lastInsertedRow = null;
     pool.query.mockImplementation((sql, params = []) => {
       if (sql.startsWith('INSERT INTO images')) {
-        const [filename, original_name, mime_type, size, storage_type, url, alt_text] = params;
+        const [filename, original_name, mime_type, size, storage_type, url, alt_text, thumb_url] = params;
         lastInsertedRow = {
           id: 1, filename, original_name, mime_type, size, storage_type, url, alt_text,
+          thumb_url: thumb_url || null,
           created_at: new Date(), updated_at: new Date()
         };
         return Promise.resolve([{ insertId: 1 }]);

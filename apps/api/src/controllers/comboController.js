@@ -11,13 +11,18 @@ const resolveImageUrls = async (rows) => {
 
   if (imageIds.length === 0) return;
 
-  const [images] = await pool.query('SELECT id, url FROM images WHERE id IN (?)', [imageIds]);
+  const [images] = await pool.query('SELECT id, url, thumb_url FROM images WHERE id IN (?)', [imageIds]);
   const imageMap = {};
-  images.forEach(img => { imageMap[String(img.id)] = img.url; });
+  images.forEach(img => {
+    imageMap[String(img.id)] = { url: img.url, thumb_url: img.thumb_url || null };
+  });
   rows.forEach(row => {
-    if (row.image_id && imageMap[row.image_id]) {
-      row.imageUrl = imageMap[row.image_id];
-      row.image_url = imageMap[row.image_id];
+    const mapped = imageMap[row.image_id];
+    if (row.image_id && mapped) {
+      row.imageUrl = mapped.url;
+      row.image_url = mapped.url;
+      row.thumbUrl = mapped.thumb_url;
+      row.thumb_url = mapped.thumb_url;
     }
   });
 };

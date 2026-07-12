@@ -186,7 +186,8 @@ Verified facts to build on: the main list is ONE SQL query with a deterministic 
 
 Two commits: `perf: TASK 8a — API products offset+hasMore` (with tests), then `perf: TASK 8b — product list incremental loading`.
 
-### [ ] TASK 9 — image thumbnails (server-generated)
+### [x] TASK 9 — image thumbnails (server-generated)
+> 9a: sharp thumbs on upload, thumb_url column, resolveImageUrls exposes thumbUrl/thumb_url, backfill script. 9b pending.
 
 Audit first, then implement:
 
