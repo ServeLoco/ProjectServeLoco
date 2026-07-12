@@ -301,7 +301,8 @@ Shop open/close broadcasts hit ALL customers at once (`customers` room, finding 
 
 **Modify** the customer-app handler that refetches on shop-status events (find via `subscribeShopEvents` usage): wrap the refetch in `setTimeout(refetch, Math.random() * 3000)`. Clear the pending timer on unmount and when a newer event supersedes it. Keep it that small.
 
-### [ ] TASK 18 — post-optimization measurement
+### [x] TASK 18 — post-optimization measurement
+> After (c50/d15 local): dashboard 13226.8 rps / p99 13ms; products 14712.27 / 13ms; categories 15092.54 / 12ms. All p99 ≪ 500ms.
 
 1. Repeat TASK 0's exact autocannon runs against the local dev API (same seeds, same flags).
 2. Fill the "after" column of `## Measured results`; add a change column.
