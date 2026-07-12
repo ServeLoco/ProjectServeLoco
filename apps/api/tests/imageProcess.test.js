@@ -1,7 +1,6 @@
 /**
  * Image optimize + thumb pipeline (sharp).
  */
-const path = require('path');
 const sharp = require('sharp');
 const {
   processUploadedImage,

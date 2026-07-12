@@ -286,7 +286,7 @@ const createCombo = async (req, res) => {
     await saveComboItems(result.insertId, validatedComboItems, connection, store_type);
     await connection.commit();
     bustDashboardCache();
-  res.status(201).json({ message: 'Combo created', id: result.insertId });
+    res.status(201).json({ message: 'Combo created', id: result.insertId });
   } catch (error) {
     await connection.rollback();
     throw error;

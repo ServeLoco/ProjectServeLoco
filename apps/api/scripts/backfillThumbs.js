@@ -85,7 +85,7 @@ async function main() {
   let failed = 0;
   let afterId = 0;
 
-  while (true) {
+  for (;;) {
     const [rows] = await pool.query(
       `SELECT id, filename, url, storage_type, mime_type
        FROM images

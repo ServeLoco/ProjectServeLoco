@@ -24,6 +24,13 @@ const THUMB_WEBP_QUALITY = 75;
  */
 async function optimizeFull(buffer, sourceExt = 'jpg') {
   const normalized = String(sourceExt || 'jpg').toLowerCase().replace('jpeg', 'jpg');
+
+  // GIF passes through untouched — re-encoding via sharp would flatten
+  // animated GIFs to a single static frame, losing the animation.
+  if (normalized === 'gif') {
+    return { buffer, mimeType: 'image/gif', ext: 'gif' };
+  }
+
   let pipeline = sharp(buffer, { failOn: 'none' }).rotate(); // honor EXIF orientation
 
   pipeline = pipeline.resize({
@@ -33,7 +40,6 @@ async function optimizeFull(buffer, sourceExt = 'jpg') {
 
   // Prefer WebP for photos; keep PNG only when source was PNG with transparency
   // needs (we still use WebP — expo-image and modern browsers handle it).
-  // GIF → still image as JPEG.
   if (normalized === 'png') {
     // PNG product photos are often huge; WebP is much smaller and fine for app.
     const out = await pipeline.webp({ quality: FULL_WEBP_QUALITY }).toBuffer();
@@ -43,7 +49,7 @@ async function optimizeFull(buffer, sourceExt = 'jpg') {
     const out = await pipeline.webp({ quality: FULL_WEBP_QUALITY }).toBuffer();
     return { buffer: out, mimeType: 'image/webp', ext: 'webp' };
   }
-  // jpg / gif / default → JPEG full (max compatibility for admin tooling)
+  // jpg / default → JPEG full (max compatibility for admin tooling)
   const out = await pipeline.jpeg({ quality: FULL_JPEG_QUALITY, mozjpeg: true }).toBuffer();
   return { buffer: out, mimeType: 'image/jpeg', ext: 'jpg' };
 }

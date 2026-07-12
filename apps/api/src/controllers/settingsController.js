@@ -541,11 +541,11 @@ const addOfferProduct = async (req, res) => {
       [id, finalProductId, display_order || 0]
     );
     microCache.bust('dashboard');
-  res.status(201).json({ message: 'Product added to offer' });
+    res.status(201).json({ message: 'Product added to offer' });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
       microCache.bust('dashboard');
-  res.status(200).json({ message: 'Product already attached' });
+      res.status(200).json({ message: 'Product already attached' });
     } else {
       throw err;
     }

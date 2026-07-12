@@ -61,15 +61,9 @@ const parseSpreadsheet = (buffer, mimetype, originalname) => {
   return parse(buffer, { columns: true, skip_empty_lines: true, trim: true, bom: true });
 };
 
-const buildFilename = (originalFilename) => {
-  const ext = path.extname(originalFilename);
-  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-  return `image-${uniqueSuffix}${ext}`;
-};
-
 // Persist an image buffer (optimized full + WebP thumb) to disk or S3.
 // Returns { filename, url, thumbUrl, mimeType, size } for images table INSERT.
-const saveImage = async (buffer, originalFilename, mimetype) => {
+const saveImage = async (buffer, originalFilename) => {
   const { processAndStoreUpload } = require('./imageController');
   const detectedExt = (path.extname(originalFilename || '').replace('.', '') || 'jpg').toLowerCase();
   const stored = await processAndStoreUpload(buffer, detectedExt, originalFilename);
@@ -488,7 +482,7 @@ const commitBulkImport = async (req, res) => {
         const mimetype = MIME_MAP[imgType] || 'image/jpeg';
 
         // 2. Optimize + store full + WebP thumb (disk or S3)
-        const saved = await saveImage(imgBuffer, row.image_file, mimetype);
+        const saved = await saveImage(imgBuffer, row.image_file);
         const { filename: savedFilename, url: imageUrl, thumbUrl, mimeType: savedMime, size: savedSize } = saved;
         savedFiles.push(savedFilename);
 

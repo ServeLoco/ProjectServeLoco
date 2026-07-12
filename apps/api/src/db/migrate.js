@@ -1302,7 +1302,7 @@ const migrate = async () => {
         INDEX idx_legacy_mongo_id (legacy_mongo_id)
       );
     `);
-    // Optional 480px thumbnail URL (nullable for legacy images until backfill).
+    // Optional 320px WebP thumbnail URL (nullable for legacy images until backfill).
     await ensureColumn('images', 'thumb_url', 'thumb_url TEXT NULL AFTER url');
     console.log('Images table ready.');
 

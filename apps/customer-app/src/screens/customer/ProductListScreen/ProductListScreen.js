@@ -85,6 +85,9 @@ export default function ProductListScreen() {
   const [hasMore, setHasMore] = useState(false);
   // Next SQL offset advances by PAGE_SIZE always (time-window may shrink pages).
   const nextOffsetRef = useRef(0);
+  // Actual item count of the page-0 window (post time-window/search filter,
+  // often < PAGE_SIZE) — silent revalidate splices here, not at PAGE_SIZE.
+  const page0LengthRef = useRef(0);
   const loadMoreInFlightRef = useRef(false);
   // Monotonic gens so a slow response for an old category/search cannot overwrite.
   const fetchGenRef = useRef(0);
@@ -159,6 +162,7 @@ export default function ProductListScreen() {
         setProducts(cachedProducts);
         setHasMore(cachedHasMore);
         nextOffsetRef.current = PAGE_SIZE;
+        page0LengthRef.current = cachedProducts.length;
         setIsLoading(false);
         setIsError(false);
       } else if (!cached && !silent) {
@@ -238,10 +242,16 @@ export default function ProductListScreen() {
         nextOffsetRef.current = pageOffset + PAGE_SIZE;
       } else if (silent) {
         // Revalidate page 0 only: replace first window, keep later pages.
+        // Splice at the previous page-0 window's actual (post-filter) length,
+        // not PAGE_SIZE — time-window/search filtering can shrink a page well
+        // below PAGE_SIZE, and splicing at PAGE_SIZE would drop or duplicate
+        // items from page 1+.
+        const priorPage0Length = page0LengthRef.current || PAGE_SIZE;
         setProducts(prev => {
-          if (prev.length <= PAGE_SIZE) return filtered;
-          return [...filtered, ...prev.slice(PAGE_SIZE)];
+          if (prev.length <= priorPage0Length) return filtered;
+          return [...filtered, ...prev.slice(priorPage0Length)];
         });
+        page0LengthRef.current = filtered.length;
         if (nextOffsetRef.current <= PAGE_SIZE) {
           nextOffsetRef.current = PAGE_SIZE;
           setHasMore(pageHasMore);
@@ -253,6 +263,7 @@ export default function ProductListScreen() {
         setProducts(filtered);
         setHasMore(pageHasMore);
         nextOffsetRef.current = pageOffset + PAGE_SIZE;
+        page0LengthRef.current = filtered.length;
       }
       setIsError(false);
     } catch (err) {
