@@ -95,7 +95,8 @@ Spec for an implementing AI. Goal: make the customer app (apps/customer-app) fee
 
 Do NOT wire it into any screen yet.
 
-### [ ] TASK 2 — SWR hook `src/hooks/useCachedFetch.js`
+### [x] TASK 2 — SWR hook `src/hooks/useCachedFetch.js`
+> Added useCachedFetch (cache-hit paint + bg revalidate, refresh, stale-key guard) + 7 tests; exported from hooks barrel.
 
 **Create** hook wrapping the TASK-1 util:
 
