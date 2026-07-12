@@ -16,6 +16,11 @@ jest.mock('../src/api/analyticsClient', () => ({
   initAnalytics: () => {},
   stopAnalytics: () => {},
 }));
+// AdminMintGate retries the mint on mount — keep it a pending promise so the
+// gate stays in its "Opening Admin Mode…" state for the assertion below.
+jest.mock('../src/api/adminApi', () => ({
+  adminApi: { mintSession: jest.fn(() => new Promise(() => {})) },
+}));
 
 const INITIAL_STATE = useAuthStore.getState();
 let root;
@@ -48,7 +53,7 @@ describe('RootNavigator — admin routing', () => {
     expect(text).toContain('People');
   });
 
-  it('does not route to admin when adminToken has not minted yet', async () => {
+  it('holds the mint gate (not customer home) while adminToken is minting', async () => {
     await ReactTestRenderer.act(async () => {
       useAuthStore.setState({
         isAuthenticated: true,
@@ -62,6 +67,8 @@ describe('RootNavigator — admin routing', () => {
 
     const text = root.root.findAll((node) => node.type === 'Text' && typeof node.props.children === 'string')
       .map((n) => n.props.children).join(' | ');
+    // Neither the admin shell nor the customer home — the gate holds.
     expect(text).not.toContain('People');
+    expect(text).toContain('Opening Admin Mode…');
   });
 });

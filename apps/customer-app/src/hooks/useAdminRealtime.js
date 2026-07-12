@@ -23,7 +23,12 @@ function useAdminRealtime() {
       disconnectAdminRealtime();
     }
 
-    return undefined;
+    // Cleanup must disconnect: on logout the store change swaps RootNavigator
+    // to the customer shell and unmounts AdminNavigator (and this hook) before
+    // the `else` branch above ever runs with the cleared state — without this,
+    // the admin socket would stay connected on a 12h-valid token after logout
+    // (QA case 13 "no admin socket leak").
+    return () => disconnectAdminRealtime();
   }, [hasHydrated, admin, adminToken]);
 
   useEffect(() => {

@@ -132,13 +132,22 @@ export const useAuthStore = create(
       // Exchanges the current customer session for an admin JWT (this phone
       // is an active mobile admin). Returns the token, or null on failure —
       // never throws (mirrors the fire-and-forget callers above).
+      //
+      // Only a definitive rejection (401/403 — phone deactivated or customer
+      // session dead) clears the admin role. A transient failure (offline,
+      // 5xx, timeout) keeps `admin` set with `adminToken` null so the
+      // AdminMintGate in RootNavigator can retry, instead of silently
+      // demoting a real admin to the customer shell over a network blip.
       mintAdminSession: async () => {
         try {
           const { token } = await adminApi.mintSession();
           useAuthStore.setState({ adminToken: token || null });
           return token || null;
-        } catch (_) {
-          useAuthStore.setState({ admin: null, adminToken: null });
+        } catch (err) {
+          const status = err && err.status;
+          if (status === 401 || status === 403) {
+            useAuthStore.setState({ admin: null, adminToken: null });
+          }
           return null;
         }
       },

@@ -3,12 +3,12 @@ import { colors } from '../theme';
 // Mirrors apps/admin/src/pages/Orders.jsx ORDER_STATUS_OPTIONS exactly —
 // same values, same labels — so admin phone and web agree on wording.
 export const ORDER_STATUS_OPTIONS = [
-  { value: 'Pending', label: 'Order Placed' },
-  { value: 'Accepted', label: 'Order Accepted' },
-  { value: 'Preparing', label: 'Preparing/Packing' },
-  { value: 'Out for Delivery', label: 'Out for Delivery' },
-  { value: 'Delivered', label: 'Delivered' },
-  { value: 'Cancelled', label: 'Cancelled' },
+  { value: 'Pending', label: 'Order Placed', shortLabel: 'Placed' },
+  { value: 'Accepted', label: 'Order Accepted', shortLabel: 'Accepted' },
+  { value: 'Preparing', label: 'Preparing/Packing', shortLabel: 'Preparing' },
+  { value: 'Out for Delivery', label: 'Out for Delivery', shortLabel: 'Out' },
+  { value: 'Delivered', label: 'Delivered', shortLabel: 'Delivered' },
+  { value: 'Cancelled', label: 'Cancelled', shortLabel: 'Cancelled' },
 ];
 
 const ORDER_STATUS_LABELS = ORDER_STATUS_OPTIONS.reduce((acc, item) => {

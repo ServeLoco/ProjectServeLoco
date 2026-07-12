@@ -158,4 +158,20 @@ describe('Admin mobile-admins API', () => {
     expect(res.statusCode).toBe(409);
     expect(res.body.code).toBe('ROLE_CONFLICT');
   });
+
+  it('patch phone change while active fails 409 if new phone is a shop owner', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 9, phone: '9876543210', display_name: 'X', user_id: 5, active: 1 }]])
+      .mockResolvedValueOnce([[]]) // no duplicate mobile admin for new phone
+      .mockResolvedValueOnce([[{ id: 8 }]]) // users row for new phone
+      .mockResolvedValueOnce([[{ id: 2 }]]); // that user is an active shop owner
+
+    const res = await request(app)
+      .patch('/api/admin/mobile-admins/9')
+      .set('Authorization', `Bearer ${adminToken()}`)
+      .send({ phone: '9999999999' });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body.code).toBe('ROLE_CONFLICT');
+  });
 });

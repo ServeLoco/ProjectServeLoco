@@ -131,12 +131,15 @@ export default function AdminOrderDetailScreen() {
     };
 
     if (newStatus === 'Cancelled') {
+      // RN has no cross-platform text prompt (Alert.prompt is iOS-only), so
+      // mobile always sends the default reason — matches web's fallback when
+      // the admin leaves the reason blank.
       Alert.alert(
-        'Cancel order',
-        'This will be sent to the customer as the cancellation reason.',
+        'Cancel this order?',
+        'The customer will be told: "Cancelled by admin".',
         [
-          { text: 'Skip reason', onPress: () => proceed('Cancelled by admin') },
-          { text: 'Continue', onPress: () => proceed('Cancelled by admin') },
+          { text: 'Keep order', style: 'cancel' },
+          { text: 'Cancel order', style: 'destructive', onPress: () => applyStatusChange('Cancelled', 'Cancelled by admin') },
         ]
       );
       return;
@@ -422,8 +425,8 @@ const styles = StyleSheet.create({
   actionBtnText: { fontSize: 12, fontWeight: '700', color: colors.textPrimary },
   optionsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   optionChip: {
-    borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 8,
-    backgroundColor: colors.bgApp, borderWidth: 1, borderColor: colors.border,
+    borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 9, minHeight: 36,
+    justifyContent: 'center', backgroundColor: colors.bgApp, borderWidth: 1, borderColor: colors.border,
   },
   optionChipActive: { backgroundColor: colors.saffron, borderColor: colors.saffron },
   optionChipDisabled: { opacity: 0.4 },

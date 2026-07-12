@@ -39,7 +39,8 @@ const me = async (req, res) => {
   const response = { user };
   response.shop = await getShopForUser(userId);
   response.rider = await getRiderForUser(userId);
-  response.admin = await getMobileAdminForUser(userId);
+  // Pass phone so first-login after web add (user_id still null) still attaches admin.
+  response.admin = await getMobileAdminForUser(userId, user.phone);
   // D2: one phone is shop OR rider, not both. If corrupt data has both, log once.
   if (response.shop && response.rider) {
     console.warn('[auth] user', userId, 'has both shop and rider rows — mutual exclusion violated');
@@ -298,7 +299,7 @@ const verifyFirebaseToken = async (req, res) => {
       const raceToken = signCustomerToken(existingUser.id);
       const raceShop = await getShopForUser(existingUser.id);
       const raceRider = await getRiderForUser(existingUser.id);
-      const raceAdmin = await getMobileAdminForUser(existingUser.id);
+      const raceAdmin = await getMobileAdminForUser(existingUser.id, existingUser.phone);
       return res.status(200).json({
         message: 'Login successful',
         token: raceToken,
@@ -344,7 +345,8 @@ const verifyFirebaseToken = async (req, res) => {
 
   const shop = await getShopForUser(user.id);
   const rider = await getRiderForUser(user.id);
-  const admin = await getMobileAdminForUser(user.id);
+  // Pass phone so first-login after web add (user_id still null) still attaches admin.
+  const admin = await getMobileAdminForUser(user.id, user.phone);
   if (shop && rider) {
     console.warn('[auth] user', user.id, 'has both shop and rider rows — mutual exclusion violated');
   }

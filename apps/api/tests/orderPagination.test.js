@@ -17,7 +17,15 @@ jest.mock('../src/db/mysql', () => ({
 // pulls in express-rate-limit. If any future refactor adds a GET limiter
 // (per-IP, etc.) we don't want the test suite to silently start throttling.
 // Pass-through so behavior under test stays the controller's logic only.
-jest.mock('express-rate-limit', () => () => (req, res, next) => next());
+// Support BOTH import styles: default (`require('express-rate-limit')`) and
+// named (`const { rateLimit, ipKeyGenerator } = require(...)`, used by
+// orderRoutes.js since express-rate-limit v8).
+jest.mock('express-rate-limit', () => {
+  const factory = () => (req, res, next) => next();
+  factory.rateLimit = factory;
+  factory.ipKeyGenerator = (ip) => String(ip);
+  return factory;
+});
 
 const app = express();
 app.use(express.json());

@@ -50,7 +50,8 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md, paddingBottom: spacing.sm,
   },
   segment: {
-    flex: 1, borderRadius: radius.pill, paddingVertical: 10, alignItems: 'center',
+    flex: 1, minWidth: 0, borderRadius: radius.pill, paddingVertical: 11, minHeight: 40,
+    alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border,
   },
   segmentActive: { backgroundColor: colors.saffron, borderColor: colors.saffron },

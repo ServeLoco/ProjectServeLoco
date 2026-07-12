@@ -49,7 +49,7 @@ describe('useAuthStore — admin mode', () => {
     expect(useAuthStore.getState().adminToken).toBeNull();
   });
 
-  it('mintAdminSession clears admin state on failure (e.g. deactivated)', async () => {
+  it('mintAdminSession clears admin state on a definitive 403 (deactivated)', async () => {
     useAuthStore.setState({ admin: { id: 4, active: true }, adminToken: 'old-token' });
     adminApi.mintSession.mockRejectedValue(Object.assign(new Error('forbidden'), { status: 403 }));
 
@@ -57,6 +57,19 @@ describe('useAuthStore — admin mode', () => {
 
     expect(result).toBeNull();
     expect(useAuthStore.getState().admin).toBeNull();
+    expect(useAuthStore.getState().adminToken).toBeNull();
+  });
+
+  it('mintAdminSession keeps admin state on a transient network error', async () => {
+    useAuthStore.setState({ admin: { id: 4, active: true }, adminToken: null });
+    adminApi.mintSession.mockRejectedValue(Object.assign(new Error('Network request failed'), { code: 'NETWORK_ERROR' }));
+
+    const result = await useAuthStore.getState().mintAdminSession();
+
+    expect(result).toBeNull();
+    // Admin role survives the blip — the AdminMintGate retries instead of
+    // the phone silently demoting to the customer shell.
+    expect(useAuthStore.getState().admin).toEqual({ id: 4, active: true });
     expect(useAuthStore.getState().adminToken).toBeNull();
   });
 

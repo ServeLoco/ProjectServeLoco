@@ -33,8 +33,12 @@ describe('GET /auth/me — admin field', () => {
   });
 
   it('returns admin: null for a plain customer', async () => {
-    pool.query.mockResolvedValue([[]]); // users/shop/rider/mobile-admin all resolve empty except the row below
-    pool.query.mockResolvedValueOnce([[USER_ROW]]); // users row (first call)
+    pool.query
+      .mockResolvedValueOnce([[USER_ROW]]) // users row
+      .mockResolvedValueOnce([[]])         // getShopForUser
+      .mockResolvedValueOnce([[]])         // getRiderForUser
+      .mockResolvedValueOnce([[]])         // getMobileAdminForUser by user_id
+      .mockResolvedValueOnce([[]]);        // getMobileAdminForUser by phone
 
     const res = await request(app)
       .get('/api/auth/me')
@@ -51,7 +55,7 @@ describe('GET /auth/me — admin field', () => {
       .mockResolvedValueOnce([[USER_ROW]]) // users row
       .mockResolvedValueOnce([[]])         // getShopForUser
       .mockResolvedValueOnce([[]])         // getRiderForUser
-      .mockResolvedValueOnce([[{           // getMobileAdminForUser
+      .mockResolvedValueOnce([[{           // getMobileAdminForUser by user_id
         id: 4, phone: '9999999999', display_name: 'Owner Phone', user_id: 1, active: 1, created_at: null,
       }]]);
 
@@ -61,5 +65,28 @@ describe('GET /auth/me — admin field', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.admin).toMatchObject({ id: 4, displayName: 'Owner Phone', active: true });
+  });
+
+  it('attaches admin on first login when mobile_admins.user_id is still null (phone match + backfill)', async () => {
+    pool.query
+      .mockResolvedValueOnce([[USER_ROW]]) // users row
+      .mockResolvedValueOnce([[]])         // getShopForUser
+      .mockResolvedValueOnce([[]])         // getRiderForUser
+      .mockResolvedValueOnce([[]])         // getMobileAdminForUser by user_id — not linked yet
+      .mockResolvedValueOnce([[{           // getMobileAdminForUser by phone
+        id: 4, phone: '9999999999', display_name: 'Owner Phone', user_id: null, active: 1, created_at: null,
+      }]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]); // backfill user_id
+
+    const res = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${customerToken(1)}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.admin).toMatchObject({ id: 4, displayName: 'Owner Phone', active: true, userId: 1 });
+    expect(pool.query).toHaveBeenCalledWith(
+      'UPDATE mobile_admins SET user_id = ? WHERE id = ? AND user_id IS NULL',
+      [1, 4]
+    );
   });
 });

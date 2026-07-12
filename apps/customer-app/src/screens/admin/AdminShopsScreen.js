@@ -129,21 +129,21 @@ export default function AdminShopsScreen() {
 
   const renderShop = ({ item }) => (
     <View style={styles.row}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.meta}>
+      <View style={styles.rowMain}>
+        <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.meta} numberOfLines={2}>
           {item.owner_user_id ? `${item.owner_name || 'Unnamed'} (${item.owner_phone})` : '— unassigned —'}
         </Text>
         <Text style={styles.meta}>{item.product_count ?? 0} products</Text>
       </View>
-      <View style={{ alignItems: 'flex-end', gap: spacing.xs }}>
+      <View style={styles.rowActions}>
         <TouchableOpacity style={[styles.toggle, item.active ? styles.toggleOn : styles.toggleOff]} onPress={() => toggleActive(item)}>
           <Text style={[styles.toggleText, item.active ? styles.toggleOnText : styles.toggleOffText]}>{item.active ? 'Active' : 'Inactive'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.toggle, item.is_open ? styles.toggleOn : styles.toggleOff]} onPress={() => toggleOpen(item)}>
           <Text style={[styles.toggleText, item.is_open ? styles.toggleOnText : styles.toggleOffText]}>{item.is_open ? 'Open' : 'Closed'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => openEdit(item)}>
+        <TouchableOpacity onPress={() => openEdit(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Text style={styles.editLink}>Edit</Text>
         </TouchableOpacity>
       </View>
@@ -228,19 +228,24 @@ const styles = StyleSheet.create({
   errorText: { color: colors.error, fontWeight: '600', fontSize: 13 },
   listContent: { paddingBottom: spacing.xl },
   row: {
-    flexDirection: 'row', backgroundColor: colors.bgSurface, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginHorizontal: spacing.lg, marginBottom: spacing.sm,
-    ...shadows.sm,
+    flexDirection: 'row', alignItems: 'flex-start', backgroundColor: colors.bgSurface, borderRadius: radius.lg,
+    borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm, gap: spacing.sm, ...shadows.sm,
   },
+  rowMain: { flex: 1, minWidth: 0 },
+  rowActions: { alignItems: 'flex-end', gap: spacing.xs, flexShrink: 0 },
   name: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
   meta: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  toggle: { borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 6, minWidth: 76, alignItems: 'center' },
+  toggle: {
+    borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7, minWidth: 78,
+    minHeight: 32, alignItems: 'center', justifyContent: 'center',
+  },
   toggleOn: { backgroundColor: colors.successLight },
   toggleOff: { backgroundColor: colors.bgApp, borderWidth: 1, borderColor: colors.border },
   toggleText: { fontWeight: '800', fontSize: 11 },
   toggleOnText: { color: colors.successDark },
   toggleOffText: { color: colors.textSecondary },
-  editLink: { fontSize: 12, fontWeight: '700', color: colors.saffronDark },
+  editLink: { fontSize: 12, fontWeight: '700', color: colors.saffronDark, paddingVertical: 4 },
   emptyState: { alignItems: 'center', paddingTop: spacing.xl },
   emptyText: { ...typography.body, color: colors.textSecondary },
   sheetOverlay: { flex: 1, justifyContent: 'flex-end' },

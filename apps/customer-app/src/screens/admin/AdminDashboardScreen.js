@@ -7,6 +7,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors, spacing, typography, radius, shadows } from '../../theme';
 import { adminApi, subscribeAdminOrderEvents, subscribeAdminRealtimeLifecycle } from '../../api';
 import AppIcon from '../../components/AppIcon';
+import { useAuthStore } from '../../stores';
 
 function formatMoney(n) {
   const v = Number(n) || 0;
@@ -31,11 +32,23 @@ function formatWhen(value) {
  */
 export default function AdminDashboardScreen() {
   const navigation = useNavigation();
+  const logout = useAuthStore((s) => s.logout);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const [togglingDelivery, setTogglingDelivery] = useState(false);
+
+  const handleLogout = useCallback(() => {
+    Alert.alert(
+      'Log out?',
+      'You will need OTP again to open Admin Mode on this phone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log out', style: 'destructive', onPress: () => logout() },
+      ]
+    );
+  }, [logout]);
 
   const fetchDashboard = useCallback(async ({ silent = false } = {}) => {
     try {
@@ -160,8 +173,19 @@ export default function AdminDashboardScreen() {
         ListHeaderComponent={
           <>
             <View style={styles.header}>
-              <Text style={styles.title}>Dashboard</Text>
-              <Text style={styles.subtitle}>Ops overview</Text>
+              <View style={styles.headerTextCol}>
+                <Text style={styles.title}>Dashboard</Text>
+                <Text style={styles.subtitle}>Ops overview</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.logoutBtn}
+                onPress={handleLogout}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Log out"
+              >
+                <Text style={styles.logoutBtnText}>Log out</Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.statusRow}>
@@ -232,37 +256,56 @@ export default function AdminDashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgApp },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
+  header: {
+    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, gap: spacing.md,
+  },
+  headerTextCol: { flex: 1 },
   title: { ...typography.display, fontSize: 26, color: colors.textPrimary },
   subtitle: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 2, fontWeight: '500' },
-  statusRow: { flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.lg, marginBottom: spacing.md },
+  logoutBtn: {
+    marginTop: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgSurface,
+  },
+  logoutBtnText: { fontWeight: '700', fontSize: 13, color: colors.textSecondary },
+  statusRow: {
+    flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.md,
+  },
   statusCard: {
-    flex: 1, backgroundColor: colors.bgSurface, borderRadius: radius.xl, padding: spacing.md,
+    flex: 1, minWidth: 0, backgroundColor: colors.bgSurface, borderRadius: radius.xl, padding: spacing.md,
     borderWidth: 1, borderColor: colors.border, ...shadows.sm,
   },
-  statusLabel: { fontSize: 11, fontWeight: '700', color: colors.textSecondary, letterSpacing: 0.4, marginBottom: spacing.xs },
+  statusLabel: {
+    fontSize: 10, fontWeight: '700', color: colors.textSecondary, letterSpacing: 0.3,
+    marginBottom: spacing.xs,
+  },
   statusToggle: {
-    alignSelf: 'flex-start', borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8, minHeight: 32, justifyContent: 'center',
+    alignSelf: 'flex-start', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 8,
+    minHeight: 34, justifyContent: 'center',
   },
   statusPill: {
-    alignSelf: 'flex-start', borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8,
+    alignSelf: 'flex-start', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 8,
+    minHeight: 34, justifyContent: 'center',
   },
   statusOn: { backgroundColor: colors.successLight },
   statusOff: { backgroundColor: colors.bgApp },
-  statusToggleText: { fontWeight: '800', fontSize: 14 },
+  statusToggleText: { fontWeight: '800', fontSize: 13 },
   statusOnText: { color: colors.successDark },
   statusOffText: { color: colors.textSecondary },
   statusAuto: { fontSize: 10, fontWeight: '700', color: colors.textTertiary, marginTop: 4, letterSpacing: 0.4 },
   metricsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, paddingHorizontal: spacing.lg, marginBottom: spacing.lg,
+    flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg, justifyContent: 'space-between', rowGap: spacing.sm,
   },
   metricCard: {
-    flexBasis: '47%', flexGrow: 1, backgroundColor: colors.bgSurface, borderRadius: radius.xl,
+    width: '48%', backgroundColor: colors.bgSurface, borderRadius: radius.xl,
     paddingVertical: spacing.md, paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center', ...shadows.sm,
+    alignItems: 'center', justifyContent: 'center', minHeight: 84, ...shadows.sm,
   },
-  metricValue: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
-  metricLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 2, fontWeight: '600', textAlign: 'center' },
+  metricValue: { fontSize: 20, fontWeight: '800', color: colors.textPrimary },
+  metricLabel: {
+    fontSize: 11, color: colors.textSecondary, marginTop: 4, fontWeight: '600', textAlign: 'center',
+  },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.lg, marginBottom: spacing.sm,
@@ -270,17 +313,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.labelSmall, fontSize: 13, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.6,
   },
-  sectionLink: { color: colors.saffronDark, fontWeight: '700', fontSize: 13 },
+  sectionLink: { color: colors.saffronDark, fontWeight: '700', fontSize: 13, paddingVertical: 4 },
   listContent: { paddingBottom: spacing.xl },
   orderRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm,
     backgroundColor: colors.bgSurface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border,
     padding: spacing.md, marginHorizontal: spacing.lg, marginBottom: spacing.sm,
   },
   orderNumber: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
   orderMeta: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   orderAmount: { ...typography.body, fontWeight: '800', color: colors.textPrimary },
-  orderStatus: { fontSize: 11, color: colors.textSecondary, marginTop: 2, textTransform: 'uppercase', fontWeight: '700' },
+  orderStatus: {
+    fontSize: 11, color: colors.textSecondary, marginTop: 2, textTransform: 'uppercase',
+    fontWeight: '700', textAlign: 'right',
+  },
   emptyState: { alignItems: 'center', paddingHorizontal: spacing.xl, marginTop: spacing.xl },
   emptyIconWrap: {
     width: 72, height: 72, borderRadius: radius.circle, backgroundColor: colors.saffronLight,

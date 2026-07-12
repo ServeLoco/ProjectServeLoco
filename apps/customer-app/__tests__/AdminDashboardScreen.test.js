@@ -21,6 +21,10 @@ jest.mock('../src/api', () => ({
   subscribeAdminRealtimeLifecycle: () => () => {},
 }));
 
+jest.mock('../src/stores', () => ({
+  useAuthStore: (sel) => sel({ logout: jest.fn() }),
+}));
+
 const { adminApi } = require('../src/api');
 
 const DASHBOARD_RESPONSE = {
@@ -77,8 +81,19 @@ describe('AdminDashboardScreen', () => {
 
     expect(alertSpy).toHaveBeenCalledWith('Turn delivery off?', expect.any(String), expect.any(Array));
     expect(adminApi.updateSettings).toHaveBeenCalledWith({ delivery_available: false });
-
     alertSpy.mockRestore();
+  });
+
+  it('renders a Log out control on the dashboard header', async () => {
+    adminApi.getDashboard.mockResolvedValue(DASHBOARD_RESPONSE);
+
+    let root;
+    await act(async () => {
+      root = ReactTestRenderer.create(<AdminDashboardScreen />);
+    });
+
+    const texts = findAllText(root.root);
+    expect(texts).toEqual(expect.arrayContaining(['Log out']));
   });
 
   it('shows a retry state when the dashboard fails to load', async () => {

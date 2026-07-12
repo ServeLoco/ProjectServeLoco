@@ -37,9 +37,12 @@ function formatDateTime(value) {
   return d.toLocaleString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
+// Compact labels for the horizontal chip row so long statuses (e.g.
+// "Preparing/Packing") don't look cropped on narrow phones. Full labels
+// stay in order cards / detail via getOrderStatusLabel.
 const QUICK_FILTERS = [
   { value: '', label: 'All' },
-  ...ORDER_STATUS_OPTIONS,
+  ...ORDER_STATUS_OPTIONS.map((o) => ({ value: o.value, label: o.shortLabel || o.label })),
 ];
 
 /**
@@ -169,13 +172,17 @@ export default function AdminOrdersScreen() {
           <Text style={styles.rowMeta}>{item.customer_name} · {item.phone}</Text>
           <Text style={styles.rowDate}>{formatDateTime(item.created_at)}</Text>
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
+        <View style={styles.rowRight}>
           <Text style={styles.rowAmount}>₹{formatMoney(item.total)}</Text>
           <View style={[styles.pill, { backgroundColor: statusColors.bg }]}>
-            <Text style={[styles.pillText, { color: statusColors.text }]}>{getOrderStatusLabel(item.status)}</Text>
+            <Text style={[styles.pillText, { color: statusColors.text }]} numberOfLines={1}>
+              {getOrderStatusLabel(item.status)}
+            </Text>
           </View>
           <View style={[styles.pill, { backgroundColor: paymentColors.bg, marginTop: 4 }]}>
-            <Text style={[styles.pillText, { color: paymentColors.text }]}>{item.payment_status}</Text>
+            <Text style={[styles.pillText, { color: paymentColors.text }]} numberOfLines={1}>
+              {item.payment_status}
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -203,22 +210,31 @@ export default function AdminOrdersScreen() {
         />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}>
-        {QUICK_FILTERS.map((opt) => {
-          const active = filters.status === opt.value;
-          return (
-            <TouchableOpacity
-              key={opt.value || 'all'}
-              testID={`quick-filter-${opt.value || 'all'}`}
-              style={[styles.chip, active && styles.chipActive]}
-              onPress={() => setFilters((prev) => ({ ...prev, status: opt.value }))}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <View style={styles.chipsWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipsRow}
+          contentContainerStyle={styles.chipsContent}
+        >
+          {QUICK_FILTERS.map((opt) => {
+            const active = filters.status === opt.value;
+            return (
+              <TouchableOpacity
+                key={opt.value || 'all'}
+                testID={`quick-filter-${opt.value || 'all'}`}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => setFilters((prev) => ({ ...prev, status: opt.value }))}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]} numberOfLines={1}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {error && (
         <View style={styles.errorBanner}>
@@ -271,27 +287,41 @@ export default function AdminOrdersScreen() {
             <Text style={styles.sheetTitle}>Filters</Text>
 
             <Text style={styles.fieldLabel}>Payment status</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, marginBottom: spacing.md }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.sheetChipsRow}
+              contentContainerStyle={styles.sheetChipsContent}
+            >
               {['', ...PAYMENT_STATUS_OPTIONS].map((v) => (
                 <TouchableOpacity
                   key={v || 'all'}
                   style={[styles.chip, draftFilters.paymentStatus === v && styles.chipActive]}
                   onPress={() => setDraftFilters((prev) => ({ ...prev, paymentStatus: v }))}
                 >
-                  <Text style={[styles.chipText, draftFilters.paymentStatus === v && styles.chipTextActive]}>{v || 'All'}</Text>
+                  <Text style={[styles.chipText, draftFilters.paymentStatus === v && styles.chipTextActive]} numberOfLines={1}>
+                    {v || 'All'}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
             <Text style={styles.fieldLabel}>Payment method</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, marginBottom: spacing.md }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.sheetChipsRow}
+              contentContainerStyle={styles.sheetChipsContent}
+            >
               {['', 'Cash', 'UPI'].map((v) => (
                 <TouchableOpacity
                   key={v || 'all'}
                   style={[styles.chip, draftFilters.paymentMethod === v && styles.chipActive]}
                   onPress={() => setDraftFilters((prev) => ({ ...prev, paymentMethod: v }))}
                 >
-                  <Text style={[styles.chipText, draftFilters.paymentMethod === v && styles.chipTextActive]}>{v || 'All'}</Text>
+                  <Text style={[styles.chipText, draftFilters.paymentMethod === v && styles.chipTextActive]} numberOfLines={1}>
+                    {v || 'All'}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -346,11 +376,32 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgSurface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border,
     paddingHorizontal: spacing.md, marginBottom: spacing.sm,
   },
-  searchInput: { flex: 1, paddingVertical: 10, color: colors.textPrimary, fontSize: 14 },
-  chipsRow: { flexGrow: 0, marginBottom: spacing.sm },
+  searchInput: { flex: 1, paddingVertical: 12, color: colors.textPrimary, fontSize: 14 },
+  // Outer wrap gives the horizontal chip scroller a fixed vertical budget so
+  // Android doesn't clip pill tops/bottoms (common ScrollView height collapse).
+  chipsWrap: {
+    marginBottom: spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  chipsRow: { flexGrow: 0 },
+  chipsContent: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 6,
+    paddingRight: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   chip: {
-    borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 8,
-    backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border,
+    flexShrink: 0,
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    minHeight: 36,
+    justifyContent: 'center',
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   chipActive: { backgroundColor: colors.saffron, borderColor: colors.saffron },
   chipText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
@@ -360,46 +411,59 @@ const styles = StyleSheet.create({
     padding: spacing.sm, marginBottom: spacing.sm,
   },
   errorText: { color: colors.error, fontSize: 13, fontWeight: '600' },
-  listContent: { paddingBottom: spacing.xl },
+  listContent: { paddingBottom: spacing.xl, paddingTop: spacing.xs },
   row: {
-    flexDirection: 'row', justifyContent: 'space-between', backgroundColor: colors.bgSurface,
-    borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.md,
-    marginHorizontal: spacing.lg, marginBottom: spacing.sm,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    backgroundColor: colors.bgSurface, borderRadius: radius.lg, borderWidth: 1,
+    borderColor: colors.border, padding: spacing.md, marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm, gap: spacing.sm,
   },
   orderNumber: { ...typography.body, fontWeight: '800', color: colors.textPrimary },
   rowMeta: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   rowDate: { fontSize: 11, color: colors.textTertiary, marginTop: 2 },
+  rowRight: { alignItems: 'flex-end', maxWidth: '42%', flexShrink: 0 },
   rowAmount: { ...typography.body, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
-  pill: { borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 },
+  pill: {
+    borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3, maxWidth: '100%',
+  },
   pillText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
   emptyState: { alignItems: 'center', paddingTop: spacing.xl },
   emptyText: { ...typography.body, color: colors.textSecondary },
   pagination: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, marginTop: spacing.md,
+    paddingHorizontal: spacing.lg, marginTop: spacing.md, gap: spacing.sm,
   },
-  pageBtn: { backgroundColor: colors.bgSurface, borderRadius: radius.button, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderWidth: 1, borderColor: colors.border },
+  pageBtn: {
+    backgroundColor: colors.bgSurface, borderRadius: radius.button,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    borderWidth: 1, borderColor: colors.border, minHeight: 40, justifyContent: 'center',
+  },
   pageBtnDisabled: { opacity: 0.4 },
   pageBtnText: { fontWeight: '700', color: colors.textPrimary, fontSize: 13 },
-  pageLabel: { fontSize: 12, color: colors.textSecondary },
+  pageLabel: { fontSize: 12, color: colors.textSecondary, flexShrink: 1, textAlign: 'center' },
   sheetOverlay: { flex: 1, justifyContent: 'flex-end' },
   sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlayDark },
   sheet: {
     backgroundColor: colors.bgSurface, borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl,
-    padding: spacing.lg, paddingBottom: spacing.xl,
+    padding: spacing.lg, paddingBottom: spacing.xxl,
   },
   sheetTitle: { ...typography.h3, color: colors.textPrimary, marginBottom: spacing.md },
   fieldLabel: { fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: spacing.xs, textTransform: 'uppercase' },
+  sheetChipsRow: { flexGrow: 0, minHeight: 44, marginBottom: spacing.md },
+  sheetChipsContent: { gap: spacing.sm, alignItems: 'center', paddingVertical: 4, paddingRight: spacing.md },
   dateInput: {
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingHorizontal: spacing.md,
-    paddingVertical: 10, marginBottom: spacing.md, color: colors.textPrimary,
+    paddingVertical: 12, marginBottom: spacing.md, color: colors.textPrimary, fontSize: 15,
   },
   sheetActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
   sheetClearBtn: {
-    flex: 1, borderRadius: radius.button, paddingVertical: spacing.sm, alignItems: 'center',
-    borderWidth: 1.5, borderColor: colors.border,
+    flex: 1, borderRadius: radius.button, paddingVertical: 12, alignItems: 'center',
+    borderWidth: 1.5, borderColor: colors.border, minHeight: 44, justifyContent: 'center',
   },
   sheetClearBtnText: { fontWeight: '800', color: colors.textSecondary },
-  sheetApplyBtn: { flex: 1, borderRadius: radius.button, paddingVertical: spacing.sm, alignItems: 'center', backgroundColor: colors.saffron },
+  sheetApplyBtn: {
+    flex: 1, borderRadius: radius.button, paddingVertical: 12, alignItems: 'center',
+    backgroundColor: colors.saffron, minHeight: 44, justifyContent: 'center',
+  },
   sheetApplyBtnText: { fontWeight: '800', color: colors.textInverse },
 });

@@ -100,9 +100,9 @@ export default function AdminRidersScreen() {
     const isOnline = Boolean(item.isOnline ?? item.is_online);
     return (
       <View style={styles.row}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{item.displayName || item.display_name}</Text>
-          <Text style={styles.meta}>{item.phone || item.userPhone || item.user_phone || '—'}</Text>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.name} numberOfLines={1}>{item.displayName || item.display_name}</Text>
+          <Text style={styles.meta} numberOfLines={1}>{item.phone || item.userPhone || item.user_phone || '—'}</Text>
           <View style={styles.onlineRow}>
             <View style={[styles.dot, { backgroundColor: isOnline ? colors.success : colors.textTertiary }]} />
             <Text style={styles.onlineText}>{isOnline ? 'Online' : 'Offline'}</Text>
@@ -203,15 +203,18 @@ const styles = StyleSheet.create({
   listContent: { paddingBottom: spacing.xl },
   row: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgSurface, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginHorizontal: spacing.lg, marginBottom: spacing.sm,
-    ...shadows.sm,
+    borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm, gap: spacing.sm, ...shadows.sm,
   },
   name: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
   meta: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   dot: { width: 8, height: 8, borderRadius: radius.circle },
   onlineText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
-  toggle: { borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 8 },
+  toggle: {
+    borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 8, minHeight: 34,
+    minWidth: 72, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
   toggleOn: { backgroundColor: colors.successLight },
   toggleOff: { backgroundColor: colors.bgApp, borderWidth: 1, borderColor: colors.border },
   toggleText: { fontWeight: '800', fontSize: 12 },

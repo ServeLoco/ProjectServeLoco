@@ -123,13 +123,18 @@ const updateMobileAdmin = async (req, res) => {
   }
 
   if (active !== undefined) {
-    const turningOn = Boolean(active);
-    if (turningOn && nextUserId) {
-      const conflict = await checkRoleExclusivity(nextUserId);
-      if (conflict) return res.status(409).json(conflict);
-    }
     sets.push('active = ?');
-    values.push(turningOn ? 1 : 0);
+    values.push(active ? 1 : 0);
+  }
+
+  // Role exclusivity whenever the resulting row would be active and linked to
+  // a user — covers reactivate AND phone reassignment while already active.
+  const willBeActive = active !== undefined ? Boolean(active) : Boolean(current.active);
+  const phoneChanging = phone !== undefined;
+  const activating = active !== undefined && Boolean(active) && !current.active;
+  if (willBeActive && nextUserId && (phoneChanging || activating)) {
+    const conflict = await checkRoleExclusivity(nextUserId);
+    if (conflict) return res.status(409).json(conflict);
   }
 
   if (sets.length > 0) {

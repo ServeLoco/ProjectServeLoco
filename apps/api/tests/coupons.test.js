@@ -52,7 +52,13 @@ jest.mock('../src/realtime/orderAutoAccept', () => ({
 // would trip the max:5/min cap. Neutralize the limiter here with a pass-through
 // so coupon behaviour is tested in isolation; the limiter itself is active in
 // production and in the other test files (which stay under the cap).
-jest.mock('express-rate-limit', () => () => (req, res, next) => next());
+// Supports both default and named ({ rateLimit, ipKeyGenerator }) imports.
+jest.mock('express-rate-limit', () => {
+  const factory = () => (req, res, next) => next();
+  factory.rateLimit = factory;
+  factory.ipKeyGenerator = (ip) => String(ip);
+  return factory;
+});
 
 const { pool } = require('../src/db/mysql');
 const coupons = require('../src/utils/coupons');

@@ -302,8 +302,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md, marginTop: spacing.sm, marginBottom: spacing.sm,
   },
   searchInput: { flex: 1, paddingVertical: 10, color: colors.textPrimary, fontSize: 14 },
-  filterRow: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
-  chip: { borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 6, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border },
+  filterRow: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm,
+    paddingHorizontal: spacing.lg, marginBottom: spacing.sm,
+  },
+  chip: {
+    borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 8, minHeight: 34,
+    justifyContent: 'center', backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border,
+  },
   chipActive: { backgroundColor: colors.saffron, borderColor: colors.saffron },
   chipText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
   chipTextActive: { color: colors.textInverse },
