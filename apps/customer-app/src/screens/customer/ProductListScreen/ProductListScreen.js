@@ -29,6 +29,7 @@ import { useCartStore } from '../../../stores';
 import { useAuthGate, useStoreModes } from '../../../hooks';
 import { productsApi, dashboardApi } from '../../../api';
 import { asArray, normalizeProduct } from '../../../utils';
+import { getCached, setCached, stableKey } from '../../../utils/apiCache';
 
 const SORT_OPTIONS = ['Popular', 'Price Low to High', 'Price High to Low'];
 
@@ -88,12 +89,42 @@ export default function ProductListScreen() {
   );
 
   const fetchProducts = async (refresh = false) => {
+    const isOriginalCategory = activeCategory === initialCategory;
+    const queryCategoryId = isOriginalCategory ? route.params?.categoryId : undefined;
+    // Cache key covers network params only (not client-side sort/availability).
+    const requestParams = sectionSlug
+      ? {
+          sectionSlug,
+          storeType: sectionStoreType,
+          include_closed_shops: 1,
+        }
+      : {
+          category: activeCategory !== 'All' ? activeCategory : undefined,
+          categoryId: queryCategoryId,
+          q: searchQuery || undefined,
+          search: searchQuery || undefined,
+          offerId: offerId || undefined,
+          isCombo: mode === 'combos',
+          featured: mode === 'combos' ? true : undefined,
+          type: sectionStoreType !== 'all' ? sectionStoreType : undefined,
+          storeType: sectionStoreType !== 'all' ? sectionStoreType : undefined,
+          include_closed_shops: 1,
+          mode,
+        };
+    const cacheKey = `products:${stableKey(requestParams)}`;
+    const cached = getCached(cacheKey);
+
     if (refresh) {
       setIsRefreshing(true);
+    } else if (cached) {
+      // Instant paint from cache; revalidate silently below (no skeleton).
+      setProducts(cached.data);
+      setIsLoading(false);
+      setIsError(false);
     } else {
       setIsLoading(true);
+      setIsError(false);
     }
-    setIsError(false);
 
     try {
       let response;
@@ -106,9 +137,6 @@ export default function ProductListScreen() {
         });
         filtered = asArray(response, ['items']).map(normalizeProduct);
       } else {
-        const isOriginalCategory = activeCategory === initialCategory;
-        const queryCategoryId = isOriginalCategory ? route.params?.categoryId : undefined;
-
         response = await productsApi.getProducts({
           category: activeCategory !== 'All' ? activeCategory : undefined,
           categoryId: queryCategoryId,
@@ -129,8 +157,6 @@ export default function ProductListScreen() {
 
         // Category Filter
         if (activeCategory !== 'All') {
-          const isOriginalCategory = activeCategory === initialCategory;
-          const queryCategoryId = isOriginalCategory ? route.params?.categoryId : undefined;
           if (!queryCategoryId) {
             filtered = filtered.filter(p => String(p.category || '').toLowerCase() === String(activeCategory).toLowerCase());
           }
@@ -142,9 +168,14 @@ export default function ProductListScreen() {
         filtered = filtered.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
       }
 
+      setCached(cacheKey, filtered);
       setProducts(filtered);
+      setIsError(false);
     } catch (err) {
-      setIsError(true);
+      // Keep cached list on revalidation failure; error only when nothing to show.
+      if (!getCached(cacheKey)) {
+        setIsError(true);
+      }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);

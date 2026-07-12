@@ -142,7 +142,8 @@ HomeScreen is NOT migrated to this hook (see DO NOT TOUCH).
 - Search in `mode === 'search'` stays debounced-server-side as is.
 - Everything else (category, offerId, sectionSlug, mode changes) still refetches.
 
-### [ ] TASK 5 — ProductListScreen: cached lists (SWR)
+### [x] TASK 5 — ProductListScreen: cached lists (SWR)
+> fetchProducts uses products:stableKey(params); cache hit paints instantly + silent revalidate; pull-to-refresh forces network.
 
 **Modify** `ProductListScreen.js`: route `fetchProducts`'s network call through the cache.
 
