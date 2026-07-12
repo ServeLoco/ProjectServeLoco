@@ -55,7 +55,8 @@ Branch: `perf/customer-app-speed-v2`
 - On `onPressIn` (where ProductCard already has press handlers), if product has `imageUrl`/`imageUri`, `ExpoImage.prefetch([url])` fire-and-forget.
 - Do not change add-to-cart behavior.
 
-### [ ] TASK 5 — microCache bust on combo CRUD + bulk import
+### [x] TASK 5 — microCache bust on combo CRUD + bulk import
+> combo create/update/delete/availability + bulkImport commit bust dashboard (+ categories on import).
 **Why:** Dashboard combo_block / product lists can stay stale ≤30s after admin combo edits or bulk import.
 
 **Modify:**
@@ -64,7 +65,8 @@ Branch: `perf/customer-app-speed-v2`
 
 **Test:** `npm test` in apps/api.
 
-### [ ] TASK 6 — Verification
+### [x] TASK 6 — Verification
+> customer-app 190 tests + api 652 tests green; eslint on touched files clean.
 - `npm test` customer-app + api
 - Tick all boxes with one-line notes
 - Commit message summary in final note

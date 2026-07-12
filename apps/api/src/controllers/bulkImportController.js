@@ -7,6 +7,7 @@ const { pool } = require('../db/mysql');
 const config = require('../config/env');
 const s3 = require('../config/s3');
 const { normalizeStoreType } = require('../utils/storeMode');
+const microCache = require('../utils/microCache');
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 const UPLOAD_DIR = path.join(__dirname, '../../', config.UPLOAD_DIR);
@@ -545,6 +546,8 @@ const commitBulkImport = async (req, res) => {
     }
 
     await connection.commit();
+    microCache.bust('dashboard');
+    microCache.bust('categories');
     connection.release();
 
     return res.status(201).json({

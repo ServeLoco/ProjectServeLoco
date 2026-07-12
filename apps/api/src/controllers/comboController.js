@@ -3,6 +3,11 @@ const { validatePagination } = require('../validators');
 const { isPositiveInteger } = require('../validators');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { cleanupOrphanedImage } = require('./imageController');
+const microCache = require('../utils/microCache');
+
+const bustDashboardCache = () => {
+  microCache.bust('dashboard');
+};
 
 const resolveImageUrls = async (rows) => {
   const imageIds = rows
@@ -280,7 +285,8 @@ const createCombo = async (req, res) => {
     );
     await saveComboItems(result.insertId, validatedComboItems, connection, store_type);
     await connection.commit();
-    res.status(201).json({ message: 'Combo created', id: result.insertId });
+    bustDashboardCache();
+  res.status(201).json({ message: 'Combo created', id: result.insertId });
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -358,6 +364,7 @@ const updateCombo = async (req, res) => {
     await cleanupOrphanedImage(previousImageId);
   }
 
+  bustDashboardCache();
   res.status(200).json({ message: 'Combo updated' });
 };
 
@@ -370,6 +377,7 @@ const deleteCombo = async (req, res) => {
 
   await pool.query('UPDATE combos SET deleted = 1 WHERE id = ?', [id]);
   await cleanupOrphanedImage(existing[0].image_id);
+  bustDashboardCache();
   res.status(200).json({ message: 'Combo soft deleted' });
 };
 
@@ -387,6 +395,7 @@ const updateComboAvailability = async (req, res) => {
   }
   
   const [updatedRows] = await pool.query('SELECT * FROM combos WHERE id = ?', [id]);
+  bustDashboardCache();
   res.status(200).json({ message: 'Combo availability updated', combo: updatedRows[0] });
 };
 
