@@ -9,6 +9,7 @@ import {
   LayoutAnimation,
   ScrollView,
   RefreshControl,
+  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
@@ -75,10 +76,16 @@ export default function ProductListScreen() {
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
   const [sortBy, setSortBy] = useState('Popular');
   
+  const PAGE_SIZE = 30;
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isError, setIsError] = useState(false);
   const [products, setProducts] = useState([]);
+  const [hasMore, setHasMore] = useState(false);
+  // Next SQL offset advances by PAGE_SIZE always (time-window may shrink pages).
+  const nextOffsetRef = useRef(0);
+  const loadMoreInFlightRef = useRef(false);
   const cartItemCount = useMemo(
     () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
     [items]
@@ -88,10 +95,20 @@ export default function ProductListScreen() {
     [items]
   );
 
-  const fetchProducts = async (refresh = false) => {
+  /**
+   * @param {boolean|{ refresh?: boolean, loadMore?: boolean }} opts
+   *   boolean true = pull-to-refresh (legacy)
+   */
+  const fetchProducts = async (opts = false) => {
+    const options = typeof opts === 'boolean' ? { refresh: opts } : (opts || {});
+    const refresh = !!options.refresh;
+    const loadMore = !!options.loadMore;
+
     const isOriginalCategory = activeCategory === initialCategory;
     const queryCategoryId = isOriginalCategory ? route.params?.categoryId : undefined;
-    // Cache key covers network params only (not client-side sort/availability).
+    const pageOffset = loadMore ? nextOffsetRef.current : 0;
+
+    // Cache key covers network params including offset (each page is its own entry).
     const requestParams = sectionSlug
       ? {
           sectionSlug,
@@ -110,15 +127,25 @@ export default function ProductListScreen() {
           storeType: sectionStoreType !== 'all' ? sectionStoreType : undefined,
           include_closed_shops: 1,
           mode,
+          limit: PAGE_SIZE,
+          offset: pageOffset,
         };
     const cacheKey = `products:${stableKey(requestParams)}`;
     const cached = getCached(cacheKey);
 
-    if (refresh) {
+    if (loadMore) {
+      if (loadMoreInFlightRef.current || !hasMore) return;
+      loadMoreInFlightRef.current = true;
+      setIsLoadingMore(true);
+    } else if (refresh) {
       setIsRefreshing(true);
     } else if (cached) {
       // Instant paint from cache; revalidate silently below (no skeleton).
-      setProducts(cached.data);
+      const cachedProducts = Array.isArray(cached.data) ? cached.data : (cached.data?.products || []);
+      const cachedHasMore = Array.isArray(cached.data) ? false : !!cached.data?.hasMore;
+      setProducts(cachedProducts);
+      setHasMore(cachedHasMore);
+      nextOffsetRef.current = PAGE_SIZE;
       setIsLoading(false);
       setIsError(false);
     } else {
@@ -129,13 +156,16 @@ export default function ProductListScreen() {
     try {
       let response;
       let filtered = [];
+      let pageHasMore = false;
 
       if (sectionSlug) {
+        // Section items endpoint has no pagination — full list, hasMore false.
         response = await dashboardApi.getSectionItems(sectionSlug, {
           storeType: sectionStoreType,
           include_closed_shops: 1,
         });
         filtered = asArray(response, ['items']).map(normalizeProduct);
+        pageHasMore = false;
       } else {
         response = await productsApi.getProducts({
           category: activeCategory !== 'All' ? activeCategory : undefined,
@@ -149,8 +179,13 @@ export default function ProductListScreen() {
           type: sectionStoreType !== 'all' ? sectionStoreType : undefined,
           storeType: sectionStoreType !== 'all' ? sectionStoreType : undefined,
           include_closed_shops: 1,
+          limit: PAGE_SIZE,
+          offset: pageOffset,
         });
         filtered = asArray(response, ['products']).map(normalizeProduct);
+        pageHasMore = !!(
+          response?.hasMore ?? response?.has_more ?? response?.data?.hasMore ?? response?.data?.has_more
+        );
         if (mode !== 'combos') {
           filtered = filtered.filter(p => !(p.isCombo || p.is_combo || p.comboItems?.length));
         }
@@ -168,22 +203,37 @@ export default function ProductListScreen() {
         filtered = filtered.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
       }
 
-      setCached(cacheKey, filtered);
-      setProducts(filtered);
+      setCached(cacheKey, { products: filtered, hasMore: pageHasMore });
+      if (loadMore) {
+        setProducts(prev => [...prev, ...filtered]);
+      } else {
+        setProducts(filtered);
+      }
+      setHasMore(pageHasMore);
+      // Advance by SQL page size, never by received row count.
+      nextOffsetRef.current = pageOffset + PAGE_SIZE;
       setIsError(false);
     } catch (err) {
       // Keep cached list on revalidation failure; error only when nothing to show.
-      if (!getCached(cacheKey)) {
+      if (!loadMore && !getCached(cacheKey)) {
         setIsError(true);
       }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+      setIsLoadingMore(false);
+      loadMoreInFlightRef.current = false;
     }
   };
 
   const handleRefresh = () => {
-    fetchProducts(true);
+    nextOffsetRef.current = 0;
+    fetchProducts({ refresh: true });
+  };
+
+  const handleLoadMore = () => {
+    if (!hasMore || isLoadingMore || isLoading || sectionSlug) return;
+    fetchProducts({ loadMore: true });
   };
 
   // Client-side only: availability filter + sort (no network).
@@ -430,6 +480,15 @@ export default function ProductListScreen() {
             initialNumToRender={6}
             maxToRenderPerBatch={6}
             windowSize={7}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.4}
+            ListFooterComponent={
+              isLoadingMore ? (
+                <View style={styles.loadMoreFooter}>
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              ) : null
+            }
             refreshControl={
               <RefreshControl
                 refreshing={isRefreshing}
@@ -502,6 +561,11 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flex: 1,
+  },
+  loadMoreFooter: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   flatListContent: {
     padding: spacing.lg,
