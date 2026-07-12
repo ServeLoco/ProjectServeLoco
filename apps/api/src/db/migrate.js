@@ -139,6 +139,28 @@ const migrate = async () => {
     `);
     console.log('Riders table ready.');
 
+    // Mobile Admins — phones the owner grants Admin Mode to in the phone app.
+    // Same Firebase OTP login as customers; user_id backfills on first login
+    // (nullable until then since owner can add a phone before it ever logs in).
+    // phone is normalized 10-digit local (matches users.phone, see authController
+    // normalizedPhone). active = soft on/off; one phone is admin XOR shop XOR
+    // rider, never two (enforced in admin API, mirrors shop/rider exclusivity).
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS mobile_admins (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        phone VARCHAR(20) NOT NULL,
+        display_name VARCHAR(255) NULL,
+        user_id INT NULL,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_mobile_admins_phone (phone),
+        KEY idx_mobile_admins_user (user_id),
+        KEY idx_mobile_admins_active (active)
+      );
+    `);
+    console.log('Mobile admins table ready.');
+
     // Product Groups — a shop owner's own bucket of products (e.g.
     // "Starters") that can be disabled all at once. active=false hides every
     // member product from customers exactly like a closed shop (see the
