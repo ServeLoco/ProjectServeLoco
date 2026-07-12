@@ -491,8 +491,12 @@ const migrate = async () => {
       // Index already exists (unique) — fine.
     }
     await ensureIndex('products', 'idx_products_available_deleted', 'available, deleted');
+    // Hot GET /products + dashboard product_block filters: deleted+available+category.
+    await ensureIndex('products', 'idx_products_deleted_available_category', 'deleted, available, category_id');
     await ensureIndex('products', 'idx_products_shop', 'shop_id');
     await ensureIndex('products', 'idx_products_group', 'group_id');
+    // Dashboard section item lookups by section + type + active.
+    await ensureIndex('dashboard_section_items', 'idx_dsi_section_type_active', 'section_id, item_type, active');
     await ensureIndex('orders', 'idx_orders_rider', 'rider_id, status');
     // NOTE: indexes for `notifications` and `offer_products` are added after
     // those tables are created later in this file (a fresh DB has no such

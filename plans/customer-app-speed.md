@@ -236,7 +236,8 @@ Constraints:
 
 Do NOT cache auth-scoped endpoints. Do NOT cache mutations. Do NOT add redis.
 
-### [ ] TASK 12 — DB index audit for hot product queries
+### [x] TASK 12 — DB index audit for hot product queries
+> EXPLAIN: products type=ref (idx_category); dsi type=ref (unique_section_item) — no full scans. Added idx_products_deleted_available_category + idx_dsi_section_type_active.
 
 1. Run `EXPLAIN` on: the main `GET /products` query with a category filter, the dashboard `product_block` item query, and the `offer_banner` item query. Use a throwaway script against the dev DB (`APP_ENV=development`) — keep it OUT of the commit. Record full-table scans in the commit message.
 2. For each scan, add a composite index via the existing `ensureIndex` helper (`migrate.js` ~line 455; follow the `idx_orders_*` examples at 466–468). Candidates — confirm with EXPLAIN first, never add blindly: `products (deleted, available, category_id)`, `dashboard_section_items (section_id, item_type, active)`.
