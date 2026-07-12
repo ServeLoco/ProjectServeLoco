@@ -164,7 +164,8 @@ Two parts:
 
 Related-products block keeps its own existing logic.
 
-### [ ] TASK 7 — freshness: revalidate on focus + realtime invalidation
+### [x] TASK 7 — freshness: revalidate on focus + realtime invalidation
+> ProductList + ProductDetail useFocusEffect silent revalidate (skip first focus). realtimeClient busts products:/product:/categories: on shop events.
 
 1. **Modify** `ProductListScreen.js` and `ProductDetailScreen.js`: add `useFocusEffect` silent revalidation (mirror HomeScreen's `hasFocusedOnceRef` skip-first-focus pattern exactly — read it before writing). No skeleton, only silent state swap. (TASK 16 adds a freshness throttle on top; don't build one here.)
 2. **Modify** the realtime layer in ONE place (the realtime client or a small module-level subscriber — find shop open/close events via `subscribeShopEvents` / `realtimeClient.js`): on any shop-status event, call `invalidate('products:')`, `invalidate('product:')`, `invalidate('categories:')`. Invalidation also defeats the TASK-16 throttle by design (no entry = not fresh), so event-driven changes always win over the 15s window.

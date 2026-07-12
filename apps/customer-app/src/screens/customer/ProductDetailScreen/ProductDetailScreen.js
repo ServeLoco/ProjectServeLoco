@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   ScrollView,
   Animated,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
@@ -153,6 +153,33 @@ export default function ProductDetailScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, productType]);
+
+  // Silent revalidate on refocus (skip first focus — mount effect already loaded).
+  const hasFocusedOnceRef = useRef(false);
+  const revalidateProductSilently = useCallback(() => {
+    if (!productId) return;
+    productsApi.getProduct(productId, productType ? { type: productType } : undefined)
+      .then(response => {
+        const data = response?.product || response?.data || response;
+        const { normalized, related } = applyProductPayload(data);
+        setProduct(normalized);
+        setRelatedProducts(related);
+        if (cacheKey) {
+          setCached(cacheKey, { product: normalized, related });
+        }
+      })
+      .catch(() => {});
+  }, [productId, productType, cacheKey]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFocusedOnceRef.current) {
+        revalidateProductSilently();
+      } else {
+        hasFocusedOnceRef.current = true;
+      }
+    }, [revalidateProductSilently]),
+  );
 
   const findCartLine = (id) => items.find(i => i.product.id === id && (i.type || 'product') !== 'combo');
 

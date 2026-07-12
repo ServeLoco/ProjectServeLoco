@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   RefreshControl,
   useWindowDimensions,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
@@ -215,6 +215,26 @@ export default function ProductListScreen() {
       return () => clearTimeout(timer);
     }
   }, [searchQuery, mode]);
+
+  // Silent revalidate on refocus (skip first focus — mount effect already loaded).
+  const hasFocusedOnceRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFocusedOnceRef.current) {
+        fetchProducts(false);
+      } else {
+        hasFocusedOnceRef.current = true;
+      }
+    }, [
+      activeCategory,
+      offerId,
+      sectionSlug,
+      sectionStoreType,
+      mode,
+      searchQuery,
+      route.params?.categoryId,
+    ]),
+  );
 
   // Callbacks
   const handleAddToCart = useCallback((product) => {
