@@ -234,6 +234,7 @@ function ProductCard({
             resizeMode="cover"
             priority="high"
             filter={isShopClosed ? [{ grayscale: 1 }] : undefined}
+            recyclingKey={product?.id != null ? String(product.id) : undefined}
           />
 
           {/* Closed-shop white wash (reinforces muted look, esp. on iOS) */}

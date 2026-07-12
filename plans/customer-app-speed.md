@@ -248,7 +248,8 @@ Do NOT cache auth-scoped endpoints. Do NOT cache mutations. Do NOT add redis.
 
 ## PHASE 5 — client micro-optimizations (customer-app)
 
-### [ ] TASK 13 — list image recycling hints
+### [x] TASK 13 — list image recycling hints
+> ProductImage recyclingKey + error reset on uri; ProductCard passes String(product.id).
 
 **Modify** `ProductImage.js`: accept optional `recyclingKey`, forward to both `<Image>` instances (prevents recycled cells flashing the previous cell's image). **Modify** `ProductCard` to pass `recyclingKey={String(product.id)}`.
 
