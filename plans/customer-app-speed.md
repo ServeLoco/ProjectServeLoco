@@ -123,7 +123,8 @@ HomeScreen is NOT migrated to this hook (see DO NOT TOUCH).
 
 ## PHASE 2 — wire screens to cache (customer-app)
 
-### [ ] TASK 3 — CategoriesScreen instant load
+### [x] TASK 3 — CategoriesScreen instant load
+> Wired CategoriesScreen to useCachedFetch('categories:'+storeType); skeleton only on cold miss; pull-to-refresh → refresh().
 
 **Modify** `CategoriesScreen.js`: replace the manual `useEffect` + `isLoading` fetch of `productsApi.getCategories({ type: storeType })` with `useCachedFetch('categories:' + storeType, ...)`.
 
