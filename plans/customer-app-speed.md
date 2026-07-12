@@ -152,7 +152,8 @@ HomeScreen is NOT migrated to this hook (see DO NOT TOUCH).
 - Pull-to-refresh → forced network.
 - The TASK-4 client-side filter/sort `useMemo` sits on top, untouched by caching.
 
-### [ ] TASK 6 — ProductDetailScreen: render instantly from navigation params
+### [x] TASK 6 — ProductDetailScreen: render instantly from navigation params
+> Home already passes product; detail paints from nav/cache immediately, revalidates via getProduct, caches under product:id. normalizeProduct at boundary.
 
 Two parts:
 
