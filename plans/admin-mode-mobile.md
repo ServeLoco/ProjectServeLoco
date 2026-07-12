@@ -460,12 +460,12 @@ New tests: `AdminOrdersScreen.test.js` (3), `AdminOrderDetailScreen.test.js` (3)
 
 ### TASK 11 — Screen: Shops  `[P1][APP]`
 
-- [ ] 11.1 List name / open / active / owner phone.  
-- [ ] 11.2 Create/edit fields matching web payloads.  
-- [ ] 11.3 Toggle `is_open` / `active` with confirms.  
-- [ ] 11.4 No product assignment on phone.
+- [x] 11.1 List name / open / active / owner phone.  
+- [x] 11.2 Create/edit fields matching web payloads.  
+- [x] 11.3 Toggle `is_open` / `active` with confirms.  
+- [x] 11.4 No product assignment on phone.
 
-**NOTE (done):**
+**NOTE (done):** New `AdminShopsScreen.js`, wired as the "Shops" segment in `AdminPeopleScreen`. Fields/payloads match `apps/admin/src/pages/Shops.jsx` exactly (`owner_phone` always sent on edit since blank meaningfully clears the owner; omitted on create when blank). Confirm only on the closing/deactivating direction (opening/activating applies immediately) — same asymmetric-confirm precedent as the Dashboard delivery toggle. `adminApi.js` gained `listShops`/`createShop`/`updateShop`. New `tests/AdminShopsScreen.test.js` (4 cases: render, confirm-before-close, no-confirm-on-open, create with owner phone). `npm test`: 157/157 pass; `npm run lint` clean.
 
 ---
 

@@ -30,6 +30,11 @@ const adminApi = {
   listRiders: () => apiClient.get('/admin/riders', { auth: 'admin' }),
   createRider: (data) => apiClient.post('/admin/riders', data, { auth: 'admin' }),
   updateRider: (id, data) => apiClient.patch(`/admin/riders/${id}`, data, { auth: 'admin' }),
+
+  // ADMIN TASK 11 — Shops
+  listShops: () => apiClient.get('/admin/shops', { auth: 'admin' }),
+  createShop: (data) => apiClient.post('/admin/shops', data, { auth: 'admin' }),
+  updateShop: (id, data) => apiClient.patch(`/admin/shops/${id}`, data, { auth: 'admin' }),
 };
 
 export { adminApi };

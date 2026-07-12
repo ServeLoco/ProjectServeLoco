@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, radius } from '../../theme';
 import AdminRidersScreen from './AdminRidersScreen';
+import AdminShopsScreen from './AdminShopsScreen';
 import AdminPlaceholderScreen from './AdminPlaceholderScreen';
 
 const SEGMENTS = [
@@ -38,7 +39,7 @@ export default function AdminPeopleScreen() {
       </View>
 
       {segment === 'riders' ? <AdminRidersScreen /> : null}
-      {segment === 'shops' ? <AdminPlaceholderScreen title="Shops" subtitle="Lands in ADMIN TASK 11." /> : null}
+      {segment === 'shops' ? <AdminShopsScreen /> : null}
       {segment === 'customers' ? <AdminPlaceholderScreen title="Customers" subtitle="Lands in ADMIN TASK 12." /> : null}
     </SafeAreaView>
   );
