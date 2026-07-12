@@ -449,12 +449,12 @@ New tests: `AdminOrdersScreen.test.js` (3), `AdminOrderDetailScreen.test.js` (3)
 
 ### TASK 10 — Screen: Riders  `[P1][APP]`
 
-- [ ] 10.1 List online / heartbeat / active.  
-- [ ] 10.2 Create (phone + name); edit; activate/deactivate.  
-- [ ] 10.3 Live `admin.rider.updated` merge.  
-- [ ] 10.4 Show API exclusivity errors if phone is mobile admin.
+- [x] 10.1 List online / heartbeat / active.  
+- [x] 10.2 Create (phone + name); edit; activate/deactivate.  
+- [x] 10.3 Live `admin.rider.updated` merge.  
+- [x] 10.4 Show API exclusivity errors if phone is mobile admin.
 
-**NOTE (done):**
+**NOTE (done):** People tab (`AdminPeopleScreen.js`) rebuilt as a segmented control (Riders/Shops/Customers) — Riders is real now, Shops/Customers stay `AdminPlaceholderScreen` until TASK 11-12. New `AdminRidersScreen.js`: list with online dot + active toggle, create-by-phone drawer (phone must already have a user row, matching web), live merge on `admin.rider.updated` (event already wired in `adminRealtimeClient.js` from TASK 8 — no new socket plumbing needed), API error text (e.g. mobile-admin exclusivity 409) surfaced verbatim in the create drawer. `adminApi.js` gained `listRiders`/`createRider`/`updateRider`. New `tests/AdminRidersScreen.test.js` (5 cases: render, create+refresh, exclusivity error surfaced, toggle active, live merge). `npm test`: 153/153 pass; `npm run lint` clean.
 
 ---
 

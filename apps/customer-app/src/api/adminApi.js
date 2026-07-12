@@ -25,6 +25,11 @@ const adminApi = {
     { payment_status: paymentStatus, paymentStatus },
     { auth: 'admin' }
   ),
+
+  // ADMIN TASK 10 — Riders
+  listRiders: () => apiClient.get('/admin/riders', { auth: 'admin' }),
+  createRider: (data) => apiClient.post('/admin/riders', data, { auth: 'admin' }),
+  updateRider: (id, data) => apiClient.patch(`/admin/riders/${id}`, data, { auth: 'admin' }),
 };
 
 export { adminApi };
