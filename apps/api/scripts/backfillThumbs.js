@@ -1,9 +1,11 @@
 /**
- * Manual backfill: generate thumb_url for images that lack one.
- * NOT run by migrate.js — invoke with:
- *   APP_ENV=development node scripts/backfillThumbs.js
+ * Manual backfill: generate WebP thumb_url for images that lack one.
+ * Works for STORAGE_DRIVER=disk and s3.
  *
- * Processes in batches with progress logging. Safe to re-run.
+ *   APP_ENV=development node scripts/backfillThumbs.js
+ *   APP_ENV=production  node scripts/backfillThumbs.js
+ *
+ * NOT run by migrate.js. Safe to re-run.
  */
 require('dotenv').config();
 const path = require('path');
@@ -55,8 +57,7 @@ async function loadOriginalBuffer(row) {
 
 async function processRow(row) {
   const buffer = await loadOriginalBuffer(row);
-  const ext = path.extname(row.filename || '').replace('.', '') || 'jpg';
-  const thumb = await generateThumb(buffer, ext);
+  const thumb = await generateThumb(buffer);
   if (!thumb) throw new Error('generateThumb returned null');
 
   const thumbFilename = thumbFilenameFor(row.filename, thumb.ext);
@@ -74,6 +75,7 @@ async function processRow(row) {
 }
 
 async function main() {
+  console.log(`[backfillThumbs] STORAGE_DRIVER=${config.STORAGE_DRIVER} APP_ENV=${process.env.APP_ENV}`);
   const [[{ total }]] = await pool.query(
     "SELECT COUNT(*) AS total FROM images WHERE thumb_url IS NULL OR thumb_url = ''"
   );
