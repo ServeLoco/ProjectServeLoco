@@ -217,7 +217,8 @@ Constraints:
 - Per-section behavior identical (store-type filters, maxVisible, empty-section hiding).
 - If a dashboard test file exists, extend it with a 2+ section ordering assertion.
 
-### [ ] TASK 11 — API micro-cache for hot public GETs
+### [x] TASK 11 — API micro-cache for hot public GETs
+> microCache 30s on dashboard+categories; bust sites: category CRUD, product CRUD/bulk, dashboard admin CRUD, offers, settings, shop open/close.
 
 `GET /api/dashboard` and `GET /api/categories` are public, hot, and identical for all users per (storeType, include_closed_shops) combo.
 

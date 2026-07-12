@@ -1,11 +1,9 @@
 const { pool } = require('../db/mysql');
 const { normalizeStoreType } = require('../utils/storeMode');
-const { createTtlCache } = require('../utils/ttlCache');
+const microCache = require('../utils/microCache');
 const { cleanupOrphanedImage } = require('./imageController');
 
-// Categories are read on every customer home/open. 60-second cache eliminates
-// the bulk of repeated SELECTs. Invalidated on any CRUD.
-const categoriesCache = createTtlCache({ ttlMs: 60_000 });
+const CATEGORIES_TTL_MS = 30_000;
 
 function slugify(value) {
   return String(value || '')
@@ -47,32 +45,34 @@ const getCategories = async (req, res) => {
     ? await normalizeStoreType(type, { allowAll: true })
     : 'all';
   const cacheKey = `categories:public:${normalizedType}`;
+  const cached = microCache.get(cacheKey);
+  if (cached) {
+    return res.status(200).json(cached);
+  }
 
-  const data = await categoriesCache.wrap(cacheKey, async () => {
-    const params = [];
-    let query = `
-      SELECT c.*, (
-        SELECT COUNT(*)
-        FROM products p
-        WHERE p.category_id = c.id AND p.deleted = 0 AND p.is_combo = 0
-      ) as product_count
-      FROM categories c
-      WHERE c.active = 1 AND c.deleted = 0
-    `;
+  const params = [];
+  let query = `
+    SELECT c.*, (
+      SELECT COUNT(*)
+      FROM products p
+      WHERE p.category_id = c.id AND p.deleted = 0 AND p.is_combo = 0
+    ) as product_count
+    FROM categories c
+    WHERE c.active = 1 AND c.deleted = 0
+  `;
 
-    if (normalizedType !== 'all') {
-      query += ' AND c.type = ?';
-      params.push(normalizedType);
-    }
+  if (normalizedType !== 'all') {
+    query += ' AND c.type = ?';
+    params.push(normalizedType);
+  }
 
-    query += ' ORDER BY c.display_order ASC, c.id ASC';
+  query += ' ORDER BY c.display_order ASC, c.id ASC';
 
-    const [rows] = await pool.query(query, params);
-    await attachImageUrls(rows);
-    return rows;
-  });
-
-  res.status(200).json({ data, categories: data });
+  const [rows] = await pool.query(query, params);
+  await attachImageUrls(rows);
+  const body = { data: rows, categories: rows };
+  microCache.set(cacheKey, body, CATEGORIES_TTL_MS);
+  res.status(200).json(body);
 };
 
 const getAdminCategories = async (req, res) => {
@@ -123,7 +123,8 @@ const createCategory = async (req, res) => {
     'INSERT INTO categories (name, slug, type, image_id, active, display_order) VALUES (?, ?, ?, ?, ?, ?)',
     [name, slug, type, image_id, active !== undefined ? active : true, displayOrder]
   );
-  categoriesCache.del();
+  microCache.bust('categories');
+  microCache.bust('dashboard');
   res.status(201).json({ message: 'Category created', id: result.insertId });
 };
 
@@ -156,7 +157,8 @@ const updateCategory = async (req, res) => {
     'UPDATE categories SET name = ?, slug = ?, type = ?, image_id = ?, active = ?, display_order = ? WHERE id = ?',
     [name, slug, type, image_id, active, displayOrder, id]
   );
-  categoriesCache.del();
+  microCache.bust('categories');
+  microCache.bust('dashboard');
   if (previousImageId && String(previousImageId) !== String(image_id)) {
     await cleanupOrphanedImage(previousImageId);
   }
@@ -196,7 +198,8 @@ const deleteCategory = async (req, res) => {
 
   await pool.query('UPDATE categories SET deleted = 1 WHERE id = ?', [id]);
   await cleanupOrphanedImage(currentRows[0].image_id);
-  categoriesCache.del();
+  microCache.bust('categories');
+  microCache.bust('dashboard');
   res.status(200).json({ message: 'Category soft deleted' });
 };
 

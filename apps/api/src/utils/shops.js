@@ -178,6 +178,9 @@ const syncGlobalShopOpenState = async () => {
       // so a top-level require here would be a circular import.
       const { bustSettingsCache } = require('../controllers/settingsController');
       bustSettingsCache();
+      const microCache = require('./microCache');
+      microCache.bust('dashboard');
+      microCache.bust('categories');
 
       // Let connected customer apps flip their "shop closed" banner
       // immediately instead of waiting for the next settings poll.

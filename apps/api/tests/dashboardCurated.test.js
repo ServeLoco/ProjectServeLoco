@@ -17,9 +17,12 @@ const app = express();
 app.use(express.json());
 app.use('/api/dashboard', dashboardRoutes);
 
+const { clearAll: clearMicroCache } = require('../src/utils/microCache');
+
 describe('Curated Category Grid', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    clearMicroCache();
     pool.query.mockResolvedValue([[]]); // Default fallback for un-mocked queries
   });
 

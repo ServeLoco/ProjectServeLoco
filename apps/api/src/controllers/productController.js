@@ -2,6 +2,12 @@ const { pool } = require('../db/mysql');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { validatePagination } = require('../validators');
 const { cleanupOrphanedImage } = require('./imageController');
+const microCache = require('../utils/microCache');
+
+const bustProductCaches = () => {
+  microCache.bust('dashboard');
+  microCache.bust('categories');
+};
 
 const isWithinTimeWindow = (from, until) => {
   // Both null means always available in the time sense.
@@ -480,6 +486,7 @@ const createProduct = async (req, res) => {
   } finally {
     connection.release();
   }
+  bustProductCaches();
   res.status(201).json({ message: 'Product created', id: insertId });
 };
 
@@ -548,6 +555,7 @@ const updateProduct = async (req, res) => {
   if (previousImageId && String(previousImageId) !== String(image_id)) {
     await cleanupOrphanedImage(previousImageId);
   }
+  bustProductCaches();
   res.status(200).json({ message: 'Product updated' });
 };
 
@@ -655,6 +663,7 @@ const deleteProduct = async (req, res) => {
 
   await pool.query('UPDATE products SET deleted = 1 WHERE id = ?', [id]);
   await cleanupOrphanedImage(rows[0].image_id);
+  bustProductCaches();
   res.status(200).json({ message: 'Product soft deleted' });
 };
 
@@ -672,6 +681,7 @@ const updateProductAvailability = async (req, res) => {
   }
   
   const [updatedRows] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
+  bustProductCaches();
   res.status(200).json({ message: 'Product availability updated', product: updatedRows[0] });
 };
 
@@ -696,6 +706,7 @@ const updateProductImage = async (req, res) => {
   }
 
   const [updatedRows] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
+  bustProductCaches();
   res.status(200).json({ message: 'Product image updated', product: updatedRows[0] });
 };
 
@@ -798,6 +809,7 @@ const bulkUpdateProducts = async (req, res) => {
   setValues.push(validIds);
   await pool.query(`UPDATE products SET ${setClauses.join(', ')} WHERE id IN (?)`, setValues);
 
+  bustProductCaches();
   return res.status(200).json({ updated: validIds.length, skipped, errors: [] });
 };
 
@@ -833,6 +845,7 @@ const bulkDeleteProducts = async (req, res) => {
     }
   }
 
+  bustProductCaches();
   return res.status(200).json({ deleted, skipped, errors: [] });
 };
 
