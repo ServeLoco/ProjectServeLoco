@@ -70,7 +70,10 @@ if (config.STORAGE_DRIVER !== 's3') {
       return res.status(403).json({ code: 'FORBIDDEN', message: 'Only image files are allowed' });
     }
     next();
-  }, express.static(path.join(__dirname, '../', config.UPLOAD_DIR)));
+  }, express.static(path.join(__dirname, '../', config.UPLOAD_DIR), {
+    maxAge: '30d',
+    immutable: true,
+  }));
 }
 
 // Public policy pages (privacy policy + terms of service) — required for Google Play listing.

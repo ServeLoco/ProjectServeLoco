@@ -263,7 +263,8 @@ No other prop changes — do not set `cachePolicy` (default is already memory-di
 
 Cost at scale = (requests reaching Node) × (queries reaching MySQL/Mongo) × (bytes leaving the server). Phases 3–4 cut queries and bytes; this phase cuts request volume and makes image bytes cacheable outside Node.
 
-### [ ] TASK 14 — long-lived HTTP caching for uploaded images
+### [x] TASK 14 — long-lived HTTP caching for uploaded images
+> Node express.static maxAge 30d immutable. Nginx proxies uploads to Node (no second Cache-Control). S3 already sets immutable. curl verified once.
 
 Filenames are collision-unique (finding N) → a URL's content never changes → immutable caching is safe.
 
