@@ -77,7 +77,8 @@ Spec for an implementing AI. Goal: make the customer app (apps/customer-app) fee
 
 ## PHASE 1 — shared cache utility (customer-app)
 
-### [ ] TASK 1 — create `src/utils/apiCache.js` + tests
+### [x] TASK 1 — create `src/utils/apiCache.js` + tests
+> Added in-memory Map cache (max 50, prefix invalidate, stableKey, isFresh) + 8 unit tests.
 
 **Create** `apps/customer-app/src/utils/apiCache.js`. Small module, no dependencies:
 
