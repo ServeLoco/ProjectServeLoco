@@ -1541,10 +1541,11 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
         data={visibleOffers}
         keyExtractor={(offer, index) => String(offer.id || index)}
         horizontal
-        pagingEnabled
         showsHorizontalScrollIndicator={false}
         bounces={false}
         snapToInterval={bannerWidth}
+        snapToAlignment="start"
+        disableIntervalMomentum
         decelerationRate="fast"
         onMomentumScrollEnd={handleMomentumEnd}
         onScrollBeginDrag={handleScrollBegin}
