@@ -174,7 +174,8 @@ Related-products block keeps its own existing logic.
 
 ## PHASE 3 — payload size (apps/api + customer-app)
 
-### [ ] TASK 8 — products pagination end-to-end
+### [x] TASK 8 — products pagination end-to-end
+> 8a: API offset + limit+1 hasMore (both casings/wrapper levels) + tests. 8b: app limit 30 + onEndReached append.
 
 Verified facts to build on: the main list is ONE SQL query with a deterministic `ORDER BY cat_display_order, item_display_order, id` (stable pagination is safe), the response wrapper duplicates the list at TWO levels (`{ data: { products }, products }`), and rows are filtered AFTER the query by `isWithinTimeWindow(available_from_time, available_until_time)` — so a SQL page can shrink before it reaches the client.
 
