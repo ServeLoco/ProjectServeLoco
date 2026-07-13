@@ -25,7 +25,8 @@
         }
       ],
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      ["@rnmapbox/maps", {}]
     ],
     "ios": {
       "supportsTablet": true,
