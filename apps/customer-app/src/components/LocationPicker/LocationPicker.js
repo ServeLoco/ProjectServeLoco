@@ -153,7 +153,7 @@ export default function LocationPicker({
           <Mapbox.MapView
             ref={mapRef}
             style={styles.map}
-            styleURL={Mapbox.StyleURL.Street}
+            styleURL={Mapbox.StyleURL.SatelliteStreet}
             compassEnabled={false}
             logoEnabled={false}
             attributionEnabled={false}
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.error,
     borderWidth: 3,
     borderColor: colors.white || '#fff',
     marginBottom: -2,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   pinStem: {
     width: 2,
     height: 14,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.error,
     borderRadius: 1,
   },
   fallback: {
