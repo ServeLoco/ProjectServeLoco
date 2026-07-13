@@ -326,14 +326,28 @@ function normalizeProfile(user = {}) {
 
 function normalizeRider(rider) {
   if (!rider || typeof rider !== 'object') return null;
+  const lastLat = pickFirst(rider.lastLat, rider.last_lat, null);
+  const lastLng = pickFirst(rider.lastLng, rider.last_lng, null);
+  const lastLocationAt = pickFirst(rider.lastLocationAt, rider.last_location_at, null);
+  const latNum = lastLat == null || lastLat === '' ? null : Number(lastLat);
+  const lngNum = lastLng == null || lastLng === '' ? null : Number(lastLng);
   return {
     id: rider.id,
+    userId: pickFirst(rider.userId, rider.user_id, null),
+    user_id: pickFirst(rider.userId, rider.user_id, null),
     displayName: pickFirst(rider.displayName, rider.display_name, null),
     display_name: pickFirst(rider.displayName, rider.display_name, null),
     isOnline: asBoolean(pickFirst(rider.isOnline, rider.is_online), false),
     is_online: asBoolean(pickFirst(rider.isOnline, rider.is_online), false),
     active: asBoolean(rider.active, true),
     phone: rider.phone || null,
+    // Live tracking last-known position (TASK 4 / MAP tracking screen).
+    lastLat: Number.isFinite(latNum) ? latNum : null,
+    lastLng: Number.isFinite(lngNum) ? lngNum : null,
+    lastLocationAt,
+    last_lat: Number.isFinite(latNum) ? latNum : null,
+    last_lng: Number.isFinite(lngNum) ? lngNum : null,
+    last_location_at: lastLocationAt,
   };
 }
 
@@ -399,6 +413,12 @@ function normalizeOrder(order = {}) {
     ? getCancelledPaymentStatus(paymentMethod)
     : pickFirst(order.paymentStatus, order.payment_status, 'Pending');
 
+  const riderId = pickFirst(order.riderId, order.rider_id, order.rider?.id, null);
+  const latitudeRaw = pickFirst(order.latitude, order.lat, null);
+  const longitudeRaw = pickFirst(order.longitude, order.lng, null);
+  const latitude = latitudeRaw == null || latitudeRaw === '' ? null : Number(latitudeRaw);
+  const longitude = longitudeRaw == null || longitudeRaw === '' ? null : Number(longitudeRaw);
+
   return {
     ...order,
     id: toIdString(pickFirst(order.id, order._id, order.orderId, order.order_id)),
@@ -412,6 +432,12 @@ function normalizeOrder(order = {}) {
     previewImg: pickFirst(order.previewImg, order.previewImage, order.imageUrl, items[0]?.imageUrl, null),
     address: pickFirst(order.address, order.deliveryAddress, order.delivery_address, ''),
     mapUrl: pickFirst(order.mapUrl, order.map_url, order.googleMapsUrl, order.google_maps_url, ''),
+    // Delivery pin for tracking / maps
+    latitude: Number.isFinite(latitude) ? latitude : null,
+    longitude: Number.isFinite(longitude) ? longitude : null,
+    riderId: riderId != null ? riderId : null,
+    rider_id: riderId != null ? riderId : null,
+    rider: order.rider ? normalizeRider(order.rider) : null,
     deliveryDistanceKm: pickFirst(order.deliveryDistanceKm, order.delivery_distance_km, null),
     deliveryRadiusKmSnapshot: pickFirst(order.deliveryRadiusKmSnapshot, order.delivery_radius_km_snapshot, null),
     deliveryCostPerKmSnapshot: pickFirst(order.deliveryCostPerKmSnapshot, order.delivery_cost_per_km_snapshot, null),

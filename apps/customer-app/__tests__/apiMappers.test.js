@@ -124,6 +124,37 @@ describe('api mappers', () => {
     expect(result.freeDeliveryOfferSnapshot).toBe(true);
   });
 
+  it('maps rider last position + delivery pin for live tracking', () => {
+    const result = normalizeOrder({
+      id: 42,
+      status: 'Out for Delivery',
+      latitude: '29.5152',
+      longitude: '75.4548',
+      rider_id: 3,
+      rider: {
+        id: 3,
+        display_name: 'Ravi',
+        last_lat: '29.5100',
+        last_lng: '75.4500',
+        last_location_at: '2026-07-13T12:00:00Z',
+      },
+    });
+
+    expect(result.latitude).toBe(29.5152);
+    expect(result.longitude).toBe(75.4548);
+    expect(result.riderId).toBe(3);
+    expect(result.rider_id).toBe(3);
+    expect(result.rider).toEqual(expect.objectContaining({
+      id: 3,
+      displayName: 'Ravi',
+      lastLat: 29.51,
+      lastLng: 75.45,
+      last_lat: 29.51,
+      last_lng: 75.45,
+      lastLocationAt: '2026-07-13T12:00:00Z',
+    }));
+  });
+
   it('maps time-window fields on a product (in-window case)', () => {
     const result = normalizeProduct({
       id: 1, name: 'Burger', price: '100',
