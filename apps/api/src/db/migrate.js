@@ -138,6 +138,10 @@ const migrate = async () => {
       );
     `);
     console.log('Riders table ready.');
+    // Live tracking: latest rider GPS only (mutable; no history table).
+    await ensureColumn('riders', 'last_lat', 'last_lat DECIMAL(10,7) NULL AFTER last_heartbeat_at');
+    await ensureColumn('riders', 'last_lng', 'last_lng DECIMAL(10,7) NULL AFTER last_lat');
+    await ensureColumn('riders', 'last_location_at', 'last_location_at TIMESTAMP NULL DEFAULT NULL AFTER last_lng');
 
     // Mobile Admins — phones the owner grants Admin Mode to in the phone app.
     // Same Firebase OTP login as customers; user_id backfills on first login

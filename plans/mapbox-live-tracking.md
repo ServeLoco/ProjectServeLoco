@@ -161,14 +161,15 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
 ### — Phase 1: backend —
 
 ### TASK 3 — Migration: rider last-position columns
-- [ ] In `apps/api/src/db/migrate.js`, after the existing riders-table block, add `ensureColumn` calls (copy the exact pattern at lines 444-445):
+- [x] In `apps/api/src/db/migrate.js`, after the existing riders-table block, add `ensureColumn` calls (copy the exact pattern at lines 444-445):
   - `riders.last_lat DECIMAL(10,7) NULL`
   - `riders.last_lng DECIMAL(10,7) NULL`
   - `riders.last_location_at TIMESTAMP NULL DEFAULT NULL`
-- [ ] `cd apps/api && npm test` — green.
-- [ ] `npm run db:migrate:dev` — runs clean; verify with `DESCRIBE riders` (or migration log output).
+- [x] `cd apps/api && npm test` — green.
+- [x] `npm run db:migrate:dev` — runs clean; verify with `DESCRIBE riders` (or migration log output).
 - Acceptance: three columns exist; all existing tests pass untouched.
 - Commit: `feat: MAP TASK 3 — riders last-position columns`
+  - Done 2026-07-13: ensureColumn last_lat/last_lng/last_location_at; npm test 655 pass; DESCRIBE riders shows three columns.
 
 ### TASK 4 — Location ingest endpoint + socket event + order-detail enrichment
 - [ ] `apps/api/src/controllers/riderController.js`: new `updateLocation` handler.
