@@ -6,6 +6,7 @@ const {
   getMe,
   setOnline,
   heartbeat,
+  updateLocation,
   getActiveOffer,
   acceptOfferHttp,
   rejectOfferHttp,
@@ -26,6 +27,7 @@ router.use(asyncHandler(requireRider));
 router.get('/me', asyncHandler(getMe));
 router.patch('/me/online', asyncHandler(setOnline));
 router.post('/me/heartbeat', asyncHandler(heartbeat));
+router.post('/me/location', asyncHandler(updateLocation));
 
 router.get('/offers/active', asyncHandler(getActiveOffer));
 router.post('/offers/:offerId/accept', asyncHandler(acceptOfferHttp));

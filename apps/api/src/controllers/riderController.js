@@ -4,6 +4,7 @@ const assignment = require('../services/riderAssignment');
 const notificationService = require('../utils/notificationService');
 const realtimeEvents = require('../realtime/orderEvents');
 const { emitToCustomer, emitToAdmins } = require('../realtime/socket');
+const { validateCoordinates } = require('../validators');
 
 const shapeOrderSummary = (o) => {
   if (!o) return null;
@@ -184,6 +185,58 @@ const heartbeat = async (req, res) => {
     message: 'Heartbeat recorded',
     rider,
   });
+};
+
+// POST /api/rider/me/location — latest GPS while assigned (mutable columns; no trail).
+// Persists always; emits rider.location.updated to the customer only when an
+// active assignment exists (status NOT IN Delivered/Cancelled — same as getCurrentAssignment).
+const updateLocation = async (req, res) => {
+  const body = req.body || {};
+  const lat = body.lat ?? body.latitude;
+  const lng = body.lng ?? body.longitude;
+
+  if (!validateCoordinates(lat, lng)) {
+    return res.status(400).json({
+      code: 'INVALID_COORDINATES',
+      message: 'Invalid latitude/longitude',
+    });
+  }
+
+  const latitude = Number(lat);
+  const longitude = Number(lng);
+
+  await pool.query(
+    'UPDATE riders SET last_lat = ?, last_lng = ?, last_location_at = NOW() WHERE id = ?',
+    [latitude, longitude, req.rider.id]
+  );
+
+  const [orderRows] = await pool.query(
+    `SELECT id, customer_id FROM orders
+     WHERE rider_id = ? AND status NOT IN ('Delivered', 'Cancelled')
+     ORDER BY rider_assigned_at DESC, id DESC
+     LIMIT 1`,
+    [req.rider.id]
+  );
+
+  if (orderRows.length > 0) {
+    const order = orderRows[0];
+    const at = new Date().toISOString();
+    try {
+      emitToCustomer(order.customer_id, 'rider.location.updated', {
+        orderId: order.id,
+        order_id: order.id,
+        riderId: req.rider.id,
+        rider_id: req.rider.id,
+        lat: latitude,
+        lng: longitude,
+        latitude,
+        longitude,
+        at,
+      });
+    } catch (_) { /* best-effort */ }
+  }
+
+  res.status(200).json({ ok: true });
 };
 
 // GET /api/rider/offers/active
@@ -472,6 +525,7 @@ module.exports = {
   getMe,
   setOnline,
   heartbeat,
+  updateLocation,
   getActiveOffer,
   acceptOfferHttp,
   rejectOfferHttp,

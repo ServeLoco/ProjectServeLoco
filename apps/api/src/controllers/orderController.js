@@ -621,6 +621,33 @@ const getOrderById = async (req, res) => {
 
   order.items = itemsRows;
   order.canCancel = order.status === 'Pending';
+
+  // Additive rider last-position for live tracking (TASK 4). Existing fields untouched.
+  if (order.rider_id) {
+    const [riderRows] = await pool.query(
+      `SELECT id, user_id, display_name, phone, last_lat, last_lng, last_location_at
+       FROM riders WHERE id = ?`,
+      [order.rider_id]
+    );
+    if (riderRows.length > 0) {
+      const r = riderRows[0];
+      order.rider = {
+        id: r.id,
+        userId: r.user_id,
+        user_id: r.user_id,
+        displayName: r.display_name,
+        display_name: r.display_name,
+        phone: r.phone,
+        lastLat: r.last_lat != null ? Number(r.last_lat) : null,
+        lastLng: r.last_lng != null ? Number(r.last_lng) : null,
+        lastLocationAt: r.last_location_at,
+        last_lat: r.last_lat != null ? Number(r.last_lat) : null,
+        last_lng: r.last_lng != null ? Number(r.last_lng) : null,
+        last_location_at: r.last_location_at,
+      };
+    }
+  }
+
   res.status(200).json({ data: order });
 };
 

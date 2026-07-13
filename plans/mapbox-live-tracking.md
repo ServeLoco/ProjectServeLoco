@@ -172,7 +172,7 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
   - Done 2026-07-13: ensureColumn last_lat/last_lng/last_location_at; npm test 655 pass; DESCRIBE riders shows three columns.
 
 ### TASK 4 — Location ingest endpoint + socket event + order-detail enrichment
-- [ ] `apps/api/src/controllers/riderController.js`: new `updateLocation` handler.
+- [x] `apps/api/src/controllers/riderController.js`: new `updateLocation` handler.
   - Same auth/middleware chain as `heartbeat` (customer JWT + rider lookup via `riders.user_id`).
   - Body `{ lat, lng }` (accept `latitude`/`longitude` aliases too). Validate with `validateCoordinates` from `validators/index.js`; 400 `INVALID_COORDINATES` on failure.
   - `UPDATE riders SET last_lat=?, last_lng=?, last_location_at=NOW() WHERE id=?`.
@@ -180,11 +180,12 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
   - If an active order exists: `emitToCustomer(customer_id, 'rider.location.updated', { orderId, order_id, riderId, rider_id, lat, lng, latitude, longitude, at })` — camelCase + snake_case duplication per house style.
   - Respond `{ ok: true }`. If no active order: still persist + respond ok, just skip the emit.
 - [ ] `apps/api/src/routes/riderRoutes.js`: `router.post('/me/location', …)` wired identically to the heartbeat route.
-- [ ] Customer order-detail response (find the controller shaping the order-detail payload the customer app consumes — likely `orderController.js` `getOrderById`-style): when `order.rider_id` is set, join/attach `rider: { …existing fields…, lastLat, lastLng, lastLocationAt, last_lat, last_lng, last_location_at }`. **Additive only** — never remove or rename existing response fields.
-- [ ] Tests in `apps/api/tests/` (new file `riderLocation.test.js`, follow mock style of neighbouring rider tests): valid ping persists + emits; invalid coords → 400; ping with no active order persists without emit; non-rider user → 403.
-- [ ] `npm test` green, `npm run lint` clean.
+- [x] Customer order-detail response (find the controller shaping the order-detail payload the customer app consumes — likely `orderController.js` `getOrderById`-style): when `order.rider_id` is set, join/attach `rider: { …existing fields…, lastLat, lastLng, lastLocationAt, last_lat, last_lng, last_location_at }`. **Additive only** — never remove or rename existing response fields.
+- [x] Tests in `apps/api/tests/` (new file `riderLocation.test.js`, follow mock style of neighbouring rider tests): valid ping persists + emits; invalid coords → 400; ping with no active order persists without emit; non-rider user → 403.
+- [x] `npm test` green, `npm run lint` clean.
 - Acceptance: all above; existing rider/order tests untouched and green.
 - Commit: `feat: MAP TASK 4 — rider location ingest + rider.location.updated event`
+  - Done 2026-07-13: POST /me/location, emit on active assignment, order-detail rider last_* additive; riderLocation.test.js green; full suite 660 pass.
 
 ### — Phase 2: rider app GPS —
 
