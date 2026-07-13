@@ -1,6 +1,6 @@
 # ProjectServeLoco — Mapbox Live Rider Tracking + Checkout Location Picker
 
-Spec date: 2026-07-13 · Branch: `feat/mapboxTracking` · Status: **PLAN — not started**
+Spec date: 2026-07-13 · Branch: `feat/mapboxTracking` · Status: **IN PROGRESS — TASKS 1–11 code done; TASK 12 live device E2E pending**
 Instruction spec for an implementing AI. Follow it literally.
 
 Two features, one Mapbox integration:
@@ -263,13 +263,14 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
 
 ### TASK 12 — Full delivery-flow regression + live tracking verification
 No code. Live verification on device `QC89XG4LWGLJ69LZ` (mobile-mcp) + API logs. All steps must pass; fix regressions before ticking.
-- [ ] **Regression — delivery flow unchanged**: place order (manual address) → shop confirm → rider receives offer → accept → picked up → delivered. Every status push arrives as before; no new errors in API log.
+- [ ] **Regression — delivery flow unchanged** (device offline at recovery — re-run when QC89XG4LWGLJ69LZ connected): place order (manual address) → shop confirm → rider receives offer → accept → picked up → delivered. Every status push arrives as before; no new errors in API log.
 - [ ] **Checkout picker**: map opens centered on Fatehabad default; pan-to-pin fills address on confirm; "use my current location" recenters; reverse geocode fires once per confirm (count calls in log); order payload fields identical to pre-change orders (compare DB rows).
 - [ ] **Gorakhpur warning banner still renders** above the Recommend pill.
 - [ ] **Rider tracking**: with an assigned order, rider pings hit API every ~10 s (API log); stop after delivered. Customer opens Track rider: both markers + route line render (screenshot); marker moves on emulator location change within ~10 s; Directions called once on mount + not per ping (count in client network log); background the rider app → pings stop, customer screen stays stable (no crash, stale marker OK).
 - [ ] **Variant sheet, cart, coupons**: quick smoke — VariantSheet Done/outside-tap still works, cart totals right, coupon apply unaffected.
-- [ ] `npm test` green in `apps/api` and `apps/customer-app`; eslint clean on all touched files.
+- [x] `npm test` green in `apps/api` and `apps/customer-app`; eslint clean on all touched files.
 - Commit: `feat: MAP TASK 12 — verification notes` (tick boxes + one-line notes in this file only)
+  - Automated 2026-07-13: api 660 pass + lint clean; customer-app 190 pass. Device QC89XG4LWGLJ69LZ not attached at crash-recovery time — live E2E (delivery flow / map pan / rider pings) still needs human+device pass when phone is reconnected. Fill EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN (pk.) in .env.development/.env.production before map screens render tiles.
 
 ---
 
