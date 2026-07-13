@@ -3,37 +3,60 @@ import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 
 /**
- * Prompt for precise (fine) foreground location permission on cold start.
+ * Request precise (fine) foreground location permission.
+ * Safe to call from app start, checkout, or GPS flows.
+ * Never throws.
  *
- * Android 12+: system dialog offers Precise vs Approximate when FINE is declared
- * (ACCESS_FINE_LOCATION is in app.json / manifest). We never request background.
- * Never throws; never blocks app boot if the user denies.
+ * @returns {{ granted: boolean, fine: boolean, status?: string, canAskAgain?: boolean }}
+ */
+export async function requestPreciseLocationPermission() {
+  try {
+    const existing = await Location.getForegroundPermissionsAsync();
+
+    // Already granted with fine accuracy — nothing to do.
+    if (
+      existing?.granted &&
+      (Platform.OS !== 'android' || existing?.android?.accuracy === 'fine')
+    ) {
+      return {
+        granted: true,
+        fine: true,
+        status: existing.status,
+        canAskAgain: existing.canAskAgain,
+      };
+    }
+
+    // Not granted, or Android approximate-only: show the system dialog.
+    // (If the user permanently denied, OS may not re-prompt; canAskAgain=false.)
+    const result = await Location.requestForegroundPermissionsAsync();
+    const fine =
+      Boolean(result?.granted) &&
+      (Platform.OS !== 'android' ||
+        result?.android?.accuracy === 'fine' ||
+        result?.android?.accuracy == null);
+
+    return {
+      granted: Boolean(result?.granted),
+      fine,
+      status: result?.status,
+      canAskAgain: result?.canAskAgain,
+    };
+  } catch (_) {
+    return { granted: false, fine: false, status: 'undetermined' };
+  }
+}
+
+/**
+ * Prompt for precise (fine) foreground location permission on cold start.
+ * Never request background. Never block app boot if the user denies.
  */
 export function usePreciseLocationPermissionOnStart() {
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      try {
-        const existing = await Location.getForegroundPermissionsAsync();
-        if (cancelled) return;
-
-        // Already granted with fine accuracy — done.
-        if (
-          existing?.granted &&
-          (Platform.OS !== 'android' || existing?.android?.accuracy === 'fine')
-        ) {
-          return;
-        }
-
-        // Not granted, or Android approximate-only: show the system dialog.
-        // (If the user previously locked approximate, OS may not re-prompt.)
-        if (!existing?.granted || existing?.android?.accuracy === 'coarse') {
-          await Location.requestForegroundPermissionsAsync();
-        }
-      } catch (_) {
-        // Permission APIs unavailable / denied — keep app usable.
-      }
+      if (cancelled) return;
+      await requestPreciseLocationPermission();
     })();
 
     return () => {

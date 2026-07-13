@@ -35,6 +35,7 @@ import { asArray, buildProgressHintText, imageRecordToUrl, normalizeCartCalculat
 import { isCodBlockedDuringNight } from '../../../utils/nightDelivery';
 import { formatEtaMinutes } from '../../../utils/formatEta';
 import { uuidv4 } from '../../../utils/uuid';
+import { requestPreciseLocationPermission } from '../../../hooks/usePreciseLocationPermissionOnStart';
 
 const isCodNightBlockError = (message = '') => {
   const lower = String(message).toLowerCase();
@@ -586,8 +587,28 @@ export default function CheckoutScreen() {
     }
   };
 
-  const openLocationPicker = () => {
+  // If the user denied location at app start, ask again when they open Checkout.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await requestPreciseLocationPermission();
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const openLocationPicker = async () => {
     setGpsError(null);
+    // Another chance if still denied (after app-start + checkout mount prompts).
+    const result = await requestPreciseLocationPermission();
+    if (!result.granted) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setGpsStatus('error');
+      setGpsError(GPS_ERROR_DENIED);
+      // Still open the picker: map pan uses default center; manual path remains.
+    }
     setLocationPickerVisible(true);
   };
 
