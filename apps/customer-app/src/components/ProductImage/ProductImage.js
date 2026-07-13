@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 import { colors, radius } from '../../theme';
@@ -21,6 +21,7 @@ const FALLBACK_SOURCE = fallbackProductImage;
  *   resizeMode   - 'cover' | 'contain' | 'fill' | 'none' | 'scale-down' (default: 'cover')
  *   priority     - 'low' | 'normal' | 'high' (default: 'normal'; use 'high' for hero images)
  *   filter       - optional React Native filter array forwarded to the image
+ *   recyclingKey - optional key for FlatList cell recycling (forwarded to expo-image)
  */
 function ProductImage({
   uri,
@@ -31,9 +32,15 @@ function ProductImage({
   style,
   resizeMode = 'cover',
   priority = 'normal',
+  recyclingKey,
   filter,
 }) {
   const [error, setError] = useState(false);
+
+  // Reset error when uri changes (recycled cells must not keep fallback).
+  useEffect(() => {
+    setError(false);
+  }, [uri]);
 
   const showFallback = !uri || error;
   const hasFallbackImage = Boolean(fallback);
@@ -54,6 +61,7 @@ function ProductImage({
           priority={priority}
           transition={200}
           filter={filter}
+          recyclingKey={recyclingKey}
         />
       ) : showFallback ? (
         <View style={[styles.placeholder, { borderRadius }]}>
@@ -70,6 +78,7 @@ function ProductImage({
           transition={200}
           onError={() => setError(true)}
           filter={filter}
+          recyclingKey={recyclingKey}
         />
       ) : null}
     </View>

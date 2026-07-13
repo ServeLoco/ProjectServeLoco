@@ -93,6 +93,11 @@
   padding-right: var(--space-sm);
 }
 
+.od-item-variant {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
 .od-item-qty {
   color: var(--text-secondary);
   width: 30px;

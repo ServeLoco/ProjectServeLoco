@@ -242,6 +242,23 @@ const createBroadcastNotification = async ({
     // data.type mirrors the order-flow push payload (createNotification).
     expoPush.sendPushToMany(pool, targetUserIds, { title, body, data: { type: type || 'info' } }).catch(() => {});
 
+    // Socket badge updates for every recipient (orderEvents only covered order
+    // paths). Fire-and-forget in small chunks — a large broadcast (thousands
+    // of users) must not hold the HTTP response open for thousands of
+    // concurrent unread-count queries.
+    (async () => {
+      try {
+        const { emitUnreadCountUpdated } = require('../realtime/orderEvents');
+        const EMIT_CHUNK_SIZE = 25;
+        for (let i = 0; i < targetUserIds.length; i += EMIT_CHUNK_SIZE) {
+          const chunk = targetUserIds.slice(i, i + EMIT_CHUNK_SIZE);
+          await Promise.all(chunk.map((uid) => emitUnreadCountUpdated(uid)));
+        }
+      } catch (err) {
+        console.error('Broadcast unread_count emit failed:', err.message);
+      }
+    })();
+
     return { batchId, count: targetUserIds.length, pushEligibleCount };
   } catch (error) {
     if (ownsConnection) {

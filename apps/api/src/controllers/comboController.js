@@ -3,6 +3,11 @@ const { validatePagination } = require('../validators');
 const { isPositiveInteger } = require('../validators');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { cleanupOrphanedImage } = require('./imageController');
+const microCache = require('../utils/microCache');
+
+const bustDashboardCache = () => {
+  microCache.bust('dashboard');
+};
 
 const resolveImageUrls = async (rows) => {
   const imageIds = rows
@@ -11,13 +16,18 @@ const resolveImageUrls = async (rows) => {
 
   if (imageIds.length === 0) return;
 
-  const [images] = await pool.query('SELECT id, url FROM images WHERE id IN (?)', [imageIds]);
+  const [images] = await pool.query('SELECT id, url, thumb_url FROM images WHERE id IN (?)', [imageIds]);
   const imageMap = {};
-  images.forEach(img => { imageMap[String(img.id)] = img.url; });
+  images.forEach(img => {
+    imageMap[String(img.id)] = { url: img.url, thumb_url: img.thumb_url || null };
+  });
   rows.forEach(row => {
-    if (row.image_id && imageMap[row.image_id]) {
-      row.imageUrl = imageMap[row.image_id];
-      row.image_url = imageMap[row.image_id];
+    const mapped = imageMap[row.image_id];
+    if (row.image_id && mapped) {
+      row.imageUrl = mapped.url;
+      row.image_url = mapped.url;
+      row.thumbUrl = mapped.thumb_url;
+      row.thumb_url = mapped.thumb_url;
     }
   });
 };
@@ -275,6 +285,7 @@ const createCombo = async (req, res) => {
     );
     await saveComboItems(result.insertId, validatedComboItems, connection, store_type);
     await connection.commit();
+    bustDashboardCache();
     res.status(201).json({ message: 'Combo created', id: result.insertId });
   } catch (error) {
     await connection.rollback();
@@ -353,6 +364,7 @@ const updateCombo = async (req, res) => {
     await cleanupOrphanedImage(previousImageId);
   }
 
+  bustDashboardCache();
   res.status(200).json({ message: 'Combo updated' });
 };
 
@@ -365,6 +377,7 @@ const deleteCombo = async (req, res) => {
 
   await pool.query('UPDATE combos SET deleted = 1 WHERE id = ?', [id]);
   await cleanupOrphanedImage(existing[0].image_id);
+  bustDashboardCache();
   res.status(200).json({ message: 'Combo soft deleted' });
 };
 
@@ -382,6 +395,7 @@ const updateComboAvailability = async (req, res) => {
   }
   
   const [updatedRows] = await pool.query('SELECT * FROM combos WHERE id = ?', [id]);
+  bustDashboardCache();
   res.status(200).json({ message: 'Combo availability updated', combo: updatedRows[0] });
 };
 

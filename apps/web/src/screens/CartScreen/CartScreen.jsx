@@ -1,8 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cartApi } from '../../api/cartApi';
-import { useCartStore } from '../../stores/cartStore';
+import { useCartStore, lineUnitPrice, selectCartDisplayTotal } from '../../stores/cartStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useAuthStore } from '../../stores/authStore';
 import Button from '../../components/Button';
 import QuantityControl from '../../components/QuantityControl';
 import EmptyState from '../../components/EmptyState';
@@ -11,6 +12,7 @@ import CouponSheet from '../../components/CouponSheet/CouponSheet';
 import ShopClosedBanner from '../../components/ShopClosedBanner';
 import { formatPrice } from '../../utils/formatters';
 import { getResolvedImageUrl } from '../../utils/imageUtils';
+import { toCartApiItem } from '../../utils/productUtils';
 import './CartScreen.css';
 
 const BackIcon = () => (
@@ -27,11 +29,12 @@ const TrashIcon = () => (
 
 export default function CartScreen() {
   const navigate = useNavigate();
+  const token = useAuthStore((state) => state.token);
   const items = useCartStore((state) => state.items);
   const updateQty = useCartStore((state) => state.updateQty);
   const removeItem = useCartStore((state) => state.removeItem);
+  const displayTotal = useCartStore(selectCartDisplayTotal);
   const shopStatus = useSettingsStore((state) => state.shopStatus);
-  // Primary check: shopStatus === 'closed' means the shop is closed. Defaults to 'open'.
   const storeClosed = shopStatus === 'closed';
 
   const appliedCouponCode = useCartStore((state) => state.appliedCouponCode);
@@ -40,28 +43,48 @@ export default function CartScreen() {
   const appliedCoupon = useCartStore((state) => state.appliedCoupon);
   const setAppliedCoupon = useCartStore((state) => state.setAppliedCoupon);
   const clearAppliedCoupon = useCartStore((state) => state.clearAppliedCoupon);
+  const setFreeDeliveryProgress = useCartStore((state) => state.setFreeDeliveryProgress);
 
   const [bill, setBill] = useState(null);
   const [calculating, setCalculating] = useState(false);
+  const [calcError, setCalcError] = useState(null);
   const [showCouponSheet, setShowCouponSheet] = useState(false);
   const timeoutRef = useRef(null);
+
+  // Guest-friendly fallback while not logged in (API requires auth for /cart/calculate)
+  const localBill = useMemo(
+    () => ({
+      subtotal: displayTotal,
+      deliveryCharge: 0,
+      nightCharge: 0,
+      discount: 0,
+      itemDiscount: 0,
+      grandTotal: displayTotal,
+      isLocalEstimate: true,
+    }),
+    [displayTotal]
+  );
 
   useEffect(() => {
     if (items.length === 0) {
       setBill(null);
+      setCalcError(null);
+      return;
+    }
+
+    if (!token) {
+      setBill(localBill);
+      setCalcError(null);
+      setCalculating(false);
       return;
     }
 
     const calculateCart = async () => {
       setCalculating(true);
+      setCalcError(null);
       try {
         const payload = {
-          items: items.map(i => ({
-            productId: i.product.id,
-            quantity: i.quantity,
-            type: i.type,
-            isCombo: i.type === 'combo'
-          })),
+          items: items.map(toCartApiItem),
           coupon_code: appliedCouponCode || undefined,
           coupon_id: !appliedCouponCode && appliedCouponId ? appliedCouponId : undefined,
           no_auto_apply: couponAutoApplyDisabled,
@@ -70,7 +93,10 @@ export default function CartScreen() {
         const responsePayload = res.data || res;
         setBill(responsePayload);
 
-        // Sync coupon state from the server (handles auto-apply + validation).
+        if (responsePayload.freeDeliveryProgress) {
+          setFreeDeliveryProgress(responsePayload.freeDeliveryProgress);
+        }
+
         if (responsePayload.appliedCoupon) {
           setAppliedCoupon(responsePayload.appliedCoupon.code, responsePayload.appliedCoupon);
         } else if (responsePayload.couponError && (appliedCouponCode || appliedCouponId)) {
@@ -78,6 +104,8 @@ export default function CartScreen() {
         }
       } catch (err) {
         console.error('Failed to calculate cart', err);
+        setCalcError(err.message || 'Could not calculate bill');
+        setBill(localBill);
       } finally {
         setCalculating(false);
       }
@@ -89,18 +117,30 @@ export default function CartScreen() {
     }, 300);
 
     return () => clearTimeout(timeoutRef.current);
-  }, [items, appliedCouponCode, appliedCouponId, couponAutoApplyDisabled]);
+  }, [
+    items,
+    token,
+    localBill,
+    appliedCouponCode,
+    appliedCouponId,
+    couponAutoApplyDisabled,
+    setAppliedCoupon,
+    clearAppliedCoupon,
+    setFreeDeliveryProgress,
+  ]);
 
   if (items.length === 0) {
     return (
       <div className="screen-container">
         <div className="cart-header">
-          <button className="cart-back-btn" onClick={() => navigate(-1)}><BackIcon /></button>
+          <button className="cart-back-btn" onClick={() => navigate(-1)} type="button">
+            <BackIcon />
+          </button>
           <div className="cart-title">Your Cart</div>
         </div>
-        <EmptyState 
-          title="Your Cart is Empty" 
-          message="Looks like you haven't added anything yet." 
+        <EmptyState
+          title="Your Cart is Empty"
+          message="Looks like you haven't added anything yet."
           action={<Button onClick={() => navigate('/')}>Start Shopping</Button>}
         />
       </div>
@@ -110,7 +150,9 @@ export default function CartScreen() {
   return (
     <div className="screen-container cart-screen">
       <div className="cart-header">
-        <button className="cart-back-btn" onClick={() => navigate(-1)}><BackIcon /></button>
+        <button className="cart-back-btn" onClick={() => navigate(-1)} type="button">
+          <BackIcon />
+        </button>
         <div className="cart-title">Your Cart</div>
       </div>
 
@@ -122,41 +164,74 @@ export default function CartScreen() {
         )}
 
         <div className="cart-items-list">
-          {items.map((item, idx) => (
-            <div key={`${item.product.id}-${item.type}-${idx}`} className="cart-item-row">
-              <img
-                src={getResolvedImageUrl(item.product)}
-                alt={item.product.name}
-                className="cart-item-img"
-              />
-              <div className="cart-item-info">
-                <div className="cart-item-name">{item.product.name}</div>
-                <div className="cart-item-unit">{item.product.unit || '1 unit'}</div>
-                <div className="cart-item-price">{formatPrice(item.product.price)}</div>
-              </div>
-              <div className="cart-item-actions">
-                <button className="delete-btn" onClick={() => removeItem(item.product.id, item.type)}>
-                  <TrashIcon />
-                </button>
-                <QuantityControl 
-                  quantity={item.quantity} 
-                  onIncrease={() => updateQty(item.product.id, item.quantity + 1, item.type)} 
-                  onDecrease={() => updateQty(item.product.id, item.quantity - 1, item.type)} 
+          {items.map((item) => {
+            const variantId = item.variant?.id ?? null;
+            const unitPrice = lineUnitPrice(item);
+            const lineKey = `${item.type}-${item.product.id}-${variantId ?? 'base'}`;
+            return (
+              <div key={lineKey} className="cart-item-row">
+                <img
+                  src={getResolvedImageUrl(item.product)}
+                  alt={item.product.name}
+                  className="cart-item-img"
                 />
+                <div className="cart-item-info">
+                  <div className="cart-item-name">{item.product.name}</div>
+                  <div className="cart-item-unit">
+                    {item.variant?.label
+                      || item.product.unit
+                      || (item.type === 'combo' ? 'Combo' : '1 unit')}
+                  </div>
+                  <div className="cart-item-price">{formatPrice(unitPrice)}</div>
+                </div>
+                <div className="cart-item-actions">
+                  <button
+                    type="button"
+                    className="delete-btn"
+                    onClick={() => removeItem(item.product.id, item.type, variantId)}
+                  >
+                    <TrashIcon />
+                  </button>
+                  <QuantityControl
+                    quantity={item.quantity}
+                    onIncrease={() =>
+                      updateQty(item.product.id, item.quantity + 1, item.type, variantId)
+                    }
+                    onDecrease={() =>
+                      updateQty(item.product.id, item.quantity - 1, item.type, variantId)
+                    }
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+
+        {!token && (
+          <div className="cart-login-hint" role="status">
+            Log in to apply coupons and see exact delivery charges.
+          </div>
+        )}
+        {calcError && token && (
+          <div className="cart-login-hint" role="alert">{calcError}</div>
+        )}
 
         {bill && (
           <>
-            <button className="coupon-card" onClick={() => setShowCouponSheet(true)}>
+            {token && !bill.isLocalEstimate && (
+            <button
+              type="button"
+              className="coupon-card"
+              onClick={() => setShowCouponSheet(true)}
+            >
               <div className="coupon-card-left">
                 <div className="coupon-card-icon">%</div>
                 <div>
                   {appliedCoupon ? (
                     <>
-                      <div className="coupon-card-title">{appliedCoupon.title || appliedCoupon.code}</div>
+                      <div className="coupon-card-title">
+                        {appliedCoupon.title || appliedCoupon.code}
+                      </div>
                       <div className="coupon-card-sub">Tap to change or remove</div>
                     </>
                   ) : (
@@ -169,12 +244,21 @@ export default function CartScreen() {
               </div>
               <div className="coupon-card-action">
                 {appliedCoupon ? (
-                  <span className="coupon-card-applied" onClick={(e) => { e.stopPropagation(); clearAppliedCoupon(); }}>Remove</span>
+                  <span
+                    className="coupon-card-applied"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearAppliedCoupon();
+                    }}
+                  >
+                    Remove
+                  </span>
                 ) : (
                   <span className="coupon-card-apply">Apply</span>
                 )}
               </div>
             </button>
+            )}
 
             <BillSummary
               subtotal={bill.subtotal}
@@ -186,31 +270,44 @@ export default function CartScreen() {
               total={bill.grandTotal}
               freeDeliveryProgress={bill.freeDeliveryProgress}
             />
+            {bill.isLocalEstimate && (
+              <div className="cart-estimate-note">Item total only — fees calculated at checkout after login.</div>
+            )}
           </>
         )}
 
-        <CouponSheet
-          open={showCouponSheet}
-          onClose={() => setShowCouponSheet(false)}
-          subtotal={bill?.subtotal || 0}
-          deliveryCharge={bill?.deliveryCharge || 0}
-          appliedCoupon={appliedCoupon}
-          onApply={(coupon) => setAppliedCoupon(coupon.code, coupon)}
-          onRemove={() => clearAppliedCoupon()}
-        />
+        {token && (
+          <CouponSheet
+            open={showCouponSheet}
+            onClose={() => setShowCouponSheet(false)}
+            subtotal={bill?.subtotal || 0}
+            deliveryCharge={bill?.deliveryCharge || 0}
+            appliedCoupon={appliedCoupon}
+            onApply={(coupon) => setAppliedCoupon(coupon.code, coupon)}
+            onRemove={() => clearAppliedCoupon()}
+          />
+        )}
       </div>
 
       <div className="cart-bottom-bar">
-        <Button 
-          variant="success" 
+        <Button
+          variant="success"
           disabled={storeClosed || calculating || !bill}
-          onClick={() => navigate('/checkout')}
+          onClick={() => {
+            if (!token) {
+              navigate('/auth', { state: { from: { pathname: '/checkout' } } });
+              return;
+            }
+            navigate('/checkout');
+          }}
         >
           {storeClosed
             ? 'Shop Closed'
             : calculating
               ? 'Calculating...'
-              : `Proceed to Pay (${bill ? formatPrice(bill.grandTotal) : ''})`}
+              : !token
+                ? `Login to checkout (${formatPrice(bill?.grandTotal || displayTotal)})`
+                : `Proceed to Pay (${bill ? formatPrice(bill.grandTotal) : ''})`}
         </Button>
       </div>
     </div>

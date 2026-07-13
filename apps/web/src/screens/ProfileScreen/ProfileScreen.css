@@ -5,7 +5,7 @@
 /* ===================================================================== */
 
 .profile-screen {
-  padding-bottom: 140px;
+  /* bottom chrome from .screen-container */
   background: var(--bg-app);
 }
 

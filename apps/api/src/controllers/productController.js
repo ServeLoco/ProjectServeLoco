@@ -2,6 +2,12 @@ const { pool } = require('../db/mysql');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { validatePagination } = require('../validators');
 const { cleanupOrphanedImage } = require('./imageController');
+const microCache = require('../utils/microCache');
+
+const bustProductCaches = () => {
+  microCache.bust('dashboard');
+  microCache.bust('categories');
+};
 
 const isWithinTimeWindow = (from, until) => {
   // Both null means always available in the time sense.
@@ -27,13 +33,18 @@ const resolveImageUrls = async (rows) => {
 
   if (imageIds.length === 0) return;
 
-  const [images] = await pool.query('SELECT id, url FROM images WHERE id IN (?)', [imageIds]);
+  const [images] = await pool.query('SELECT id, url, thumb_url FROM images WHERE id IN (?)', [imageIds]);
   const imageMap = {};
-  images.forEach(img => { imageMap[String(img.id)] = img.url; });
+  images.forEach(img => {
+    imageMap[String(img.id)] = { url: img.url, thumb_url: img.thumb_url || null };
+  });
   rows.forEach(row => {
-    if (row.image_id && imageMap[row.image_id]) {
-      row.imageUrl = imageMap[row.image_id];
-      row.image_url = imageMap[row.image_id];
+    const mapped = imageMap[row.image_id];
+    if (row.image_id && mapped) {
+      row.imageUrl = mapped.url;
+      row.image_url = mapped.url;
+      row.thumbUrl = mapped.thumb_url;
+      row.thumb_url = mapped.thumb_url;
     }
   });
 };
@@ -206,8 +217,30 @@ const syncProductVariants = async (connection, productId, variants, variantPromp
 };
 
 const getProducts = async (req, res) => {
-  const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit, offerId, offer_id } = req.query;
+  const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, limit, offset, offerId, offer_id } = req.query;
   const requestedType = type || storeType || store_type;
+  // Pagination: limit+1 trick for hasMore (SQL page size, not post time-window filter length).
+  const limitNum = limit !== undefined && Number.isInteger(Number(limit)) && Number(limit) > 0
+    ? Number(limit)
+    : null;
+  const offsetNum = offset !== undefined && Number.isInteger(Number(offset)) && Number(offset) >= 0
+    ? Number(offset)
+    : 0;
+
+  const paginateRows = (rows) => {
+    if (limitNum == null) {
+      return { pageRows: rows, hasMore: false };
+    }
+    const hasMore = rows.length > limitNum;
+    return { pageRows: hasMore ? rows.slice(0, limitNum) : rows, hasMore };
+  };
+
+  const productsResponse = (products, hasMore) => ({
+    data: { products, hasMore, has_more: hasMore },
+    products,
+    hasMore,
+    has_more: hasMore,
+  });
   // A client can hold a stale/deactivated mode slug (e.g. web's
   // localStorage-persisted storeType) after an admin deactivates a custom
   // mode — fall back to 'all' instead of erroring the whole product list.
@@ -238,10 +271,10 @@ const getProducts = async (req, res) => {
     // 1. Validate the offer
     const [offers] = await pool.query('SELECT store_type, active, deleted, is_clickable FROM offers WHERE id = ?', [finalOfferId]);
     if (offers.length === 0 || offers[0].deleted || !offers[0].active || !offers[0].is_clickable) {
-      return res.status(200).json({ data: { products: [] }, products: [] });
+      return res.status(200).json(productsResponse([], false));
     }
     if (normalizedType !== 'all' && offers[0].store_type !== normalizedType) {
-      return res.status(200).json({ data: { products: [] }, products: [] });
+      return res.status(200).json(productsResponse([], false));
     }
 
     // 2. Fetch products attached to offer
@@ -261,21 +294,23 @@ const getProducts = async (req, res) => {
     }
 
     query += ' ORDER BY op.display_order ASC, item_display_order ASC, p.id ASC';
-    
-    if (limit && Number.isInteger(Number(limit)) && Number(limit) > 0) {
-      query += ' LIMIT ?';
-      params.push(Number(limit));
+
+    if (limitNum != null) {
+      query += ' LIMIT ? OFFSET ?';
+      params.push(limitNum + 1, offsetNum);
     }
 
     const [rows] = await pool.query(query, params);
-    await resolveImageUrls(rows);
-    await attachVariants(rows);
-    const filteredRows = rows.filter(r => isWithinTimeWindow(r.available_from_time, r.available_until_time));
+    const { pageRows, hasMore } = paginateRows(rows);
+    await resolveImageUrls(pageRows);
+    await attachVariants(pageRows);
+    // Time-window filter may shrink the page; hasMore still comes from SQL page size.
+    const filteredRows = pageRows.filter(r => isWithinTimeWindow(r.available_from_time, r.available_until_time));
     filteredRows.forEach(r => {
       r.shopId = r.shop_id ?? null;
       r.shopIsOpen = r.shop_is_open === undefined ? 1 : r.shop_is_open;
     });
-    return res.status(200).json({ data: { products: filteredRows }, products: filteredRows });
+    return res.status(200).json(productsResponse(filteredRows, hasMore));
   }
 
   // If filtering by category/categoryType/categoryId and isCombo isn't explicitly set, default to false (exclude combos)
@@ -316,25 +351,27 @@ const getProducts = async (req, res) => {
   }
 
   finalQuery += ' ORDER BY cat_display_order ASC, item_display_order ASC, id ASC';
-  if (limit && Number.isInteger(Number(limit)) && Number(limit) > 0) {
-    finalQuery += ' LIMIT ?';
-    finalParams.push(Number(limit));
+  if (limitNum != null) {
+    finalQuery += ' LIMIT ? OFFSET ?';
+    finalParams.push(limitNum + 1, offsetNum);
   }
 
   const [rows] = await pool.query(finalQuery, finalParams);
+  const { pageRows, hasMore } = paginateRows(rows);
 
-  await resolveImageUrls(rows);
-  await attachComboItems(rows);
-  await attachVariants(rows);
+  await resolveImageUrls(pageRows);
+  await attachComboItems(pageRows);
+  await attachVariants(pageRows);
 
-  const filteredRows = rows.filter(r => isWithinTimeWindow(r.available_from_time, r.available_until_time));
+  // Time-window filter may shrink the page; hasMore still comes from SQL page size.
+  const filteredRows = pageRows.filter(r => isWithinTimeWindow(r.available_from_time, r.available_until_time));
 
   filteredRows.forEach(r => {
     r.shopId = r.shop_id ?? null;
     r.shopIsOpen = r.shop_is_open === undefined ? 1 : r.shop_is_open;
   });
 
-  res.status(200).json({ data: { products: filteredRows }, products: filteredRows });
+  res.status(200).json(productsResponse(filteredRows, hasMore));
 };
 
 const getProductById = async (req, res) => {
@@ -449,6 +486,7 @@ const createProduct = async (req, res) => {
   } finally {
     connection.release();
   }
+  bustProductCaches();
   res.status(201).json({ message: 'Product created', id: insertId });
 };
 
@@ -517,6 +555,7 @@ const updateProduct = async (req, res) => {
   if (previousImageId && String(previousImageId) !== String(image_id)) {
     await cleanupOrphanedImage(previousImageId);
   }
+  bustProductCaches();
   res.status(200).json({ message: 'Product updated' });
 };
 
@@ -624,6 +663,7 @@ const deleteProduct = async (req, res) => {
 
   await pool.query('UPDATE products SET deleted = 1 WHERE id = ?', [id]);
   await cleanupOrphanedImage(rows[0].image_id);
+  bustProductCaches();
   res.status(200).json({ message: 'Product soft deleted' });
 };
 
@@ -641,6 +681,7 @@ const updateProductAvailability = async (req, res) => {
   }
   
   const [updatedRows] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
+  bustProductCaches();
   res.status(200).json({ message: 'Product availability updated', product: updatedRows[0] });
 };
 
@@ -665,6 +706,7 @@ const updateProductImage = async (req, res) => {
   }
 
   const [updatedRows] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
+  bustProductCaches();
   res.status(200).json({ message: 'Product image updated', product: updatedRows[0] });
 };
 
@@ -767,6 +809,7 @@ const bulkUpdateProducts = async (req, res) => {
   setValues.push(validIds);
   await pool.query(`UPDATE products SET ${setClauses.join(', ')} WHERE id IN (?)`, setValues);
 
+  bustProductCaches();
   return res.status(200).json({ updated: validIds.length, skipped, errors: [] });
 };
 
@@ -802,6 +845,7 @@ const bulkDeleteProducts = async (req, res) => {
     }
   }
 
+  bustProductCaches();
   return res.status(200).json({ deleted, skipped, errors: [] });
 };
 

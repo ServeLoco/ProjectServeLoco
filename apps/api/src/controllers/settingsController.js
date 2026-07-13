@@ -1,6 +1,7 @@
 const { pool } = require('../db/mysql');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { createTtlCache } = require('../utils/ttlCache');
+const microCache = require('../utils/microCache');
 const config = require('../config/env');
 const { cleanupOrphanedImage } = require('./imageController');
 const { syncGlobalShopOpenState } = require('../utils/shops');
@@ -346,6 +347,7 @@ const updateSettings = async (req, res) => {
     emitToAllCustomers('settings.shop_open.updated', { shopOpen: finalOpen, shop_open: finalOpen });
   }
 
+  microCache.bust('dashboard');
   res.status(200).json({ message: 'Settings updated successfully', data: updatedSettings });
 };
 
@@ -370,6 +372,7 @@ const createOffer = async (req, res) => {
     [title, description || '', isActive, finalImageId, finalStoreType, finalIsClickable]
   );
 
+  microCache.bust('dashboard');
   res.status(201).json({ message: 'Offer created', id: result.insertId });
 };
 
@@ -443,6 +446,7 @@ const updateOffer = async (req, res) => {
     await cleanupOrphanedImage(previousImageId);
   }
 
+  microCache.bust('dashboard');
   res.status(200).json({ message: 'Offer updated' });
 };
 
@@ -474,6 +478,7 @@ const deleteOffer = async (req, res) => {
   }
   await pool.query('UPDATE offers SET deleted = 1 WHERE id = ? AND deleted = 0', [id]);
   await cleanupOrphanedImage(rows[0].image_id);
+  microCache.bust('dashboard');
   res.status(200).json({ message: 'Offer soft deleted' });
 };
 
@@ -535,9 +540,11 @@ const addOfferProduct = async (req, res) => {
       'INSERT INTO offer_products (offer_id, product_id, display_order) VALUES (?, ?, ?)',
       [id, finalProductId, display_order || 0]
     );
+    microCache.bust('dashboard');
     res.status(201).json({ message: 'Product added to offer' });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
+      microCache.bust('dashboard');
       res.status(200).json({ message: 'Product already attached' });
     } else {
       throw err;
@@ -548,6 +555,7 @@ const addOfferProduct = async (req, res) => {
 const removeOfferProduct = async (req, res) => {
   const { id, productId } = req.params;
   await pool.query('DELETE FROM offer_products WHERE offer_id = ? AND product_id = ?', [id, productId]);
+  microCache.bust('dashboard');
   res.status(200).json({ message: 'Product removed from offer' });
 };
 
@@ -563,6 +571,7 @@ const reorderOfferProducts = async (req, res) => {
     await pool.query('UPDATE offer_products SET display_order = ? WHERE offer_id = ? AND product_id = ?', [i, id, productIds[i]]);
   }
 
+  microCache.bust('dashboard');
   res.status(200).json({ message: 'Products reordered' });
 };
 

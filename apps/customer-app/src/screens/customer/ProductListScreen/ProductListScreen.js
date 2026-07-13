@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,10 @@ import {
   LayoutAnimation,
   ScrollView,
   RefreshControl,
+  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
@@ -29,6 +30,7 @@ import { useCartStore } from '../../../stores';
 import { useAuthGate, useStoreModes } from '../../../hooks';
 import { productsApi, dashboardApi } from '../../../api';
 import { asArray, normalizeProduct } from '../../../utils';
+import { getCached, setCached, stableKey, isFresh } from '../../../utils/apiCache';
 
 const SORT_OPTIONS = ['Popular', 'Price Low to High', 'Price High to Low'];
 
@@ -74,10 +76,22 @@ export default function ProductListScreen() {
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
   const [sortBy, setSortBy] = useState('Popular');
   
+  const PAGE_SIZE = 30;
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isError, setIsError] = useState(false);
   const [products, setProducts] = useState([]);
+  const [hasMore, setHasMore] = useState(false);
+  // Next SQL offset advances by PAGE_SIZE always (time-window may shrink pages).
+  const nextOffsetRef = useRef(0);
+  // Actual item count of the page-0 window (post time-window/search filter,
+  // often < PAGE_SIZE) — silent revalidate splices here, not at PAGE_SIZE.
+  const page0LengthRef = useRef(0);
+  const loadMoreInFlightRef = useRef(false);
+  // Monotonic gens so a slow response for an old category/search cannot overwrite.
+  const fetchGenRef = useRef(0);
+  const loadMoreGenRef = useRef(0);
   const cartItemCount = useMemo(
     () => items.reduce((total, item) => total + (Number(item.quantity) || 0), 0),
     [items]
@@ -87,52 +101,126 @@ export default function ProductListScreen() {
     [items]
   );
 
-  const fetchProducts = async (refresh = false) => {
-    if (refresh) {
-      setIsRefreshing(true);
+  /**
+   * @param {boolean|{ refresh?: boolean, loadMore?: boolean, silent?: boolean }} opts
+   *   boolean true = pull-to-refresh (legacy)
+   *   silent = revalidate page 0 without dropping already-loaded pages
+   */
+  const fetchProducts = async (opts = false) => {
+    const options = typeof opts === 'boolean' ? { refresh: opts } : (opts || {});
+    const refresh = !!options.refresh;
+    const loadMore = !!options.loadMore;
+    const silent = !!options.silent && !refresh && !loadMore;
+
+    const isOriginalCategory = activeCategory === initialCategory;
+    const queryCategoryId = isOriginalCategory ? route.params?.categoryId : undefined;
+    const pageOffset = loadMore ? nextOffsetRef.current : 0;
+
+    // Cache key covers network params including offset (each page is its own entry).
+    const requestParams = sectionSlug
+      ? {
+          sectionSlug,
+          storeType: sectionStoreType,
+          include_closed_shops: 1,
+        }
+      : {
+          category: activeCategory !== 'All' ? activeCategory : undefined,
+          categoryId: queryCategoryId,
+          q: searchQuery || undefined,
+          search: searchQuery || undefined,
+          offerId: offerId || undefined,
+          isCombo: mode === 'combos',
+          featured: mode === 'combos' ? true : undefined,
+          type: sectionStoreType !== 'all' ? sectionStoreType : undefined,
+          storeType: sectionStoreType !== 'all' ? sectionStoreType : undefined,
+          include_closed_shops: 1,
+          mode,
+          limit: PAGE_SIZE,
+          offset: pageOffset,
+        };
+    const cacheKey = `products:${stableKey(requestParams)}`;
+    const cached = getCached(cacheKey);
+
+    let gen;
+    if (loadMore) {
+      if (loadMoreInFlightRef.current || !hasMore) return;
+      loadMoreInFlightRef.current = true;
+      gen = ++loadMoreGenRef.current;
+      setIsLoadingMore(true);
     } else {
-      setIsLoading(true);
+      // New primary fetch invalidates any in-flight load-more.
+      gen = ++fetchGenRef.current;
+      loadMoreGenRef.current += 1;
+      loadMoreInFlightRef.current = false;
+      if (refresh) {
+        setIsRefreshing(true);
+      } else if (cached && !silent) {
+        // Instant paint from cache; revalidate silently below (no skeleton).
+        // Do not apply page-0 cache over a multi-page list on silent paths.
+        const cachedProducts = Array.isArray(cached.data) ? cached.data : (cached.data?.products || []);
+        const cachedHasMore = Array.isArray(cached.data) ? false : !!cached.data?.hasMore;
+        setProducts(cachedProducts);
+        setHasMore(cachedHasMore);
+        nextOffsetRef.current = PAGE_SIZE;
+        page0LengthRef.current = cachedProducts.length;
+        setIsLoading(false);
+        setIsError(false);
+      } else if (!cached && !silent) {
+        setIsLoading(true);
+        setIsError(false);
+      } else {
+        // silent revalidate with or without cache: keep current list painted
+        setIsLoading(false);
+      }
     }
-    setIsError(false);
+
+    const isStale = () => (
+      loadMore
+        ? gen !== loadMoreGenRef.current
+        : gen !== fetchGenRef.current
+    );
 
     try {
       let response;
       let filtered = [];
+      let pageHasMore = false;
 
       if (sectionSlug) {
+        // Section items endpoint has no pagination — full list, hasMore false.
         response = await dashboardApi.getSectionItems(sectionSlug, {
-          available: showAvailableOnly ? true : undefined,
           storeType: sectionStoreType,
           include_closed_shops: 1,
         });
+        if (isStale()) return;
         filtered = asArray(response, ['items']).map(normalizeProduct);
+        pageHasMore = false;
       } else {
-        const isOriginalCategory = activeCategory === initialCategory;
-        const queryCategoryId = isOriginalCategory ? route.params?.categoryId : undefined;
-
         response = await productsApi.getProducts({
           category: activeCategory !== 'All' ? activeCategory : undefined,
           categoryId: queryCategoryId,
           q: searchQuery || undefined,
           search: searchQuery || undefined,
-          available: showAvailableOnly ? true : undefined,
+          // showAvailableOnly + sortBy are applied client-side only (see displayProducts).
           offerId: offerId || undefined,
           isCombo: mode === 'combos',
           featured: mode === 'combos' ? true : undefined,
-          sort: sortBy,
           type: sectionStoreType !== 'all' ? sectionStoreType : undefined,
           storeType: sectionStoreType !== 'all' ? sectionStoreType : undefined,
           include_closed_shops: 1,
+          limit: PAGE_SIZE,
+          offset: pageOffset,
         });
+        if (isStale()) return;
         filtered = asArray(response, ['products']).map(normalizeProduct);
+        pageHasMore = !!(
+          response?.hasMore ?? response?.has_more ?? response?.data?.hasMore ?? response?.data?.has_more
+        );
         if (mode !== 'combos') {
           filtered = filtered.filter(p => !(p.isCombo || p.is_combo || p.comboItems?.length));
         }
 
         // Category Filter
         if (activeCategory !== 'All') {
-          const isOriginalCategory = activeCategory === initialCategory;
-          const queryCategoryId = isOriginalCategory ? route.params?.categoryId : undefined;
           if (!queryCategoryId) {
             filtered = filtered.filter(p => String(p.category || '').toLowerCase() === String(activeCategory).toLowerCase());
           }
@@ -144,36 +232,88 @@ export default function ProductListScreen() {
         filtered = filtered.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
       }
 
-      // Availability Filter
-      if (showAvailableOnly) {
-        filtered = filtered.filter(p => p.available && p.shopIsOpen !== false);
+      if (isStale()) return;
+
+      setCached(cacheKey, { products: filtered, hasMore: pageHasMore });
+      if (loadMore) {
+        setProducts(prev => [...prev, ...filtered]);
+        setHasMore(pageHasMore);
+        // Advance by SQL page size, never by received row count.
+        nextOffsetRef.current = pageOffset + PAGE_SIZE;
+      } else if (silent) {
+        // Revalidate page 0 only: replace first window, keep later pages.
+        // Splice at the previous page-0 window's actual (post-filter) length,
+        // not PAGE_SIZE — time-window/search filtering can shrink a page well
+        // below PAGE_SIZE, and splicing at PAGE_SIZE would drop or duplicate
+        // items from page 1+.
+        const priorPage0Length = page0LengthRef.current || PAGE_SIZE;
+        setProducts(prev => {
+          if (prev.length <= priorPage0Length) return filtered;
+          return [...filtered, ...prev.slice(priorPage0Length)];
+        });
+        page0LengthRef.current = filtered.length;
+        if (nextOffsetRef.current <= PAGE_SIZE) {
+          nextOffsetRef.current = PAGE_SIZE;
+          setHasMore(pageHasMore);
+        } else {
+          // Already load-more'd: keep ability to fetch further if page0 or prior said so.
+          setHasMore(pageHasMore || nextOffsetRef.current > PAGE_SIZE);
+        }
+      } else {
+        setProducts(filtered);
+        setHasMore(pageHasMore);
+        nextOffsetRef.current = pageOffset + PAGE_SIZE;
+        page0LengthRef.current = filtered.length;
       }
-
-      // Sorting
-      if (sortBy === 'Price Low to High') {
-        filtered.sort((a, b) => a.price - b.price);
-      } else if (sortBy === 'Price High to Low') {
-        filtered.sort((a, b) => b.price - a.price);
-      } // Popular keeps default order
-
-      setProducts(filtered);
+      setIsError(false);
     } catch (err) {
-      setIsError(true);
+      if (isStale()) return;
+      // Keep cached list on revalidation failure; error only when nothing to show.
+      if (!loadMore && !silent && !getCached(cacheKey)) {
+        setIsError(true);
+      }
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (!isStale()) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+        setIsLoadingMore(false);
+        if (loadMore) loadMoreInFlightRef.current = false;
+      } else if (loadMore && gen === loadMoreGenRef.current) {
+        loadMoreInFlightRef.current = false;
+        setIsLoadingMore(false);
+      }
     }
   };
 
   const handleRefresh = () => {
-    fetchProducts(true);
+    nextOffsetRef.current = 0;
+    fetchProducts({ refresh: true });
   };
 
-  // Initial fetch and dependency fetch
+  const handleLoadMore = () => {
+    if (!hasMore || isLoadingMore || isLoading || sectionSlug) return;
+    fetchProducts({ loadMore: true });
+  };
+
+  // Client-side only: availability filter + sort (no network).
+  const displayProducts = useMemo(() => {
+    let list = products;
+    if (showAvailableOnly) {
+      list = list.filter(p => p.available && p.shopIsOpen !== false);
+    }
+    if (sortBy === 'Price Low to High') {
+      list = [...list].sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'Price High to Low') {
+      list = [...list].sort((a, b) => b.price - a.price);
+    }
+    return list;
+  }, [products, showAvailableOnly, sortBy]);
+
+  // Initial fetch and dependency fetch (sort/availability are client-side only).
   useEffect(() => {
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCategory, showAvailableOnly, sortBy, offerId, sectionSlug, sectionStoreType, mode, route.params?.categoryId]);
+  }, [activeCategory, offerId, sectionSlug, sectionStoreType, mode, route.params?.categoryId]);
 
   // Debounced Search
   useEffect(() => {
@@ -184,6 +324,51 @@ export default function ProductListScreen() {
       return () => clearTimeout(timer);
     }
   }, [searchQuery, mode]);
+
+  // Silent revalidate on refocus (skip first focus — mount effect already loaded).
+  // Freshness throttle 15s: skip network if list page-0 cache is still fresh.
+  const hasFocusedOnceRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFocusedOnceRef.current) {
+        const isOriginalCategory = activeCategory === initialCategory;
+        const queryCategoryId = isOriginalCategory ? route.params?.categoryId : undefined;
+        const requestParams = sectionSlug
+          ? { sectionSlug, storeType: sectionStoreType, include_closed_shops: 1 }
+          : {
+              category: activeCategory !== 'All' ? activeCategory : undefined,
+              categoryId: queryCategoryId,
+              q: searchQuery || undefined,
+              search: searchQuery || undefined,
+              offerId: offerId || undefined,
+              isCombo: mode === 'combos',
+              featured: mode === 'combos' ? true : undefined,
+              type: sectionStoreType !== 'all' ? sectionStoreType : undefined,
+              storeType: sectionStoreType !== 'all' ? sectionStoreType : undefined,
+              include_closed_shops: 1,
+              mode,
+              limit: PAGE_SIZE,
+              offset: 0,
+            };
+        const focusKey = `products:${stableKey(requestParams)}`;
+        if (!isFresh(focusKey, 15_000)) {
+          // silent: refresh page 0 without dropping already-loaded pages
+          fetchProducts({ silent: true });
+        }
+      } else {
+        hasFocusedOnceRef.current = true;
+      }
+    }, [
+      activeCategory,
+      offerId,
+      sectionSlug,
+      sectionStoreType,
+      mode,
+      searchQuery,
+      route.params?.categoryId,
+      initialCategory,
+    ]),
+  );
 
   // Callbacks
   const handleAddToCart = useCallback((product) => {
@@ -360,11 +545,11 @@ export default function ProductListScreen() {
           renderSkeleton()
         ) : isError ? (
           renderErrorState()
-        ) : products.length === 0 ? (
+        ) : displayProducts.length === 0 ? (
           renderEmptyState()
         ) : (
           <FlatList
-            data={products}
+            data={displayProducts}
             keyExtractor={item => item.id}
             renderItem={renderItem}
             numColumns={2}
@@ -379,6 +564,16 @@ export default function ProductListScreen() {
             initialNumToRender={6}
             maxToRenderPerBatch={6}
             windowSize={7}
+            onEndReached={handleLoadMore}
+            // Start next page ~60% from the end so scroll rarely waits on the footer spinner.
+            onEndReachedThreshold={0.6}
+            ListFooterComponent={
+              isLoadingMore ? (
+                <View style={styles.loadMoreFooter}>
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              ) : null
+            }
             refreshControl={
               <RefreshControl
                 refreshing={isRefreshing}
@@ -451,6 +646,11 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flex: 1,
+  },
+  loadMoreFooter: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   flatListContent: {
     padding: spacing.lg,

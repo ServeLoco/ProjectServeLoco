@@ -1,12 +1,13 @@
-/* Floating pill bottom nav — matches Android CustomerNavigator exactly */
+/* Floating pill bottom nav — matches Android CustomerNavigator */
 .bottom-nav {
   position: fixed;
-  bottom: calc(16px + env(safe-area-inset-bottom));
+  bottom: var(--nav-bottom, calc(16px + env(safe-area-inset-bottom, 0px)));
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 144px); /* 72px gutter on each side (Android: left:72, right:72) */
-  max-width: 286px;          /* 430px root - 144px = 286px */
-  height: 64px;
+  /* On phones, use moderate gutters so tabs stay tappable */
+  width: min(286px, calc(100% - 64px));
+  max-width: min(286px, calc(100% - 48px));
+  height: var(--nav-height, 64px);
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 30px;
@@ -16,6 +17,10 @@
   padding: 4px 8px;
   box-shadow: var(--shadow-lg);
   z-index: 50;
+  /* iOS: avoid selection / callout on long press */
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
 }
 
 .nav-item {
@@ -27,10 +32,13 @@
   gap: 2px;
   flex: 1;
   height: 100%;
+  min-width: 0;
   color: var(--text-secondary);
   text-decoration: none;
   border-radius: var(--radius-pill);
   transition: color 0.2s;
+  /* Comfortable hit target on iPhone */
+  min-height: 44px;
 }
 
 .nav-item.active {
@@ -41,11 +49,11 @@
   position: absolute;
   top: 6px;
   width: 48px;
+  max-width: 80%;
   height: 32px;
   border-radius: var(--radius-pill);
   background: var(--primary);
   z-index: 0;
-  /* Sit behind icon + label                                  */
   pointer-events: none;
 }
 
@@ -55,6 +63,7 @@
   fill: currentColor;
   position: relative;
   z-index: 1;
+  flex-shrink: 0;
 }
 
 .nav-label {
@@ -62,14 +71,28 @@
   font-weight: 600;
   position: relative;
   z-index: 1;
-  /* Label sits below the pill, in primary text color when active */
+  white-space: nowrap;
+  line-height: 1.1;
 }
 
 .nav-item.active .nav-label {
   color: var(--primary);
 }
 
-/* Tablet/desktop — keep the floating pill at a sensible size */
+@media (max-width: 390px) {
+  .bottom-nav {
+    width: calc(100% - 40px);
+    max-width: none;
+    padding: 4px 6px;
+  }
+  .active-pill {
+    width: 44px;
+  }
+  .nav-label {
+    font-size: 10px;
+  }
+}
+
 @media (min-width: 768px) {
   .bottom-nav {
     max-width: 320px !important;

@@ -2,6 +2,7 @@ import { io } from 'socket.io-client';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { getRealtimeBaseUrl } from './realtimeConfig';
+import { invalidate } from '../utils/apiCache';
 
 const ORDER_EVENTS = [
   'order.created',
@@ -103,6 +104,17 @@ function subscribeShopEvents(handler) {
 
   return () => unsubscribers.forEach(unsubscribe => unsubscribe());
 }
+
+// Module-level: any shop open/close event busts product/category SWR caches
+// so the next screen paint revalidates. Invalidation also defeats the TASK-16
+// freshness throttle (no entry = not fresh).
+SHOP_EVENTS.forEach(eventName => {
+  subscribeRealtime(eventName, () => {
+    invalidate('products:');
+    invalidate('product:');
+    invalidate('categories:');
+  });
+});
 
 function subscribeRealtimeLifecycle(handler) {
   const unsubscribers = LIFECYCLE_EVENTS.map(eventName =>

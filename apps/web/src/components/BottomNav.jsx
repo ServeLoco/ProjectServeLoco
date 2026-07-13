@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import './BottomNav.css';
 
-// SVG Icons (simplified inline for portability)
+// Customer-app tabs: Home · Orders · Profile (Categories lives under Home)
 const HomeIcon = () => (
   <svg className="nav-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
@@ -17,11 +17,6 @@ const ProfileIcon = () => (
     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
   </svg>
 );
-const CategoriesIcon = () => (
-  <svg className="nav-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <path d="M3 5h8v8H3zm10 0h8v8h-8zM3 15h8v8H3zm10 0h8v8h-8z" />
-  </svg>
-);
 
 const navClass = ({ isActive }) => `nav-item ${isActive ? 'active' : ''}`;
 
@@ -34,15 +29,6 @@ export default function BottomNav() {
             {isActive && <div className="active-pill" />}
             <HomeIcon />
             <span className="nav-label">Home</span>
-          </>
-        )}
-      </NavLink>
-      <NavLink to="/categories" className={navClass}>
-        {({ isActive }) => (
-          <>
-            {isActive && <div className="active-pill" />}
-            <CategoriesIcon />
-            <span className="nav-label">Categories</span>
           </>
         )}
       </NavLink>

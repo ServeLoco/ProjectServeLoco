@@ -2,6 +2,8 @@ const { pool } = require('../db/mysql');
 const { normalizeStoreType, getActiveStoreModeSlugs, isSystemModeSlug } = require('../utils/storeMode');
 const config = require('../config/env');
 const { attachVariants } = require('./productController');
+const microCache = require('../utils/microCache');
+const DASHBOARD_TTL_MS = 30_000;
 
 const SECTION_TYPES = ['offer_banner', 'category_grid', 'product_block', 'combo_block'];
 const SECTION_ITEM_TYPES = {
@@ -259,13 +261,21 @@ const resolveImageUrls = async (rows) => {
 
   if (imageIds.length === 0) return;
 
-  const [images] = await pool.query('SELECT id, url FROM images WHERE id IN (?)', [imageIds]);
+  const [images] = await pool.query('SELECT id, url, thumb_url, filename FROM images WHERE id IN (?)', [imageIds]);
   const imageMap = {};
-  images.forEach(img => { imageMap[String(img.id)] = getStoredImageUrl(img); });
+  images.forEach(img => {
+    imageMap[String(img.id)] = {
+      url: getStoredImageUrl(img),
+      thumb_url: img.thumb_url || null,
+    };
+  });
   rows.forEach(row => {
-    if (row.image_id && imageMap[row.image_id]) {
-      row.imageUrl = imageMap[row.image_id];
-      row.image_url = imageMap[row.image_id];
+    const mapped = imageMap[row.image_id];
+    if (row.image_id && mapped) {
+      row.imageUrl = mapped.url;
+      row.image_url = mapped.url;
+      row.thumbUrl = mapped.thumb_url;
+      row.thumb_url = mapped.thumb_url;
     }
   });
 };
@@ -400,6 +410,11 @@ const getDashboard = async (req, res) => {
     String(req.query.includeClosedShops ?? req.query.include_closed_shops ?? '').toLowerCase()
   );
   const expectedStoreType = await getExpectedStoreType(storeType);
+  const cacheKey = `dashboard:${expectedStoreType}:closed=${includeClosedShops ? 1 : 0}`;
+  const cached = microCache.get(cacheKey);
+  if (cached) {
+    return res.status(200).json(cached);
+  }
 
   const shopOpenWhere = includeClosedShops
     ? '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.active = 1))'
@@ -425,14 +440,14 @@ const getDashboard = async (req, res) => {
     query += ' ORDER BY display_order ASC, id ASC';
 
     const [sections] = await pool.query(query, params);
-    const resultSections = [];
 
-    for (const section of sections) {
+    // Build each section's items in parallel (Promise.all preserves input order).
+    const buildSection = async (section) => {
       let items = [];
 
       if (section.section_type === 'offer_banner') {
         const offerStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND o.store_type = ?' : '';
-        const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType] : [section.id];
+        const itemParams = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType] : [section.id];
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, o.* 
            FROM dashboard_section_items dsi
@@ -443,7 +458,7 @@ const getDashboard = async (req, res) => {
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
-          params
+          itemParams
         );
         await resolveImageUrls(rows);
         items = mapOfferRows(rows);
@@ -494,7 +509,7 @@ const getDashboard = async (req, res) => {
         items = mapProductRows(filteredRows);
       } else if (section.section_type === 'combo_block') {
         const comboStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND p.store_type = ?' : '';
-        const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType] : [section.id];
+        const itemParams = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType] : [section.id];
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, p.store_type as category_type
            FROM dashboard_section_items dsi
@@ -505,7 +520,7 @@ const getDashboard = async (req, res) => {
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
-          params
+          itemParams
         );
         await resolveImageUrls(rows);
         await attachComboItems(rows);
@@ -521,32 +536,37 @@ const getDashboard = async (req, res) => {
       const totalItems = items.length;
 
       // Hide empty sections by default
-      if (visibleItems.length > 0) {
-        resultSections.push({
-          id: section.id,
-          title: section.title,
-          slug: section.slug,
-          sectionType: section.section_type,
-          storeType: section.store_type,
-          displayOrder: section.display_order,
-          maxVisibleItems: section.max_visible_items,
-          showSeeAll: section.show_see_all === 1 || section.show_see_all === true,
-          showHotBadge: section.show_hot_badge === 1 || section.show_hot_badge === true,
-          sectionIcon: section.section_icon || null,
-          totalItems,
-          hasMore: totalItems > visibleItems.length,
-          items: visibleItems
-        });
-      }
-    }
+      if (visibleItems.length === 0) return null;
 
+      return {
+        id: section.id,
+        title: section.title,
+        slug: section.slug,
+        sectionType: section.section_type,
+        storeType: section.store_type,
+        displayOrder: section.display_order,
+        maxVisibleItems: section.max_visible_items,
+        showSeeAll: section.show_see_all === 1 || section.show_see_all === true,
+        showHotBadge: section.show_hot_badge === 1 || section.show_hot_badge === true,
+        sectionIcon: section.section_icon || null,
+        totalItems,
+        hasMore: totalItems > visibleItems.length,
+        items: visibleItems
+      };
+    };
+
+    const built = await Promise.all(sections.map(buildSection));
+    const resultSections = built.filter(Boolean);
+    // Stable display order (also matches original sections order from SQL).
     resultSections.sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
 
-    res.status(200).json({
+    const body = {
       data: {
         sections: resultSections
       }
-    });
+    };
+    microCache.set(cacheKey, body, DASHBOARD_TTL_MS);
+    res.status(200).json(body);
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
   }
@@ -890,6 +910,7 @@ const createAdminSection = async (req, res) => {
       ]
     );
 
+    microCache.bust('dashboard');
     res.status(201).json({ message: 'Dashboard section created', id: result.insertId });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
@@ -980,6 +1001,7 @@ const updateAdminSection = async (req, res) => {
       ]
     );
 
+    microCache.bust('dashboard');
     res.status(200).json({ message: 'Dashboard section updated', version: nextVersion });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
@@ -1012,6 +1034,7 @@ const deleteAdminSection = async (req, res) => {
       [id]
     );
 
+    microCache.bust('dashboard');
     res.status(200).json({ message: 'Dashboard section deleted' });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
@@ -1099,6 +1122,7 @@ const addAdminSectionItem = async (req, res) => {
       ]
     );
 
+    microCache.bust('dashboard');
     res.status(201).json({ message: 'Dashboard section item added', id: result.insertId });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
@@ -1157,6 +1181,7 @@ const updateAdminSectionItem = async (req, res) => {
       ]
     );
 
+    microCache.bust('dashboard');
     res.status(200).json({ message: 'Section item updated' });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
@@ -1181,6 +1206,7 @@ const deleteAdminSectionItem = async (req, res) => {
       'UPDATE dashboard_section_items SET deleted_at = NOW() WHERE id = ?',
       [itemId]
     );
+    microCache.bust('dashboard');
     res.status(200).json({ message: 'Section item removed' });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
@@ -1209,6 +1235,7 @@ const reorderAdminSections = async (req, res) => {
     }
     await connection.commit();
     connection.release();
+    microCache.bust('dashboard');
     res.status(200).json({ message: 'Sections reordered successfully' });
   } catch (error) {
     await connection.rollback();
@@ -1240,6 +1267,7 @@ const reorderAdminSectionItems = async (req, res) => {
     }
     await connection.commit();
     connection.release();
+    microCache.bust('dashboard');
     res.status(200).json({ message: 'Section items reordered successfully' });
   } catch (error) {
     await connection.rollback();

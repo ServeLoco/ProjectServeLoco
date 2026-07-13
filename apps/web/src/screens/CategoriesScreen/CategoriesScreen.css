@@ -1,5 +1,5 @@
 .categories-screen {
-  padding-bottom: 140px;
+  /* bottom chrome from .screen-container */
 }
 
 .cat-header {
@@ -10,8 +10,28 @@
   z-index: 40;
   box-shadow: var(--shadow-sm);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: var(--space-sm);
+}
+
+.cat-back-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cat-back-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
 }
 
 .cat-title {

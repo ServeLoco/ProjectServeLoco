@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const config = require('./config/env');
 const db = require('./db');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
@@ -70,7 +71,10 @@ if (config.STORAGE_DRIVER !== 's3') {
       return res.status(403).json({ code: 'FORBIDDEN', message: 'Only image files are allowed' });
     }
     next();
-  }, express.static(path.join(__dirname, '../', config.UPLOAD_DIR)));
+  }, express.static(path.join(__dirname, '../', config.UPLOAD_DIR), {
+    maxAge: '30d',
+    immutable: true,
+  }));
 }
 
 // Public policy pages (privacy policy + terms of service) — required for Google Play listing.
@@ -85,6 +89,33 @@ app.use('/policies', express.static(path.join(__dirname, '..', 'public', 'polici
   extensions: ['html'],
   fallthrough: false,
 }));
+
+// Cheap liveness + health — registered BEFORE the /api rate limiter so they
+// never 429 (load balancers / mobile reachability must always work).
+app.get('/ping', (req, res) => res.status(200).json({ ok: true }));
+
+app.get('/health', async (req, res) => {
+  const dbHealth = await db.checkHealth();
+  const isHealthy = dbHealth.mysql === 'ok' && dbHealth.mongodb === 'ok';
+
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'ok' : 'error',
+    databases: {
+      mysql: dbHealth.mysql,
+      mongodb: dbHealth.mongodb
+    }
+  });
+});
+
+// General API rate limiter (abuse cost cap). Route-specific limiters stay.
+// trust proxy is set above so per-IP keys work behind nginx.
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api', apiLimiter);
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -115,26 +146,6 @@ const legacyPaths = [
 legacyPaths.forEach(legacyPath => {
   app.use(legacyPath, (req, res) => {
     res.redirect(308, `/api${req.originalUrl}`);
-  });
-});
-
-// Cheap liveness endpoint — no DB, no auth. Used by the mobile app's periodic
-// reachability ping (useNetworkStatus) so it doesn't run DB checks every 30s
-// like /health does. /health keeps its DB-checking body unchanged (TASK 15 may
-// change its status code); /ping only signals "the process is up".
-app.get('/ping', (req, res) => res.status(200).json({ ok: true }));
-
-// Public health endpoint
-app.get('/health', async (req, res) => {
-  const dbHealth = await db.checkHealth();
-  const isHealthy = dbHealth.mysql === 'ok' && dbHealth.mongodb === 'ok';
-
-  res.status(isHealthy ? 200 : 503).json({
-    status: isHealthy ? 'ok' : 'error',
-    databases: {
-      mysql: dbHealth.mysql,
-      mongodb: dbHealth.mongodb
-    }
   });
 });
 

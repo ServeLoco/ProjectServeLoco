@@ -49,6 +49,7 @@ import {
   subscribeRealtimeLifecycle,
   subscribeShopEvents,
 } from '../../../api';
+import { isFresh, setCached } from '../../../utils/apiCache';
 import {
   asArray,
   normalizeCategory,
@@ -111,6 +112,11 @@ export default function HomeScreen() {
   // dashboard once. Without this, every screen would double-fetch on mount.
   const hasFocusedOnceRef = useRef(false);
 
+  // Per-mode dashboard cache: switching store type shows the cached sections
+  // instantly (no skeleton) while a fresh fetch revalidates in the background.
+  const sectionsCacheRef = useRef({});
+  const prefetchedModesRef = useRef(new Set());
+
   // Staggered entry for cards
   const staggerCatAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
   const staggerComboAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
@@ -119,7 +125,9 @@ export default function HomeScreen() {
     let isMounted = true;
     if (refresh) {
       setIsRefreshing(true);
-    } else {
+    } else if (!sectionsCacheRef.current[currentApiStoreType]) {
+      // Only show the skeleton when we have nothing cached for this mode;
+      // otherwise the cached sections stay visible while we revalidate.
       setIsLoading(true);
     }
     setHomeError('');
@@ -138,7 +146,11 @@ export default function HomeScreen() {
 
       if (dashboardResult.status === 'fulfilled') {
         const sectionsData = dashboardResult.value?.data?.sections || [];
+        sectionsCacheRef.current[currentApiStoreType] = sectionsData;
         setDashboardSections(sectionsData);
+      } else if (sectionsCacheRef.current[currentApiStoreType]) {
+        // Revalidation failed but we have cached content — keep showing it.
+        setDashboardSections(sectionsCacheRef.current[currentApiStoreType]);
       } else {
         setDashboardSections([]);
         setHomeError('Unable to load home sections. Pull to retry.');
@@ -203,7 +215,10 @@ export default function HomeScreen() {
     dashboardApi.getDashboard({ storeType: currentApiStoreType, include_closed_shops: 1 })
       .then(response => {
         const sectionsData = response?.data?.sections;
-        if (sectionsData) setDashboardSections(sectionsData);
+        if (sectionsData) {
+          sectionsCacheRef.current[currentApiStoreType] = sectionsData;
+          setDashboardSections(sectionsData);
+        }
       })
       .catch(() => {});
     settingsApi.getSettings()
@@ -218,12 +233,6 @@ export default function HomeScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      let isActive = true;
-      notificationsApi.getUnreadCount()
-        .then(count => {
-          if (isActive) setUnreadCount(count || 0);
-        })
-        .catch(() => {});
       // Returning to this screen — close any active search and release focus
       setSearchDismissSignal(prev => prev + 1);
 
@@ -232,14 +241,22 @@ export default function HomeScreen() {
       // backgrounded shows as closed immediately, instead of only after a
       // manual pull-to-refresh or app restart. Skip the very first focus —
       // the mount effect already loaded it once.
+      // Freshness throttle (15s): skip if we just revalidated (TASK 16).
+      // Unread badge uses socket events + loadHomeData cold-start; no focus poll.
       if (hasFocusedOnceRef.current) {
-        refreshDashboardSilently();
+        const cacheKey = `dashboard:${currentApiStoreType}`;
+        if (!isFresh(cacheKey, 15_000)) {
+          // Stamp before fetch so rapid re-focuses within 15s skip.
+          setCached(cacheKey, true);
+          refreshDashboardSilently();
+        }
       } else {
         hasFocusedOnceRef.current = true;
+        setCached(`dashboard:${currentApiStoreType}`, true);
       }
 
-      return () => { isActive = false; };
-    }, [refreshDashboardSilently])
+      return undefined;
+    }, [refreshDashboardSilently, currentApiStoreType])
   );
 
   // Exit-app confirmation on hardware/gesture back. Only registered while
@@ -297,30 +314,35 @@ export default function HomeScreen() {
 
     // Live push for a shop opening/closing while this screen stays mounted
     // and foregrounded — the focus/foreground refreshes above don't cover
-    // that case. Any shop.status.updated event just re-fetches the whole
-    // dashboard rather than patching a single section; simpler and cheap
-    // enough given how rarely shops toggle.
+    // that case. Jitter 0–3s so 10k clients don't thundering-herd the API
+    // when admin toggles a shop (TASK 17).
+    let shopRefetchTimer = null;
     const unsubscribeShopEvents = subscribeShopEvents(() => {
-      refreshDashboardSilently();
+      if (shopRefetchTimer) clearTimeout(shopRefetchTimer);
+      shopRefetchTimer = setTimeout(() => {
+        shopRefetchTimer = null;
+        refreshDashboardSilently();
+      }, Math.random() * 3000);
     });
 
     return () => {
       unsubscribeNotifications();
       unsubscribeLifecycle();
       unsubscribeShopEvents();
+      if (shopRefetchTimer) clearTimeout(shopRefetchTimer);
       if (unreadRefreshTimer.current) {
         clearTimeout(unreadRefreshTimer.current);
       }
     };
   }, [queueUnreadRefresh, refreshDashboardSilently]);
 
-  useEffect(() => {
+  const prefetchSectionImages = React.useCallback((sections) => {
     // Pre-warm expo-image's disk cache for every image that will render on the
     // home screen. Images are loaded off the main thread in the background
     // and available instantly when the <Image> mounts.
-    if (!dashboardSections || dashboardSections.length === 0) return;
+    if (!sections || sections.length === 0) return;
     const urls = [];
-    for (const section of dashboardSections) {
+    for (const section of sections) {
       if (section.sectionType === 'offer_banner' && Array.isArray(section.items)) {
         for (const item of section.items) {
           const u = item.details?.imageUrl || item.details?.image_url;
@@ -337,7 +359,36 @@ export default function HomeScreen() {
       // Fire-and-forget; expo-image deduplicates and handles failures silently.
       ExpoImage.prefetch(urls).catch(() => {});
     }
-  }, [dashboardSections]);
+  }, []);
+
+  useEffect(() => {
+    prefetchSectionImages(dashboardSections);
+  }, [dashboardSections, prefetchSectionImages]);
+
+  useEffect(() => {
+    // Warm the other store modes in the background once the visible mode has
+    // loaded, so the first tap on another mode swaps in instantly instead of
+    // showing a skeleton. Delayed so it never competes with the visible
+    // mode's fetch and image downloads.
+    if (isLoading || !Array.isArray(modes) || modes.length <= 1) return undefined;
+    const timer = setTimeout(() => {
+      for (const mode of modes) {
+        const slug = mode?.slug;
+        if (!slug || slug === currentApiStoreType || prefetchedModesRef.current.has(slug)) continue;
+        prefetchedModesRef.current.add(slug);
+        dashboardApi.getDashboard({ storeType: slug, include_closed_shops: 1 })
+          .then(response => {
+            const sectionsData = response?.data?.sections;
+            if (sectionsData) {
+              sectionsCacheRef.current[slug] = sectionsData;
+              prefetchSectionImages(sectionsData);
+            }
+          })
+          .catch(() => { prefetchedModesRef.current.delete(slug); });
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [isLoading, modes, currentApiStoreType, prefetchSectionImages]);
 
   useEffect(() => {
     // 1. Badge pulse/glow loop animation (1.0 to 2.0 scale)
@@ -584,8 +635,15 @@ export default function HomeScreen() {
               selectedOption={storeType}
               onSelect={(val) => {
                 if (val !== storeType) {
-                  setDashboardSections([]);
-                  setIsLoading(true);
+                  const cached = sectionsCacheRef.current[val];
+                  if (cached) {
+                    // Instant swap from cache; the storeType change below
+                    // triggers a background revalidation via loadHomeData.
+                    setDashboardSections(cached);
+                  } else {
+                    setDashboardSections([]);
+                    setIsLoading(true);
+                  }
                   setStoreType(val);
                 }
               }}

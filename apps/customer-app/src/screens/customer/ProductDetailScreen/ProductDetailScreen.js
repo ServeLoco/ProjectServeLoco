@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   ScrollView,
   Animated,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import {
   AppScreen,
   AppHeader,
@@ -22,6 +22,16 @@ import { useAuthGate } from '../../../hooks';
 import { productsApi } from '../../../api';
 import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, normalizeProduct } from '../../../utils';
+import { getCached, setCached, isFresh } from '../../../utils/apiCache';
+
+function applyProductPayload(data) {
+  const normalized = normalizeProduct(data);
+  const related =
+    normalized.relatedProducts.length > 0
+      ? normalized.relatedProducts
+      : asArray(data?.related || data?.similarProducts || data?.similar_products, ['products']).map(normalizeProduct);
+  return { normalized, related };
+}
 
 export default function ProductDetailScreen() {
   const navigation = useNavigation();
@@ -31,9 +41,20 @@ export default function ProductDetailScreen() {
   const productId = route.params?.id || route.params?.productId;
   const productType = route.params?.type || route.params?.itemType;
   const routeProduct = route.params?.product;
-  const [product, setProduct] = useState(null);
-  const [relatedProducts, setRelatedProducts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cacheKey = productId != null ? `product:${productId}` : null;
+
+  // Initial paint: nav param (already normalized from list) > cache > null.
+  // Always normalize at the detail boundary so variants/price fields match.
+  const initialFromRoute = routeProduct ? normalizeProduct(routeProduct) : null;
+  const initialFromCache = (!initialFromRoute && cacheKey) ? getCached(cacheKey)?.data : null;
+  const initialProduct = initialFromRoute || initialFromCache?.product || null;
+  const initialRelated = initialFromRoute?.relatedProducts?.length
+    ? initialFromRoute.relatedProducts
+    : (initialFromCache?.related || []);
+
+  const [product, setProduct] = useState(initialProduct);
+  const [relatedProducts, setRelatedProducts] = useState(initialRelated);
+  const [isLoading, setIsLoading] = useState(!initialProduct);
   const [loadError, setLoadError] = useState('');
 
   // Stores
@@ -52,59 +73,116 @@ export default function ProductDetailScreen() {
   );
 
   // Animations
-  const imgFade = useRef(new Animated.Value(0)).current;
-  const detailsSlide = useRef(new Animated.Value(30)).current;
-  const detailsFade = useRef(new Animated.Value(0)).current;
-  const bottomBarSlide = useRef(new Animated.Value(80)).current;
-  const staggerRelatedAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+  const imgFade = useRef(new Animated.Value(initialProduct ? 1 : 0)).current;
+  const detailsSlide = useRef(new Animated.Value(initialProduct ? 0 : 30)).current;
+  const detailsFade = useRef(new Animated.Value(initialProduct ? 1 : 0)).current;
+  const bottomBarSlide = useRef(new Animated.Value(initialProduct ? 0 : 80)).current;
+  const staggerRelatedAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(initialProduct ? 1 : 0))).current;
+  const hasAnimatedRef = useRef(!!initialProduct);
+
+  const runEntryAnimation = () => {
+    if (hasAnimatedRef.current) return;
+    hasAnimatedRef.current = true;
+    Animated.parallel([
+      Animated.timing(imgFade, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(detailsFade, { toValue: 1, duration: 400, delay: 100, useNativeDriver: true }),
+      Animated.timing(detailsSlide, { toValue: 0, duration: 400, delay: 100, useNativeDriver: true }),
+      Animated.timing(bottomBarSlide, { toValue: 0, duration: 500, delay: 200, useNativeDriver: true }),
+      Animated.stagger(150, staggerRelatedAnims.map(anim =>
+        Animated.timing(anim, { toValue: 1, duration: 400, delay: 200, useNativeDriver: true })
+      )),
+    ]).start();
+  };
 
   useEffect(() => {
     let isMounted = true;
 
     trackEvent('product_view', { productId: Number(productId) });
-    setIsLoading(true);
-    setLoadError('');
 
+    // Instant paint from nav product or cache — no full-screen loader.
+    if (routeProduct) {
+      const normalized = normalizeProduct(routeProduct);
+      setProduct(normalized);
+      setRelatedProducts(normalized.relatedProducts || []);
+      setIsLoading(false);
+      setLoadError('');
+      runEntryAnimation();
+    } else if (cacheKey) {
+      const cached = getCached(cacheKey);
+      if (cached?.data?.product) {
+        setProduct(cached.data.product);
+        setRelatedProducts(cached.data.related || []);
+        setIsLoading(false);
+        setLoadError('');
+        runEntryAnimation();
+      } else {
+        setIsLoading(true);
+        setLoadError('');
+      }
+    } else {
+      setIsLoading(true);
+      setLoadError('');
+    }
+
+    // Background revalidate (always). Fresh result replaces initial paint wholesale.
     productsApi.getProduct(productId, productType ? { type: productType } : undefined)
       .then(response => {
         if (!isMounted) return;
         const data = response?.product || response?.data || response;
-        const normalized = normalizeProduct(data);
+        const { normalized, related } = applyProductPayload(data);
         setProduct(normalized);
-        setRelatedProducts(
-          normalized.relatedProducts.length > 0
-            ? normalized.relatedProducts
-            : asArray(data?.related || data?.similarProducts || data?.similar_products, ['products']).map(normalizeProduct),
-        );
+        setRelatedProducts(related);
+        if (cacheKey) {
+          setCached(cacheKey, { product: normalized, related });
+        }
         setIsLoading(false);
-
-        Animated.parallel([
-          Animated.timing(imgFade, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.timing(detailsFade, { toValue: 1, duration: 400, delay: 100, useNativeDriver: true }),
-          Animated.timing(detailsSlide, { toValue: 0, duration: 400, delay: 100, useNativeDriver: true }),
-          Animated.timing(bottomBarSlide, { toValue: 0, duration: 500, delay: 200, useNativeDriver: true }),
-          Animated.stagger(150, staggerRelatedAnims.map(anim =>
-            Animated.timing(anim, { toValue: 1, duration: 400, delay: 200, useNativeDriver: true })
-          )),
-        ]).start();
+        setLoadError('');
+        runEntryAnimation();
       })
       .catch(error => {
         if (!isMounted) return;
-        if (routeProduct) {
-          const normalized = normalizeProduct(routeProduct);
-          setProduct(normalized);
-          setRelatedProducts(normalized.relatedProducts || []);
-          setIsLoading(false);
-          return;
+        // Keep painted product on revalidation failure; error only when nothing to show.
+        if (!routeProduct && !(cacheKey && getCached(cacheKey)?.data?.product)) {
+          setLoadError(error.message || 'Failed to load product');
         }
-        setLoadError(error.message || 'Failed to load product');
         setIsLoading(false);
       });
 
     return () => {
       isMounted = false;
     };
-  }, [bottomBarSlide, detailsFade, detailsSlide, imgFade, productId, productType, routeProduct, staggerRelatedAnims]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId, productType]);
+
+  // Silent revalidate on refocus (skip first focus — mount effect already loaded).
+  const hasFocusedOnceRef = useRef(false);
+  const revalidateProductSilently = useCallback(() => {
+    if (!productId) return;
+    productsApi.getProduct(productId, productType ? { type: productType } : undefined)
+      .then(response => {
+        const data = response?.product || response?.data || response;
+        const { normalized, related } = applyProductPayload(data);
+        setProduct(normalized);
+        setRelatedProducts(related);
+        if (cacheKey) {
+          setCached(cacheKey, { product: normalized, related });
+        }
+      })
+      .catch(() => {});
+  }, [productId, productType, cacheKey]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFocusedOnceRef.current) {
+        // 15s freshness throttle; pull-to-refresh N/A here; realtime invalidation clears keys.
+        if (!cacheKey || !isFresh(cacheKey, 15_000)) {
+          revalidateProductSilently();
+        }
+      } else {
+        hasFocusedOnceRef.current = true;
+      }
+    }, [revalidateProductSilently, cacheKey]),
+  );
 
   const findCartLine = (id) => items.find(i => i.product.id === id && (i.type || 'product') !== 'combo');
 

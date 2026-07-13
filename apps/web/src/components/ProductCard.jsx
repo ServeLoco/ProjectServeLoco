@@ -1,9 +1,16 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../stores/cartStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import QuantityControl from './QuantityControl';
 import Button from './Button';
+import VariantSheet from './VariantSheet/VariantSheet';
 import { formatPrice } from '../utils/formatters';
+import {
+  normalizeProduct,
+  isMultiVariantProduct,
+  getDisplayPrice,
+} from '../utils/productUtils';
 import './ProductCard.css';
 
 import { getResolvedImageUrl, PLACEHOLDER } from '../utils/imageUtils';
@@ -15,89 +22,175 @@ export default function ProductCard({ item, isCombo = false }) {
   const addItem = useCartStore((state) => state.addItem);
   const addCombo = useCartStore((state) => state.addCombo);
   const updateQty = useCartStore((state) => state.updateQty);
+  const getProductQuantity = useCartStore((state) => state.getProductQuantity);
+  const getComboQuantity = useCartStore((state) => state.getComboQuantity);
+  const [variantSheetOpen, setVariantSheetOpen] = useState(false);
 
-  const type = isCombo ? 'combo' : 'product';
-  const cartItem = cartItems.find(i => i.product.id === item.id && i.type === type);
-  const quantity = cartItem ? cartItem.quantity : 0;
+  const product = normalizeProduct(item || {});
+  const type = isCombo || product.isCombo ? 'combo' : 'product';
+  const multiVariant = !isCombo && isMultiVariantProduct(product);
+
+  const quantity = isCombo || product.isCombo
+    ? getComboQuantity(product.id)
+    : multiVariant
+      ? getProductQuantity(product.id)
+      : (cartItems.find(
+          (i) =>
+            i.product.id === product.id &&
+            i.type === 'product' &&
+            (i.variant?.id ?? null) === (product.variants?.[0]?.id ?? null)
+        )?.quantity || 0);
 
   const handleCardClick = () => {
-    navigate(`/product/${item.id}?type=${type}`);
+    navigate(`/product/${product.id}?type=${type}`);
+  };
+
+  const findSingleVariant = () => {
+    if (product.variants?.length === 1) return product.variants[0];
+    // Reuse cart line variant if already present
+    const existing = cartItems.find(
+      (i) => i.product.id === product.id && i.type !== 'combo'
+    );
+    return existing?.variant ?? product.variants?.[0] ?? null;
   };
 
   const handleAdd = (e) => {
     e.stopPropagation();
-    if (!shopOpen) return;
-    // Note: Add auth redirect logic higher up or check authStore here
-    if (isCombo) {
-      addCombo(item, 1);
-    } else {
-      addItem(item, 1);
+    if (!shopOpen || product.shopIsOpen === false) return;
+
+    if (isCombo || product.isCombo) {
+      addCombo(product, 1);
+      return;
     }
+    if (multiVariant) {
+      setVariantSheetOpen(true);
+      return;
+    }
+    addItem(product, 1, findSingleVariant());
   };
 
   const handleIncrease = (e) => {
     e.stopPropagation();
-    updateQty(item.id, quantity + 1, type);
+    if (multiVariant) {
+      setVariantSheetOpen(true);
+      return;
+    }
+    if (isCombo || product.isCombo) {
+      addCombo(product, 1);
+      return;
+    }
+    const variant = findSingleVariant();
+    const variantId = variant?.id ?? null;
+    updateQty(product.id, quantity + 1, 'product', variantId);
   };
 
   const handleDecrease = (e) => {
     e.stopPropagation();
-    updateQty(item.id, quantity - 1, type);
+    if (multiVariant) {
+      setVariantSheetOpen(true);
+      return;
+    }
+    if (isCombo || product.isCombo) {
+      updateQty(product.id, quantity - 1, 'combo');
+      return;
+    }
+    const variant = findSingleVariant();
+    updateQty(product.id, quantity - 1, 'product', variant?.id ?? null);
   };
 
-  const imageUrl = getResolvedImageUrl(item);
-  const originalPrice = item.originalPrice ?? item.original_price;
-  const isAvailable = item.available !== false && item.available !== 0 && item.available !== null;
+  const imageUrl = getResolvedImageUrl(product);
+  const displayPrice = getDisplayPrice(product);
+  const originalPrice = product.originalPrice ?? product.original_price;
+  const shopClosedForItem = product.shopIsOpen === false;
+  const isAvailable =
+    product.available !== false &&
+    product.available !== 0 &&
+    product.available !== null &&
+    !shopClosedForItem;
   const discountLabel =
-    item.discountLabel ??
-    item.discount_label ??
-    (originalPrice && originalPrice > item.price
-      ? `${Math.round(((originalPrice - item.price) / originalPrice) * 100)}% OFF`
+    product.discountLabel ??
+    product.discount_label ??
+    (originalPrice && originalPrice > product.price
+      ? `${Math.round(((originalPrice - product.price) / originalPrice) * 100)}% OFF`
       : null);
 
   return (
-    <div className="product-card" onClick={handleCardClick}>
-      <div className="product-img-wrapper">
-        {isCombo && <div className="hot-badge">HOT</div>}
-        {discountLabel && <div className="discount-badge">{discountLabel}</div>}
-        <img
-          src={imageUrl}
-          alt={item.name}
-          className="product-img"
-          loading="lazy"
-          onError={(e) => { e.target.onerror = null; e.target.src = PLACEHOLDER; }}
-        />
-      </div>
-      <div className="product-info">
-        <div className="product-name">{item.name}</div>
-        {!isCombo && <div className="product-unit">{item.unit || '1 unit'}</div>}
+    <>
+      <div className="product-card" onClick={handleCardClick}>
+        <div className="product-img-wrapper">
+          {(isCombo || product.isCombo) && <div className="hot-badge">HOT</div>}
+          {discountLabel && <div className="discount-badge">{discountLabel}</div>}
+          <img
+            src={imageUrl}
+            alt={product.name}
+            className="product-img"
+            loading="lazy"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = PLACEHOLDER;
+            }}
+          />
+        </div>
+        <div className="product-info">
+          <div className="product-name">{product.name}</div>
+          {!isCombo && !product.isCombo && (
+            <div className="product-unit">
+              {multiVariant
+                ? (product.variantPrompt || product.variant_prompt || 'Options available')
+                : (product.unit || '1 unit')}
+            </div>
+          )}
 
-        <div className="product-price-row">
-          <div className="product-price-group">
-            <div className="product-price">{formatPrice(item.price)}</div>
-            {originalPrice && originalPrice > item.price && (
-              <div className="product-original-price">{formatPrice(originalPrice)}</div>
+          <div className="product-price-row">
+            <div className="product-price-group">
+              <div className="product-price">
+                {multiVariant ? `from ${formatPrice(displayPrice)}` : formatPrice(displayPrice)}
+              </div>
+              {!multiVariant && originalPrice && originalPrice > product.price && (
+                <div className="product-original-price">{formatPrice(originalPrice)}</div>
+              )}
+            </div>
+
+            {!isAvailable ? (
+              <div className="product-out-label">
+                {shopClosedForItem ? 'Closed' : 'Out'}
+              </div>
+            ) : multiVariant ? (
+              <Button
+                variant="outline"
+                className="add-btn"
+                onClick={handleAdd}
+                disabled={!shopOpen}
+              >
+                {quantity > 0 ? `${quantity} ▾` : 'ADD ▾'}
+              </Button>
+            ) : quantity > 0 ? (
+              <QuantityControl
+                quantity={quantity}
+                onIncrease={handleIncrease}
+                onDecrease={handleDecrease}
+              />
+            ) : (
+              <Button
+                variant="outline"
+                className="add-btn"
+                onClick={handleAdd}
+                disabled={!shopOpen}
+              >
+                ADD
+              </Button>
             )}
           </div>
-
-          {quantity > 0 ? (
-            <QuantityControl
-              quantity={quantity}
-              onIncrease={handleIncrease}
-              onDecrease={handleDecrease}
-            />
-          ) : (
-            <Button
-              variant="outline"
-              className="add-btn"
-              onClick={handleAdd}
-              disabled={!shopOpen || !isAvailable}
-            >
-              ADD
-            </Button>
-          )}
         </div>
       </div>
-    </div>
+
+      {multiVariant && (
+        <VariantSheet
+          open={variantSheetOpen}
+          product={product}
+          onClose={() => setVariantSheetOpen(false)}
+        />
+      )}
+    </>
   );
 }

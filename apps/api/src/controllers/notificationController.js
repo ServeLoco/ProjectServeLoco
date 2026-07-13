@@ -1,6 +1,7 @@
 const { pool } = require('../db/mysql');
 const notificationService = require('../utils/notificationService');
 const { validatePagination } = require('../validators');
+const { emitUnreadCountUpdated } = require('../realtime/orderEvents');
 
 const safeParseActionPayload = (value) => {
   if (!value) return null;
@@ -76,6 +77,7 @@ const getUnreadCount = async (req, res) => {
 const markAllRead = async (req, res) => {
   const userId = req.user.id;
   await notificationService.markAllRead(userId);
+  await emitUnreadCountUpdated(userId);
   res.json({ success: true, message: 'All notifications marked as read' });
 };
 
@@ -96,6 +98,7 @@ const markRead = async (req, res) => {
     }
   }
 
+  await emitUnreadCountUpdated(userId);
   res.json({ success: true, message: 'Notification marked as read' });
 };
 
@@ -111,6 +114,7 @@ const deleteNotification = async (req, res) => {
     }
   }
 
+  await emitUnreadCountUpdated(userId);
   res.json({ success: true, message: 'Notification deleted' });
 };
 

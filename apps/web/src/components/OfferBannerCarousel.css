@@ -4,27 +4,22 @@
   overflow: hidden;
   border-radius: var(--radius-lg);
   background: var(--bg-surface);
+  touch-action: pan-y; /* we own horizontal drags; the page keeps vertical scroll */
 }
 
-.offer-banner-scroller {
+.offer-banner-track {
   display: flex;
   width: 100%;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
+  will-change: transform;
+  transition: transform 600ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-.offer-banner-scroller.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.offer-banner-scroller.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.offer-banner-track.no-transition {
+  transition: none;
 }
 
 .offer-slide {
   flex: 0 0 100%;
-  scroll-snap-align: start;
   position: relative;
 }
 
@@ -33,6 +28,10 @@
   aspect-ratio: 2 / 1; /* matches customer-app home banner (bannerWidth / 2) */
   object-fit: cover;
   display: block;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 
 .offer-dots {
@@ -50,6 +49,9 @@
   height: 6px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.5);
+  border: none;
+  padding: 0;
+  cursor: pointer;
   transition: all 0.3s;
 }
 

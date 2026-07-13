@@ -46,6 +46,10 @@ const toggleMyShop = async (req, res) => {
   // auto-turn it on (if delivery is available), closing it can auto-turn
   // it off (if this was the last open shop). See syncGlobalShopOpenState.
   await syncGlobalShopOpenState();
+  // Products from this shop appear/disappear on dashboard even when global
+  // shop_open is unchanged — bust micro-cache.
+  require('../utils/microCache').bust('dashboard');
+  require('../utils/microCache').bust('categories');
   res.status(200).json({ message: 'Shop updated', shop: shopShape(rows[0]) });
 };
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,7 @@ import {
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
-import { useStoreModes } from '../../../hooks';
+import { useStoreModes, useCachedFetch } from '../../../hooks';
 import { productsApi } from '../../../api';
 import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, normalizeCategory } from '../../../utils';
@@ -49,16 +49,34 @@ export default function CategoriesScreen() {
   );
   
   const { modes } = useStoreModes();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [storeType, setStoreType] = useState(route.params?.storeType || 'packed');
   const [activeChip, setActiveChip] = useState('All');
-  const [categories, setCategories] = useState([]);
-  const [chips, setChips] = useState(['All']);
-  const [isError, setIsError] = useState(false);
-  const [reloadToken, setReloadToken] = useState(0);
 
   const normalizedStoreType = storeType;
+  const categoriesCacheKey = `categories:${storeType}`;
+
+  const fetchCategories = useCallback(async () => {
+    const response = await productsApi.getCategories({ type: storeType });
+    return asArray(response, ['categories']).map(normalizeCategory);
+  }, [storeType]);
+
+  const {
+    data: categoriesData,
+    isLoading,
+    isRefreshing,
+    error,
+    refresh,
+  } = useCachedFetch(categoriesCacheKey, fetchCategories);
+
+  const categories = categoriesData || [];
+  const isError = Boolean(error) && categories.length === 0;
+
+  const chips = useMemo(() => [
+    'All',
+    ...new Set(categories.flatMap(category => (
+      category.subcategories || []
+    )).map(item => item.name || item).filter(Boolean)),
+  ], [categories]);
 
   const displayCategories = useMemo(() => categories.filter(category => {
     const type = String(category.type || '').toLowerCase();
@@ -72,48 +90,28 @@ export default function CategoriesScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
   const staggerAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
+  const lastAnimatedKeyRef = useRef(null);
 
   useEffect(() => {
-    if (!isRefreshing) {
-      setIsLoading(true);
-    }
-    setIsError(false);
+    if (isLoading || !categoriesData) return;
+    // Re-run entry animation when the mode's data first becomes available.
+    if (lastAnimatedKeyRef.current === categoriesCacheKey) return;
+    lastAnimatedKeyRef.current = categoriesCacheKey;
     fadeAnim.setValue(0);
     slideAnim.setValue(20);
     staggerAnims.forEach(anim => anim.setValue(0));
-
-    productsApi.getCategories({ type: storeType })
-      .then(response => {
-        const nextCategories = asArray(response, ['categories']).map(normalizeCategory);
-        setCategories(nextCategories);
-        const nextChips = [
-          'All',
-          ...new Set(nextCategories.flatMap(category => (
-            category.subcategories || []
-          )).map(item => item.name || item).filter(Boolean)),
-        ];
-        setChips(nextChips);
-      })
-      .catch(() => setIsError(true))
-      .finally(() => {
-      setIsLoading(false);
-      setIsRefreshing(false);
-      
-      Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
-        Animated.stagger(
-          50,
-          staggerAnims.map(anim => Animated.spring(anim, { toValue: 1, friction: 7, useNativeDriver: true }))
-        ),
-      ]).start();
-      });
-
-  }, [storeType, reloadToken, fadeAnim, slideAnim, staggerAnims]);
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.stagger(
+        50,
+        staggerAnims.map(anim => Animated.spring(anim, { toValue: 1, friction: 7, useNativeDriver: true }))
+      ),
+    ]).start();
+  }, [isLoading, categoriesData, categoriesCacheKey, fadeAnim, slideAnim, staggerAnims]);
 
   const handleRefresh = () => {
-    setIsRefreshing(true);
-    setReloadToken(value => value + 1);
+    refresh();
   };
 
   const handleSearchPress = () => {
@@ -217,7 +215,7 @@ export default function CategoriesScreen() {
           ) : isError ? (
             <ErrorState
               message="Unable to load categories. Tap to retry."
-              onRetry={() => setReloadToken(value => value + 1)}
+              onRetry={() => refresh()}
               retryLabel="Retry"
               style={styles.emptyState}
             />
@@ -265,7 +263,7 @@ export default function CategoriesScreen() {
                         <View style={styles.categoryAccent} />
                         <View style={[styles.categoryImageFrame, { width: categoryImageWidth }]}>
                           <ProductImage
-                            uri={cat.imageUri}
+                            uri={cat.thumbUrl || cat.imageUri}
                             width="100%"
                             height="100%"
                             borderRadius={radius.lg}

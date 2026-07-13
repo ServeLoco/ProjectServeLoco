@@ -1,5 +1,6 @@
 export * from './useAdminRealtime';
 export * from './useAuthGate';
+export * from './useCachedFetch';
 export * from './useCustomerRealtime';
 export * from './useLocalNotifications';
 export * from './useNetworkStatus';

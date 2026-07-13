@@ -1,18 +1,12 @@
 const path = require('path');
-const fs = require('fs');
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
-const s3 = require('../config/s3');
+const { processUploadedImage, thumbFilenameFor } = require('../utils/imageThumbs');
+const { storeBuffer, deleteStored } = require('../utils/imageStorage');
 
 const MIME_MAP = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' };
 
-// Resolve the absolute disk upload directory, creating it on first use (dev/disk mode).
-const uploadDir = path.join(__dirname, '../../', config.UPLOAD_DIR);
-const ensureUploadDir = () => {
-  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-};
-
-// Build a unique, collision-safe filename using the magic-byte-detected extension.
+// Build a unique, collision-safe filename using the output extension.
 const buildFilename = (fieldname, ext) => {
   const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
   return `${fieldname}-${uniqueSuffix}.${ext}`;
@@ -55,6 +49,7 @@ const getImageUrl = (image) => {
 const normalizeImage = (row) => {
   if (!row) return row;
   const url = getImageUrl(row);
+  const thumbUrl = row.thumb_url || null;
 
   return {
     id: String(row.id),
@@ -67,8 +62,53 @@ const normalizeImage = (row) => {
     imageUrl: url,
     image_url: url,
     url,
+    thumbUrl,
+    thumb_url: thumbUrl,
     created_at: row.created_at || null,
     updated_at: row.updated_at || null
+  };
+};
+
+/**
+ * Optimize + store full image and WebP thumb.
+ * Works for STORAGE_DRIVER=s3 (production) and disk (dev).
+ * Returns metadata ready for INSERT into images.
+ */
+const processAndStoreUpload = async (inputBuffer, detectedExt, originalname) => {
+  const sourceExt = detectedExt || (path.extname(originalname || '').replace('.', '') || 'jpg');
+  const { full, thumb } = await processUploadedImage(inputBuffer, sourceExt);
+
+  // Prefer optimized full; fall back to raw upload so a sharp failure never blocks admin.
+  const fullPayload = full || {
+    buffer: inputBuffer,
+    mimeType: MIME_MAP[sourceExt] || 'image/jpeg',
+    ext: sourceExt === 'jpeg' ? 'jpg' : sourceExt,
+  };
+
+  const filename = buildFilename('image', fullPayload.ext);
+  const safeOriginalName = path.basename(originalname || filename).replace(/[^a-zA-Z0-9._-]/g, '');
+
+  const { url, storageType } = await storeBuffer(filename, fullPayload.buffer, fullPayload.mimeType);
+
+  let thumbUrl = null;
+  if (thumb) {
+    try {
+      const thumbFilename = thumbFilenameFor(filename, thumb.ext);
+      const stored = await storeBuffer(thumbFilename, thumb.buffer, thumb.mimeType);
+      thumbUrl = stored.url;
+    } catch (err) {
+      console.error('[images] thumb store failed:', err.message);
+    }
+  }
+
+  return {
+    filename,
+    safeOriginalName,
+    mimetype: fullPayload.mimeType,
+    size: fullPayload.buffer.length,
+    storageType,
+    url,
+    thumbUrl,
   };
 };
 
@@ -78,31 +118,22 @@ const uploadImage = async (req, res) => {
   }
 
   const { buffer, originalname, detectedExt } = req.file;
-  const ext = detectedExt || (path.extname(originalname || '').replace('.', '') || 'jpg');
-  const mimetype = MIME_MAP[ext] || req.file.mimetype || 'image/jpeg';
-  const size = buffer.length;
-  const filename = buildFilename('image', ext);
-  const safeOriginalName = path.basename(originalname || filename).replace(/[^a-zA-Z0-9._-]/g, '');
-
-  // Write to the configured backend and compute the public URL.
-  let url;
-  let storageType;
-  if (config.STORAGE_DRIVER === 's3') {
-    url = await s3.uploadBuffer(filename, buffer, mimetype);
-    storageType = 's3';
-  } else {
-    ensureUploadDir();
-    fs.writeFileSync(path.join(uploadDir, filename), buffer);
-    url = `${config.PUBLIC_BASE_URL}${config.STATIC_UPLOAD_PATH}/${filename}`;
-    storageType = 'disk';
-  }
-
+  const stored = await processAndStoreUpload(buffer, detectedExt, originalname);
   const altText = req.body.altText || '';
 
   const [result] = await pool.query(
-    `INSERT INTO images (filename, original_name, mime_type, size, storage_type, url, alt_text)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [filename, safeOriginalName, mimetype, size, storageType, url, altText]
+    `INSERT INTO images (filename, original_name, mime_type, size, storage_type, url, alt_text, thumb_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      stored.filename,
+      stored.safeOriginalName,
+      stored.mimetype,
+      stored.size,
+      stored.storageType,
+      stored.url,
+      altText,
+      stored.thumbUrl,
+    ]
   );
   const [savedRows] = await pool.query('SELECT * FROM images WHERE id = ?', [result.insertId]);
   const normalized = normalizeImage(savedRows[0]);
@@ -134,7 +165,6 @@ const deleteImage = async (req, res) => {
 };
 
 // Internal: removes the MySQL row + underlying S3/disk object for a single image.
-// Throws if the row or object removal fails.
 const deleteImageDocAndFile = async (id) => {
   if (!isValidImageId(id)) return;
 
@@ -142,23 +172,22 @@ const deleteImageDocAndFile = async (id) => {
   const image = rows[0];
   if (!image) return;
 
-  if (image.storage_type === 's3') {
-    await s3.deleteObject(image.filename);
-  } else if (image.storage_type === 'disk') {
-    const filePath = path.join(__dirname, '../../', config.UPLOAD_DIR, image.filename);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+  try {
+    await deleteStored(image.storage_type, image.filename);
+  } catch (e) {
+    console.error('[images] delete full failed:', e.message);
+  }
+  if (image.thumb_url) {
+    try {
+      await deleteStored(image.storage_type, image.thumb_url);
+    } catch (e) {
+      console.error('[images] delete thumb failed:', e.message);
     }
   }
 
   await pool.query('DELETE FROM images WHERE id = ?', [id]);
 };
 
-// Public helper for other controllers: after soft-deleting an entity that
-// references an image, call this with the imageId. If no active product /
-// category / combo / offer / settings row still references it, the underlying
-// file and MySQL row are removed. Errors are swallowed (and logged) so the
-// parent delete response isn't blocked by image-storage failures.
 const cleanupOrphanedImage = async (imageId) => {
   if (!imageId) return { deleted: false, reason: 'no-image-id' };
   const idStr = String(imageId);
@@ -212,5 +241,7 @@ module.exports = {
   deleteImage,
   getImages,
   getImage,
-  cleanupOrphanedImage
+  cleanupOrphanedImage,
+  // Exported for bulk import / scripts
+  processAndStoreUpload,
 };

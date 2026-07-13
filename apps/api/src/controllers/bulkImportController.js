@@ -7,6 +7,7 @@ const { pool } = require('../db/mysql');
 const config = require('../config/env');
 const s3 = require('../config/s3');
 const { normalizeStoreType } = require('../utils/storeMode');
+const microCache = require('../utils/microCache');
 
 const GENERIC_ERROR = 'Something went wrong. Please try again later.';
 const UPLOAD_DIR = path.join(__dirname, '../../', config.UPLOAD_DIR);
@@ -60,24 +61,19 @@ const parseSpreadsheet = (buffer, mimetype, originalname) => {
   return parse(buffer, { columns: true, skip_empty_lines: true, trim: true, bom: true });
 };
 
-const buildFilename = (originalFilename) => {
-  const ext = path.extname(originalFilename);
-  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-  return `image-${uniqueSuffix}${ext}`;
-};
-
-// Persist an image buffer to the configured backend (disk in dev, S3 in prod).
-// Returns { filename, url } so the caller can store metadata + roll back later.
-const saveImage = async (buffer, originalFilename, mimetype) => {
-  const filename = buildFilename(originalFilename);
-  if (config.STORAGE_DRIVER === 's3') {
-    const url = await s3.uploadBuffer(filename, buffer, mimetype);
-    return { filename, url };
-  }
-  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-  fs.writeFileSync(path.join(UPLOAD_DIR, filename), buffer);
-  const url = `${config.PUBLIC_BASE_URL}${config.STATIC_UPLOAD_PATH}/${filename}`;
-  return { filename, url };
+// Persist an image buffer (optimized full + WebP thumb) to disk or S3.
+// Returns { filename, url, thumbUrl, mimeType, size } for images table INSERT.
+const saveImage = async (buffer, originalFilename) => {
+  const { processAndStoreUpload } = require('./imageController');
+  const detectedExt = (path.extname(originalFilename || '').replace('.', '') || 'jpg').toLowerCase();
+  const stored = await processAndStoreUpload(buffer, detectedExt, originalFilename);
+  return {
+    filename: stored.filename,
+    url: stored.url,
+    thumbUrl: stored.thumbUrl,
+    mimeType: stored.mimetype,
+    size: stored.size,
+  };
 };
 
 // Delete a stored image from whichever backend holds it. Never throws.
@@ -485,16 +481,20 @@ const commitBulkImport = async (req, res) => {
         const imgType = detectImageType(imgBuffer);
         const mimetype = MIME_MAP[imgType] || 'image/jpeg';
 
-        // 2. Save to the configured backend (disk or S3)
-        const { filename: savedFilename, url: imageUrl } = await saveImage(imgBuffer, row.image_file, mimetype);
+        // 2. Optimize + store full + WebP thumb (disk or S3)
+        const saved = await saveImage(imgBuffer, row.image_file);
+        const { filename: savedFilename, url: imageUrl, thumbUrl, mimeType: savedMime, size: savedSize } = saved;
         savedFiles.push(savedFilename);
 
         // 3. Delete old image if updating
         if (row._action === 'update' && row._existingImageId) {
           try {
-            const [oldRows] = await connection.query('SELECT filename FROM images WHERE id = ?', [row._existingImageId]);
+            const [oldRows] = await connection.query('SELECT filename, thumb_url FROM images WHERE id = ?', [row._existingImageId]);
             if (oldRows[0]) {
               await deleteStoredImage(oldRows[0].filename);
+              if (oldRows[0].thumb_url) {
+                await deleteStoredImage(path.basename(String(oldRows[0].thumb_url).split('?')[0]));
+              }
               await connection.query('DELETE FROM images WHERE id = ?', [row._existingImageId]);
             }
           } catch (e) {
@@ -505,16 +505,17 @@ const commitBulkImport = async (req, res) => {
         // 4. Insert image metadata row (same transaction as the product write —
         // a rollback below automatically undoes this, no manual cleanup needed).
         const [imageInsertResult] = await connection.query(
-          `INSERT INTO images (filename, original_name, mime_type, size, storage_type, url, alt_text)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO images (filename, original_name, mime_type, size, storage_type, url, alt_text, thumb_url)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             savedFilename,
             path.basename(row.image_file).replace(/[^a-zA-Z0-9._-]/g, ''),
-            mimetype,
-            imgBuffer.length,
+            savedMime || mimetype,
+            savedSize || imgBuffer.length,
             config.STORAGE_DRIVER === 's3' ? 's3' : 'disk',
             imageUrl,
             row.name,
+            thumbUrl || null,
           ]
         );
         newImageId = imageInsertResult.insertId;
@@ -545,6 +546,8 @@ const commitBulkImport = async (req, res) => {
     }
 
     await connection.commit();
+    microCache.bust('dashboard');
+    microCache.bust('categories');
     connection.release();
 
     return res.status(201).json({

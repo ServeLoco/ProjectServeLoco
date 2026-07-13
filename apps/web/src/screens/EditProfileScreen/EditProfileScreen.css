@@ -72,9 +72,11 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--bg-input);
-  font-size: var(--fs-base);
+  font-size: 16px; /* prevent iOS Safari input zoom */
   color: var(--text-primary);
   transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .ep-input:focus {
@@ -109,14 +111,15 @@
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  max-width: 430px;
-  height: 80px;
+  max-width: var(--app-max-width, 430px);
+  min-height: var(--action-bar-height, 72px);
   background: var(--bg-surface);
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 var(--screen-padding-h);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding: 12px var(--screen-padding-h);
+  padding-bottom: max(12px, var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
   z-index: 50;
+  box-sizing: border-box;
 }

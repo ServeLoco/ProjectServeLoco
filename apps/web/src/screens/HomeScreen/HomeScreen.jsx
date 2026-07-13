@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardApi } from '../../api/dashboardApi';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -6,6 +6,7 @@ import { useNotificationStore } from '../../stores/notificationStore';
 import { useAuthStore } from '../../stores/authStore';
 import { subscribeRealtime } from '../../api/realtimeClient';
 import { useStoreModes } from '../../hooks/useStoreModes';
+import { normalizeProduct } from '../../utils/productUtils';
 
 import BottomNav from '../../components/BottomNav';
 import StickyMiniCart from '../../components/StickyMiniCart';
@@ -75,24 +76,36 @@ export default function HomeScreen() {
     try { localStorage.setItem('home-store-type', storeType); } catch { /* storage may be unavailable */ }
   }, [storeType]);
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await dashboardApi.getDashboard(storeType);
+      // Match customer-app: include closed shops so cards can show "Closed"
+      const res = await dashboardApi.getDashboard(storeType, { include_closed_shops: 1 });
       const payload = res.data || res;
-      setSections(payload.sections || (Array.isArray(payload) ? payload : []));
+      const rawSections = payload.sections || (Array.isArray(payload) ? payload : []);
+      // Normalize product/combo items so variants survive into ProductCard
+      const next = rawSections.map((section) => {
+        const kind = section.sectionType || section.type || section.section_type;
+        if (kind === 'product_block' || kind === 'combo_block') {
+          return {
+            ...section,
+            items: (section.items || []).map((item) => normalizeProduct(item)),
+          };
+        }
+        return section;
+      });
+      setSections(next);
     } catch (err) {
       setError(err.message || 'Failed to load dashboard');
     } finally {
       setLoading(false);
     }
-  };
+  }, [storeType]);
 
   useEffect(() => {
     loadDashboard();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeType]);
+  }, [loadDashboard]);
 
   const renderSection = (section, idx) => {
     switch (section.sectionType || section.type || section.section_type) {
@@ -110,9 +123,16 @@ export default function HomeScreen() {
                 <div className="section-indicator" />
                 <div className="section-title">{section.title || 'Shop by Category'}</div>
               </div>
+              <button
+                type="button"
+                className="section-see-all"
+                onClick={() => navigate('/categories')}
+              >
+                See all
+              </button>
             </div>
             <div className="grid-4">
-              {section.items.slice(0, 8).map(cat => (
+              {(section.items || []).slice(0, 8).map((cat) => (
                 <CategoryCard key={cat.id} category={cat} storeType={storeType} />
               ))}
             </div>
@@ -120,7 +140,8 @@ export default function HomeScreen() {
         );
       case 'product_block':
       case 'combo_block': {
-        const isCombo = (section.sectionType || section.type || section.section_type) === 'combo_block';
+        const isCombo =
+          (section.sectionType || section.type || section.section_type) === 'combo_block';
         return (
           <div className="dashboard-section" key={idx}>
             {section.title && (
@@ -132,7 +153,7 @@ export default function HomeScreen() {
               </div>
             )}
             <div className={isCombo ? 'grid-2' : 'grid-3'}>
-              {section.items.map(item => (
+              {(section.items || []).map((item) => (
                 <ProductCard key={item.id} item={item} isCombo={isCombo} />
               ))}
             </div>

@@ -193,6 +193,8 @@ const updateShop = async (req, res) => {
     // Keep the global "Shop Status" banner in sync in both directions —
     // see syncGlobalShopOpenState.
     await syncGlobalShopOpenState();
+    require('../utils/microCache').bust('dashboard');
+    require('../utils/microCache').bust('categories');
   }
 
   res.status(200).json({ message: 'Shop updated', shop });

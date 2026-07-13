@@ -32,10 +32,12 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 const adminToken = jwt.sign({ id: 'admin', role: 'admin' }, process.env.JWT_SECRET || 'secret');
+const { clearAll: clearMicroCache } = require('../src/utils/microCache');
 
 describe('Dashboard Public and Admin API Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    clearMicroCache();
   });
 
   describe('Public API: GET /api/dashboard', () => {
