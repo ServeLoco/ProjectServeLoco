@@ -234,16 +234,17 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
 ### — Phase 4: customer tracking screen —
 
 ### TASK 9 — `RiderTrackingScreen`
-- [ ] New `apps/customer-app/src/screens/customer/RiderTrackingScreen/RiderTrackingScreen.js` + `index.js`, folder-per-screen convention.
-- [ ] Route param `{ orderId }`. On mount: fetch order detail (existing customer order-detail API call used by `OrderDetailScreen`) → destination = order `latitude`/`longitude`, rider start = `rider.lastLat/lastLng` (TASK 4 enrichment; tolerate null → center on destination, show "waiting for rider location…" chip).
-- [ ] Map: `MapView` + `Camera` fitting both points (`fitBounds` with padding), destination marker, rider marker (`PointAnnotation` or `MarkerView`).
-- [ ] Route line: one Directions API fetch on mount (driving profile, `geometries=geojson`, pk token) rider→destination; render via `ShapeSource` + `LineLayer`. Keep the fetched coordinates array in a ref.
-- [ ] Live updates: `subscribeRiderLocation` (TASK 6), filter `String(payload.orderId ?? payload.order_id) === String(orderId)` — copy the filter idiom from `OrderDetailScreen.js:223-225`. On match: update rider marker coordinate state only (no MapView remount, no camera jump every ping — recenter only if marker exits viewport).
-- [ ] Off-route re-fetch: haversine from new position to nearest fetched route coordinate; if >150 m, re-fetch Directions once and replace the line (guard with an in-flight flag so concurrent pings can't double-fetch).
-- [ ] Also subscribe to order events: on `order.status.updated` → delivered/cancelled for this order, show a "Delivered 🎉"/"Cancelled" state and stop expecting pings.
-- [ ] Register in the customer stack navigator next to `OrderDetailScreen` (find the navigator under `src/navigation/`).
+- [x] New `apps/customer-app/src/screens/customer/RiderTrackingScreen/RiderTrackingScreen.js` + `index.js`, folder-per-screen convention.
+- [x] Route param `{ orderId }`. On mount: fetch order detail (existing customer order-detail API call used by `OrderDetailScreen`) → destination = order `latitude`/`longitude`, rider start = `rider.lastLat/lastLng` (TASK 4 enrichment; tolerate null → center on destination, show "waiting for rider location…" chip).
+- [x] Map: `MapView` + `Camera` fitting both points (`fitBounds` with padding), destination marker, rider marker (`PointAnnotation` or `MarkerView`).
+- [x] Route line: one Directions API fetch on mount (driving profile, `geometries=geojson`, pk token) rider→destination; render via `ShapeSource` + `LineLayer`. Keep the fetched coordinates array in a ref.
+- [x] Live updates: `subscribeRiderLocation` (TASK 6), filter `String(payload.orderId ?? payload.order_id) === String(orderId)` — copy the filter idiom from `OrderDetailScreen.js:223-225`. On match: update rider marker coordinate state only (no MapView remount, no camera jump every ping — recenter only if marker exits viewport).
+- [x] Off-route re-fetch: haversine from new position to nearest fetched route coordinate; if >150 m, re-fetch Directions once and replace the line (guard with an in-flight flag so concurrent pings can't double-fetch).
+- [x] Also subscribe to order events: on `order.status.updated` → delivered/cancelled for this order, show a "Delivered 🎉"/"Cancelled" state and stop expecting pings.
+- [x] Register in the customer stack navigator next to `OrderDetailScreen` (find the navigator under `src/navigation/`).
 - Acceptance: screen renders with mock/seed data; eslint + jest green.
 - Commit: `feat: MAP TASK 9 — RiderTrackingScreen with route line`
+  - Done 2026-07-13: RiderTrackingScreen + route line + live socket updates + navigator route; jest 190 pass.
 
 ### TASK 10 — OrderDetail entry point
 - [ ] `OrderDetailScreen.js`: add a "Track rider" button/banner, visible only when the order has `rider_id`/rider attached AND status is the out-for-delivery status (use the exact status constant the screen already switches on — read it, don't invent). Navigates to `RiderTrackingScreen` with `{ orderId }`.

@@ -7,6 +7,7 @@ export { default as CheckoutScreen } from './CheckoutScreen';
 export { default as OrderConfirmationScreen } from './OrderConfirmationScreen';
 export { default as OrdersScreen } from './OrdersScreen';
 export { default as OrderDetailScreen } from './OrderDetailScreen';
+export { default as RiderTrackingScreen } from './RiderTrackingScreen';
 export { default as ProfileScreen } from './ProfileScreen';
 export { default as EditProfileScreen } from './EditProfileScreen';
 export { default as AuthScreen } from './AuthScreen';

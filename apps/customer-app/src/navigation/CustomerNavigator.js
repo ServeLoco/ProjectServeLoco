@@ -26,6 +26,7 @@ import {
   CheckoutScreen,
   OrderConfirmationScreen,
   OrderDetailScreen,
+  RiderTrackingScreen,
   EditProfileScreen,
   AuthScreen,
   NotificationsScreen,
@@ -316,6 +317,7 @@ export default function CustomerNavigator() {
 
           {/* Account / Misc Flow */}
           <Stack.Screen name="OrderDetail"   component={OrderDetailScreen} />
+          <Stack.Screen name="RiderTracking" component={RiderTrackingScreen} />
           <Stack.Screen name="EditProfile"   component={EditProfileScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
         </>
