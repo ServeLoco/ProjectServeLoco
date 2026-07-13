@@ -221,6 +221,7 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
 - Acceptance: component renders on device, pan moves map under fixed pin, both buttons work; eslint clean.
 - Commit: `feat: MAP TASK 7 — LocationPicker map component`
   - Done 2026-07-13: LocationPicker modal + fixed pin; jest mock for @rnmapbox/maps; 190 pass.
+  - **Superseded 2026-07-13** (`d10cf39`): product decision changed after live device testing — map moved from bottom-sheet modal to an `inline` card rendered directly under the Current Location / Enter Manually buttons (always visible once GPS mode selected, not gated behind a sheet open). Added `inline` + `autoConfirmOnLocate` props: tapping "Current Location" now fetches GPS and auto-confirms in one step (calls `onConfirm` immediately on successful locate) instead of requiring a second "Confirm location" tap. Modal variant kept in the component (unused by checkout now) for any future sheet-style use. See TASK 8 note for the `CheckoutScreen` wiring change.
 
 ### TASK 8 — CheckoutScreen integration
 - [x] Read `CheckoutScreen.js` GPS flow fully before editing (lines ~560-640). Replace the *trigger* of the one-shot GPS flow: tapping the GPS/location option now opens `LocationPicker` (visible-state boolean) instead of immediately calling `getCurrentPositionAsync`.
@@ -230,6 +231,7 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
 - Acceptance: place a real order end-to-end on device via picker → order stores same field shapes as before (verify in API DB/log); manual-entry path untouched.
 - Commit: `feat: MAP TASK 8 — checkout interactive location picker`
   - Done 2026-07-13: GPS mode opens LocationPicker; reverse-geocode once on confirm; payload shape unchanged; jest 190 pass.
+  - **Superseded 2026-07-13** (`d10cf39`): dropped the modal trigger. `openLocationPicker` now fetches GPS directly (with an 8s timeout race, `GPS_ERROR_TIMEOUT`) and calls `applyPickedLocation` itself the moment "Current Location" is tapped — no intermediate sheet-open step. `<LocationPicker inline autoConfirmOnLocate>` renders unconditionally under the option cards whenever `locationMode === 'gps'`, `initialCenter` synced from `coordinates` state. `locationPickerVisible` state removed (dead after the switch). Payload shape and reverse-geocode-once-per-confirm rule both still hold — verified live on device (`QC89XG4LWGLJ69LZ`): map inline, tap Current Location → "Your live location fetched successfully" + pin moved off default center in one step.
 
 ### — Phase 4: customer tracking screen —
 
