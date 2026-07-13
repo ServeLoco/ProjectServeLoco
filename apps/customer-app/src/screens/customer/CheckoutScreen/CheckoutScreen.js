@@ -50,6 +50,19 @@ const GPS_ERROR_TIMEOUT = 'GPS_TIMEOUT';
 const GPS_ERROR_DENIED = 'GPS_DENIED';
 const GPS_ERROR_SETTINGS = 'GPS_SETTINGS';
 
+const GPS_TIMEOUT_MS = 8000;
+
+// GPS can hang indefinitely on some devices; cap it so the pin/status never
+// gets stuck loading forever.
+function getCurrentPositionWithTimeout() {
+  return Promise.race([
+    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(GPS_ERROR_TIMEOUT)), GPS_TIMEOUT_MS),
+    ),
+  ]);
+}
+
 const getGpsErrorCopy = (code) => {
   switch (code) {
     case GPS_ERROR_TIMEOUT:
@@ -302,7 +315,6 @@ export default function CheckoutScreen() {
   const [coordinates, setCoordinates] = useState(null);
   const [gpsStatus, setGpsStatus] = useState('idle'); // idle | loading | success | error
   const [gpsError, setGpsError] = useState(null);
-  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   // How the user is providing their delivery address: GPS or manual entry.
   // Always starts unselected — address may still be prefilled as a convenience.
   const [locationMode, setLocationMode] = useState(null);
@@ -566,7 +578,6 @@ export default function CheckoutScreen() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setGpsStatus('loading');
     setGpsError(null);
-    setLocationPickerVisible(false);
 
     try {
       let resolvedAddress = null;
@@ -624,6 +635,9 @@ export default function CheckoutScreen() {
     return () => sub.remove();
   }, [gpsStatus]);
 
+  // Tapping the "Current Location" card fetches + pins the position
+  // immediately — the inline map (rendered under the option cards) shows it
+  // live, no separate "use current location" tap required.
   const openLocationPicker = async () => {
     setGpsError(null);
     // Re-ask system dialog when possible; if permanently blocked, send to Settings.
@@ -638,9 +652,20 @@ export default function CheckoutScreen() {
       } else {
         setGpsError(GPS_ERROR_DENIED);
       }
-      // Still open the picker: map pan uses default center; manual path remains.
+      // Inline map still renders with the default center; pan-and-confirm
+      // and "use my current location" retry remain available there.
+      return;
     }
-    setLocationPickerVisible(true);
+
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    try {
+      const position = await getCurrentPositionWithTimeout();
+      await applyPickedLocation(position.coords.latitude, position.coords.longitude);
+    } catch (error) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setGpsStatus('error');
+      setGpsError(error.message === GPS_ERROR_TIMEOUT ? GPS_ERROR_TIMEOUT : error.message);
+    }
   };
 
   const selectMode = (mode) => {
@@ -1000,6 +1025,19 @@ export default function CheckoutScreen() {
             </View>
           </View>
           </Animated.View>
+
+          {locationMode === 'gps' && (
+            <LocationPicker
+              inline
+              autoConfirmOnLocate
+              initialCenter={
+                coordinates
+                  ? { latitude: coordinates.lat, longitude: coordinates.lng }
+                  : undefined
+              }
+              onConfirm={applyPickedLocation}
+            />
+          )}
 
           <ManualAddressField
             visible={locationMode === 'manual'}
@@ -1560,17 +1598,6 @@ export default function CheckoutScreen() {
         confirmVariant="primary"
         onCancel={() => setShowCodNightModal(false)}
         onConfirm={handleSwitchToUpi}
-      />
-
-      <LocationPicker
-        visible={locationPickerVisible}
-        initialCenter={
-          coordinates
-            ? { latitude: coordinates.lat, longitude: coordinates.lng }
-            : undefined
-        }
-        onConfirm={applyPickedLocation}
-        onClose={() => setLocationPickerVisible(false)}
       />
 
     </AppScreen>

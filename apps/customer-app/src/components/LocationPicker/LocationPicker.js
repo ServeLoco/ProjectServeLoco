@@ -32,12 +32,22 @@ function getPositionWithTimeout() {
 /**
  * Interactive map location picker (Feature A).
  * Fixed center pin; map pans underneath. Parent reverse-geocodes on confirm.
+ *
+ * `inline`: renders as a plain embedded card (no Modal/overlay/close button)
+ * instead of a bottom sheet — used on the checkout screen so the map sits
+ * directly under the Current Location / Enter Manually cards.
+ * `autoConfirmOnLocate`: when true, a successful "use my current location"
+ * fetch also calls onConfirm immediately (no separate confirm tap needed) —
+ * used for the checkout inline map so tapping Current Location both pins
+ * and confirms the address in one step.
  */
 export default function LocationPicker({
   visible,
   initialCenter,
   onConfirm,
   onClose,
+  inline = false,
+  autoConfirmOnLocate = false,
 }) {
   const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
@@ -50,8 +60,8 @@ export default function LocationPicker({
   const centerCoordinate = [Number(center.longitude), Number(center.latitude)];
 
   useEffect(() => {
-    if (!visible || !mapboxAvailable) return;
-    // Reset camera when sheet opens with a new center.
+    if ((!inline && !visible) || !mapboxAvailable) return;
+    // Reset camera when the map (re)opens with a new center.
     try {
       cameraRef.current?.setCamera?.({
         centerCoordinate,
@@ -59,7 +69,7 @@ export default function LocationPicker({
         animationDuration: 0,
       });
     } catch (_) { /* ignore */ }
-  }, [visible, centerCoordinate[0], centerCoordinate[1]]);
+  }, [inline, visible, centerCoordinate[0], centerCoordinate[1]]);
 
   const handleUseCurrentLocation = useCallback(async () => {
     setLocating(true);
@@ -77,12 +87,15 @@ export default function LocationPicker({
           animationDuration: 500,
         });
       } catch (_) { /* ignore */ }
+      if (autoConfirmOnLocate && typeof onConfirm === 'function') {
+        onConfirm(latitude, longitude);
+      }
     } catch (_) {
       setGpsError('Could not get your location. Pan the map to pin it instead.');
     } finally {
       setLocating(false);
     }
-  }, []);
+  }, [autoConfirmOnLocate, onConfirm]);
 
   const handleConfirm = useCallback(async () => {
     if (confirming) return;
@@ -119,6 +132,84 @@ export default function LocationPicker({
     }
   }, [center.latitude, center.longitude, confirming, onConfirm]);
 
+  const content = (
+    <>
+      <View style={[styles.mapWrap, inline && styles.mapWrapInline]}>
+        {mapboxAvailable ? (
+          <Mapbox.MapView
+            ref={mapRef}
+            style={styles.map}
+            styleURL={Mapbox.StyleURL.Street}
+            compassEnabled={false}
+            logoEnabled={false}
+            attributionEnabled={false}
+            scaleBarEnabled={false}
+          >
+            <Mapbox.Camera
+              ref={cameraRef}
+              defaultSettings={{
+                centerCoordinate,
+                zoomLevel: 15,
+              }}
+            />
+          </Mapbox.MapView>
+        ) : (
+          <View style={styles.fallback}>
+            <Text style={styles.fallbackTitle}>Map unavailable</Text>
+            <Text style={styles.fallbackBody}>
+              Use your current location or type the address manually.
+            </Text>
+          </View>
+        )}
+
+        {mapboxAvailable ? (
+          <View pointerEvents="none" style={styles.pinWrap}>
+            <View style={styles.pin} />
+            <View style={styles.pinStem} />
+          </View>
+        ) : null}
+      </View>
+
+      {gpsError ? (
+        <Text style={[styles.gpsErrorText, inline && styles.gpsErrorTextInline]}>{gpsError}</Text>
+      ) : null}
+
+      <View style={[styles.actions, inline && styles.actionsInline]}>
+        <TouchableOpacity
+          style={styles.secondaryBtn}
+          onPress={handleUseCurrentLocation}
+          disabled={locating}
+          accessibilityRole="button"
+          accessibilityLabel="Use my current location"
+        >
+          {locating ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <Text style={styles.secondaryBtnText}>Use my current location</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.primaryBtn}
+          onPress={handleConfirm}
+          disabled={confirming}
+          accessibilityRole="button"
+          accessibilityLabel="Confirm location"
+        >
+          {confirming ? (
+            <ActivityIndicator color={colors.textInverse || '#fff'} />
+          ) : (
+            <Text style={styles.primaryBtnText}>Confirm location</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
+  if (inline) {
+    return <View style={styles.inlineCard}>{content}</View>;
+  }
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
@@ -138,75 +229,7 @@ export default function LocationPicker({
             </TouchableOpacity>
           </View>
 
-          <View style={styles.mapWrap}>
-            {mapboxAvailable ? (
-              <Mapbox.MapView
-                ref={mapRef}
-                style={styles.map}
-                styleURL={Mapbox.StyleURL.Street}
-                compassEnabled={false}
-                logoEnabled={false}
-                attributionEnabled={false}
-                scaleBarEnabled={false}
-              >
-                <Mapbox.Camera
-                  ref={cameraRef}
-                  defaultSettings={{
-                    centerCoordinate,
-                    zoomLevel: 15,
-                  }}
-                />
-              </Mapbox.MapView>
-            ) : (
-              <View style={styles.fallback}>
-                <Text style={styles.fallbackTitle}>Map unavailable</Text>
-                <Text style={styles.fallbackBody}>
-                  Use your current location or close and type the address manually.
-                </Text>
-              </View>
-            )}
-
-            {mapboxAvailable ? (
-              <View pointerEvents="none" style={styles.pinWrap}>
-                <View style={styles.pin} />
-                <View style={styles.pinStem} />
-              </View>
-            ) : null}
-          </View>
-
-          {gpsError ? (
-            <Text style={styles.gpsErrorText}>{gpsError}</Text>
-          ) : null}
-
-          <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              onPress={handleUseCurrentLocation}
-              disabled={locating}
-              accessibilityRole="button"
-              accessibilityLabel="Use my current location"
-            >
-              {locating ? (
-                <ActivityIndicator color={colors.primary} />
-              ) : (
-                <Text style={styles.secondaryBtnText}>Use my current location</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.primaryBtn}
-              onPress={handleConfirm}
-              disabled={confirming}
-              accessibilityRole="button"
-              accessibilityLabel="Confirm location"
-            >
-              {confirming ? (
-                <ActivityIndicator color={colors.textInverse || '#fff'} />
-              ) : (
-                <Text style={styles.primaryBtnText}>Confirm location</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          {content}
         </Pressable>
       </Pressable>
     </Modal>
@@ -219,6 +242,9 @@ const styles = StyleSheet.create({
     color: colors.error,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xs,
+  },
+  gpsErrorTextInline: {
+    paddingHorizontal: 0,
   },
   overlay: {
     flex: 1,
@@ -255,12 +281,19 @@ const styles = StyleSheet.create({
     color: colors.saffronDark || colors.primary,
     fontWeight: '600',
   },
+  inlineCard: {
+    marginTop: spacing.sm,
+  },
   mapWrap: {
     height: 320,
     marginHorizontal: spacing.md,
     borderRadius: radius.lg,
     overflow: 'hidden',
     backgroundColor: colors.bgInput,
+  },
+  mapWrapInline: {
+    height: 200,
+    marginHorizontal: 0,
   },
   map: {
     flex: 1,
@@ -306,6 +339,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     gap: spacing.sm,
+  },
+  actionsInline: {
+    paddingHorizontal: 0,
   },
   secondaryBtn: {
     minHeight: 48,
