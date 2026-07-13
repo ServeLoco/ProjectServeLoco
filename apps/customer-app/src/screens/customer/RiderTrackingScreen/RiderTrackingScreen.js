@@ -25,6 +25,9 @@ import {
 } from '../../../utils/mapbox';
 
 const OFF_ROUTE_METERS = 150;
+// Min gap between Directions attempts — keeps a failing API from being re-hit
+// on every location ping (cost budget: ~1-3 calls per delivery).
+const DIRECTIONS_RETRY_COOLDOWN_MS = 30_000;
 
 /** Haversine distance in meters. */
 function distanceMeters(lat1, lng1, lat2, lng2) {
@@ -69,6 +72,7 @@ export default function RiderTrackingScreen() {
   const cameraRef = useRef(null);
   const routeCoordsRef = useRef([]);
   const directionsInFlightRef = useRef(false);
+  const directionsLastAttemptRef = useRef(0);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -90,6 +94,9 @@ export default function RiderTrackingScreen() {
     const token = process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN;
     if (!token) return;
     if (directionsInFlightRef.current) return;
+    const now = Date.now();
+    if (now - directionsLastAttemptRef.current < DIRECTIONS_RETRY_COOLDOWN_MS) return;
+    directionsLastAttemptRef.current = now;
     directionsInFlightRef.current = true;
     try {
       const url =

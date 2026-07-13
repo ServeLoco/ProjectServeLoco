@@ -17,6 +17,18 @@ import {
   mapboxAvailable,
 } from '../../utils/mapbox';
 
+const GPS_TIMEOUT_MS = 8000;
+
+// GPS can hang indefinitely on some devices; cap it so buttons never spin forever.
+function getPositionWithTimeout() {
+  return Promise.race([
+    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('GPS_TIMEOUT')), GPS_TIMEOUT_MS),
+    ),
+  ]);
+}
+
 /**
  * Interactive map location picker (Feature A).
  * Fixed center pin; map pans underneath. Parent reverse-geocodes on confirm.
@@ -32,6 +44,7 @@ export default function LocationPicker({
   const cameraRef = useRef(null);
   const [locating, setLocating] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [gpsError, setGpsError] = useState(null);
 
   const center = initialCenter || DEFAULT_MAP_CENTER;
   const centerCoordinate = [Number(center.longitude), Number(center.latitude)];
@@ -50,12 +63,11 @@ export default function LocationPicker({
 
   const handleUseCurrentLocation = useCallback(async () => {
     setLocating(true);
+    setGpsError(null);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
+      const position = await getPositionWithTimeout();
       const { latitude, longitude } = position.coords;
       const next = [longitude, latitude];
       try {
@@ -66,7 +78,7 @@ export default function LocationPicker({
         });
       } catch (_) { /* ignore */ }
     } catch (_) {
-      // Permission denied or GPS failure — silent no-op (parent still can confirm).
+      setGpsError('Could not get your location. Pan the map to pin it instead.');
     } finally {
       setLocating(false);
     }
@@ -92,9 +104,7 @@ export default function LocationPicker({
         try {
           const { status } = await Location.requestForegroundPermissionsAsync();
           if (status === 'granted') {
-            const position = await Location.getCurrentPositionAsync({
-              accuracy: Location.Accuracy.High,
-            });
+            const position = await getPositionWithTimeout();
             lat = position.coords.latitude;
             lng = position.coords.longitude;
           }
@@ -164,6 +174,10 @@ export default function LocationPicker({
             ) : null}
           </View>
 
+          {gpsError ? (
+            <Text style={styles.gpsErrorText}>{gpsError}</Text>
+          ) : null}
+
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.secondaryBtn}
@@ -200,6 +214,12 @@ export default function LocationPicker({
 }
 
 const styles = StyleSheet.create({
+  gpsErrorText: {
+    ...typography.caption,
+    color: colors.error,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+  },
   overlay: {
     flex: 1,
     backgroundColor: colors.overlayDark || 'rgba(0,0,0,0.45)',
