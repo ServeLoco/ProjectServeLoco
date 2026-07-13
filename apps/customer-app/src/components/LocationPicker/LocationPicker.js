@@ -18,6 +18,7 @@ import {
 } from '../../utils/mapbox';
 
 const GPS_TIMEOUT_MS = 8000;
+const PIN_YELLOW = '#FFCC00';
 
 // GPS can hang indefinitely on some devices; cap it so buttons never spin forever.
 function getPositionWithTimeout() {
@@ -367,7 +368,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: colors.error,
+    backgroundColor: PIN_YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 3,
@@ -387,13 +388,13 @@ const styles = StyleSheet.create({
     width: 11,
     height: 11,
     borderRadius: 6,
-    backgroundColor: colors.white || '#fff',
+    backgroundColor: colors.black || '#000',
   },
   pinTail: {
     width: 12,
     height: 12,
     marginTop: -9,
-    backgroundColor: colors.error,
+    backgroundColor: PIN_YELLOW,
     transform: [{ rotate: '45deg' }],
     borderBottomRightRadius: 2,
     zIndex: 1,
