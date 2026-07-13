@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "957749046932",
+    "project_id": "villkro-714fc",
+    "storage_bucket": "villkro-714fc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:957749046932:android:39d27c6a695534b0964e81",
+        "android_client_info": {
+          "package_name": "com.yashsiwach.villkro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwDYf2Di2TP3cvhWaQ_d1ewVKjov_LW0g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

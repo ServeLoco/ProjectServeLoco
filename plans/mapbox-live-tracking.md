@@ -147,15 +147,16 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
   - Done 2026-07-13: `@rnmapbox/maps@^10.3.2`; plugin `["@rnmapbox/maps", {}]`; env keys gitignored placeholders (fill real `pk.` value if still empty); eslint clean; no sk in commit.
 
 ### TASK 2 — Prebuild native android + Mapbox init util
-- [ ] Snapshot current native dir: `git status` clean first, then `npx expo prebuild --clean --platform android`.
-- [ ] Diff regenerated `android/` against HEAD: confirm Firebase (`google-services.json` application), `expo-notifications` icon/color res, package id `com.yashsiwach.villkro`, and version/build numbers survive. If anything regressed, fix via `app.json` (the source of truth), re-run prebuild — never hand-edit generated files.
-- [ ] Verify Mapbox wiring landed: `android/build.gradle` or `android/app/build.gradle` references the Mapbox maven repo `api.mapbox.com/downloads/v2/releases/maven`.
-- [ ] New file `apps/customer-app/src/utils/mapbox.js`:
+- [x] Snapshot current native dir: `git status` clean first, then `npx expo prebuild --clean --platform android`.
+- [x] Diff regenerated `android/` against HEAD: confirm Firebase (`google-services.json` application), `expo-notifications` icon/color res, package id `com.yashsiwach.villkro`, and version/build numbers survive. If anything regressed, fix via `app.json` (the source of truth), re-run prebuild — never hand-edit generated files.
+- [x] Verify Mapbox wiring landed: `android/build.gradle` or `android/app/build.gradle` references the Mapbox maven repo `api.mapbox.com/downloads/v2/releases/maven`.
+- [x] New file `apps/customer-app/src/utils/mapbox.js`:
   - imports `@rnmapbox/maps`, calls `Mapbox.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN)` once, exports the configured `Mapbox` module + `DEFAULT_MAP_CENTER` constant (§4.5).
   - Guard: if the env token is missing, export a `mapboxAvailable = false` flag instead of crashing — screens render a "map unavailable" fallback (keeps app booting on misconfigured builds).
-- [ ] Full native build proof: `npm run android` completes and app boots on the connected device (`QC89XG4LWGLJ69LZ`).
+- [x] Full native build proof: `npm run android` completes and app boots on the connected device (`QC89XG4LWGLJ69LZ`).
 - Acceptance: build succeeds from committed `android/`; app boots; no runtime crash on start (Mapbox not yet rendered anywhere).
 - Commit: `feat: MAP TASK 2 — prebuild android with Mapbox + init util` (include regenerated `android/` in this commit)
+  - Done 2026-07-13: prebuild OK; maven repo + firebase + package/versionCode 7 survive; mapbox.js with mapboxAvailable guard (not barrel-exported from utils/index — keeps cold start free of Mapbox); BUILD SUCCESSFUL; reinstalled debug APK after signature mismatch; Metro bundle OK, app PID up, no JS crash.
 
 ### — Phase 1: backend —
 
