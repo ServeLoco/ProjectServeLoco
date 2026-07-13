@@ -197,33 +197,35 @@ export default function LocationPicker({
       ) : null}
 
       <View style={[styles.actions, inline && styles.actionsInline, fullBleed && styles.actionsFullBleed]}>
-        <TouchableOpacity
-          style={styles.secondaryBtn}
-          onPress={handleUseCurrentLocation}
-          disabled={locating}
-          accessibilityRole="button"
-          accessibilityLabel="Use my current location"
-        >
-          {locating ? (
-            <ActivityIndicator color={colors.primary} />
-          ) : (
-            <Text style={styles.secondaryBtnText}>Use my current location</Text>
-          )}
-        </TouchableOpacity>
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={[styles.secondaryBtn, styles.actionsRowBtn]}
+            onPress={handleUseCurrentLocation}
+            disabled={locating}
+            accessibilityRole="button"
+            accessibilityLabel="Use my current location"
+          >
+            {locating ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <Text style={styles.secondaryBtnText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>Use current location</Text>
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={handleConfirm}
-          disabled={confirming}
-          accessibilityRole="button"
-          accessibilityLabel="Confirm location"
-        >
-          {confirming ? (
-            <ActivityIndicator color={colors.textInverse || '#fff'} />
-          ) : (
-            <Text style={styles.primaryBtnText}>Confirm location</Text>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.primaryBtn, styles.actionsRowBtn]}
+            onPress={handleConfirm}
+            disabled={confirming}
+            accessibilityRole="button"
+            accessibilityLabel="Confirm location"
+          >
+            {confirming ? (
+              <ActivityIndicator color={colors.textInverse || '#fff'} />
+            ) : (
+              <Text style={styles.primaryBtnText} numberOfLines={1}>Confirm location</Text>
+            )}
+          </TouchableOpacity>
+        </View>
 
         {typeof onEnterManually === 'function' ? (
           <TouchableOpacity
@@ -395,6 +397,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  actionsRowBtn: {
+    flex: 1,
+  },
   secondaryBtn: {
     minHeight: 48,
     borderRadius: radius.md,
@@ -402,12 +411,13 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
   },
   secondaryBtnText: {
     ...(typography.label || {}),
     color: colors.primary,
     fontWeight: '600',
+    fontSize: 13,
   },
   primaryBtn: {
     minHeight: 48,
@@ -415,12 +425,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
   },
   primaryBtnText: {
     ...(typography.label || {}),
     color: colors.primaryText || colors.textInverse || '#fff',
     fontWeight: '700',
+    fontSize: 13,
   },
   tertiaryBtn: {
     minHeight: 44,
