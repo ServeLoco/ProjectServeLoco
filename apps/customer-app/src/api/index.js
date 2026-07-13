@@ -11,6 +11,7 @@ export {
   subscribeOrderEvents,
   subscribeRealtime,
   subscribeRealtimeLifecycle,
+  subscribeRiderLocation,
   subscribeShopEvents,
 } from './realtimeClient';
 export {

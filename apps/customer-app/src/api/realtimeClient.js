@@ -14,6 +14,8 @@ const ORDER_EVENTS = [
   'shop.order.cancelled',
 ];
 
+const RIDER_LOCATION_EVENTS = ['rider.location.updated'];
+
 const NOTIFICATION_EVENTS = [
   'notification.created',
   'notification.unread_count.updated',
@@ -89,6 +91,14 @@ function subscribeOrderEvents(handler) {
   return () => unsubscribers.forEach(unsubscribe => unsubscribe());
 }
 
+function subscribeRiderLocation(handler) {
+  const unsubscribers = RIDER_LOCATION_EVENTS.map(eventName =>
+    subscribeRealtime(eventName, payload => handler({ eventName, payload }))
+  );
+
+  return () => unsubscribers.forEach(unsubscribe => unsubscribe());
+}
+
 function subscribeNotificationEvents(handler) {
   const unsubscribers = NOTIFICATION_EVENTS.map(eventName =>
     subscribeRealtime(eventName, payload => handler({ eventName, payload }))
@@ -126,6 +136,10 @@ function subscribeRealtimeLifecycle(handler) {
 
 function bindSocketEvents(nextSocket) {
   ORDER_EVENTS.forEach(eventName => {
+    nextSocket.on(eventName, payload => emitLocal(eventName, payload));
+  });
+
+  RIDER_LOCATION_EVENTS.forEach(eventName => {
     nextSocket.on(eventName, payload => emitLocal(eventName, payload));
   });
 
@@ -231,5 +245,6 @@ export {
   subscribeOrderEvents,
   subscribeRealtime,
   subscribeRealtimeLifecycle,
+  subscribeRiderLocation,
   subscribeShopEvents,
 };
