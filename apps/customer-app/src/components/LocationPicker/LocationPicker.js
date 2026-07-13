@@ -11,7 +11,6 @@ import {
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
-import AppIcon from '../AppIcon';
 import {
   Mapbox,
   DEFAULT_MAP_CENTER,
@@ -180,7 +179,11 @@ export default function LocationPicker({
         {mapboxAvailable ? (
           <View pointerEvents="none" style={styles.pinWrap}>
             <View style={styles.pinIconOffset}>
-              <AppIcon name="location" size={38} color={colors.error} strokeWidth={2.5} fill={colors.error} />
+              <View style={styles.pinHead}>
+                <View style={styles.pinHighlight} />
+                <View style={styles.pinHole} />
+              </View>
+              <View style={styles.pinTail} />
               <View style={styles.pinShadow} />
             </View>
           </View>
@@ -358,14 +361,49 @@ const styles = StyleSheet.create({
   },
   pinIconOffset: {
     alignItems: 'center',
-    transform: [{ translateY: -19 }],
+    transform: [{ translateY: -22 }],
+  },
+  pinHead: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
+    ...shadows.md,
+  },
+  pinHighlight: {
+    position: 'absolute',
+    top: 5,
+    left: 7,
+    width: 14,
+    height: 9,
+    borderRadius: 7,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    transform: [{ rotate: '-25deg' }],
+  },
+  pinHole: {
+    width: 15,
+    height: 15,
+    borderRadius: 8,
+    backgroundColor: colors.white || '#fff',
+  },
+  pinTail: {
+    width: 16,
+    height: 16,
+    marginTop: -12,
+    backgroundColor: colors.error,
+    transform: [{ rotate: '45deg' }],
+    borderBottomRightRadius: 3,
+    zIndex: 1,
   },
   pinShadow: {
     width: 10,
     height: 4,
     borderRadius: 5,
-    marginTop: -3,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    marginTop: 2,
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   fallback: {
     flex: 1,
