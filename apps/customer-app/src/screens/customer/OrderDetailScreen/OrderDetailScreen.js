@@ -494,6 +494,20 @@ export default function OrderDetailScreen() {
           </Animated.View>
         )}
 
+        {timelineStatus === 'Out for Delivery' &&
+        (order.riderId || order.rider_id || order.rider) ? (
+          <PressableScale
+            onPress={() => navigation.navigate('RiderTracking', { orderId: order.id || orderId })}
+            style={styles.trackRiderBtn}
+            scaleTo={0.98}
+            accessibilityRole="button"
+            accessibilityLabel="Track rider"
+          >
+            <AppIcon name="navigation" size={16} color={colors.white} />
+            <Text style={styles.trackRiderBtnText}>Track rider</Text>
+          </PressableScale>
+        ) : null}
+
         {/* Item List */}
         <View style={styles.itemsSection}>
           <View style={styles.itemsSectionHeader}>
@@ -1461,6 +1475,23 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     borderTopWidth: 1.5,
     borderTopColor: colors.border,
+  },
+  trackRiderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.md,
+    ...shadows.sm,
+  },
+  trackRiderBtnText: {
+    ...typography.label,
+    color: colors.white || colors.textInverse || '#fff',
+    fontWeight: '800',
+    fontSize: 15,
   },
   actionButtonsRow: {
     flexDirection: 'row',

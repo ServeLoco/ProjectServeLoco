@@ -247,8 +247,8 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
   - Done 2026-07-13: RiderTrackingScreen + route line + live socket updates + navigator route; jest 190 pass.
 
 ### TASK 10 — OrderDetail entry point
-- [ ] `OrderDetailScreen.js`: add a "Track rider" button/banner, visible only when the order has `rider_id`/rider attached AND status is the out-for-delivery status (use the exact status constant the screen already switches on — read it, don't invent). Navigates to `RiderTrackingScreen` with `{ orderId }`.
-- [ ] Match existing screen styling (theme tokens, existing button components).
+- [x] `OrderDetailScreen.js`: add a "Track rider" button/banner, visible only when the order has `rider_id`/rider attached AND status is the out-for-delivery status (use the exact status constant the screen already switches on — read it, don't invent). Navigates to `RiderTrackingScreen` with `{ orderId }`.
+- [x] Match existing screen styling (theme tokens, existing button components).
 - Acceptance: button appears only in the correct status window; navigation works; nothing else on the screen changed.
 - Commit: `feat: MAP TASK 10 — track-rider entry from order detail`
 
@@ -256,8 +256,9 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
 
 ### TASK 11 — CI token reuse (verified, no action needed)
 **Verified 2026-07-13**: `playstore.yml` runs on `runs-on: [self-hosted, linux, x64, villkro-android]`, which resolves to systemd service `actions.runner.ServeLoco-ProjectServeLoco.linux-server.service` with `User=linux-server` — the **same OS user** as local dev on this machine. `~/.gradle/gradle.properties` (TASK 0) is one file, read by both local `npm run android` and CI builds. **No GitHub Actions secret, no workflow edit required.**
-- [ ] Confirm token present: `grep -q MAPBOX_DOWNLOADS_TOKEN ~/.gradle/gradle.properties` before running TASK 12's live build/verify.
+- [x] Confirm token present: `grep -q MAPBOX_DOWNLOADS_TOKEN ~/.gradle/gradle.properties` before running TASK 12's live build/verify.
 - Acceptance: a real `main`-branch push (major bump path) builds without a missing-token gradle error.
+  - Done 2026-07-13: MAPBOX_DOWNLOADS_TOKEN present in ~/.gradle/gradle.properties (same user as self-hosted CI).
 - No commit — verification-only task.
 
 ### TASK 12 — Full delivery-flow regression + live tracking verification
