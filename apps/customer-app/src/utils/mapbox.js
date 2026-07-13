@@ -1,9 +1,9 @@
 import Mapbox from '@rnmapbox/maps';
 
-/** Fatehabad, Haryana 125047 centroid (locked §4.5). */
+/** Default checkout map center (updated 2026-07-13). */
 export const DEFAULT_MAP_CENTER = {
-  latitude: 29.5152,
-  longitude: 75.4548,
+  latitude: 29.451998,
+  longitude: 75.668669,
 };
 
 const token =
