@@ -54,6 +54,8 @@ export default function LocationPicker({
   autoConfirmOnLocate = false,
   fullBleed = false,
   onEnterManually,
+  onMapTouchStart,
+  onMapTouchEnd,
 }) {
   const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
@@ -140,7 +142,13 @@ export default function LocationPicker({
 
   const content = (
     <>
-      <View style={[styles.mapWrap, inline && styles.mapWrapInline, fullBleed && styles.mapWrapFullBleed]}>
+      <View
+        style={[styles.mapWrap, inline && styles.mapWrapInline, fullBleed && styles.mapWrapFullBleed]}
+        onTouchStart={onMapTouchStart}
+        onTouchMove={onMapTouchStart}
+        onTouchEnd={onMapTouchEnd}
+        onTouchCancel={onMapTouchEnd}
+      >
         {mapboxAvailable ? (
           <Mapbox.MapView
             ref={mapRef}

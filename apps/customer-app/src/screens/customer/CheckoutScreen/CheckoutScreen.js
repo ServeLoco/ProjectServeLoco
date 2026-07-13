@@ -326,11 +326,29 @@ export default function CheckoutScreen() {
   // responder, which starts claiming the gesture on the very first
   // touchmove.
   const scrollRef = useRef(null);
+  // Safety net: the native MapView can swallow the touch-end event on its
+  // own gesture (pan/pinch), so onTouchEnd sometimes never fires on the JS
+  // side — without this, scrollEnabled would stay stuck false for the rest
+  // of the session after the first map drag. Auto re-enables shortly after
+  // any lock, regardless of whether the paired unlock call ever arrives.
+  const scrollLockTimeoutRef = useRef(null);
   const lockMapScroll = useCallback(() => {
     scrollRef.current?.setNativeProps?.({ scrollEnabled: false });
+    if (scrollLockTimeoutRef.current) clearTimeout(scrollLockTimeoutRef.current);
+    scrollLockTimeoutRef.current = setTimeout(() => {
+      scrollRef.current?.setNativeProps?.({ scrollEnabled: true });
+      scrollLockTimeoutRef.current = null;
+    }, 4000);
   }, []);
   const unlockMapScroll = useCallback(() => {
+    if (scrollLockTimeoutRef.current) {
+      clearTimeout(scrollLockTimeoutRef.current);
+      scrollLockTimeoutRef.current = null;
+    }
     scrollRef.current?.setNativeProps?.({ scrollEnabled: true });
+  }, []);
+  useEffect(() => () => {
+    if (scrollLockTimeoutRef.current) clearTimeout(scrollLockTimeoutRef.current);
   }, []);
   const [paymentMethod, setPaymentMethod] = useState(null); // UPI | Cash
   const [deliveryType, setDeliveryType] = useState(null); // standard | fast
@@ -936,12 +954,7 @@ export default function CheckoutScreen() {
         
         {/* Delivery location — immersive edge-to-edge map first, no card. */}
         {locationMode !== 'manual' && (
-          <View
-            style={styles.mapHeroBleed}
-            onTouchStart={lockMapScroll}
-            onTouchEnd={unlockMapScroll}
-            onTouchCancel={unlockMapScroll}
-          >
+          <View style={styles.mapHeroBleed}>
             <LocationPicker
               inline
               fullBleed
@@ -953,6 +966,8 @@ export default function CheckoutScreen() {
               }
               onConfirm={applyPickedLocation}
               onEnterManually={() => selectMode('manual')}
+              onMapTouchStart={lockMapScroll}
+              onMapTouchEnd={unlockMapScroll}
             />
           </View>
         )}
