@@ -14,6 +14,7 @@ import {
   LayoutAnimation,
   Platform,
   KeyboardAvoidingView,
+  AppState,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { CommonActions, useNavigation } from '@react-navigation/native';
@@ -35,7 +36,10 @@ import { asArray, buildProgressHintText, imageRecordToUrl, normalizeCartCalculat
 import { isCodBlockedDuringNight } from '../../../utils/nightDelivery';
 import { formatEtaMinutes } from '../../../utils/formatEta';
 import { uuidv4 } from '../../../utils/uuid';
-import { requestPreciseLocationPermission } from '../../../hooks/usePreciseLocationPermissionOnStart';
+import {
+  requestPreciseLocationPermission,
+  openAppLocationSettings,
+} from '../../../hooks/usePreciseLocationPermissionOnStart';
 
 const isCodNightBlockError = (message = '') => {
   const lower = String(message).toLowerCase();
@@ -44,6 +48,7 @@ const isCodNightBlockError = (message = '') => {
 
 const GPS_ERROR_TIMEOUT = 'GPS_TIMEOUT';
 const GPS_ERROR_DENIED = 'GPS_DENIED';
+const GPS_ERROR_SETTINGS = 'GPS_SETTINGS';
 
 const getGpsErrorCopy = (code) => {
   switch (code) {
@@ -52,10 +57,15 @@ const getGpsErrorCopy = (code) => {
         title: "Couldn't get your location",
         detail: 'GPS timed out.',
       };
+    case GPS_ERROR_SETTINGS:
+      return {
+        title: 'Location blocked',
+        detail: 'Open Settings → Permissions → Location → Allow (Precise).',
+      };
     case GPS_ERROR_DENIED:
       return {
         title: 'Location permission denied',
-        detail: 'Allow location access in Settings to use GPS.',
+        detail: 'Allow location access to pin your delivery address.',
       };
     default:
       return {
@@ -587,7 +597,7 @@ export default function CheckoutScreen() {
     }
   };
 
-  // If the user denied location at app start, ask again when they open Checkout.
+  // If denied at app start, re-ask when Checkout opens.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -599,14 +609,35 @@ export default function CheckoutScreen() {
     };
   }, []);
 
+  // After user enables Location in Settings and returns, clear the blocked state.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', async (next) => {
+      if (next !== 'active') return;
+      try {
+        const existing = await Location.getForegroundPermissionsAsync();
+        if (existing?.granted) {
+          setGpsError(null);
+          if (gpsStatus === 'error') setGpsStatus('idle');
+        }
+      } catch (_) { /* ignore */ }
+    });
+    return () => sub.remove();
+  }, [gpsStatus]);
+
   const openLocationPicker = async () => {
     setGpsError(null);
-    // Another chance if still denied (after app-start + checkout mount prompts).
+    // Re-ask system dialog when possible; if permanently blocked, send to Settings.
     const result = await requestPreciseLocationPermission();
     if (!result.granted) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setGpsStatus('error');
-      setGpsError(GPS_ERROR_DENIED);
+      if (result.needsSettings) {
+        setGpsError(GPS_ERROR_SETTINGS);
+        // Deep-link into app settings so they can flip Location → Allow.
+        openAppLocationSettings();
+      } else {
+        setGpsError(GPS_ERROR_DENIED);
+      }
       // Still open the picker: map pan uses default center; manual path remains.
     }
     setLocationPickerVisible(true);
@@ -1003,17 +1034,31 @@ export default function CheckoutScreen() {
                     <Text style={styles.gpsBarErrorTitle}>{gpsErrorCopy.title}</Text>
                     <Text style={styles.gpsBarErrorText}>{gpsErrorCopy.detail}</Text>
                     <View style={styles.gpsBarErrorActions}>
-                      <PressableScale
-                        onPress={openLocationPicker}
-                        disabled={gpsStatus === 'loading'}
-                        style={[styles.gpsBarActionBtn, styles.gpsBarRetryBtn]}
-                        scaleTo={0.97}
-                        accessibilityRole="button"
-                        accessibilityLabel="Retry getting location"
-                      >
-                        <AppIcon name="navigation" size={14} color={colors.textPrimary} />
-                        <Text style={styles.gpsBarRetryBtnText}>Retry</Text>
-                      </PressableScale>
+                      {gpsError === GPS_ERROR_SETTINGS ? (
+                        <PressableScale
+                          onPress={() => openAppLocationSettings()}
+                          disabled={gpsStatus === 'loading'}
+                          style={[styles.gpsBarActionBtn, styles.gpsBarRetryBtn]}
+                          scaleTo={0.97}
+                          accessibilityRole="button"
+                          accessibilityLabel="Open settings for location"
+                        >
+                          <AppIcon name="settings" size={14} color={colors.textPrimary} />
+                          <Text style={styles.gpsBarRetryBtnText}>Open Settings</Text>
+                        </PressableScale>
+                      ) : (
+                        <PressableScale
+                          onPress={openLocationPicker}
+                          disabled={gpsStatus === 'loading'}
+                          style={[styles.gpsBarActionBtn, styles.gpsBarRetryBtn]}
+                          scaleTo={0.97}
+                          accessibilityRole="button"
+                          accessibilityLabel="Retry getting location"
+                        >
+                          <AppIcon name="navigation" size={14} color={colors.textPrimary} />
+                          <Text style={styles.gpsBarRetryBtnText}>Retry</Text>
+                        </PressableScale>
+                      )}
                     </View>
                     <Text style={styles.gpsBarErrorManualLead}>Or enter your address manually:</Text>
                     <PressableScale

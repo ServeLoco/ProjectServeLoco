@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import * as Location from 'expo-location';
 
 /**
@@ -7,7 +7,7 @@ import * as Location from 'expo-location';
  * Safe to call from app start, checkout, or GPS flows.
  * Never throws.
  *
- * @returns {{ granted: boolean, fine: boolean, status?: string, canAskAgain?: boolean }}
+ * @returns {{ granted: boolean, fine: boolean, status?: string, canAskAgain?: boolean, needsSettings?: boolean }}
  */
 export async function requestPreciseLocationPermission() {
   try {
@@ -22,28 +22,52 @@ export async function requestPreciseLocationPermission() {
         granted: true,
         fine: true,
         status: existing.status,
-        canAskAgain: existing.canAskAgain,
+        canAskAgain: existing.canAskAgain !== false,
+        needsSettings: false,
+      };
+    }
+
+    // Permanently denied — OS will not show the dialog again.
+    if (!existing?.granted && existing?.canAskAgain === false) {
+      return {
+        granted: false,
+        fine: false,
+        status: existing.status,
+        canAskAgain: false,
+        needsSettings: true,
       };
     }
 
     // Not granted, or Android approximate-only: show the system dialog.
-    // (If the user permanently denied, OS may not re-prompt; canAskAgain=false.)
     const result = await Location.requestForegroundPermissionsAsync();
     const fine =
       Boolean(result?.granted) &&
       (Platform.OS !== 'android' ||
         result?.android?.accuracy === 'fine' ||
         result?.android?.accuracy == null);
+    const canAskAgain = result?.canAskAgain !== false;
 
     return {
       granted: Boolean(result?.granted),
       fine,
       status: result?.status,
-      canAskAgain: result?.canAskAgain,
+      canAskAgain,
+      needsSettings: !result?.granted && !canAskAgain,
     };
   } catch (_) {
-    return { granted: false, fine: false, status: 'undetermined' };
+    return {
+      granted: false,
+      fine: false,
+      status: 'undetermined',
+      canAskAgain: true,
+      needsSettings: false,
+    };
   }
+}
+
+/** Open the OS app settings page so the user can enable Location. */
+export function openAppLocationSettings() {
+  return Linking.openSettings().catch(() => {});
 }
 
 /**
