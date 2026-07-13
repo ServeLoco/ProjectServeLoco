@@ -318,6 +318,19 @@ export default function CheckoutScreen() {
   // How the user is providing their delivery address: GPS or manual entry.
   // Always starts unselected — address may still be prefilled as a convenience.
   const [locationMode, setLocationMode] = useState(null);
+  // Disables the page ScrollView while a finger is on the inline map so
+  // pinch-to-zoom reaches the native MapView instead of being stolen by
+  // the outer scroll gesture. Uses setNativeProps (not state) — a state
+  // + re-render round trip is too slow to beat the native scroll
+  // responder, which starts claiming the gesture on the very first
+  // touchmove.
+  const scrollRef = useRef(null);
+  const lockMapScroll = useCallback(() => {
+    scrollRef.current?.setNativeProps?.({ scrollEnabled: false });
+  }, []);
+  const unlockMapScroll = useCallback(() => {
+    scrollRef.current?.setNativeProps?.({ scrollEnabled: true });
+  }, []);
   const [paymentMethod, setPaymentMethod] = useState(null); // UPI | Cash
   const [deliveryType, setDeliveryType] = useState(null); // standard | fast
 
@@ -912,6 +925,7 @@ export default function CheckoutScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
       >
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="always"
@@ -1027,6 +1041,11 @@ export default function CheckoutScreen() {
           </Animated.View>
 
           {locationMode === 'gps' && (
+            <View
+              onTouchStart={lockMapScroll}
+              onTouchEnd={unlockMapScroll}
+              onTouchCancel={unlockMapScroll}
+            >
             <LocationPicker
               inline
               autoConfirmOnLocate
@@ -1037,6 +1056,7 @@ export default function CheckoutScreen() {
               }
               onConfirm={applyPickedLocation}
             />
+            </View>
           )}
 
           <ManualAddressField
