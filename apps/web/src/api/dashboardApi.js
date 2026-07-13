@@ -1,5 +1,8 @@
 import { apiClient } from './client';
 
 export const dashboardApi = {
-  getDashboard: (storeType) => apiClient.get('/dashboard', { params: { storeType } }),
+  getDashboard: (storeType, extra = {}) =>
+    apiClient.get('/dashboard', {
+      params: { storeType, ...extra },
+    }),
 };

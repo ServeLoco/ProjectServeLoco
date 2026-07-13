@@ -44,8 +44,19 @@
 
 .screen-container {
   min-height: 100vh;
-  padding-bottom: 140px; /* space for bottom nav and mini cart */
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  /* Clear floating bottom nav + mini-cart + home indicator */
+  padding-bottom: var(--bottom-chrome, 160px);
   background: var(--bg-app);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* Screens that use a full-width fixed action bar instead of bottom nav */
+.screen-container.has-action-bar {
+  padding-bottom: calc(var(--action-bar-height) + var(--safe-bottom) + 16px);
 }
 
 .screen-padding {

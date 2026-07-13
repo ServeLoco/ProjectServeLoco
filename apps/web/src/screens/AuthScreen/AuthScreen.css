@@ -1,11 +1,17 @@
 .auth-screen {
   min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   background: var(--bg-surface);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: var(--space-xl) var(--screen-padding-h);
+  padding-top: max(var(--space-xl), var(--safe-top, env(safe-area-inset-top, 0px)));
+  padding-bottom: max(var(--space-xl), var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .auth-card {
@@ -80,9 +86,11 @@
   border-radius: var(--radius-input);
   border: 1px solid var(--border);
   background: var(--bg-surface);
-  font-size: var(--fs-base);
+  font-size: 16px; /* prevent iOS Safari input zoom */
   color: var(--text-primary);
   transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .auth-input:focus {
@@ -132,21 +140,26 @@
 .otp-row {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: clamp(6px, 2.5vw, 10px);
+  flex-wrap: nowrap;
+  width: 100%;
 }
 
 .otp-box {
-  width: 48px;
-  height: 56px;
+  width: clamp(40px, 12vw, 48px);
+  height: clamp(48px, 14vw, 56px);
+  flex: 0 0 auto;
   border-radius: 12px;
   border: 2px solid var(--border);
   background: var(--bg-surface);
   text-align: center;
-  font-size: 22px;
+  font-size: 18px; /* ≥16 prevents iOS zoom */
   font-weight: 700;
   color: var(--text-primary);
   transition: border-color 0.2s, background-color 0.2s;
   caret-color: var(--primary);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .otp-box:focus {

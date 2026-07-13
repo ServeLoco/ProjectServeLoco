@@ -15,9 +15,13 @@
   flex-direction: row;
   align-items: center;
   padding: var(--space-sm) var(--space-lg);
-  padding-top: calc(var(--space-sm) + env(safe-area-inset-top));
-  height: 60px;
+  padding-top: calc(var(--space-sm) + env(safe-area-inset-top, 0px));
+  padding-bottom: var(--space-sm);
+  min-height: 48px;
   width: 100%;
+  max-width: var(--app-max-width, 430px);
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .offline-dot {

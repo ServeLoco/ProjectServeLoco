@@ -1,17 +1,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap');
 
 :root {
+  /* App shell — phone frame width (iPhone Pro Max logical width) */
+  --app-max-width: 430px;
+
+  /* iOS safe areas (notch / Dynamic Island / home indicator) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  /* Floating chrome */
+  --nav-height: 64px;
+  --nav-float-gap: 16px;
+  --nav-bottom: calc(var(--nav-float-gap) + var(--safe-bottom));
+  --mini-cart-height: 56px;
+  --mini-cart-bottom: calc(var(--nav-bottom) + var(--nav-height) + var(--nav-float-gap));
+  /* Space reserved so content never sits under nav / mini-cart / home bar */
+  --bottom-chrome: calc(var(--nav-bottom) + var(--nav-height) + var(--nav-float-gap) + var(--mini-cart-height) + 12px);
+  --action-bar-height: 72px;
+
   /* Backgrounds */
-  --bg-app: #EEF0F3;          /* offWhite — main screen background */
-  --bg-surface: #FFFFFF;       /* white — cards, sheets */
-  --bg-input: #E6E8EC;         /* grey50 — input backgrounds */
-  --bg-disabled: #DFE2E6;      /* grey100 */
+  --bg-app: #EEF0F3;
+  --bg-surface: #FFFFFF;
+  --bg-input: #E6E8EC;
+  --bg-disabled: #DFE2E6;
 
   /* Text */
-  --text-primary: #0E1116;     /* charcoal — main text */
-  --text-secondary: #6B7280;   /* grey400 — muted text */
-  --text-tertiary: #9CA3AF;    /* grey300 — hints */
-  --text-inverse: #FFFFFF;     /* white on dark backgrounds */
+  --text-primary: #0E1116;
+  --text-secondary: #6B7280;
+  --text-tertiary: #9CA3AF;
+  --text-inverse: #FFFFFF;
   --text-error: #E5484D;
   --text-success: #1FB574;
   --text-link: #3B82F6;
@@ -46,9 +65,9 @@
   --saffron-dark: #E05A1A;
 
   /* Borders */
-  --border: #DFE2E6;           /* grey100 */
-  --border-strong: #C7CCD4;    /* grey200 */
-  --border-focus: #4B5563;     /* primary400 */
+  --border: #DFE2E6;
+  --border-strong: #C7CCD4;
+  --border-focus: #4B5563;
 
   /* Nav */
   --nav-bg: #FFFFFF;
@@ -71,7 +90,7 @@
   --divider: #DFE2E6;
 
   /* Typography */
-  --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
   --fs-xs: 11px;
   --fs-sm: 12px;
   --fs-base: 14px;
@@ -117,13 +136,27 @@
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 10px rgba(0,0,0,0.08);
   --shadow-lg: 0 10px 24px rgba(0,0,0,0.10);
+
+  /* Dynamic viewport (iOS Safari address bar) */
+  --app-height: 100dvh;
 }
 
 /* Global Reset & Layout */
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html {
+  /* Prevent iOS rubber-band from revealing grey sides */
+  height: 100%;
+  height: -webkit-fill-available;
+  /* Smooth scrolling on iOS */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -132,20 +165,43 @@ body {
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100%;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  /* Kill horizontal overflow from wide cards / grids */
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  /* iOS momentum scroll */
+  -webkit-overflow-scrolling: touch;
+  /* Remove grey tap flash */
+  -webkit-tap-highlight-color: transparent;
+  /* Safe area when not in #root chrome */
+  padding: 0;
+  margin: 0;
 }
 
 #root {
-  max-width: 430px;
+  width: 100%;
+  max-width: var(--app-max-width);
   margin: 0 auto;
   min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   background: var(--bg-app);
   position: relative;
   box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  /* Contain fixed children conceptually; fixed still uses viewport */
+  overflow-x: clip;
+  /* Support landscape notches */
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
 }
 
 a {
   color: inherit;
   text-decoration: none;
+  -webkit-touch-callout: none;
 }
 
 button {
@@ -153,70 +209,218 @@ button {
   border: none;
   background: transparent;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-input, textarea {
+input,
+textarea,
+select {
   font-family: inherit;
+  font-size: 16px; /* iOS Safari zooms inputs below 16px */
+  touch-action: manipulation;
+  border-radius: 0; /* reset iOS ugly default where needed */
+  max-width: 100%;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Sticky/page headers clear the notch / Dynamic Island */
+.home-header,
+.cat-header,
+.cart-header,
+.checkout-header,
+.pl-header,
+.orders-header,
+.od-header,
+.ps-header,
+.ns-header,
+.auth-header-bar,
+.ep-header,
+.co-header {
+  padding-top: max(var(--space-md), var(--safe-top)) !important;
+}
+
+/* Shared fixed chrome (action bars, sheets) match app column */
+.app-fixed-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--app-max-width);
+  z-index: 50;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 /* -------------------------------------------------------- */
-/* Responsive breakpoints                                   */
+/* Responsive breakpoints — iPhone first                    */
 /* -------------------------------------------------------- */
 
-/* Small phones (≤360px) — drop dense grids by one column   */
-@media (max-width: 360px) {
+/* Ultra-narrow (iPhone SE 1st gen ~320, some Androids) */
+@media (max-width: 340px) {
+  :root {
+    --screen-padding-h: 10px;
+    --card-padding: 10px;
+    --section-gap: 16px;
+    --fs-hero: 26px;
+    --fs-display: 24px;
+  }
+  .grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .grid-3 { grid-template-columns: repeat(2, 1fr) !important; }
+  .grid-2 { grid-template-columns: 1fr 1fr !important; }
+  .home-logo { font-size: var(--fs-lg); }
+  .store-type-tab { padding: 10px 6px; font-size: 11px; }
+  .product-name { font-size: 11px; }
+  .product-price { font-size: 12px; }
+  .cat-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+}
+
+/* Small iPhones (SE 2/3, mini — 375 and under) */
+@media (max-width: 390px) {
   :root {
     --screen-padding-h: 12px;
     --card-padding: 12px;
+    --section-gap: 18px;
   }
+
   .grid-4 { grid-template-columns: repeat(3, 1fr) !important; }
   .grid-3 { grid-template-columns: repeat(2, 1fr) !important; }
+
   .home-logo { font-size: var(--fs-lg); }
   .home-search { padding: 12px 14px; }
+
+  /* Tighter bottom pill so 3 tabs stay tappable */
+  .bottom-nav {
+    width: calc(100% - 48px) !important;
+    max-width: none !important;
+  }
+
+  .sticky-mini-cart {
+    width: calc(100% - 24px) !important;
+    max-width: none !important;
+  }
+
+  .cart-item-img {
+    width: 56px !important;
+    height: 56px !important;
+  }
+
+  .pd-related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .cat-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  /* Auth OTP boxes */
+  .auth-otp-inputs input,
+  .otp-input {
+    width: 42px !important;
+    height: 48px !important;
+    font-size: 18px !important;
+  }
 }
 
-/* Tablets and up — widen the column to make better use of  */
-/* available space without breaking the phone-first design  */
+/* Standard iPhone portrait (≤430 — SE through Pro Max) */
+@media (max-width: 430px) {
+  #root {
+    max-width: 100%;
+    box-shadow: none;
+  }
+
+  /* Full-bleed fixed bars on real phones */
+  .cart-bottom-bar,
+  .co-bottom-bar,
+  .pd-bottom-bar,
+  .ep-bottom-bar,
+  .pd-header {
+    max-width: 100% !important;
+  }
+
+  .cs-sheet,
+  .vs-sheet {
+    max-width: 100% !important;
+  }
+}
+
+/* Tablets and up — widen the column */
 @media (min-width: 768px) {
+  :root {
+    --app-max-width: 600px;
+  }
   #root {
-    max-width: 600px;
+    max-width: var(--app-max-width);
   }
   .sticky-mini-cart {
-    max-width: 568px !important;
+    max-width: calc(var(--app-max-width) - 32px) !important;
+  }
+  .bottom-nav {
+    max-width: 320px !important;
+    width: 320px !important;
   }
 }
 
-/* Larger tablets / desktops — cap a bit wider              */
+/* Larger tablets / desktops */
 @media (min-width: 1024px) {
+  :root {
+    --app-max-width: 720px;
+  }
   #root {
-    max-width: 720px;
+    max-width: var(--app-max-width);
   }
   .sticky-mini-cart {
-    max-width: 688px !important;
+    max-width: calc(var(--app-max-width) - 32px) !important;
   }
-  /* Use the extra width: one more product column           */
   .grid-3 { grid-template-columns: repeat(4, 1fr); }
   .grid-2 { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* Landscape on short phones — collapse the sticky header   */
-/* so content has room to breathe                           */
+/* Landscape short phones — free vertical space */
 @media (max-height: 480px) and (orientation: landscape) {
   .home-header,
   .cat-header {
-    padding-top: var(--space-sm) !important;
+    padding-top: max(var(--space-sm), var(--safe-top)) !important;
     padding-bottom: var(--space-sm) !important;
   }
   .screen-container {
-    padding-bottom: 120px;
+    padding-bottom: calc(100px + var(--safe-bottom));
+  }
+  .bottom-nav {
+    height: 52px !important;
+  }
+  .store-type-tabs {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
   }
 }
 
-/* Honour reduced-motion preference                         */
+/* Honour reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
+}
+
+/* Prevent accidental double-tap zoom on interactive chrome */
+.bottom-nav,
+.sticky-mini-cart,
+.cart-bottom-bar,
+.co-bottom-bar,
+.pd-bottom-bar,
+.btn,
+button {
+  touch-action: manipulation;
 }

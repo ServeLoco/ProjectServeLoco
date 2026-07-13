@@ -210,13 +210,24 @@ export default function OrderDetailScreen() {
         <div className="od-section">
           <div className="od-section-title">Items</div>
           <div className="od-items-list">
-            {order.items?.map((item, idx) => (
-              <div key={idx} className="od-item">
-                <div className="od-item-name">{item.product_name}</div>
-                <div className="od-item-qty">{item.quantity}x</div>
-                <div className="od-item-price">{formatPrice((item.unit_price || item.price || 0) * item.quantity)}</div>
-              </div>
-            ))}
+            {order.items?.map((item, idx) => {
+              const name = item.product_name || item.productName || item.name || 'Item';
+              const variantLabel = item.variant_label || item.variantLabel || item.variant?.label;
+              const qty = item.quantity || 0;
+              const unit = item.unit_price ?? item.unitPrice ?? item.price ?? 0;
+              return (
+                <div key={idx} className="od-item">
+                  <div className="od-item-name">
+                    {name}
+                    {variantLabel ? (
+                      <span className="od-item-variant"> · {variantLabel}</span>
+                    ) : null}
+                  </div>
+                  <div className="od-item-qty">{qty}x</div>
+                  <div className="od-item-price">{formatPrice(unit * qty)}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 import { settingsApi } from '../api/settingsApi';
 
+function deriveShopState(payload) {
+  // Accept both camelCase and snake_case from API
+  const openFlag = payload?.shopOpen ?? payload?.shop_open;
+  const shopOpen = openFlag !== false && openFlag !== 0;
+  return {
+    shopOpen,
+    shopStatus: shopOpen ? 'open' : 'closed',
+  };
+}
+
 export const useSettingsStore = create((set, get) => ({
   settings: null,
   shopOpen: true,
@@ -9,11 +19,21 @@ export const useSettingsStore = create((set, get) => ({
   error: null,
   lastFetched: null,
 
+  setSettings: (payload) => {
+    if (!payload) return;
+    const shop = deriveShopState(payload);
+    set({
+      settings: payload,
+      ...shop,
+      lastFetched: Date.now(),
+    });
+  },
+
   fetchSettings: async (force = false) => {
     const now = Date.now();
     const { lastFetched } = get();
     // 5 min TTL
-    if (!force && lastFetched && (now - lastFetched < 5 * 60 * 1000)) {
+    if (!force && lastFetched && now - lastFetched < 5 * 60 * 1000) {
       return;
     }
 
@@ -21,15 +41,15 @@ export const useSettingsStore = create((set, get) => ({
     try {
       const res = await settingsApi.getSettings();
       const payload = res.data || res;
+      const shop = deriveShopState(payload);
       set({
         settings: payload,
-        shopOpen: payload.shopOpen !== false, // default true if undefined
-        shopStatus: payload.shopOpen === false ? 'closed' : 'open',
+        ...shop,
         lastFetched: now,
-        isLoading: false
+        isLoading: false,
       });
     } catch (err) {
       set({ error: err.message, isLoading: false });
     }
-  }
+  },
 }));

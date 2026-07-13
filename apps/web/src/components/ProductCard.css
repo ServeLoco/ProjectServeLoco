@@ -77,6 +77,16 @@
   min-width: 0;
 }
 
+.product-out-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  padding: 6px 10px;
+  background: var(--bg-disabled);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .product-price {
   font-weight: var(--fw-bold);
   font-size: var(--fs-base);

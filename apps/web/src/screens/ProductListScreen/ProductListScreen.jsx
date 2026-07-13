@@ -8,6 +8,7 @@ import ErrorState from '../../components/ErrorState';
 import EmptyState from '../../components/EmptyState';
 import Button from '../../components/Button';
 import StickyMiniCart from '../../components/StickyMiniCart';
+import { normalizeProduct } from '../../utils/productUtils';
 import './ProductListScreen.css';
 
 const BackIcon = () => (
@@ -70,7 +71,8 @@ export default function ProductListScreen() {
 
       const res = await productsApi.getProducts(params);
       const payload = res.data || res;
-      const newProducts = payload.products || (Array.isArray(payload) ? payload : []);
+      const rawProducts = payload.products || (Array.isArray(payload) ? payload : []);
+      const newProducts = rawProducts.map(normalizeProduct);
       // Prefer the server-provided pagination flag when present; fall back
       // to the page-size heuristic so empty last pages don't show a "Load More"
       // button that returns nothing.

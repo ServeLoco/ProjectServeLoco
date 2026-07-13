@@ -1,5 +1,4 @@
 .product-detail-screen {
-  padding-bottom: 0;
   background: var(--bg-surface);
 }
 
@@ -9,12 +8,13 @@
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  max-width: 430px;
-  padding: var(--space-md) var(--screen-padding-h);
+  max-width: var(--app-max-width, 430px);
+  padding: max(var(--space-md), var(--safe-top, env(safe-area-inset-top, 0px))) var(--screen-padding-h) var(--space-md);
   z-index: 40;
   display: flex;
   justify-content: space-between;
   pointer-events: none; /* Let clicks pass through except on buttons */
+  box-sizing: border-box;
 }
 
 .pd-back-btn {
@@ -125,16 +125,22 @@
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  max-width: 430px;
-  height: 80px;
+  max-width: var(--app-max-width, 430px);
+  min-height: var(--action-bar-height, 72px);
   background: var(--bg-surface);
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--screen-padding-h);
-  padding-bottom: env(safe-area-inset-bottom);
+  gap: 12px;
+  padding: 12px var(--screen-padding-h);
+  padding-bottom: max(12px, var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
   z-index: 50;
+  box-sizing: border-box;
+}
+
+.product-detail-screen {
+  padding-bottom: calc(var(--action-bar-height, 72px) + var(--safe-bottom, 0px) + 24px);
 }
 
 .pd-qty-wrapper {
@@ -147,4 +153,46 @@
   font-size: var(--fs-sm);
   color: var(--text-secondary);
   font-weight: var(--fw-medium);
+}
+
+.pd-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pd-variants-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pd-variant-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  min-width: 88px;
+}
+
+.pd-variant-chip strong {
+  color: var(--text-primary);
+  font-size: var(--fs-base);
+}
+
+.pd-related {
+  margin-top: var(--space-md);
+}
+
+.pd-related-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+  padding-bottom: 24px;
 }

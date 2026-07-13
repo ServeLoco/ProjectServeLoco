@@ -16,13 +16,15 @@
 
 .cs-sheet {
   width: 100%;
-  max-width: 430px;
+  max-width: var(--app-max-width, 430px);
   background: var(--bg-surface);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  max-height: 80vh;
+  max-height: min(80vh, 80dvh);
   display: flex;
   flex-direction: column;
   animation: cs-slide 0.25s ease-out;
+  padding-bottom: var(--safe-bottom, env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
 }
 
 @keyframes cs-slide {
