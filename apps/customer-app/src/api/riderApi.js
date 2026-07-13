@@ -6,6 +6,8 @@ const riderApi = {
   setOnline: (isOnline) =>
     apiClient.patch('/rider/me/online', { isOnline, is_online: isOnline }, { auth: 'customer' }),
   heartbeat: () => apiClient.post('/rider/me/heartbeat', {}, { auth: 'customer' }),
+  updateLocation: (lat, lng) =>
+    apiClient.post('/rider/me/location', { lat, lng, latitude: lat, longitude: lng }, { auth: 'customer' }),
   getActiveOffer: () => apiClient.get('/rider/offers/active', { auth: 'customer' }),
   acceptOffer: (offerId) =>
     apiClient.post(`/rider/offers/${offerId}/accept`, {}, { auth: 'customer' }),

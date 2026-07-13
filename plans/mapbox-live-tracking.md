@@ -190,22 +190,24 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
 ### — Phase 2: rider app GPS —
 
 ### TASK 5 — Rider GPS watch hook
-- [ ] `apps/customer-app/src/api/riderApi.js`: add `updateLocation(lat, lng)` → `POST /rider/me/location`, mirroring `heartbeat()`.
-- [ ] New hook `apps/customer-app/src/hooks/useRiderLocationTracking.js`:
+- [x] `apps/customer-app/src/api/riderApi.js`: add `updateLocation(lat, lng)` → `POST /rider/me/location`, mirroring `heartbeat()`.
+- [x] New hook `apps/customer-app/src/hooks/useRiderLocationTracking.js`:
   - Signature `useRiderLocationTracking(activeAssignment)`.
   - When `activeAssignment` becomes truthy: request foreground permission (`Location.requestForegroundPermissionsAsync`; if denied, no-op silently — do not nag every render), then `Location.watchPositionAsync({ accuracy: Location.Accuracy.Balanced, timeInterval: 10000, distanceInterval: 20 }, cb)`.
   - `cb` fires `riderApi.updateLocation(coords.latitude, coords.longitude).catch(() => {})` — fire-and-forget, same defensive pattern as the heartbeat at `RiderDashboardScreen.js:133`.
   - When assignment becomes falsy or on unmount: `subscription.remove()`. Ref-guard against double-subscription on fast toggles.
-- [ ] Wire into `RiderDashboardScreen.js`: one line, `useRiderLocationTracking(assignment)` (use the screen's existing assignment state variable — read the file to get its exact name). **No other changes to that screen** — do not touch heartbeat, offer popup, or status buttons.
-- [ ] `npm test` in customer-app (jest) — green; eslint clean.
+- [x] Wire into `RiderDashboardScreen.js`: one line, `useRiderLocationTracking(assignment)` (use the screen's existing assignment state variable — read the file to get its exact name). **No other changes to that screen** — do not touch heartbeat, offer popup, or status buttons.
+- [x] `npm test` in customer-app (jest) — green; eslint clean.
 - Acceptance: watch starts only with assignment, stops on delivered/unmount; pings visible in API logs every ~10 s during a live test.
 - Commit: `feat: MAP TASK 5 — rider GPS tracking hook`
+  - Done 2026-07-13: updateLocation API, useRiderLocationTracking, wired on RiderDashboardScreen; jest 190 pass.
 
 ### TASK 6 — Realtime client: new event
-- [ ] `apps/customer-app/src/api/realtimeClient.js`: add `RIDER_LOCATION_EVENTS = ['rider.location.updated']`, bind in `bindSocketEvents` alongside existing groups, export `subscribeRiderLocation(handler)` modeled exactly on `subscribeOrderEvents` (lines 84-90).
-- [ ] Re-export from `apps/customer-app/src/api/index.js` next to the other realtime exports.
+- [x] `apps/customer-app/src/api/realtimeClient.js`: add `RIDER_LOCATION_EVENTS = ['rider.location.updated']`, bind in `bindSocketEvents` alongside existing groups, export `subscribeRiderLocation(handler)` modeled exactly on `subscribeOrderEvents` (lines 84-90).
+- [x] Re-export from `apps/customer-app/src/api/index.js` next to the other realtime exports.
 - Acceptance: eslint clean; no behavior change for existing subscribers.
 - Commit: `feat: MAP TASK 6 — subscribeRiderLocation realtime channel`
+  - Done 2026-07-13: RIDER_LOCATION_EVENTS + subscribeRiderLocation re-exported.
 
 ### — Phase 3: checkout picker —
 

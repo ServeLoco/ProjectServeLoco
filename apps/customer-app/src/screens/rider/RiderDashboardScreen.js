@@ -21,6 +21,7 @@ import { riderApi, subscribeRealtime } from '../../api';
 import ShopToggle from '../../components/shop/ShopToggle';
 import AppIcon from '../../components/AppIcon';
 import { useRiderOfferAlert } from '../../hooks/useRiderOfferAlert';
+import { useRiderLocationTracking } from '../../hooks/useRiderLocationTracking';
 import RiderOfferPopup from './RiderOfferPopup';
 
 const HEARTBEAT_MS = 35_000;
@@ -182,6 +183,7 @@ export default function RiderDashboardScreen() {
   }, [fetchAll]);
 
   useRiderOfferAlert(Boolean(activeOffer) && !assignment);
+  useRiderLocationTracking(assignment);
 
   const handleToggle = useCallback(async (next) => {
     const prev = isOnline;
