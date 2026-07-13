@@ -212,14 +212,15 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
 ### — Phase 3: checkout picker —
 
 ### TASK 7 — `LocationPicker` component
-- [ ] New `apps/customer-app/src/components/LocationPicker/LocationPicker.js` + `index.js`, export from `components/index.js` (house convention).
-- [ ] Props: `{ visible, initialCenter, onConfirm(lat, lng), onClose }`. Render as bottom-sheet/modal consistent with `VariantSheet` mechanics (overlay `Pressable` closes on outside tap — same pattern just built there).
-- [ ] Content: `MapView` (from `src/utils/mapbox.js`) filling the sheet, `Camera` centered on `initialCenter || DEFAULT_MAP_CENTER`, a **fixed center-screen pin icon** overlaid with absolute positioning (map pans under it — no draggable marker gestures).
-- [ ] "Use my current location" button: one-shot `getCurrentPositionAsync` (reuse the exact call pattern from `CheckoutScreen.js:576`) → `camera.setCamera({ centerCoordinate, zoomLevel: 16 })`.
-- [ ] "Confirm location" button: read map center via `mapRef.getCenter()`, call `onConfirm(lat, lng)`. **No geocoding inside this component** — parent handles it (keeps the request-budget rule in one place).
-- [ ] If `mapboxAvailable === false`: render fallback body "Map unavailable" + keep the current-location button working (degrades to today's behavior).
+- [x] New `apps/customer-app/src/components/LocationPicker/LocationPicker.js` + `index.js`, export from `components/index.js` (house convention).
+- [x] Props: `{ visible, initialCenter, onConfirm(lat, lng), onClose }`. Render as bottom-sheet/modal consistent with `VariantSheet` mechanics (overlay `Pressable` closes on outside tap — same pattern just built there).
+- [x] Content: `MapView` (from `src/utils/mapbox.js`) filling the sheet, `Camera` centered on `initialCenter || DEFAULT_MAP_CENTER`, a **fixed center-screen pin icon** overlaid with absolute positioning (map pans under it — no draggable marker gestures).
+- [x] "Use my current location" button: one-shot `getCurrentPositionAsync` (reuse the exact call pattern from `CheckoutScreen.js:576`) → `camera.setCamera({ centerCoordinate, zoomLevel: 16 })`.
+- [x] "Confirm location" button: read map center via `mapRef.getCenter()`, call `onConfirm(lat, lng)`. **No geocoding inside this component** — parent handles it (keeps the request-budget rule in one place).
+- [x] If `mapboxAvailable === false`: render fallback body "Map unavailable" + keep the current-location button working (degrades to today's behavior).
 - Acceptance: component renders on device, pan moves map under fixed pin, both buttons work; eslint clean.
 - Commit: `feat: MAP TASK 7 — LocationPicker map component`
+  - Done 2026-07-13: LocationPicker modal + fixed pin; jest mock for @rnmapbox/maps; 190 pass.
 
 ### TASK 8 — CheckoutScreen integration
 - [ ] Read `CheckoutScreen.js` GPS flow fully before editing (lines ~560-640). Replace the *trigger* of the one-shot GPS flow: tapping the GPS/location option now opens `LocationPicker` (visible-state boolean) instead of immediately calling `getCurrentPositionAsync`.

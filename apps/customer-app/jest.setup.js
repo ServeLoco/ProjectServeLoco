@@ -8,13 +8,34 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 jest.mock('expo-location', () => ({
   Accuracy: {
     High: 4,
+    Balanced: 3,
   },
   PermissionStatus: {
     GRANTED: 'granted',
   },
   getCurrentPositionAsync: jest.fn(),
+  reverseGeocodeAsync: jest.fn(async () => []),
   requestForegroundPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+  watchPositionAsync: jest.fn(async () => ({ remove: jest.fn() })),
 }));
+
+// Mock @rnmapbox/maps — native module; not available in Node/Jest.
+jest.mock('@rnmapbox/maps', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const Mock = React.forwardRef((props, ref) => <View ref={ref} {...props} />);
+  const api = {
+    setAccessToken: jest.fn(),
+    StyleURL: { Street: 'mapbox://styles/mapbox/streets-v11' },
+    MapView: Mock,
+    Camera: Mock,
+    PointAnnotation: Mock,
+    MarkerView: Mock,
+    ShapeSource: Mock,
+    LineLayer: Mock,
+  };
+  return { __esModule: true, default: api, ...api };
+});
 
 jest.mock('react-native-svg', () => {
   const React = require('react');
