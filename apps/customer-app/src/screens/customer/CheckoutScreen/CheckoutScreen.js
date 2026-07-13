@@ -25,6 +25,7 @@ import {
   PressableScale,
   LoadingSkeleton,
   ConfirmModal,
+  LocationPicker,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../../stores';
@@ -34,11 +35,6 @@ import { asArray, buildProgressHintText, imageRecordToUrl, normalizeCartCalculat
 import { isCodBlockedDuringNight } from '../../../utils/nightDelivery';
 import { formatEtaMinutes } from '../../../utils/formatEta';
 import { uuidv4 } from '../../../utils/uuid';
-
-const requestLocationPermission = async () => {
-  const { status } = await Location.requestForegroundPermissionsAsync();
-  return status === Location.PermissionStatus.GRANTED;
-};
 
 const isCodNightBlockError = (message = '') => {
   const lower = String(message).toLowerCase();
@@ -295,6 +291,7 @@ export default function CheckoutScreen() {
   const [coordinates, setCoordinates] = useState(null);
   const [gpsStatus, setGpsStatus] = useState('idle'); // idle | loading | success | error
   const [gpsError, setGpsError] = useState(null);
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   // How the user is providing their delivery address: GPS or manual entry.
   // Always starts unselected — address may still be prefilled as a convenience.
   const [locationMode, setLocationMode] = useState(null);
@@ -553,34 +550,14 @@ export default function CheckoutScreen() {
     };
   }, [calculationPayload, checkoutItems.length]);
 
-  const handleRequestGPS = async () => {
+  // Apply coordinates chosen on the LocationPicker (reverse-geocode once per confirm).
+  const applyPickedLocation = async (latitude, longitude) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setGpsStatus('loading');
     setGpsError(null);
+    setLocationPickerVisible(false);
 
     try {
-      const hasPermission = await requestLocationPermission();
-
-      if (!hasPermission) {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setGpsStatus('error');
-        setGpsError(GPS_ERROR_DENIED);
-        return;
-      }
-
-      // 8s timeout — the device's GPS can hang on poor signal or
-      // when the user has location services half-on. A timeout lets
-      // the user proceed without GPS instead of staring at "Pinning
-      // Location..." forever.
-      const position = await Promise.race([
-        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error(GPS_ERROR_TIMEOUT)), 8000)),
-      ]);
-
-      const { latitude, longitude } = position.coords;
-
-      // Reverse-geocode so the address field fills itself in — the user
-      // picked "use my current location" specifically to avoid typing it.
       let resolvedAddress = null;
       try {
         const places = await Location.reverseGeocodeAsync({ latitude, longitude });
@@ -609,10 +586,15 @@ export default function CheckoutScreen() {
     }
   };
 
+  const openLocationPicker = () => {
+    setGpsError(null);
+    setLocationPickerVisible(true);
+  };
+
   const selectMode = (mode) => {
     // Tapping the already-selected GPS card again is treated as "retry".
     if (mode === locationMode) {
-      if (mode === 'gps') handleRequestGPS();
+      if (mode === 'gps') openLocationPicker();
       return;
     }
 
@@ -638,7 +620,7 @@ export default function CheckoutScreen() {
     }).start();
 
     if (mode === 'gps') {
-      handleRequestGPS();
+      openLocationPicker();
     }
   };
 
@@ -873,6 +855,13 @@ export default function CheckoutScreen() {
             </View>
           </View>
 
+          <View style={styles.outsideCityWarning}>
+            <AppIcon name="warning" size={16} color={colors.error} />
+            <Text style={styles.outsideCityWarningText}>
+              Orders outside Gorakhpur will be cancelled automatically.
+            </Text>
+          </View>
+
           <View style={styles.optionPicker}>
             <View style={styles.optionCardRow}>
               <View style={styles.optionColumn}>
@@ -994,7 +983,7 @@ export default function CheckoutScreen() {
                     <Text style={styles.gpsBarErrorText}>{gpsErrorCopy.detail}</Text>
                     <View style={styles.gpsBarErrorActions}>
                       <PressableScale
-                        onPress={handleRequestGPS}
+                        onPress={openLocationPicker}
                         disabled={gpsStatus === 'loading'}
                         style={[styles.gpsBarActionBtn, styles.gpsBarRetryBtn]}
                         scaleTo={0.97}
@@ -1507,6 +1496,17 @@ export default function CheckoutScreen() {
         onConfirm={handleSwitchToUpi}
       />
 
+      <LocationPicker
+        visible={locationPickerVisible}
+        initialCenter={
+          coordinates
+            ? { latitude: coordinates.lat, longitude: coordinates.lng }
+            : undefined
+        }
+        onConfirm={applyPickedLocation}
+        onClose={() => setLocationPickerVisible(false)}
+      />
+
     </AppScreen>
   );
 }
@@ -1694,6 +1694,25 @@ const styles = StyleSheet.create({
     minHeight: 24,
     marginBottom: spacing.xs,
     justifyContent: 'flex-start',
+  },
+  outsideCityWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.errorLight,
+    borderWidth: 1,
+    borderColor: colors.errorBorder,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  outsideCityWarningText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.error,
+    fontWeight: '600',
   },
   recommendPill: {
     alignSelf: 'flex-start',

@@ -223,12 +223,13 @@ Budget rules baked into tasks: Directions fetched **once per delivery** (+ re-fe
   - Done 2026-07-13: LocationPicker modal + fixed pin; jest mock for @rnmapbox/maps; 190 pass.
 
 ### TASK 8 — CheckoutScreen integration
-- [ ] Read `CheckoutScreen.js` GPS flow fully before editing (lines ~560-640). Replace the *trigger* of the one-shot GPS flow: tapping the GPS/location option now opens `LocationPicker` (visible-state boolean) instead of immediately calling `getCurrentPositionAsync`.
-- [ ] On `onConfirm(lat, lng)`: run the existing reverse-geocode block (`reverseGeocodeAsync` at ~586) against the picked coords, fill `address` state exactly as the current code does, store lat/lng in the same state the order payload already reads (`latitude`/`longitude` at ~654-680). **Do not alter the submitted payload shape.**
-- [ ] Manual-entry path, validation messages (~724-728), the Gorakhpur warning banner (added 2026-07-13), and everything else on the screen stay byte-identical.
-- [ ] Jest + eslint green.
+- [x] Read `CheckoutScreen.js` GPS flow fully before editing (lines ~560-640). Replace the *trigger* of the one-shot GPS flow: tapping the GPS/location option now opens `LocationPicker` (visible-state boolean) instead of immediately calling `getCurrentPositionAsync`.
+- [x] On `onConfirm(lat, lng)`: run the existing reverse-geocode block (`reverseGeocodeAsync` at ~586) against the picked coords, fill `address` state exactly as the current code does, store lat/lng in the same state the order payload already reads (`latitude`/`longitude` at ~654-680). **Do not alter the submitted payload shape.**
+- [x] Manual-entry path, validation messages (~724-728), the Gorakhpur warning banner (added 2026-07-13), and everything else on the screen stay byte-identical.
+- [x] Jest + eslint green.
 - Acceptance: place a real order end-to-end on device via picker → order stores same field shapes as before (verify in API DB/log); manual-entry path untouched.
 - Commit: `feat: MAP TASK 8 — checkout interactive location picker`
+  - Done 2026-07-13: GPS mode opens LocationPicker; reverse-geocode once on confirm; payload shape unchanged; jest 190 pass.
 
 ### — Phase 4: customer tracking screen —
 
