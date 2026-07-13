@@ -11,6 +11,7 @@ import {
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
+import AppIcon from '../AppIcon';
 import {
   Mapbox,
   DEFAULT_MAP_CENTER,
@@ -178,8 +179,10 @@ export default function LocationPicker({
 
         {mapboxAvailable ? (
           <View pointerEvents="none" style={styles.pinWrap}>
-            <View style={styles.pin} />
-            <View style={styles.pinStem} />
+            <View style={styles.pinIconOffset}>
+              <AppIcon name="location" size={38} color={colors.error} strokeWidth={2.5} fill={colors.error} />
+              <View style={styles.pinShadow} />
+            </View>
           </View>
         ) : null}
       </View>
@@ -353,20 +356,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pin: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: colors.error,
-    borderWidth: 3,
-    borderColor: colors.white || '#fff',
-    marginBottom: -2,
+  pinIconOffset: {
+    alignItems: 'center',
+    transform: [{ translateY: -19 }],
   },
-  pinStem: {
-    width: 2,
-    height: 14,
-    backgroundColor: colors.error,
-    borderRadius: 1,
+  pinShadow: {
+    width: 10,
+    height: 4,
+    borderRadius: 5,
+    marginTop: -3,
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
   fallback: {
     flex: 1,
