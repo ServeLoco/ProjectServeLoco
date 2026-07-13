@@ -317,7 +317,8 @@ export default function CheckoutScreen() {
   const [gpsError, setGpsError] = useState(null);
   // How the user is providing their delivery address: GPS or manual entry.
   // Always starts unselected — address may still be prefilled as a convenience.
-  const [locationMode, setLocationMode] = useState(null);
+  // Page starts immersed in the map — no picker cards to tap first.
+  const [locationMode, setLocationMode] = useState('gps');
   // Disables the page ScrollView while a finger is on the inline map so
   // pinch-to-zoom reaches the native MapView instead of being stolen by
   // the outer scroll gesture. Uses setNativeProps (not state) — a state
@@ -933,121 +934,17 @@ export default function CheckoutScreen() {
         nestedScrollEnabled
       >
         
-        {/* Delivery Details */}
-        <View style={styles.deliverySection}>
-          <Animated.View style={{ transform: [{ translateY: deliverySlide }] }}>
-          <View style={styles.deliverySectionHeader}>
-            <View style={styles.deliverySectionIconWrap}>
-              <AppIcon name="location" size={16} color={colors.textPrimary} />
-            </View>
-            <View style={styles.deliverySectionHeaderText}>
-              <Text style={styles.deliverySectionTitle}>Delivery Details</Text>
-              <Text style={styles.deliverySectionSubtitle}>How should we get your delivery address?</Text>
-            </View>
-          </View>
-
-          <View style={styles.outsideCityWarning}>
-            <AppIcon name="warning" size={16} color={colors.error} />
-            <Text style={styles.outsideCityWarningText}>
-              Orders outside Gorakhpur will be cancelled automatically.
-            </Text>
-          </View>
-
-          <View style={styles.optionPicker}>
-            <View style={styles.optionCardRow}>
-              <View style={styles.optionColumn}>
-                <View style={styles.optionPillSlot}>
-                  <View style={styles.recommendPill}>
-                    <Text style={styles.recommendPillText}>Recommend</Text>
-                  </View>
-                </View>
-                <PressableScale
-                  onPress={() => selectMode('gps')}
-                  disabled={isModeSelectDisabled}
-                  style={[
-                    styles.optionCard,
-                    styles.optionCardDelivery,
-                    locationMode === 'gps' && styles.optionCardDeliveryActive,
-                    isModeSelectDisabled && styles.optionCardDisabled,
-                  ]}
-                  scaleTo={0.98}
-                  accessibilityRole="button"
-                  accessibilityLabel="Use my current location"
-                  accessibilityState={{ selected: locationMode === 'gps', disabled: isModeSelectDisabled }}
-                >
-                  {locationMode === 'gps' && (
-                    <View style={[styles.optionCardActiveBadge, styles.optionCardActiveBadgeDelivery]}>
-                      <AppIcon name="check" size={9} color={colors.textInverse} />
-                    </View>
-                  )}
-                  <View style={[styles.optionCardIconWrap, styles.optionCardIconWrapDelivery, locationMode === 'gps' && styles.optionCardIconWrapDeliveryActive]}>
-                    <Animated.View style={{ transform: [{ scale: gpsIconScale }] }}>
-                      <AppIcon
-                        name="navigation"
-                        size={16}
-                        color={locationMode === 'gps' ? colors.textPrimary : colors.textSecondary}
-                      />
-                    </Animated.View>
-                  </View>
-                  <Text
-                    numberOfLines={2}
-                    style={[styles.optionCardTitle, styles.optionCardTitleDelivery, locationMode === 'gps' && styles.optionCardTitleDeliveryActive]}
-                  >
-                    Current Location
-                  </Text>
-                </PressableScale>
-              </View>
-
-              <View style={styles.optionColumn}>
-                <View style={styles.optionPillSlot} />
-                <PressableScale
-                  onPress={() => selectMode('manual')}
-                  disabled={isModeSelectDisabled}
-                  style={[
-                    styles.optionCard,
-                    styles.optionCardDelivery,
-                    locationMode === 'manual' && styles.optionCardDeliveryActive,
-                    isModeSelectDisabled && styles.optionCardDisabled,
-                  ]}
-                  scaleTo={0.98}
-                  accessibilityRole="button"
-                  accessibilityLabel="Enter address manually"
-                  accessibilityState={{ selected: locationMode === 'manual', disabled: isModeSelectDisabled }}
-                >
-                  {locationMode === 'manual' && (
-                    <View style={[styles.optionCardActiveBadge, styles.optionCardActiveBadgeDelivery]}>
-                      <AppIcon name="check" size={9} color={colors.textInverse} />
-                    </View>
-                  )}
-                  <View style={[styles.optionCardIconWrap, styles.optionCardIconWrapDelivery, locationMode === 'manual' && styles.optionCardIconWrapDeliveryActive]}>
-                    <Animated.View style={{ transform: [{ scale: manualIconScale }] }}>
-                      <AppIcon
-                        name="pencil"
-                        size={16}
-                        color={locationMode === 'manual' ? colors.textPrimary : colors.textSecondary}
-                      />
-                    </Animated.View>
-                  </View>
-                  <Text
-                    numberOfLines={2}
-                    style={[styles.optionCardTitle, styles.optionCardTitleDelivery, locationMode === 'manual' && styles.optionCardTitleDeliveryActive]}
-                  >
-                    Enter Manually
-                  </Text>
-                </PressableScale>
-              </View>
-            </View>
-          </View>
-          </Animated.View>
-
-          {locationMode === 'gps' && (
-            <View
-              onTouchStart={lockMapScroll}
-              onTouchEnd={unlockMapScroll}
-              onTouchCancel={unlockMapScroll}
-            >
+        {/* Delivery location — immersive edge-to-edge map first, no card. */}
+        {locationMode !== 'manual' && (
+          <View
+            style={styles.mapHeroBleed}
+            onTouchStart={lockMapScroll}
+            onTouchEnd={unlockMapScroll}
+            onTouchCancel={unlockMapScroll}
+          >
             <LocationPicker
               inline
+              fullBleed
               autoConfirmOnLocate
               initialCenter={
                 coordinates
@@ -1055,87 +952,101 @@ export default function CheckoutScreen() {
                   : undefined
               }
               onConfirm={applyPickedLocation}
+              onEnterManually={() => selectMode('manual')}
             />
-            </View>
-          )}
+          </View>
+        )}
 
-          <ManualAddressField
-            visible={locationMode === 'manual'}
-            value={address}
-            onTouch={handleAddressTouch}
-            onChangeText={handleAddressChange}
-            onClear={handleAddressClear}
-          />
+        {locationMode === 'gps' && gpsStatus !== 'idle' && (
+          <View style={styles.gpsContainer}>
+            {gpsStatus === 'loading' ? (
+              <View style={styles.gpsBarLoading}>
+                <View style={styles.gpsBarLoadingIcon}>
+                  <ActivityIndicator size="small" color={colors.textPrimary} />
+                </View>
+                <Text style={styles.gpsBarLoadingText}>Fetching your location...</Text>
+              </View>
+            ) : gpsStatus === 'success' ? (
+              <View style={styles.gpsBarSuccess}>
+                <Animated.View style={[styles.gpsBarIcon, { transform: [{ scale: gpsPulse }] }]}>
+                  <AppIcon name="location" size={16} color={colors.successDark} />
+                </Animated.View>
+                <Text style={styles.gpsBarSuccessText}>Your live location fetched successfully</Text>
+              </View>
+            ) : gpsErrorCopy ? (
+              <View style={styles.gpsBarError}>
+                <View style={styles.gpsBarErrorIconWrap}>
+                  <AppIcon name="warning" size={12} color={colors.error} />
+                </View>
+                <View style={styles.gpsBarErrorBody}>
+                  <Text style={styles.gpsBarErrorTitle}>{gpsErrorCopy.title}</Text>
+                  <Text style={styles.gpsBarErrorText}>{gpsErrorCopy.detail}</Text>
+                  <View style={styles.gpsBarErrorActions}>
+                    {gpsError === GPS_ERROR_SETTINGS ? (
+                      <PressableScale
+                        onPress={() => openAppLocationSettings()}
+                        disabled={gpsStatus === 'loading'}
+                        style={[styles.gpsBarActionBtn, styles.gpsBarRetryBtn]}
+                        scaleTo={0.97}
+                        accessibilityRole="button"
+                        accessibilityLabel="Open settings for location"
+                      >
+                        <AppIcon name="settings" size={14} color={colors.textPrimary} />
+                        <Text style={styles.gpsBarRetryBtnText}>Open Settings</Text>
+                      </PressableScale>
+                    ) : (
+                      <PressableScale
+                        onPress={openLocationPicker}
+                        disabled={gpsStatus === 'loading'}
+                        style={[styles.gpsBarActionBtn, styles.gpsBarRetryBtn]}
+                        scaleTo={0.97}
+                        accessibilityRole="button"
+                        accessibilityLabel="Retry getting location"
+                      >
+                        <AppIcon name="navigation" size={14} color={colors.textPrimary} />
+                        <Text style={styles.gpsBarRetryBtnText}>Retry</Text>
+                      </PressableScale>
+                    )}
+                  </View>
+                  <Text style={styles.gpsBarErrorManualLead}>Or enter your address manually:</Text>
+                  <PressableScale
+                    onPress={() => selectMode('manual')}
+                    disabled={isModeSelectDisabled}
+                    style={[styles.gpsBarActionBtn, styles.gpsBarManualBtn]}
+                    scaleTo={0.97}
+                    accessibilityRole="button"
+                    accessibilityLabel="Enter address manually"
+                  >
+                    <AppIcon name="edit" size={14} color={colors.textPrimary} />
+                    <Text style={styles.gpsBarManualBtnText}>Enter Manually</Text>
+                  </PressableScale>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        )}
 
-          {locationMode === 'gps' && gpsStatus !== 'idle' && (
-            <View style={styles.gpsContainer}>
-              {gpsStatus === 'loading' ? (
-                <View style={styles.gpsBarLoading}>
-                  <View style={styles.gpsBarLoadingIcon}>
-                    <ActivityIndicator size="small" color={colors.textPrimary} />
-                  </View>
-                  <Text style={styles.gpsBarLoadingText}>Fetching your location...</Text>
-                </View>
-              ) : gpsStatus === 'success' ? (
-                <View style={styles.gpsBarSuccess}>
-                  <Animated.View style={[styles.gpsBarIcon, { transform: [{ scale: gpsPulse }] }]}>
-                    <AppIcon name="location" size={16} color={colors.successDark} />
-                  </Animated.View>
-                  <Text style={styles.gpsBarSuccessText}>Your live location fetched successfully</Text>
-                </View>
-              ) : gpsErrorCopy ? (
-                <View style={styles.gpsBarError}>
-                  <View style={styles.gpsBarErrorIconWrap}>
-                    <AppIcon name="warning" size={12} color={colors.error} />
-                  </View>
-                  <View style={styles.gpsBarErrorBody}>
-                    <Text style={styles.gpsBarErrorTitle}>{gpsErrorCopy.title}</Text>
-                    <Text style={styles.gpsBarErrorText}>{gpsErrorCopy.detail}</Text>
-                    <View style={styles.gpsBarErrorActions}>
-                      {gpsError === GPS_ERROR_SETTINGS ? (
-                        <PressableScale
-                          onPress={() => openAppLocationSettings()}
-                          disabled={gpsStatus === 'loading'}
-                          style={[styles.gpsBarActionBtn, styles.gpsBarRetryBtn]}
-                          scaleTo={0.97}
-                          accessibilityRole="button"
-                          accessibilityLabel="Open settings for location"
-                        >
-                          <AppIcon name="settings" size={14} color={colors.textPrimary} />
-                          <Text style={styles.gpsBarRetryBtnText}>Open Settings</Text>
-                        </PressableScale>
-                      ) : (
-                        <PressableScale
-                          onPress={openLocationPicker}
-                          disabled={gpsStatus === 'loading'}
-                          style={[styles.gpsBarActionBtn, styles.gpsBarRetryBtn]}
-                          scaleTo={0.97}
-                          accessibilityRole="button"
-                          accessibilityLabel="Retry getting location"
-                        >
-                          <AppIcon name="navigation" size={14} color={colors.textPrimary} />
-                          <Text style={styles.gpsBarRetryBtnText}>Retry</Text>
-                        </PressableScale>
-                      )}
-                    </View>
-                    <Text style={styles.gpsBarErrorManualLead}>Or enter your address manually:</Text>
-                    <PressableScale
-                      onPress={() => selectMode('manual')}
-                      disabled={isModeSelectDisabled}
-                      style={[styles.gpsBarActionBtn, styles.gpsBarManualBtn]}
-                      scaleTo={0.97}
-                      accessibilityRole="button"
-                      accessibilityLabel="Enter address manually"
-                    >
-                      <AppIcon name="edit" size={14} color={colors.textPrimary} />
-                      <Text style={styles.gpsBarManualBtnText}>Enter Manually</Text>
-                    </PressableScale>
-                  </View>
-                </View>
-              ) : null}
-            </View>
-          )}
-        </View>
+        {locationMode === 'manual' && (
+          <View style={styles.manualWrap}>
+            <ManualAddressField
+              visible
+              value={address}
+              onTouch={handleAddressTouch}
+              onChangeText={handleAddressChange}
+              onClear={handleAddressClear}
+            />
+            <TouchableOpacity
+              onPress={() => selectMode('gps')}
+              disabled={isModeSelectDisabled}
+              style={styles.useMapInsteadBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Use map instead"
+            >
+              <AppIcon name="navigation" size={14} color={colors.saffronDark} />
+              <Text style={styles.useMapInsteadText}>Use map instead</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Delivery Type Selector — shown whenever the admin has enabled fast delivery.
             Fast delivery fully replaces the standard charge, regardless of threshold/free-offer. */}
@@ -1637,6 +1548,27 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.xxxl,
   },
+  // Cancels scrollContent's horizontal padding so the immersive map at the
+  // top of the page reaches both screen edges.
+  mapHeroBleed: {
+    marginHorizontal: -spacing.md,
+    marginTop: -spacing.md,
+  },
+  manualWrap: {
+    marginTop: spacing.md,
+  },
+  useMapInsteadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+  },
+  useMapInsteadText: {
+    ...typography.label,
+    color: colors.saffronDark,
+    fontWeight: '700',
+  },
   section: {
     backgroundColor: colors.bgSurface,
     padding: spacing.lg,
@@ -1655,49 +1587,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     marginBottom: spacing.xs,
-  },
-  deliverySection: {
-    backgroundColor: colors.bgSurface,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderRadius: radius.xl,
-    borderWidth: 1.5,
-    borderColor: colors.borderStrong,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.saffron,
-    ...shadows.card,
-  },
-  deliverySectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  deliverySectionIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.saffronLight,
-    borderWidth: 1.5,
-    borderColor: colors.saffron + '35',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.xs,
-  },
-  deliverySectionHeaderText: {
-    flex: 1,
-  },
-  deliverySectionTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  deliverySectionSubtitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
   },
   deliveryInputWrap: {
     marginTop: spacing.sm,
@@ -1789,136 +1678,6 @@ const styles = StyleSheet.create({
   },
   addressFieldClearHidden: {
     opacity: 0,
-  },
-  optionPicker: {
-    overflow: 'visible',
-  },
-  optionCardRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'stretch',
-    overflow: 'visible',
-  },
-  optionColumn: {
-    flex: 1,
-    overflow: 'visible',
-  },
-  optionPillSlot: {
-    minHeight: 24,
-    marginBottom: spacing.xs,
-    justifyContent: 'flex-start',
-  },
-  outsideCityWarning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.errorLight,
-    borderWidth: 1,
-    borderColor: colors.errorBorder,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  outsideCityWarningText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 16,
-    color: colors.error,
-    fontWeight: '600',
-  },
-  recommendPill: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.successLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.palette.success200,
-    ...shadows.xs,
-  },
-  recommendPillText: {
-    fontSize: 9,
-    lineHeight: 11,
-    color: colors.successDark,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  optionCard: {
-    alignSelf: 'stretch',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    minHeight: 50,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xs,
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    position: 'relative',
-  },
-  optionCardDelivery: {
-    backgroundColor: colors.bgInput,
-    borderColor: colors.borderStrong,
-  },
-  optionCardDeliveryActive: {
-    borderColor: colors.success,
-    borderWidth: 2,
-    backgroundColor: colors.bgSurface,
-    shadowColor: colors.success,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  optionCardActiveBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.bgSurface,
-    zIndex: 2,
-  },
-  optionCardActiveBadgeDelivery: {
-    backgroundColor: colors.success,
-  },
-  optionCardDisabled: {
-    opacity: 0.5,
-  },
-  optionCardIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  optionCardIconWrapDelivery: {
-    backgroundColor: colors.bgSurface,
-    borderColor: colors.border,
-  },
-  optionCardIconWrapDeliveryActive: {
-    backgroundColor: colors.successLight,
-    borderColor: colors.success,
-    borderWidth: 1.5,
-  },
-  optionCardTitle: {
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  optionCardTitleDelivery: {
-    color: colors.textSecondary,
-  },
-  optionCardTitleDeliveryActive: {
-    color: colors.textPrimary,
-    fontWeight: '700',
   },
   gpsContainer: {
     marginTop: spacing.sm,

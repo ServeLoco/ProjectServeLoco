@@ -40,6 +40,10 @@ function getPositionWithTimeout() {
  * fetch also calls onConfirm immediately (no separate confirm tap needed) —
  * used for the checkout inline map so tapping Current Location both pins
  * and confirms the address in one step.
+ * `fullBleed`: edge-to-edge immersive map (no horizontal margin/radius, taller)
+ * — used when the map is the top of the page rather than embedded in a card.
+ * `onEnterManually`: when provided, renders a third "Enter Manually" action
+ * alongside Use my current location / Confirm location.
  */
 export default function LocationPicker({
   visible,
@@ -48,6 +52,8 @@ export default function LocationPicker({
   onClose,
   inline = false,
   autoConfirmOnLocate = false,
+  fullBleed = false,
+  onEnterManually,
 }) {
   const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
@@ -134,7 +140,7 @@ export default function LocationPicker({
 
   const content = (
     <>
-      <View style={[styles.mapWrap, inline && styles.mapWrapInline]}>
+      <View style={[styles.mapWrap, inline && styles.mapWrapInline, fullBleed && styles.mapWrapFullBleed]}>
         {mapboxAvailable ? (
           <Mapbox.MapView
             ref={mapRef}
@@ -171,10 +177,18 @@ export default function LocationPicker({
       </View>
 
       {gpsError ? (
-        <Text style={[styles.gpsErrorText, inline && styles.gpsErrorTextInline]}>{gpsError}</Text>
+        <Text
+          style={[
+            styles.gpsErrorText,
+            inline && styles.gpsErrorTextInline,
+            fullBleed && styles.gpsErrorTextFullBleed,
+          ]}
+        >
+          {gpsError}
+        </Text>
       ) : null}
 
-      <View style={[styles.actions, inline && styles.actionsInline]}>
+      <View style={[styles.actions, inline && styles.actionsInline, fullBleed && styles.actionsFullBleed]}>
         <TouchableOpacity
           style={styles.secondaryBtn}
           onPress={handleUseCurrentLocation}
@@ -202,12 +216,27 @@ export default function LocationPicker({
             <Text style={styles.primaryBtnText}>Confirm location</Text>
           )}
         </TouchableOpacity>
+
+        {typeof onEnterManually === 'function' ? (
+          <TouchableOpacity
+            style={styles.tertiaryBtn}
+            onPress={onEnterManually}
+            accessibilityRole="button"
+            accessibilityLabel="Enter address manually"
+          >
+            <Text style={styles.tertiaryBtnText}>Enter Manually</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </>
   );
 
   if (inline) {
-    return <View style={styles.inlineCard}>{content}</View>;
+    return (
+      <View style={[styles.inlineCard, fullBleed && styles.inlineCardFullBleed]}>
+        {content}
+      </View>
+    );
   }
 
   return (
@@ -245,6 +274,9 @@ const styles = StyleSheet.create({
   },
   gpsErrorTextInline: {
     paddingHorizontal: 0,
+  },
+  gpsErrorTextFullBleed: {
+    paddingHorizontal: spacing.lg,
   },
   overlay: {
     flex: 1,
@@ -284,6 +316,9 @@ const styles = StyleSheet.create({
   inlineCard: {
     marginTop: spacing.sm,
   },
+  inlineCardFullBleed: {
+    marginTop: 0,
+  },
   mapWrap: {
     height: 320,
     marginHorizontal: spacing.md,
@@ -294,6 +329,11 @@ const styles = StyleSheet.create({
   mapWrapInline: {
     height: 200,
     marginHorizontal: 0,
+  },
+  mapWrapFullBleed: {
+    height: 340,
+    marginHorizontal: 0,
+    borderRadius: 0,
   },
   map: {
     flex: 1,
@@ -343,6 +383,10 @@ const styles = StyleSheet.create({
   actionsInline: {
     paddingHorizontal: 0,
   },
+  actionsFullBleed: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
   secondaryBtn: {
     minHeight: 48,
     borderRadius: radius.md,
@@ -369,5 +413,17 @@ const styles = StyleSheet.create({
     ...(typography.label || {}),
     color: colors.primaryText || colors.textInverse || '#fff',
     fontWeight: '700',
+  },
+  tertiaryBtn: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  tertiaryBtnText: {
+    ...(typography.label || {}),
+    color: colors.textSecondary,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
