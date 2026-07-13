@@ -73,7 +73,7 @@ export default function LocationPicker({
     try {
       cameraRef.current?.setCamera?.({
         centerCoordinate,
-        zoomLevel: 15,
+        zoomLevel: 13,
         animationDuration: 0,
       });
     } catch (_) { /* ignore */ }
