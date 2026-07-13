@@ -15,7 +15,16 @@ jest.mock('expo-location', () => ({
   },
   getCurrentPositionAsync: jest.fn(),
   reverseGeocodeAsync: jest.fn(async () => []),
-  requestForegroundPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+  getForegroundPermissionsAsync: jest.fn(async () => ({
+    status: 'granted',
+    granted: true,
+    android: { accuracy: 'fine' },
+  })),
+  requestForegroundPermissionsAsync: jest.fn(async () => ({
+    status: 'granted',
+    granted: true,
+    android: { accuracy: 'fine' },
+  })),
   watchPositionAsync: jest.fn(async () => ({ remove: jest.fn() })),
 }));
 

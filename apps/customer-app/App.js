@@ -6,7 +6,13 @@ import { RootNavigator, navigationRef } from './src/navigation';
 import { colors } from './src/theme';
 import { setAdminTokenProvider, setCustomerTokenProvider, settingsApi } from './src/api';
 import { setAdminReMintHandler, setAdminSessionClearHandler, setCustomerLogoutHandler } from './src/api/httpClient';
-import { useCustomerRealtime, useLocalNotifications, useNetworkStatus, useShopStatusSync } from './src/hooks';
+import {
+  useCustomerRealtime,
+  useLocalNotifications,
+  useNetworkStatus,
+  usePreciseLocationPermissionOnStart,
+  useShopStatusSync,
+} from './src/hooks';
 import { useAuthStore } from './src/stores';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OfflineBanner } from './src/components/OfflineBanner';
@@ -34,6 +40,7 @@ function isUpdateRequired(current, required) {
 function App() {
   useCustomerRealtime();
   useLocalNotifications(navigationRef);
+  usePreciseLocationPermissionOnStart();
   useShopStatusSync();
   const { isOnline } = useNetworkStatus();
 

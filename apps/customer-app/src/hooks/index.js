@@ -9,4 +9,5 @@ export * from './useShopStatusSync';
 export * from './useStoreModes';
 export * from './useRiderOfferAlert';
 export * from './useRiderLocationTracking';
+export * from './usePreciseLocationPermissionOnStart';
 export * from './useNewOrderAlert';
