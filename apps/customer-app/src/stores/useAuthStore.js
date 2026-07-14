@@ -196,6 +196,23 @@ export const useAuthStore = create(
     {
       name: 'serveloco-customer-auth',
       storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
+      // Persisted shape changed across app versions without a bump before
+      // this — bump this whenever a field is added/removed/renamed below
+      // so old installs don't load a stale shape into new code.
+      migrate: (persistedState) => {
+        const state = persistedState || {};
+        return {
+          token: state.token ?? null,
+          user: state.user ?? null,
+          profile: state.profile ?? null,
+          shop: state.shop ?? null,
+          rider: state.rider ?? null,
+          admin: state.admin ?? null,
+          adminToken: state.adminToken ?? null,
+          isAuthenticated: Boolean(state.token) && Boolean(state.isAuthenticated),
+        };
+      },
       // Only persist real session data. Volatile flags (hasHydrated,
       // sessionChecked) must stay false on cold start so the spinner
       // shows until the store actually rehydrates and validates.

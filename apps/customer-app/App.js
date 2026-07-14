@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { AppState, StatusBar, View } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
+import * as Updates from 'expo-updates';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator, navigationRef } from './src/navigation';
 import { colors } from './src/theme';
@@ -46,6 +47,26 @@ function App() {
   useShopStatusSync();
   useAuthRoleSync();
   const { isOnline } = useNetworkStatus();
+
+  // OTA: fetch + apply any pending JS bundle immediately instead of the
+  // default next-launch behavior, so a user who reopens the app right
+  // after we publish doesn't run stale JS against the current backend.
+  useEffect(() => {
+    if (__DEV__) return;
+    let cancelled = false;
+    Updates.checkForUpdateAsync()
+      .then((result) => {
+        if (cancelled || !result.isAvailable) return;
+        return Updates.fetchUpdateAsync().then(() => {
+          if (!cancelled) Updates.reloadAsync();
+        });
+      })
+      .catch(() => {
+        // No connectivity or update service unreachable — fall back to
+        // Expo's default next-launch check, don't block the current session.
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   // Force-update gate: check server's minimum_version against installed version
   const [forceUpdate, setForceUpdate] = useState(false);

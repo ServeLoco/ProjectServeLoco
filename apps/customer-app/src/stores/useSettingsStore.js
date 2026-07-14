@@ -33,6 +33,22 @@ export const useSettingsStore = create(
     {
       name: 'serveloco-settings',
       storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
+      // Force a re-fetch from the server on any shape change instead of
+      // trusting stale persisted fields — this store is a cache, not a
+      // source of truth, so dropping it on migrate is always safe.
+      migrate: () => ({
+        shopStatus: 'open',
+        deliveryAvailable: true,
+        upiId: null,
+        upiQrImageId: null,
+        upiQrImageUrl: null,
+        activeOffer: null,
+        nightCharge: 0,
+        nightChargeStart: null,
+        nightChargeEnd: null,
+        _lastFetched: null,
+      }),
     }
   )
 );
