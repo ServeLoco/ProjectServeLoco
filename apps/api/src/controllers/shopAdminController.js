@@ -1,5 +1,5 @@
 const { pool } = require('../db/mysql');
-const { emitToAllCustomers } = require('../realtime/socket');
+const { emitToAllCustomers, emitToAdmins } = require('../realtime/socket');
 const { syncGlobalShopOpenState } = require('../utils/shops');
 const { isActiveMobileAdminPhone } = require('../utils/mobileAdmins');
 const { validateCoordinates } = require('../validators');
@@ -247,10 +247,22 @@ const updateShop = async (req, res) => {
   // customers — notify connected clients so open carts/screens can react
   // immediately instead of waiting for a manual refresh.
   if (is_open !== undefined || active !== undefined) {
+    const isOpen = Boolean(shop.is_open) && Boolean(shop.active);
     emitToAllCustomers('shop.status.updated', {
       shopId: shop.id,
-      isOpen: Boolean(shop.is_open) && Boolean(shop.active),
+      isOpen,
     });
+    // Other admin dashboards (or this same admin in another tab) need this
+    // too — otherwise their Shops table goes stale until manual refresh.
+    try {
+      emitToAdmins('admin.shop.updated', {
+        shopId: shop.id,
+        id: shop.id,
+        isOpen: Boolean(shop.is_open),
+        is_open: Boolean(shop.is_open),
+        active: Boolean(shop.active),
+      });
+    } catch (_) { /* best-effort */ }
     // Keep the global "Shop Status" banner in sync in both directions —
     // see syncGlobalShopOpenState.
     await syncGlobalShopOpenState();
@@ -327,6 +339,9 @@ const deleteShop = async (req, res) => {
     shopId,
     isOpen: false,
   });
+  try {
+    emitToAdmins('admin.shop.updated', { shopId, id: shopId, deleted: true });
+  } catch (_) { /* best-effort */ }
   // Owner phone is no longer a shop owner — open app switches to customer shell.
   if (ownerUserId) {
     try {

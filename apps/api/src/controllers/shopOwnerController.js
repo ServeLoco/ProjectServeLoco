@@ -1,6 +1,6 @@
 const { pool } = require('../db/mysql');
 const { syncGlobalShopOpenState } = require('../utils/shops');
-const { emitToAllCustomers } = require('../realtime/socket');
+const { emitToAllCustomers, emitToAdmins } = require('../realtime/socket');
 const {
   listShopActiveOrders,
   confirmShopOrder,
@@ -48,6 +48,17 @@ const toggleMyShop = async (req, res) => {
   await pool.query('UPDATE shops SET is_open = ? WHERE id = ?', [isOpen ? 1 : 0, req.shop.id]);
   const [rows] = await pool.query('SELECT id, name, is_open, active FROM shops WHERE id = ?', [req.shop.id]);
   emitToAllCustomers('shop.status.updated', { shopId: req.shop.id, isOpen: Boolean(isOpen) });
+  // Admin dashboard's Shops table has no other way to learn a shop owner
+  // toggled their own shop — keep it in sync the same way rider toggles do.
+  try {
+    emitToAdmins('admin.shop.updated', {
+      shopId: req.shop.id,
+      id: req.shop.id,
+      isOpen: Boolean(isOpen),
+      is_open: Boolean(isOpen),
+      active: Boolean(rows[0]?.active),
+    });
+  } catch (_) { /* best-effort */ }
   // Keep the global "Shop Status" banner in sync — opening this shop can
   // auto-turn it on (if delivery is available), closing it can auto-turn
   // it off (if this was the last open shop). See syncGlobalShopOpenState.

@@ -1,10 +1,40 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ShopsApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } from '../api';
+import {
+  ShopsApi,
+  subscribeAdminOrderEvents,
+  subscribeRealtimeLifecycle,
+  subscribeRealtime,
+  connectAdminRealtime,
+} from '../api';
 import ShopLocationPicker from '../components/ShopLocationPicker';
 import { readList } from '../utils/apiResponse';
 import { GENERIC_ERROR } from '../utils/constants';
 import { ADMIN_ORDER_STATUS_EVENT } from '../utils/realtimeOrder';
 import './Shops.css';
+
+// Patches (or drops) a shop row from a live admin.shop.updated event —
+// mirrors mergeRiderUpdate in Riders.jsx so another admin tab (or the
+// shop-owner app itself) toggling a shop doesn't leave this table stale.
+function mergeShopUpdate(list, payload) {
+  if (!payload) return list;
+  const id = Number(payload.shopId ?? payload.id);
+  if (!Number.isFinite(id)) return list;
+  if (payload.deleted) {
+    return list.filter((s) => Number(s.id) !== id);
+  }
+  const idx = list.findIndex((s) => Number(s.id) === id);
+  if (idx < 0) return list;
+  const next = [...list];
+  const prev = next[idx];
+  next[idx] = {
+    ...prev,
+    is_open: payload.is_open !== undefined || payload.isOpen !== undefined
+      ? Boolean(payload.is_open ?? payload.isOpen)
+      : prev.is_open,
+    active: payload.active !== undefined ? Boolean(payload.active) : prev.active,
+  };
+  return next;
+}
 
 export default function Shops() {
   const [shops, setShops] = useState([]);
@@ -20,6 +50,20 @@ export default function Shops() {
 
   useEffect(() => {
     fetchShops();
+  }, []);
+
+  useEffect(() => {
+    connectAdminRealtime();
+    const off = subscribeRealtime('admin.shop.updated', (payload) => {
+      setShops((prev) => mergeShopUpdate(prev, payload));
+    });
+    const offVisible = subscribeRealtime('lifecycle.visible', () => fetchShops());
+    const offReconn = subscribeRealtime('lifecycle.reconnected', () => fetchShops());
+    return () => {
+      off();
+      offVisible();
+      offReconn();
+    };
   }, []);
 
   const fetchShops = async () => {
