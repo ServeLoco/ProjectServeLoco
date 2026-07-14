@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef, useState } from 'react';
 import appJson from '../../../../app.json';
+import * as Application from 'expo-application';
 import {
   View,
   Text,
@@ -583,7 +584,12 @@ export default function ProfileScreen() {
             <Text style={styles.footerHeart}>❤️</Text>
             <Text style={styles.footerBrand}> (Haryana)</Text>
           </View>
-          <Text style={styles.footerVersion}>v{appJson?.expo?.version ?? '1.1.1'}</Text>
+          {/* Native binary version — what's actually installed from the Play
+              Store. appJson.expo.version is only a fallback because after an
+              OTA update it reflects the JS bundle, not the installed binary. */}
+          <Text style={styles.footerVersion}>
+            v{Application.nativeApplicationVersion ?? appJson?.expo?.version ?? '1.1.1'}
+          </Text>
         </View>
       </ScrollView>
 

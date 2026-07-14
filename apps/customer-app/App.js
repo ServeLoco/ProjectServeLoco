@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { AppState, StatusBar, View } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import * as Updates from 'expo-updates';
+import * as Application from 'expo-application';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator, navigationRef } from './src/navigation';
 import { colors } from './src/theme';
@@ -75,7 +76,12 @@ function App() {
     settingsApi.getSettings().then((res) => {
       if (cancelled) return;
       const minimumVersion = res?.data?.minimum_version ?? null;
-      const installedVersion = appJson?.expo?.version ?? '0.0.0';
+      // Use the NATIVE binary version (versionName baked into the APK/AAB),
+      // not appJson.expo.version — after an OTA update the JS bundle carries
+      // the new app.json, so the JS version lies about what binary is
+      // installed and the force-update gate would never fire.
+      const installedVersion =
+        Application.nativeApplicationVersion ?? appJson?.expo?.version ?? '0.0.0';
       if (isUpdateRequired(installedVersion, minimumVersion)) {
         setForceUpdate(true);
       }
