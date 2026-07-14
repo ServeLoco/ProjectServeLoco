@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { colors, spacing } from '../../theme';
+import { useSettingsStore } from '../../stores';
 
 const PLAY_STORE_URL =
   'https://play.google.com/store/apps/details?id=com.yashsiwach.villkro';
@@ -62,13 +63,31 @@ function ForceUpdateModal({ visible }) {
     return () => sub.remove();
   }, [visible]);
 
-  const handleUpdate = () => {
-    Linking.openURL(PLAY_STORE_URL).catch(() => {
+  const handleUpdate = async () => {
+    await Linking.openURL(PLAY_STORE_URL).catch(() => {
       // If the Play Store app is not present, fall back to browser
-      Linking.openURL(
+      return Linking.openURL(
         'https://play.google.com/store/apps/details?id=com.yashsiwach.villkro'
       );
+    }).catch(() => {
+      // Neither the Play Store app nor a browser is available — still
+      // proceed to clear/exit below rather than leaving the user stuck.
     });
+
+    // Wipe the settings cache only — server-driven, TTL'd, safe to drop.
+    // Auth/session and cart are intentionally left untouched so the user
+    // stays logged in and doesn't lose their cart across the update.
+    try {
+      await useSettingsStore.persist.clearStorage();
+    } catch (_) {
+      // Best-effort; never block exit on this.
+    }
+
+    if (Platform.OS === 'android') {
+      BackHandler.exitApp();
+    }
+    // iOS can't force-exit programmatically — the modal stays up until the
+    // user switches to the App Store manually and updates from there.
   };
 
   const handleExit = () => {
