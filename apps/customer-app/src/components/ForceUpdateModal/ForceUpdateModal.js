@@ -11,8 +11,8 @@ import {
   Text,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing } from '../../theme';
-import { useSettingsStore } from '../../stores';
 
 const PLAY_STORE_URL =
   'https://play.google.com/store/apps/details?id=com.yashsiwach.villkro';
@@ -74,11 +74,16 @@ function ForceUpdateModal({ visible }) {
       // proceed to clear/exit below rather than leaving the user stuck.
     });
 
-    // Wipe the settings cache only — server-driven, TTL'd, safe to drop.
-    // Auth/session and cart are intentionally left untouched so the user
-    // stays logged in and doesn't lose their cart across the update.
+    // Wipe ALL locally persisted data (settings cache, cart, notification
+    // flags, navigation hints, any legacy keys) so the new build starts
+    // from a completely blank slate. Only the auth/session store survives
+    // so the user stays logged in across the update.
     try {
-      await useSettingsStore.persist.clearStorage();
+      const keys = await AsyncStorage.getAllKeys();
+      const toRemove = keys.filter((k) => k !== 'serveloco-customer-auth');
+      if (toRemove.length) {
+        await AsyncStorage.multiRemove(toRemove);
+      }
     } catch (_) {
       // Best-effort; never block exit on this.
     }
