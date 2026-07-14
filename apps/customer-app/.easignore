@@ -1,3 +1,9 @@
-android/
-ios/
+# Keep bare-workflow android/ and ios/ in the EAS archive (need gradlew).
+# Only drop heavy native build caches.
+android/build/
+android/app/build/
+android/.gradle/
+android/.kotlin/
+ios/Pods/
+ios/build/
 !.env
