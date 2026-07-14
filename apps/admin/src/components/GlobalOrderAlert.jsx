@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { subscribeAdminOrderEvents, subscribeRealtime } from '../api';
 import { apiClient } from '../api/client';
+import { broadcastAdminOrderStatus } from '../utils/realtimeOrder';
 import './GlobalOrderAlert.css';
 
 const SOUND_LOOP_INTERVAL_MS = 8000;
@@ -166,14 +167,6 @@ export default function GlobalOrderAlert() {
     return unsubscribe;
   }, []);
 
-  useEffect(() => {
-    const off = subscribeRealtime('admin.order.auto_accepted', (payload) => {
-      if (!payload || !payload.orderId) return;
-      setAutoAcknowledged(prev => ({ ...prev, [payload.orderId]: true }));
-    });
-    return off;
-  }, []);
-
   const removeModal = useCallback((id) => {
     setModals(prev => prev.filter(m => m.id !== id));
     setBusy(prev => {
@@ -184,6 +177,29 @@ export default function GlobalOrderAlert() {
       const { [id]: _gone, ...rest } = prev;
       return rest;
     });
+  }, []);
+
+  useEffect(() => {
+    const off = subscribeRealtime('admin.order.auto_accepted', (payload) => {
+      const oid = payload?.orderId ?? payload?.order_id ?? payload?.id;
+      if (oid == null) return;
+      setAutoAcknowledged((prev) => ({ ...prev, [oid]: true, [String(oid)]: true }));
+      // Same-tab lists (Orders / Shops) refresh without F5.
+      try {
+        broadcastAdminOrderStatus({ orderId: oid, status: 'Accepted' });
+      } catch (_) { /* noop */ }
+      // Brief "auto-accepted" flash, then drop from queue.
+      setTimeout(() => {
+        setModals((prev) => prev.filter((m) => Number(m.payload?.orderId) !== Number(oid)));
+        setAutoAcknowledged((prev) => {
+          const next = { ...prev };
+          delete next[oid];
+          delete next[String(oid)];
+          return next;
+        });
+      }, 2500);
+    });
+    return off;
   }, []);
 
   // Esc = skip current (dismiss from queue) and show next
@@ -213,6 +229,8 @@ export default function GlobalOrderAlert() {
         method: 'PATCH',
         body: reason ? { status, cancel_reason: reason } : { status },
       });
+      // Same-tab realtime: Shops panel drops cancelled order without F5.
+      broadcastAdminOrderStatus({ orderId, status, cancelReason: reason });
       closeDrawerAndNavigate();
       removeModal(id);
     } catch (err) {
@@ -222,7 +240,14 @@ export default function GlobalOrderAlert() {
   }, [closeDrawerAndNavigate, removeModal]);
 
   const handleAccept = useCallback((id, orderId) => submitStatus(id, orderId, 'Accepted'), [submitStatus]);
-  const handleCancel = useCallback((id, orderId) => submitStatus(id, orderId, 'Cancelled', 'Cancelled by admin'), [submitStatus]);
+  const handleCancel = useCallback((id, orderId) => {
+    const reason = window.prompt(
+      'Reason for cancellation (shown to the customer). Leave blank for default:',
+      ''
+    );
+    if (reason === null) return;
+    submitStatus(id, orderId, 'Cancelled', reason.trim() || null);
+  }, [submitStatus]);
 
   const handleSkip = useCallback(() => {
     const head = modals[0];
@@ -261,7 +286,9 @@ export default function GlobalOrderAlert() {
   const isBusy = Boolean(busy[id]);
   const error = errors[id];
   const isPaymentUpi = paymentMethod === 'UPI';
-  const wasAutoAccepted = Boolean(autoAcknowledged[orderId]);
+  const wasAutoAccepted = Boolean(
+    autoAcknowledged[orderId] || autoAcknowledged[String(orderId)]
+  );
 
   return (
     <div className="order-alert-overlay" role="presentation">

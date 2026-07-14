@@ -1,14 +1,17 @@
 import { useEffect, useRef } from 'react';
 import * as Location from 'expo-location';
 import { riderApi } from '../api/riderApi';
+import { RIDER_WATCH_OPTIONS, shouldSendPing } from '../utils/riderTracking';
 
 /**
  * Foreground-only GPS watch while the rider has an active assignment.
- * Ping cadence: 10s / 20m (locked §4.6). Fire-and-forget updates.
+ * Samples every ~3s but only sends a ping once the rider has moved 150 m
+ * or turned sharply since the last sent point. Fire-and-forget updates.
  */
 export function useRiderLocationTracking(activeAssignment) {
   const subscriptionRef = useRef(null);
   const startingRef = useRef(false);
+  const lastSentRef = useRef(null);
   // Depend on id/truthiness so fetchAll() object identity churn does not restart GPS.
   const assignmentKey = activeAssignment
     ? String(activeAssignment.id ?? activeAssignment.orderId ?? activeAssignment.order_id ?? 'active')
@@ -39,14 +42,18 @@ export function useRiderLocationTracking(activeAssignment) {
         }
 
         const sub = await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.Balanced,
-            timeInterval: 10000,
-            distanceInterval: 20,
-          },
+          RIDER_WATCH_OPTIONS,
           (position) => {
             const coords = position?.coords;
             if (!coords) return;
+            const next = {
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+              heading: coords.heading,
+              at: Date.now(),
+            };
+            if (!shouldSendPing(lastSentRef.current, next)) return;
+            lastSentRef.current = next;
             riderApi
               .updateLocation(coords.latitude, coords.longitude)
               .catch(() => {});

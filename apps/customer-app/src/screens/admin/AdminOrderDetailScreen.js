@@ -1,12 +1,13 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View,
+  ActivityIndicator, Alert, Dimensions, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { colors, spacing, typography, radius, shadows } from '../../theme';
 import { adminApi, subscribeAdminOrderEvents } from '../../api';
 import AppIcon from '../../components/AppIcon';
+import RiderLiveMap from '../../components/RiderLiveMap';
 import { getRealtimeOrderId, mergeAdminOrderPatch } from '../../utils/realtimeOrder';
 import {
   ORDER_STATUS_OPTIONS,
@@ -51,6 +52,34 @@ export default function AdminOrderDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updating, setUpdating] = useState(false);
+
+  // Disables the page ScrollView while a finger is on the inline map so
+  // pan/pinch reaches the native MapView instead of being stolen by the
+  // outer scroll gesture. Same pattern as the customer OrderDetailScreen.
+  const scrollRef = useRef(null);
+  const scrollLockTimeoutRef = useRef(null);
+  const lockMapScroll = useCallback(() => {
+    scrollRef.current?.setNativeProps?.({ scrollEnabled: false });
+    if (scrollLockTimeoutRef.current) clearTimeout(scrollLockTimeoutRef.current);
+    scrollLockTimeoutRef.current = setTimeout(() => {
+      scrollRef.current?.setNativeProps?.({ scrollEnabled: true });
+      scrollLockTimeoutRef.current = null;
+    }, 4000);
+  }, []);
+  const unlockMapScroll = useCallback(() => {
+    if (scrollLockTimeoutRef.current) {
+      clearTimeout(scrollLockTimeoutRef.current);
+      scrollLockTimeoutRef.current = null;
+    }
+    scrollRef.current?.setNativeProps?.({ scrollEnabled: true });
+  }, []);
+  useEffect(() => () => {
+    if (scrollLockTimeoutRef.current) clearTimeout(scrollLockTimeoutRef.current);
+  }, []);
+
+  // RiderLiveMap defaults to the customer-scoped order endpoint (filtered by
+  // customer_id) — admins need the admin-scoped one instead.
+  const fetchAdminOrderForMap = useCallback((id) => adminApi.getOrder(id), []);
 
   const fetchOrder = useCallback(async ({ silent = false } = {}) => {
     if (!orderId) return;
@@ -131,15 +160,33 @@ export default function AdminOrderDetailScreen() {
     };
 
     if (newStatus === 'Cancelled') {
-      // RN has no cross-platform text prompt (Alert.prompt is iOS-only), so
-      // mobile always sends the default reason — matches web's fallback when
-      // the admin leaves the reason blank.
+      // iOS: free-text reason (shown on customer Track Order). Android: default message.
+      if (typeof Alert.prompt === 'function') {
+        Alert.prompt(
+          'Cancel this order?',
+          'Reason shown to the customer on Track Order (optional):',
+          [
+            { text: 'Back', style: 'cancel' },
+            {
+              text: 'Cancel order',
+              style: 'destructive',
+              onPress: (text) => applyStatusChange('Cancelled', text?.trim() || null),
+            },
+          ],
+          'plain-text'
+        );
+        return;
+      }
       Alert.alert(
         'Cancel this order?',
-        'The customer will be told: "Cancelled by admin".',
+        'The customer will see: "This order was cancelled by the store."',
         [
           { text: 'Keep order', style: 'cancel' },
-          { text: 'Cancel order', style: 'destructive', onPress: () => applyStatusChange('Cancelled', 'Cancelled by admin') },
+          {
+            text: 'Cancel order',
+            style: 'destructive',
+            onPress: () => applyStatusChange('Cancelled', null),
+          },
         ]
       );
       return;
@@ -231,12 +278,30 @@ export default function AdminOrderDetailScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.scrollContent}>
         {error && (
           <View style={styles.errorBanner}>
             <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
+
+        {order.status !== 'Cancelled' ? (
+          <View
+            style={styles.mapHeroBleed}
+            onTouchStart={lockMapScroll}
+            onTouchMove={lockMapScroll}
+            onTouchEnd={unlockMapScroll}
+            onTouchCancel={unlockMapScroll}
+          >
+            <RiderLiveMap
+              orderId={order.id || orderId}
+              initialOrder={order}
+              fetchOrder={fetchAdminOrderForMap}
+              style={styles.mapHeroInner}
+              showLegend={false}
+            />
+          </View>
+        ) : null}
 
         <Section title="Customer">
           <Row label="Name" value={order.customer_name} />
@@ -283,7 +348,7 @@ export default function AdminOrderDetailScreen() {
                 value={
                   order.riderAssignmentStatus === 'searching' ? 'Searching for a rider…'
                     : order.riderAssignmentStatus === 'offered' ? 'Offer sent — awaiting rider response'
-                    : order.riderAssignmentStatus === 'failed' ? 'No rider accepted — order cancelled'
+                    : order.riderAssignmentStatus === 'failed' ? 'No rider — needs admin action (not auto-cancelled)'
                     : 'Not started'
                 }
                 valueColor={order.riderAssignmentStatus === 'failed' ? colors.error : undefined}
@@ -402,6 +467,17 @@ const styles = StyleSheet.create({
   headerTitle: { ...typography.h3, color: colors.textPrimary },
   headerSubtitle: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   scrollContent: { padding: spacing.lg, paddingBottom: spacing.xl },
+  mapHeroBleed: {
+    height: 220,
+    marginHorizontal: -spacing.lg,
+    marginTop: -spacing.lg,
+    marginBottom: spacing.md,
+    width: Dimensions.get('window').width,
+    alignSelf: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  mapHeroInner: { flex: 1, minHeight: 0 },
   errorBanner: { backgroundColor: colors.errorLight, borderRadius: radius.lg, padding: spacing.sm, marginBottom: spacing.md },
   errorText: { color: colors.error, fontWeight: '600', fontSize: 13 },
   section: {

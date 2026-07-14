@@ -16,7 +16,12 @@ jest.mock('@react-navigation/native', () => ({
 
 jest.mock('../src/api', () => ({
   adminApi: { getOrder: jest.fn(), updateOrderStatus: jest.fn(), updateOrderPayment: jest.fn() },
+  ordersApi: { getOrder: jest.fn() },
   subscribeAdminOrderEvents: () => () => {},
+  subscribeOrderEvents: () => () => {},
+  subscribeRiderLocation: () => () => {},
+  subscribeRealtime: () => () => {},
+  subscribeRealtimeLifecycle: () => () => {},
 }));
 
 const { adminApi } = require('../src/api');
@@ -86,6 +91,7 @@ describe('AdminOrderDetailScreen', () => {
 
     expect(alertSpy).toHaveBeenCalled();
     // Two getOrder calls: initial load + refetch-before-patch race guard.
+    // (RiderLiveMap is seeded via initialOrder, so it does no fetch of its own.)
     expect(adminApi.getOrder).toHaveBeenCalledTimes(2);
     expect(adminApi.updateOrderStatus).toHaveBeenCalledWith(7, 'Accepted', null);
 
@@ -111,6 +117,7 @@ describe('AdminOrderDetailScreen', () => {
     const texts = findAllText(root.root);
     expect(texts).toEqual(expect.arrayContaining(['Order was updated by someone else.']));
     // Refetch-on-409: initial load + pre-patch race check + post-409 refetch.
+    // (RiderLiveMap is seeded via initialOrder, so it does no fetch of its own.)
     expect(adminApi.getOrder).toHaveBeenCalledTimes(3);
 
     alertSpy.mockRestore();

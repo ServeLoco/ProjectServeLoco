@@ -10,6 +10,7 @@ import {
   AdminOrdersScreen,
   AdminOrderDetailScreen,
   AdminNewOrderPopup,
+  AdminCancelRequestPopup,
   AdminPeopleScreen,
   AdminNotificationsScreen,
   AdminAnalyticsScreen,
@@ -126,6 +127,7 @@ export default function AdminNavigator() {
         <Stack.Screen name="AdminOrderDetail" component={AdminOrderDetailScreen} />
       </Stack.Navigator>
       <AdminNewOrderPopup />
+      <AdminCancelRequestPopup />
     </>
   );
 }

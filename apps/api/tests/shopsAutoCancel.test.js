@@ -70,7 +70,12 @@ describe('maybeAutoCancelOrderWhenAllShopsRejected', () => {
       .mockResolvedValueOnce([[
         { shop_id: 1, shop_rejected_at: '2026-07-10 10:00:00' },
       ]])
-      .mockResolvedValueOnce([[{ ...ORDER_ROW, status: 'Cancelled', payment_status: 'Failed', cancel_reason: 'Auto-cancelled: all shops rejected the order' }]])
+      .mockResolvedValueOnce([[{
+        ...ORDER_ROW,
+        status: 'Cancelled',
+        payment_status: 'Failed',
+        cancel_reason: 'Sorry, the items on this order are currently unavailable. Please try ordering again.',
+      }]])
       .mockResolvedValueOnce([[{ name: 'Burger Point' }]]);
 
     const result = await maybeAutoCancelOrderWhenAllShopsRejected(42);
@@ -78,7 +83,13 @@ describe('maybeAutoCancelOrderWhenAllShopsRejected', () => {
     expect(result.status).toBe('Cancelled');
     expect(connection.query).toHaveBeenCalledWith(
       'UPDATE orders SET status = ?, payment_status = ?, cancel_reason = ? WHERE id = ? AND status = ?',
-      ['Cancelled', 'Failed', 'Auto-cancelled: all shops rejected the order', 42, 'Accepted']
+      [
+        'Cancelled',
+        'Failed',
+        'Sorry, the items on this order are currently unavailable. Please try ordering again.',
+        42,
+        'Accepted',
+      ]
     );
     expect(adminInbox.createAdminNotification).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -147,7 +158,7 @@ describe('maybeAutoCancelOrderWhenAllShopsRejected', () => {
     expect(result.status).toBe('Cancelled');
     expect(connection.query).toHaveBeenCalledWith(
       expect.any(String),
-      ['Cancelled', 'Failed', 'Auto-cancelled: all shops rejected the order', 42, 'Preparing']
+      ['Cancelled', 'Failed', 'Sorry, the items on this order are currently unavailable. Please try ordering again.', 42, 'Preparing']
     );
   });
 
@@ -165,7 +176,7 @@ describe('maybeAutoCancelOrderWhenAllShopsRejected', () => {
 
     expect(connection.query).toHaveBeenCalledWith(
       expect.any(String),
-      ['Cancelled', 'Refunded', 'Auto-cancelled: all shops rejected the order', 42, 'Accepted']
+      ['Cancelled', 'Refunded', 'Sorry, the items on this order are currently unavailable. Please try ordering again.', 42, 'Accepted']
     );
   });
 

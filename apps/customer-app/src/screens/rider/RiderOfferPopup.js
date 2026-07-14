@@ -23,7 +23,24 @@ import {
  * Premium non-dismissible Accept/Reject offer modal.
  * Countdown is always derived from server expiresAt.
  */
-export default function RiderOfferPopup({ offer, onAccept, onReject }) {
+const OFFER_TIMEOUT_SEC = 300; // matches API RIDER_OFFER_TIMEOUT_SEC default (5 min)
+
+/**
+ * @param {object} props
+ * @param {object} props.offer - current front-of-queue offer
+ * @param {number} [props.queueIndex=0] - 0-based index in offer queue
+ * @param {number} [props.queueTotal=1] - total pending offers
+ * @param {number} [props.activeJobCount=0] - already-accepted jobs
+ */
+export default function RiderOfferPopup({
+  offer,
+  onAccept,
+  onReject,
+  hasActiveJobs = false,
+  queueIndex = 0,
+  queueTotal = 1,
+  activeJobCount = 0,
+}) {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
@@ -113,7 +130,7 @@ export default function RiderOfferPopup({ offer, onAccept, onReject }) {
   const countdownUrgent = secondsLeft <= 30;
   const shops = offer.shops || [];
   const phone = offer.phone;
-  const progress = Math.min(1, Math.max(0, secondsLeft / 120));
+  const progress = Math.min(1, Math.max(0, secondsLeft / OFFER_TIMEOUT_SEC));
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={() => {}}>
@@ -144,6 +161,18 @@ export default function RiderOfferPopup({ offer, onAccept, onReject }) {
               </View>
             </View>
 
+            {queueTotal > 1 ? (
+              <View style={styles.queueBanner}>
+                <AppIcon name="orders" size={14} color={colors.saffronDark} />
+                <Text style={styles.queueBannerText}>
+                  Offer {Math.min(queueIndex + 1, queueTotal)} of {queueTotal}
+                  {queueTotal - queueIndex - 1 > 0
+                    ? ` · ${queueTotal - queueIndex - 1} more waiting`
+                    : ''}
+                </Text>
+              </View>
+            ) : null}
+
             <Text
               style={styles.orderNumber}
               numberOfLines={1}
@@ -159,6 +188,15 @@ export default function RiderOfferPopup({ offer, onAccept, onReject }) {
                   : 'Respond within the timer to claim this delivery'
                 : 'Time expired — wait for the next offer'}
             </Text>
+            {(hasActiveJobs || activeJobCount > 0) ? (
+              <Text style={styles.multiJobHint}>
+                {activeJobCount > 0
+                  ? `You already have ${activeJobCount} active ${
+                    activeJobCount === 1 ? 'delivery' : 'deliveries'
+                  } — accept to add this to your job queue.`
+                  : 'You already have active deliveries — accept to add this to your job queue.'}
+              </Text>
+            ) : null}
 
             {/* Progress bar */}
             <View style={styles.progressTrack}>
@@ -371,6 +409,31 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.md,
     fontWeight: '500',
+  },
+  multiJobHint: {
+    ...typography.caption,
+    color: colors.info || colors.saffronDark,
+    backgroundColor: colors.infoLight || colors.saffronLight,
+    borderRadius: radius.lg,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+    fontWeight: '600',
+  },
+  queueBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.warningLight || colors.saffronLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    marginBottom: spacing.sm,
+  },
+  queueBannerText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.saffronDark || colors.warning,
   },
   progressTrack: {
     height: 6,

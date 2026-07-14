@@ -1,8 +1,11 @@
 /**
  * Rider auto-assignment engine.
  * One pending offer per order at a time; least completed deliveries today;
- * 120s server timer; reassign on reject/expire/post-accept-cancel.
- * See plans/rider-mode-order-assignment.md §7.
+ * 300s offer timer; multi-order allowed; no post-accept cancel by rider.
+ * If no eligible riders after shops confirm: wait RIDER_SEARCH_WINDOW_SEC
+ * (default 10 min), re-scanning every RIDER_SEARCH_SCAN_SEC (default 30s)
+ * before failAssignment (order stays open for admin).
+ * See plans/order-lifecycle-all-cases.md and plans/rider-mode-order-assignment.md.
  */
 
 const { pool } = require('../db/mysql');
@@ -13,13 +16,63 @@ const {
   syncDeliveryAvailabilityFromRiders,
 } = require('../utils/riders');
 
-const RIDER_OFFER_TIMEOUT_SEC = config.RIDER_OFFER_TIMEOUT_SEC || 120;
+const RIDER_OFFER_TIMEOUT_SEC = config.RIDER_OFFER_TIMEOUT_SEC || 300;
+const RIDER_SEARCH_WINDOW_SEC = config.RIDER_SEARCH_WINDOW_SEC || 600;
+const RIDER_SEARCH_SCAN_SEC = config.RIDER_SEARCH_SCAN_SEC || 30;
+const RIDER_OFFER_REMIND_SEC = config.RIDER_OFFER_REMIND_SEC || 15;
+const RIDER_OFFER_REMIND_MS = RIDER_OFFER_REMIND_SEC * 1000;
 
-const getCancelledPaymentStatus = (paymentMethod) => (
-  paymentMethod === 'UPI' ? 'Refunded' : 'Failed'
-);
+// offerId → last Expo push timestamp (ms). Stops after accept/reject/expire.
+const offerLastRemindAt = new Map();
+
+const clearOfferRemind = (offerId) => {
+  if (offerId != null) offerLastRemindAt.delete(Number(offerId));
+};
 
 const log = (...args) => console.log('[rider-assign]', ...args);
+
+/**
+ * Stamp search start once; keep status searching. Uses DB clock.
+ */
+const markSearching = async (orderId, connection = pool) => {
+  await connection.query(
+    `UPDATE orders
+     SET rider_assignment_status = 'searching',
+         rider_search_started_at = COALESCE(rider_search_started_at, NOW())
+     WHERE id = ? AND rider_id IS NULL AND status NOT IN ('Delivered', 'Cancelled')`,
+    [orderId]
+  );
+};
+
+/**
+ * True while still inside the wait-for-riders window (DB clock).
+ * Missing rider_search_started_at is treated as just-opened (stamped first).
+ *
+ * Reads first and only stamps when the start timestamp is missing — this runs
+ * on every sweeper re-scan (~5s) for every waiting order, so unconditionally
+ * issuing the markSearching UPDATE each tick was pointless write/lock churn
+ * on rows whose timestamp was already set.
+ */
+const isWithinSearchWindow = async (orderId, connection = pool) => {
+  const readWindow = async () => {
+    const [rows] = await connection.query(
+      `SELECT rider_search_started_at IS NOT NULL AS stamped,
+              (rider_search_started_at > (NOW() - INTERVAL ? SECOND)) AS open
+       FROM orders WHERE id = ?`,
+      [RIDER_SEARCH_WINDOW_SEC, orderId]
+    );
+    return rows[0] || null;
+  };
+
+  let row = await readWindow();
+  if (!row) return false;
+  if (!row.stamped) {
+    await markSearching(orderId, connection);
+    row = await readWindow();
+    if (!row) return false;
+  }
+  return Boolean(row.open);
+};
 
 /** Riders who already have any offer row for this order (cannot re-offer). */
 const getExcludedRiderIdsForOrder = async (orderId, connection = pool) => {
@@ -36,34 +89,137 @@ const loadOrder = async (orderId, connection = pool) => {
 };
 
 /**
+ * One Expo push for a pending delivery offer (initial + continuous reminders).
+ */
+const pushRiderOffer = async (userId, order, offer, { reminder = false } = {}) => {
+  if (!userId) return;
+  const orderNumber = order.order_number || order.orderNumber || order.id;
+  const mins = Math.max(1, Math.round(RIDER_OFFER_TIMEOUT_SEC / 60));
+  const expoPush = require('../utils/expoPush');
+  await expoPush.sendPushToUser(pool, userId, {
+    title: reminder ? 'Delivery offer still waiting' : 'New delivery offer',
+    body: reminder
+      ? `Order ${orderNumber} — accept now before it expires`
+      : `Order ${orderNumber} — accept within ${mins} minutes`,
+    // Strong vibration channel (client creates serveloco-rider-offers).
+    channelId: 'serveloco-rider-offers',
+    data: {
+      type: 'rider_offer',
+      offerId: String(offer.id),
+      orderId: String(order.id || offer.order_id),
+      expiresAt: String(offer.expires_at || offer.expiresAt || ''),
+    },
+  });
+  offerLastRemindAt.set(Number(offer.id), Date.now());
+};
+
+/**
  * Notify selected rider via socket + Expo push.
+ * Continuous re-pushes run from remindPendingOffers until accept/reject/expire.
  */
 const notifyRiderOffer = async (rider, order, offer) => {
   try {
-    const { emitToCustomer } = require('../realtime/socket');
+    const { emitToCustomer, emitToAdmins } = require('../realtime/socket');
+    const userId = rider.userId || rider.user_id;
     const payload = {
       offerId: offer.id,
       orderId: order.id,
       orderNumber: order.order_number,
+      order_number: order.order_number,
       expiresAt: offer.expires_at,
       expires_at: offer.expires_at,
+      riderId: rider.id,
+      rider_id: rider.id,
     };
-    emitToCustomer(rider.userId || rider.user_id, 'rider.offer.created', payload);
+    emitToCustomer(userId, 'rider.offer.created', payload);
 
-    const expoPush = require('../utils/expoPush');
-    await expoPush.sendPushToUser(pool, rider.userId || rider.user_id, {
-      title: 'New delivery offer',
-      body: `Order ${order.order_number} — accept within 2 minutes`,
-      data: {
-        type: 'rider_offer',
-        offerId: offer.id,
-        orderId: order.id,
-        expiresAt: offer.expires_at,
-      },
+    // Admin web Dispatch panel has no rider-user socket — push the same offer there.
+    emitToAdmins('admin.order.rider_updated', {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      order_number: order.order_number,
+      riderId: rider.id,
+      rider_id: rider.id,
+      offerId: offer.id,
+      status: 'offered',
+      expiresAt: offer.expires_at,
+      expires_at: offer.expires_at,
     });
+    emitToAdmins('admin.rider.offer.created', payload);
+
+    await pushRiderOffer(userId, order, offer, { reminder: false });
   } catch (e) {
     console.error('[rider-assign] notifyRiderOffer failed:', e.message);
   }
+};
+
+/**
+ * Re-send Expo push for every still-pending offer (app closed or open).
+ * Throttled per offer via offerLastRemindAt. Called by rider-sweeper (~5s).
+ *
+ * No LIMIT here (unlike expireDueOffers/recoverStuckAssignments, which cap
+ * batch size against a potentially larger backlog) — a rider can only ever
+ * hold one pending offer at a time (listEligibleRiders excludes riders with
+ * an existing pending offer), so this result set is naturally bounded by
+ * concurrent online-rider count, not a scanning cost. Capping it broke the
+ * eviction loop below: rows outside the cap were treated as "no longer
+ * pending" and had their throttle-map entry wiped even while still pending,
+ * causing them to skip the REMIND interval and refire immediately once they
+ * re-entered the window.
+ */
+const remindPendingOffers = async () => {
+  const [rows] = await pool.query(
+    `SELECT o.id AS offer_id, o.order_id, o.rider_id, o.expires_at,
+            r.user_id, ord.order_number
+     FROM rider_order_offers o
+     JOIN riders r ON r.id = o.rider_id
+     JOIN orders ord ON ord.id = o.order_id
+     WHERE o.status = 'pending'
+       AND o.expires_at > NOW()
+       AND ord.status NOT IN ('Delivered', 'Cancelled')
+     ORDER BY o.expires_at ASC`
+  );
+
+  const now = Date.now();
+  const liveIds = new Set();
+
+  for (const row of rows) {
+    const offerId = Number(row.offer_id);
+    liveIds.add(offerId);
+    const last = offerLastRemindAt.get(offerId) || 0;
+    // Initial notifyRiderOffer already sent once; wait REMIND interval before next.
+    if (last && now - last < RIDER_OFFER_REMIND_MS) continue;
+    // If never tracked (API restart mid-offer), send immediately then throttle.
+    try {
+      await pushRiderOffer(
+        row.user_id,
+        { id: row.order_id, order_number: row.order_number },
+        { id: offerId, order_id: row.order_id, expires_at: row.expires_at },
+        { reminder: Boolean(last) }
+      );
+      // Also nudge open rider apps so popup + chime re-fire if they missed socket.
+      try {
+        const { emitToCustomer } = require('../realtime/socket');
+        emitToCustomer(row.user_id, 'rider.offer.reminder', {
+          offerId,
+          orderId: row.order_id,
+          orderNumber: row.order_number,
+          order_number: row.order_number,
+          expiresAt: row.expires_at,
+          expires_at: row.expires_at,
+        });
+      } catch (_) { /* best-effort */ }
+    } catch (e) {
+      console.error('[rider-assign] remind push failed offer', offerId, e.message);
+    }
+  }
+
+  // Drop map entries for offers no longer pending.
+  for (const id of offerLastRemindAt.keys()) {
+    if (!liveIds.has(id)) offerLastRemindAt.delete(id);
+  }
+
+  return { pending: rows.length };
 };
 
 /**
@@ -136,7 +292,9 @@ const createOffer = async (orderId, rider) => {
 };
 
 /**
- * Cancel order when no riders remain. Same side-effects as shop auto-cancel.
+ * Stop the assignment engine when no riders remain.
+ * Does NOT cancel the order — admin must cancel manually (or deliver) via
+ * the mobile admin cancel-request popup / order detail.
  */
 const failAssignment = async (orderId, reason = 'No riders available') => {
   try {
@@ -149,111 +307,86 @@ const failAssignment = async (orderId, reason = 'No riders available') => {
       );
       return order;
     }
-
-    const currentStatus = order.status;
-    const cancelReason = reason.startsWith('No rider') || reason.includes('rider')
-      ? reason
-      : `No riders available: ${reason}`;
-    const paymentStatus = getCancelledPaymentStatus(order.payment_method);
-
-    const connection = await pool.getConnection();
-    let cancelled = false;
-    try {
-      await connection.beginTransaction();
-      const [cancelResult] = await connection.query(
-        `UPDATE orders
-         SET status = 'Cancelled',
-             payment_status = ?,
-             cancel_reason = ?,
-             rider_assignment_status = 'failed',
-             rider_id = NULL,
-             rider_assigned_at = NULL
-         WHERE id = ? AND status = ?`,
-        [paymentStatus, cancelReason, orderId, currentStatus]
-      );
-      if (cancelResult.affectedRows === 0) {
-        await connection.rollback();
-        return null;
-      }
-      if (order.coupon_id) {
-        await connection.query(
-          "UPDATE coupon_redemptions SET status = 'cancelled' WHERE order_id = ? AND coupon_id = ?",
-          [orderId, order.coupon_id]
-        );
-      }
-      // Revoke any pending offers
-      await connection.query(
-        `UPDATE rider_order_offers
-         SET status = 'cancelled', responded_at = NOW(), reject_reason = 'admin'
-         WHERE order_id = ? AND status = 'pending'`,
-        [orderId]
-      );
-      await connection.commit();
-      cancelled = true;
-    } catch (err) {
-      await connection.rollback();
-      throw err;
-    } finally {
-      connection.release();
+    if (order.rider_id) {
+      // Already assigned — do not mark failed.
+      return order;
     }
 
-    if (!cancelled) return null;
+    const failReason = reason.startsWith('No rider') || reason.includes('rider')
+      ? reason
+      : `No riders available: ${reason}`;
+
+    await pool.query(
+      `UPDATE orders
+       SET rider_assignment_status = 'failed',
+           rider_id = NULL,
+           rider_assigned_at = NULL
+       WHERE id = ? AND rider_id IS NULL AND status NOT IN ('Delivered', 'Cancelled')`,
+      [orderId]
+    );
+
+    // Revoke any pending offers (should be none if chain exhausted, but safe).
+    await pool.query(
+      `UPDATE rider_order_offers
+       SET status = 'cancelled', responded_at = NOW(), reject_reason = 'admin'
+       WHERE order_id = ? AND status = 'pending'`,
+      [orderId]
+    );
 
     const updated = (await loadOrder(orderId)) || {
       ...order,
-      status: 'Cancelled',
-      cancel_reason: cancelReason,
       rider_assignment_status: 'failed',
     };
 
     const adminInbox = require('../utils/adminNotifications');
     // reason is exactly 'No riders available' (zero eligible at start) or
-    // 'No rider accepted' (pool exhausted after reject/timeout chain) — see
-    // callers below. Exact match avoids the exhaustion case also matching
-    // /no rider/i and firing the wrong (and duplicate) notification type.
+    // 'No rider accepted' (pool exhausted after reject/timeout chain).
     const notifType = reason === 'No riders available'
       ? adminInbox.TYPES.RIDER_ZERO_AVAILABLE
-      : adminInbox.TYPES.ORDER_CANCELLED_NO_RIDER;
+      : adminInbox.TYPES.RIDER_ASSIGNMENT_FAILED;
     await adminInbox.createAdminNotification({
       type: notifType,
-      title: `Order #${updated.order_number || orderId} — no rider`,
-      body: cancelReason,
+      title: `Order #${updated.order_number || orderId} — needs admin action`,
+      body: `${failReason}. Cancel with a reason or investigate / deliver manually.`,
       relatedUrl: `/orders?id=${orderId}`,
       relatedId: String(orderId),
     });
 
-    const notificationService = require('../utils/notificationService');
-    const realtimeEvents = require('../realtime/orderEvents');
-    const { notifyShopsOrderCancelled } = require('../utils/shops');
-
-    if (updated.customer_id) {
-      notificationService.createOrderNotification({
-        userId: updated.customer_id,
-        order: updated,
-        event: 'status_cancelled',
-      })
-        .then((result) => realtimeEvents.emitNotificationCreated(updated.customer_id, result))
-        .catch((err) => console.error('[notify]', err.message));
-    }
-
-    notifyShopsOrderCancelled(updated);
     try {
       const { notifyShopsRiderAssignmentFailed } = require('../utils/shops');
       notifyShopsRiderAssignmentFailed(updated);
     } catch (_) { /* best-effort */ }
-    realtimeEvents.emitOrderStatusUpdated(updated);
 
     try {
       const { emitToAdmins } = require('../realtime/socket');
+      emitToAdmins('admin.order.cancel_request', {
+        orderId: updated.id,
+        orderNumber: updated.order_number,
+        order_number: updated.order_number,
+        reason: failReason,
+        customerName: updated.customer_name || null,
+        customer_name: updated.customer_name || null,
+        customerPhone: updated.phone || null,
+        customer_phone: updated.phone || null,
+        address: updated.address || null,
+        total: updated.total,
+        paymentMethod: updated.payment_method || null,
+        payment_method: updated.payment_method || null,
+        status: updated.status,
+        riderAssignmentStatus: 'failed',
+        rider_assignment_status: 'failed',
+        createdAt: updated.created_at,
+        created_at: updated.created_at,
+      });
       emitToAdmins('admin.order.rider_updated', {
         orderId,
         status: 'failed',
-        reason: cancelReason,
+        reason: failReason,
       });
     } catch (_) { /* best-effort */ }
 
     await syncDeliveryAvailabilityFromRiders();
-    log('failAssignment', { orderId, reason: cancelReason });
+    log('failAssignment (no auto-cancel)', { orderId, reason: failReason });
     return updated;
   } catch (e) {
     console.error('[rider-assign] failAssignment failed:', e.message);
@@ -262,7 +395,28 @@ const failAssignment = async (orderId, reason = 'No riders available') => {
 };
 
 /**
- * After reject/expire/post-accept-cancel: pick next eligible or fail.
+ * When eligible pool is empty: wait inside the search window, else fail.
+ * Fail reason distinguishes zero-ever-offered vs chain exhausted.
+ */
+const waitOrFailNoEligible = async (orderId, excludedIds = []) => {
+  const open = await isWithinSearchWindow(orderId);
+  if (open) {
+    log('waiting for riders (search window open)', {
+      orderId,
+      windowSec: RIDER_SEARCH_WINDOW_SEC,
+      excluded: excludedIds.length,
+    });
+    return { waiting: true, failed: false };
+  }
+  const reason = (excludedIds && excludedIds.length > 0)
+    ? 'No rider accepted'
+    : 'No riders available';
+  await failAssignment(orderId, reason);
+  return { waiting: false, failed: true, reason };
+};
+
+/**
+ * After reject/expire/post-accept-cancel: pick next eligible, wait, or fail.
  */
 const continueAssignment = async (orderId) => {
   const order = await loadOrder(orderId);
@@ -282,26 +436,25 @@ const continueAssignment = async (orderId) => {
   const excluded = await getExcludedRiderIdsForOrder(orderId);
   const eligible = await listEligibleRiders({ excludeIds: excluded });
   if (eligible.length === 0) {
-    await failAssignment(orderId, 'No rider accepted');
-    return { continued: false, failed: true };
+    const outcome = await waitOrFailNoEligible(orderId, excluded);
+    return { continued: false, ...outcome };
   }
 
   const chosen = await selectEligibleRider(eligible);
   if (!chosen) {
-    await failAssignment(orderId, 'No rider accepted');
-    return { continued: false, failed: true };
+    const outcome = await waitOrFailNoEligible(orderId, excluded);
+    return { continued: false, ...outcome };
   }
 
-  await pool.query(
-    `UPDATE orders SET rider_assignment_status = 'searching' WHERE id = ? AND rider_id IS NULL`,
-    [orderId]
-  );
+  await markSearching(orderId);
   const offer = await createOffer(orderId, chosen);
   return { continued: true, offer, riderId: chosen.id };
 };
 
 /**
  * Start assignment for an order (after shops confirmed or house Accepted).
+ * If no riders are online yet, stays searching for RIDER_SEARCH_WINDOW_SEC
+ * and is re-scanned by the sweeper — does not fail immediately.
  */
 const startAssignment = async (orderId) => {
   try {
@@ -338,7 +491,10 @@ const startAssignment = async (orderId) => {
       }
 
       await connection.query(
-        `UPDATE orders SET rider_assignment_status = 'searching' WHERE id = ?`,
+        `UPDATE orders
+         SET rider_assignment_status = 'searching',
+             rider_search_started_at = COALESCE(rider_search_started_at, NOW())
+         WHERE id = ?`,
         [orderId]
       );
       await connection.commit();
@@ -352,14 +508,15 @@ const startAssignment = async (orderId) => {
     const excluded = await getExcludedRiderIdsForOrder(orderId);
     const eligible = await listEligibleRiders({ excludeIds: excluded });
     if (eligible.length === 0) {
-      await failAssignment(orderId, 'No riders available');
-      return { started: true, failed: true, reason: 'no_riders' };
+      // Do not fail yet — keep searching until window ends (sweeper re-scans).
+      log('startAssignment waiting for riders', { orderId, windowSec: RIDER_SEARCH_WINDOW_SEC });
+      return { started: true, waiting: true, reason: 'waiting_for_riders' };
     }
 
     const chosen = await selectEligibleRider(eligible);
     if (!chosen) {
-      await failAssignment(orderId, 'No riders available');
-      return { started: true, failed: true, reason: 'no_riders' };
+      log('startAssignment waiting for riders', { orderId, windowSec: RIDER_SEARCH_WINDOW_SEC });
+      return { started: true, waiting: true, reason: 'waiting_for_riders' };
     }
 
     const offer = await createOffer(orderId, chosen);
@@ -471,6 +628,7 @@ const acceptOffer = async (offerId, riderId) => {
         [offerId]
       );
       await connection.commit();
+      clearOfferRemind(offerId);
       // Continue outside
       setImmediate(() => continueAssignment(offer.order_id).catch(() => {}));
       return { ok: false, code: 'CONFLICT', message: 'Offer expired', status: 409 };
@@ -492,21 +650,7 @@ const acceptOffer = async (offerId, riderId) => {
       return { ok: false, code: 'CONFLICT', message: 'Order not assignable', status: 409 };
     }
 
-    // Bug fix: rider must not hold two concurrent assignments (D13).
-    const [busyRows] = await connection.query(
-      `SELECT id FROM orders WHERE rider_id = ? AND status NOT IN ('Delivered', 'Cancelled') LIMIT 1`,
-      [riderId]
-    );
-    if (busyRows.length > 0) {
-      await connection.rollback();
-      await pool.query(
-        `UPDATE rider_order_offers SET status = 'rejected', responded_at = NOW(), reject_reason = 'rider_busy'
-         WHERE id = ? AND status = 'pending'`,
-        [offerId]
-      ).catch(() => {});
-      setImmediate(() => continueAssignment(offer.order_id).catch(() => {}));
-      return { ok: false, code: 'CONFLICT', message: 'You already have an active delivery', status: 409 };
-    }
+    // Multi-order allowed: riders may already hold other active deliveries.
 
     await connection.query(
       `UPDATE rider_order_offers
@@ -522,6 +666,7 @@ const acceptOffer = async (offerId, riderId) => {
     );
 
     await connection.commit();
+    clearOfferRemind(offerId);
 
     const updated = await loadOrder(offer.order_id);
 
@@ -532,6 +677,20 @@ const acceptOffer = async (offerId, riderId) => {
         riderId,
         status: 'assigned',
       });
+      // Rider app (or admin acting for them): clear Accept popup + refresh jobs.
+      const [riderUserRows] = await pool.query('SELECT user_id FROM riders WHERE id = ?', [riderId]);
+      if (riderUserRows[0]?.user_id) {
+        emitToCustomer(riderUserRows[0].user_id, 'rider.offer.revoked', {
+          offerId,
+          orderId: updated.id,
+          reason: 'accepted',
+        });
+        emitToCustomer(riderUserRows[0].user_id, 'rider.assignment.updated', {
+          orderId: updated.id,
+          riderId,
+          status: 'assigned',
+        });
+      }
       emitToAdmins('admin.order.rider_updated', {
         orderId: updated.id,
         riderId,
@@ -603,6 +762,21 @@ const rejectOffer = async (offerId, riderId, rejectReason = 'manual') => {
     connection.release();
   }
 
+  clearOfferRemind(offerId);
+
+  // Clear Accept popup if admin rejected (or multi-device).
+  try {
+    const [riderRows] = await pool.query('SELECT user_id FROM riders WHERE id = ?', [riderId]);
+    if (riderRows[0]?.user_id) {
+      const { emitToCustomer } = require('../realtime/socket');
+      emitToCustomer(riderRows[0].user_id, 'rider.offer.revoked', {
+        offerId,
+        orderId,
+        reason: rejectReason || 'rejected',
+      });
+    }
+  } catch (_) { /* best-effort */ }
+
   const cont = await continueAssignment(orderId);
   log('rejectOffer', { offerId, orderId, cont });
   return { ok: true, continued: cont };
@@ -619,6 +793,8 @@ const expireOffer = async (offerId) => {
     [offerId]
   );
   if (result.affectedRows === 0) return { expired: false };
+
+  clearOfferRemind(offerId);
 
   const [rows] = await pool.query('SELECT order_id, rider_id FROM rider_order_offers WHERE id = ?', [offerId]);
   const offer = rows[0];
@@ -657,9 +833,15 @@ const expireDueOffers = async () => {
 };
 
 /**
- * Recover orders stuck 'searching'/'offered' with no rider and no pending
- * offer — e.g. process crashed between startAssignment's commit and
- * createOffer. Boot rehydrate + periodic sweep both call this.
+ * Recover / re-scan orders stuck in 'searching'/'offered' with no rider and
+ * no pending offer:
+ *  - crash between startAssignment commit and createOffer
+ *  - waiting for riders to come online (10-min window after shop confirm)
+ *
+ * Called by the offer sweeper every RIDER_SWEEPER_MS (~5s). That is at least
+ * as frequent as the product "every RIDER_SEARCH_SCAN_SEC (30s)" re-scan.
+ * continueAssignment either creates an offer, stays waiting, or fails the
+ * window after RIDER_SEARCH_WINDOW_SEC.
  */
 const recoverStuckAssignments = async () => {
   const [rows] = await pool.query(
@@ -671,72 +853,26 @@ const recoverStuckAssignments = async () => {
          SELECT 1 FROM rider_order_offers ro
          WHERE ro.order_id = o.id AND ro.status = 'pending'
        )
+     ORDER BY o.rider_search_started_at ASC
      LIMIT 50`
   );
   const results = [];
   for (const row of rows) {
-    log('recoverStuckAssignments — resuming', row.id);
+    log('recoverStuckAssignments — resuming/scanning', row.id);
     results.push(await continueAssignment(row.id));
   }
   return results;
 };
 
 /**
- * Rider cancels after accept, before pickup. Treat as reject → reassignment.
+ * Rider post-accept cancel is disabled — once accepted, only admin can cancel.
  */
-const cancelAssignmentByRider = async (orderId, riderId) => {
-  const order = await loadOrder(orderId);
-  if (!order) {
-    return { ok: false, code: 'NOT_FOUND', message: 'Order not found', status: 404 };
-  }
-  if (Number(order.rider_id) !== Number(riderId)) {
-    return { ok: false, code: 'FORBIDDEN', message: 'Not your assignment', status: 403 };
-  }
-  if (order.rider_picked_up_at) {
-    return {
-      ok: false,
-      code: 'CANNOT_CANCEL_AFTER_PICKUP',
-      message: 'Cannot cancel after pickup',
-      status: 400,
-    };
-  }
-  if (order.status === 'Out for Delivery' || order.status === 'Delivered' || order.status === 'Cancelled') {
-    return { ok: false, code: 'CONFLICT', message: 'Order cannot be unassigned', status: 409 };
-  }
-
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-    await connection.query(
-      `UPDATE orders
-       SET rider_id = NULL,
-           rider_assigned_at = NULL,
-           rider_assignment_status = 'searching'
-       WHERE id = ? AND rider_id = ?`,
-      [orderId, riderId]
-    );
-    // Same accepted offer row → rejected with post_accept_cancel (no second insert)
-    await connection.query(
-      `UPDATE rider_order_offers
-       SET status = 'rejected',
-           responded_at = NOW(),
-           reject_reason = 'post_accept_cancel'
-       WHERE order_id = ? AND rider_id = ? AND status = 'accepted'`,
-      [orderId, riderId]
-    );
-    await connection.commit();
-  } catch (e) {
-    await connection.rollback();
-    console.error('[rider-assign] cancelAssignmentByRider failed:', e.message);
-    return { ok: false, code: 'INTERNAL', message: e.message, status: 500 };
-  } finally {
-    connection.release();
-  }
-
-  const cont = await continueAssignment(orderId);
-  log('cancelAssignmentByRider', { orderId, riderId, cont });
-  return { ok: true, continued: cont };
-};
+const cancelAssignmentByRider = async (_orderId, _riderId) => ({
+  ok: false,
+  code: 'CANCEL_NOT_ALLOWED',
+  message: 'Cannot cancel after accepting. Contact admin if needed.',
+  status: 400,
+});
 
 /**
  * Revoke pending offers when order is cancelled externally.
@@ -759,6 +895,7 @@ const revokeOffersForOrder = async (orderId) => {
     );
     const { emitToCustomer } = require('../realtime/socket');
     for (const row of pending) {
+      clearOfferRemind(row.offer_id);
       emitToCustomer(row.user_id, 'rider.offer.revoked', {
         offerId: row.offer_id,
         orderId,
@@ -771,6 +908,9 @@ const revokeOffersForOrder = async (orderId) => {
 
 module.exports = {
   RIDER_OFFER_TIMEOUT_SEC,
+  RIDER_SEARCH_WINDOW_SEC,
+  RIDER_SEARCH_SCAN_SEC,
+  RIDER_OFFER_REMIND_SEC,
   startAssignment,
   startAssignmentIfHouseOnly,
   maybeStartRiderAssignment,
@@ -785,4 +925,7 @@ module.exports = {
   recoverStuckAssignments,
   getExcludedRiderIdsForOrder,
   revokeOffersForOrder,
+  remindPendingOffers,
+  isWithinSearchWindow,
+  markSearching,
 };

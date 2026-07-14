@@ -1,0 +1,105 @@
+.live-order-map-wrap {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.live-order-map {
+  width: 100%;
+  height: 100%;
+}
+
+.live-order-map-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 0 1rem;
+}
+
+.live-map-marker-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+
+.live-map-tooltip {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+}
+
+/* Shop — matches mobile ShopMarker (🏪) */
+.live-map-shop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.25));
+}
+.live-map-shop-facade {
+  width: 36px;
+  height: 32px;
+  background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #d97706;
+  border-radius: 6px 6px 2px 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.live-map-shop-awning {
+  width: 40px;
+  height: 5px;
+  background: #ef4444;
+  border-radius: 2px;
+  margin-top: -1px;
+}
+
+/* Customer — matches mobile CustomerPin (saffron) */
+.live-map-pin-customer {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #ff7a3a;
+  border: 2.5px solid #fff;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.live-map-pin-hole {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+}
+.live-map-pin-tail-customer {
+  width: 11px;
+  height: 11px;
+  margin: -6px auto 0;
+  background: #e05a1a;
+  transform: rotate(45deg);
+}
+
+/* Rider — matches mobile ScootyMarker (🛵) */
+.live-map-scooty {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #2563eb;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}

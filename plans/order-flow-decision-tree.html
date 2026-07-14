@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VillKro — Order Flow Mind Map</title>
+  <style>
+    :root {
+      --bg: #0c1017;
+      --bg-grid: #111827;
+      --surface: #1a2332;
+      --surface-2: #243044;
+      --border: #2d3f56;
+      --text: #e8edf4;
+      --muted: #8fa3bc;
+      --accent: #f59e0b;
+      --accent-glow: rgba(245, 158, 11, 0.35);
+      --customer: #3b82f6;
+      --shop: #10b981;
+      --rider: #8b5cf6;
+      --admin: #ef4444;
+      --system: #64748b;
+      --success: #22c55e;
+      --danger: #f87171;
+      --line: #3d5270;
+      --font: "Segoe UI", system-ui, sans-serif;
+      --mono: "SF Mono", Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* subtle dot grid */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, #1e293b 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      position: relative;
+      z-index: 10;
+      flex-shrink: 0;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(12, 16, 23, 0.9);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    header h1 { font-size: 1.1rem; font-weight: 700; }
+    header .sub { font-size: 0.75rem; color: var(--muted); margin-top: 0.1rem; }
+
+    .header-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+    .btn {
+      padding: 0.4rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .btn:hover { border-color: var(--accent); background: var(--surface-2); }
+    .btn-primary { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 700; }
+
+    .hint {
+      font-size: 0.72rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .hint kbd {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.1rem 0.35rem;
+      font-size: 0.65rem;
+    }
+
+    /* breadcrumb path */
+    .path-bar {
+      position: relative;
+      z-index: 10;
+      flex-shrink: 0;
+      padding: 0.5rem 1.25rem;
+      background: var(--bg-grid);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      min-height: 2.5rem;
+      font-size: 0.72rem;
+    }
+
+    .path-chip {
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      transition: 0.15s;
+      max-width: 180px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .path-chip:hover { border-color: var(--accent); color: var(--text); }
+    .path-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(245,158,11,0.1); }
+    .path-sep { color: var(--border); user-select: none; }
+
+    .workspace {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      min-height: 0;
+    }
+
+    /* mind map scroll area */
+    .map-wrap {
+      position: relative;
+      overflow: auto;
+      padding: 1.5rem 1rem;
+    }
+
+    .map-canvas {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      min-height: 100%;
+      padding-right: 2rem;
+    }
+
+    #connectors {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .column {
+      flex-shrink: 0;
+      width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      padding: 0 0.5rem;
+      opacity: 0;
+      transform: translateX(-12px);
+      animation: colIn 0.35s ease forwards;
+    }
+
+    @keyframes colIn {
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .col-label {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-align: center;
+      padding-bottom: 0.25rem;
+      border-bottom: 1px dashed var(--border);
+      margin-bottom: 0.25rem;
+    }
+
+    /* mind map node bubble */
+    .mm-node {
+      position: relative;
+      padding: 0.65rem 0.75rem;
+      border-radius: 14px;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+      text-align: center;
+    }
+
+    .mm-node:hover {
+      transform: scale(1.03);
+      border-color: #4a6280;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .mm-node.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow), 0 6px 24px rgba(0,0,0,0.35);
+      background: linear-gradient(145deg, #1f2d42, #1a2332);
+    }
+
+    .mm-node.has-kids::after {
+      content: "▸";
+      position: absolute;
+      right: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      font-size: 1rem;
+      font-weight: 700;
+      opacity: 0.7;
+    }
+
+    .mm-node.selected.has-kids::after { opacity: 1; }
+
+    .mm-node.leaf { cursor: default; }
+    .mm-node.leaf.has-kids::after { display: none; }
+
+    .mm-node .type-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-bottom: 0.35rem;
+    }
+
+    .mm-node .title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .mm-node .tap-hint {
+      font-size: 0.6rem;
+      color: var(--accent);
+      margin-top: 0.35rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .mm-node.has-kids:not(.selected) .tap-hint { opacity: 0.85; }
+
+    .type-decision .type-dot { background: var(--accent); }
+    .type-action .type-dot { background: var(--customer); }
+    .type-terminal .type-dot { background: var(--success); }
+    .type-fail .type-dot { background: var(--danger); }
+    .type-info .type-dot { background: var(--system); }
+
+    .type-terminal { border-color: rgba(34,197,94,0.4); }
+    .type-fail { border-color: rgba(248,113,113,0.4); }
+
+    /* detail panel */
+    .detail {
+      border-left: 1px solid var(--border);
+      background: rgba(26, 35, 50, 0.95);
+      overflow-y: auto;
+      padding: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .detail-empty {
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 3rem;
+      line-height: 1.6;
+    }
+
+    .detail-empty .icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
+
+    .detail h2 { font-size: 0.95rem; line-height: 1.4; }
+
+    .detail-meta { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+    .tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .tag-decision { background: rgba(245,158,11,0.2); color: var(--accent); }
+    .tag-action { background: rgba(59,130,246,0.2); color: var(--customer); }
+    .tag-terminal { background: rgba(34,197,94,0.2); color: var(--success); }
+    .tag-fail { background: rgba(248,113,113,0.2); color: var(--danger); }
+    .tag-info { background: rgba(100,116,139,0.25); color: #94a3b8; }
+
+    .actor {
+      font-size: 0.65rem;
+      padding: 0.12rem 0.4rem;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .actor-customer { background: rgba(59,130,246,0.2); color: var(--customer); }
+    .actor-shop { background: rgba(16,185,129,0.2); color: var(--shop); }
+    .actor-rider { background: rgba(139,92,246,0.2); color: var(--rider); }
+    .actor-admin { background: rgba(239,68,68,0.2); color: var(--admin); }
+    .actor-system { background: rgba(100,116,139,0.25); color: #94a3b8; }
+
+    .detail section h3 {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .detail section p {
+      font-size: 0.8rem;
+      color: #c5d0de;
+      line-height: 1.55;
+    }
+
+    .code-ref {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.4rem 0.55rem;
+      color: #93c5fd;
+      margin-top: 0.35rem;
+      word-break: break-all;
+    }
+
+    .unlock-banner {
+      background: rgba(245,158,11,0.12);
+      border: 1px dashed var(--accent);
+      border-radius: 10px;
+      padding: 0.65rem 0.75rem;
+      font-size: 0.75rem;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+      .detail { border-left: none; border-top: 1px solid var(--border); max-height: 40vh; }
+      .column { width: 190px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Order Flow Mind Map</h1>
+      <p class="sub">Click a node to unlock the next branch · VillKro / ProjectServeLoco</p>
+    </div>
+    <div class="header-actions">
+      <span class="hint"><kbd>Click</kbd> unlock next · <kbd>Path</kbd> jump back</span>
+      <button class="btn" id="btnBack" disabled>← Back</button>
+      <button class="btn btn-primary" id="btnReset">Reset map</button>
+    </div>
+  </header>
+
+  <div class="path-bar" id="pathBar"></div>
+
+  <div class="workspace">
+    <div class="map-wrap" id="mapWrap">
+      <div class="map-canvas" id="mapCanvas">
+        <svg id="connectors"></svg>
+      </div>
+    </div>
+    <aside class="detail" id="detailPanel">
+      <div class="detail-empty" id="detailEmpty">
+        <div class="icon">🧭</div>
+        <p>Start at <strong>Place Order</strong> on the left.<br>Click any node with <strong>▸</strong> to unlock the next column of branches.</p>
+      </div>
+      <div id="detailContent" hidden></div>
+    </aside>
+  </div>
+
+  <script>
+    const TREE = {
+      id: "root",
+      type: "decision",
+      title: "Customer taps Place Order",
+      actors: ["customer"],
+      handling: "POST /api/orders — orderController.createOrder with idempotency key, coupon FOR UPDATE, transaction.",
+      code: ["orderController.js → createOrder", "orderRoutes.js"],
+      children: [
+        {
+          id: "pre-fail",
+          type: "decision",
+          title: "Pre-creation validation fails?",
+          actors: ["system"],
+          handling: "OrderError → 400. No order row created.",
+          code: ["orderController.createOrder"],
+          children: [
+            { id: "pf-1", type: "fail", title: "Shop closed", actors: ["system"], handling: "Shop is currently closed", code: ["orderController ~L195"] },
+            { id: "pf-2", type: "fail", title: "Delivery unavailable", actors: ["system"], handling: "Delivery is currently unavailable", code: ["orderController ~L196"] },
+            { id: "pf-3", type: "fail", title: "COD blocked (night)", actors: ["system"], handling: "Cash rejected during night hours", code: ["nightDelivery.js"] },
+            { id: "pf-4", type: "fail", title: "Account blocked", actors: ["system"], handling: "403 FORBIDDEN", code: ["orderController ~L186"] },
+            { id: "pf-5", type: "fail", title: "Invalid cart / coupon", actors: ["system"], handling: "Various validation errors", code: ["coupons.js"] },
+            { id: "pf-6", type: "info", title: "Idempotent replay", actors: ["system"], outcome: "200 existing order", handling: "Same Idempotency-Key within 24h", code: ["buildReplayOrderJson"] }
+          ]
+        },
+        {
+          id: "created",
+          type: "action",
+          title: "Order created → Pending",
+          actors: ["system", "customer", "admin"],
+          outcome: "status = Pending",
+          handling: "Notify customer + admin inbox + socket. Start 120s auto-accept timer.",
+          code: ["orderController", "orderAutoAccept.schedule", "adminNotifications"],
+          children: [
+            {
+              id: "pending",
+              type: "decision",
+              title: "While Pending (120s)",
+              actors: ["customer", "admin", "system"],
+              handling: "Customer can cancel. Admin can accept/cancel. Timer running.",
+              code: ["cancelOrder", "updateOrderStatus", "orderAutoAccept"],
+              children: [
+                { id: "p-cancel-customer", type: "terminal", title: "Customer cancels", actors: ["customer"], outcome: "Cancelled", handling: "Only Pending; coupon restored", code: ["cancelOrder"] },
+                { id: "p-cancel-admin", type: "terminal", title: "Admin cancels", actors: ["admin"], outcome: "Cancelled", handling: "Timer cancelled; coupon restored", code: ["updateOrderStatus"] },
+                { id: "p-accept-admin", type: "action", title: "Admin accepts", actors: ["admin"], outcome: "Accepted", handling: "notifyShopsForOrder + house-only rider start", code: ["updateOrderStatus"] },
+                { id: "p-auto-accept", type: "action", title: "Auto-accept 120s", actors: ["system"], outcome: "Accepted", handling: "No admin action → auto Accepted", code: ["orderAutoAccept.js"] },
+                { id: "p-race", type: "info", title: "Race condition", actors: ["system"], outcome: "409", handling: "Compare-and-set conflict", code: ["updateOrderStatus"] }
+              ]
+            },
+            {
+              id: "accepted",
+              type: "decision",
+              title: "Accepted — shop phase",
+              actors: ["shop", "admin"],
+              outcome: "status = Accepted",
+              handling: "Shops get push + popup. Confirm/Reject/Ready are informational.",
+              code: ["notifyShopsForOrder", "shopOwnerController"],
+              children: [
+                {
+                  id: "house-only",
+                  type: "decision",
+                  title: "House-only order?",
+                  actors: ["system"],
+                  handling: "No shop_id items → rider assign immediately",
+                  code: ["startAssignmentIfHouseOnly"],
+                  children: [
+                    { id: "ho-yes", type: "action", title: "Yes → Rider assign", actors: ["system"], handling: "startAssignment on accept", code: ["riderAssignment.js"] },
+                    { id: "ho-no", type: "action", title: "No → wait shops", actors: ["shop"], handling: "Shop popup Confirm/Reject/Ready", code: ["shopOwnerController"] }
+                  ]
+                },
+                {
+                  id: "shop-phase",
+                  type: "decision",
+                  title: "Shop owner action",
+                  actors: ["shop"],
+                  handling: "Timestamps on order_items only — not orders.status",
+                  code: ["confirmMyOrder", "rejectMyOrder", "readyMyOrder"],
+                  children: [
+                    { id: "shop-confirm", type: "action", title: "Shop confirms", actors: ["shop"], handling: "maybeStartRiderAssignment when all confirm", code: ["confirmMyOrder"] },
+                    { id: "shop-reject", type: "action", title: "Shop rejects", actors: ["shop"], handling: "Admin SHOP_REJECTED alert", code: ["rejectMyOrder"] },
+                    { id: "shop-ready", type: "info", title: "Shop marks ready", actors: ["shop"], handling: "Informational for admin", code: ["readyMyOrder"] },
+                    {
+                      id: "shop-multi",
+                      type: "decision",
+                      title: "All shops outcome?",
+                      actors: ["system"],
+                      handling: "Rider only when ALL shops confirmed",
+                      code: ["maybeStartRiderAssignment"],
+                      children: [
+                        { id: "sm-wait", type: "info", title: "Still waiting", actors: ["system"], handling: "waiting_shops", code: ["maybeStartRiderAssignment"] },
+                        { id: "sm-partial", type: "info", title: "Partial reject", actors: ["admin"], handling: "Stuck — admin must act", code: ["adminNotifications"] },
+                        { id: "sm-all-reject", type: "terminal", title: "All rejected", actors: ["system"], outcome: "Auto-Cancelled", handling: "maybeAutoCancelOrderWhenAllShopsRejected", code: ["shops.js"] },
+                        { id: "sm-all-confirm", type: "action", title: "All confirmed", actors: ["system"], handling: "startAssignment", code: ["startAssignment"] }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  id: "admin-mid",
+                  type: "decision",
+                  title: "Admin mid-phase",
+                  actors: ["admin"],
+                  handling: "Forward status or cancel",
+                  code: ["updateOrderStatus"],
+                  children: [
+                    { id: "am-prep", type: "action", title: "→ Preparing", actors: ["admin"], outcome: "Preparing", handling: "status_preparing notify", code: ["updateOrderStatus"] },
+                    { id: "am-cancel", type: "terminal", title: "Admin cancels", actors: ["admin"], outcome: "Cancelled", handling: "Shops + rider notified", code: ["updateOrderStatus"] }
+                  ]
+                }
+              ]
+            },
+            {
+              id: "rider-assign",
+              type: "decision",
+              title: "Rider assignment",
+              actors: ["rider", "system"],
+              handling: "1 offer / 2 min / least-busy rider",
+              code: ["riderAssignment.js"],
+              children: [
+                { id: "ra-zero", type: "terminal", title: "0 riders online", actors: ["system"], outcome: "Cancelled", handling: "delivery_available OFF", code: ["failAssignment"] },
+                { id: "ra-offer", type: "action", title: "Offer to 1 rider", actors: ["rider"], handling: "Socket + push, 120s timer", code: ["createOffer"] },
+                {
+                  id: "ra-response",
+                  type: "decision",
+                  title: "Rider response?",
+                  actors: ["rider", "system"],
+                  handling: "Accept → assign. Reject/timeout → next rider",
+                  code: ["acceptOffer", "continueAssignment"],
+                  children: [
+                    { id: "rr-accept", type: "action", title: "Accepts", actors: ["rider"], outcome: "Assigned", handling: "rider_id set", code: ["acceptOffer"] },
+                    { id: "rr-reject", type: "action", title: "Rejects", actors: ["rider"], handling: "Try next rider", code: ["rejectOffer"] },
+                    { id: "rr-timeout", type: "action", title: "Times out", actors: ["system"], handling: "Same as reject", code: ["riderOfferSweeper"] },
+                    { id: "rr-busy", type: "action", title: "Rider busy", actors: ["system"], handling: "rider_busy → next", code: ["acceptOffer"] },
+                    { id: "rr-exhaust", type: "terminal", title: "No riders left", actors: ["system"], outcome: "Cancelled", handling: "failAssignment", code: ["continueAssignment"] },
+                    { id: "rr-cancel-pre", type: "action", title: "Cancel before pickup", actors: ["rider"], handling: "Reassign", code: ["cancelAssignmentByRider"] },
+                    { id: "rr-cancel-post", type: "fail", title: "Cancel after pickup", actors: ["rider"], handling: "400 Forbidden", code: ["cancelAssignmentByRider"] },
+                    { id: "rr-admin-cancel", type: "terminal", title: "Admin cancels", actors: ["admin"], outcome: "Cancelled", handling: "revokeOffersForOrder", code: ["updateOrderStatus"] }
+                  ]
+                }
+              ]
+            },
+            {
+              id: "delivery",
+              type: "decision",
+              title: "Delivery phase",
+              actors: ["rider", "admin"],
+              handling: "Pickup → OFD → Delivered",
+              code: ["riderController"],
+              children: [
+                { id: "d-pickup", type: "action", title: "Picked up", actors: ["rider"], handling: "rider_picked_up_at", code: ["markPickedUp"] },
+                { id: "d-ofd", type: "action", title: "Out for Delivery", actors: ["rider"], outcome: "OFD", handling: "Forward-only status", code: ["updateAssignmentStatus"] },
+                { id: "d-delivered", type: "terminal", title: "Delivered ✓", actors: ["rider"], outcome: "Terminal", handling: "delivered_at set", code: ["updateAssignmentStatus"] },
+                { id: "d-admin-cancel", type: "terminal", title: "Admin cancels en route", actors: ["admin"], outcome: "Cancelled", handling: "Rider notified", code: ["updateOrderStatus"] }
+              ]
+            },
+            {
+              id: "payment",
+              type: "info",
+              title: "Payment (parallel)",
+              actors: ["admin"],
+              handling: "Pending/Paid/Failed/Refunded — admin PATCH",
+              code: ["updateOrderPayment"]
+            }
+          ]
+        }
+      ]
+    };
+
+    const TYPE_TAG = {
+      decision: "tag-decision",
+      action: "tag-action",
+      terminal: "tag-terminal",
+      fail: "tag-fail",
+      info: "tag-info"
+    };
+
+    const ACTOR_CLASS = {
+      customer: "actor-customer",
+      shop: "actor-shop",
+      rider: "actor-rider",
+      admin: "actor-admin",
+      system: "actor-system"
+    };
+
+    const COL_LABELS = ["Start", "Step 1", "Step 2", "Step 3", "Step 4", "Step 5", "Step 6", "Step 7"];
+
+    // path = array of node ids from root to current selection
+    let path = ["root"];
+    let nodeIndex = {};
+
+    function indexTree(node, parent = null) {
+      nodeIndex[node.id] = { node, parent };
+      (node.children || []).forEach(c => indexTree(c, node.id));
+    }
+    indexTree(TREE);
+
+    function getNode(id) { return nodeIndex[id]?.node; }
+
+    function esc(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    function renderPath() {
+      const bar = document.getElementById("pathBar");
+      bar.innerHTML = "";
+      path.forEach((id, i) => {
+        if (i > 0) {
+          const sep = document.createElement("span");
+          sep.className = "path-sep";
+          sep.textContent = "›";
+          bar.appendChild(sep);
+        }
+        const chip = document.createElement("button");
+        chip.className = "path-chip" + (i === path.length - 1 ? " active" : "");
+        chip.textContent = getNode(id)?.title || id;
+        chip.title = getNode(id)?.title || id;
+        chip.addEventListener("click", () => navigateToDepth(i));
+        bar.appendChild(chip);
+      });
+      document.getElementById("btnBack").disabled = path.length <= 1;
+    }
+
+    function navigateToDepth(depthIndex) {
+      path = path.slice(0, depthIndex + 1);
+      renderMap();
+      renderPath();
+      renderDetail(path[path.length - 1]);
+    }
+
+    function selectNode(id) {
+      const idx = path.indexOf(id);
+      if (idx >= 0) {
+        path = path.slice(0, idx + 1);
+      } else {
+        // must be child of current leaf
+        const parentId = path[path.length - 1];
+        const parent = getNode(parentId);
+        if (parent?.children?.some(c => c.id === id)) {
+          path.push(id);
+        }
+      }
+      renderMap();
+      renderPath();
+      renderDetail(id);
+    }
+
+    function renderMap() {
+      const canvas = document.getElementById("mapCanvas");
+      const svg = document.getElementById("connectors");
+      // keep svg, clear columns
+      canvas.querySelectorAll(".column").forEach(el => el.remove());
+
+      // Build columns: col 0 = root, col n = children of path[n-1] if path[n-1] selected
+      const columns = [];
+
+      // Column 0: always root only (or nodes at depth 0)
+      columns.push([TREE]);
+
+      for (let d = 1; d <= path.length; d++) {
+        const parentId = path[d - 1];
+        const parent = getNode(parentId);
+        if (parent?.children?.length) {
+          columns.push(parent.children);
+        }
+      }
+
+      columns.forEach((nodes, colIdx) => {
+        const col = document.createElement("div");
+        col.className = "column";
+        col.dataset.col = colIdx;
+        col.style.animationDelay = `${colIdx * 0.06}s`;
+
+        const label = document.createElement("div");
+        label.className = "col-label";
+        label.textContent = COL_LABELS[colIdx] || `Step ${colIdx}`;
+        col.appendChild(label);
+
+        nodes.forEach(n => {
+          const el = document.createElement("div");
+          const hasKids = !!(n.children && n.children.length);
+          const isSelected = path[colIdx] === n.id;
+          const isLeaf = !hasKids;
+
+          el.className = `mm-node type-${n.type}` +
+            (hasKids ? " has-kids" : " leaf") +
+            (isSelected ? " selected" : "");
+          el.dataset.id = n.id;
+
+          el.innerHTML = `
+            <span class="type-dot"></span>
+            <div class="title">${esc(n.title)}</div>
+            ${hasKids ? '<div class="tap-hint">click to unlock ▸</div>' : ''}
+          `;
+
+          el.addEventListener("click", () => {
+            // Click = select this branch; unlock next column if it has children
+            path = path.slice(0, colIdx);
+            path.push(n.id);
+            renderMap();
+            renderPath();
+            renderDetail(n.id);
+            // Auto-scroll so the newest column is visible
+            const wrap = document.getElementById("mapWrap");
+            requestAnimationFrame(() => {
+              wrap.scrollTo({ left: wrap.scrollWidth, behavior: "smooth" });
+            });
+          });
+
+          col.appendChild(el);
+        });
+
+        canvas.appendChild(col);
+      });
+
+      requestAnimationFrame(drawConnectors);
+    }
+
+    function drawConnectors() {
+      const canvas = document.getElementById("mapCanvas");
+      const svg = document.getElementById("connectors");
+      const wrap = document.getElementById("mapWrap");
+      const canvasRect = canvas.getBoundingClientRect();
+
+      svg.setAttribute("width", canvas.scrollWidth);
+      svg.setAttribute("height", canvas.scrollHeight);
+      svg.innerHTML = "";
+
+      for (let d = 1; d < path.length; d++) {
+        const parentId = path[d - 1];
+        const childId = path[d];
+        const parentEl = canvas.querySelector(`.mm-node[data-id="${parentId}"]`);
+        const childEl = canvas.querySelector(`.mm-node[data-id="${childId}"]`);
+        if (!parentEl || !childEl) continue;
+
+        const pr = parentEl.getBoundingClientRect();
+        const cr = childEl.getBoundingClientRect();
+        const x1 = pr.right - canvasRect.left + wrap.scrollLeft;
+        const y1 = pr.top + pr.height / 2 - canvasRect.top + wrap.scrollTop;
+        const x2 = cr.left - canvasRect.left + wrap.scrollLeft;
+        const y2 = cr.top + cr.height / 2 - canvasRect.top + wrap.scrollTop;
+        const mx = (x1 + x2) / 2;
+
+        const pathD = `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
+        const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        p.setAttribute("d", pathD);
+        p.setAttribute("fill", "none");
+        p.setAttribute("stroke", "#f59e0b");
+        p.setAttribute("stroke-width", "2.5");
+        p.setAttribute("stroke-opacity", "0.55");
+        p.setAttribute("stroke-linecap", "round");
+        svg.appendChild(p);
+      }
+    }
+
+    function renderDetail(id) {
+      const n = getNode(id);
+      const empty = document.getElementById("detailEmpty");
+      const content = document.getElementById("detailContent");
+      if (!n) {
+        empty.hidden = false;
+        content.hidden = true;
+        return;
+      }
+
+      empty.hidden = true;
+      content.hidden = false;
+
+      const hasKids = !!(n.children && n.children.length);
+      const actors = (n.actors || []).map(a =>
+        `<span class="actor ${ACTOR_CLASS[a] || "actor-system"}">${a}</span>`
+      ).join("");
+
+      const codes = (n.code || []).map(c => `<div class="code-ref">${esc(c)}</div>`).join("");
+
+      content.innerHTML = `
+        <h2>${esc(n.title)}</h2>
+        <div class="detail-meta">
+          <span class="tag ${TYPE_TAG[n.type] || "tag-info"}">${n.type}</span>
+          ${actors}
+        </div>
+        ${hasKids ? `<div class="unlock-banner">${n.children.length} branch${n.children.length > 1 ? "es" : ""} unlocked → click a bubble in the next column</div>` : ""}
+        ${n.outcome ? `<section><h3>Outcome</h3><p><strong>${esc(n.outcome)}</strong></p></section>` : ""}
+        <section><h3>How code handles it</h3><p>${esc(n.handling || "—")}</p></section>
+        ${codes ? `<section><h3>Code</h3>${codes}</section>` : ""}
+      `;
+    }
+
+    function reset() {
+      path = ["root"];
+      renderMap();
+      renderPath();
+      renderDetail("root");
+      document.getElementById("mapWrap").scrollLeft = 0;
+    }
+
+    document.getElementById("btnReset").addEventListener("click", reset);
+    document.getElementById("btnBack").addEventListener("click", () => {
+      if (path.length > 1) navigateToDepth(path.length - 2);
+    });
+
+    window.addEventListener("resize", () => requestAnimationFrame(drawConnectors));
+    document.getElementById("mapWrap").addEventListener("scroll", drawConnectors);
+
+    reset();
+  </script>
+</body>
+</html>

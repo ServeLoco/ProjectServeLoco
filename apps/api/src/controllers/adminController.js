@@ -3,7 +3,11 @@ const { signAdminToken } = require('../utils/auth');
 const { pool } = require('../db/mysql');
 const { validatePagination } = require('../validators');
 const notificationService = require('../utils/notificationService');
-const { notifyShopsForOrder, notifyShopsOrderCancelled } = require('../utils/shops');
+const {
+  notifyShopsForOrder,
+  notifyShopsOrderCancelled,
+  notifyShopsOrderStatusChanged,
+} = require('../utils/shops');
 const realtimeEvents = require('../realtime/orderEvents');
 const { emitToCustomer } = require('../realtime/socket');
 const orderAutoAccept = require('../realtime/orderAutoAccept');
@@ -516,6 +520,9 @@ const getAdminOrderById = async (req, res) => {
     }
     shopMap.get(sid).items.push(it);
   }
+  // When the whole order is Cancelled, surface that on each shop row so the
+  // Orders drawer never keeps showing "⏳ Waiting" after admin cancel.
+  const orderCancelled = order.status === 'Cancelled' || order.status === 'Canceled';
   order.shopConfirmations = Array.from(shopMap.values()).map(e => {
     const confirmed = e.items.length > 0 && e.items.every(it => it.shop_confirmed_at !== null);
     const confirmedTimestamps = e.items.map(it => it.shop_confirmed_at).filter(Boolean);
@@ -529,7 +536,8 @@ const getAdminOrderById = async (req, res) => {
     const readyAt = readyTimestamps.length > 0
       ? readyTimestamps.reduce((latest, ts) => (new Date(ts) > new Date(latest) ? ts : latest))
       : null;
-    const rejected = e.items.length > 0 && e.items.every(it => it.shop_rejected_at !== null);
+    const shopRejected = e.items.length > 0 && e.items.every(it => it.shop_rejected_at !== null);
+    const rejected = orderCancelled || shopRejected;
     const rejectedTimestamps = e.items.map(it => it.shop_rejected_at).filter(Boolean);
     const rejectedAt = rejectedTimestamps.length > 0
       ? rejectedTimestamps.reduce((latest, ts) => (new Date(ts) > new Date(latest) ? ts : latest))
@@ -539,17 +547,61 @@ const getAdminOrderById = async (req, res) => {
       shop_id: e.shopId,
       shopName: e.shop_name,
       shop_name: e.shop_name,
-      confirmed,
-      confirmedAt,
-      confirmed_at: confirmedAt,
-      ready,
-      readyAt,
-      ready_at: readyAt,
+      confirmed: orderCancelled ? false : confirmed,
+      confirmedAt: orderCancelled ? null : confirmedAt,
+      confirmed_at: orderCancelled ? null : confirmedAt,
+      ready: orderCancelled ? false : ready,
+      readyAt: orderCancelled ? null : readyAt,
+      ready_at: orderCancelled ? null : readyAt,
       rejected,
       rejectedAt,
       rejected_at: rejectedAt,
+      orderCancelled,
+      order_cancelled: orderCancelled,
     };
   });
+
+  // Additive shop pins + rider last-position for the admin live-tracking map.
+  // Same shape/gate as the customer-facing getOrderById (orderController.js).
+  if (order.status !== 'Pending') {
+    const [shopRows] = await pool.query(
+      `SELECT DISTINCT s.id, s.name, s.latitude, s.longitude
+       FROM order_items oi JOIN shops s ON s.id = oi.shop_id
+       WHERE oi.order_id = ? AND s.active = 1`,
+      [id]
+    );
+    order.shops = shopRows.map((s) => ({
+      id: s.id,
+      name: s.name,
+      latitude: s.latitude != null ? Number(s.latitude) : null,
+      longitude: s.longitude != null ? Number(s.longitude) : null,
+    }));
+  }
+
+  if (order.rider_id) {
+    const [riderRows] = await pool.query(
+      `SELECT id, user_id, display_name, phone, last_lat, last_lng, last_location_at
+       FROM riders WHERE id = ?`,
+      [order.rider_id]
+    );
+    if (riderRows.length > 0) {
+      const r = riderRows[0];
+      order.rider = {
+        id: r.id,
+        userId: r.user_id,
+        user_id: r.user_id,
+        displayName: r.display_name,
+        display_name: r.display_name,
+        phone: r.phone,
+        lastLat: r.last_lat != null ? Number(r.last_lat) : null,
+        lastLng: r.last_lng != null ? Number(r.last_lng) : null,
+        lastLocationAt: r.last_location_at,
+        last_lat: r.last_lat != null ? Number(r.last_lat) : null,
+        last_lng: r.last_lng != null ? Number(r.last_lng) : null,
+        last_location_at: r.last_location_at,
+      };
+    }
+  }
 
   res.status(200).json({ data: order });
 };
@@ -593,6 +645,8 @@ const updateOrderStatus = async (req, res) => {
 
   if (status === 'Cancelled') {
     const cancelledPaymentStatus = getCancelledPaymentStatus(orderRows[0].payment_method);
+    const { resolveCancelReason } = require('../utils/cancelReasons');
+    const resolvedCancelReason = resolveCancelReason('admin', cancel_reason);
     // Cancel + coupon-quota restore must land together: soft-cancelling the
     // redemption releases the customer's per-user use and the global count
     // (only 'active' rows count toward limits), same as a customer cancel.
@@ -602,7 +656,7 @@ const updateOrderStatus = async (req, res) => {
       await connection.beginTransaction();
       const [cancelResult] = await connection.query(
         'UPDATE orders SET status = ?, payment_status = ?, cancel_reason = ? WHERE id = ? AND status = ?',
-        [status, cancelledPaymentStatus, cancel_reason || null, id, currentStatus]
+        [status, cancelledPaymentStatus, resolvedCancelReason, id, currentStatus]
       );
       if (cancelResult.affectedRows === 0) {
         // The order status changed underneath us — do not overwrite it.
@@ -676,6 +730,14 @@ const updateOrderStatus = async (req, res) => {
       notifyShopsOrderCancelled(updatedOrder);
       const { revokeOffersForOrder } = require('../services/riderAssignment');
       revokeOffersForOrder(updatedOrder.id).catch(() => {});
+    }
+
+    // Out for Delivery / Delivered leave the shop "Active" list (Accepted/Preparing only).
+    if (
+      (status === 'Out for Delivery' || status === 'Delivered')
+      && (currentStatus === 'Accepted' || currentStatus === 'Preparing' || currentStatus === 'Out for Delivery')
+    ) {
+      notifyShopsOrderStatusChanged(updatedOrder);
     }
 
     // A rider already en route must be told the order died underneath them —

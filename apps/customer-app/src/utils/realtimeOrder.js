@@ -40,6 +40,12 @@ function mergeOrderRealtimePatch(order, payload = {}) {
     next.payment_status = paymentStatus;
   }
 
+  const cancelReason = payload.cancelReason ?? payload.cancel_reason;
+  if (cancelReason !== undefined && cancelReason !== null) {
+    next.cancelReason = cancelReason;
+    next.cancel_reason = cancelReason;
+  }
+
   if (updatedAt) {
     next.date = updatedAt;
     next.updatedAt = updatedAt;

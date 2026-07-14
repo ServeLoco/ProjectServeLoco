@@ -1,5 +1,5 @@
 /**
- * Tests for rider API skeleton — /api/rider/me, /me/online, /me/heartbeat.
+ * Tests for rider API skeleton — /api/rider/me, /me/online.
  * Mirrors shopOwner.test.js: mock pool + mount real riderRoutes.
  */
 
@@ -83,8 +83,8 @@ describe('Rider API skeleton - /api/rider', () => {
     expect(res.body.activeOffer).toBeNull();
   });
 
-  it('PATCH /me/online true sets online + heartbeat and syncs delivery', async () => {
-    const onlineRow = { ...RIDER_ROW, is_online: 1, last_heartbeat_at: '2026-07-12T12:00:00Z' };
+  it('PATCH /me/online true sets online and syncs delivery', async () => {
+    const onlineRow = { ...RIDER_ROW, is_online: 1 };
     pool.query
       .mockResolvedValueOnce([[RIDER_ROW]]) // requireRider
       .mockResolvedValueOnce([{ affectedRows: 1 }]) // UPDATE online
@@ -107,12 +107,13 @@ describe('Rider API skeleton - /api/rider', () => {
     )).toBe(true);
   });
 
-  it('PATCH /me/online false goes offline', async () => {
+  it('PATCH /me/online false goes offline when no active jobs', async () => {
     const onlineRider = { ...RIDER_ROW, is_online: 1, last_heartbeat_at: new Date() };
     const offlineRow = { ...RIDER_ROW, is_online: 0, last_heartbeat_at: null };
     pool.query
-      .mockResolvedValueOnce([[onlineRider]])
-      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([[onlineRider]]) // requireRider
+      .mockResolvedValueOnce([[{ cnt: 0 }]]) // active assignment count
+      .mockResolvedValueOnce([{ affectedRows: 1 }]) // SET is_online = 0
       .mockResolvedValueOnce([[offlineRow]])
       .mockResolvedValueOnce([[{ cnt: 0 }]])
       .mockResolvedValueOnce([[{ delivery_available: 1 }]])
@@ -127,6 +128,25 @@ describe('Rider API skeleton - /api/rider', () => {
     expect(res.body.rider.isOnline).toBe(false);
   });
 
+  it('PATCH /me/online false blocked when rider has active assignments', async () => {
+    const onlineRider = { ...RIDER_ROW, is_online: 1 };
+    pool.query
+      .mockResolvedValueOnce([[onlineRider]]) // requireRider
+      .mockResolvedValueOnce([[{ cnt: 2 }]]); // active jobs
+
+    const res = await request(app)
+      .patch('/api/rider/me/online')
+      .set('Authorization', `Bearer ${customerToken(7)}`)
+      .send({ isOnline: false });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.code).toBe('ACTIVE_ASSIGNMENTS');
+    expect(res.body.activeCount).toBe(2);
+    expect(pool.query.mock.calls.some((c) =>
+      String(c[0]).includes('SET is_online = 0')
+    )).toBe(false);
+  });
+
   it('PATCH /me/online without boolean -> 400', async () => {
     pool.query.mockResolvedValueOnce([[RIDER_ROW]]);
 
@@ -139,30 +159,4 @@ describe('Rider API skeleton - /api/rider', () => {
     expect(res.body.code).toBe('VALIDATION_ERROR');
   });
 
-  it('POST /me/heartbeat while online refreshes timestamp', async () => {
-    const onlineRider = { ...RIDER_ROW, is_online: 1, last_heartbeat_at: '2026-07-12T11:00:00Z' };
-    const refreshed = { ...onlineRider, last_heartbeat_at: '2026-07-12T12:00:00Z' };
-    pool.query
-      .mockResolvedValueOnce([[onlineRider]])
-      .mockResolvedValueOnce([{ affectedRows: 1 }])
-      .mockResolvedValueOnce([[refreshed]]);
-
-    const res = await request(app)
-      .post('/api/rider/me/heartbeat')
-      .set('Authorization', `Bearer ${customerToken(7)}`);
-
-    expect(res.statusCode).toEqual(200);
-    expect(res.body.message).toMatch(/Heartbeat/i);
-  });
-
-  it('POST /me/heartbeat while offline -> 400', async () => {
-    pool.query.mockResolvedValueOnce([[RIDER_ROW]]); // is_online: 0
-
-    const res = await request(app)
-      .post('/api/rider/me/heartbeat')
-      .set('Authorization', `Bearer ${customerToken(7)}`);
-
-    expect(res.statusCode).toEqual(400);
-    expect(res.body.code).toBe('VALIDATION_ERROR');
-  });
 });

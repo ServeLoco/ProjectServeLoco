@@ -15,13 +15,14 @@ import {
   Platform,
   KeyboardAvoidingView,
   AppState,
+  Dimensions,
+  PanResponder,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { CommonActions, useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  AppScreen,
-  AppHeader,
   AppIcon,
   PressableScale,
   LoadingSkeleton,
@@ -50,17 +51,63 @@ const GPS_ERROR_TIMEOUT = 'GPS_TIMEOUT';
 const GPS_ERROR_DENIED = 'GPS_DENIED';
 const GPS_ERROR_SETTINGS = 'GPS_SETTINGS';
 
-const GPS_TIMEOUT_MS = 8000;
+const WIN_H = Dimensions.get('window').height;
+// Default drawer height (collapsed). Raise this fraction to start the sheet higher.
+// Pull up further to expand payment / summary.
+const SHEET_COLLAPSED = Math.round(WIN_H * 0.40);
+const SHEET_EXPANDED = Math.round(WIN_H * 0.74);
+const SHEET_MID = (SHEET_COLLAPSED + SHEET_EXPANDED) / 2;
 
-// GPS can hang indefinitely on some devices; cap it so the pin/status never
-// gets stuck loading forever.
-function getCurrentPositionWithTimeout() {
-  return Promise.race([
-    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(GPS_ERROR_TIMEOUT)), GPS_TIMEOUT_MS),
-    ),
-  ]);
+/** Rider-order-style gradient action button for the checkout sheet. */
+function SheetActionBtn({ label, icon, onPress, busy, disabled, variant = 'saffron' }) {
+  const grad = variant === 'success'
+    ? [colors.btnSuccessStart, colors.btnSuccessEnd]
+    : variant === 'ghost'
+      ? null
+      : [colors.btnHighlightStart, colors.btnHighlightEnd];
+
+  if (variant === 'ghost') {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={Boolean(busy) || disabled}
+        activeOpacity={0.85}
+        style={styles.sheetGhostBtn}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
+        {busy ? (
+          <ActivityIndicator color={colors.textSecondary} />
+        ) : (
+          <>
+            {icon ? <AppIcon name={icon} size={16} color={colors.textSecondary} /> : null}
+            <Text style={styles.sheetGhostBtnText}>{label}</Text>
+          </>
+        )}
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={Boolean(busy) || disabled}
+      activeOpacity={0.9}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <LinearGradient colors={grad} style={[styles.sheetPrimaryBtn, disabled && styles.sheetPrimaryBtnDisabled]}>
+        {busy ? (
+          <ActivityIndicator color={colors.textInverse} />
+        ) : (
+          <>
+            {icon ? <AppIcon name={icon} size={18} color={colors.textInverse} /> : null}
+            <Text style={styles.sheetPrimaryBtnText}>{label}</Text>
+          </>
+        )}
+      </LinearGradient>
+    </TouchableOpacity>
+  );
 }
 
 const getGpsErrorCopy = (code) => {
@@ -313,43 +360,28 @@ export default function CheckoutScreen() {
   // Form State
   const [address, setAddress] = useState(userProfile?.address || '');
   const [coordinates, setCoordinates] = useState(null);
-  const [gpsStatus, setGpsStatus] = useState('idle'); // idle | loading | success | error
+  const coordinatesRef = useRef(null);
+  // idle | loading | success (delivery pin confirmed) | error
+  const [gpsStatus, setGpsStatus] = useState('idle');
   const [gpsError, setGpsError] = useState(null);
+  // Ephemeral map popup: locating live GPS, live snap, or delivery confirmed.
+  const [mapToast, setMapToast] = useState(null); // null | 'locating' | 'live' | 'pinned'
+  const mapToastTimerRef = useRef(null);
+  const reverseGeoTimerRef = useRef(null);
   // How the user is providing their delivery address: GPS or manual entry.
-  // Always starts unselected — address may still be prefilled as a convenience.
   // Page starts immersed in the map — no picker cards to tap first.
   const [locationMode, setLocationMode] = useState('gps');
-  // Disables the page ScrollView while a finger is on the inline map so
-  // pinch-to-zoom reaches the native MapView instead of being stolen by
-  // the outer scroll gesture. Uses setNativeProps (not state) — a state
-  // + re-render round trip is too slow to beat the native scroll
-  // responder, which starts claiming the gesture on the very first
-  // touchmove.
+  // Sheet scroll only — map is a sibling behind the sheet (no scroll conflict).
   const scrollRef = useRef(null);
-  // Safety net: the native MapView can swallow the touch-end event on its
-  // own gesture (pan/pinch), so onTouchEnd sometimes never fires on the JS
-  // side — without this, scrollEnabled would stay stuck false for the rest
-  // of the session after the first map drag. Auto re-enables shortly after
-  // any lock, regardless of whether the paired unlock call ever arrives.
-  const scrollLockTimeoutRef = useRef(null);
-  const lockMapScroll = useCallback(() => {
-    scrollRef.current?.setNativeProps?.({ scrollEnabled: false });
-    if (scrollLockTimeoutRef.current) clearTimeout(scrollLockTimeoutRef.current);
-    scrollLockTimeoutRef.current = setTimeout(() => {
-      scrollRef.current?.setNativeProps?.({ scrollEnabled: true });
-      scrollLockTimeoutRef.current = null;
-    }, 4000);
-  }, []);
-  const unlockMapScroll = useCallback(() => {
-    if (scrollLockTimeoutRef.current) {
-      clearTimeout(scrollLockTimeoutRef.current);
-      scrollLockTimeoutRef.current = null;
-    }
-    scrollRef.current?.setNativeProps?.({ scrollEnabled: true });
-  }, []);
-  useEffect(() => () => {
-    if (scrollLockTimeoutRef.current) clearTimeout(scrollLockTimeoutRef.current);
-  }, []);
+  const locationPickerRef = useRef(null);
+  // Draggable bottom sheet: collapsed = big map; expanded = full checkout form.
+  const [sheetExpanded, setSheetExpanded] = useState(false);
+  const sheetExpandedRef = useRef(false);
+  const sheetHeightAnim = useRef(new Animated.Value(SHEET_COLLAPSED)).current;
+  const sheetHeightNum = useRef(SHEET_COLLAPSED);
+  const sheetDragStart = useRef(SHEET_COLLAPSED);
+  const scrollYRef = useRef(0);
+  const [sheetReserve, setSheetReserve] = useState(SHEET_COLLAPSED);
   const [paymentMethod, setPaymentMethod] = useState(null); // UPI | Cash
   const [deliveryType, setDeliveryType] = useState(null); // standard | fast
 
@@ -395,7 +427,6 @@ export default function CheckoutScreen() {
   const summarySlide = useRef(new Animated.Value(20)).current;
   const btnScale = useRef(new Animated.Value(1)).current;
   const arrowAnim = useRef(new Animated.Value(0)).current;
-  const gpsPulse = useRef(new Animated.Value(1)).current;
   const gpsIconScale = useRef(new Animated.Value(1)).current;
   const manualIconScale = useRef(new Animated.Value(1)).current;
   const addressTouchedRef = useRef(false);
@@ -538,35 +569,6 @@ export default function CheckoutScreen() {
   }, [arrowAnim]);
 
   useEffect(() => {
-    let gpsLoop;
-    if (gpsStatus === 'success') {
-      gpsPulse.setValue(1);
-      gpsLoop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(gpsPulse, {
-            toValue: 1.12,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(gpsPulse, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      gpsLoop.start();
-    } else {
-      gpsPulse.setValue(1);
-    }
-    return () => {
-      if (gpsLoop) {
-        gpsLoop.stop();
-      }
-    };
-  }, [gpsStatus, gpsPulse]);
-
-  useEffect(() => {
     let isActive = true;
 
     if (checkoutItems.length === 0) {
@@ -605,42 +607,158 @@ export default function CheckoutScreen() {
     };
   }, [calculationPayload, checkoutItems.length]);
 
-  // Apply coordinates chosen on the LocationPicker (reverse-geocode once per confirm).
-  const applyPickedLocation = async (latitude, longitude) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setGpsStatus('loading');
-    setGpsError(null);
+  // Ephemeral map toast: locating stays until ready/error; live/pinned auto-hide.
+  const showMapToast = useCallback((kind) => {
+    if (mapToastTimerRef.current) {
+      clearTimeout(mapToastTimerRef.current);
+      mapToastTimerRef.current = null;
+    }
+    setMapToast(kind);
+    if (kind === 'live' || kind === 'pinned') {
+      mapToastTimerRef.current = setTimeout(() => {
+        setMapToast(null);
+        mapToastTimerRef.current = null;
+      }, 1600);
+    }
+  }, []);
 
-    try {
-      let resolvedAddress = null;
+  // Confirm button / place-order commit: pin under the marker = delivery location.
+  // Live GPS alone never sets delivery — only recenter moves the map to live.
+  const applyPickedLocation = useCallback(async (latitude, longitude) => {
+    setGpsError(null);
+    setSubmitError(null);
+    const next = { lat: latitude, lng: longitude };
+    coordinatesRef.current = next;
+    setCoordinates(next);
+    setGpsStatus('success');
+    showMapToast('pinned');
+
+    if (reverseGeoTimerRef.current) {
+      clearTimeout(reverseGeoTimerRef.current);
+      reverseGeoTimerRef.current = null;
+    }
+    reverseGeoTimerRef.current = setTimeout(async () => {
+      reverseGeoTimerRef.current = null;
       try {
         const places = await Location.reverseGeocodeAsync({ latitude, longitude });
         const place = places?.[0];
-        if (place) {
-          resolvedAddress = [place.name, place.street, place.district || place.subregion, place.city, place.region, place.postalCode]
-            .filter(Boolean)
-            .join(', ');
+        if (!place) {
+          setAddress((prev) => prev || `Pinned location (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`);
+          return;
         }
+        const resolvedAddress = [place.name, place.street, place.district || place.subregion, place.city, place.region, place.postalCode]
+          .filter(Boolean)
+          .join(', ');
+        if (resolvedAddress) setAddress(resolvedAddress);
       } catch {
-        // Reverse geocoding failed (offline, no provider, etc). Fall back
-        // to a coordinate-based label below so the order can still proceed.
+        setAddress((prev) => prev || `Pinned location (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`);
       }
+    }, 280);
+  }, [showMapToast]);
 
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setBill(null);
-      setCalcError(null);
-      setSubmitError(null);
-      setCoordinates({ lat: latitude, lng: longitude });
-      setAddress(resolvedAddress || `Pinned location (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`);
-      setGpsStatus('success');
-    } catch (error) {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setGpsStatus('error');
-      setGpsError(error.message || 'Failed to get location. Please try again.');
+  useEffect(() => () => {
+    if (mapToastTimerRef.current) clearTimeout(mapToastTimerRef.current);
+    if (reverseGeoTimerRef.current) clearTimeout(reverseGeoTimerRef.current);
+  }, []);
+
+  // Recenter / auto-locate status only — does not confirm delivery pin.
+  const handleLocateStatus = useCallback((status) => {
+    if (status === 'loading') {
+      setGpsError(null);
+      showMapToast('locating');
+      return;
     }
-  };
+    if (status === 'ready') {
+      setGpsError(null);
+      showMapToast('live');
+      return;
+    }
+    if (status === 'error') {
+      setGpsStatus('error');
+      setGpsError(GPS_ERROR_DENIED);
+      if (mapToastTimerRef.current) {
+        clearTimeout(mapToastTimerRef.current);
+        mapToastTimerRef.current = null;
+      }
+      setMapToast(null);
+    }
+  }, [showMapToast]);
 
-  // If denied at app start, re-ask when Checkout opens.
+  // User panned or recentered — previous Confirm is invalid until they confirm again.
+  const handlePinMoved = useCallback(() => {
+    coordinatesRef.current = null;
+    setCoordinates(null);
+    setGpsStatus((prev) => (prev === 'error' ? prev : 'idle'));
+  }, []);
+
+  const snapSheet = useCallback((expanded) => {
+    const h = expanded ? SHEET_EXPANDED : SHEET_COLLAPSED;
+    sheetHeightNum.current = h;
+    sheetExpandedRef.current = expanded;
+    setSheetExpanded(expanded);
+    setSheetReserve(h);
+    if (!expanded) {
+      scrollYRef.current = 0;
+      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
+    }
+    Animated.spring(sheetHeightAnim, {
+      toValue: h,
+      friction: 9,
+      tension: 80,
+      useNativeDriver: false,
+    }).start();
+  }, [sheetHeightAnim]);
+
+  // Drag the sheet from anywhere (not only the handle). When fully expanded,
+  // vertical drags at scroll-top collapse; otherwise ScrollView owns the gesture.
+  const sheetPanResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, g) => {
+      if (Math.abs(g.dy) < 6) return false;
+      if (Math.abs(g.dy) < Math.abs(g.dx) * 1.1) return false;
+      // Collapsed / mid: drag sheet up or down from any point on the drawer.
+      if (!sheetExpandedRef.current) return true;
+      if (sheetHeightNum.current < SHEET_EXPANDED - 4) return true;
+      // Fully expanded: only claim when at top of list and pulling down to collapse.
+      if (scrollYRef.current <= 2 && g.dy > 4) return true;
+      return false;
+    },
+    onMoveShouldSetPanResponderCapture: (_, g) => {
+      if (Math.abs(g.dy) < 6) return false;
+      if (Math.abs(g.dy) < Math.abs(g.dx) * 1.1) return false;
+      if (!sheetExpandedRef.current) return true;
+      if (sheetHeightNum.current < SHEET_EXPANDED - 4) return true;
+      if (scrollYRef.current <= 2 && g.dy > 4) return true;
+      return false;
+    },
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderGrant: () => {
+      sheetDragStart.current = sheetHeightNum.current;
+    },
+    onPanResponderMove: (_, g) => {
+      // Finger up (dy < 0) → taller sheet; finger down → shorter sheet.
+      const next = Math.min(
+        SHEET_EXPANDED,
+        Math.max(SHEET_COLLAPSED, sheetDragStart.current - g.dy),
+      );
+      sheetHeightAnim.setValue(next);
+      sheetHeightNum.current = next;
+      sheetExpandedRef.current = next >= SHEET_MID;
+    },
+    onPanResponderRelease: (_, g) => {
+      const current = sheetHeightNum.current;
+      const flingUp = g.vy < -0.55;
+      const flingDown = g.vy > 0.55;
+      if (flingUp) snapSheet(true);
+      else if (flingDown) snapSheet(false);
+      else snapSheet(current >= SHEET_MID);
+    },
+    onPanResponderTerminate: () => {
+      snapSheet(sheetHeightNum.current >= SHEET_MID);
+    },
+  }), [sheetHeightAnim, snapSheet]);
+
+  // Warm permission prompt when Checkout opens (does not fetch GPS).
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -652,63 +770,68 @@ export default function CheckoutScreen() {
     };
   }, []);
 
-  // After user enables Location in Settings and returns, clear the blocked state.
+  // After Settings: clear blocked state only. Live GPS still requires recenter tap.
   useEffect(() => {
     const sub = AppState.addEventListener('change', async (next) => {
       if (next !== 'active') return;
+      if (gpsError !== GPS_ERROR_SETTINGS) return;
       try {
         const existing = await Location.getForegroundPermissionsAsync();
-        if (existing?.granted) {
-          setGpsError(null);
-          if (gpsStatus === 'error') setGpsStatus('idle');
-        }
+        if (!existing?.granted) return;
+        setGpsError(null);
+        setGpsStatus('idle');
       } catch (_) { /* ignore */ }
     });
     return () => sub.remove();
-  }, [gpsStatus]);
+  }, [gpsError]);
 
-  // Tapping the "Current Location" card fetches + pins the position
-  // immediately — the inline map (rendered under the option cards) shows it
-  // live, no separate "use current location" tap required.
+  // Error bar: open Settings or clear error so user can tap recenter FAB.
   const openLocationPicker = async () => {
     setGpsError(null);
-    // Re-ask system dialog when possible; if permanently blocked, send to Settings.
     const result = await requestPreciseLocationPermission();
     if (!result.granted) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setGpsStatus('error');
       if (result.needsSettings) {
         setGpsError(GPS_ERROR_SETTINGS);
-        // Deep-link into app settings so they can flip Location → Allow.
         openAppLocationSettings();
       } else {
         setGpsError(GPS_ERROR_DENIED);
       }
-      // Inline map still renders with the default center; pan-and-confirm
-      // and "use my current location" retry remain available there.
       return;
     }
-
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    try {
-      const position = await getCurrentPositionWithTimeout();
-      await applyPickedLocation(position.coords.latitude, position.coords.longitude);
-    } catch (error) {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setGpsStatus('error');
-      setGpsError(error.message === GPS_ERROR_TIMEOUT ? GPS_ERROR_TIMEOUT : error.message);
-    }
+    // Permission ok — try live GPS via map picker; user can also tap recenter FAB.
+    setGpsStatus('idle');
+    locationPickerRef.current?.locateToLive?.();
   };
 
-  const selectMode = (mode) => {
-    // Tapping the already-selected GPS card again is treated as "retry".
-    if (mode === locationMode) {
-      if (mode === 'gps') openLocationPicker();
-      return;
+  // Lock map-center pin as delivery location, then open payment methods.
+  const [confirmingContinue, setConfirmingContinue] = useState(false);
+  const handleConfirmLocationContinue = useCallback(async () => {
+    if (confirmingContinue) return;
+    setConfirmingContinue(true);
+    setSubmitError(null);
+    try {
+      await locationPickerRef.current?.confirmLocation?.();
+      if (!coordinatesRef.current) {
+        setSubmitError('Move the map to set your pin, then tap Confirm location.');
+        return;
+      }
+      snapSheet(true);
+    } finally {
+      setConfirmingContinue(false);
     }
+  }, [confirmingContinue, snapSheet]);
+
+  const selectMode = (mode) => {
+    if (mode === locationMode) return;
 
     setLocationMode(mode);
     setSubmitError(null);
+    if (mode === 'manual') {
+      // Manual form + payment methods — expand sheet.
+      snapSheet(true);
+    }
 
     const iconScale = mode === 'gps' ? gpsIconScale : manualIconScale;
     iconScale.setValue(1);
@@ -729,7 +852,10 @@ export default function CheckoutScreen() {
     }).start();
 
     if (mode === 'gps') {
-      openLocationPicker();
+      coordinatesRef.current = null;
+      setCoordinates(null);
+      setGpsStatus('idle');
+      snapSheet(false);
     }
   };
 
@@ -739,15 +865,25 @@ export default function CheckoutScreen() {
     Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true }).start();
 
     try {
+      const pin = coordinatesRef.current || coordinates;
+      const pinLat = pin?.lat != null ? Number(pin.lat) : null;
+      const pinLng = pin?.lng != null ? Number(pin.lng) : null;
+      const hasPin = Number.isFinite(pinLat) && Number.isFinite(pinLng);
       const orderResponse = await ordersApi.createOrder(
         {
           items: checkoutItems,
           deliveryAddress: address.trim(),
           address: address.trim(),
-          latitude: coordinates?.lat,
-          longitude: coordinates?.lng,
-          mapUrl: coordinates
-            ? `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`
+          // Explicit numbers + aliases so the API never drops the delivery pin.
+          latitude: hasPin ? pinLat : undefined,
+          longitude: hasPin ? pinLng : undefined,
+          lat: hasPin ? pinLat : undefined,
+          lng: hasPin ? pinLng : undefined,
+          mapUrl: hasPin
+            ? `https://www.google.com/maps/search/?api=1&query=${pinLat},${pinLng}`
+            : undefined,
+          map_url: hasPin
+            ? `https://www.google.com/maps/search/?api=1&query=${pinLat},${pinLng}`
             : undefined,
           paymentMethod,
           delivery_type: deliveryType || 'standard',
@@ -815,16 +951,33 @@ export default function CheckoutScreen() {
       setSubmitError('Please choose how to provide your delivery address');
       return;
     }
+    // Map mode: delivery = confirmed pin under the marker (not live GPS by itself).
+    if (locationMode === 'gps') {
+      try {
+        await locationPickerRef.current?.confirmLocation?.();
+      } catch (_) { /* ignore */ }
+      if (!coordinatesRef.current) {
+        setSubmitError('Pin your delivery location on the map, then tap Confirm location.');
+        snapSheet(false);
+        return;
+      }
+    }
     if (!address.trim()) {
+      if (locationMode === 'gps') {
+        setSubmitError('Waiting for address… try again in a moment.');
+        return;
+      }
       setSubmitError('Please enter a delivery address');
       return;
     }
     if (!paymentMethod) {
       setSubmitError('Please select a payment method');
+      snapSheet(true);
       return;
     }
     if (bill?.fastDeliveryEnabled && !deliveryType) {
       setSubmitError('Please select a delivery speed');
+      snapSheet(true);
       return;
     }
     if (shopStatus === 'closed') {
@@ -930,139 +1083,207 @@ export default function CheckoutScreen() {
     : bill
     ? `Place Order • ₹${bill.grandTotal}`
     : 'Place Order';
+  const mapMode = locationMode !== 'manual';
 
   return (
-    <AppScreen style={styles.container} safeAreaBottom={false}>
-      <AppHeader
-        title="Checkout"
-        onBack={() => navigation.goBack()}
-      />
-
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
-      >
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="always"
-        keyboardDismissMode="none"
-        nestedScrollEnabled
-      >
-        
-        {/* Delivery location — immersive edge-to-edge map first, no card. */}
-        {locationMode !== 'manual' && (
-          <View style={styles.mapHeroBleed}>
-            <LocationPicker
-              inline
-              fullBleed
-              autoConfirmOnLocate
-              initialCenter={
-                coordinates
-                  ? { latitude: coordinates.lat, longitude: coordinates.lng }
-                  : undefined
-              }
-              onConfirm={applyPickedLocation}
-              onEnterManually={() => selectMode('manual')}
-              onMapTouchStart={lockMapScroll}
-              onMapTouchEnd={unlockMapScroll}
-            />
-          </View>
-        )}
-
-        {locationMode === 'gps' && gpsStatus !== 'idle' && (
-          <View style={styles.gpsContainer}>
-            {gpsStatus === 'loading' ? (
-              <View style={styles.gpsBarLoading}>
-                <View style={styles.gpsBarLoadingIcon}>
+    <View style={styles.immersiveRoot}>
+      {/* Full-screen map behind the sheet (rider delivery style). */}
+      {mapMode ? (
+        <View style={styles.mapLayer} pointerEvents="box-none">
+          <LocationPicker
+            apiRef={locationPickerRef}
+            inline
+            immersive
+            hideActions
+            fullBleed
+            // On open: ask for location if needed, then fly pin to live GPS.
+            // Does NOT save delivery — user must still tap Confirm location.
+            autoLocateOnMount
+            sheetReserve={sheetReserve}
+            // Do not pass confirmed coords as initialCenter — that can re-seed
+            // the camera after Confirm. Camera stays where the user left it.
+            onConfirm={applyPickedLocation}
+            onLocateStatus={handleLocateStatus}
+            onPinMoved={handlePinMoved}
+          />
+          {mapToast ? (
+            <View
+              style={[styles.mapStatusChipRow, { top: Math.max(insets.top, spacing.md) + spacing.sm }]}
+              pointerEvents="none"
+            >
+              {mapToast === 'locating' ? (
+                <View style={styles.mapStatusChip}>
                   <ActivityIndicator size="small" color={colors.textPrimary} />
+                  <Text style={styles.mapStatusChipText}>Finding live location…</Text>
                 </View>
-                <Text style={styles.gpsBarLoadingText}>Fetching your location...</Text>
-              </View>
-            ) : gpsStatus === 'success' ? (
-              <View style={styles.gpsBarSuccess}>
-                <Animated.View style={[styles.gpsBarIcon, { transform: [{ scale: gpsPulse }] }]}>
-                  <AppIcon name="location" size={16} color={colors.successDark} />
-                </Animated.View>
-                <Text style={styles.gpsBarSuccessText}>Your live location fetched successfully</Text>
-              </View>
-            ) : gpsErrorCopy ? (
-              <View style={styles.gpsBarError}>
-                <View style={styles.gpsBarErrorIconWrap}>
-                  <AppIcon name="warning" size={12} color={colors.error} />
-                </View>
-                <View style={styles.gpsBarErrorBody}>
-                  <Text style={styles.gpsBarErrorTitle}>{gpsErrorCopy.title}</Text>
-                  <Text style={styles.gpsBarErrorText}>{gpsErrorCopy.detail}</Text>
-                  <View style={styles.gpsBarErrorActions}>
-                    {gpsError === GPS_ERROR_SETTINGS ? (
-                      <PressableScale
-                        onPress={() => openAppLocationSettings()}
-                        disabled={gpsStatus === 'loading'}
-                        style={[styles.gpsBarActionBtn, styles.gpsBarRetryBtn]}
-                        scaleTo={0.97}
-                        accessibilityRole="button"
-                        accessibilityLabel="Open settings for location"
-                      >
-                        <AppIcon name="settings" size={14} color={colors.textPrimary} />
-                        <Text style={styles.gpsBarRetryBtnText}>Open Settings</Text>
-                      </PressableScale>
-                    ) : (
-                      <PressableScale
-                        onPress={openLocationPicker}
-                        disabled={gpsStatus === 'loading'}
-                        style={[styles.gpsBarActionBtn, styles.gpsBarRetryBtn]}
-                        scaleTo={0.97}
-                        accessibilityRole="button"
-                        accessibilityLabel="Retry getting location"
-                      >
-                        <AppIcon name="navigation" size={14} color={colors.textPrimary} />
-                        <Text style={styles.gpsBarRetryBtnText}>Retry</Text>
-                      </PressableScale>
-                    )}
+              ) : mapToast === 'live' ? (
+                <View style={[styles.mapStatusChip, styles.mapStatusChipSuccess]}>
+                  <View style={styles.mapStatusChipDot}>
+                    <AppIcon name="navigation" size={10} color={colors.textInverse} />
                   </View>
-                  <Text style={styles.gpsBarErrorManualLead}>Or enter your address manually:</Text>
-                  <PressableScale
-                    onPress={() => selectMode('manual')}
+                  <Text style={[styles.mapStatusChipText, styles.mapStatusChipTextSuccess]}>
+                    Moved to live location — adjust pin, then Confirm
+                  </Text>
+                </View>
+              ) : (
+                <View style={[styles.mapStatusChip, styles.mapStatusChipSuccess]}>
+                  <View style={styles.mapStatusChipDot}>
+                    <AppIcon name="check" size={10} color={colors.textInverse} />
+                  </View>
+                  <Text style={[styles.mapStatusChipText, styles.mapStatusChipTextSuccess]}>
+                    Delivery pin saved
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : null}
+        </View>
+      ) : (
+        <View style={styles.manualBackdrop} />
+      )}
+
+      {/* Bottom sheet — drag up/down from anywhere on the drawer. */}
+      <Animated.View
+        style={[
+          styles.checkoutSheet,
+          !mapMode && styles.checkoutSheetManual,
+          mapMode && { height: sheetHeightAnim },
+        ]}
+        {...(mapMode ? sheetPanResponder.panHandlers : {})}
+      >
+        <SafeAreaView
+          style={styles.sheetSafe}
+          // Top inset only in full-screen manual mode; footer handles bottom inset.
+          edges={mapMode ? [] : ['top']}
+        >
+          <View style={styles.sheetDragZone}>
+            {mapMode ? <View style={styles.sheetHandle} /> : null}
+            <View style={[styles.sheetHeader, !mapMode && styles.sheetHeaderManual]}>
+              <View style={styles.sheetHeaderText}>
+                <Text style={styles.sheetTitle}>Checkout</Text>
+                <Text style={styles.sheetStatusLine}>
+                  {mapMode
+                    ? 'Drag map to set pin · Confirm when ready'
+                    : 'Enter delivery address'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.sheetIconBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <AppIcon name="back" size={22} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <KeyboardAvoidingView
+            style={styles.keyboardAvoid}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+          >
+            <ScrollView
+              ref={scrollRef}
+              style={styles.sheetScroll}
+              contentContainerStyle={styles.sheetScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="always"
+              keyboardDismissMode="none"
+              nestedScrollEnabled
+              scrollEnabled={sheetExpanded || !mapMode}
+              onScroll={(e) => {
+                scrollYRef.current = e.nativeEvent.contentOffset.y;
+              }}
+              scrollEventThrottle={16}
+              bounces={sheetExpanded || !mapMode}
+            >
+              {mapMode && !sheetExpanded ? (
+                <View style={styles.sheetActions}>
+                  <SheetActionBtn
+                    label={confirmingContinue ? 'Saving…' : 'Confirm location'}
+                    icon="check"
+                    variant="saffron"
+                    busy={confirmingContinue}
+                    disabled={isModeSelectDisabled || confirmingContinue}
+                    onPress={handleConfirmLocationContinue}
+                  />
+                  <SheetActionBtn
+                    label="Enter manually"
+                    icon="edit"
+                    variant="ghost"
                     disabled={isModeSelectDisabled}
-                    style={[styles.gpsBarActionBtn, styles.gpsBarManualBtn]}
-                    scaleTo={0.97}
-                    accessibilityRole="button"
-                    accessibilityLabel="Enter address manually"
-                  >
-                    <AppIcon name="edit" size={14} color={colors.textPrimary} />
-                    <Text style={styles.gpsBarManualBtnText}>Enter Manually</Text>
-                  </PressableScale>
+                    onPress={() => selectMode('manual')}
+                  />
+                </View>
+              ) : null}
+
+            {mapMode && gpsStatus === 'error' && gpsErrorCopy ? (
+              <View style={styles.gpsContainer}>
+                <View style={styles.gpsBarError}>
+                  <View style={styles.gpsBarErrorIconWrap}>
+                    <AppIcon name="warning" size={12} color={colors.error} />
+                  </View>
+                  <View style={styles.gpsBarErrorBody}>
+                    <Text style={styles.gpsBarErrorTitle}>{gpsErrorCopy.title}</Text>
+                    <Text style={styles.gpsBarErrorText}>{gpsErrorCopy.detail}</Text>
+                    <View style={styles.gpsBarErrorActions}>
+                      {gpsError === GPS_ERROR_SETTINGS ? (
+                        <PressableScale
+                          onPress={() => openAppLocationSettings()}
+                          disabled={gpsStatus === 'loading'}
+                          style={[styles.gpsBarActionBtn, styles.gpsBarRetryBtn]}
+                          scaleTo={0.97}
+                          accessibilityRole="button"
+                          accessibilityLabel="Open settings for location"
+                        >
+                          <AppIcon name="settings" size={14} color={colors.textPrimary} />
+                          <Text style={styles.gpsBarRetryBtnText}>Open Settings</Text>
+                        </PressableScale>
+                      ) : (
+                        <PressableScale
+                          onPress={openLocationPicker}
+                          disabled={gpsStatus === 'loading'}
+                          style={[styles.gpsBarActionBtn, styles.gpsBarRetryBtn]}
+                          scaleTo={0.97}
+                          accessibilityRole="button"
+                          accessibilityLabel="Retry getting location"
+                        >
+                          <AppIcon name="navigation" size={14} color={colors.textPrimary} />
+                          <Text style={styles.gpsBarRetryBtnText}>Retry</Text>
+                        </PressableScale>
+                      )}
+                    </View>
+                  </View>
                 </View>
               </View>
             ) : null}
-          </View>
-        )}
 
-        {locationMode === 'manual' && (
-          <View style={styles.manualWrap}>
-            <ManualAddressField
-              visible
-              value={address}
-              onTouch={handleAddressTouch}
-              onChangeText={handleAddressChange}
-              onClear={handleAddressClear}
-            />
-            <TouchableOpacity
-              onPress={() => selectMode('gps')}
-              disabled={isModeSelectDisabled}
-              style={styles.useMapInsteadBtn}
-              accessibilityRole="button"
-              accessibilityLabel="Use map instead"
-            >
-              <AppIcon name="navigation" size={14} color={colors.saffronDark} />
-              <Text style={styles.useMapInsteadText}>Use map instead</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+            {locationMode === 'manual' && (
+              <View style={styles.manualWrap}>
+                <ManualAddressField
+                  visible
+                  value={address}
+                  onTouch={handleAddressTouch}
+                  onChangeText={handleAddressChange}
+                  onClear={handleAddressClear}
+                />
+                <TouchableOpacity
+                  onPress={() => selectMode('gps')}
+                  disabled={isModeSelectDisabled}
+                  style={styles.useMapInsteadBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Use map instead"
+                >
+                  <AppIcon name="navigation" size={14} color={colors.saffronDark} />
+                  <Text style={styles.useMapInsteadText}>Use map instead</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
+        {/* Full form only when sheet is pulled up (or manual mode fills the screen). */}
+        {(sheetExpanded || !mapMode) ? (
+        <>
         {/* Delivery Type Selector — shown whenever the admin has enabled fast delivery.
             Fast delivery fully replaces the standard charge, regardless of threshold/free-offer. */}
         {bill?.fastDeliveryEnabled && (
@@ -1485,55 +1706,56 @@ export default function CheckoutScreen() {
             <Text style={styles.errorBannerText}>{submitError}</Text>
           </View>
         )}
-
-      </ScrollView>
-
-      {/* Bottom Action Bar */}
-      <View style={[styles.bottomBar, { paddingBottom: spacing.lg + insets.bottom }]} collapsable={false}>
-        {shopStatus === 'closed' ? (
-          <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
-            <Text style={styles.placeOrderBtnTextDisabled}>Shop is Closed</Text>
-          </View>
-        ) : !deliveryAvailable ? (
-          <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
-            <Text style={styles.placeOrderBtnTextDisabled}>Delivery Unavailable</Text>
-          </View>
+        </>
         ) : (
-          <PressableScale
-          onPress={handlePlaceOrder}
-          disabled={isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable}
-          style={[
-            styles.customPlaceOrderBtn,
-            (isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable) && styles.customPlaceOrderBtnDisabled
-          ]}
-          scaleTo={0.96}
-          accessibilityRole="button"
-          accessibilityLabel={bill ? `Place Order, ₹${bill.grandTotal}` : 'Place Order'}
-        >
-          <View style={styles.placeOrderBtnContent}>
-            {isSubmitting || isCalculating ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : null}
-            <Text style={(isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable) ? styles.placeOrderBtnTextDisabled : styles.placeOrderBtnText}>
-              {placeOrderLabel}
-            </Text>
-            {!isSubmitting && !isCalculating && (
-              <Animated.View style={[styles.placeOrderBtnArrow, { transform: [{ translateX: arrowAnim }] }]}>
-                <AppIcon name="chevronRight" size={16} color={(isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable) ? colors.textDisabled : '#FFFFFF'} />
-              </Animated.View>
-            )}
-          </View>
-          </PressableScale>
+          submitError ? (
+            <View style={styles.errorBanner}>
+              <AppIcon name="delete" size={16} color={colors.error} style={{ marginRight: spacing.sm }} />
+              <Text style={styles.errorBannerText}>{submitError}</Text>
+            </View>
+          ) : null
         )}
-        <TouchableOpacity 
-          style={styles.backToCartBtn}
-          onPress={() => navigation.goBack()}
-          disabled={isSubmitting}
-        >
-          <Text style={styles.backToCartText}>Back to Cart</Text>
-        </TouchableOpacity>
-      </View>
-      </KeyboardAvoidingView>
+
+          </ScrollView>
+
+            {/* Sheet footer — Place Order always visible */}
+            <View
+              style={[
+                styles.sheetFooter,
+                // Keep CTA above the system gesture / nav bar (Android edge-to-edge).
+                { paddingBottom: Math.max(insets.bottom, spacing.sm) },
+              ]}
+              collapsable={false}
+            >
+              {shopStatus === 'closed' ? (
+                <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
+                  <Text style={styles.placeOrderBtnTextDisabled}>Shop is Closed</Text>
+                </View>
+              ) : !deliveryAvailable ? (
+                <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
+                  <Text style={styles.placeOrderBtnTextDisabled}>Delivery Unavailable</Text>
+                </View>
+              ) : (
+                <SheetActionBtn
+                  label={placeOrderLabel}
+                  icon={isSubmitting || isCalculating ? null : 'check'}
+                  variant="success"
+                  busy={isSubmitting || isCalculating}
+                  disabled={isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable}
+                  onPress={handlePlaceOrder}
+                />
+              )}
+              <TouchableOpacity
+                style={styles.backToCartBtn}
+                onPress={() => navigation.goBack()}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.backToCartText}>Back to Cart</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Animated.View>
 
       <ConfirmModal
         visible={showCodNightModal}
@@ -1545,32 +1767,202 @@ export default function CheckoutScreen() {
         onCancel={() => setShowCodNightModal(false)}
         onConfirm={handleSwitchToUpi}
       />
-
-    </AppScreen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  immersiveRoot: {
     flex: 1,
     backgroundColor: colors.bgApp,
   },
+  mapLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  manualBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.bgApp,
+  },
+  // Rider-order-style bottom sheet over the map (height animated).
+  checkoutSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.bgSurface,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    ...shadows.cardRaised,
+    overflow: 'hidden',
+  },
+  checkoutSheetManual: {
+    // Fill the parent (not window height) so nothing peeks under the nav bar.
+    top: 0,
+    bottom: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
+  sheetSafe: {
+    flex: 1,
+    minHeight: 0,
+  },
+  sheetDragZone: {
+    paddingBottom: spacing.xs,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  sheetScroll: {
+    flexGrow: 1,
+    flexShrink: 1,
+  },
+  sheetScrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    flexGrow: 0,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  sheetHeaderManual: {
+    paddingTop: spacing.sm,
+  },
+  sheetHeaderText: {
+    flex: 1,
+    // Nudge title + subtitle slightly right from the left edge.
+    paddingLeft: spacing.lg + spacing.sm,
+  },
+  sheetIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.circle,
+    backgroundColor: colors.bgApp,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Nudge back button slightly inward from the right edge.
+    marginRight: spacing.sm,
+  },
+  sheetTitle: {
+    ...typography.h2,
+    fontSize: 20,
+    color: colors.textPrimary,
+    textAlign: 'left',
+  },
+  sheetStatusLine: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    textAlign: 'left',
+  },
+  sheetAddress: {
+    ...typography.body,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+    fontWeight: '600',
+  },
+  sheetActions: {
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  sheetPrimaryBtn: {
+    minHeight: 50,
+    borderRadius: radius.button,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  sheetPrimaryBtnDisabled: {
+    opacity: 0.55,
+  },
+  sheetPrimaryBtnText: {
+    color: colors.textInverse,
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  sheetGhostBtn: {
+    minHeight: 44,
+    borderRadius: radius.button,
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+    backgroundColor: colors.bgApp,
+  },
+  sheetGhostBtnText: {
+    color: colors.textSecondary,
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  sheetFooter: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    gap: spacing.xs,
+    backgroundColor: colors.bgSurface,
+  },
   keyboardAvoid: {
     flex: 1,
+    minHeight: 0,
   },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xxxl,
+  // Compact floating pill on the map (loading / location set).
+  mapStatusChipRow: {
+    position: 'absolute',
+    top: spacing.md,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 5,
   },
-  // Cancels scrollContent's horizontal padding so the immersive map at the
-  // top of the page reaches both screen edges.
-  mapHeroBleed: {
-    marginHorizontal: -spacing.md,
-    marginTop: -spacing.md,
+  mapStatusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    ...shadows.sm,
+  },
+  mapStatusChipSuccess: {
+    backgroundColor: 'rgba(232, 255, 244, 0.96)',
+    borderColor: colors.palette.success200,
+  },
+  mapStatusChipDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapStatusChipText: {
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  mapStatusChipTextSuccess: {
+    color: colors.successDark,
   },
   manualWrap: {
-    marginTop: spacing.md,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
   useMapInsteadBtn: {
     flexDirection: 'row',
@@ -1696,62 +2088,7 @@ const styles = StyleSheet.create({
   },
   gpsContainer: {
     marginTop: spacing.sm,
-  },
-  gpsBarLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.saffron + '35',
-    backgroundColor: colors.saffronLight,
-  },
-  gpsBarSuccess: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.palette.success200,
-    backgroundColor: colors.successLight,
-  },
-  gpsBarIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1.5,
-    borderColor: colors.palette.success200,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gpsBarSuccessText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 17,
-    color: colors.successDark,
-    fontWeight: '600',
-  },
-  gpsBarLoadingIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1.5,
-    borderColor: colors.borderStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gpsBarLoadingText: {
-    fontSize: 13,
-    lineHeight: 17,
-    color: colors.textPrimary,
-    flex: 1,
-    fontWeight: '500',
+    marginBottom: spacing.md,
   },
   gpsBarError: {
     flexDirection: 'row',
@@ -1890,6 +2227,87 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     flex: 1,
     fontWeight: '600',
+  },
+  // Shared option-card layout used by Payment Method (UPI / COD).
+  // Restored after map redesign removed Delivery Details option cards but
+  // left the payment row still referencing these styles (buttons collapsed).
+  optionPicker: {
+    overflow: 'visible',
+  },
+  optionCardRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignItems: 'stretch',
+    overflow: 'visible',
+  },
+  optionColumn: {
+    flex: 1,
+    overflow: 'visible',
+  },
+  optionPillSlot: {
+    minHeight: 24,
+    marginBottom: spacing.xs,
+    justifyContent: 'flex-start',
+  },
+  recommendPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.successLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.palette.success200,
+    ...shadows.xs,
+  },
+  recommendPillText: {
+    fontSize: 9,
+    lineHeight: 11,
+    color: colors.successDark,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  optionCard: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    minHeight: 50,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    position: 'relative',
+  },
+  optionCardActiveBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.bgSurface,
+    zIndex: 2,
+  },
+  optionCardDisabled: {
+    opacity: 0.5,
+  },
+  optionCardIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  optionCardTitle: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   paymentCard: {
     backgroundColor: colors.bgInput,
@@ -2451,7 +2869,6 @@ const styles = StyleSheet.create({
     color: colors.saffronDark || '#E05A1A',
   },
   errorBanner: {
-    marginHorizontal: spacing.md,
     marginBottom: spacing.md,
     padding: spacing.md,
     backgroundColor: colors.errorLight,
@@ -2466,37 +2883,15 @@ const styles = StyleSheet.create({
     color: colors.error,
     flex: 1,
   },
-  bottomBar: {
-    backgroundColor: colors.bgSurface,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    ...shadows.xl,
-  },
   customPlaceOrderBtn: {
-    height: 52,
+    minHeight: 50,
     backgroundColor: colors.success,
-    borderRadius: radius.lg,
+    borderRadius: radius.button,
     justifyContent: 'center',
     alignItems: 'center',
-    ...shadows.sm,
   },
   customPlaceOrderBtnDisabled: {
     backgroundColor: colors.bgDisabled || '#DFE2E6',
-  },
-  placeOrderBtnContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  placeOrderBtnText: {
-    ...typography.buttonLarge,
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 15,
   },
   placeOrderBtnTextDisabled: {
     ...typography.buttonLarge,
@@ -2504,14 +2899,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 15,
   },
-  placeOrderBtnArrow: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   backToCartBtn: {
     alignItems: 'center',
     paddingVertical: spacing.xs,
-    marginTop: spacing.md,
+    marginTop: spacing.xs,
   },
   backToCartText: {
     ...typography.label,

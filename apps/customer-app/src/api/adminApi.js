@@ -50,6 +50,12 @@ const adminApi = {
   updateNotificationTemplate: (id, data) => apiClient.patch(`/admin/notification-templates/${id}`, data, { auth: 'admin' }),
   resetNotificationTemplate: (id) => apiClient.post(`/admin/notification-templates/${id}/reset`, {}, { auth: 'admin' }),
 
+  // Admin inbox (notification bell) — mirrors apps/admin AdminInboxApi
+  getInbox: (limit) => apiClient.get(`/admin/inbox${buildQueryString({ limit })}`, { auth: 'admin' }),
+  getInboxUnreadCount: () => apiClient.get('/admin/inbox/unread-count', { auth: 'admin' }),
+  markAllInboxRead: () => apiClient.post('/admin/inbox/read-all', {}, { auth: 'admin' }),
+  dismissInboxItem: (id) => apiClient.delete(`/admin/inbox/${id}`, { auth: 'admin' }),
+
   // ADMIN TASK 14 — Analytics (live + summary; no chart-lib views — see plan 14.3)
   analyticsSummary: (days) => apiClient.get(`/admin/analytics/summary${buildQueryString({ days })}`, { auth: 'admin' }),
   analyticsProducts: (days) => apiClient.get(`/admin/analytics/products${buildQueryString({ days })}`, { auth: 'admin' }),

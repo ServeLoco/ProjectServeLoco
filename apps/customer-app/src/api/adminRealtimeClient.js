@@ -8,7 +8,13 @@ import { getRealtimeBaseUrl } from './realtimeConfig';
 // socket (role: 'customer') never receives these events. Event names mirror
 // apps/admin/src/api/realtimeClient.js (web) so both clients stay in sync.
 const ADMIN_ORDER_EVENTS = ['admin.order.created', 'admin.order.updated', 'admin.order.shop_confirmed', 'admin.order.shop_ready'];
-const ADMIN_NOTIFICATION_EVENTS = ['admin.notification.created', 'admin.notification.unread_count', 'admin.order.auto_accepted'];
+const ADMIN_NOTIFICATION_EVENTS = [
+  'admin.notification.created',
+  'admin.notification.unread_count',
+  'admin.order.auto_accepted',
+  'admin.order.cancel_request',
+  'admin.order.rider_updated',
+];
 const ADMIN_ANALYTICS_EVENTS = ['analytics.live'];
 const ADMIN_RIDER_EVENTS = ['admin.rider.updated'];
 const LIFECYCLE_EVENTS = ['connected', 'reconnected', 'disconnected', 'foreground'];

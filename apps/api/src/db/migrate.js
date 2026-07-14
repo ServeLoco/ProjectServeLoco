@@ -117,10 +117,13 @@ const migrate = async () => {
       );
     `);
     console.log('Shops table ready.');
+    // Pickup pin for rider map — set manually in admin Shops page.
+    await ensureColumn('shops', 'latitude', 'latitude DECIMAL(10,7) NULL AFTER active');
+    await ensureColumn('shops', 'longitude', 'longitude DECIMAL(10,7) NULL AFTER latitude');
 
     // Riders — delivery partners. Same Firebase OTP login as customers;
     // user_id points at a users row. active = admin kill switch; is_online =
-    // day-to-day toggle (with last_heartbeat_at for soft presence). v1: one
+    // day-to-day toggle. last_heartbeat_at kept for schema compat (unused for eligibility). v1: one
     // phone is either shop owner OR rider, never both (enforced in admin API).
     await connection.query(`
       CREATE TABLE IF NOT EXISTS riders (
@@ -450,10 +453,14 @@ const migrate = async () => {
     await ensureColumn('orders', 'rider_picked_up_at', 'rider_picked_up_at TIMESTAMP NULL DEFAULT NULL AFTER rider_assigned_at');
     await ensureColumn('orders', 'rider_assignment_status',
       "rider_assignment_status ENUM('none','searching','offered','assigned','failed') DEFAULT 'none' AFTER rider_picked_up_at");
+    // When the assignment engine first enters searching (all shops confirmed / house Accepted).
+    // Used as the clock start for the 10-minute "wait for riders to come online" window.
+    await ensureColumn('orders', 'rider_search_started_at',
+      'rider_search_started_at TIMESTAMP NULL DEFAULT NULL AFTER rider_assignment_status');
     // Stamped exactly when status transitions to Delivered — countCompletedDeliveriesToday
     // (D8, Asia/Kolkata "today") keys off this instead of updated_at, which drifts if the
     // row is touched again later (e.g. an unrelated admin edit) after delivery.
-    await ensureColumn('orders', 'delivered_at', 'delivered_at TIMESTAMP NULL DEFAULT NULL AFTER rider_assignment_status');
+    await ensureColumn('orders', 'delivered_at', 'delivered_at TIMESTAMP NULL DEFAULT NULL AFTER rider_search_started_at');
 
     // Performance indexes for common order filter queries
     const ensureIndex = async (tableName, indexName, columns) => {
@@ -502,6 +509,11 @@ const migrate = async () => {
     // Dashboard section item lookups by section + type + active.
     await ensureIndex('dashboard_section_items', 'idx_dsi_section_type_active', 'section_id, item_type, active');
     await ensureIndex('orders', 'idx_orders_rider', 'rider_id, status');
+    // Rider-sweeper recover scan (every ~5s): orders stuck 'searching'/'offered'
+    // with no rider. Leading on rider_assignment_status because those two values
+    // are rare — idx_orders_rider's rider_id-IS-NULL prefix would instead match
+    // every unassigned order (most active rows).
+    await ensureIndex('orders', 'idx_orders_assignment_sweep', 'rider_assignment_status, rider_id');
     // NOTE: indexes for `notifications` and `offer_products` are added after
     // those tables are created later in this file (a fresh DB has no such
     // tables yet at this point).

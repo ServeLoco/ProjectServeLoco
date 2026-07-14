@@ -143,22 +143,13 @@ describe('Rider offers & assignments API', () => {
     expect(res.body.order).toBeNull();
   });
 
-  it('POST cancel assignment', async () => {
-    pool.query.mockResolvedValueOnce([[RIDER]]);
-    assignment.cancelAssignmentByRider.mockResolvedValueOnce({ ok: true, continued: {} });
-
-    const res = await request(app)
-      .post('/api/rider/assignments/10/cancel')
-      .set('Authorization', `Bearer ${token()}`);
-
-    expect(res.statusCode).toBe(200);
-    expect(assignment.cancelAssignmentByRider).toHaveBeenCalledWith(10, 3);
-  });
-
-  it('POST cancel after pickup returns 400', async () => {
+  it('POST cancel assignment is not allowed', async () => {
     pool.query.mockResolvedValueOnce([[RIDER]]);
     assignment.cancelAssignmentByRider.mockResolvedValueOnce({
-      ok: false, code: 'CANNOT_CANCEL_AFTER_PICKUP', message: 'Cannot cancel after pickup', status: 400,
+      ok: false,
+      code: 'CANCEL_NOT_ALLOWED',
+      message: 'Cannot cancel after accepting. Contact admin if needed.',
+      status: 400,
     });
 
     const res = await request(app)
@@ -166,7 +157,8 @@ describe('Rider offers & assignments API', () => {
       .set('Authorization', `Bearer ${token()}`);
 
     expect(res.statusCode).toBe(400);
-    expect(res.body.code).toBe('CANNOT_CANCEL_AFTER_PICKUP');
+    expect(res.body.code).toBe('CANCEL_NOT_ALLOWED');
+    expect(assignment.cancelAssignmentByRider).toHaveBeenCalledWith(10, 3);
   });
 
   it('POST picked-up sets timestamp', async () => {
@@ -239,5 +231,108 @@ describe('Rider offers & assignments API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.orders).toHaveLength(1);
     expect(res.body.total).toBe(1);
+  });
+
+  it('GET assignments/:orderId returns map payload (coords + shops + items)', async () => {
+    const order = {
+      id: 10,
+      rider_id: 3,
+      status: 'Accepted',
+      order_number: 'VK-10',
+      address: 'Fatehabad',
+      latitude: 29.52,
+      longitude: 75.45,
+      phone: '999',
+      customer_name: 'Asha',
+      payment_method: 'COD',
+      total: 200,
+      note: null,
+      rider_assigned_at: '2026-07-14',
+      rider_picked_up_at: null,
+      rider_assignment_status: 'assigned',
+      created_at: '2026-07-14',
+    };
+    pool.query
+      .mockResolvedValueOnce([[RIDER]]) // requireRider
+      .mockResolvedValueOnce([[order]]) // order by id + rider
+      .mockResolvedValueOnce([[{
+        order_id: 10, id: 2, name: 'Kirana', latitude: 29.45, longitude: 75.66,
+      }]]) // shops (batched loader — rows carry order_id)
+      .mockResolvedValueOnce([[{
+        id: 1, order_id: 10, product_name: 'Milk', quantity: 2, variant_label: '1L', shop_id: 2,
+      }]]); // items
+
+    const res = await request(app)
+      .get('/api/rider/assignments/10')
+      .set('Authorization', `Bearer ${token()}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.order).toEqual(expect.objectContaining({
+      id: 10,
+      latitude: 29.52,
+      longitude: 75.45,
+      lat: 29.52,
+      lng: 75.45,
+    }));
+    expect(res.body.order.shops).toHaveLength(1);
+    expect(res.body.order.shops[0]).toEqual(expect.objectContaining({
+      id: 2,
+      name: 'Kirana',
+      latitude: 29.45,
+      longitude: 75.66,
+      lat: 29.45,
+      lng: 75.66,
+    }));
+    expect(res.body.order.items).toHaveLength(1);
+    expect(res.body.order.items[0].productName).toBe('Milk');
+  });
+
+  it('GET assignments/:orderId returns 404 for other rider', async () => {
+    pool.query
+      .mockResolvedValueOnce([[RIDER]])
+      .mockResolvedValueOnce([[]]); // no matching assignment
+
+    const res = await request(app)
+      .get('/api/rider/assignments/99')
+      .set('Authorization', `Bearer ${token()}`);
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.code).toBe('NOT_FOUND');
+  });
+
+  it('GET assignments/current includes shop coordinates', async () => {
+    const order = {
+      id: 10,
+      rider_id: 3,
+      status: 'Accepted',
+      order_number: 'VK-10',
+      address: 'A',
+      latitude: 29.5,
+      longitude: 75.5,
+      phone: '1',
+      customer_name: 'B',
+      payment_method: 'COD',
+      total: 1,
+      note: null,
+      rider_assigned_at: null,
+      rider_picked_up_at: null,
+      rider_assignment_status: null,
+      created_at: null,
+    };
+    pool.query
+      .mockResolvedValueOnce([[RIDER]])
+      .mockResolvedValueOnce([[order]])
+      // batched loader — shop rows carry order_id
+      .mockResolvedValueOnce([[{ order_id: 10, id: 1, name: 'Shop', latitude: 29.4, longitude: 75.6 }]])
+      .mockResolvedValueOnce([[]]);
+
+    const res = await request(app)
+      .get('/api/rider/assignments/current')
+      .set('Authorization', `Bearer ${token()}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.order.shops[0].latitude).toBe(29.4);
+    expect(res.body.order.shops[0].lng).toBe(75.6);
+    expect(res.body.order.lat).toBe(29.5);
   });
 });

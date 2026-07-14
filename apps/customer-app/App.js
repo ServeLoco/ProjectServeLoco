@@ -12,6 +12,7 @@ import {
   useNetworkStatus,
   usePreciseLocationPermissionOnStart,
   useShopStatusSync,
+  useAuthRoleSync,
 } from './src/hooks';
 import { useAuthStore } from './src/stores';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
@@ -42,6 +43,7 @@ function App() {
   useLocalNotifications(navigationRef);
   usePreciseLocationPermissionOnStart();
   useShopStatusSync();
+  useAuthRoleSync();
   const { isOnline } = useNetworkStatus();
 
   // Force-update gate: check server's minimum_version against installed version

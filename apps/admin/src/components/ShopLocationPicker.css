@@ -1,0 +1,103 @@
+.shop-location-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.shop-location-picker-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.shop-location-picker-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.shop-location-picker-hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.shop-location-map {
+  height: 240px;
+  width: 100%;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  z-index: 0;
+}
+
+.shop-location-coords {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.shop-location-coords label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.shop-location-clear {
+  white-space: nowrap;
+  padding: 0.55rem 0.75rem;
+  height: fit-content;
+}
+
+.shop-location-error {
+  color: var(--danger, #dc2626);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+/* Leaflet store marker — shop facade, not a pin */
+.shop-store-marker-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+
+.shop-store-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+}
+
+.shop-store-facade {
+  width: 40px;
+  height: 36px;
+  background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #d97706;
+  border-radius: 6px 6px 2px 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shop-store-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.shop-store-awning {
+  width: 44px;
+  height: 6px;
+  background: #ef4444;
+  border-radius: 2px;
+  margin-top: -1px;
+}
+
+.shop-store-base {
+  width: 36px;
+  height: 4px;
+  background: #78716c;
+  border-radius: 0 0 3px 3px;
+}

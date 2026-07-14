@@ -107,7 +107,7 @@ describe('startAssignment', () => {
     expect(conn.rollback).toHaveBeenCalled();
   });
 
-  it('fails when no eligible riders', async () => {
+  it('waits (does not fail) when no eligible riders — search window open', async () => {
     const order = {
       id: 10,
       status: 'Accepted',
@@ -117,35 +117,137 @@ describe('startAssignment', () => {
       payment_method: 'Cash',
       customer_id: 5,
       coupon_id: null,
+      customer_name: 'C',
+      phone: '9',
+      address: 'A',
+      total: 100,
+      created_at: null,
     };
 
     const startConn = makeConn([
       [[order]],
-      [{ affectedRows: 1 }],
+      [{ affectedRows: 1 }], // mark searching + search_started_at
     ]);
-    const failConn = makeConn([
-      [{ affectedRows: 1 }], // cancel update
-      [{ affectedRows: 0 }], // revoke offers
-    ]);
-    pool.getConnection
-      .mockResolvedValueOnce(startConn)
-      .mockResolvedValueOnce(failConn);
+    pool.getConnection.mockResolvedValueOnce(startConn);
 
-    // pool.query sequence after start tx:
-    // getExcluded, listEligible, fail loadOrder, fail loadOrder after cancel, sync count, sync settings
+    // excluded, eligible empty — no failAssignment while window is open
     pool.query
       .mockResolvedValueOnce([[]]) // excluded
-      .mockResolvedValueOnce([[]]) // eligible empty
-      .mockResolvedValueOnce([[order]]) // failAssignment loadOrder
-      .mockResolvedValueOnce([[{ ...order, status: 'Cancelled', rider_assignment_status: 'failed' }]])
-      .mockResolvedValueOnce([[{ cnt: 0 }]]) // countActiveRiders
-      .mockResolvedValueOnce([[{ delivery_available: 1 }]])
-      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+      .mockResolvedValueOnce([[]]); // eligible empty
 
     const result = await assignment.startAssignment(10);
     expect(result.started).toBe(true);
-    expect(result.failed).toBe(true);
+    expect(result.waiting).toBe(true);
+    expect(result.reason).toBe('waiting_for_riders');
+    expect(result.failed).toBeFalsy();
+    expect(adminInbox.createAdminNotification).not.toHaveBeenCalled();
+  });
+});
+
+describe('continueAssignment search window', () => {
+  beforeEach(resetPool);
+
+  it('stays waiting when no eligible and window still open', async () => {
+    const order = {
+      id: 10,
+      status: 'Accepted',
+      rider_id: null,
+      rider_assignment_status: 'searching',
+      rider_search_started_at: new Date(),
+      order_number: 'O',
+    };
+    pool.query
+      .mockResolvedValueOnce([[order]]) // loadOrder
+      .mockResolvedValueOnce([[]]) // no pending
+      .mockResolvedValueOnce([[]]) // excluded empty
+      .mockResolvedValueOnce([[]]) // eligible empty
+      // isWithinSearchWindow reads first; already stamped → no markSearching UPDATE
+      .mockResolvedValueOnce([[{ stamped: 1, open: 1 }]]);
+
+    const r = await assignment.continueAssignment(10);
+    expect(r.continued).toBe(false);
+    expect(r.waiting).toBe(true);
+    expect(r.failed).toBe(false);
+    expect(adminInbox.createAdminNotification).not.toHaveBeenCalled();
+  });
+
+  it('fails after search window expires with no riders', async () => {
+    const order = {
+      id: 10,
+      status: 'Accepted',
+      rider_id: null,
+      rider_assignment_status: 'searching',
+      order_number: 'ORD-10',
+      payment_method: 'Cash',
+      customer_id: 5,
+      coupon_id: null,
+      customer_name: 'C',
+      phone: '9',
+      address: 'A',
+      total: 100,
+      created_at: null,
+    };
+    pool.query
+      .mockResolvedValueOnce([[order]]) // loadOrder
+      .mockResolvedValueOnce([[]]) // no pending
+      .mockResolvedValueOnce([[]]) // excluded
+      .mockResolvedValueOnce([[]]) // eligible empty
+      // isWithinSearchWindow reads first; already stamped → no markSearching UPDATE
+      .mockResolvedValueOnce([[{ stamped: 1, open: 0 }]]) // window closed
+      // failAssignment
+      .mockResolvedValueOnce([[order]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([{ affectedRows: 0 }])
+      .mockResolvedValueOnce([[{ ...order, rider_assignment_status: 'failed' }]])
+      .mockResolvedValueOnce([[{ cnt: 0 }]])
+      .mockResolvedValueOnce([[{ delivery_available: 1 }]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const r = await assignment.continueAssignment(10);
+    expect(r.continued).toBe(false);
+    expect(r.failed).toBe(true);
     expect(adminInbox.createAdminNotification).toHaveBeenCalled();
+    const { emitToAdmins } = require('../src/realtime/socket');
+    expect(emitToAdmins).toHaveBeenCalledWith(
+      'admin.order.cancel_request',
+      expect.objectContaining({ orderId: 10 })
+    );
+  });
+
+  it('offers a rider who becomes eligible during the wait', async () => {
+    const order = {
+      id: 10,
+      status: 'Accepted',
+      rider_id: null,
+      rider_assignment_status: 'searching',
+      order_number: 'O',
+      customer_id: 5,
+    };
+    const rider = {
+      id: 7, user_id: 70, display_name: 'R', phone: null,
+      active: true, is_online: true, last_heartbeat_at: new Date(),
+    };
+    pool.query
+      .mockResolvedValueOnce([[order]]) // loadOrder
+      .mockResolvedValueOnce([[]]) // no pending
+      .mockResolvedValueOnce([[]]) // excluded
+      .mockResolvedValueOnce([[rider]]) // eligible
+      .mockResolvedValueOnce([[]]) // countCompletedDeliveriesTodayBatch (none delivered)
+      .mockResolvedValueOnce([{ affectedRows: 1 }]); // markSearching
+
+    const offerConn = makeConn([
+      [[]], // no pending FOR UPDATE
+      [[order]], // order FOR UPDATE
+      [[{ e: new Date(Date.now() + 300000) }]], // expires_at
+      [{ insertId: 55, affectedRows: 1 }], // insert offer
+      [{ affectedRows: 1 }], // order offered
+    ]);
+    pool.getConnection.mockResolvedValueOnce(offerConn);
+
+    const r = await assignment.continueAssignment(10);
+    expect(r.continued).toBe(true);
+    expect(r.riderId).toBe(7);
+    expect(r.offer?.id).toBe(55);
   });
 });
 
@@ -172,21 +274,22 @@ describe('acceptOffer', () => {
     expect(r.code).toBe('FORBIDDEN');
   });
 
-  it('assigns on success', async () => {
-    const future = new Date(Date.now() + 120000);
+  it('assigns on success (including when rider already has other jobs)', async () => {
+    const future = new Date(Date.now() + 300000);
     const conn = makeConn([
       [[{ id: 1, order_id: 10, rider_id: 3, status: 'pending', expires_at: future }]], // offer select
       [[{ is_expired: 0 }]], // expiry check (SQL-side)
       [[{ id: 10, status: 'Accepted', rider_id: null, customer_id: 5, order_number: 'O' }]], // order select
-      [[]], // busy-rider check — empty = not busy
       [{ affectedRows: 1 }], // offer update
       [{ affectedRows: 1 }], // order update
     ]);
     pool.getConnection.mockResolvedValue(conn);
-    pool.query.mockResolvedValueOnce([[{
-      id: 10, status: 'Accepted', rider_id: 3, customer_id: 5, order_number: 'O',
-      rider_assignment_status: 'assigned',
-    }]]);
+    pool.query
+      .mockResolvedValueOnce([[{
+        id: 10, status: 'Accepted', rider_id: 3, customer_id: 5, order_number: 'O',
+        rider_assignment_status: 'assigned',
+      }]]) // loadOrder after commit
+      .mockResolvedValueOnce([[{ user_id: 9 }]]); // notify rider after accept
 
     const r = await assignment.acceptOffer(1, 3);
     expect(r.ok).toBe(true);
@@ -197,38 +300,33 @@ describe('acceptOffer', () => {
 describe('rejectOffer', () => {
   beforeEach(resetPool);
 
-  it('rejects pending offer', async () => {
+  it('rejects pending offer and fails assignment without cancelling order', async () => {
     const conn = makeConn([
       [[{ id: 1, order_id: 10, rider_id: 3, status: 'pending', expires_at: new Date(Date.now() + 99999) }]],
       [{ affectedRows: 1 }],
     ]);
     pool.getConnection.mockResolvedValueOnce(conn);
 
-    // continueAssignment → loadOrder has rider? no; pending exists? force no more riders
+    // continueAssignment → loadOrder; no pending; excluded; eligible empty →
+    // window still open → wait (no fail)
     const order = {
       id: 10, status: 'Accepted', rider_id: null, payment_method: 'Cash',
       customer_id: 1, coupon_id: null, order_number: 'O', rider_assignment_status: 'offered',
+      customer_name: 'C', phone: '9', address: 'A', total: 1, created_at: null,
     };
     pool.query
+      .mockResolvedValueOnce([[{ user_id: 9 }]]) // notify rider after reject
       .mockResolvedValueOnce([[order]]) // continue loadOrder
       .mockResolvedValueOnce([[]]) // no pending
       .mockResolvedValueOnce([[{ rider_id: 3 }]]) // excluded
       .mockResolvedValueOnce([[]]) // eligible empty
-      .mockResolvedValueOnce([[order]]) // fail loadOrder
-      .mockResolvedValueOnce([[{ ...order, status: 'Cancelled' }]])
-      .mockResolvedValueOnce([[{ cnt: 0 }]])
-      .mockResolvedValueOnce([[{ delivery_available: 0 }]]);
-
-    const failConn = makeConn([
-      [{ affectedRows: 1 }],
-      [{ affectedRows: 0 }],
-    ]);
-    pool.getConnection
-      .mockResolvedValueOnce(conn)
-      .mockResolvedValueOnce(failConn);
+      // isWithinSearchWindow reads first; already stamped → no markSearching UPDATE
+      .mockResolvedValueOnce([[{ stamped: 1, open: 1 }]]); // window open → wait
 
     const r = await assignment.rejectOffer(1, 3);
     expect(r.ok).toBe(true);
+    expect(r.continued?.waiting).toBe(true);
+    expect(adminInbox.createAdminNotification).not.toHaveBeenCalled();
   });
 });
 
@@ -241,10 +339,11 @@ describe('expireOffer', () => {
     expect(r.expired).toBe(false);
   });
 
-  it('expires and notifies rider', async () => {
+  it('expires and notifies rider then waits if window open', async () => {
     const order = {
       id: 10, status: 'Accepted', rider_id: null, payment_method: 'Cash',
       customer_id: 1, coupon_id: null, order_number: 'O',
+      customer_name: 'C', phone: '9', address: 'A', total: 1, created_at: null,
     };
     pool.query
       .mockResolvedValueOnce([{ affectedRows: 1 }]) // CAS expire
@@ -254,64 +353,24 @@ describe('expireOffer', () => {
       .mockResolvedValueOnce([[]]) // pending
       .mockResolvedValueOnce([[{ rider_id: 3 }]])
       .mockResolvedValueOnce([[]]) // eligible
-      .mockResolvedValueOnce([[order]]) // fail load
-      .mockResolvedValueOnce([[{ ...order, status: 'Cancelled' }]])
-      .mockResolvedValueOnce([[{ cnt: 0 }]])
-      .mockResolvedValueOnce([[{ delivery_available: 0 }]]);
-
-    pool.getConnection.mockResolvedValue(makeConn([
-      [{ affectedRows: 1 }],
-      [{ affectedRows: 0 }],
-    ]));
+      // isWithinSearchWindow reads first; already stamped → no markSearching UPDATE
+      .mockResolvedValueOnce([[{ stamped: 1, open: 1 }]]); // window open
 
     const r = await assignment.expireOffer(99);
     expect(r.expired).toBe(true);
     expect(emitToCustomer).toHaveBeenCalledWith(7, 'rider.offer.expired', expect.any(Object));
+    expect(adminInbox.createAdminNotification).not.toHaveBeenCalled();
   });
 });
 
 describe('cancelAssignmentByRider', () => {
   beforeEach(resetPool);
 
-  it('blocks after pickup', async () => {
-    pool.query.mockResolvedValueOnce([[{
-      id: 10, rider_id: 3, rider_picked_up_at: '2026-07-12T00:00:00Z', status: 'Preparing',
-    }]]);
+  it('is always disallowed after product change', async () => {
     const r = await assignment.cancelAssignmentByRider(10, 3);
     expect(r.ok).toBe(false);
-    expect(r.code).toBe('CANNOT_CANCEL_AFTER_PICKUP');
-  });
-
-  it('allows cancel before pickup', async () => {
-    const order = {
-      id: 10, rider_id: 3, rider_picked_up_at: null, status: 'Accepted',
-      order_number: 'O', customer_id: 1, payment_method: 'Cash', coupon_id: null,
-    };
-    pool.query
-      .mockResolvedValueOnce([[order]]) // load in cancel
-      .mockResolvedValueOnce([[{ ...order, rider_id: null }]]) // continue load
-      .mockResolvedValueOnce([[]]) // pending
-      .mockResolvedValueOnce([[{ rider_id: 3 }]])
-      .mockResolvedValueOnce([[]]) // eligible
-      .mockResolvedValueOnce([[{ ...order, rider_id: null }]])
-      .mockResolvedValueOnce([[{ ...order, status: 'Cancelled' }]])
-      .mockResolvedValueOnce([[{ cnt: 0 }]])
-      .mockResolvedValueOnce([[{ delivery_available: 0 }]]);
-
-    const c1 = makeConn([
-      [{ affectedRows: 1 }],
-      [{ affectedRows: 1 }],
-    ]);
-    const c2 = makeConn([
-      [{ affectedRows: 1 }],
-      [{ affectedRows: 0 }],
-    ]);
-    pool.getConnection
-      .mockResolvedValueOnce(c1)
-      .mockResolvedValueOnce(c2);
-
-    const r = await assignment.cancelAssignmentByRider(10, 3);
-    expect(r.ok).toBe(true);
+    expect(r.code).toBe('CANCEL_NOT_ALLOWED');
+    expect(pool.query).not.toHaveBeenCalled();
   });
 });
 

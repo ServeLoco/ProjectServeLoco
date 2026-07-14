@@ -6,14 +6,26 @@ const realtimeEvents = require('../realtime/orderEvents');
 const { emitToCustomer, emitToAdmins } = require('../realtime/socket');
 const { validateCoordinates } = require('../validators');
 
+const numOrNull = (v) => {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
 const shapeOrderSummary = (o) => {
   if (!o) return null;
+  const lat = numOrNull(o.latitude);
+  const lng = numOrNull(o.longitude);
   return {
     id: o.id,
     orderNumber: o.order_number,
     order_number: o.order_number,
     status: o.status,
     address: o.address,
+    latitude: lat,
+    longitude: lng,
+    lat,
+    lng,
     phone: o.phone,
     customerName: o.customer_name,
     customer_name: o.customer_name,
@@ -32,6 +44,72 @@ const shapeOrderSummary = (o) => {
     createdAt: o.created_at,
     created_at: o.created_at,
   };
+};
+
+const shapeShopPin = (row) => ({
+  id: row.id,
+  name: row.name,
+  latitude: numOrNull(row.latitude),
+  longitude: numOrNull(row.longitude),
+  lat: numOrNull(row.latitude),
+  lng: numOrNull(row.longitude),
+});
+
+const shapeItemRow = (it) => ({
+  id: it.id,
+  productName: it.product_name,
+  product_name: it.product_name,
+  quantity: it.quantity,
+  variantLabel: it.variant_label,
+  variant_label: it.variant_label,
+  shopId: it.shop_id,
+  shop_id: it.shop_id,
+});
+
+/**
+ * Attach shops + items to a batch of order rows in two queries total
+ * (IN (...) on order_id) instead of two queries per order — the multi-order
+ * list endpoints can return up to 20 active jobs.
+ */
+const loadAssignmentExtrasBatch = async (orderRows) => {
+  if (!orderRows.length) return [];
+  const orderIds = orderRows.map((o) => o.id);
+
+  const [shopRows] = await pool.query(
+    `SELECT DISTINCT oi.order_id, s.id, s.name, s.latitude, s.longitude
+     FROM order_items oi
+     JOIN shops s ON s.id = oi.shop_id
+     WHERE oi.order_id IN (?) AND oi.shop_id IS NOT NULL`,
+    [orderIds]
+  );
+  const [itemRows] = await pool.query(
+    `SELECT id, order_id, product_name, quantity, variant_label, shop_id
+     FROM order_items WHERE order_id IN (?)`,
+    [orderIds]
+  );
+
+  const shopsByOrder = new Map();
+  for (const row of shopRows) {
+    if (!shopsByOrder.has(row.order_id)) shopsByOrder.set(row.order_id, []);
+    shopsByOrder.get(row.order_id).push(shapeShopPin(row));
+  }
+  const itemsByOrder = new Map();
+  for (const row of itemRows) {
+    if (!itemsByOrder.has(row.order_id)) itemsByOrder.set(row.order_id, []);
+    itemsByOrder.get(row.order_id).push(shapeItemRow(row));
+  }
+
+  return orderRows.map((orderRow) => {
+    const order = shapeOrderSummary(orderRow);
+    order.shops = shopsByOrder.get(orderRow.id) || [];
+    order.items = itemsByOrder.get(orderRow.id) || [];
+    return order;
+  });
+};
+
+const loadAssignmentExtras = async (orderRow) => {
+  const [order] = await loadAssignmentExtrasBatch([orderRow]);
+  return order;
 };
 
 const shapeOffer = (row) => {
@@ -59,14 +137,14 @@ const shapeOffer = (row) => {
   };
 };
 
-// GET /api/rider/me — this rider's profile + online state + current assignment summary.
+// GET /api/rider/me — this rider's profile + online state + active assignments.
 const getMe = async (req, res) => {
   const rider = riderShape(req.rider);
   const [assignRows] = await pool.query(
     `SELECT * FROM orders
      WHERE rider_id = ? AND status NOT IN ('Delivered', 'Cancelled')
      ORDER BY rider_assigned_at DESC, id DESC
-     LIMIT 1`,
+     LIMIT 20`,
     [req.rider.id]
   );
   const [offerRows] = await pool.query(
@@ -74,25 +152,33 @@ const getMe = async (req, res) => {
      FROM rider_order_offers o
      JOIN orders ord ON ord.id = o.order_id
      WHERE o.rider_id = ? AND o.status = 'pending' AND o.expires_at > NOW()
-     ORDER BY o.id DESC
-     LIMIT 1`,
+     ORDER BY o.id ASC
+     LIMIT 10`,
     [req.rider.id]
   );
 
+  const assignments = assignRows.map(shapeOrderSummary);
+  const pendingOffers = offerRows.map(shapeOffer);
   res.status(200).json({
     rider,
     isOnline: rider.isOnline,
     is_online: rider.is_online,
-    currentAssignment: shapeOrderSummary(assignRows[0] || null),
-    current_assignment: shapeOrderSummary(assignRows[0] || null),
-    activeOffer: shapeOffer(offerRows[0] || null),
-    active_offer: shapeOffer(offerRows[0] || null),
+    // Primary/latest for backward compat; full list for multi-order.
+    currentAssignment: assignments[0] || null,
+    current_assignment: assignments[0] || null,
+    currentAssignments: assignments,
+    current_assignments: assignments,
+    // Offer queue (oldest first) — popup shows one at a time, then next.
+    activeOffer: pendingOffers[0] || null,
+    active_offer: pendingOffers[0] || null,
+    activeOffers: pendingOffers,
+    active_offers: pendingOffers,
   });
 };
 
 // PATCH /api/rider/me/online — body { isOnline | is_online: boolean }.
-// Sets is_online, refreshes heartbeat when going online, clears when offline,
-// then syncs settings.delivery_available from active rider count.
+// Sets is_online, then syncs settings.delivery_available from active rider count.
+// Going offline is blocked while the rider still has undelivered assignments.
 const setOnline = async (req, res) => {
   const raw = req.body.isOnline !== undefined ? req.body.isOnline : req.body.is_online;
   if (typeof raw !== 'boolean') {
@@ -104,18 +190,34 @@ const setOnline = async (req, res) => {
 
   if (raw) {
     await pool.query(
-      'UPDATE riders SET is_online = 1, last_heartbeat_at = NOW() WHERE id = ?',
+      'UPDATE riders SET is_online = 1 WHERE id = ?',
       [req.rider.id]
     );
   } else {
+    const [[active]] = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM orders
+       WHERE rider_id = ? AND status NOT IN ('Delivered', 'Cancelled')`,
+      [req.rider.id]
+    );
+    const activeCount = Number(active?.cnt || 0);
+    if (activeCount > 0) {
+      return res.status(400).json({
+        code: 'ACTIVE_ASSIGNMENTS',
+        message: activeCount === 1
+          ? 'Deliver your active order before going offline or signing out.'
+          : `Deliver all ${activeCount} active orders before going offline or signing out.`,
+        activeCount,
+        active_count: activeCount,
+      });
+    }
     await pool.query(
-      'UPDATE riders SET is_online = 0, last_heartbeat_at = NULL WHERE id = ?',
+      'UPDATE riders SET is_online = 0 WHERE id = ?',
       [req.rider.id]
     );
   }
 
   const [rows] = await pool.query(
-    `SELECT id, user_id, display_name, phone, active, is_online, last_heartbeat_at
+    `SELECT id, user_id, display_name, phone, active, is_online
      FROM riders WHERE id = ?`,
     [req.rider.id]
   );
@@ -131,10 +233,6 @@ const setOnline = async (req, res) => {
     const { emitToAdmins } = require('../realtime/socket');
     emitToAdmins('admin.rider.updated', {
       ...rider,
-      lastHeartbeatAt: rider.lastHeartbeatAt,
-      last_heartbeat_at: rider.last_heartbeat_at,
-      heartbeatFresh: Boolean(raw),
-      heartbeat_fresh: Boolean(raw),
       reason: raw ? 'online' : 'offline',
     });
   } catch (_) { /* best-effort */ }
@@ -144,46 +242,6 @@ const setOnline = async (req, res) => {
     rider,
     isOnline: rider.isOnline,
     is_online: rider.is_online,
-  });
-};
-
-// POST /api/rider/me/heartbeat — keepalive while online. Refreshes last_heartbeat_at.
-// If the rider is currently offline, heartbeat alone does not turn them online
-// (must use /me/online); returns 400 so clients can re-toggle.
-const heartbeat = async (req, res) => {
-  if (!req.rider.is_online) {
-    return res.status(400).json({
-      code: 'VALIDATION_ERROR',
-      message: 'Rider is offline; go online before sending heartbeats',
-    });
-  }
-
-  await pool.query(
-    'UPDATE riders SET last_heartbeat_at = NOW() WHERE id = ? AND is_online = 1',
-    [req.rider.id]
-  );
-
-  const [rows] = await pool.query(
-    `SELECT id, user_id, display_name, phone, active, is_online, last_heartbeat_at
-     FROM riders WHERE id = ?`,
-    [req.rider.id]
-  );
-  req.rider = rows[0];
-
-  const rider = riderShape(req.rider);
-  try {
-    const { emitToAdmins } = require('../realtime/socket');
-    emitToAdmins('admin.rider.updated', {
-      ...rider,
-      heartbeatFresh: true,
-      heartbeat_fresh: true,
-      reason: 'heartbeat',
-    });
-  } catch (_) { /* best-effort */ }
-
-  res.status(200).json({
-    message: 'Heartbeat recorded',
-    rider,
   });
 };
 
@@ -210,60 +268,71 @@ const updateLocation = async (req, res) => {
     [latitude, longitude, req.rider.id]
   );
 
+  // Fan out to every active delivery for this rider (multi-order), not only
+  // the latest — otherwise other customers' track maps never move.
   const [orderRows] = await pool.query(
     `SELECT id, customer_id FROM orders
      WHERE rider_id = ? AND status NOT IN ('Delivered', 'Cancelled')
-     ORDER BY rider_assigned_at DESC, id DESC
-     LIMIT 1`,
+     ORDER BY rider_assigned_at DESC, id DESC`,
     [req.rider.id]
   );
 
   if (orderRows.length > 0) {
-    const order = orderRows[0];
     const at = new Date().toISOString();
-    try {
-      emitToCustomer(order.customer_id, 'rider.location.updated', {
-        orderId: order.id,
-        order_id: order.id,
-        riderId: req.rider.id,
-        rider_id: req.rider.id,
-        lat: latitude,
-        lng: longitude,
-        latitude,
-        longitude,
-        at,
-      });
-    } catch (_) { /* best-effort */ }
+    for (const order of orderRows) {
+      if (order.customer_id == null) continue;
+      try {
+        emitToCustomer(order.customer_id, 'rider.location.updated', {
+          orderId: order.id,
+          order_id: order.id,
+          riderId: req.rider.id,
+          rider_id: req.rider.id,
+          lat: latitude,
+          lng: longitude,
+          latitude,
+          longitude,
+          at,
+        });
+      } catch (_) { /* best-effort */ }
+    }
   }
 
   res.status(200).json({ ok: true });
 };
 
-// GET /api/rider/offers/active
+// GET /api/rider/offers/active — primary offer + full pending queue
 const getActiveOffer = async (req, res) => {
   const [rows] = await pool.query(
     `SELECT o.*, ord.order_number, ord.address, ord.phone, ord.customer_name, ord.note, ord.total
      FROM rider_order_offers o
      JOIN orders ord ON ord.id = o.order_id
      WHERE o.rider_id = ? AND o.status = 'pending' AND o.expires_at > NOW()
-     ORDER BY o.id DESC
-     LIMIT 1`,
+     ORDER BY o.id ASC
+     LIMIT 10`,
     [req.rider.id]
   );
   if (rows.length === 0) {
-    return res.status(200).json({ offer: null });
+    return res.status(200).json({ offer: null, offers: [] });
   }
-  const offer = shapeOffer(rows[0]);
-  // Shop names for pickup list
-  const [shops] = await pool.query(
-    `SELECT DISTINCT s.id, s.name
-     FROM order_items oi
-     JOIN shops s ON s.id = oi.shop_id
-     WHERE oi.order_id = ? AND oi.shop_id IS NOT NULL`,
-    [rows[0].order_id]
-  );
-  offer.shops = shops;
-  res.status(200).json({ offer });
+
+  const offers = [];
+  for (const row of rows) {
+    const offer = shapeOffer(row);
+    const [shops] = await pool.query(
+      `SELECT DISTINCT s.id, s.name
+       FROM order_items oi
+       JOIN shops s ON s.id = oi.shop_id
+       WHERE oi.order_id = ? AND oi.shop_id IS NOT NULL`,
+      [row.order_id]
+    );
+    offer.shops = shops;
+    offers.push(offer);
+  }
+
+  res.status(200).json({
+    offer: offers[0] || null,
+    offers,
+  });
 };
 
 // POST /api/rider/offers/:offerId/accept
@@ -297,42 +366,39 @@ const rejectOfferHttp = async (req, res) => {
   res.status(200).json({ message: 'Offer rejected', continued: result.continued || null });
 };
 
-// GET /api/rider/assignments/current
+// GET /api/rider/assignments/current — all active jobs (multi-order allowed)
 const getCurrentAssignment = async (req, res) => {
   const [rows] = await pool.query(
     `SELECT * FROM orders
      WHERE rider_id = ? AND status NOT IN ('Delivered', 'Cancelled')
      ORDER BY rider_assigned_at DESC, id DESC
-     LIMIT 1`,
+     LIMIT 20`,
     [req.rider.id]
   );
   if (rows.length === 0) {
-    return res.status(200).json({ order: null });
+    return res.status(200).json({ order: null, orders: [] });
   }
-  const order = shapeOrderSummary(rows[0]);
-  const [shops] = await pool.query(
-    `SELECT DISTINCT s.id, s.name
-     FROM order_items oi
-     JOIN shops s ON s.id = oi.shop_id
-     WHERE oi.order_id = ? AND oi.shop_id IS NOT NULL`,
-    [rows[0].id]
+  const orders = await loadAssignmentExtrasBatch(rows);
+  res.status(200).json({
+    order: orders[0],
+    orders,
+  });
+};
+
+// GET /api/rider/assignments/:orderId — map + delivery detail for active job
+const getAssignmentById = async (req, res) => {
+  const orderId = Number(req.params.orderId);
+  if (!Number.isFinite(orderId)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid order id' });
+  }
+  const [rows] = await pool.query(
+    'SELECT * FROM orders WHERE id = ? AND rider_id = ?',
+    [orderId, req.rider.id]
   );
-  order.shops = shops;
-  const [items] = await pool.query(
-    `SELECT id, product_name, quantity, variant_label, shop_id
-     FROM order_items WHERE order_id = ?`,
-    [rows[0].id]
-  );
-  order.items = items.map((it) => ({
-    id: it.id,
-    productName: it.product_name,
-    product_name: it.product_name,
-    quantity: it.quantity,
-    variantLabel: it.variant_label,
-    variant_label: it.variant_label,
-    shopId: it.shop_id,
-    shop_id: it.shop_id,
-  }));
+  if (rows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Assignment not found' });
+  }
+  const order = await loadAssignmentExtras(rows[0]);
   res.status(200).json({ order });
 };
 
@@ -420,10 +486,17 @@ const markPickedUp = async (req, res) => {
     .then((result) => realtimeEvents.emitNotificationCreated(updated.customer_id, result))
     .catch(() => {});
 
+  const summary = shapeOrderSummary(updated);
   try {
     emitToCustomer(updated.customer_id, 'rider.assignment.updated', {
-      orderId, status: 'picked_up', riderId: req.rider.id,
+      orderId, status: 'picked_up', riderId: req.rider.id, order: summary,
     });
+    // Rider's own app (dashboard + map) listens on their user room.
+    if (req.rider.user_id) {
+      emitToCustomer(req.rider.user_id, 'rider.assignment.updated', {
+        orderId, status: 'picked_up', riderId: req.rider.id, order: summary,
+      });
+    }
     emitToAdmins('admin.order.rider_updated', {
       orderId, status: 'picked_up', riderId: req.rider.id,
     });
@@ -431,7 +504,7 @@ const markPickedUp = async (req, res) => {
 
   res.status(200).json({
     message: 'Order marked picked up',
-    order: shapeOrderSummary(updated),
+    order: summary,
   });
 };
 
@@ -509,7 +582,24 @@ const updateAssignmentStatus = async (req, res) => {
     .catch(() => {});
 
   realtimeEvents.emitOrderStatusUpdated(updated);
+  // Drop order from shop-owner "Active" list as soon as it leaves Preparing
+  // (Out for Delivery / Delivered) — otherwise dashboard needs a manual refresh.
   try {
+    const { notifyShopsOrderStatusChanged } = require('../utils/shops');
+    notifyShopsOrderStatusChanged(updated);
+  } catch (_) { /* best-effort */ }
+
+  const summary = shapeOrderSummary(updated);
+  try {
+    emitToCustomer(updated.customer_id, 'rider.assignment.updated', {
+      orderId, status, riderId: req.rider.id, order: summary,
+    });
+    // Keep rider dashboard + map screen in sync when status changes.
+    if (req.rider.user_id) {
+      emitToCustomer(req.rider.user_id, 'rider.assignment.updated', {
+        orderId, status, riderId: req.rider.id, order: summary,
+      });
+    }
     emitToAdmins('admin.order.rider_updated', {
       orderId, status, riderId: req.rider.id,
     });
@@ -517,19 +607,19 @@ const updateAssignmentStatus = async (req, res) => {
 
   res.status(200).json({
     message: 'Order status updated',
-    order: shapeOrderSummary(updated),
+    order: summary,
   });
 };
 
 module.exports = {
   getMe,
   setOnline,
-  heartbeat,
   updateLocation,
   getActiveOffer,
   acceptOfferHttp,
   rejectOfferHttp,
   getCurrentAssignment,
+  getAssignmentById,
   getAssignmentHistory,
   cancelAssignmentHttp,
   markPickedUp,

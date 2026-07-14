@@ -109,11 +109,22 @@ app.get('/health', async (req, res) => {
 
 // General API rate limiter (abuse cost cap). Route-specific limiters stay.
 // trust proxy is set above so per-IP keys work behind nginx.
+// Admin web is chatty (dispatch, orders realtime refresh) and often shares one
+// NAT IP with mobile clients — use a higher ceiling so a burst does not lock
+// out /admin/login. Customer-facing traffic stays at the lower cap.
+const isProd = config.NODE_ENV === 'production';
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 300,
+  max: (req) => {
+    const path = req.path || '';
+    const url = req.originalUrl || '';
+    const isAdmin = path.startsWith('/admin') || url.startsWith('/api/admin');
+    if (isAdmin) return isProd ? 1200 : 5000;
+    return isProd ? 300 : 2000;
+  },
   standardHeaders: true,
   legacyHeaders: false,
+  message: { code: 'TOO_MANY_REQUESTS', message: 'Too many requests. Wait a minute and try again.' },
 });
 app.use('/api', apiLimiter);
 

@@ -10,7 +10,7 @@ import AppIcon from '../../components/AppIcon';
 
 /**
  * AdminRidersScreen (ADMIN TASK 10) — mirrors apps/admin Riders.jsx: list
- * with online/heartbeat/active state, create by phone (must already have an
+ * with online/active state, create by phone (must already have an
  * account), toggle active, live admin.rider.updated merge.
  */
 export default function AdminRidersScreen() {

@@ -9,14 +9,24 @@ import AppIcon from '../../components/AppIcon';
 
 /**
  * NewOrderPopup
- * Full-screen, non-dismissible modal for one new order at a time. Shows only
- * product names/quantities + the expected-delivery-time badge — no prices,
- * no customer info. Accept / Reject only; no outside-tap or back-button
- * dismiss (onRequestClose is a deliberate no-op).
+ * Full-screen, non-dismissible modal for one new order at a time. When multiple
+ * orders arrive they queue; only the head is shown until Accept/Reject, then
+ * the next advances. Shows product names/quantities + delivery-time badge —
+ * no prices/customer info. Outside-tap / back dismiss is a no-op.
+ *
+ * @param {object|null} order - front-of-queue order
+ * @param {number} [queueIndex=0]
+ * @param {number} [queueTotal=1]
  */
 const RESPONSE_WINDOW_SEC = 120;
 
-export default function NewOrderPopup({ order, onAccept, onReject }) {
+export default function NewOrderPopup({
+  order,
+  onAccept,
+  onReject,
+  queueIndex = 0,
+  queueTotal = 1,
+}) {
   const [busy, setBusy] = useState(null); // 'accept' | 'reject' | null
   const [error, setError] = useState(null);
   const [secondsLeft, setSecondsLeft] = useState(RESPONSE_WINDOW_SEC);
@@ -99,6 +109,19 @@ export default function NewOrderPopup({ order, onAccept, onReject }) {
                 <Text style={styles.newBadgeText}>New order</Text>
               </View>
             </View>
+
+            {queueTotal > 1 ? (
+              <View style={styles.queueBanner}>
+                <AppIcon name="orders" size={14} color={colors.saffronDark} />
+                <Text style={styles.queueBannerText}>
+                  Order {Math.min(queueIndex + 1, queueTotal)} of {queueTotal}
+                  {queueTotal - queueIndex - 1 > 0
+                    ? ` · ${queueTotal - queueIndex - 1} more waiting`
+                    : ''}
+                </Text>
+              </View>
+            ) : null}
+
             <Text
               style={styles.orderNumber}
               numberOfLines={1}
@@ -260,6 +283,22 @@ const styles = StyleSheet.create({
   },
   newBadgeText: {
     color: colors.textInverse, fontWeight: '800', fontSize: 13, letterSpacing: 0.3,
+  },
+  queueBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.warningLight || colors.saffronLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    marginBottom: spacing.sm,
+  },
+  queueBannerText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.saffronDark || colors.warning,
   },
   orderNumber: {
     ...typography.h2, color: colors.textPrimary, marginBottom: spacing.sm,

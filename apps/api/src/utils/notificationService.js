@@ -9,6 +9,43 @@ const firstQueryResult = (queryResult) => (
   Array.isArray(queryResult) ? queryResult[0] : queryResult
 );
 
+/**
+ * Device push for inbox rows. Uses the main pool (not a caller transaction)
+ * so token lookup never rolls back with the outer TX. Must not depend on
+ * INSERT succeeding — closed-app users need the FCM/APNs banner even when
+ * INSERT IGNORE skips a duplicate (user_id, source, event_key) inbox row.
+ */
+const sendDevicePush = async (userId, { title, body, type, sourceType, sourceId, actionPayload }) => {
+  const pushData = { type: type || 'info' };
+  if (sourceType === 'order' && sourceId) {
+    pushData.orderId = String(sourceId);
+  }
+  // Prefer explicit action payload orderId when present (same as client deep link).
+  if (actionPayload && (actionPayload.orderId || actionPayload.order_id)) {
+    pushData.orderId = String(actionPayload.orderId || actionPayload.order_id);
+  }
+  if (actionPayload && (actionPayload.orderNumber || actionPayload.order_number)) {
+    pushData.orderNumber = String(actionPayload.orderNumber || actionPayload.order_number);
+  }
+
+  // Await so admin status updates actually finish the Expo HTTP call (and
+  // log ticket errors) before the request ends — fire-and-forget made
+  // failures invisible when diagnosing "accept but no push".
+  try {
+    return await expoPush.sendPushToUser(pool, userId, {
+      title,
+      body,
+      data: pushData,
+      // categoryId is iOS action buttons only — omit on pure Android order
+      // pushes to avoid any OEM quirks with unknown categories.
+      ...(sourceType === 'order' || pushData.orderId ? { categoryId: 'order_update' } : {}),
+    });
+  } catch (err) {
+    console.error('[notificationService] device push failed for user', userId, err?.message || err);
+    return { sent: false, reason: err?.message };
+  }
+};
+
 const createNotification = async ({
   userId, title, body, type, sourceType = null, sourceId = null, eventKey = null,
   batchId = null, actionType = null, actionPayload = null, createdByAdminId = null,
@@ -25,26 +62,18 @@ const createNotification = async ({
       batchId, actionType, actionPayload ? JSON.stringify(actionPayload) : null, createdByAdminId
     ]);
 
-    // Fire real push notification so it arrives even when the app is closed.
-    // Always uses pool (never the transaction connection) so the token lookup
-    // doesn't block or get rolled back with the outer transaction.
-    // data.orderId lets the client navigate directly to the order when the user
-    // taps the notification from a killed app. categoryId wires up the
-    // "View Order" action button registered on the client.
-    const pushData = { type: type || 'info' };
-    if (sourceType === 'order' && sourceId) pushData.orderId = String(sourceId);
-
-    expoPush.sendPushToUser(pool, userId, {
-      title,
-      body,
-      data: pushData,
-      ...(sourceType === 'order' ? { categoryId: 'order_update' } : {}),
-    }).catch(() => {});
+    // Always fire Expo → FCM/APNs so the banner shows when the app is closed
+    // or cleared from Recents (socket/local path only works while open).
+    await sendDevicePush(userId, { title, body, type, sourceType, sourceId, actionPayload });
 
     return firstQueryResult(queryResult);
   } catch (error) {
     console.error('Error creating notification:', error);
-    // Non-blocking, so we return null instead of throwing
+    // Still attempt device push — inbox insert failed but the user should
+    // still hear about order status changes when the app is closed.
+    try {
+      await sendDevicePush(userId, { title, body, type, sourceType, sourceId, actionPayload });
+    } catch (_) { /* already logged */ }
     return null;
   }
 };

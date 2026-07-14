@@ -30,6 +30,7 @@ const createOrderSchema = (req) => {
     errors.payment_method = 'Payment method must be Cash or UPI';
   }
   if (data.mapUrl && !data.map_url) data.map_url = data.mapUrl;
+  if (data.deliveryAddress && !data.address) data.address = data.deliveryAddress;
   if (data.deliveryType && !data.delivery_type) data.delivery_type = data.deliveryType;
   data.delivery_type = ['standard', 'fast'].includes(data.delivery_type) ? data.delivery_type : 'standard';
 

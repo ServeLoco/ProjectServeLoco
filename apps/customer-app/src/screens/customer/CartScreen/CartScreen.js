@@ -47,6 +47,7 @@ export default function CartScreen() {
   const couponAutoApplyDisabled = useCartStore(state => state.couponAutoApplyDisabled);
   const setAppliedCoupon = useCartStore(state => state.setAppliedCoupon);
   const clearAppliedCoupon = useCartStore(state => state.clearAppliedCoupon);
+  const softClearAppliedCoupon = useCartStore(state => state.softClearAppliedCoupon);
   const setFreeDeliveryProgress = useCartStore(state => state.setFreeDeliveryProgress);
   const shopStatus = useSettingsStore(state => state.shopStatus);
 
@@ -187,11 +188,16 @@ export default function CartScreen() {
       setBill(calculatedBill);
       setFreeDeliveryProgress(calculatedBill.freeDeliveryProgress);
       // Sync applied coupon from the bill response (handles auto-apply + validation).
+      // When the backend returns no coupon (free-delivery min no longer met after
+      // removing items, or auto-apply has nothing eligible), soft-clear local
+      // state so the green "Applied" row drops and free-delivery progress /
+      // unlocked offers recalculate. Do NOT use clearAppliedCoupon here — that
+      // sets couponAutoApplyDisabled and would permanently block re-auto-apply
+      // until the user manually applies something again.
       if (calculatedBill.appliedCoupon) {
         setAppliedCoupon(calculatedBill.appliedCoupon.code, calculatedBill.appliedCoupon);
-      } else if (calculatedBill.couponError && (appliedCouponCode || appliedCouponId)) {
-        // The user-entered code (or tapped no-code offer) failed validation — clear it.
-        clearAppliedCoupon();
+      } else if (appliedCoupon || appliedCouponCode || appliedCouponId) {
+        softClearAppliedCoupon();
       }
       Animated.timing(listOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
     } catch (err) {

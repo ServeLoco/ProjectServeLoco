@@ -90,12 +90,50 @@ export const ShopsApi = {
   // Backend route is PATCH, not PUT (unlike CategoriesApi.update) — the
   // shops endpoint only updates fields present in the payload.
   update: (id, data) => apiClient(`/admin/shops/${id}`, { method: 'PATCH', body: data }),
+  delete: (id) => apiClient(`/admin/shops/${id}`, { method: 'DELETE' }),
+  // Per-shop order lifecycle (mirrors shop-owner Confirm / Ready / Cancel).
+  listOrders: (id) => apiClient(`/admin/shops/${id}/orders`, { method: 'GET' }),
+  confirmOrder: (shopId, orderId) => apiClient(
+    `/admin/shops/${shopId}/orders/${orderId}/confirm`,
+    { method: 'PATCH' }
+  ),
+  rejectOrder: (shopId, orderId) => apiClient(
+    `/admin/shops/${shopId}/orders/${orderId}/reject`,
+    { method: 'PATCH' }
+  ),
+  readyOrder: (shopId, orderId) => apiClient(
+    `/admin/shops/${shopId}/orders/${orderId}/ready`,
+    { method: 'PATCH' }
+  ),
 };
 
 export const RidersApi = {
   list: () => apiClient('/admin/riders', { method: 'GET' }),
   create: (data) => apiClient('/admin/riders', { method: 'POST', body: data }),
   update: (id, data) => apiClient(`/admin/riders/${id}`, { method: 'PATCH', body: data }),
+  delete: (id) => apiClient(`/admin/riders/${id}`, { method: 'DELETE' }),
+  // Per-rider dispatch (mirrors rider app: online, accept/reject, pickup, OFD, delivered).
+  getDispatch: (id) => apiClient(`/admin/riders/${id}/dispatch`, { method: 'GET' }),
+  setOnline: (id, isOnline) => apiClient(`/admin/riders/${id}/online`, {
+    method: 'PATCH',
+    body: { isOnline, is_online: isOnline },
+  }),
+  acceptOffer: (riderId, offerId) => apiClient(
+    `/admin/riders/${riderId}/offers/${offerId}/accept`,
+    { method: 'POST' }
+  ),
+  rejectOffer: (riderId, offerId) => apiClient(
+    `/admin/riders/${riderId}/offers/${offerId}/reject`,
+    { method: 'POST' }
+  ),
+  markPickedUp: (riderId, orderId) => apiClient(
+    `/admin/riders/${riderId}/assignments/${orderId}/picked-up`,
+    { method: 'POST' }
+  ),
+  updateAssignmentStatus: (riderId, orderId, status) => apiClient(
+    `/admin/riders/${riderId}/assignments/${orderId}/status`,
+    { method: 'PATCH', body: { status } }
+  ),
 };
 
 export const MobileAdminsApi = {

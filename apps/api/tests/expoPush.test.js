@@ -190,7 +190,7 @@ describe('expoPush.sendPushToUser', () => {
 
     await expect(
       sendPushToUser(pool, 42, { title: 'Hi', body: 'There' })
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ sent: false, reason: 'expo down' });
   });
 });
 

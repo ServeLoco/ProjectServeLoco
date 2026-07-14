@@ -45,11 +45,15 @@ const createAdminNotification = async ({ type, title, body, relatedUrl = null, r
       broadcastUnreadCount();
       // Background push to mobile admin phones (D4 — foreground gets the
       // socket event above; backgrounded/killed apps need a device push).
-      // Only for new orders (ADMIN TASK 4); the INSERT IGNORE above already
-      // means this only runs once per order even if callers double-fire.
-      if (type === TYPES.NEW_ORDER) {
-        await notifyMobileAdminsPush({ title, body, type, relatedId });
-      }
+      // Every inbox type gets a push, matching the bell — the INSERT IGNORE
+      // above already means this only runs once per event even if callers
+      // double-fire. Fire-and-forget: several request handlers await
+      // createAdminNotification (shop-owner reject, rider dispatch), and this
+      // push is an external Expo HTTP round trip — blocking their response on
+      // it added hundreds of ms for a side effect the caller never reads.
+      // Failures still log inside notifyMobileAdminsPush/expoPush.
+      notifyMobileAdminsPush({ title, body, type, relatedId })
+        .catch((err) => console.error('[adminNotifications] push failed:', err.message));
     }
     return notification;
   } catch (e) {

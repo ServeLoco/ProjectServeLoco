@@ -622,22 +622,44 @@ const getOrderById = async (req, res) => {
   order.items = itemsRows;
   order.canCancel = order.status === 'Pending';
 
+  // Additive per-order shop pins for live tracking. Existing fields untouched.
+  // Hidden before the order leaves Pending (per product decision).
+  if (order.status !== 'Pending') {
+    const [shopRows] = await pool.query(
+      `SELECT DISTINCT s.id, s.name, s.latitude, s.longitude
+       FROM order_items oi JOIN shops s ON s.id = oi.shop_id
+       WHERE oi.order_id = ? AND s.active = 1`,
+      [id]
+    );
+    order.shops = shopRows.map((s) => ({
+      id: s.id,
+      name: s.name,
+      latitude: s.latitude != null ? Number(s.latitude) : null,
+      longitude: s.longitude != null ? Number(s.longitude) : null,
+    }));
+  }
+
   // Additive rider last-position for live tracking (TASK 4). Existing fields untouched.
+  // Phone: riders.phone first, else linked users.phone (for customer "Contact Rider").
   if (order.rider_id) {
     const [riderRows] = await pool.query(
-      `SELECT id, user_id, display_name, phone, last_lat, last_lng, last_location_at
-       FROM riders WHERE id = ?`,
+      `SELECT r.id, r.user_id, r.display_name, r.phone AS rider_phone,
+              u.phone AS user_phone, r.last_lat, r.last_lng, r.last_location_at
+       FROM riders r
+       LEFT JOIN users u ON u.id = r.user_id
+       WHERE r.id = ?`,
       [order.rider_id]
     );
     if (riderRows.length > 0) {
       const r = riderRows[0];
+      const phone = r.rider_phone || r.user_phone || null;
       order.rider = {
         id: r.id,
         userId: r.user_id,
         user_id: r.user_id,
         displayName: r.display_name,
         display_name: r.display_name,
-        phone: r.phone,
+        phone,
         lastLat: r.last_lat != null ? Number(r.last_lat) : null,
         lastLng: r.last_lng != null ? Number(r.last_lng) : null,
         lastLocationAt: r.last_location_at,
@@ -677,9 +699,14 @@ const cancelOrder = async (req, res) => {
   }
 
   const cancelledPaymentStatus = getCancelledPaymentStatus(order.payment_method);
+  const { resolveCancelReason } = require('../utils/cancelReasons');
+  // Prefer customer-facing message; optional free-text reason from body still accepted for audit.
+  const cancelReason = (reason && String(reason).trim())
+    ? String(reason).trim()
+    : resolveCancelReason('customer');
   const [cancelResult] = await pool.query(
     'UPDATE orders SET status = "Cancelled", payment_status = ?, cancel_reason = ? WHERE id = ? AND status = "Pending"',
-    [cancelledPaymentStatus, reason || 'Cancelled by customer', id]
+    [cancelledPaymentStatus, cancelReason, id]
   );
 
   if (cancelResult.affectedRows === 0) {
@@ -705,7 +732,8 @@ const cancelOrder = async (req, res) => {
     ...order,
     status: 'Cancelled',
     payment_status: cancelledPaymentStatus,
-    cancel_reason: reason || 'Cancelled by customer',
+    cancel_reason: cancelReason,
+    cancelReason,
     updated_at: new Date().toISOString(),
   };
 

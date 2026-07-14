@@ -228,6 +228,16 @@ function normalizeSettings(payload = {}) {
     nightCharge: numberOrZero(pickFirst(settings.nightCharge, settings.night_charge)),
     nightChargeStart: pickFirst(settings.nightChargeStart, settings.night_charge_start, null),
     nightChargeEnd: pickFirst(settings.nightChargeEnd, settings.night_charge_end, null),
+    shopLatitude: (() => {
+      const v = pickFirst(settings.shopLatitude, settings.shop_latitude, null);
+      const n = Number(v);
+      return v == null || v === '' || !Number.isFinite(n) ? null : n;
+    })(),
+    shopLongitude: (() => {
+      const v = pickFirst(settings.shopLongitude, settings.shop_longitude, null);
+      const n = Number(v);
+      return v == null || v === '' || !Number.isFinite(n) ? null : n;
+    })(),
   };
 }
 
@@ -429,6 +439,8 @@ function normalizeOrder(order = {}) {
     itemCount: numberOrZero(pickFirst(order.itemCount, order.item_count, items.length)),
     total: grandTotal,
     canCancel: asBoolean(pickFirst(order.canCancel, order.can_cancel, order.cancellable), false),
+    cancelReason: pickFirst(order.cancelReason, order.cancel_reason, null),
+    cancel_reason: pickFirst(order.cancelReason, order.cancel_reason, null),
     previewImg: pickFirst(order.previewImg, order.previewImage, order.imageUrl, items[0]?.imageUrl, null),
     address: pickFirst(order.address, order.deliveryAddress, order.delivery_address, ''),
     mapUrl: pickFirst(order.mapUrl, order.map_url, order.googleMapsUrl, order.google_maps_url, ''),
@@ -438,6 +450,8 @@ function normalizeOrder(order = {}) {
     riderId: riderId != null ? riderId : null,
     rider_id: riderId != null ? riderId : null,
     rider: order.rider ? normalizeRider(order.rider) : null,
+    // Shop pins for Track Order map (API only after status leaves Pending).
+    shops: Array.isArray(order.shops) ? order.shops : [],
     deliveryDistanceKm: pickFirst(order.deliveryDistanceKm, order.delivery_distance_km, null),
     deliveryRadiusKmSnapshot: pickFirst(order.deliveryRadiusKmSnapshot, order.delivery_radius_km_snapshot, null),
     deliveryCostPerKmSnapshot: pickFirst(order.deliveryCostPerKmSnapshot, order.delivery_cost_per_km_snapshot, null),

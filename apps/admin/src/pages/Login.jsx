@@ -24,7 +24,17 @@ export default function Login() {
       await login({ ownerId, password });
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Login failed');
+      const status = err?.response?.status;
+      const msg = err?.message || 'Login failed';
+      if (status === 429 || /too many/i.test(msg)) {
+        setError(
+          msg.includes('login')
+            ? msg
+            : 'Too many requests. Wait about a minute, then try again. (If this keeps happening, close other admin tabs.)'
+        );
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }

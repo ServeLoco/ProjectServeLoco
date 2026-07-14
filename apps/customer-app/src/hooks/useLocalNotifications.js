@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { subscribeNotificationEvents } from '../api/realtimeClient';
 import { authApi } from '../api/authApi';
+import * as notificationsApi from '../api/notificationsApi';
 import { useAuthStore } from '../stores';
 import { playNotificationChime } from '../utils/notificationChime';
 
@@ -13,19 +14,24 @@ const EXPO_PROJECT_ID =
   Constants.expoConfig?.extra?.eas?.projectId ??
   '1df5a9bf-de34-48ea-96f4-68f598d7d318';
 
-// When the app is in the foreground, suppress remote push banners (APNs/FCM)
-// but allow local scheduled notifications (from the socket path) through.
-// trigger.type === 'push' means the OS delivered it via APNs/FCM; local ones
-// scheduled via scheduleNotificationAsync have trigger === null.
-// When the app is backgrounded/closed the OS delivers push directly without
-// calling this handler at all, so the banner always appears.
+const LAST_PUSH_TOKEN_KEY = 'serveloco:lastPushToken';
+const LAST_CATCHUP_KEY = 'serveloco:lastNotifCatchupAt';
+
+// When the app is actively in the foreground, suppress remote push banners
+// (APNs/FCM) so we don't double-alert with the socket → local-notification
+// path. Background / inactive / killed MUST show remote pushes:
+//   - killed: OS delivers without this handler
+//   - background (JS still warm): handler can still run on some Android
+//     builds — if we always suppress remote, closed-app banners never show
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const isRemotePush = notification?.request?.trigger?.type === 'push';
+    const appActive = AppState.currentState === 'active';
+    const suppressRemote = isRemotePush && appActive;
     return {
-      shouldShowBanner: !isRemotePush,
-      shouldShowList: !isRemotePush,
-      shouldPlaySound: !isRemotePush,
+      shouldShowBanner: !suppressRemote,
+      shouldShowList: !suppressRemote,
+      shouldPlaySound: !suppressRemote,
       shouldSetBadge: true,
     };
   },
@@ -113,17 +119,60 @@ export async function resetNotificationAskedFlag() {
 
 const BRAND_COLOR = '#FF7A3A';
 
+// Bumped to v2: Android freezes channel sound after first create; v1 had no
+// audioAttributes so banners could show silently. Server channelId must match.
+export const ORDER_NOTIFICATION_CHANNEL_ID = 'serveloco-orders-v2';
+// Rider delivery offers — longer vibration so the phone is hard to miss.
+export const RIDER_OFFER_CHANNEL_ID = 'serveloco-rider-offers';
+
+// Strong pattern: pause, buzz, pause, buzz… (ms)
+export const RIDER_VIBRATION_PATTERN = [0, 600, 200, 600, 200, 600];
+
 async function createAndroidChannel() {
   if (Platform.OS !== 'android') return;
 
-  await Notifications.setNotificationChannelAsync('serveloco-orders', {
+  // Drop the old silent channel if it still exists (best-effort).
+  try {
+    await Notifications.deleteNotificationChannelAsync('serveloco-orders');
+  } catch { /* ignore */ }
+
+  const sharedAudio = {
+    usage: Notifications.AndroidAudioUsage.NOTIFICATION,
+    contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+    flags: {
+      enforceAudibility: true,
+      requestHardwareAudioVideoSynchronization: false,
+    },
+  };
+
+  // MAX + USAGE_NOTIFICATION so closed/background FCM banners play sound + vibrate.
+  await Notifications.setNotificationChannelAsync(ORDER_NOTIFICATION_CHANNEL_ID, {
     name: 'Order Updates',
-    importance: Notifications.AndroidImportance.HIGH,
+    importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 250, 250, 250],
     sound: 'default',
     lightColor: BRAND_COLOR,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     bypassDnd: false,
+    enableVibrate: true,
+    enableLights: true,
+    showBadge: true,
+    audioAttributes: sharedAudio,
+  });
+
+  // Dedicated rider-offer channel: longer vibration for continuous offer alerts.
+  await Notifications.setNotificationChannelAsync(RIDER_OFFER_CHANNEL_ID, {
+    name: 'Rider Delivery Offers',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: RIDER_VIBRATION_PATTERN,
+    sound: 'default',
+    lightColor: BRAND_COLOR,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    bypassDnd: false,
+    enableVibrate: true,
+    enableLights: true,
+    showBadge: true,
+    audioAttributes: sharedAudio,
   });
 }
 
@@ -170,20 +219,204 @@ function extractOrderId(payload) {
   return null;
 }
 
+/**
+ * Register / refresh the Expo push token on the API so remote pushes reach
+ * this device when the app is backgrounded or killed (OS delivers via FCM/APNs).
+ * Safe to call repeatedly; skips the network when the token is unchanged.
+ */
+async function registerExpoPushTokenWithServer({ force = false } = {}) {
+  const { isAuthenticated, token: jwt } = useAuthStore.getState();
+  if (!isAuthenticated || !jwt) return false;
+
+  const status = await requestNotificationPermission();
+  if (status !== 'granted') return false;
+
+  // Channel must exist before the first closed-app push arrives on Android.
+  await createAndroidChannel();
+  await registerNotificationCategories();
+
+  // getExpoPushTokenAsync can hang forever when the FCM handshake fails
+  // silently (misconfigured Firebase, no Play services). Race it against a
+  // timeout so the failure is visible instead of a dead end.
+  const tokenObj = await Promise.race([
+    Notifications.getExpoPushTokenAsync({ projectId: EXPO_PROJECT_ID }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('getExpoPushTokenAsync timed out after 15s')), 15000)
+    ),
+  ]);
+  const token = tokenObj?.data;
+  if (!token) return false;
+
+  // Skip network when token is unchanged unless force (login / first open).
+  // Still POST on force so shared-device detach + claim runs after account switch.
+  if (!force) {
+    try {
+      const last = await AsyncStorage.getItem(LAST_PUSH_TOKEN_KEY);
+      if (last === token) return true;
+    } catch { /* ignore and re-register */ }
+  }
+
+  await authApi.registerPushToken(token);
+  try {
+    await AsyncStorage.setItem(LAST_PUSH_TOKEN_KEY, token);
+  } catch { /* best-effort */ }
+  return true;
+}
+
+/**
+ * If a remote push was missed while the process was dead, surface recent
+ * unread order inbox rows as local banners on next open/resume.
+ */
+async function catchUpMissedOrderNotifications() {
+  try {
+    const res = await notificationsApi.list({ limit: 20 });
+    const items = res?.data || [];
+    if (!items.length) return;
+
+    let lastAt = 0;
+    try {
+      lastAt = Number(await AsyncStorage.getItem(LAST_CATCHUP_KEY)) || 0;
+    } catch { /* ignore */ }
+
+    const now = Date.now();
+    // Only catch up events from the last 6 hours that we haven't shown yet.
+    const windowStart = Math.max(lastAt, now - 6 * 60 * 60 * 1000);
+    let newest = lastAt;
+
+    for (const n of items) {
+      const created = new Date(n.createdAt || n.created_at || 0).getTime();
+      if (!created || created <= windowStart) continue;
+      if (created > newest) newest = created;
+
+      const isOrder = String(n.sourceType || n.source_type || n.type || '').toLowerCase().includes('order')
+        || n.eventKey
+        || n.event_key
+        || (n.actionPayload && (n.actionPayload.orderId || n.actionPayload.order_id));
+      if (!isOrder && String(n.type || '').toLowerCase() === 'info' && !n.title) continue;
+
+      const orderId = n.actionPayload?.orderId
+        || n.actionPayload?.order_id
+        || (String(n.sourceType || n.source_type || '').toLowerCase() === 'order' ? n.sourceId || n.source_id : null);
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: n.title || 'VillKro',
+          body: n.body || n.message || '',
+          sound: 'default',
+          data: orderId ? { orderId: String(orderId) } : {},
+        },
+        trigger: Platform.OS === 'android'
+          ? { channelId: ORDER_NOTIFICATION_CHANNEL_ID }
+          : null,
+      }).catch(() => {});
+    }
+
+    if (newest > lastAt) {
+      try {
+        await AsyncStorage.setItem(LAST_CATCHUP_KEY, String(newest));
+      } catch { /* ignore */ }
+    }
+  } catch (err) {
+    console.warn('[useLocalNotifications] catch-up failed:', err?.message || err);
+  }
+}
+
+const ADMIN_ORDER_PUSH_TYPES = new Set([
+  'new_order', 'order_auto_cancelled', 'rider_assignment_failed',
+  'rider_zero_available', 'order_cancelled_no_rider',
+]);
+
+/**
+ * Navigate from a notification tap (foreground, background, or cold start).
+ */
+function navigateFromNotificationData(data, navigationRef) {
+  if (!data || typeof data !== 'object') return;
+
+  // Shop-owner order notification → Dashboard tab (new-order popup lives there).
+  if (data.type === 'shop_order') {
+    const tryNavigateShop = () => {
+      if (navigationRef?.current?.isReady()) {
+        navigationRef.current.navigate('ShopDashboard');
+      } else {
+        setTimeout(tryNavigateShop, 200);
+      }
+    };
+    tryNavigateShop();
+    return;
+  }
+
+  // Rider delivery offer → open rider dashboard (popup rehydrates there).
+  if (data.type === 'rider_offer') {
+    const tryNavigateRider = () => {
+      if (navigationRef?.current?.isReady()) {
+        navigationRef.current.navigate('RiderDashboard');
+      } else {
+        setTimeout(tryNavigateRider, 200);
+      }
+    };
+    tryNavigateRider();
+    return;
+  }
+
+  // Admin inbox push — deep-link once admin shell is ready.
+  if (ADMIN_ORDER_PUSH_TYPES.has(data.type) || data.type === 'new_customer') {
+    let attempts = 0;
+    const maxAttempts = 50;
+    const tryNavigateAdmin = () => {
+      attempts += 1;
+      const { admin, adminToken } = useAuthStore.getState();
+      const navReady = navigationRef?.current?.isReady?.();
+      if (!navReady || !(admin && adminToken)) {
+        if (attempts < maxAttempts) setTimeout(tryNavigateAdmin, 200);
+        return;
+      }
+      try {
+        if (data.type === 'new_customer') {
+          navigationRef.current.navigate('AdminPeople');
+        } else if (data.orderId) {
+          navigationRef.current.navigate('AdminOrderDetail', { orderId: data.orderId });
+        } else {
+          navigationRef.current.navigate('AdminOrders');
+        }
+      } catch (_) {
+        if (attempts < maxAttempts) setTimeout(tryNavigateAdmin, 200);
+      }
+    };
+    tryNavigateAdmin();
+    return;
+  }
+
+  const orderId = data.orderId;
+  if (!orderId) return;
+
+  const tryNavigate = () => {
+    if (navigationRef?.current?.isReady()) {
+      navigationRef.current.navigate('OrderDetail', { orderId });
+    } else {
+      setTimeout(tryNavigate, 200);
+    }
+  };
+  tryNavigate();
+}
+
 // ─── hook ────────────────────────────────────────────────────────────────────
 
 /**
  * useLocalNotifications
  *
- * Bridges incoming Socket.io "notification.created" events to the
- * phone's native notification bar. Also handles navigation when the
- * user taps a notification.
+ * 1) Registers Expo push token so FCM/APNs can deliver when app is closed.
+ * 2) Bridges Socket.io "notification.created" → local banner while open.
+ * 3) Handles notification taps (incl. cold start from killed app).
  *
  * @param {React.MutableRefObject} navigationRef - ref to the NavigationContainer
  */
 export function useLocalNotifications(navigationRef) {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const hasHydrated = useAuthStore(state => state.hasHydrated);
   const permissionGranted = useRef(false);
+  const registeringRef = useRef(false);
+  // Avoid double-handling the same cold-start response.
+  const handledResponseIds = useRef(new Set());
 
   // ── 1. One-time setup: Android channel, notification categories ──────────
   useEffect(() => {
@@ -199,43 +432,48 @@ export function useLocalNotifications(navigationRef) {
     return () => { cancelled = true; };
   }, []);
 
-  // ── 1b. On login: request permission (shows system dialog first time) then
-  //        register / refresh the Expo push token with the server.
-  // Runs every time isAuthenticated flips to true (login, app reopen).
-  // requestNotificationPermission is idempotent — it only calls the system
-  // dialog once; subsequent calls just return the current status.
+  // ── 1b. Register Expo push token after auth hydrate so closed-app pushes work.
+  // Also re-run when the app returns to foreground (permission may have been
+  // granted in Settings; FCM token may have rotated).
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!hasHydrated || !isAuthenticated) return undefined;
 
     let cancelled = false;
-    (async () => {
+
+    const run = async (force = false) => {
+      if (cancelled || registeringRef.current) return;
+      registeringRef.current = true;
       try {
-        const status = await requestNotificationPermission();
-        if (status !== 'granted' || cancelled) return;
-
-        // getExpoPushTokenAsync can hang forever when the FCM handshake
-        // fails silently (misconfigured Firebase, no Play services). Race it
-        // against a timeout so the failure is visible instead of a dead end.
-        const tokenObj = await Promise.race([
-          Notifications.getExpoPushTokenAsync({ projectId: EXPO_PROJECT_ID }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('getExpoPushTokenAsync timed out after 15s')), 15000)
-          ),
-        ]);
-        const token = tokenObj?.data;
-        if (!token || cancelled) return;
-
-        await authApi.registerPushToken(token);
+        // Brief delay so App.js can attach the customer JWT provider before
+        // the first POST /auth/me/push-token (avoids tokenless 401 on cold start).
+        await new Promise((r) => setTimeout(r, 300));
+        if (cancelled) return;
+        await registerExpoPushTokenWithServer({ force });
+        // Re-surface recent order inbox rows if a remote push was missed.
+        if (!cancelled) await catchUpMissedOrderNotifications();
       } catch (err) {
-        // Non-fatal — the app works fine without push tokens registered.
         console.warn('[useLocalNotifications] push token registration failed:', err?.message || err);
+      } finally {
+        registeringRef.current = false;
       }
-    })();
+    };
 
-    return () => { cancelled = true; };
-  }, [isAuthenticated]);
+    run(true);
+
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active' && useAuthStore.getState().isAuthenticated) {
+        run(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
+  }, [hasHydrated, isAuthenticated]);
 
   // ── 2. Listen for realtime "notification.created" events ─────────────────
+  // Foreground path only — when app is closed, remote Expo push is the path.
   useEffect(() => {
     if (!isAuthenticated) return undefined;
 
@@ -277,7 +515,7 @@ export function useLocalNotifications(navigationRef) {
         // OS fallback channel, which has no sound/heads-up. A bare
         // { channelId } trigger still fires immediately.
         trigger: Platform.OS === 'android'
-          ? { channelId: 'serveloco-orders' }
+          ? { channelId: ORDER_NOTIFICATION_CHANNEL_ID }
           : null,
       });
 
@@ -292,87 +530,28 @@ export function useLocalNotifications(navigationRef) {
     return () => unsubscribe();
   }, [isAuthenticated]);
 
-  // ── 3. Handle tap / action button → navigate to OrderDetail ─────────────
-  // Fires for both a direct tap (DEFAULT_ACTION_IDENTIFIER) and the
-  // "View Order" action button ('view_order'). Any other future actions
-  // (e.g. "Dismiss") that set opensAppToForeground=false would need a
-  // separate check here before navigating.
+  // ── 3. Handle tap / action button → navigate (live + cold start) ─────────
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+    const handleResponse = (response) => {
+      if (!response) return;
+      const id = response.notification?.request?.identifier
+        || `${response.notification?.date || ''}:${JSON.stringify(response.notification?.request?.content?.data || {})}`;
+      if (handledResponseIds.current.has(id)) return;
+      handledResponseIds.current.add(id);
+
       const data = response.notification.request.content.data || {};
+      navigateFromNotificationData(data, navigationRef);
+    };
 
-      // Shop-owner order notification → navigate to the Dashboard tab (the
-      // new-order popup lives there, not a separate Orders tab, per v2).
-      if (data.type === 'shop_order') {
-        const tryNavigateShop = () => {
-          if (navigationRef?.current?.isReady()) {
-            navigationRef.current.navigate('ShopDashboard');
-          } else {
-            setTimeout(tryNavigateShop, 200);
-          }
-        };
-        tryNavigateShop();
-        return;
-      }
+    const subscription = Notifications.addNotificationResponseReceivedListener(handleResponse);
 
-      // Rider delivery offer → open rider dashboard (popup rehydrates there).
-      if (data.type === 'rider_offer') {
-        const tryNavigateRider = () => {
-          if (navigationRef?.current?.isReady()) {
-            navigationRef.current.navigate('RiderDashboard');
-          } else {
-            setTimeout(tryNavigateRider, 200);
-          }
-        };
-        tryNavigateRider();
-        return;
-      }
-
-      // New-order push to a mobile admin (ADMIN TASK 4/9.9) — deep-link to
-      // that order's detail; fall back to the Orders list if the id is
-      // somehow missing (matches plan §5.4).
-      // Cold start race: validateSession + mintAdminSession are async, so the
-      // Admin shell may not be mounted yet. Retry until adminToken is live
-      // (or ~10s) before navigating.
-      if (data.type === 'new_order') {
-        let attempts = 0;
-        const maxAttempts = 50;
-        const tryNavigateAdmin = () => {
-          attempts += 1;
-          const { admin, adminToken } = useAuthStore.getState();
-          const navReady = navigationRef?.current?.isReady?.();
-          if (!navReady || !(admin && adminToken)) {
-            if (attempts < maxAttempts) setTimeout(tryNavigateAdmin, 200);
-            return;
-          }
-          try {
-            if (data.orderId) {
-              navigationRef.current.navigate('AdminOrderDetail', { orderId: data.orderId });
-            } else {
-              navigationRef.current.navigate('AdminOrders');
-            }
-          } catch (_) {
-            if (attempts < maxAttempts) setTimeout(tryNavigateAdmin, 200);
-          }
-        };
-        tryNavigateAdmin();
-        return;
-      }
-
-      const orderId = data.orderId;
-      if (!orderId) return;
-
-      // Wait for navigator to be ready before navigating
-      const tryNavigate = () => {
-        if (navigationRef?.current?.isReady()) {
-          navigationRef.current.navigate('OrderDetail', { orderId });
-        } else {
-          setTimeout(tryNavigate, 200);
-        }
-      };
-
-      tryNavigate();
-    });
+    // Cold start: app was killed; user tapped a system notification.
+    // addNotificationResponseReceivedListener alone often misses this.
+    Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (response) handleResponse(response);
+      })
+      .catch(() => {});
 
     return () => {
       subscription.remove();

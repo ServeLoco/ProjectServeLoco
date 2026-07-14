@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radius, shadows, borderWidth } from '../../theme';
-import AppIcon from '../AppIcon';
 import QuantityStepper from '../QuantityStepper';
 import ProductImage from '../ProductImage';
 import { useCartStore } from '../../stores/useCartStore';
@@ -38,8 +37,11 @@ export default function VariantSheet({ visible, product, onClose }) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <Pressable
+          style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}
+          onPress={() => {}}
+        >
           <View style={styles.header}>
             <ProductImage
               uri={product.imageUrl ?? product.imageUri}
@@ -52,8 +54,8 @@ export default function VariantSheet({ visible, product, onClose }) {
               <Text style={styles.title} numberOfLines={1}>{product.name}</Text>
               <Text style={styles.subtitle}>{product.variantPrompt || 'Choose an option'}</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Close">
-              <AppIcon name="close" size={20} color={colors.textSecondary} />
+            <TouchableOpacity onPress={onClose} style={styles.doneBtn} accessibilityRole="button" accessibilityLabel="Done">
+              <Text style={styles.doneBtnText}>Done</Text>
             </TouchableOpacity>
           </View>
 
@@ -100,8 +102,8 @@ export default function VariantSheet({ visible, product, onClose }) {
               );
             })}
           </ScrollView>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -141,16 +143,22 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.circle,
+  doneBtn: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
     backgroundColor: colors.bgSurface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: borderWidth.thin,
     borderColor: colors.border,
     ...shadows.xs,
+  },
+  doneBtnText: {
+    ...typography.label,
+    fontSize: 15,
+    color: colors.saffronDark,
+    fontWeight: '800',
   },
   body: {
     paddingHorizontal: spacing.lg,

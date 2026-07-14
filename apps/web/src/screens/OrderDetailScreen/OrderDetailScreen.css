@@ -115,11 +115,22 @@
   background: #fef2f2;
   color: #b91c1c;
   border: 1px solid #fecaca;
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-md);
   border-radius: var(--radius-md);
+  text-align: left;
+}
+
+.od-cancel-banner-title {
   font-size: var(--fs-sm);
-  font-weight: var(--fw-semibold);
-  text-align: center;
+  font-weight: var(--fw-bold);
+  margin-bottom: 4px;
+}
+
+.od-cancel-banner-reason {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: #7f1d1d;
+  line-height: 1.45;
 }
 
 .od-payment-badge {

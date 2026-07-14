@@ -86,8 +86,13 @@ export default function ShopDashboardScreen() {
 
       const orders = ordersRes.orders || [];
       setActiveOrders(orders.filter(o => o.confirmed && !o.rejected));
+      // One-at-a-time popup queue: keep existing order, append new ones
+      // oldest-first so the first arrived stays on screen until Accept/Reject.
       setPendingQueue(prev => {
-        const incoming = orders.filter(o => !o.confirmed && !o.rejected);
+        const incoming = orders
+          .filter(o => !o.confirmed && !o.rejected)
+          .slice()
+          .sort((a, b) => Number(a.id) - Number(b.id));
         const stillPendingIds = new Set(incoming.map(o => o.id));
         const kept = prev.filter(o => stillPendingIds.has(o.id));
         const keptIds = new Set(kept.map(o => o.id));
@@ -117,13 +122,42 @@ export default function ShopDashboardScreen() {
   );
 
   useEffect(() => {
+    // shop.order.updated: admin confirm/ready/reject, rider Out for Delivery /
+    // Delivered, or cancel — refetch so Active list + Accept popup stay live.
+    // shop.order.cancelled: admin cancelled whole order.
+    const dropOrder = (payload) => {
+      const orderId = payload?.orderId ?? payload?.order_id;
+      if (orderId == null) return;
+      setPendingQueue((prev) => prev.filter((o) => Number(o.id) !== Number(orderId)));
+      setActiveOrders((prev) => prev.filter((o) => Number(o.id) !== Number(orderId)));
+    };
+    const terminalStatuses = new Set(['Delivered', 'Cancelled', 'Out for Delivery']);
     const unsubAssigned = subscribeRealtime('shop.order.assigned', () => fetchAll());
-    const unsubCancelled = subscribeRealtime('shop.order.cancelled', () => fetchAll());
+    const unsubCancelled = subscribeRealtime('shop.order.cancelled', (payload) => {
+      dropOrder(payload);
+      fetchAll();
+    });
+    const unsubUpdated = subscribeRealtime('shop.order.updated', (payload) => {
+      const status = payload?.status;
+      if (payload?.action === 'cancelled' || (status && terminalStatuses.has(status))) {
+        // Optimistic remove so Active cards clear before the GET returns.
+        dropOrder(payload);
+      }
+      fetchAll();
+    });
+    const unsubRiderAssigned = subscribeRealtime('shop.order.rider_assigned', () => fetchAll());
+    const unsubRiderFailed = subscribeRealtime('shop.order.rider_failed', (payload) => {
+      dropOrder(payload);
+      fetchAll();
+    });
     const unsubForeground = subscribeRealtime('lifecycle.foreground', () => fetchAll());
     const unsubReconnected = subscribeRealtime('lifecycle.reconnected', () => fetchAll());
     return () => {
       unsubAssigned();
       unsubCancelled();
+      unsubUpdated();
+      unsubRiderAssigned();
+      unsubRiderFailed();
       unsubForeground();
       unsubReconnected();
     };
@@ -385,7 +419,13 @@ export default function ShopDashboardScreen() {
         />
       )}
 
-      <NewOrderPopup order={currentPopupOrder} onAccept={handleAccept} onReject={handleReject} />
+      <NewOrderPopup
+        order={currentPopupOrder}
+        onAccept={handleAccept}
+        onReject={handleReject}
+        queueIndex={0}
+        queueTotal={pendingQueue.length}
+      />
     </SafeAreaView>
   );
 }

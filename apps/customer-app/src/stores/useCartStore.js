@@ -39,7 +39,18 @@ export const useCartStore = create(
         appliedCoupon: coupon,
         couponAutoApplyDisabled: false,
       }),
+      // User explicitly removed a coupon — block silent re-auto-apply on the
+      // next bill calc so "remove" is not immediately undone by pick-best.
       clearAppliedCoupon: () => set({ appliedCouponCode: null, appliedCouponId: null, appliedCoupon: null, couponAutoApplyDisabled: true }),
+      // Bill recalculation returned no coupon (e.g. free-delivery auto-apply
+      // fell below min order after items were removed). Drop the stale green
+      // "Applied" row without blocking future auto-apply when the cart rises
+      // back over the threshold.
+      softClearAppliedCoupon: () => set({
+        appliedCouponCode: null,
+        appliedCouponId: null,
+        appliedCoupon: null,
+      }),
 
       // Last known "add ₹X more for free delivery" progress from the most
       // recent cart-calculate call (Cart/Checkout screens). Used by

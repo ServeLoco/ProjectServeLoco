@@ -35,7 +35,10 @@ jest.mock('@rnmapbox/maps', () => {
   const Mock = React.forwardRef((props, ref) => <View ref={ref} {...props} />);
   const api = {
     setAccessToken: jest.fn(),
-    StyleURL: { Street: 'mapbox://styles/mapbox/streets-v11' },
+    StyleURL: {
+      Street: 'mapbox://styles/mapbox/streets-v12',
+      SatelliteStreet: 'mapbox://styles/mapbox/satellite-streets-v12',
+    },
     MapView: Mock,
     Camera: Mock,
     PointAnnotation: Mock,
@@ -84,7 +87,13 @@ jest.mock('expo-notifications', () => ({
   scheduleNotificationAsync: jest.fn(async () => {}),
   dismissNotificationAsync: jest.fn(async () => {}),
   cancelAllScheduledNotificationsAsync: jest.fn(),
-  AndroidImportance: { MAX: 5 },
+  setNotificationChannelAsync: jest.fn(async () => {}),
+  deleteNotificationChannelAsync: jest.fn(async () => {}),
+  getLastNotificationResponseAsync: jest.fn(async () => null),
+  AndroidImportance: { MAX: 7, HIGH: 6, DEFAULT: 5 },
+  AndroidAudioUsage: { NOTIFICATION: 5 },
+  AndroidAudioContentType: { SONIFICATION: 4 },
+  AndroidNotificationVisibility: { PUBLIC: 1 },
   addPushTokenListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
 

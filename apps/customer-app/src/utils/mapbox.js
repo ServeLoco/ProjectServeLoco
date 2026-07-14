@@ -2,8 +2,8 @@ import Mapbox from '@rnmapbox/maps';
 
 /** Default checkout map center (updated 2026-07-13). */
 export const DEFAULT_MAP_CENTER = {
-  latitude: 29.451998,
-  longitude: 75.668669,
+  latitude: 29.452142,
+  longitude: 75.671967,
 };
 
 const token =

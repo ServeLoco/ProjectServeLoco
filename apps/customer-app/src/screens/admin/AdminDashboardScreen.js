@@ -7,6 +7,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors, spacing, typography, radius, shadows } from '../../theme';
 import { adminApi, subscribeAdminOrderEvents, subscribeAdminRealtimeLifecycle } from '../../api';
 import AppIcon from '../../components/AppIcon';
+import AdminNotificationBell from '../../components/admin/AdminNotificationBell';
 import { useAuthStore } from '../../stores';
 
 function formatMoney(n) {
@@ -177,15 +178,18 @@ export default function AdminDashboardScreen() {
                 <Text style={styles.title}>Dashboard</Text>
                 <Text style={styles.subtitle}>Ops overview</Text>
               </View>
-              <TouchableOpacity
-                style={styles.logoutBtn}
-                onPress={handleLogout}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="Log out"
-              >
-                <Text style={styles.logoutBtnText}>Log out</Text>
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                <AdminNotificationBell />
+                <TouchableOpacity
+                  style={styles.logoutBtn}
+                  onPress={handleLogout}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Log out"
+                >
+                  <Text style={styles.logoutBtnText}>Log out</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={styles.statusRow}>
@@ -261,6 +265,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, gap: spacing.md,
   },
   headerTextCol: { flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   title: { ...typography.display, fontSize: 26, color: colors.textPrimary },
   subtitle: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 2, fontWeight: '500' },
   logoutBtn: {

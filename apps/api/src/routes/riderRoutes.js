@@ -5,12 +5,12 @@ const asyncHandler = require('../utils/asyncHandler');
 const {
   getMe,
   setOnline,
-  heartbeat,
   updateLocation,
   getActiveOffer,
   acceptOfferHttp,
   rejectOfferHttp,
   getCurrentAssignment,
+  getAssignmentById,
   getAssignmentHistory,
   cancelAssignmentHttp,
   markPickedUp,
@@ -26,7 +26,6 @@ router.use(asyncHandler(requireRider));
 
 router.get('/me', asyncHandler(getMe));
 router.patch('/me/online', asyncHandler(setOnline));
-router.post('/me/heartbeat', asyncHandler(heartbeat));
 router.post('/me/location', asyncHandler(updateLocation));
 
 router.get('/offers/active', asyncHandler(getActiveOffer));
@@ -35,6 +34,7 @@ router.post('/offers/:offerId/reject', asyncHandler(rejectOfferHttp));
 
 router.get('/assignments/current', asyncHandler(getCurrentAssignment));
 router.get('/assignments/history', asyncHandler(getAssignmentHistory));
+router.get('/assignments/:orderId', asyncHandler(getAssignmentById));
 router.post('/assignments/:orderId/cancel', asyncHandler(cancelAssignmentHttp));
 router.post('/assignments/:orderId/picked-up', asyncHandler(markPickedUp));
 router.patch('/assignments/:orderId/status', asyncHandler(updateAssignmentStatus));

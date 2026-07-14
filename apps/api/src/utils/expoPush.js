@@ -1,26 +1,41 @@
 const { Expo } = require('expo-server-sdk');
+const config = require('../config/env');
 
 const expo = new Expo();
-
-// Brand saffron — rendered as the notification icon accent color on Android.
-const BRAND_COLOR = '#FF7A3A';
+// Per-push success line is diagnostic noise at prod volume (one line per
+// notification sent) — keep it for local/dev debugging, drop it in prod.
+// Failures/warnings (no token, ticket errors) always log regardless.
+const isProd = config.NODE_ENV === 'production';
 
 /**
  * Build a single Expo push message object.
- * All visual extras (color, priority, category) are opt-in via opts.
+ * Title + body + high priority + channelId are required so FCM/APNs show a
+ * system banner when the app is backgrounded or fully killed (swiped away).
+ * Data-only messages would NOT display when the process is dead.
+ *
+ * Do NOT set `color` — Expo Push API currently rejects every hex form we
+ * tried ("Must be a valid hex color") and the whole send fails, so no
+ * device ever gets the banner. Brand tint stays on the Android channel
+ * created client-side instead.
  */
-const buildMessage = (token, { title, body, data = {}, categoryId } = {}) => ({
+const buildMessage = (token, { title, body, data = {}, categoryId, channelId } = {}) => ({
   to: token,
   sound: 'default',
-  title,
-  body,
-  data,
-  channelId: 'serveloco-orders',
+  title: title || 'VillKro',
+  body: body || '',
+  data: {
+    // Stringify-friendly payload; clients read these on tap from killed state.
+    ...Object.fromEntries(
+      Object.entries(data || {}).map(([k, v]) => [k, v == null ? v : String(v)])
+    ),
+  },
+  // Default matches client ORDER_NOTIFICATION_CHANNEL_ID (sound + vibrate).
+  // Rider offers pass channelId: 'serveloco-rider-offers' (stronger vibrate).
+  channelId: channelId || 'serveloco-orders-v2',
+  // high = wake device / heads-up when app is not in foreground.
   priority: 'high',
-  // Android: tints the notification icon with the brand color and marks it as
-  // high-priority so it surfaces as a heads-up banner.
-  android: { color: BRAND_COLOR },
-  // iOS: shows the notification in the default grouped style.
+  // Keep trying delivery for ~1h if device was offline.
+  ttl: 3600,
   // categoryId wires up action buttons registered on the client side
   // (e.g. "View Order") so the user can act without opening the app.
   ...(categoryId ? { categoryId } : {}),
@@ -33,7 +48,7 @@ const buildMessage = (token, { title, body, data = {}, categoryId } = {}) => ({
  *
  * @param {import('mysql2/promise').Pool} pool
  * @param {number} userId
- * @param {{ title: string, body: string, data?: object, categoryId?: string }} opts
+ * @param {{ title: string, body: string, data?: object, categoryId?: string, channelId?: string }} opts
  */
 const sendPushToUser = async (pool, userId, opts) => {
   try {
@@ -42,13 +57,21 @@ const sendPushToUser = async (pool, userId, opts) => {
       [userId]
     );
     const token = rows[0]?.push_token;
-    if (!token || !Expo.isExpoPushToken(token)) return;
+    if (!token || !Expo.isExpoPushToken(token)) {
+      console.warn('[expoPush] sendPushToUser: user %s has no valid push_token — device will not get banner', userId);
+      return { sent: false, reason: 'no_token' };
+    }
 
     const tickets = await expo.sendPushNotificationsAsync([buildMessage(token, opts)]);
-    tallyTickets(tickets, 'sendPushToUser');
+    const { ok, failed } = tallyTickets(tickets, 'sendPushToUser');
     await cleanupDeadTokens(pool, tickets, [token]);
+    if (!isProd) {
+      console.log('[expoPush] sendPushToUser user=%s title=%j ok=%d failed=%d', userId, opts?.title, ok, failed);
+    }
+    return { sent: ok > 0, ok, failed };
   } catch (err) {
     console.error('[expoPush] sendPushToUser failed:', err.message);
+    return { sent: false, reason: err.message };
   }
 };
 

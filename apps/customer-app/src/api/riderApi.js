@@ -5,7 +5,6 @@ const riderApi = {
   getMe: () => apiClient.get('/rider/me', { auth: 'customer' }),
   setOnline: (isOnline) =>
     apiClient.patch('/rider/me/online', { isOnline, is_online: isOnline }, { auth: 'customer' }),
-  heartbeat: () => apiClient.post('/rider/me/heartbeat', {}, { auth: 'customer' }),
   updateLocation: (lat, lng) =>
     apiClient.post('/rider/me/location', { lat, lng, latitude: lat, longitude: lng }, { auth: 'customer' }),
   getActiveOffer: () => apiClient.get('/rider/offers/active', { auth: 'customer' }),
@@ -14,6 +13,8 @@ const riderApi = {
   rejectOffer: (offerId) =>
     apiClient.post(`/rider/offers/${offerId}/reject`, {}, { auth: 'customer' }),
   getCurrentAssignment: () => apiClient.get('/rider/assignments/current', { auth: 'customer' }),
+  getAssignment: (orderId) =>
+    apiClient.get(`/rider/assignments/${orderId}`, { auth: 'customer' }),
   getHistory: (params = {}) => {
     const q = new URLSearchParams(params).toString();
     return apiClient.get(`/rider/assignments/history${q ? `?${q}` : ''}`, { auth: 'customer' });

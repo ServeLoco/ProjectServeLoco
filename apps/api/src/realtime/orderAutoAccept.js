@@ -17,112 +17,135 @@ let shuttingDown = false;
 const claimedOrders = new Set();
 
 /**
- * Schedule an auto-accept for a newly created order. If no admin accepts
- * (or cancels) within AUTO_ACCEPT_MS, the order moves to 'Accepted' and a
- * Socket.IO event is emitted so all admin clients refresh their views.
+ * Apply Accepted + fan-out (shops, customer, house rider start).
+ * Compare-and-set on Pending so concurrent admin accept is safe.
+ * @returns {Promise<object|null>} updated order row or null if not accepted
  */
-const schedule = (orderId, orderNumber) => {
-  if (!Number.isFinite(orderId)) return;
-  cancel(orderId); // ensure no duplicate
-  claimedOrders.add(orderId);
+const acceptPendingOrder = async (orderId, orderNumber, logTag = 'auto-accept') => {
+  const [result] = await pool.query(
+    "UPDATE orders SET status = 'Accepted' WHERE id = ? AND status = 'Pending'",
+    [orderId]
+  );
+  if (!result || result.affectedRows === 0) return null;
+
+  const [updated] = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+  const order = updated[0];
+  if (!order) return null;
+
+  realtimeEvents.emitOrderAutoAccepted(order);
+  notifyShopsForOrder(order);
+
+  // House-only orders (no shop items) start rider assignment immediately.
+  try {
+    const { startAssignmentIfHouseOnly } = require('../services/riderAssignment');
+    startAssignmentIfHouseOnly(order.id).catch((e) =>
+      console.error('[rider-assign] house start on auto-accept failed:', e.message)
+    );
+  } catch (e) {
+    console.error('[rider-assign] house start on auto-accept failed:', e.message);
+  }
+
+  notificationService.createOrderNotification({
+    userId: order.customer_id,
+    order,
+    event: 'status_accepted',
+  }).then((resultNotif) =>
+    realtimeEvents.emitNotificationCreated(order.customer_id, resultNotif)
+  ).catch(() => {});
+
+  console.log(
+    `[${logTag}] order #${orderNumber || order.order_number} (id=${orderId}) auto-accepted`
+  );
+  return order;
+};
+
+/**
+ * Schedule an auto-accept for a newly created order. If no admin accepts
+ * (or cancels) within delayMs (default AUTO_ACCEPT_MS), the order moves to
+ * 'Accepted' and a Socket.IO event is emitted so all admin clients refresh.
+ */
+const schedule = (orderId, orderNumber, delayMs = AUTO_ACCEPT_MS) => {
+  if (!Number.isFinite(Number(orderId))) return;
+  const id = Number(orderId);
+  cancel(id); // ensure no duplicate
+  claimedOrders.add(id);
+
+  const wait = Math.max(0, Number(delayMs) || AUTO_ACCEPT_MS);
   const t = setTimeout(async () => {
-    timers.delete(orderId);
+    timers.delete(id);
     if (shuttingDown) return; // pool may be closed; skip silently
 
     try {
+      // orders has no soft-delete column — only status gates accept.
       const [rows] = await pool.query(
-        'SELECT id, status FROM orders WHERE id = ? AND deleted = 0',
-        [orderId]
+        'SELECT id, status, order_number FROM orders WHERE id = ?',
+        [id]
       );
       if (rows.length === 0) return;
       if (rows[0].status !== 'Pending') return; // admin already acted
 
-      await pool.query(
-        "UPDATE orders SET status = 'Accepted' WHERE id = ? AND status = 'Pending'",
-        [orderId]
-      );
-      const [updated] = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
-      const order = updated[0];
-      if (order) {
-        realtimeEvents.emitOrderAutoAccepted(order);
-        notifyShopsForOrder(order);
-
-        // House-only orders (no shop items) start rider assignment immediately.
-        const { startAssignmentIfHouseOnly } = require('../services/riderAssignment');
-        startAssignmentIfHouseOnly(order.id).catch((e) =>
-          console.error('[rider-assign] house start on auto-accept failed:', e.message)
-        );
-
-        // Notify the customer — same path as manual admin accept.
-        // Fire-and-forget; the result is passed to emitNotificationCreated
-        // so the customer's bell icon and socket update in real-time too.
-        notificationService.createOrderNotification({
-          userId: order.customer_id,
-          order,
-          event: 'status_accepted',
-        }).then(result =>
-          realtimeEvents.emitNotificationCreated(order.customer_id, result)
-        ).catch(() => {});
-
-        console.log(`[auto-accept] order #${orderNumber} (id=${orderId}) auto-accepted after ${AUTO_ACCEPT_MS}ms`);
-      }
+      await acceptPendingOrder(id, orderNumber || rows[0].order_number, 'auto-accept');
     } catch (e) {
-      console.error('[auto-accept] failed for order', orderId, e.message);
+      console.error('[auto-accept] failed for order', id, e.message);
     } finally {
-      claimedOrders.delete(orderId);
+      claimedOrders.delete(id);
     }
-  }, AUTO_ACCEPT_MS);
-  timers.set(orderId, t);
+  }, wait);
+  // Unref so a lone timer does not keep the process alive during tests/shutdown.
+  if (typeof t.unref === 'function') t.unref();
+  timers.set(id, t);
 };
 
 const cancel = (orderId) => {
-  const t = timers.get(orderId);
+  const id = Number(orderId);
+  const t = timers.get(id);
   if (t) {
     clearTimeout(t);
-    timers.delete(orderId);
+    timers.delete(id);
   }
-  claimedOrders.delete(orderId);
+  claimedOrders.delete(id);
 };
 
 const clearAll = () => {
   shuttingDown = true;
   for (const t of timers.values()) clearTimeout(t);
   timers.clear();
+  claimedOrders.clear();
 };
 
 /**
- * On API startup, auto-accept any orders that were created more than
- * AUTO_ACCEPT_MS ago and are still Pending. Keeps behaviour consistent
- * across restarts. Skips orders already claimed by this process (their
- * live schedule() will fire in 10s).
+ * On API startup:
+ *  - Pending older than AUTO_ACCEPT_MS → accept now
+ *  - Pending still inside the window → re-schedule with remaining delay
+ *    (live setTimeout was lost on restart)
  */
 const rehydratePendingOrders = async () => {
   try {
+    const windowSec = Math.ceil(AUTO_ACCEPT_MS / 1000);
     const [rows] = await pool.query(
-      `SELECT id FROM orders
-        WHERE status = 'Pending'
-          AND created_at < (NOW() - INTERVAL ? SECOND)`,
-      [Math.ceil(AUTO_ACCEPT_MS / 1000)]
+      `SELECT id, order_number, created_at,
+              TIMESTAMPDIFF(SECOND, created_at, NOW()) AS age_sec
+         FROM orders
+        WHERE status = 'Pending'`
     );
+
     for (const r of rows) {
-      if (claimedOrders.has(r.id)) continue; // live timer in this process will handle it
-      await pool.query(
-        "UPDATE orders SET status = 'Accepted' WHERE id = ? AND status = 'Pending'",
-        [r.id]
-      );
-      const [updated] = await pool.query('SELECT * FROM orders WHERE id = ?', [r.id]);
-      const order = updated[0];
-      if (order) {
-        realtimeEvents.emitOrderAutoAccepted(order);
-        notificationService.createOrderNotification({
-          userId: order.customer_id,
-          order,
-          event: 'status_accepted',
-        }).then(result =>
-          realtimeEvents.emitNotificationCreated(order.customer_id, result)
-        ).catch(() => {});
+      if (claimedOrders.has(r.id)) continue;
+
+      const ageSec = Number(r.age_sec) || 0;
+      if (ageSec >= windowSec) {
+        try {
+          await acceptPendingOrder(r.id, r.order_number, 'auto-accept-rehydrate');
+        } catch (e) {
+          console.error('[auto-accept] rehydrate accept failed for', r.id, e.message);
+        }
+      } else {
+        const remainingMs = Math.max(0, AUTO_ACCEPT_MS - ageSec * 1000);
+        schedule(r.id, r.order_number, remainingMs);
+        console.log(
+          `[auto-accept] re-scheduled order id=${r.id} in ${Math.ceil(remainingMs / 1000)}s`
+        );
       }
-      console.log(`[auto-accept] rehydrated order id=${r.id}`);
     }
   } catch (e) {
     console.error('[auto-accept] rehydrate failed:', e.message);
@@ -135,4 +158,5 @@ module.exports = {
   cancel,
   clearAll,
   rehydratePendingOrders,
+  acceptPendingOrder, // for tests
 };

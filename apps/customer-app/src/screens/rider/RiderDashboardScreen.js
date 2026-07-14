@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  AppState,
   Easing,
   Linking,
   RefreshControl,
@@ -20,11 +19,15 @@ import { useAuthStore } from '../../stores';
 import { riderApi, subscribeRealtime } from '../../api';
 import ShopToggle from '../../components/shop/ShopToggle';
 import AppIcon from '../../components/AppIcon';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { useRiderOfferAlert } from '../../hooks/useRiderOfferAlert';
 import { useRiderLocationTracking } from '../../hooks/useRiderLocationTracking';
+import {
+  getRiderActionFlags,
+  isOutForDelivery,
+  mergeRiderOrder,
+} from '../../utils/riderOrderActions';
 import RiderOfferPopup from './RiderOfferPopup';
-
-const HEARTBEAT_MS = 35_000;
 
 const STEPS = [
   { key: 'assigned', label: 'Assigned' },
@@ -35,27 +38,57 @@ const STEPS = [
 
 function stepIndex(status, pickedUp) {
   if (status === 'Delivered') return 3;
-  if (status === 'Out for Delivery') return 2;
+  if (isOutForDelivery(status)) return 2;
   if (pickedUp) return 1;
   return 0;
+}
+
+function offerIdOf(o) {
+  return o?.id ?? o?.offerId ?? null;
+}
+
+/** Oldest-first unique queue; keep richer payload when merging. */
+function normalizeOfferQueue(list) {
+  if (!Array.isArray(list)) return [];
+  const byId = new Map();
+  list.forEach((o) => {
+    const id = offerIdOf(o);
+    if (id == null) return;
+    const key = String(id);
+    const prev = byId.get(key);
+    byId.set(key, prev ? { ...prev, ...o } : o);
+  });
+  return Array.from(byId.values()).sort(
+    (a, b) => Number(offerIdOf(a)) - Number(offerIdOf(b)),
+  );
+}
+
+function upsertOfferInQueue(prev, incoming) {
+  if (!incoming || offerIdOf(incoming) == null) return prev || [];
+  return normalizeOfferQueue([...(prev || []), incoming]);
 }
 
 /**
  * Premium rider dashboard — online hero, metrics, active job with step rail.
  */
-export default function RiderDashboardScreen() {
+export default function RiderDashboardScreen({ navigation }) {
   const rider = useAuthStore((s) => s.rider);
   const setRider = useAuthStore((s) => s.setRider);
   const logout = useAuthStore((s) => s.logout);
+  const isFocused = useIsFocused();
 
   const [isOnline, setIsOnline] = useState(Boolean(rider?.isOnline || rider?.is_online));
   const [toggleBusy, setToggleBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeOffer, setActiveOffer] = useState(null);
-  const [assignment, setAssignment] = useState(null);
+  // Offer queue (oldest first). Popup shows index 0; accept/reject advances.
+  const [offerQueue, setOfferQueue] = useState([]);
+  const [assignments, setAssignments] = useState([]);
   const [error, setError] = useState(null);
   const [actionBusy, setActionBusy] = useState(null);
+  const activeOffer = offerQueue[0] || null;
+  // Latest/primary for map tracking + step rail helpers
+  const assignment = assignments[0] || null;
   const mountedRef = useRef(true);
   const isOnlineRef = useRef(isOnline);
   const pulse = useRef(new Animated.Value(1)).current;
@@ -104,15 +137,37 @@ export default function RiderDashboardScreen() {
         setRider(me.rider);
         setIsOnline(Boolean(me.rider.isOnline || me.rider.is_online));
       }
-      let offer = me?.activeOffer || me?.active_offer || null;
-      try {
-        const offerRes = await riderApi.getActiveOffer();
-        if (offerRes?.offer) offer = offerRes.offer;
-        else if (offerRes && offerRes.offer === null) offer = null;
-      } catch (_) { /* keep */ }
+      let offers = me?.activeOffers || me?.active_offers || null;
+      // /me already carries the offer queue; the extra offers/active call only
+      // adds shop names for the popup. Skip it when /me says there are zero
+      // offers — fetchAll runs on every socket event/focus, so this halves the
+      // idle dashboard's request volume. Still called when /me lacks the queue
+      // field entirely (older API) or offers exist (need shop enrichment).
+      if (!Array.isArray(offers) || offers.length > 0) {
+        try {
+          const offerRes = await riderApi.getActiveOffer();
+          if (Array.isArray(offerRes?.offers)) {
+            offers = offerRes.offers;
+          } else if (offerRes?.offer) {
+            offers = [offerRes.offer];
+          } else if (offerRes && offerRes.offer === null) {
+            offers = [];
+          }
+        } catch (_) { /* keep from me */ }
+      }
       if (!mountedRef.current) return;
-      setActiveOffer(offer);
-      setAssignment(me?.currentAssignment || me?.current_assignment || null);
+      if (!Array.isArray(offers)) {
+        const one = me?.activeOffer || me?.active_offer || null;
+        offers = one ? [one] : [];
+      }
+      setOfferQueue(normalizeOfferQueue(offers));
+      const list = me?.currentAssignments || me?.current_assignments;
+      if (Array.isArray(list) && list.length > 0) {
+        setAssignments(list);
+      } else {
+        const one = me?.currentAssignment || me?.current_assignment || null;
+        setAssignments(one ? [one] : []);
+      }
     } catch (err) {
       if (mountedRef.current) setError(err?.message || 'Could not load rider status');
     } finally {
@@ -127,63 +182,107 @@ export default function RiderDashboardScreen() {
     fetchAll();
   }, [fetchAll]);
 
-  useEffect(() => {
-    if (!isOnline) return undefined;
-    const beat = () => {
-      if (!isOnlineRef.current) return;
-      riderApi.heartbeat().catch(() => {});
-    };
-    beat();
-    const id = setInterval(beat, HEARTBEAT_MS);
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') beat();
-    });
-    return () => {
-      clearInterval(id);
-      sub?.remove?.();
-    };
-  }, [isOnline]);
+  // Re-sync when returning from the map screen so card buttons match map actions.
+  useFocusEffect(
+    useCallback(() => {
+      fetchAll();
+    }, [fetchAll]),
+  );
 
   useEffect(() => {
     const unsubs = [
       subscribeRealtime('rider.offer.created', (payload) => {
-        setActiveOffer((prev) => ({
-          ...(prev || {}),
+        const incoming = {
           id: payload.offerId || payload.offer_id,
           offerId: payload.offerId || payload.offer_id,
           orderId: payload.orderId || payload.order_id,
           orderNumber: payload.orderNumber || payload.order_number,
           expiresAt: payload.expiresAt || payload.expires_at,
           expires_at: payload.expiresAt || payload.expires_at,
-        }));
+        };
+        // Enqueue without dropping the offer currently on screen.
+        setOfferQueue((prev) => upsertOfferInQueue(prev, incoming));
         riderApi.getActiveOffer()
           .then((res) => {
-            if (res?.offer && mountedRef.current) setActiveOffer(res.offer);
+            if (!mountedRef.current) return;
+            if (Array.isArray(res?.offers)) {
+              setOfferQueue(normalizeOfferQueue(res.offers));
+            } else if (res?.offer) {
+              setOfferQueue((prev) => upsertOfferInQueue(prev, res.offer));
+            }
           })
           .catch(() => {});
       }),
+      // Server reminder while offer still pending — rehydrate popup if needed.
+      subscribeRealtime('rider.offer.reminder', (payload) => {
+        const incoming = {
+          id: payload.offerId || payload.offer_id,
+          offerId: payload.offerId || payload.offer_id,
+          orderId: payload.orderId || payload.order_id,
+          orderNumber: payload.orderNumber || payload.order_number,
+          expiresAt: payload.expiresAt || payload.expires_at,
+          expires_at: payload.expiresAt || payload.expires_at,
+        };
+        if (!incoming.id) return;
+        setOfferQueue((prev) => upsertOfferInQueue(prev, incoming));
+      }),
       subscribeRealtime('rider.offer.expired', (payload) => {
-        setActiveOffer((prev) => {
-          if (!prev) return null;
-          const id = prev.id || prev.offerId;
-          if (id && Number(id) === Number(payload.offerId || payload.offer_id)) return null;
-          return prev;
-        });
+        const expiredId = payload.offerId || payload.offer_id;
+        setOfferQueue((prev) => prev.filter((o) => {
+          const id = o.id || o.offerId;
+          return !(id && Number(id) === Number(expiredId));
+        }));
         fetchAll();
       }),
       subscribeRealtime('rider.offer.revoked', () => {
-        setActiveOffer(null);
+        setOfferQueue([]);
         fetchAll();
       }),
-      subscribeRealtime('rider.assignment.updated', () => fetchAll()),
+      subscribeRealtime('rider.assignment.updated', (payload) => {
+        // Patch local list immediately when payload includes order, then hard refresh.
+        if (payload?.order?.id) {
+          setAssignments((prev) => {
+            const id = payload.order.id;
+            const status = payload.order.status;
+            if (status === 'Delivered' || status === 'Cancelled') {
+              return prev.filter((a) => String(a.id) !== String(id));
+            }
+            let found = false;
+            const next = prev.map((a) => {
+              if (String(a.id) !== String(id)) return a;
+              found = true;
+              return mergeRiderOrder(a, payload.order);
+            });
+            return found ? next : prev;
+          });
+        }
+        fetchAll();
+      }),
+      // Admin toggled online/offline from web Riders page — sync toggle.
+      subscribeRealtime('rider.status.updated', (payload) => {
+        const online = payload?.isOnline ?? payload?.is_online;
+        if (typeof online === 'boolean') {
+          setIsOnline(online);
+          isOnlineRef.current = online;
+        }
+        fetchAll();
+      }),
       subscribeRealtime('lifecycle.foreground', () => fetchAll()),
       subscribeRealtime('lifecycle.reconnected', () => fetchAll()),
     ];
     return () => unsubs.forEach((u) => u && u());
   }, [fetchAll]);
 
-  useRiderOfferAlert(Boolean(activeOffer) && !assignment);
-  useRiderLocationTracking(assignment);
+  // Multi-order: still alert for new offers even if rider already has jobs.
+  // Continuous local chime while popup is open; server re-pushes every ~15s
+  // until accept/reject so closed-app riders keep getting FCM banners.
+  useRiderOfferAlert(activeOffer);
+  // Pause the dashboard's own GPS watch while RiderOrder is on top — that
+  // screen's RiderDeliveryMap runs its own watcher, and a single ping fans
+  // out server-side to every active assignment regardless of which job
+  // screen is open, so running both here was a duplicate watcher (2x
+  // battery/GPS calls) rather than extra coverage.
+  useRiderLocationTracking(isFocused ? assignment : null);
 
   const handleToggle = useCallback(async (next) => {
     const prev = isOnline;
@@ -202,6 +301,17 @@ export default function RiderDashboardScreen() {
   }, [fetchAll, isOnline, setRider]);
 
   const handleLogout = useCallback(() => {
+    const activeCount = assignments.length;
+    if (activeCount > 0) {
+      Alert.alert(
+        'Finish deliveries first',
+        activeCount === 1
+          ? 'You still have 1 active order. Deliver it before signing out.'
+          : `You still have ${activeCount} active orders. Deliver them all before signing out.`,
+        [{ text: 'OK' }],
+      );
+      return;
+    }
     Alert.alert('Sign out', 'Go offline and sign out of rider mode?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -209,36 +319,92 @@ export default function RiderDashboardScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            if (isOnlineRef.current) await riderApi.setOnline(false).catch(() => {});
-          } finally {
-            logout();
+            // Re-check server in case a job arrived after the local list loaded.
+            if (isOnlineRef.current) {
+              await riderApi.setOnline(false);
+            }
+          } catch (err) {
+            Alert.alert(
+              'Cannot sign out',
+              err?.message || 'Deliver all active orders before signing out.',
+            );
+            fetchAll();
+            return;
           }
+          logout();
         },
       },
     ]);
-  }, [logout]);
+  }, [assignments.length, fetchAll, logout]);
+
+  const refreshOfferQueue = useCallback(async () => {
+    try {
+      const res = await riderApi.getActiveOffer();
+      if (!mountedRef.current) return;
+      if (Array.isArray(res?.offers)) {
+        setOfferQueue(normalizeOfferQueue(res.offers));
+      } else if (res?.offer) {
+        setOfferQueue(normalizeOfferQueue([res.offer]));
+      } else {
+        setOfferQueue([]);
+      }
+    } catch (_) {
+      setOfferQueue([]);
+    }
+  }, []);
 
   const handleAcceptOffer = useCallback(async (offer) => {
     const id = offer.id || offer.offerId;
-    await riderApi.acceptOffer(id);
-    setActiveOffer(null);
+    const res = await riderApi.acceptOffer(id);
+    // Drop accepted offer from queue, then load any next pending offer.
+    setOfferQueue((prev) => prev.filter((o) => {
+      const oid = o.id || o.offerId;
+      return !(oid && Number(oid) === Number(id));
+    }));
     await fetchAll();
-  }, [fetchAll]);
+    await refreshOfferQueue();
+    // Open delivery map immediately after accept when we have the order id.
+    const orderId = res?.order?.id ?? offer.orderId ?? offer.order_id;
+    if (orderId) {
+      navigation.navigate('RiderOrder', {
+        orderId,
+        order: res?.order || undefined,
+      });
+    }
+  }, [fetchAll, navigation, refreshOfferQueue]);
 
   const handleRejectOffer = useCallback(async (offer) => {
     const id = offer.id || offer.offerId;
     await riderApi.rejectOffer(id);
-    setActiveOffer(null);
+    setOfferQueue((prev) => prev.filter((o) => {
+      const oid = o.id || o.offerId;
+      return !(oid && Number(oid) === Number(id));
+    }));
     await fetchAll();
-  }, [fetchAll]);
+    // Next offer in queue (if any) becomes the new popup front.
+    await refreshOfferQueue();
+  }, [fetchAll, refreshOfferQueue]);
 
   const runAction = useCallback(async (key, fn) => {
     setActionBusy(key);
     try {
-      await fn();
+      const res = await fn();
+      // Optimistic patch from API so buttons update before full list reload.
+      if (res?.order?.id) {
+        setAssignments((prev) => {
+          const id = res.order.id;
+          if (res.order.status === 'Delivered' || res.order.status === 'Cancelled') {
+            return prev.filter((a) => String(a.id) !== String(id));
+          }
+          return prev.map((a) => (
+            String(a.id) === String(id) ? mergeRiderOrder(a, res.order) : a
+          ));
+        });
+      }
       await fetchAll();
     } catch (err) {
       Alert.alert('Action failed', err?.message || 'Try again');
+      await fetchAll();
     } finally {
       setActionBusy(null);
     }
@@ -265,29 +431,16 @@ export default function RiderDashboardScreen() {
     ]);
   }, [assignment, runAction]);
 
-  const handleCancelAssignment = useCallback(() => {
-    if (!assignment?.id) return;
-    if (assignment.riderPickedUpAt || assignment.rider_picked_up_at) {
-      Alert.alert('Cannot cancel', 'You already picked up this order.');
-      return;
-    }
-    Alert.alert(
-      'Cancel assignment?',
-      'This order will be offered to another rider. You cannot receive it again.',
-      [
-        { text: 'Keep', style: 'cancel' },
-        {
-          text: 'Cancel assignment',
-          style: 'destructive',
-          onPress: () => runAction('cancel', () => riderApi.cancelAssignment(assignment.id)),
-        },
-      ]
-    );
-  }, [assignment, runAction]);
+  const openDeliveryMap = useCallback((job) => {
+    if (!job?.id) return;
+    // Pass snapshot so map sheet buttons match the card on first paint.
+    navigation.navigate('RiderOrder', { orderId: job.id, order: job });
+  }, [navigation]);
 
   const phone = assignment?.phone;
-  const pickedUp = Boolean(assignment?.riderPickedUpAt || assignment?.rider_picked_up_at);
-  const status = assignment?.status;
+  const actionFlags = assignment ? getRiderActionFlags(assignment) : null;
+  const pickedUp = actionFlags?.pickedUp || false;
+  const status = actionFlags?.status || assignment?.status;
   const currentStep = stepIndex(status, pickedUp);
   const displayName = rider?.displayName || rider?.display_name || 'Rider';
 
@@ -370,8 +523,10 @@ export default function RiderDashboardScreen() {
             <View style={[styles.metricIcon, { backgroundColor: colors.saffronLight }]}>
               <AppIcon name="orders" size={18} color={colors.saffronDark} />
             </View>
-            <Text style={styles.metricValue}>{assignment ? 1 : 0}</Text>
-            <Text style={styles.metricLabel}>Active job</Text>
+            <Text style={styles.metricValue}>{assignments.length}</Text>
+            <Text style={styles.metricLabel}>
+              {assignments.length === 1 ? 'Active job' : 'Active jobs'}
+            </Text>
           </View>
           <View style={styles.metricCard}>
             <View style={[styles.metricIcon, { backgroundColor: isOnline ? colors.successLight : colors.surfaceMuted }]}>
@@ -386,8 +541,10 @@ export default function RiderDashboardScreen() {
             <View style={[styles.metricIcon, { backgroundColor: activeOffer ? colors.warningLight : colors.surfaceMuted }]}>
               <AppIcon name="notification" size={18} color={activeOffer ? colors.warning : colors.textTertiary} />
             </View>
-            <Text style={styles.metricValue}>{activeOffer && !assignment ? 1 : 0}</Text>
-            <Text style={styles.metricLabel}>Offers</Text>
+            <Text style={styles.metricValue}>{offerQueue.length}</Text>
+            <Text style={styles.metricLabel}>
+              {offerQueue.length === 1 ? 'Offer' : 'Offers'}
+            </Text>
           </View>
         </View>
 
@@ -400,14 +557,29 @@ export default function RiderDashboardScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>
-            {assignment ? 'Current delivery' : 'Job queue'}
+            {assignments.length > 1
+              ? 'Delivery queue'
+              : assignment
+                ? 'Current delivery'
+                : 'Job queue'}
           </Text>
-          {assignment ? (
+          {assignments.length > 0 ? (
             <View style={styles.countPill}>
-              <Text style={styles.countPillText}>1</Text>
+              <Text style={styles.countPillText}>
+                {assignments.length}
+              </Text>
             </View>
           ) : null}
         </View>
+
+        {assignments.length > 1 ? (
+          <View style={styles.queueHint}>
+            <AppIcon name="orders" size={14} color={colors.saffronDark} />
+            <Text style={styles.queueHintText}>
+              {assignments.length} active jobs · finish or advance each from its map
+            </Text>
+          </View>
+        ) : null}
 
         {loading && !assignment ? (
           <ActivityIndicator style={{ marginTop: spacing.xl }} color={colors.saffron} />
@@ -416,19 +588,24 @@ export default function RiderDashboardScreen() {
             <View style={styles.jobAccent} />
             <View style={styles.jobBody}>
               <View style={styles.jobHeader}>
-                <Text style={styles.jobOrderNum}>
-                  #{assignment.orderNumber || assignment.order_number}
-                </Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  {assignments.length > 1 ? (
+                    <Text style={styles.jobQueuePos}>Job 1 of {assignments.length}</Text>
+                  ) : null}
+                  <Text style={styles.jobOrderNum}>
+                    #{assignment.orderNumber || assignment.order_number}
+                  </Text>
+                </View>
                 <View style={[
                   styles.statusChip,
-                  status === 'Out for Delivery' && styles.statusChipHot,
-                  pickedUp && status !== 'Out for Delivery' && styles.statusChipOk,
+                  isOutForDelivery(status) && styles.statusChipHot,
+                  pickedUp && !isOutForDelivery(status) && styles.statusChipOk,
                 ]}
                 >
                   <Text style={[
                     styles.statusChipText,
-                    status === 'Out for Delivery' && styles.statusChipTextHot,
-                    pickedUp && status !== 'Out for Delivery' && styles.statusChipTextOk,
+                    isOutForDelivery(status) && styles.statusChipTextHot,
+                    pickedUp && !isOutForDelivery(status) && styles.statusChipTextOk,
                   ]}
                   >
                     {status || 'Assigned'}
@@ -503,9 +680,19 @@ export default function RiderDashboardScreen() {
                 </View>
               ) : null}
 
-              {/* Primary action stack */}
+              <TouchableOpacity
+                style={styles.mapOpenBtn}
+                onPress={() => openDeliveryMap(assignment)}
+                activeOpacity={0.9}
+              >
+                <AppIcon name="map" size={20} color={colors.saffronDark} />
+                <Text style={styles.mapOpenBtnText}>Open delivery map & route</Text>
+                <AppIcon name="chevronRight" size={16} color={colors.saffronDark} />
+              </TouchableOpacity>
+
+              {/* Primary action stack — same rules as map sheet (getRiderActionFlags) */}
               <View style={styles.actionsCol}>
-                {!pickedUp && status !== 'Out for Delivery' && status !== 'Delivered' ? (
+                {actionFlags?.showPickedUp ? (
                   <PrimaryBtn
                     label="Mark picked up"
                     icon="check"
@@ -514,7 +701,7 @@ export default function RiderDashboardScreen() {
                     variant="saffron"
                   />
                 ) : null}
-                {status !== 'Out for Delivery' && status !== 'Delivered' ? (
+                {actionFlags?.showOutForDelivery ? (
                   <PrimaryBtn
                     label="Out for delivery"
                     icon="navigation"
@@ -523,7 +710,7 @@ export default function RiderDashboardScreen() {
                     variant="success"
                   />
                 ) : null}
-                {status === 'Out for Delivery' ? (
+                {actionFlags?.showDelivered ? (
                   <PrimaryBtn
                     label="Mark delivered"
                     icon="check"
@@ -532,21 +719,8 @@ export default function RiderDashboardScreen() {
                     variant="success"
                   />
                 ) : null}
-                {!pickedUp && status !== 'Out for Delivery' && status !== 'Delivered' ? (
-                  <TouchableOpacity
-                    style={styles.ghostDanger}
-                    onPress={handleCancelAssignment}
-                    disabled={actionBusy === 'cancel'}
-                    activeOpacity={0.85}
-                  >
-                    {actionBusy === 'cancel' ? (
-                      <ActivityIndicator size="small" color={colors.error} />
-                    ) : (
-                      <Text style={styles.ghostDangerText}>Cancel assignment</Text>
-                    )}
-                  </TouchableOpacity>
-                ) : null}
               </View>
+
             </View>
           </View>
         ) : activeOffer ? (
@@ -558,9 +732,15 @@ export default function RiderDashboardScreen() {
               style={styles.offerWaitingInner}
             >
               <AppIcon name="notification" size={28} color={colors.textInverse} />
-              <Text style={styles.offerWaitingTitle}>New offer waiting</Text>
+              <Text style={styles.offerWaitingTitle}>
+                {offerQueue.length > 1
+                  ? `${offerQueue.length} offers in queue`
+                  : 'New offer waiting'}
+              </Text>
               <Text style={styles.offerWaitingSub}>
-                Accept or reject in the popup — timer is running
+                {offerQueue.length > 1
+                  ? 'Respond one by one in the popup — next opens after accept/reject'
+                  : 'Accept or reject in the popup — timer is running'}
               </Text>
             </LinearGradient>
           </View>
@@ -579,13 +759,68 @@ export default function RiderDashboardScreen() {
             </Text>
           </View>
         )}
+
+        {/* Jobs 2+ in the delivery queue */}
+        {assignments.length > 1
+          ? assignments.slice(1).map((job, idx) => {
+              const jobFlags = getRiderActionFlags(job);
+              return (
+                <TouchableOpacity
+                  key={job.id}
+                  style={styles.queueJobCard}
+                  onPress={() => openDeliveryMap(job)}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.queueJobAccent} />
+                  <View style={styles.queueJobBody}>
+                    <View style={styles.queueJobTop}>
+                      <Text style={styles.jobQueuePos}>
+                        Job {idx + 2} of {assignments.length}
+                      </Text>
+                      <View style={[
+                        styles.statusChip,
+                        isOutForDelivery(jobFlags.status) && styles.statusChipHot,
+                        jobFlags.pickedUp && !isOutForDelivery(jobFlags.status) && styles.statusChipOk,
+                      ]}
+                      >
+                        <Text style={[
+                          styles.statusChipText,
+                          isOutForDelivery(jobFlags.status) && styles.statusChipTextHot,
+                          jobFlags.pickedUp && !isOutForDelivery(jobFlags.status) && styles.statusChipTextOk,
+                        ]}
+                        >
+                          {jobFlags.status || 'Assigned'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.queueJobNum}>
+                      #{job.orderNumber || job.order_number}
+                    </Text>
+                    {job.address ? (
+                      <Text style={styles.queueJobAddress} numberOfLines={2}>
+                        {job.address}
+                      </Text>
+                    ) : null}
+                    <View style={styles.queueJobFooter}>
+                      <Text style={styles.queueJobCta}>Open map & actions</Text>
+                      <AppIcon name="chevronRight" size={16} color={colors.saffronDark} />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          : null}
       </ScrollView>
 
-      {activeOffer && !assignment ? (
+      {activeOffer ? (
         <RiderOfferPopup
           offer={activeOffer}
           onAccept={handleAcceptOffer}
           onReject={handleRejectOffer}
+          hasActiveJobs={assignments.length > 0}
+          activeJobCount={assignments.length}
+          queueIndex={0}
+          queueTotal={offerQueue.length}
         />
       ) : null}
     </SafeAreaView>
@@ -749,6 +984,78 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countPillText: { color: colors.saffronDark, fontWeight: '800', fontSize: 12 },
+  queueHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.saffronLight,
+    borderRadius: radius.lg,
+  },
+  queueHintText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.saffronDark,
+  },
+  jobQueuePos: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.saffronDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  queueJobCard: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    backgroundColor: colors.bgSurface,
+    borderRadius: radius.xxl,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.sm,
+  },
+  queueJobAccent: {
+    width: 5,
+    backgroundColor: colors.info || colors.saffron,
+  },
+  queueJobBody: {
+    flex: 1,
+    padding: spacing.md,
+  },
+  queueJobTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  queueJobNum: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  queueJobAddress: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: spacing.sm,
+  },
+  queueJobFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  queueJobCta: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.saffronDark,
+  },
 
   errorBanner: {
     flexDirection: 'row',
@@ -894,6 +1201,23 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
 
+  mapOpenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.saffronLight,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.saffron,
+  },
+  mapOpenBtnText: {
+    flex: 1,
+    fontWeight: '800',
+    fontSize: 14,
+    color: colors.saffronDark,
+  },
   actionsCol: { gap: spacing.sm },
   primaryBtn: {
     minHeight: 52,

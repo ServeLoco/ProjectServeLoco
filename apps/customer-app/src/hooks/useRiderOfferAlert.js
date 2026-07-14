@@ -1,31 +1,71 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import { Platform, Vibration } from 'react-native';
 import { playNotificationChime } from '../utils/notificationChime';
+import {
+  RIDER_OFFER_CHANNEL_ID,
+  RIDER_VIBRATION_PATTERN,
+} from './useLocalNotifications';
 
+// Local chime + vibration while the Accept popup is open (app in foreground).
+// Server also re-sends Expo push every ~15s until accept/reject/expire so
+// the rider still gets alerts when the app is backgrounded or closed.
 const REPEAT_MS = 8000;
 const NOTIFICATION_ID = 'serveloco-rider-offer-alert';
 
 /**
  * Repeating in-app alert while a rider offer popup is open.
- * Mirrors useNewOrderAlert (shop owner) with rider-specific copy.
+ * @param {object|null|boolean} activeOffer — truthy while offer is waiting
  */
-export function useRiderOfferAlert(active) {
+export function useRiderOfferAlert(activeOffer) {
   const intervalRef = useRef(null);
+  const active = Boolean(activeOffer);
+  const orderNumber =
+    (activeOffer && (activeOffer.orderNumber || activeOffer.order_number)) || null;
+  // Identity for the effect: which offer is at the head of the queue, not the
+  // object reference. offerQueue is rebuilt (new array + spread objects) on
+  // every fetchAll()/reminder/socket event even when the same offer is still
+  // front — keying on activeOffer itself would restart this effect (and
+  // re-fire chime + vibrate) far more often than the intended REPEAT_MS loop.
+  const offerId = (activeOffer && (activeOffer.id ?? activeOffer.offerId)) ?? null;
+  const orderId = (activeOffer && (activeOffer.orderId ?? activeOffer.order_id)) ?? null;
+  // fire() still needs the full latest offer (for data.offerId/orderId) —
+  // read it from a ref so it isn't a dep that would defeat the point above.
+  const offerRef = useRef(activeOffer);
+  offerRef.current = activeOffer;
 
   useEffect(() => {
     const fire = () => {
+      const offer = offerRef.current;
+      const body = orderNumber
+        ? `Order ${orderNumber} — accept now before it expires`
+        : 'Accept or reject before this offer expires.';
+
       Notifications.scheduleNotificationAsync({
         identifier: NOTIFICATION_ID,
         content: {
           title: 'Delivery offer waiting',
-          body: 'Accept or reject within 2 minutes.',
+          body,
           sound: 'default',
+          // Android: per-notification vibrate (channel also vibrates on remote push).
+          vibrate: RIDER_VIBRATION_PATTERN,
+          data: {
+            type: 'rider_offer',
+            offerId: offer?.id || offer?.offerId || '',
+            orderId: offer?.orderId || offer?.order_id || '',
+          },
         },
         trigger: Platform.OS === 'android'
-          ? { channelId: 'serveloco-orders' }
+          ? { channelId: RIDER_OFFER_CHANNEL_ID }
           : null,
       }).catch(() => {});
+
+      // Foreground: OEMs often mute notification vibration for the active app —
+      // drive the vibrator directly so the rider always feels the alert.
+      try {
+        Vibration.vibrate(RIDER_VIBRATION_PATTERN);
+      } catch { /* ignore */ }
+
       playNotificationChime();
     };
 
@@ -34,6 +74,9 @@ export function useRiderOfferAlert(active) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      try {
+        Vibration.cancel();
+      } catch { /* ignore */ }
       Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
       return undefined;
     }
@@ -45,6 +88,9 @@ export function useRiderOfferAlert(active) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      try {
+        Vibration.cancel();
+      } catch { /* ignore */ }
     };
-  }, [active]);
+  }, [active, offerId, orderId, orderNumber]);
 }

@@ -1,6 +1,12 @@
 const { pool } = require('../db/mysql');
-const { maybeAutoCancelOrderWhenAllShopsRejected, syncGlobalShopOpenState } = require('../utils/shops');
-const { emitToAdmins, emitToAllCustomers } = require('../realtime/socket');
+const { syncGlobalShopOpenState } = require('../utils/shops');
+const { emitToAllCustomers } = require('../realtime/socket');
+const {
+  listShopActiveOrders,
+  confirmShopOrder,
+  rejectShopOrder,
+  readyShopOrder,
+} = require('../services/shopOrderActions');
 
 const shopShape = (s) => ({
   id: s.id,
@@ -123,70 +129,8 @@ const toggleMyProduct = async (req, res) => {
 // without a second round trip. Rejected orders are NOT filtered out — the
 // owner's dashboard shows them in a "rejected, waiting on admin" state.
 const getMyOrders = async (req, res) => {
-  const [orders] = await pool.query(
-    `SELECT DISTINCT o.id, o.order_number, o.status, o.note, o.created_at, o.delivery_type
-     FROM orders o JOIN order_items oi ON oi.order_id = o.id
-     WHERE oi.shop_id = ? AND o.status IN ('Accepted','Preparing')
-     ORDER BY o.created_at ASC`,
-    [req.shop.id]
-  );
-
-  if (orders.length === 0) {
-    return res.status(200).json({ orders: [] });
-  }
-
-  const [settingsRows] = await pool.query(
-    'SELECT standard_delivery_minutes, fast_delivery_minutes FROM settings LIMIT 1'
-  );
-  const settings = settingsRows[0] || {};
-
-  const orderIds = orders.map(o => o.id);
-  const [items] = await pool.query(
-    'SELECT id, order_id, product_name, quantity, variant_label, shop_confirmed_at, shop_rejected_at, shop_ready_at FROM order_items WHERE shop_id = ? AND order_id IN (?)',
-    [req.shop.id, orderIds]
-  );
-
-  const itemsByOrder = items.reduce((map, it) => {
-    if (!map[it.order_id]) map[it.order_id] = [];
-    map[it.order_id].push(it);
-    return map;
-  }, {});
-
-  const result = orders.map(o => {
-    const myItems = itemsByOrder[o.id] || [];
-    const confirmed = myItems.length > 0 && myItems.every(it => it.shop_confirmed_at !== null);
-    const rejected = myItems.length > 0 && myItems.every(it => it.shop_rejected_at !== null);
-    const ready = myItems.length > 0 && myItems.every(it => it.shop_ready_at !== null);
-    const expectedMinutes = o.delivery_type === 'fast'
-      ? settings.fast_delivery_minutes
-      : settings.standard_delivery_minutes;
-    return {
-      id: o.id,
-      orderNumber: o.order_number,
-      order_number: o.order_number,
-      status: o.status,
-      note: o.note,
-      createdAt: o.created_at,
-      created_at: o.created_at,
-      deliveryType: o.delivery_type,
-      delivery_type: o.delivery_type,
-      expectedMinutes,
-      expected_minutes: expectedMinutes,
-      confirmed,
-      rejected,
-      ready,
-      items: myItems.map(it => ({
-        id: it.id,
-        productName: it.product_name,
-        product_name: it.product_name,
-        quantity: it.quantity,
-        variantLabel: it.variant_label,
-        variant_label: it.variant_label,
-      })),
-    };
-  });
-
-  res.status(200).json({ orders: result });
+  const orders = await listShopActiveOrders(req.shop.id);
+  res.status(200).json({ orders });
 };
 
 // GET /orders/history — every order this shop has ever had items on,
@@ -255,36 +199,13 @@ const getMyOrderHistory = async (req, res) => {
 // PATCH /orders/:orderId/confirm — mark this shop's items as confirmed.
 // Idempotent: re-confirming already-confirmed items is a no-op (still 200).
 const confirmMyOrder = async (req, res) => {
-  const { orderId } = req.params;
-
-  const [countRows] = await pool.query(
-    `SELECT COUNT(*) as cnt FROM order_items oi
-     JOIN orders o ON o.id = oi.order_id
-     WHERE oi.order_id = ? AND oi.shop_id = ? AND o.status IN ('Accepted', 'Preparing')`,
-    [orderId, req.shop.id]
-  );
-  if (countRows[0].cnt === 0) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order has no items for your shop' });
-  }
-
-  await pool.query(
-    'UPDATE order_items SET shop_confirmed_at = NOW() WHERE order_id = ? AND shop_id = ? AND shop_confirmed_at IS NULL',
-    [orderId, req.shop.id]
-  );
-
-  emitToAdmins('admin.order.shop_confirmed', {
-    orderId: Number(orderId),
-    shopId: req.shop.id,
+  const result = await confirmShopOrder(req.shop.id, req.params.orderId, {
     shopName: req.shop.name,
   });
-
-  // Rider auto-assign starts only when ALL shops on the order have confirmed.
-  const { maybeStartRiderAssignment } = require('../services/riderAssignment');
-  maybeStartRiderAssignment(Number(orderId)).catch((e) =>
-    console.error('[rider-assign] maybeStart after shop confirm failed:', e.message)
-  );
-
-  res.status(200).json({ message: 'Order confirmed' });
+  if (!result.ok) {
+    return res.status(result.status).json({ code: result.code, message: result.message });
+  }
+  res.status(200).json({ message: result.message });
 };
 
 // PATCH /orders/:orderId/reject — mark this shop's items as rejected.
@@ -292,68 +213,26 @@ const confirmMyOrder = async (req, res) => {
 // writes a persistent admin inbox notification so the admin can act (cancel,
 // reassign, contact customer). Idempotent, same status guard as confirm.
 const rejectMyOrder = async (req, res) => {
-  const { orderId } = req.params;
-
-  const [countRows] = await pool.query(
-    `SELECT COUNT(*) as cnt FROM order_items oi
-     JOIN orders o ON o.id = oi.order_id
-     WHERE oi.order_id = ? AND oi.shop_id = ? AND o.status IN ('Accepted', 'Preparing')`,
-    [orderId, req.shop.id]
-  );
-  if (countRows[0].cnt === 0) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order has no items for your shop' });
-  }
-
-  await pool.query(
-    'UPDATE order_items SET shop_rejected_at = NOW() WHERE order_id = ? AND shop_id = ? AND shop_rejected_at IS NULL',
-    [orderId, req.shop.id]
-  );
-
-  const adminInbox = require('../utils/adminNotifications');
-  await adminInbox.createAdminNotification({
-    type: adminInbox.TYPES.SHOP_REJECTED,
-    title: `${req.shop.name} can't fulfill order #${orderId}`,
-    body: `${req.shop.name} rejected their items on order #${orderId}. Review and take action (cancel, reassign, contact customer).`,
-    relatedUrl: `/orders?id=${orderId}`,
-    relatedId: String(orderId),
+  const result = await rejectShopOrder(req.shop.id, req.params.orderId, {
+    shopName: req.shop.name,
   });
-
-  // When every shop on the order has rejected (single- or multi-shop), cancel
-  // the order automatically so the admin orders page reflects it without a
-  // manual status change.
-  await maybeAutoCancelOrderWhenAllShopsRejected(orderId);
-
-  res.status(200).json({ message: 'Order rejected' });
+  if (!result.ok) {
+    return res.status(result.status).json({ code: result.code, message: result.message });
+  }
+  res.status(200).json({ message: result.message });
 };
 
 // PATCH /orders/:orderId/ready — mark this shop's items ready for pickup.
 // Requires the shop to have already confirmed the order. Idempotent, same
 // status guard as confirm/reject. Informational for the admin.
 const readyMyOrder = async (req, res) => {
-  const { orderId } = req.params;
-
-  const [countRows] = await pool.query(
-    `SELECT COUNT(*) as cnt FROM order_items oi
-     JOIN orders o ON o.id = oi.order_id
-     WHERE oi.order_id = ? AND oi.shop_id = ? AND o.status IN ('Accepted', 'Preparing') AND oi.shop_confirmed_at IS NOT NULL`,
-    [orderId, req.shop.id]
-  );
-  if (countRows[0].cnt === 0) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order has no confirmed items for your shop' });
-  }
-
-  await pool.query(
-    'UPDATE order_items SET shop_ready_at = NOW() WHERE order_id = ? AND shop_id = ? AND shop_ready_at IS NULL',
-    [orderId, req.shop.id]
-  );
-
-  emitToAdmins('admin.order.shop_ready', {
-    orderId: Number(orderId),
-    shopId: req.shop.id,
+  const result = await readyShopOrder(req.shop.id, req.params.orderId, {
     shopName: req.shop.name,
   });
-
-  res.status(200).json({ message: 'Order marked ready' });
+  if (!result.ok) {
+    return res.status(result.status).json({ code: result.code, message: result.message });
+  }
+  res.status(200).json({ message: result.message });
 };
 
 const groupShape = (g) => ({

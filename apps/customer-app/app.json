@@ -2,7 +2,7 @@
   "expo": {
     "name": "VillKro",
     "slug": "villkro",
-    "version": "1.5.0",
+    "version": "1.6.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -26,14 +26,22 @@
       ],
       "expo-audio",
       "expo-asset",
-      ["@rnmapbox/maps", {}]
+      ["@rnmapbox/maps", {}],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "VillKro uses your location on the delivery map and for live rider tracking while you are online.",
+          "isAndroidForegroundServiceEnabled": false
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "VillKro uses your location to pin your delivery address.",
-        "NSPhotoLibraryUsageDescription": "VillKro lets admins choose product photos from the library."
+        "NSLocationWhenInUseUsageDescription": "VillKro uses your location to pin your delivery address and show your position on the rider delivery map.",
+        "NSPhotoLibraryUsageDescription": "VillKro lets admins choose product photos from the library.",
+        "UIBackgroundModes": ["remote-notification"]
       },
       "bundleIdentifier": "com.yashsiwach.villkro"
     },
@@ -43,11 +51,11 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "POST_NOTIFICATIONS",
-        "ACCESS_FINE_LOCATION",
-        "POST_NOTIFICATIONS"
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
       ],
       "package": "com.yashsiwach.villkro",
-      "versionCode": 7,
+      "versionCode": 8,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/icon/adaptive-icon-background.png",

@@ -12,9 +12,22 @@ const ORDER_EVENTS = [
   'order.updated',
   'shop.order.assigned',
   'shop.order.cancelled',
+  // Admin (or another device) confirmed / ready / rejected — shop dashboard refetches.
+  'shop.order.updated',
+  'shop.order.rider_assigned',
+  'shop.order.rider_failed',
 ];
 
 const RIDER_LOCATION_EVENTS = ['rider.location.updated'];
+
+// Rider dispatch: offers, assignment steps, admin online toggle.
+const RIDER_DISPATCH_EVENTS = [
+  'rider.offer.created',
+  'rider.offer.expired',
+  'rider.offer.revoked',
+  'rider.assignment.updated',
+  'rider.status.updated',
+];
 
 const NOTIFICATION_EVENTS = [
   'notification.created',
@@ -24,6 +37,11 @@ const NOTIFICATION_EVENTS = [
 const SHOP_EVENTS = [
   'shop.status.updated',
   'settings.shop_open.updated',
+];
+
+// Admin deleted/deactivated shop or rider → phone becomes customer mode.
+const AUTH_ROLE_EVENTS = [
+  'auth.role.updated',
 ];
 
 const LIFECYCLE_EVENTS = [
@@ -115,6 +133,14 @@ function subscribeShopEvents(handler) {
   return () => unsubscribers.forEach(unsubscribe => unsubscribe());
 }
 
+function subscribeAuthRoleEvents(handler) {
+  const unsubscribers = AUTH_ROLE_EVENTS.map(eventName =>
+    subscribeRealtime(eventName, payload => handler({ eventName, payload }))
+  );
+
+  return () => unsubscribers.forEach(unsubscribe => unsubscribe());
+}
+
 // Module-level: any shop open/close event busts product/category SWR caches
 // so the next screen paint revalidates. Invalidation also defeats the TASK-16
 // freshness throttle (no entry = not fresh).
@@ -143,11 +169,19 @@ function bindSocketEvents(nextSocket) {
     nextSocket.on(eventName, payload => emitLocal(eventName, payload));
   });
 
+  RIDER_DISPATCH_EVENTS.forEach(eventName => {
+    nextSocket.on(eventName, payload => emitLocal(eventName, payload));
+  });
+
   NOTIFICATION_EVENTS.forEach(eventName => {
     nextSocket.on(eventName, payload => emitLocal(eventName, payload));
   });
 
   SHOP_EVENTS.forEach(eventName => {
+    nextSocket.on(eventName, payload => emitLocal(eventName, payload));
+  });
+
+  AUTH_ROLE_EVENTS.forEach(eventName => {
     nextSocket.on(eventName, payload => emitLocal(eventName, payload));
   });
 
@@ -241,6 +275,7 @@ export {
   emitAnalyticsScreen,
   emitRealtimeForeground,
   getRealtimeConnectionState,
+  subscribeAuthRoleEvents,
   subscribeNotificationEvents,
   subscribeOrderEvents,
   subscribeRealtime,

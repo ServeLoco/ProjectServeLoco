@@ -120,6 +120,7 @@ describe('Admin Shop CRUD — /api/admin/shops', () => {
     // 2. Admin deactivates the shop via PATCH active=false.
     pool.query
       .mockResolvedValueOnce([[{ id: 1 }]])     // existence check (shop exists)
+      .mockResolvedValueOnce([[{ owner_user_id: 7 }]]) // owner for customer demotion
       .mockResolvedValueOnce([{ affectedRows: 1 }]) // UPDATE active = 0
       .mockResolvedValueOnce([[{                 // fetchShopRow re-query (now active=0)
         id: 1, name: 'Burger Point', is_open: 1, active: 0,
@@ -146,5 +147,101 @@ describe('Admin Shop CRUD — /api/admin/shops', () => {
     pool.query.mockResolvedValueOnce([[]]); // active=1 filter → no rows
     const after = await getShopForUser(7);
     expect(after).toBeNull();
+  });
+
+  it('PATCH /shops/:id/orders/:orderId/confirm confirms shop items (admin = shop-owner confirm)', async () => {
+    // loadShopOr404
+    pool.query
+      .mockResolvedValueOnce([[{ id: 1, name: 'Burger Point' }]])
+      // confirmShopOrder: COUNT items for shop on order
+      .mockResolvedValueOnce([[{ cnt: 2, order_status: 'Preparing' }]])
+      // UPDATE shop_confirmed_at
+      .mockResolvedValueOnce([{ affectedRows: 2 }])
+      // notifyShopOwnerOrderUpdated: owner lookup
+      .mockResolvedValueOnce([[{ owner_user_id: 7 }]]);
+
+    // maybeStartRiderAssignment is fire-and-forget and may call more queries;
+    // default empty results keep it from throwing hard.
+    pool.query.mockResolvedValue([[]]);
+
+    const res = await request(app)
+      .patch('/api/admin/shops/1/orders/10/confirm')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.message).toBe('Order confirmed');
+  });
+
+  it('GET /shops/:id/orders lists active orders for the shop', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 1, name: 'Burger Point' }]]) // shop exists
+      .mockResolvedValueOnce([[
+        { id: 10, order_number: 'ORD-10', status: 'Accepted', note: null, created_at: '2026-07-09 10:00:00', delivery_type: 'standard' },
+      ]])
+      .mockResolvedValueOnce([[{ standard_delivery_minutes: 55, fast_delivery_minutes: 20 }]])
+      .mockResolvedValueOnce([[
+        { id: 101, order_id: 10, product_name: 'Burger', quantity: 1, variant_label: null, shop_confirmed_at: null, shop_rejected_at: null, shop_ready_at: null },
+      ]]);
+
+    const res = await request(app)
+      .get('/api/admin/shops/1/orders')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.shopName).toBe('Burger Point');
+    expect(res.body.orders).toHaveLength(1);
+    expect(res.body.orders[0].confirmed).toBe(false);
+    expect(res.body.orders[0].orderNumber).toBe('ORD-10');
+  });
+
+  it('DELETE /shops/:id reassigns products to home and removes shop', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 1, name: 'Burger Point', owner_user_id: 7 }]]) // existence
+      .mockResolvedValueOnce([[{ cnt: 0 }]]) // no active orders
+      .mockResolvedValueOnce([{ affectedRows: 2 }]) // reassign products → house
+      .mockResolvedValueOnce([{ affectedRows: 1 }]) // DELETE shop
+      // syncGlobalShopOpenState
+      .mockResolvedValueOnce([[{ delivery_available: 1 }]])
+      .mockResolvedValueOnce([[{ total_active: 0, total_open: 0 }]]);
+
+    const res = await request(app)
+      .delete('/api/admin/shops/1')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.message).toBe('Shop deleted');
+    expect(res.body.shopId).toBe(1);
+    expect(res.body.becomesCustomer).toBe(true);
+    expect(res.body.productsReassigned).toBe(2);
+    // Products move to house (shop_id NULL), not soft-deleted.
+    const reassignSql = String(pool.query.mock.calls[2][0]);
+    expect(reassignSql).toMatch(/shop_id\s*=\s*NULL/i);
+    expect(reassignSql).toMatch(/group_id\s*=\s*NULL/i);
+    expect(reassignSql).not.toMatch(/deleted\s*=\s*1/i);
+  });
+
+  it('DELETE /shops/:id blocks when active orders remain', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 1, name: 'Burger Point' }]])
+      .mockResolvedValueOnce([[{ cnt: 2 }]]);
+
+    const res = await request(app)
+      .delete('/api/admin/shops/1')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+    expect(res.body.message).toMatch(/active orders/i);
+  });
+
+  it('DELETE /shops/:id → 404 when missing', async () => {
+    pool.query.mockResolvedValueOnce([[]]);
+
+    const res = await request(app)
+      .delete('/api/admin/shops/99')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.statusCode).toEqual(404);
+    expect(res.body.code).toBe('NOT_FOUND');
   });
 });

@@ -47,7 +47,6 @@ const assignment = require('../src/services/riderAssignment');
 const {
   selectRiderByLeastOrders,
   syncDeliveryAvailabilityFromRiders,
-  RIDER_HEARTBEAT_TTL_SEC,
 } = require('../src/utils/riders');
 const adminInbox = require('../src/utils/adminNotifications');
 const notificationService = require('../src/utils/notificationService');
@@ -116,9 +115,6 @@ describe('UAT 14.1 / 14.10 — delivery_available follows rider online count', (
     expect(r.changed).toBe(true);
   });
 
-  it('heartbeat TTL is configured (soft presence)', () => {
-    expect(RIDER_HEARTBEAT_TTL_SEC).toBeGreaterThanOrEqual(30);
-  });
 });
 
 describe('UAT 14.2 — one rider accept path notifies customer', () => {
@@ -149,34 +145,59 @@ describe('UAT 14.2 — one rider accept path notifies customer', () => {
   });
 });
 
-describe('UAT 14.3 — sole rider reject cancels + admin notify', () => {
+describe('UAT 14.3 — sole rider reject: wait window then admin notify', () => {
   beforeEach(reset);
 
-  it('reject with no other eligible riders fails assignment + admin inbox', async () => {
+  it('reject with no other eligible riders waits while search window open', async () => {
     const order = baseOrder({ rider_assignment_status: 'offered' });
     const conn = makeConn([
       [[{ id: 1, order_id: 10, rider_id: 3, status: 'pending', expires_at: new Date(Date.now() + 99999) }]],
       [{ affectedRows: 1 }],
     ]);
-    pool.getConnection
-      .mockResolvedValueOnce(conn)
-      .mockResolvedValueOnce(makeConn([
-        [{ affectedRows: 1 }],
-        [{ affectedRows: 0 }],
-      ]));
+    pool.getConnection.mockResolvedValueOnce(conn);
 
     pool.query
+      .mockResolvedValueOnce([[{ user_id: 7 }]]) // revoke notify after reject
       .mockResolvedValueOnce([[order]]) // continue loadOrder
       .mockResolvedValueOnce([[]]) // no pending
       .mockResolvedValueOnce([[{ rider_id: 3 }]]) // excluded
       .mockResolvedValueOnce([[]]) // eligible empty
-      .mockResolvedValueOnce([[order]]) // fail loadOrder
-      .mockResolvedValueOnce([[{ ...order, status: 'Cancelled' }]])
-      .mockResolvedValueOnce([[{ cnt: 0 }]])
-      .mockResolvedValueOnce([[{ delivery_available: 0 }]]);
+      // isWithinSearchWindow reads first; already stamped → no markSearching UPDATE
+      .mockResolvedValueOnce([[{ stamped: 1, open: 1 }]]); // window open
 
     const r = await assignment.rejectOffer(1, 3);
     expect(r.ok).toBe(true);
+    expect(r.continued?.waiting).toBe(true);
+    expect(adminInbox.createAdminNotification).not.toHaveBeenCalled();
+  });
+
+  it('reject with no eligible after window expires fails + admin inbox', async () => {
+    const order = baseOrder({ rider_assignment_status: 'offered' });
+    const conn = makeConn([
+      [[{ id: 1, order_id: 10, rider_id: 3, status: 'pending', expires_at: new Date(Date.now() + 99999) }]],
+      [{ affectedRows: 1 }],
+    ]);
+    pool.getConnection.mockResolvedValueOnce(conn);
+
+    pool.query
+      .mockResolvedValueOnce([[{ user_id: 7 }]]) // revoke notify after reject
+      .mockResolvedValueOnce([[order]]) // continue loadOrder
+      .mockResolvedValueOnce([[]]) // no pending
+      .mockResolvedValueOnce([[{ rider_id: 3 }]]) // excluded
+      .mockResolvedValueOnce([[]]) // eligible empty
+      // isWithinSearchWindow reads first; already stamped → no markSearching UPDATE
+      .mockResolvedValueOnce([[{ stamped: 1, open: 0 }]]) // window closed
+      .mockResolvedValueOnce([[order]]) // fail loadOrder
+      .mockResolvedValueOnce([{ affectedRows: 1 }]) // SET failed
+      .mockResolvedValueOnce([{ affectedRows: 0 }]) // revoke
+      .mockResolvedValueOnce([[{ ...order, rider_assignment_status: 'failed' }]])
+      .mockResolvedValueOnce([[{ cnt: 0 }]])
+      .mockResolvedValueOnce([[{ delivery_available: 0 }]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const r = await assignment.rejectOffer(1, 3);
+    expect(r.ok).toBe(true);
+    expect(r.continued?.failed).toBe(true);
     expect(adminInbox.createAdminNotification).toHaveBeenCalled();
   });
 });
@@ -203,7 +224,7 @@ describe('UAT 14.4 — least completed today wins', () => {
 describe('UAT 14.5 — timeout treated as reject then continue', () => {
   beforeEach(reset);
 
-  it('expireOffer CAS-marks expired and continues chain', async () => {
+  it('expireOffer CAS-marks expired and continues chain (waits if window open)', async () => {
     const order = baseOrder({ rider_assignment_status: 'offered' });
     pool.query
       .mockResolvedValueOnce([{ affectedRows: 1 }])
@@ -212,23 +233,22 @@ describe('UAT 14.5 — timeout treated as reject then continue', () => {
       .mockResolvedValueOnce([[order]])
       .mockResolvedValueOnce([[]])
       .mockResolvedValueOnce([[{ rider_id: 3 }]])
-      .mockResolvedValueOnce([[]]) // no more eligible → fail
-      .mockResolvedValueOnce([[order]])
-      .mockResolvedValueOnce([[{ ...order, status: 'Cancelled' }]])
-      .mockResolvedValueOnce([[{ cnt: 0 }]])
-      .mockResolvedValueOnce([[{ delivery_available: 0 }]]);
-
-    pool.getConnection.mockResolvedValue(makeConn([
-      [{ affectedRows: 1 }],
-      [{ affectedRows: 0 }],
-    ]));
+      .mockResolvedValueOnce([[]]) // no more eligible
+      // isWithinSearchWindow reads first; already stamped → no markSearching UPDATE
+      .mockResolvedValueOnce([[{ stamped: 1, open: 1 }]]); // wait
 
     const r = await assignment.expireOffer(99);
     expect(r.expired).toBe(true);
+    expect(adminInbox.createAdminNotification).not.toHaveBeenCalled();
   });
 
-  it('offer timeout constant is 2 minutes', () => {
-    expect(assignment.RIDER_OFFER_TIMEOUT_SEC).toBe(120);
+  it('offer timeout constant is 5 minutes', () => {
+    expect(assignment.RIDER_OFFER_TIMEOUT_SEC).toBe(300);
+  });
+
+  it('search window defaults are 10 min / 30s scan', () => {
+    expect(assignment.RIDER_SEARCH_WINDOW_SEC).toBe(600);
+    expect(assignment.RIDER_SEARCH_SCAN_SEC).toBe(30);
   });
 });
 
@@ -240,50 +260,16 @@ describe('UAT 14.6 — remaining time from server expiresAt (app restart safe)',
   });
 });
 
-describe('UAT 14.7 — post-accept cancel excludes rider forever for that order', () => {
+describe('UAT 14.7 — post-accept cancel disabled (admin-only cancel)', () => {
   beforeEach(reset);
 
-  it('blocks cancel after pickup', async () => {
-    pool.query.mockResolvedValueOnce([[{
-      id: 10, rider_id: 3, rider_picked_up_at: '2026-07-12', status: 'Preparing',
-    }]]);
+  it('never allows rider cancel after accept', async () => {
     const r = await assignment.cancelAssignmentByRider(10, 3);
     expect(r.ok).toBe(false);
-    expect(r.code).toBe('CANNOT_CANCEL_AFTER_PICKUP');
+    expect(r.code).toBe('CANCEL_NOT_ALLOWED');
   });
 
-  it('cancel before pickup continues and excludes via offer row', async () => {
-    const order = baseOrder({
-      rider_id: 3,
-      rider_picked_up_at: null,
-      rider_assignment_status: 'assigned',
-    });
-    pool.query
-      .mockResolvedValueOnce([[order]])
-      .mockResolvedValueOnce([[{ ...order, rider_id: null }]])
-      .mockResolvedValueOnce([[]])
-      .mockResolvedValueOnce([[{ rider_id: 3 }]]) // excluded includes canceller
-      .mockResolvedValueOnce([[]])
-      .mockResolvedValueOnce([[{ ...order, rider_id: null }]])
-      .mockResolvedValueOnce([[{ ...order, status: 'Cancelled' }]])
-      .mockResolvedValueOnce([[{ cnt: 0 }]])
-      .mockResolvedValueOnce([[{ delivery_available: 0 }]]);
-
-    pool.getConnection
-      .mockResolvedValueOnce(makeConn([
-        [{ affectedRows: 1 }],
-        [{ affectedRows: 1 }], // accepted → rejected post_accept_cancel
-      ]))
-      .mockResolvedValueOnce(makeConn([
-        [{ affectedRows: 1 }],
-        [{ affectedRows: 0 }],
-      ]));
-
-    const r = await assignment.cancelAssignmentByRider(10, 3);
-    expect(r.ok).toBe(true);
-
-    // getExcludedRiderIds includes any prior offer row for the order
-    reset();
+  it('reject still excludes rider forever for that order', async () => {
     pool.query.mockResolvedValueOnce([[{ rider_id: 3 }, { rider_id: 8 }]]);
     await expect(assignment.getExcludedRiderIdsForOrder(10)).resolves.toEqual([3, 8]);
   });
@@ -342,30 +328,23 @@ describe('UAT 14.9 — multi-shop: wait until all shops confirm', () => {
 describe('UAT 14.1 zero riders at assignment start', () => {
   beforeEach(reset);
 
-  it('startAssignment with zero eligible fails and cancels', async () => {
+  it('startAssignment with zero eligible waits (no instant fail)', async () => {
     const order = baseOrder();
     pool.getConnection
       .mockResolvedValueOnce(makeConn([
         [[order]],
         [{ affectedRows: 1 }],
-      ]))
-      .mockResolvedValueOnce(makeConn([
-        [{ affectedRows: 1 }],
-        [{ affectedRows: 0 }],
       ]));
 
     pool.query
       .mockResolvedValueOnce([[]]) // excluded
-      .mockResolvedValueOnce([[]]) // eligible empty
-      .mockResolvedValueOnce([[order]])
-      .mockResolvedValueOnce([[{ ...order, status: 'Cancelled', rider_assignment_status: 'failed' }]])
-      .mockResolvedValueOnce([[{ cnt: 0 }]])
-      .mockResolvedValueOnce([[{ delivery_available: 1 }]])
-      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+      .mockResolvedValueOnce([[]]); // eligible empty
 
     const r = await assignment.startAssignment(10);
     expect(r.started).toBe(true);
-    expect(r.failed).toBe(true);
-    expect(adminInbox.createAdminNotification).toHaveBeenCalled();
+    expect(r.waiting).toBe(true);
+    expect(r.reason).toBe('waiting_for_riders');
+    expect(r.failed).toBeFalsy();
+    expect(adminInbox.createAdminNotification).not.toHaveBeenCalled();
   });
 });

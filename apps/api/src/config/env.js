@@ -59,9 +59,15 @@ const config = {
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
 
   // Rider assignment engine (optional overrides; defaults match product rules)
-  RIDER_OFFER_TIMEOUT_SEC: Number(process.env.RIDER_OFFER_TIMEOUT_SEC) || 120,
-  RIDER_HEARTBEAT_TTL_SEC: Number(process.env.RIDER_HEARTBEAT_TTL_SEC) || 90,
+  RIDER_OFFER_TIMEOUT_SEC: Number(process.env.RIDER_OFFER_TIMEOUT_SEC) || 300,
+  // After shops confirm (or house Accepted): if no eligible riders, keep searching
+  // for this many seconds before failAssignment / admin cancel-request.
+  RIDER_SEARCH_WINDOW_SEC: Number(process.env.RIDER_SEARCH_WINDOW_SEC) || 600,
+  // Minimum seconds between re-scans while waiting for riders to come online.
+  RIDER_SEARCH_SCAN_SEC: Number(process.env.RIDER_SEARCH_SCAN_SEC) || 30,
   RIDER_SWEEPER_MS: Number(process.env.RIDER_SWEEPER_MS) || 5000,
+  // Re-push pending delivery offers this often until accept/reject/expire.
+  RIDER_OFFER_REMIND_SEC: Number(process.env.RIDER_OFFER_REMIND_SEC) || 15,
   RIDER_TODAY_TZ: process.env.RIDER_TODAY_TZ || '+05:30',
 };
 

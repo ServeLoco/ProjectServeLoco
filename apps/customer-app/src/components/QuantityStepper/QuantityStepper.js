@@ -146,11 +146,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   addBtnDense: {
-    height: 32,
+    height: 38,
     width: 'auto',
     alignSelf: 'flex-start',
-    minWidth: 52,
-    paddingHorizontal: 8,
+    minWidth: 64,
+    paddingHorizontal: 12,
     borderRadius: radius.sm,
   },
   addBtnInner: {
@@ -172,8 +172,8 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
   },
   addLabelDense: {
-    fontSize: 11,
-    lineHeight: 13,
+    fontSize: 13,
+    lineHeight: 15,
     fontWeight: '800',
     letterSpacing: 0.4,
     color: colors.textInverse,
@@ -197,10 +197,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   stepperDense: {
-    height: 32,
+    height: 38,
     width: 'auto',
     alignSelf: 'flex-start',
-    minWidth: 68,
+    minWidth: 84,
     borderRadius: radius.sm,
   },
   stepBtn: {
@@ -214,8 +214,8 @@ const styles = StyleSheet.create({
     height: 34,
   },
   stepBtnDense: {
-    width: 22,
-    height: 32,
+    width: 28,
+    height: 38,
   },
   stepIcon: {
     fontSize: 18,
@@ -241,11 +241,11 @@ const styles = StyleSheet.create({
     minWidth: 18,
   },
   qtyDense: {
-    fontSize: 12,
-    lineHeight: 14,
+    fontSize: 14,
+    lineHeight: 16,
     color: colors.textInverse,
     fontWeight: '800',
-    minWidth: 16,
+    minWidth: 18,
   },
 
   disabled: {

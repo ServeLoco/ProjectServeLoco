@@ -7,6 +7,7 @@ import OrderStatusTimeline from '../../components/OrderStatusTimeline/OrderStatu
 import ErrorState from '../../components/ErrorState';
 import SkeletonCard from '../../components/SkeletonCard';
 import { formatPrice, formatDate } from '../../utils/formatters';
+import { formatCancelReasonForCustomer, pickCancelReason } from '../../utils/cancelReason';
 import './OrderDetailScreen.css';
 
 const BackIcon = () => (
@@ -148,7 +149,12 @@ export default function OrderDetailScreen() {
 
       <div className="od-content">
         {order.status === 'Cancelled' && (
-          <div className="od-cancel-banner" role="status">This order was cancelled.</div>
+          <div className="od-cancel-banner" role="status">
+            <div className="od-cancel-banner-title">Order Cancelled</div>
+            <div className="od-cancel-banner-reason">
+              {formatCancelReasonForCustomer(pickCancelReason(order))}
+            </div>
+          </div>
         )}
 
         <div className="od-section">
@@ -162,7 +168,11 @@ export default function OrderDetailScreen() {
               {paymentStatusView.label}
             </span>
           </div>
-          <OrderStatusTimeline status={order.status} cancelled={order.status === 'Cancelled'} />
+          <OrderStatusTimeline
+            status={order.status}
+            cancelled={order.status === 'Cancelled'}
+            cancelReason={pickCancelReason(order)}
+          />
           <div className="od-row">
             <span>Date</span>
             <span className="od-row bold">{formatDate(order.created_at)}</span>

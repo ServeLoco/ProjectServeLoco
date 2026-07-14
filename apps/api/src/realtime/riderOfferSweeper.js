@@ -4,7 +4,11 @@
  */
 
 const config = require('../config/env');
-const { expireDueOffers, recoverStuckAssignments } = require('../services/riderAssignment');
+const {
+  expireDueOffers,
+  recoverStuckAssignments,
+  remindPendingOffers,
+} = require('../services/riderAssignment');
 
 const RIDER_SWEEPER_MS = config.RIDER_SWEEPER_MS || 5000;
 
@@ -18,6 +22,8 @@ const tick = async () => {
   running = true;
   try {
     await expireDueOffers();
+    // Continuous Expo push while offer is pending (app open or closed).
+    await remindPendingOffers();
     await recoverStuckAssignments();
     missingTableLogged = false;
   } catch (e) {

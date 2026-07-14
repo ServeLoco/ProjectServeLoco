@@ -34,6 +34,29 @@ export function isRecentRealtimeEvent(cacheRef, key, windowMs = 500) {
   return false;
 }
 
+/**
+ * When the whole order is Cancelled, item-level shop_confirmed_* flags are
+ * stale — mark every shop confirmation as order-cancelled so the drawer
+ * badges update live without an HTTP refetch.
+ */
+function applyOrderCancelledToShopConfirmations(shopConfirmations) {
+  if (!Array.isArray(shopConfirmations) || shopConfirmations.length === 0) {
+    return shopConfirmations;
+  }
+  return shopConfirmations.map((sc) => ({
+    ...sc,
+    confirmed: false,
+    confirmedAt: null,
+    confirmed_at: null,
+    ready: false,
+    readyAt: null,
+    ready_at: null,
+    rejected: true,
+    orderCancelled: true,
+    order_cancelled: true,
+  }));
+}
+
 export function mergeAdminOrderPatch(order, payload = {}) {
   if (!order) return order;
 
@@ -55,6 +78,10 @@ export function mergeAdminOrderPatch(order, payload = {}) {
     next.total = payload.total;
   }
 
+  if (payload.cancel_reason !== undefined || payload.cancelReason !== undefined) {
+    next.cancel_reason = payload.cancel_reason ?? payload.cancelReason ?? next.cancel_reason;
+  }
+
   if (updatedAt) {
     next.updated_at = updatedAt;
     next.updatedAt = updatedAt;
@@ -64,5 +91,56 @@ export function mergeAdminOrderPatch(order, payload = {}) {
     next.order_number = payload.orderNumber;
   }
 
+  // Live badge update: admin cancel must not leave "⏳ Waiting" on shops.
+  if (status === 'Cancelled' || status === 'Canceled') {
+    next.shopConfirmations = applyOrderCancelledToShopConfirmations(
+      next.shopConfirmations || next.shop_confirmations
+    );
+  }
+
+  // Per-shop confirm/ready from admin.order.shop_* events (payload has shopId).
+  const shopId = payload.shopId ?? payload.shop_id;
+  if (shopId != null && Array.isArray(next.shopConfirmations)) {
+    const sid = Number(shopId);
+    if (payload.action === 'confirmed' || payload.confirmed === true) {
+      next.shopConfirmations = next.shopConfirmations.map((sc) => (
+        Number(sc.shopId ?? sc.shop_id) === sid
+          ? { ...sc, confirmed: true, rejected: false }
+          : sc
+      ));
+    }
+    if (payload.action === 'ready' || payload.ready === true) {
+      next.shopConfirmations = next.shopConfirmations.map((sc) => (
+        Number(sc.shopId ?? sc.shop_id) === sid
+          ? { ...sc, ready: true, confirmed: true, rejected: false }
+          : sc
+      ));
+    }
+    if (payload.action === 'rejected' || payload.rejected === true) {
+      next.shopConfirmations = next.shopConfirmations.map((sc) => (
+        Number(sc.shopId ?? sc.shop_id) === sid
+          ? { ...sc, rejected: true, confirmed: false, ready: false }
+          : sc
+      ));
+    }
+  }
+
   return next;
+}
+
+/** Same-tab bridge: Orders cancel → Shops panel without waiting on socket. */
+export const ADMIN_ORDER_STATUS_EVENT = 'admin:order-status';
+
+export function broadcastAdminOrderStatus({ orderId, status, shopId, cancelReason } = {}) {
+  if (typeof window === 'undefined' || orderId == null || !status) return;
+  try {
+    window.dispatchEvent(new CustomEvent(ADMIN_ORDER_STATUS_EVENT, {
+      detail: {
+        orderId: Number(orderId),
+        status,
+        shopId: shopId != null ? Number(shopId) : null,
+        cancelReason: cancelReason || null,
+      },
+    }));
+  } catch (_) { /* noop */ }
 }

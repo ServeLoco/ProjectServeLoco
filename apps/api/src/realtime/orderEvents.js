@@ -12,6 +12,8 @@ const toOrderEventPayload = (order = {}) => ({
   paymentMethod: order.payment_method || order.paymentMethod,
   status: order.status,
   paymentStatus: order.payment_status || order.paymentStatus,
+  cancelReason: order.cancel_reason || order.cancelReason || null,
+  cancel_reason: order.cancel_reason || order.cancelReason || null,
   total: order.total,
   items: order.items,
   createdAt: order.created_at || order.createdAt || new Date().toISOString(),

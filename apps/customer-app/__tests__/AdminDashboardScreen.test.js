@@ -16,9 +16,13 @@ jest.mock('../src/api', () => ({
   adminApi: {
     getDashboard: jest.fn(),
     updateSettings: jest.fn(),
+    getInboxUnreadCount: jest.fn().mockResolvedValue({ count: 0 }),
+    getInbox: jest.fn().mockResolvedValue({ data: [] }),
+    markAllInboxRead: jest.fn().mockResolvedValue({}),
   },
   subscribeAdminOrderEvents: () => () => {},
   subscribeAdminRealtimeLifecycle: () => () => {},
+  subscribeAdminRealtime: () => () => {},
 }));
 
 jest.mock('../src/stores', () => ({

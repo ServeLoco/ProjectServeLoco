@@ -49,27 +49,50 @@ const notifyShopsForOrder = async (order) => {
 // Fire-and-forget fan-out when an order a shop was already preparing
 // (Accepted/Preparing) gets cancelled — otherwise the order just vanishes
 // from the shop owner's list with no explanation and they keep cooking it.
+// Also pings admin Shops panel listeners (per shopId) so "Waiting to confirm"
+// clears immediately after admin cancel on the Orders page.
 const notifyShopsOrderCancelled = async (order) => {
   try {
     const [rows] = await pool.query(
       `SELECT DISTINCT s.id AS shop_id, s.name AS shop_name, s.owner_user_id
        FROM order_items oi JOIN shops s ON s.id = oi.shop_id
-       WHERE oi.order_id = ? AND s.active = 1 AND s.owner_user_id IS NOT NULL`,
+       WHERE oi.order_id = ? AND s.active = 1`,
       [order.id]
     );
     if (rows.length === 0) return;
-    const { emitToCustomer } = require('../realtime/socket');
+    const { emitToCustomer, emitToAdmins } = require('../realtime/socket');
     const expoPush = require('./expoPush');
+    const ownerIds = [];
     for (const row of rows) {
-      emitToCustomer(row.owner_user_id, 'shop.order.cancelled', {
-        orderId: order.id, orderNumber: order.order_number, shopId: row.shop_id,
+      // Admin Shops panel filters by shopId on shop_* events; include shopId
+      // so the open panel for that shop refetches and drops the cancelled order.
+      emitToAdmins('admin.order.updated', {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        status: 'Cancelled',
+        shopId: row.shop_id,
+        shop_id: row.shop_id,
       });
+      if (row.owner_user_id) {
+        ownerIds.push(row.owner_user_id);
+        emitToCustomer(row.owner_user_id, 'shop.order.cancelled', {
+          orderId: order.id, orderNumber: order.order_number, shopId: row.shop_id,
+        });
+        // shop.order.updated also drives dashboard/popup refetch (same as admin confirm).
+        emitToCustomer(row.owner_user_id, 'shop.order.updated', {
+          orderId: order.id,
+          shopId: row.shop_id,
+          action: 'cancelled',
+        });
+      }
     }
-    expoPush.sendPushToMany(pool, rows.map(r => r.owner_user_id), {
-      title: 'Order cancelled',
-      body: `Order ${order.order_number} was cancelled. Please stop preparing it.`,
-      data: { type: 'shop_order', orderId: order.id },
-    }).catch(() => {});
+    if (ownerIds.length > 0) {
+      expoPush.sendPushToMany(pool, ownerIds, {
+        title: 'Order cancelled',
+        body: `Order ${order.order_number} was cancelled. Please stop preparing it.`,
+        data: { type: 'shop_order', orderId: order.id },
+      }).catch(() => {});
+    }
   } catch (e) {
     console.error('[shops] notifyShopsOrderCancelled failed for order', order?.id, e.message);
   }
@@ -99,6 +122,37 @@ const notifyShopsRiderAssigned = async (order) => {
     }).catch(() => {});
   } catch (e) {
     console.error('[shops] notifyShopsRiderAssigned failed for order', order?.id, e.message);
+  }
+};
+
+// Notify shops when order status leaves the shop "active" list (Out for Delivery /
+// Delivered / Cancelled) so the owner dashboard drops the card without a manual refresh.
+// Also used for intermediate status updates if the shop UI cares later.
+// Socket only — no push spam (owners already got "new order" / "rider assigned").
+const notifyShopsOrderStatusChanged = async (order) => {
+  try {
+    if (!order?.id) return;
+    const [rows] = await pool.query(
+      `SELECT DISTINCT s.id AS shop_id, s.owner_user_id
+       FROM order_items oi JOIN shops s ON s.id = oi.shop_id
+       WHERE oi.order_id = ? AND s.active = 1 AND s.owner_user_id IS NOT NULL`,
+      [order.id]
+    );
+    if (rows.length === 0) return;
+    const { emitToCustomer } = require('../realtime/socket');
+    const status = order.status;
+    for (const row of rows) {
+      // shop.order.updated is what ShopDashboardScreen already refetches on.
+      emitToCustomer(row.owner_user_id, 'shop.order.updated', {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        shopId: row.shop_id,
+        status,
+        action: 'status',
+      });
+    }
+  } catch (e) {
+    console.error('[shops] notifyShopsOrderStatusChanged failed for order', order?.id, e.message);
   }
 };
 
@@ -220,7 +274,8 @@ const maybeAutoCancelOrderWhenAllShopsRejected = async (orderId) => {
     }
 
     const cancelledPaymentStatus = getCancelledPaymentStatus(order.payment_method);
-    const cancelReason = 'Auto-cancelled: all shops rejected the order';
+    const { resolveCancelReason } = require('./cancelReasons');
+    const cancelReason = resolveCancelReason('shops');
 
     const connection = await pool.getConnection();
     let cancelled = false;
@@ -307,5 +362,6 @@ module.exports = {
   notifyShopsOrderCancelled,
   notifyShopsRiderAssigned,
   notifyShopsRiderAssignmentFailed,
+  notifyShopsOrderStatusChanged,
   maybeAutoCancelOrderWhenAllShopsRejected,
 };

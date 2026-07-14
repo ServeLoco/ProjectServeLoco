@@ -13,7 +13,6 @@ const {
   selectRiderByLeastOrders,
   countActiveRiders,
   syncDeliveryAvailabilityFromRiders,
-  RIDER_HEARTBEAT_TTL_SEC,
 } = require('../src/utils/riders');
 
 jest.mock('../src/db/mysql', () => ({
@@ -124,7 +123,8 @@ describe('listEligibleRiders', () => {
     const sql = pool.query.mock.calls[0][0];
     expect(sql).toContain('NOT EXISTS');
     expect(sql).not.toMatch(/r\.id NOT IN/);
-    expect(sql).toContain(`INTERVAL ${RIDER_HEARTBEAT_TTL_SEC} SECOND`);
+    expect(sql).not.toMatch(/last_heartbeat_at/);
+    expect(sql).toContain('is_online = 1');
   });
 
   it('excludes given rider ids', async () => {

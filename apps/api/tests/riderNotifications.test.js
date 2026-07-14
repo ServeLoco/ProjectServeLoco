@@ -7,6 +7,7 @@ const expoPush = require('../src/utils/expoPush');
 const {
   notifyShopsRiderAssigned,
   notifyShopsRiderAssignmentFailed,
+  notifyShopsOrderStatusChanged,
 } = require('../src/utils/shops');
 const notificationService = require('../src/utils/notificationService');
 
@@ -65,6 +66,31 @@ describe('rider shop notifications', () => {
     pool.query.mockResolvedValueOnce([[]]);
     await notifyShopsRiderAssigned({ id: 1, order_number: 'X' });
     expect(emitToCustomer).not.toHaveBeenCalled();
+  });
+
+  it('notifyShopsOrderStatusChanged emits shop.order.updated to owners', async () => {
+    pool.query.mockResolvedValueOnce([[
+      { shop_id: 1, owner_user_id: 20 },
+      { shop_id: 2, owner_user_id: 21 },
+    ]]);
+
+    await notifyShopsOrderStatusChanged({
+      id: 12,
+      order_number: 'ORD-12',
+      status: 'Delivered',
+    });
+
+    expect(emitToCustomer).toHaveBeenCalledWith(20, 'shop.order.updated', expect.objectContaining({
+      orderId: 12,
+      status: 'Delivered',
+      action: 'status',
+      shopId: 1,
+    }));
+    expect(emitToCustomer).toHaveBeenCalledWith(21, 'shop.order.updated', expect.objectContaining({
+      orderId: 12,
+      status: 'Delivered',
+      action: 'status',
+    }));
   });
 });
 

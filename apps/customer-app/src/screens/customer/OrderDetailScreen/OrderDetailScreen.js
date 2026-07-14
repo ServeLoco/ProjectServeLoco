@@ -1,19 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   Animated,
+  Dimensions,
   Modal,
   Linking,
   ActivityIndicator,
   RefreshControl,
+  PanResponder,
+  TouchableOpacity,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AppScreen,
   AppHeader,
@@ -22,10 +25,11 @@ import {
   PressableScale,
   NotificationPermissionModal,
   ErrorState,
+  RiderLiveMap,
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows } from '../../../theme';
 import { useSettingsStore } from '../../../stores';
-import { ordersApi, subscribeOrderEvents, subscribeRealtimeLifecycle } from '../../../api';
+import { ordersApi, subscribeOrderEvents, subscribeRealtime, subscribeRealtimeLifecycle } from '../../../api';
 import { normalizeImageUrl, normalizeOrder } from '../../../utils';
 import * as Notifications from 'expo-notifications';
 import { requestNotificationPermission, checkNotificationPermission, readAskedState } from '../../../hooks/useLocalNotifications';
@@ -35,6 +39,16 @@ import {
   isRecentRealtimeEvent,
   mergeOrderRealtimePatch,
 } from '../../../utils/realtimeOrder';
+import {
+  formatCancelReasonForCustomer,
+  pickCancelReason,
+} from '../../../utils/cancelReason';
+
+const WIN_H = Dimensions.get('window').height;
+// Checkout-style sheet: collapsed = big map; expanded = order details.
+const SHEET_COLLAPSED = Math.round(WIN_H * 0.40);
+const SHEET_EXPANDED = Math.round(WIN_H * 0.78);
+const SHEET_MID = (SHEET_COLLAPSED + SHEET_EXPANDED) / 2;
 
 const STATUS_STEPS = [
   {
@@ -136,6 +150,78 @@ export default function OrderDetailScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
 
+  // Sheet scroll only — map is a sibling behind the sheet (checkout pattern).
+  const scrollRef = useRef(null);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
+  const sheetExpandedRef = useRef(false);
+  const sheetHeightAnim = useRef(new Animated.Value(SHEET_COLLAPSED)).current;
+  const sheetHeightNum = useRef(SHEET_COLLAPSED);
+  const sheetDragStart = useRef(SHEET_COLLAPSED);
+  const scrollYRef = useRef(0);
+  const [sheetReserve, setSheetReserve] = useState(SHEET_COLLAPSED);
+
+  const snapSheet = useCallback((expanded) => {
+    const h = expanded ? SHEET_EXPANDED : SHEET_COLLAPSED;
+    sheetHeightNum.current = h;
+    sheetExpandedRef.current = expanded;
+    setSheetExpanded(expanded);
+    setSheetReserve(h);
+    if (!expanded) {
+      scrollYRef.current = 0;
+      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
+    }
+    Animated.spring(sheetHeightAnim, {
+      toValue: h,
+      friction: 9,
+      tension: 80,
+      useNativeDriver: false,
+    }).start();
+  }, [sheetHeightAnim]);
+
+  const sheetPanResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, g) => {
+      if (Math.abs(g.dy) < 6) return false;
+      if (Math.abs(g.dy) < Math.abs(g.dx) * 1.1) return false;
+      if (!sheetExpandedRef.current) return true;
+      if (sheetHeightNum.current < SHEET_EXPANDED - 4) return true;
+      if (scrollYRef.current <= 2 && g.dy > 4) return true;
+      return false;
+    },
+    onMoveShouldSetPanResponderCapture: (_, g) => {
+      if (Math.abs(g.dy) < 6) return false;
+      if (Math.abs(g.dy) < Math.abs(g.dx) * 1.1) return false;
+      if (!sheetExpandedRef.current) return true;
+      if (sheetHeightNum.current < SHEET_EXPANDED - 4) return true;
+      if (scrollYRef.current <= 2 && g.dy > 4) return true;
+      return false;
+    },
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderGrant: () => {
+      sheetDragStart.current = sheetHeightNum.current;
+    },
+    onPanResponderMove: (_, g) => {
+      const next = Math.min(
+        SHEET_EXPANDED,
+        Math.max(SHEET_COLLAPSED, sheetDragStart.current - g.dy),
+      );
+      sheetHeightAnim.setValue(next);
+      sheetHeightNum.current = next;
+      sheetExpandedRef.current = next >= SHEET_MID;
+    },
+    onPanResponderRelease: (_, g) => {
+      const current = sheetHeightNum.current;
+      const flingUp = g.vy < -0.55;
+      const flingDown = g.vy > 0.55;
+      if (flingUp) snapSheet(true);
+      else if (flingDown) snapSheet(false);
+      else snapSheet(current >= SHEET_MID);
+    },
+    onPanResponderTerminate: () => {
+      snapSheet(sheetHeightNum.current >= SHEET_MID);
+    },
+  }), [sheetHeightAnim, snapSheet]);
+
   // Modal State
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -231,6 +317,13 @@ export default function OrderDetailScreen() {
       queueRealtimeLoad();
     });
 
+    // Rider accepted → parent order reloads (rider info); map also listens itself.
+    const unsubscribeAssign = subscribeRealtime('rider.assignment.updated', (payload) => {
+      const eventOrderId = getRealtimeOrderId(payload);
+      if (!eventOrderId || eventOrderId !== String(orderId)) return;
+      queueRealtimeLoad();
+    });
+
     const unsubscribeLifecycle = subscribeRealtimeLifecycle(({ eventName }) => {
       if (eventName === 'reconnected' || eventName === 'foreground') {
         queueRealtimeLoad();
@@ -239,6 +332,7 @@ export default function OrderDetailScreen() {
 
     return () => {
       unsubscribeOrders();
+      unsubscribeAssign();
       unsubscribeLifecycle();
       if (realtimeLoadTimer.current) {
         clearTimeout(realtimeLoadTimer.current);
@@ -292,10 +386,24 @@ export default function OrderDetailScreen() {
       .finally(() => setIsCancelling(false));
   };
 
-  const handleContact = () => {
-    if (supportPhone) {
-      Linking.openURL(`tel:${supportPhone}`);
-    }
+  const riderPhone = (() => {
+    const raw = order?.rider?.phone || order?.riderPhone || order?.rider_phone || null;
+    if (!raw) return null;
+    const digits = String(raw).replace(/[^0-9+]/g, '');
+    return digits || null;
+  })();
+
+  const handleContactRider = () => {
+    if (!riderPhone) return;
+    Linking.openURL(`tel:${riderPhone}`);
+  };
+
+  // Same as Profile → Help & Support: open WhatsApp to store support number.
+  const handleHelpSupport = () => {
+    if (!supportPhone) return;
+    const digits = String(supportPhone).replace(/[^0-9]/g, '');
+    const withCountryCode = digits.length === 10 ? `91${digits}` : digits;
+    Linking.openURL(`https://wa.me/${withCountryCode}`).catch(() => {});
   };
 
   const handleAllowNotifications = async () => {
@@ -373,26 +481,87 @@ export default function OrderDetailScreen() {
       ? 'Delivery (Below Minimum)'
       : 'Delivery Charge';
   const billDiscount = order.bill.freeDeliveryApplied ? order.bill.itemDiscount : order.bill.discount;
+  // Hide map after delivery or cancel — full sheet only (no live tracking map).
+  const mapMode = order.status !== 'Cancelled' && order.status !== 'Delivered';
+  const orderNumberLabel = order.orderNumber || order.order_number || order.id || orderId;
 
   return (
-    <AppScreen style={styles.container} safeAreaBottom={false}>
-      <AppHeader title="Track Order" onBack={() => navigation.goBack()} />
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => loadOrder(true)}
-            tintColor={colors.primary}
-            colors={[colors.primary, colors.success, colors.saffron]}
-            title="Refreshing ServeLoco"
-            titleColor={colors.textSecondary}
+    <View style={styles.immersiveRoot}>
+      {mapMode ? (
+        <View style={styles.mapLayer} pointerEvents="box-none">
+          <RiderLiveMap
+            orderId={order.id || orderId}
+            initialOrder={order}
+            style={StyleSheet.absoluteFill}
+            showLegend={false}
+            immersive
+            sheetReserve={sheetReserve}
           />
-        }
+        </View>
+      ) : (
+        <View style={styles.manualBackdrop} />
+      )}
+
+      <Animated.View
+        style={[
+          styles.checkoutSheet,
+          !mapMode && styles.checkoutSheetManual,
+          mapMode && { height: sheetHeightAnim },
+        ]}
+        {...(mapMode ? sheetPanResponder.panHandlers : {})}
       >
-        
+        <SafeAreaView
+          style={styles.sheetSafe}
+          edges={mapMode ? [] : ['top']}
+        >
+          <View style={styles.sheetDragZone}>
+            {mapMode ? <View style={styles.sheetHandle} /> : null}
+            <View style={[styles.sheetHeader, !mapMode && styles.sheetHeaderManual]}>
+              <View style={styles.sheetHeaderText}>
+                <Text style={styles.sheetTitle}>Track Order</Text>
+                <Text style={styles.sheetStatusLine} numberOfLines={1}>
+                  {mapMode
+                    ? `#${orderNumberLabel} · ${currentStep.label}`
+                    : order.status === 'Delivered'
+                      ? `#${orderNumberLabel} · Delivered`
+                      : `#${orderNumberLabel} · Cancelled`}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.sheetIconBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <AppIcon name="back" size={22} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <ScrollView
+            ref={scrollRef}
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.sheetScrollContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+            scrollEnabled={sheetExpanded || !mapMode}
+            bounces={sheetExpanded || !mapMode}
+            onScroll={(e) => {
+              scrollYRef.current = e.nativeEvent.contentOffset.y;
+            }}
+            scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={() => loadOrder(true)}
+                tintColor={colors.primary}
+                colors={[colors.primary, colors.success, colors.saffron]}
+                title="Refreshing ServeLoco"
+                titleColor={colors.textSecondary}
+              />
+            }
+          >
+
         {/* Status Timeline */}
         {order.status === 'Cancelled' ? (
           <Animated.View
@@ -423,6 +592,12 @@ export default function OrderDetailScreen() {
               </View>
               <Text style={styles.trackingCancelledTitle}>Order Cancelled</Text>
             </LinearGradient>
+            <View style={styles.trackingCancelledReasonBox}>
+              <Text style={styles.trackingCancelledReasonLabel}>Reason</Text>
+              <Text style={styles.trackingCancelledReasonText}>
+                {formatCancelReasonForCustomer(pickCancelReason(order))}
+              </Text>
+            </View>
           </Animated.View>
         ) : (
           <Animated.View
@@ -448,16 +623,20 @@ export default function OrderDetailScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.trackingHeroBand}
             >
-              <View style={styles.trackingLivePill}>
-                <LivePulseDot color={colors.white} />
-                <Text style={styles.trackingLiveText}>LIVE TRACKING</Text>
+              <View style={styles.trackingHeroRow}>
+                <View style={styles.trackingHeroTextCol}>
+                  <Text style={styles.trackingHeroTitle} numberOfLines={1}>
+                    {currentStep.label}
+                  </Text>
+                  <Text style={styles.trackingHeroHint} numberOfLines={1}>
+                    {currentStep.hint}
+                  </Text>
+                </View>
+                <View style={styles.trackingLivePill}>
+                  <LivePulseDot color={colors.white} />
+                  <Text style={styles.trackingLiveText}>LIVE TRACKING</Text>
+                </View>
               </View>
-              <Text style={styles.trackingHeroTitle} numberOfLines={1}>
-                {currentStep.label}
-              </Text>
-              <Text style={styles.trackingHeroHint} numberOfLines={1}>
-                {currentStep.hint}
-              </Text>
             </LinearGradient>
 
             <View style={styles.trackingTrack}>
@@ -494,19 +673,6 @@ export default function OrderDetailScreen() {
           </Animated.View>
         )}
 
-        {timelineStatus === 'Out for Delivery' &&
-        (order.riderId || order.rider_id || order.rider) ? (
-          <PressableScale
-            onPress={() => navigation.navigate('RiderTracking', { orderId: order.id || orderId })}
-            style={styles.trackRiderBtn}
-            scaleTo={0.98}
-            accessibilityRole="button"
-            accessibilityLabel="Track rider"
-          >
-            <AppIcon name="navigation" size={16} color={colors.white} />
-            <Text style={styles.trackRiderBtnText}>Track rider</Text>
-          </PressableScale>
-        ) : null}
 
         {/* Item List */}
         <View style={styles.itemsSection}>
@@ -651,43 +817,63 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-      </ScrollView>
+          </ScrollView>
 
-      {/* Action Buttons */}
-      {(order.canCancel || supportPhone) && (
-        <View style={[styles.bottomBar, { paddingBottom: spacing.lg + insets.bottom }]}>
-          <View style={styles.actionButtonsRow}>
-            {order.canCancel && (
-              <View style={styles.btnWrapper}>
-                <PressableScale 
-                  onPress={openModal} 
-                  style={[styles.bottomBtn, styles.cancelBtn]}
-                  scaleTo={0.96}
-                >
-                  <View style={styles.btnContent}>
-                    <AppIcon name="close" size={16} color={colors.error} />
-                    <Text style={styles.cancelBtnText}>Cancel Order</Text>
+          {/* Sticky sheet footer — cancel / contact */}
+          {(order.canCancel || riderPhone || supportPhone) ? (
+            <View
+              style={[
+                styles.sheetFooter,
+                { paddingBottom: Math.max(insets.bottom, spacing.sm) },
+              ]}
+            >
+              <View style={styles.actionButtonsRow}>
+                {order.canCancel ? (
+                  <View style={styles.btnWrapper}>
+                    <PressableScale
+                      onPress={openModal}
+                      style={[styles.bottomBtn, styles.cancelBtn]}
+                      scaleTo={0.96}
+                    >
+                      <View style={styles.btnContent}>
+                        <AppIcon name="close" size={16} color={colors.error} />
+                        <Text style={styles.cancelBtnText}>Cancel Order</Text>
+                      </View>
+                    </PressableScale>
                   </View>
-                </PressableScale>
-              </View>
-            )}
-            {supportPhone && (
-              <View style={styles.btnWrapper}>
-                <PressableScale 
-                  onPress={handleContact} 
-                  style={[styles.bottomBtn, styles.outlineBtn]}
-                  scaleTo={0.96}
-                >
-                  <View style={styles.btnContent}>
-                    <AppIcon name="phone" size={16} color={colors.success} />
-                    <Text style={styles.outlineBtnText}>Contact Store</Text>
+                ) : null}
+                {riderPhone ? (
+                  <View style={styles.btnWrapper}>
+                    <PressableScale
+                      onPress={handleContactRider}
+                      style={[styles.bottomBtn, styles.outlineBtn]}
+                      scaleTo={0.96}
+                    >
+                      <View style={styles.btnContent}>
+                        <AppIcon name="phone" size={16} color={colors.success} />
+                        <Text style={styles.outlineBtnText}>Contact Rider</Text>
+                      </View>
+                    </PressableScale>
                   </View>
-                </PressableScale>
+                ) : supportPhone ? (
+                  <View style={styles.btnWrapper}>
+                    <PressableScale
+                      onPress={handleHelpSupport}
+                      style={[styles.bottomBtn, styles.outlineBtn]}
+                      scaleTo={0.96}
+                    >
+                      <View style={styles.btnContent}>
+                        <AppIcon name="whatsapp" size={16} color={colors.success} />
+                        <Text style={styles.outlineBtnText}>Help & Support</Text>
+                      </View>
+                    </PressableScale>
+                  </View>
+                ) : null}
               </View>
-            )}
-          </View>
-        </View>
-      )}
+            </View>
+          ) : null}
+        </SafeAreaView>
+      </Animated.View>
 
       {/* Cancel Modal */}
       <Modal visible={showCancelModal} transparent animationType="none" onRequestClose={closeModal}>
@@ -702,16 +888,16 @@ export default function OrderDetailScreen() {
             ) : null}
 
             <View style={styles.modalActions}>
-              <Button 
-                label="Keep Order" 
-                onPress={closeModal} 
+              <Button
+                label="Keep Order"
+                onPress={closeModal}
                 disabled={isCancelling}
-                style={styles.modalBtn} 
+                style={styles.modalBtn}
               />
-              <Button 
-                label={isCancelling ? "Cancelling..." : "Cancel Order"} 
+              <Button
+                label={isCancelling ? "Cancelling..." : "Cancel Order"}
                 variant="outline"
-                onPress={confirmCancel} 
+                onPress={confirmCancel}
                 disabled={isCancelling}
                 style={[styles.modalBtn, { borderColor: colors.error }]}
                 labelStyle={{ color: colors.error }}
@@ -721,14 +907,12 @@ export default function OrderDetailScreen() {
         </View>
       </Modal>
 
-      {/* Notification Permission Modal */}
       <NotificationPermissionModal
         visible={showNotificationModal}
         onAllow={handleAllowNotifications}
         onDismiss={handleDismissNotificationModal}
       />
-
-    </AppScreen>
+    </View>
   );
 }
 
@@ -917,15 +1101,104 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bgApp,
   },
+  immersiveRoot: {
+    flex: 1,
+    backgroundColor: colors.bgApp,
+  },
+  mapLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  manualBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.bgApp,
+  },
+  checkoutSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.bgSurface,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    ...shadows.cardRaised,
+    overflow: 'hidden',
+  },
+  checkoutSheetManual: {
+    top: 0,
+    bottom: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
+  sheetSafe: {
+    flex: 1,
+    minHeight: 0,
+  },
+  sheetDragZone: {
+    paddingBottom: spacing.xs,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  sheetHeaderManual: {
+    paddingTop: spacing.sm,
+  },
+  sheetHeaderText: {
+    flex: 1,
+    paddingLeft: spacing.lg + spacing.sm,
+  },
+  sheetIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.circle,
+    backgroundColor: colors.bgApp,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  sheetTitle: {
+    ...typography.h2,
+    fontSize: 20,
+    color: colors.textPrimary,
+    textAlign: 'left',
+  },
+  sheetStatusLine: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    textAlign: 'left',
+  },
+  sheetScroll: {
+    flexGrow: 1,
+    flexShrink: 1,
+  },
+  sheetScrollContent: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    flexGrow: 0,
+  },
+  sheetFooter: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    backgroundColor: colors.bgSurface,
+  },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xxxl,
   },
   trackingCard: {
     backgroundColor: colors.bgSurface,
@@ -937,30 +1210,38 @@ const styles = StyleSheet.create({
     ...shadows.cardRaised,
   },
   trackingHeroBand: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.22)',
+  },
+  trackingHeroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  trackingHeroTextCol: {
+    flex: 1,
+    minWidth: 0,
   },
   trackingLivePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 6,
+    flexShrink: 0,
+    gap: 5,
     backgroundColor: 'rgba(255,255,255,0.16)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.24)',
     borderRadius: radius.pill,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 5,
-    marginBottom: spacing.sm,
+    paddingVertical: 3,
   },
   trackingLiveText: {
     ...typography.caption,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.9,
+    letterSpacing: 0.8,
     color: colors.white,
   },
   liveDotWrap: {
@@ -982,14 +1263,16 @@ const styles = StyleSheet.create({
   },
   trackingHeroTitle: {
     ...typography.h2,
+    fontSize: 17,
+    lineHeight: 22,
     color: colors.white,
     fontWeight: '900',
-    marginBottom: 4,
+    marginBottom: 1,
   },
   trackingHeroHint: {
-    ...typography.bodySmall,
+    ...typography.caption,
     color: 'rgba(255,255,255,0.88)',
-    lineHeight: 20,
+    lineHeight: 16,
   },
   trackingTrack: {
     position: 'relative',
@@ -1102,6 +1385,25 @@ const styles = StyleSheet.create({
     ...typography.labelLarge,
     color: colors.white,
     fontWeight: '800',
+  },
+  trackingCancelledReasonBox: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.errorLight || 'rgba(185, 28, 28, 0.08)',
+  },
+  trackingCancelledReasonLabel: {
+    ...typography.labelSmall,
+    color: colors.error,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 4,
+  },
+  trackingCancelledReasonText: {
+    ...typography.body,
+    color: colors.textPrimary,
+    lineHeight: 22,
   },
   itemsSection: {
     backgroundColor: colors.bgSurface,
@@ -1476,22 +1778,51 @@ const styles = StyleSheet.create({
     borderTopWidth: 1.5,
     borderTopColor: colors.border,
   },
-  trackRiderBtn: {
+  mapHeroBleed: {
+    height: 380,
+    marginHorizontal: -spacing.md,
+    marginTop: -spacing.md,
+    marginBottom: spacing.md,
+    width: Dimensions.get('window').width,
+    alignSelf: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  livePill: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
-    marginBottom: spacing.md,
-    ...shadows.sm,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    zIndex: 6,
   },
-  trackRiderBtnText: {
-    ...typography.label,
-    color: colors.white || colors.textInverse || '#fff',
+  livePillText: {
+    ...typography.caption,
+    fontSize: 10,
     fontWeight: '800',
-    fontSize: 15,
+    letterSpacing: 0.8,
+    color: colors.white || '#fff',
+  },
+  expandMapBtn: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    zIndex: 6,
+  },
+  mapHeroInner: {
+    flex: 1,
+    minHeight: 0,
   },
   actionButtonsRow: {
     flexDirection: 'row',

@@ -58,11 +58,13 @@ export default function ShopOrdersScreen() {
   useEffect(() => {
     const unsubAssigned = subscribeRealtime('shop.order.assigned', () => fetchHistory());
     const unsubCancelled = subscribeRealtime('shop.order.cancelled', () => fetchHistory());
+    const unsubUpdated = subscribeRealtime('shop.order.updated', () => fetchHistory());
     const unsubForeground = subscribeRealtime('lifecycle.foreground', () => fetchHistory());
     const unsubReconnected = subscribeRealtime('lifecycle.reconnected', () => fetchHistory());
     return () => {
       unsubAssigned();
       unsubCancelled();
+      unsubUpdated();
       unsubForeground();
       unsubReconnected();
     };

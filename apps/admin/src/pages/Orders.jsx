@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { OrdersApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } from '../api';
 import MessageBanner from '../components/MessageBanner';
+import LiveOrderMap from '../components/LiveOrderMap';
 import { GENERIC_ERROR } from '../utils/constants';
 import { readList } from '../utils/apiResponse';
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
@@ -9,6 +10,7 @@ import {
   getRealtimeOrderKey,
   isRecentRealtimeEvent,
   mergeAdminOrderPatch,
+  broadcastAdminOrderStatus,
 } from '../utils/realtimeOrder';
 import './Orders.css';
 
@@ -180,8 +182,23 @@ export default function Orders() {
       if (eventName === 'admin.order.shop_confirmed' || eventName === 'admin.order.shop_ready') {
         const eventOrderId = getRealtimeOrderId(payload);
         if (eventOrderId && selectedOrderRef.current && String(selectedOrderRef.current.id) === eventOrderId) {
-          queueSelectedRefresh(eventOrderId);
+          // Optimistic badge update — no HTTP wait for confirm/ready.
+          const action = eventName === 'admin.order.shop_confirmed' ? 'confirmed' : 'ready';
+          setSelectedOrder((prev) => {
+            if (!prev || String(prev.id) !== eventOrderId) return prev;
+            return mergeAdminOrderPatch(prev, { ...payload, action });
+          });
         }
+        return;
+      }
+
+      if (eventName === 'admin.order.rider_updated') {
+        // Dispatch-lifecycle metadata for the Riders.jsx dispatch panel — its
+        // `status` field is a rider-offer label ('offered'/'assigned'/
+        // 'picked_up'/'failed'), not an orders.status value. Real order
+        // status transitions (Out for Delivery/Delivered/etc.) are already
+        // emitted separately as 'admin.order.updated' before this event, so
+        // ignoring it here avoids clobbering the list/drawer status chip.
         return;
       }
 
@@ -203,16 +220,14 @@ export default function Orders() {
         return patchedOrders;
       });
 
+      // Pure realtime: patch list + open drawer (status, cancel badges) from
+      // the socket payload — no forced HTTP refetch for status changes.
       setSelectedOrder(prevSelected => {
         if (!prevSelected || String(prevSelected.id) !== eventOrderId) {
           return prevSelected;
         }
         return mergeAdminOrderPatch(prevSelected, payload);
       });
-
-      if (selectedOrderRef.current && String(selectedOrderRef.current.id) === eventOrderId) {
-        queueSelectedRefresh(eventOrderId);
-      }
 
       if (activeFilters.status || activeFilters.paymentStatus) {
         queueOrdersRefresh(page);
@@ -271,9 +286,12 @@ export default function Orders() {
     // explain what happened. Surface a small prompt before the confirm.
     let cancelReason = null;
     if (newStatus === 'Cancelled') {
-      const reason = window.prompt('Optional — reason for cancellation (will be sent to the customer):', '');
+      const reason = window.prompt(
+        'Reason for cancellation (shown to the customer on Track Order). Leave blank for a default store message:',
+        ''
+      );
       if (reason === null) return; // user pressed cancel
-      cancelReason = reason.trim() || 'Cancelled by admin';
+      cancelReason = reason.trim() || null;
     }
 
     if (!window.confirm(`Change order status to ${getOrderStatusLabel(newStatus)}?`)) return;
@@ -307,15 +325,30 @@ export default function Orders() {
 
     try {
       const patchRes = await OrdersApi.updateStatus(selectedOrder.id, newStatus, cancelReason);
-      // Use the canonical server state from the PATCH response so updated_at,
-      // cancel_reason, and (for cancels) the recomputed payment_status are
-      // all up-to-date in the open drawer. Guard against the drawer having
-      // been closed mid-flight.
+      // Merge server fields into the open drawer — do not replace wholesale
+      // (PATCH body has no shopConfirmations/items; replacing wiped badges).
       const serverOrder = patchRes?.order;
       if (serverOrder) {
-        setSelectedOrder(prev => prev && prev.id === serverOrder.id ? serverOrder : prev);
+        setSelectedOrder((prev) => {
+          if (!prev || prev.id !== serverOrder.id) return prev;
+          return mergeAdminOrderPatch(
+            { ...prev, ...serverOrder, shopConfirmations: prev.shopConfirmations, items: prev.items || serverOrder.items },
+            { status: serverOrder.status, paymentStatus: serverOrder.payment_status, cancel_reason: serverOrder.cancel_reason }
+          );
+        });
       }
-      fetchOrders(paginationRef.current.page || 1);
+      // Same-tab realtime for Shops panel (socket also fires; this is instant).
+      broadcastAdminOrderStatus({
+        orderId: selectedOrder.id,
+        status: newStatus,
+        cancelReason,
+      });
+      // Patch list row optimistically (status chip) without full page reload.
+      setOrders((prev) => prev.map((o) => (
+        o.id === selectedOrder.id
+          ? mergeAdminOrderPatch(o, { status: newStatus, cancel_reason: cancelReason })
+          : o
+      )));
     } catch (err) {
       console.error(err);
       const apiMsg = err?.response?.data?.message;
@@ -754,6 +787,10 @@ export default function Orders() {
             </div>
             
             <div className="drawer-body">
+              {selectedOrder.status !== 'Cancelled' ? (
+                <LiveOrderMap order={selectedOrder} />
+              ) : null}
+
               <div className="detail-section">
                 <h4>Customer Details</h4>
                 <div className="detail-row"><span>Name:</span> <strong>{selectedOrder.customer_name}</strong></div>
@@ -863,12 +900,21 @@ export default function Orders() {
                 {selectedOrder.shopConfirmations && selectedOrder.shopConfirmations.length > 0 && (
                   <div style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {selectedOrder.shopConfirmations.map(sc => {
-                      const label = sc.rejected ? '✕ Cancelled' : sc.ready ? '✓ Ready' : sc.confirmed ? '✓ Confirmed' : '⏳ Waiting';
-                      const background = sc.rejected
+                      // Whole-order cancel wins over item-level flags (incl. live socket patch).
+                      const orderCancelled = selectedOrder.status === 'Cancelled'
+                        || sc.orderCancelled
+                        || sc.order_cancelled;
+                      const label = orderCancelled
+                        ? '✕ Order cancelled'
+                        : sc.rejected ? '✕ Shop cancelled'
+                        : sc.ready ? '✓ Ready'
+                        : sc.confirmed ? '✓ Confirmed'
+                        : '⏳ Waiting';
+                      const background = (orderCancelled || sc.rejected)
                         ? 'rgba(239, 68, 68, 0.15)'
                         : sc.ready ? 'rgba(59, 130, 246, 0.15)'
                         : sc.confirmed ? 'rgba(34, 197, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)';
-                      const color = sc.rejected ? '#b91c1c' : sc.ready ? '#1d4ed8' : sc.confirmed ? '#15803d' : '#b45309';
+                      const color = (orderCancelled || sc.rejected) ? '#b91c1c' : sc.ready ? '#1d4ed8' : sc.confirmed ? '#15803d' : '#b45309';
                       return (
                         <span key={sc.shopId} style={{
                           display: 'inline-flex', alignItems: 'center', gap: '0.25rem',

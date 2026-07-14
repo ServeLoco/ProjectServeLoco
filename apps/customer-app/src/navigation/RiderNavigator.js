@@ -1,11 +1,18 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, shadows, radius } from '../theme';
 import AppIcon from '../components/AppIcon';
-import { RiderDashboardScreen, RiderHistoryScreen } from '../screens/rider';
+import { useRiderLocationPermission } from '../hooks/useRiderLocationPermission';
+import {
+  RiderDashboardScreen,
+  RiderHistoryScreen,
+  RiderOrderScreen,
+} from '../screens/rider';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
 function TabIcon({ name, focused, size, color }) {
   return (
@@ -18,10 +25,7 @@ function TabIcon({ name, focused, size, color }) {
   );
 }
 
-/**
- * RiderNavigator — delivery partner shell.
- */
-export default function RiderNavigator() {
+function RiderTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -61,6 +65,24 @@ export default function RiderNavigator() {
         }}
       />
     </Tab.Navigator>
+  );
+}
+
+/**
+ * RiderNavigator — delivery partner shell + full-screen order map.
+ */
+export default function RiderNavigator() {
+  useRiderLocationPermission();
+
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="RiderTabs" component={RiderTabs} />
+      <Stack.Screen
+        name="RiderOrder"
+        component={RiderOrderScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+    </Stack.Navigator>
   );
 }
 

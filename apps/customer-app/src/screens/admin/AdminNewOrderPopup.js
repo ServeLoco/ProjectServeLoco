@@ -1,12 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors, spacing, typography, radius, shadows } from '../../theme';
 import { adminApi, subscribeAdminOrderEvents, subscribeAdminRealtime } from '../../api';
 import { useNewOrderAlert } from '../../hooks/useNewOrderAlert';
 import AppIcon from '../../components/AppIcon';
 
 const AUTO_ACCEPT_SECONDS = 120;
-const VIBRATE_PATTERN = [0, 400, 200, 400];
 
 function formatPlacedAt(iso) {
   if (!iso) return 'Just now';
@@ -45,40 +44,13 @@ export default function AdminNewOrderPopup() {
   const [errors, setErrors] = useState({});
   const [autoAcknowledged, setAutoAcknowledged] = useState({});
   const [secondsLeft, setSecondsLeft] = useState(AUTO_ACCEPT_SECONDS);
-  const prevQueueLengthRef = useRef(0);
-  const vibrateLoopRef = useRef(null);
 
   const current = modals.length > 0 ? modals[0] : null;
   const currentBusy = current ? Boolean(busy[current.id]) : false;
   const currentAutoAccepted = current ? Boolean(autoAcknowledged[current.payload?.orderId]) : false;
 
-  // Repeating sound while anything is queued (reuses the shop-owner alert
-  // infra — same 8s loop, no new native dependency).
+  // Repeating sound + vibration while anything is queued (shared shop/admin alert).
   useNewOrderAlert(modals.length > 0);
-
-  // Vibration loop, synced to the same "queue grew" / interval cadence as the
-  // sound in web's GlobalOrderAlert (playAlertSound on grow + every 8s).
-  useEffect(() => {
-    if (modals.length === 0) {
-      if (vibrateLoopRef.current) {
-        clearInterval(vibrateLoopRef.current);
-        vibrateLoopRef.current = null;
-      }
-      Vibration.cancel();
-      prevQueueLengthRef.current = 0;
-      return undefined;
-    }
-    const grew = modals.length > prevQueueLengthRef.current;
-    prevQueueLengthRef.current = modals.length;
-    if (grew) Vibration.vibrate(VIBRATE_PATTERN);
-    vibrateLoopRef.current = setInterval(() => Vibration.vibrate(VIBRATE_PATTERN), 8000);
-    return () => {
-      if (vibrateLoopRef.current) {
-        clearInterval(vibrateLoopRef.current);
-        vibrateLoopRef.current = null;
-      }
-    };
-  }, [modals.length]);
 
   // Countdown readout for the head of the queue only; resets per order.
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { formatCancelReasonForCustomer } from '../../utils/cancelReason';
 import './OrderStatusTimeline.css';
 
 const STATUS_STEPS = [
@@ -23,7 +24,7 @@ const normalizeStatus = (status) => {
  *   status - current order status string
  *   cancelled - bool (renders a cancelled state)
  */
-export default function OrderStatusTimeline({ status, cancelled = false }) {
+export default function OrderStatusTimeline({ status, cancelled = false, cancelReason = null }) {
   const current = normalizeStatus(status);
   const currentIndex = STATUS_STEPS.findIndex(step => step.id === current);
 
@@ -32,7 +33,9 @@ export default function OrderStatusTimeline({ status, cancelled = false }) {
       <div className="order-timeline cancelled">
         <div className="timeline-cancelled-badge">Order Cancelled</div>
         <div className="timeline-cancelled-text">
-          This order was cancelled. If you were charged, a refund will be processed shortly.
+          {formatCancelReasonForCustomer(cancelReason)}
+          {' '}
+          If you were charged, a refund will be processed shortly.
         </div>
       </div>
     );

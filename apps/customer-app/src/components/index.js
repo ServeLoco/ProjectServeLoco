@@ -38,3 +38,5 @@ export { default as ExitAppModal } from './ExitAppModal';
 export { default as ForceUpdateModal } from './ForceUpdateModal';
 export { default as VariantSheet } from './VariantSheet';
 export { default as LocationPicker } from './LocationPicker';
+export { default as RiderLiveMap } from './RiderLiveMap';
+export { default as RiderDeliveryMap } from './RiderDeliveryMap';

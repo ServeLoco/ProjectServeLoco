@@ -6,8 +6,28 @@ const { createCategory, deleteCategory, getAdminCategories, updateCategory } = r
 const { getAdminStoreModes, createStoreMode, updateStoreMode } = require('../controllers/storeModeController');
 const { createProduct, updateProduct, getAdminProducts, getAdminProductById, deleteProduct, updateProductAvailability, updateProductImage, bulkUpdateProducts, bulkDeleteProducts } = require('../controllers/productController');
 const { createCombo, updateCombo, getAdminCombos, getAdminComboById, deleteCombo, updateComboAvailability } = require('../controllers/comboController');
-const { listShops, createShop, updateShop } = require('../controllers/shopAdminController');
-const { listRiders, createRider, updateRider } = require('../controllers/adminRiderController');
+const {
+  listShops,
+  createShop,
+  updateShop,
+  deleteShop,
+  listShopOrders,
+  adminConfirmShopOrder,
+  adminRejectShopOrder,
+  adminReadyShopOrder,
+} = require('../controllers/shopAdminController');
+const {
+  listRiders,
+  createRider,
+  updateRider,
+  deleteRider,
+  getRiderDispatch,
+  adminSetRiderOnline,
+  adminAcceptOffer,
+  adminRejectOffer,
+  adminMarkPickedUp,
+  adminUpdateAssignmentStatus,
+} = require('../controllers/adminRiderController');
 const { listMobileAdmins, createMobileAdmin, updateMobileAdmin, mintMobileSession } = require('../controllers/mobileAdminController');
 const { getNotificationTemplates, updateNotificationTemplate, resetNotificationTemplate } = require('../controllers/notificationTemplateController');
 const { previewBulkImport, commitBulkImport } = require('../controllers/bulkImportController');
@@ -66,10 +86,18 @@ const bulkUpload = (req, res, next) => {
   });
 };
 
+// Login brute-force guard. Was 5/15min — too easy to lock yourself out after
+// a legitimate retry storm (or a buggy client burning the global limit first).
+// 30/15min still slows password spraying; success clears UX via session.
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login requests per `window`
-  message: { code: 'TOO_MANY_REQUESTS', message: 'Too many login attempts, please try again later.' }
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    code: 'TOO_MANY_REQUESTS',
+    message: 'Too many login attempts. Wait a few minutes and try again.',
+  },
 });
 
 const mobileSessionLimiter = rateLimit({
@@ -660,10 +688,24 @@ router.patch('/store-modes/:id', requireAdmin, asyncHandler(updateStoreMode));
 router.get('/shops', requireAdmin, asyncHandler(listShops));
 router.post('/shops', requireAdmin, asyncHandler(createShop));
 router.patch('/shops/:id', requireAdmin, asyncHandler(updateShop));
+router.delete('/shops/:id', requireAdmin, asyncHandler(deleteShop));
+// Per-shop order actions (same lifecycle as shop-owner Confirm / Ready / Cancel).
+router.get('/shops/:id/orders', requireAdmin, asyncHandler(listShopOrders));
+router.patch('/shops/:id/orders/:orderId/confirm', requireAdmin, asyncHandler(adminConfirmShopOrder));
+router.patch('/shops/:id/orders/:orderId/reject', requireAdmin, asyncHandler(adminRejectShopOrder));
+router.patch('/shops/:id/orders/:orderId/ready', requireAdmin, asyncHandler(adminReadyShopOrder));
 
 router.get('/riders', requireAdmin, asyncHandler(listRiders));
 router.post('/riders', requireAdmin, asyncHandler(createRider));
 router.patch('/riders/:id', requireAdmin, asyncHandler(updateRider));
+router.delete('/riders/:id', requireAdmin, asyncHandler(deleteRider));
+// Admin dispatch — same lifecycle as rider app (online, offer accept/reject, delivery).
+router.get('/riders/:id/dispatch', requireAdmin, asyncHandler(getRiderDispatch));
+router.patch('/riders/:id/online', requireAdmin, asyncHandler(adminSetRiderOnline));
+router.post('/riders/:id/offers/:offerId/accept', requireAdmin, asyncHandler(adminAcceptOffer));
+router.post('/riders/:id/offers/:offerId/reject', requireAdmin, asyncHandler(adminRejectOffer));
+router.post('/riders/:id/assignments/:orderId/picked-up', requireAdmin, asyncHandler(adminMarkPickedUp));
+router.patch('/riders/:id/assignments/:orderId/status', requireAdmin, asyncHandler(adminUpdateAssignmentStatus));
 
 // Mobile Admins — phones granted Admin Mode in the phone app (ADMIN TASK 2).
 router.get('/mobile-admins', requireAdmin, asyncHandler(listMobileAdmins));

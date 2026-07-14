@@ -1,10 +1,6 @@
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
 
-// Soft presence window: a rider who toggled online but has not heartbeated
-// within this many seconds is treated as offline for eligibility + delivery gate.
-const RIDER_HEARTBEAT_TTL_SEC = config.RIDER_HEARTBEAT_TTL_SEC || 90;
-
 // Calendar day for "least orders completed today" (D8 = Asia/Kolkata).
 // Use fixed offset so MySQL does not require named timezone tables loaded.
 const RIDER_TODAY_TZ = config.RIDER_TODAY_TZ || '+05:30';
@@ -21,8 +17,6 @@ const riderShape = (r) => {
     active: Boolean(r.active),
     isOnline: Boolean(r.is_online),
     is_online: Boolean(r.is_online),
-    lastHeartbeatAt: r.last_heartbeat_at || null,
-    last_heartbeat_at: r.last_heartbeat_at || null,
   };
 };
 
@@ -34,7 +28,7 @@ const getRiderForUser = async (userId) => {
   if (!userId) return null;
   try {
     const [rows] = await pool.query(
-      `SELECT id, user_id, display_name, phone, active, is_online, last_heartbeat_at
+      `SELECT id, user_id, display_name, phone, active, is_online
        FROM riders
        WHERE user_id = ? AND active = 1
        LIMIT 1`,
@@ -52,14 +46,7 @@ const getRiderForUser = async (userId) => {
 };
 
 /**
- * SQL fragment: heartbeat is fresh (within RIDER_HEARTBEAT_TTL_SEC).
- * Uses last_heartbeat_at; NULL heartbeat is never fresh.
- */
-const heartbeatFreshSql = (alias = 'r') =>
-  `${alias}.last_heartbeat_at IS NOT NULL AND ${alias}.last_heartbeat_at > (NOW() - INTERVAL ${Number(RIDER_HEARTBEAT_TTL_SEC)} SECOND)`;
-
-/**
- * Count riders who are admin-active, toggled online, and heartbeat-fresh.
+ * Count riders who are admin-active and toggled online.
  * Busy-ness is ignored (plan §12 — delivery gate follows online state only).
  */
 const countActiveRiders = async () => {
@@ -67,15 +54,14 @@ const countActiveRiders = async () => {
     `SELECT COUNT(*) AS cnt
      FROM riders r
      WHERE r.active = 1
-       AND r.is_online = 1
-       AND ${heartbeatFreshSql('r')}`
+       AND r.is_online = 1`
   );
   return Number(rows[0]?.cnt) || 0;
 };
 
 /**
- * Eligible for a new offer: active, online, heartbeat fresh, no open
- * assignment, and not in excludeIds (already offered/rejected this order).
+ * Eligible for a new offer: active, online, no other pending offer, and not in
+ * excludeIds (already offered/rejected this order). Multi-order is allowed.
  */
 const listEligibleRiders = async ({ excludeIds = [] } = {}) => {
   const exclude = (excludeIds || []).map(Number).filter((n) => Number.isFinite(n) && n > 0);
@@ -87,16 +73,10 @@ const listEligibleRiders = async ({ excludeIds = [] } = {}) => {
   }
 
   const [rows] = await pool.query(
-    `SELECT r.id, r.user_id, r.display_name, r.phone, r.active, r.is_online, r.last_heartbeat_at
+    `SELECT r.id, r.user_id, r.display_name, r.phone, r.active, r.is_online
      FROM riders r
      WHERE r.active = 1
        AND r.is_online = 1
-       AND ${heartbeatFreshSql('r')}
-       AND NOT EXISTS (
-         SELECT 1 FROM orders o
-         WHERE o.rider_id = r.id
-           AND o.status NOT IN ('Delivered', 'Cancelled')
-       )
        AND NOT EXISTS (
          SELECT 1 FROM rider_order_offers ro
          WHERE ro.rider_id = r.id AND ro.status = 'pending'
@@ -235,7 +215,6 @@ const syncDeliveryAvailabilityFromRiders = async () => {
 };
 
 module.exports = {
-  RIDER_HEARTBEAT_TTL_SEC,
   RIDER_TODAY_TZ,
   riderShape,
   getRiderForUser,
@@ -246,5 +225,4 @@ module.exports = {
   selectRiderByLeastOrders,
   selectEligibleRider,
   syncDeliveryAvailabilityFromRiders,
-  heartbeatFreshSql,
 };
