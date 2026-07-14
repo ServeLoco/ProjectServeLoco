@@ -1,0 +1,24 @@
+# Monorepo-root ignore for EAS project archives.
+# Keep apps/customer-app/android (bare workflow / gradlew) in the tarball.
+
+**/node_modules/
+**/.expo/
+**/dist/
+**/coverage/
+**/*.log
+**/.gradle/
+**/.kotlin/
+**/android/build/
+**/android/app/build/
+**/ios/Pods/
+**/ios/build/
+apps/api/
+apps/admin/
+apps/web/
+apps/landing/
+plans/
+docs/
+deploy/
+.claude/
+.codebase-memory/
+.git/

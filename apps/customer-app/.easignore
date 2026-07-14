@@ -1,9 +1,18 @@
-# Keep bare-workflow android/ and ios/ in the EAS archive (need gradlew).
-# Only drop heavy native build caches.
+# Used by EAS when packing the project. Nested customer-app/.gitignore
+# also applies for monorepo root archives — keep both aligned.
+# Never ignore android/ or ios/ roots (bare workflow needs gradlew).
+
 android/build/
 android/app/build/
 android/.gradle/
 android/.kotlin/
 ios/Pods/
 ios/build/
+ios/DerivedData/
+node_modules/
+.expo/
+dist/
+coverage/
+*.log
+rider-map-status-overlap.png
 !.env

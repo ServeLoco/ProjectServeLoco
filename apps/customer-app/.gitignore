@@ -35,9 +35,17 @@ local.properties
 !debug.keystore
 .kotlin/
 
-# Expo generated native folders - do not commit
-android/
-ios/
+# Native android/ and ios/ ARE committed (bare workflow for EAS local
+# builds + Mapbox/Firebase). Do not re-add android/ or ios/ here — EAS
+# packs the monorepo with nested gitignore rules and would drop gradlew.
+# Ignore only native build outputs/caches:
+android/build/
+android/app/build/
+android/.gradle/
+android/.kotlin/
+ios/Pods/
+ios/build/
+ios/DerivedData/
 
 # node.js
 #
