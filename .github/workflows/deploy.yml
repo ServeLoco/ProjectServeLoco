@@ -124,5 +124,14 @@ jobs:
             # pushed back to GitHub. If you need to keep server-side hotfixes,
             # push them to GitHub first or they will be overwritten on deploy.
             git reset --hard origin/main
-            docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml up -d --build
+            # Tear down compose stack and force-remove any leftover containers/
+            # networks from prior partial deploys (name conflicts otherwise).
+            docker compose -f docker-compose.prod.yml down --remove-orphans || true
+            docker rm -f \
+              projectserveloco-api-1 \
+              projectserveloco-web-1 \
+              projectserveloco-admin-1 \
+              projectserveloco-landing-1 \
+              2>/dev/null || true
+            docker network rm projectserveloco_default 2>/dev/null || true
+            docker compose -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
