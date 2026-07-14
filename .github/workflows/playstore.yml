@@ -217,28 +217,13 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name  "github-actions[bot]"
 
-      # actions/checkout defaults to `clean: true` (git clean -ffdx), which
-      # wipes gitignored files including .env.production every run. Without
-      # this step EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN is empty in every build/
-      # update this job produces, even though it exists locally outside CI.
-      - name: Materialize Mapbox public token
-        env:
-          EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN }}
-        working-directory: ${{ env.APP_DIR }}
-        run: |
-          set -euo pipefail
-          if [ -z "$EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN" ]; then
-            echo "EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN secret is empty" >&2
-            exit 1
-          fi
-          echo "EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN=$EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN" >> .env.production
-
       # ─── MAJOR PATH: full .aab build + Play Store submit + OTA ────────────
       - name: Build Android .aab locally
         if: needs.detect-bump.outputs.bump == 'major'
         working-directory: ${{ env.APP_DIR }}
         env:
           EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+          EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN }}
         run: |
           set -euo pipefail
           echo "=== Build step diagnostics ==="
@@ -282,6 +267,7 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         env:
           EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+          EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN }}
         run: |
           MSG=$(printf '%s' '${{ needs.detect-bump.outputs.message }}' | head -1)
           if [ -z "$MSG" ]; then MSG="auto-update from main"; fi
