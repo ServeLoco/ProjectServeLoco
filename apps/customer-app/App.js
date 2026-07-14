@@ -1,3 +1,4 @@
+// VillKro customer app — v1.6.0 production rebuild
 import React, { useEffect, useState } from 'react';
 import { AppState, StatusBar, View } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
