@@ -173,6 +173,14 @@ jobs:
           # Clean any leftover from previous runs
           rm -f /home/linux-server/Documents/builds/.tmp/villkro.aab
           rm -f /home/linux-server/Documents/builds/.tmp/play-store-key.json
+          # Metro's transform cache is keyed by file content hash, not by env
+          # var values — this dir persists across runs on this self-hosted
+          # box, so a file whose content never changes (e.g. utils/mapbox.js)
+          # keeps serving a stale transform (baked with whatever
+          # EXPO_PUBLIC_* values were set the first time it was ever built)
+          # forever, even after the secret is fixed. Wipe it every run.
+          rm -rf /home/linux-server/Documents/builds/.tmp/metro-cache
+          rm -rf /tmp/metro-cache
           echo "✓ Build dir: /home/linux-server/Documents/builds/.tmp/"
           ls -la /home/linux-server/Documents/builds/.tmp/
           ls -la /tmp/villkro.aab /tmp/play-store-key.json
