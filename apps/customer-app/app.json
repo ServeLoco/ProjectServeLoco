@@ -68,9 +68,7 @@
       }
     },
     "owner": "yashsiwch",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.6.0",
     "updates": {
       "url": "https://u.expo.dev/1df5a9bf-de34-48ea-96f4-68f598d7d318"
     }
