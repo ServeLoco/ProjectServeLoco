@@ -54,6 +54,20 @@ function withAlarmPermissions(config) {
     const app = AndroidConfig.Manifest.getMainApplicationOrThrow(androidManifest);
     if (!app.service) app.service = [];
     if (!app.receiver) app.receiver = [];
+    if (!app['meta-data']) app['meta-data'] = [];
+
+    // @react-native-firebase/messaging ships default_notification_color=@color/white;
+    // our app uses brand notification_icon_color. Prefer app values on merge.
+    const FCM_META_REPLACE = [
+      'com.google.firebase.messaging.default_notification_color',
+      'com.google.firebase.messaging.default_notification_icon',
+    ];
+    for (const name of FCM_META_REPLACE) {
+      const meta = (app['meta-data'] || []).find((m) => m.$?.['android:name'] === name);
+      if (meta?.$) {
+        meta.$['tools:replace'] = 'android:resource';
+      }
+    }
 
     // Override notifee ForegroundService → specialUse + justification property.
     // tools:replace so our type wins over the AAR's shortService declaration.

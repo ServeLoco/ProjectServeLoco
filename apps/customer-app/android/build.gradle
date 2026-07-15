@@ -45,3 +45,14 @@ allprojects {
 }
 
 // @generated end @rnmapbox/maps-v2-maven
+
+// @generated begin @notifee/react-native-maven - expo prebuild (DO NOT MODIFY)
+allprojects {
+  repositories {
+    // Local AAR for app.notifee:core (shipped inside @notifee/react-native)
+    maven {
+      url "${rootDir}/../node_modules/@notifee/react-native/android/libs"
+    }
+  }
+}
+// @generated end @notifee/react-native-maven

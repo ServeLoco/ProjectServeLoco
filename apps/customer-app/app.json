@@ -28,6 +28,7 @@
       "expo-asset",
       "./plugins/withAlarmSounds",
       "./plugins/withAlarmPermissions",
+      "./plugins/withNotifeeMaven",
       [
         "@rnmapbox/maps",
         {}
