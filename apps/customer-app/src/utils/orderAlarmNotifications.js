@@ -105,26 +105,68 @@ export function getRemoteAlarmData(remoteMessage) {
 }
 
 /**
+ * Read persisted auth from AsyncStorage (Zustand persist shape).
+ * Headless FCM JS often starts before rehydrate — memory store is empty.
+ */
+async function readPersistedAuthState() {
+  try {
+    const raw = await AsyncStorage.getItem('serveloco-customer-auth');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.state || parsed || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Ensure a customer JWT is available for API calls from a background
  * notifee action (app may be killed — token providers not yet wired).
  */
 async function ensureBackgroundCustomerToken() {
   let token = useAuthStore.getState()?.token || null;
   if (!token) {
-    try {
-      const raw = await AsyncStorage.getItem('serveloco-customer-auth');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        token = parsed?.state?.token || parsed?.token || null;
-      }
-    } catch {
-      token = null;
-    }
+    const persisted = await readPersistedAuthState();
+    token = persisted?.token || null;
   }
   if (token) {
     setCustomerTokenProvider(async () => token);
   }
   return token;
+}
+
+/**
+ * Shop/rider gate for alarms: seed Zustand from disk when headless cold-start
+ * has not rehydrated yet (otherwise displayAlarmNotification no-ops).
+ * @returns {Promise<{ shop: object|null, rider: object|null }>}
+ */
+async function ensureShopOrRiderSession() {
+  let { shop, rider, token, user, profile, isAuthenticated } = useAuthStore.getState();
+  if (shop || rider) {
+    return { shop, rider };
+  }
+  const persisted = await readPersistedAuthState();
+  if (!persisted) return { shop: null, rider: null };
+
+  const pShop = persisted.shop ?? null;
+  const pRider = persisted.rider ?? null;
+  if (!pShop && !pRider) {
+    return { shop: null, rider: null };
+  }
+
+  // Seed enough session for alarm display + Accept/Reject API.
+  useAuthStore.setState({
+    token: persisted.token ?? token ?? null,
+    user: persisted.user ?? user ?? null,
+    profile: persisted.profile ?? profile ?? null,
+    shop: pShop,
+    rider: pRider,
+    isAuthenticated: Boolean(persisted.token || isAuthenticated),
+  });
+  if (persisted.token) {
+    setCustomerTokenProvider(async () => persisted.token);
+  }
+  return { shop: pShop, rider: pRider };
 }
 
 function resolveRiderTimeoutMs(data) {
@@ -151,9 +193,12 @@ export async function displayAlarmNotification(data) {
   if (Platform.OS !== 'android') return;
   if (!data || !isAlarmAlertType(data.alertType)) return;
 
-  // Shop-owner + rider sessions only.
-  const { shop, rider } = useAuthStore.getState();
-  if (!shop && !rider) return;
+  // Shop-owner + rider sessions only (rehydrate from disk if headless).
+  const { shop, rider } = await ensureShopOrRiderSession();
+  if (!shop && !rider) {
+    console.warn('[orderAlarm] skip: no shop/rider session (memory + disk)');
+    return;
+  }
 
   // Skip server reminder re-pushes while this offer/order is already ringing.
   if (isDuplicateActiveAlarm(data)) {
