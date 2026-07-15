@@ -11,12 +11,13 @@ const firstQueryResult = (queryResult) => (
 
 /**
  * Device push for inbox rows. Uses the main pool (not a caller transaction)
- * so token lookup never rolls back with the outer TX. Must not depend on
- * INSERT succeeding — closed-app users need the FCM/APNs banner even when
- * INSERT IGNORE skips a duplicate (user_id, source, event_key) inbox row.
+ * so token lookup never rolls back with the outer TX.
  */
-const sendDevicePush = async (userId, { title, body, type, sourceType, sourceId, actionPayload }) => {
+const sendDevicePush = async (userId, { title, body, type, sourceType, sourceId, actionPayload, notificationId }) => {
   const pushData = { type: type || 'info' };
+  if (notificationId) {
+    pushData.notificationId = String(notificationId);
+  }
   if (sourceType === 'order' && sourceId) {
     pushData.orderId = String(sourceId);
   }
@@ -62,11 +63,19 @@ const createNotification = async ({
       batchId, actionType, actionPayload ? JSON.stringify(actionPayload) : null, createdByAdminId
     ]);
 
-    // Always fire Expo → FCM/APNs so the banner shows when the app is closed
-    // or cleared from Recents (socket/local path only works while open).
-    await sendDevicePush(userId, { title, body, type, sourceType, sourceId, actionPayload });
+    const result = firstQueryResult(queryResult);
 
-    return firstQueryResult(queryResult);
+    // Fire Expo → FCM/APNs so the banner shows when the app is closed or
+    // cleared from Recents (socket/local path only works while open). Skip
+    // when INSERT IGNORE deduped this exact (user_id, source_type, source_id,
+    // event_key) — a retried event delivery (e.g. duplicate status-transition
+    // call) already pushed once for this row; re-pushing is the duplicate-
+    // notification bug, not a safety net.
+    if (result?.affectedRows > 0) {
+      await sendDevicePush(userId, { title, body, type, sourceType, sourceId, actionPayload, notificationId: result.insertId });
+    }
+
+    return result;
   } catch (error) {
     console.error('Error creating notification:', error);
     // Still attempt device push — inbox insert failed but the user should
@@ -326,6 +335,15 @@ const softDeleteNotification = async (userId, notificationId) => {
   return result;
 };
 
+/** Soft-delete every active notification for this user (Clear all). */
+const softDeleteAllNotifications = async (userId) => {
+  const [result] = await pool.query(
+    'UPDATE notifications SET deleted_at = CURRENT_TIMESTAMP WHERE user_id = ? AND deleted_at IS NULL',
+    [userId]
+  );
+  return result;
+};
+
 module.exports = {
   createNotification,
   createManyNotifications,
@@ -334,5 +352,6 @@ module.exports = {
   createBroadcastNotification,
   getUnreadCount,
   markAllRead,
-  softDeleteNotification
+  softDeleteNotification,
+  softDeleteAllNotifications
 };

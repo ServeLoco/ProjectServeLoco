@@ -16,6 +16,59 @@ const EXPO_PROJECT_ID =
 
 const LAST_PUSH_TOKEN_KEY = 'serveloco:lastPushToken';
 const LAST_CATCHUP_KEY = 'serveloco:lastNotifCatchupAt';
+const SHOWN_NOTIF_IDS_KEY = 'serveloco:shownNotifIds';
+const MAX_SHOWN_IDS = 100;
+
+// Tracks inbox notification ids already shown as a local banner (via the
+// socket path or catch-up) so catch-up doesn't re-show one that arrived via
+// remote push while backgrounded — the timestamp watermark alone can't tell
+// "already delivered" from "just old enough to skip".
+//
+// In-memory Set is the source of truth (mutations are synchronous, so
+// concurrent callers — socket handler, push-received listener, catch-up loop
+// — can't race each other into a lost id the way a read-then-write against
+// AsyncStorage could). AsyncStorage is write-through only, for persistence
+// across app restarts.
+let shownIdsCache = null;
+let shownIdsHydration = null;
+
+async function hydrateShownIds() {
+  if (shownIdsCache) return shownIdsCache;
+  if (!shownIdsHydration) {
+    shownIdsHydration = (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(SHOWN_NOTIF_IDS_KEY);
+        shownIdsCache = new Set(raw ? JSON.parse(raw) : []);
+      } catch {
+        shownIdsCache = new Set();
+      }
+      return shownIdsCache;
+    })();
+  }
+  return shownIdsHydration;
+}
+
+function persistShownIds() {
+  AsyncStorage.setItem(SHOWN_NOTIF_IDS_KEY, JSON.stringify([...shownIdsCache])).catch(() => {});
+}
+
+async function markNotificationShown(id) {
+  if (id == null) return;
+  const ids = await hydrateShownIds();
+  const key = String(id);
+  if (ids.has(key)) return;
+  ids.add(key);
+  while (ids.size > MAX_SHOWN_IDS) {
+    ids.delete(ids.values().next().value);
+  }
+  persistShownIds();
+}
+
+async function hasShownNotification(id) {
+  if (id == null) return false;
+  const ids = await hydrateShownIds();
+  return ids.has(String(id));
+}
 
 // When the app is actively in the foreground, suppress remote push banners
 // (APNs/FCM) so we don't double-alert with the socket → local-notification
@@ -288,6 +341,10 @@ async function catchUpMissedOrderNotifications() {
       if (!created || created <= windowStart) continue;
       if (created > newest) newest = created;
 
+      // Already shown via socket local-schedule or a received remote push
+      // for this exact inbox row — don't replay it.
+      if (await hasShownNotification(n.id)) continue;
+
       const isOrder = String(n.sourceType || n.source_type || n.type || '').toLowerCase().includes('order')
         || n.eventKey
         || n.event_key
@@ -309,6 +366,7 @@ async function catchUpMissedOrderNotifications() {
           ? { channelId: ORDER_NOTIFICATION_CHANNEL_ID }
           : null,
       }).catch(() => {});
+      await markNotificationShown(n.id);
     }
 
     if (newest > lastAt) {
@@ -480,6 +538,13 @@ export function useLocalNotifications(navigationRef) {
     const unsubscribe = subscribeNotificationEvents(async ({ eventName, payload }) => {
       if (eventName !== 'notification.created') return;
 
+      // Foreground-only: background/killed apps get the remote FCM/APNs
+      // push instead (see setNotificationHandler above). The socket can
+      // stay connected while backgrounded on some Android builds — without
+      // this check that produces a local banner ON TOP OF the remote one
+      // for the same event (the duplicate-notification bug).
+      if (AppState.currentState !== 'active') return;
+
       // Check permission every time (user might grant it later)
       const hasPermission = await checkNotificationPermission();
       console.log('[useLocalNotifications] Permission status:', hasPermission);
@@ -519,6 +584,8 @@ export function useLocalNotifications(navigationRef) {
           : null,
       });
 
+      await markNotificationShown(payload?.id ?? payload?.notificationId);
+
       // Local notifications only fire while the app is foregrounded, and
       // several Android OEM skins mute the channel sound for the foreground
       // app — play the chime ourselves so the alert is audible.
@@ -529,6 +596,17 @@ export function useLocalNotifications(navigationRef) {
 
     return () => unsubscribe();
   }, [isAuthenticated]);
+
+  // ── 2b. Mark remote pushes as shown so catch-up doesn't replay them ──────
+  // (fires when the OS delivers a push while JS is warm — foreground or,
+  // on some Android builds, background).
+  useEffect(() => {
+    const subscription = Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification?.request?.content?.data;
+      markNotificationShown(data?.notificationId);
+    });
+    return () => subscription.remove();
+  }, []);
 
   // ── 3. Handle tap / action button → navigate (live + cold start) ─────────
   useEffect(() => {
