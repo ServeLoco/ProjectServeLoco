@@ -183,9 +183,9 @@ export const RIDER_OFFER_CHANNEL_ID = 'serveloco-rider-offers';
 // reuse the expo-notifications channels above (Android freezes channel settings).
 // Bumped when custom sound assets / audio attributes change.
 // Android freezes channel sound after first create.
-// v4: USAGE_ALARM + dual expo+notifee create so OEM actually plays audio.
-export const ORDER_ALARM_CHANNEL_ID = 'serveloco-orders-alarm-v4';
-export const RIDER_OFFER_ALARM_CHANNEL_ID = 'serveloco-rider-offers-alarm-v4';
+// v5: re-create after ColorOS muted v4; MAX importance + raw order_alarm sound.
+export const ORDER_ALARM_CHANNEL_ID = 'serveloco-orders-alarm-v5';
+export const RIDER_OFFER_ALARM_CHANNEL_ID = 'serveloco-rider-offers-alarm-v5';
 
 // Strong pattern: pause, buzz, pause, buzz… (ms) — RN Vibration API allows a
 // leading 0 (initial delay). Used by foreground alert hooks.
@@ -255,7 +255,20 @@ export async function createNotifeeAlarmChannels() {
   if (Platform.OS !== 'android') return;
 
   // Scope: shop-owner + rider only (never customer / plain admin).
-  const { shop, rider } = useAuthStore.getState();
+  // Headless FCM may run before Zustand rehydrates — allow channel create when
+  // either in-memory or persisted auth has a shop/rider (display path seeds store).
+  let { shop, rider } = useAuthStore.getState();
+  if (!shop && !rider) {
+    try {
+      const raw = await AsyncStorage.getItem('serveloco-customer-auth');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const st = parsed?.state || parsed;
+        shop = st?.shop;
+        rider = st?.rider;
+      }
+    } catch { /* ignore */ }
+  }
   if (!shop && !rider) return;
 
   try {
@@ -264,9 +277,11 @@ export async function createNotifeeAlarmChannels() {
       'serveloco-orders-alarm-v1',
       'serveloco-orders-alarm-v2',
       'serveloco-orders-alarm-v3',
+      'serveloco-orders-alarm-v4',
       'serveloco-rider-offers-alarm-v1',
       'serveloco-rider-offers-alarm-v2',
       'serveloco-rider-offers-alarm-v3',
+      'serveloco-rider-offers-alarm-v4',
     ]) {
       try { await notifee.deleteChannel(oldId); } catch { /* ignore */ }
       try { await Notifications.deleteNotificationChannelAsync(oldId); } catch { /* ignore */ }
@@ -311,32 +326,11 @@ export async function createNotifeeAlarmChannels() {
       audioAttributes: alarmAudio,
     });
 
-    // Notifee twin (same ids) for full-screen / FGS display path.
-    await notifee.createChannel({
-      id: ORDER_ALARM_CHANNEL_ID,
-      name: 'Shop Order Alarms',
-      importance: AndroidImportance.HIGH,
-      sound: 'order_alarm',
-      vibration: true,
-      vibrationPattern: NOTIFEE_SHOP_VIBRATION_PATTERN,
-      lights: true,
-      lightColor: BRAND_COLOR,
-      bypassDnd: true,
-      visibility: AndroidVisibility.PUBLIC,
-    });
-
-    await notifee.createChannel({
-      id: RIDER_OFFER_ALARM_CHANNEL_ID,
-      name: 'Rider Offer Alarms',
-      importance: AndroidImportance.HIGH,
-      sound: 'rider_alarm',
-      vibration: true,
-      vibrationPattern: NOTIFEE_RIDER_VIBRATION_PATTERN,
-      lights: true,
-      lightColor: BRAND_COLOR,
-      bypassDnd: true,
-      visibility: AndroidVisibility.PUBLIC,
-    });
+    // IMPORTANT: do NOT recreate the same ids with notifee at HIGH (4).
+    // Android freezes channel settings on first create; a second create with
+    // lower importance was locking alarms at importance=4 and muting heads-up
+    // on ColorOS. Expo MAX (5) + USAGE_ALARM is what we keep.
+    // Notifee displayNotification can post to the expo-created channel id.
   } catch (err) {
     // Never block Expo push token registration on channel setup failure.
     console.warn('[notifications] createNotifeeAlarmChannels failed:', err?.message || err);

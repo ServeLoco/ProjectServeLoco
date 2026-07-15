@@ -200,7 +200,7 @@ describe('expoPush.sendPushToUser', () => {
     await sendPushToUser(pool, 42, {
       title: 'Delivery offer waiting',
       body: 'Order 1042 — accept now before it expires',
-      channelId: 'serveloco-rider-offers-alarm-v4',
+      channelId: 'serveloco-rider-offers-alarm-v5',
       sound: 'rider_alarm',
       tag: 'rider_offer_9',
       collapseId: 'rider_offer_9',
@@ -215,7 +215,7 @@ describe('expoPush.sendPushToUser', () => {
       title: 'Delivery offer waiting',
       body: 'Order 1042 — accept now before it expires',
       data: { alertType: 'rider_offer_alarm', offerId: '9' },
-      channelId: 'serveloco-rider-offers-alarm-v4',
+      channelId: 'serveloco-rider-offers-alarm-v5',
       priority: 'high',
       ttl: 3600,
       tag: 'rider_offer_9',

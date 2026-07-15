@@ -320,7 +320,7 @@ describe('pushRiderOffer FCM/Expo branching', () => {
     expect(expoPush.sendPushToUser).toHaveBeenCalledWith(
       pool, 70,
       expect.objectContaining({
-        channelId: 'serveloco-rider-offers-alarm-v4',
+        channelId: 'serveloco-rider-offers-alarm-v5',
         sound: 'rider_alarm',
         data: expect.objectContaining({ alertType: 'rider_offer_alarm' }),
       })

@@ -18,8 +18,8 @@ import { useAuthStore } from '../src/stores';
 import { playAlarmSound, stopAlarmSound } from '../src/utils/alarmSound';
 
 jest.mock('../src/hooks/useLocalNotifications', () => ({
-  ORDER_ALARM_CHANNEL_ID: 'serveloco-orders-alarm-v4',
-  RIDER_OFFER_ALARM_CHANNEL_ID: 'serveloco-rider-offers-alarm-v4',
+  ORDER_ALARM_CHANNEL_ID: 'serveloco-orders-alarm-v5',
+  RIDER_OFFER_ALARM_CHANNEL_ID: 'serveloco-rider-offers-alarm-v5',
   createNotifeeAlarmChannels: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -114,7 +114,7 @@ describe('orderAlarmNotifications', () => {
       expect(notifee.displayNotification).toHaveBeenCalledTimes(1);
       const [call] = notifee.displayNotification.mock.calls[0];
       expect(call.id).toBe(ORDER_ALARM_NOTIFICATION_ID);
-      expect(call.android.channelId).toBe('serveloco-orders-alarm-v4');
+      expect(call.android.channelId).toBe('serveloco-orders-alarm-v5');
       expect(call.android.sound).toBe('order_alarm');
       expect(playAlarmSound).toHaveBeenCalledWith('order', expect.any(Object));
     });
@@ -129,7 +129,7 @@ describe('orderAlarmNotifications', () => {
 
       const [call] = notifee.displayNotification.mock.calls[0];
       expect(call.id).toBe(RIDER_OFFER_ALARM_NOTIFICATION_ID);
-      expect(call.android.channelId).toBe('serveloco-rider-offers-alarm-v4');
+      expect(call.android.channelId).toBe('serveloco-rider-offers-alarm-v5');
       expect(call.android.sound).toBe('rider_alarm');
       expect(playAlarmSound).toHaveBeenCalledWith('rider', expect.any(Object));
     });

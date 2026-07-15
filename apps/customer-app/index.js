@@ -1,5 +1,5 @@
 import { registerRootComponent } from 'expo';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import notifee from '@notifee/react-native';
 // Modular RNFirebase messaging API (v22+) — same native behavior as the
 // old messaging() namespaced style, without deprecation warnings.
@@ -36,17 +36,19 @@ if (Platform.OS === 'android') {
     await handleAlarmActionEvent(event);
   });
 
-  // Foreground FCM listener: alarm-type payloads no-op here so we do not
-  // double-ring with useNewOrderAlert / useRiderOfferAlert (socket path).
-  // Non-alarm FCM (if any) is also ignored — expo-notifications handles
-  // customer/admin title+body pushes.
+  // onMessage runs when the JS process is alive (foreground OR warm background).
+  // ColorOS often keeps the app process after Home — RNFB then delivers here,
+  // NOT to setBackgroundMessageHandler. We must full-screen in that case too.
+  // Only skip when the UI is actively open (socket 8s hooks own that UX).
   onMessage(messaging, async (remoteMessage) => {
     const data = remoteMessage?.data;
     if (isAlarmPayload(data)) {
-      // Foreground: existing 8s chime/vibrate hooks own the UX.
+      if (AppState.currentState === 'active') {
+        return;
+      }
+      await handleBackgroundAlarmMessage(remoteMessage);
       return;
     }
-    // Non-alarm: no-op (expo-notifications / socket path).
   });
 
   // Accept/Reject action presses while app is in foreground.

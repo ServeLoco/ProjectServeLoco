@@ -255,6 +255,7 @@ export async function displayAlarmNotification(data) {
     } catch {
       canFullScreen = true;
     }
+    console.warn('[orderAlarm] canUseFullScreenIntent=', canFullScreen);
 
     const android = {
       channelId,
@@ -265,7 +266,7 @@ export async function displayAlarmNotification(data) {
       actions: [
         {
           title: 'Accept',
-          pressAction: { id: ACTION_ACCEPT },
+          pressAction: { id: ACTION_ACCEPT, launchActivity: 'default' },
         },
         {
           title: 'Reject',
@@ -282,8 +283,9 @@ export async function displayAlarmNotification(data) {
       loopSound: true,
       vibrationPattern,
       lightUpScreen: true,
+      // Keep ringing until accept/reject/timeout (OEM may still mute channel sound).
       timeoutAfter,
-      // fullScreenAction only when permitted; otherwise heads-up on the channel.
+      // Always attach fullScreenAction when OS allows — critical for lock screen.
       ...(canFullScreen
         ? {
           fullScreenAction: {

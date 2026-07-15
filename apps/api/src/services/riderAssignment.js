@@ -115,7 +115,7 @@ const pushRiderOffer = async (userId, order, offer, { reminder = false } = {}) =
       body: reminder
         ? `Order ${orderNumber} — accept now before it expires`
         : `Order ${orderNumber} — accept within ${mins} minutes`,
-      channelId: 'serveloco-rider-offers-alarm-v4',
+      channelId: 'serveloco-rider-offers-alarm-v5',
       sound: 'rider_alarm',
       tag: `rider_offer_${offer.id}`,
       collapseId: `rider_offer_${offer.id}`,

@@ -52,7 +52,7 @@ const notifyShopsForOrder = async (order) => {
         return expoPush.sendPushToMany(pool, needExpo, {
           title: 'New order to prepare',
           body: `Order ${order.order_number} has items for your shop. Open the app to confirm.`,
-          channelId: 'serveloco-orders-alarm-v4',
+          channelId: 'serveloco-orders-alarm-v5',
           sound: 'order_alarm',
           tag: `shop_order_${order.id}`,
           collapseId: `shop_order_${order.id}`,
