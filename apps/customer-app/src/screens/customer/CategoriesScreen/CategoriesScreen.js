@@ -44,7 +44,10 @@ export default function CategoriesScreen() {
     [items]
   );
   const cartDisplayTotal = useMemo(
-    () => items.reduce((total, item) => total + ((Number(item.product?.price) || 0) * (Number(item.quantity) || 0)), 0),
+    () => items.reduce(
+      (total, item) => total + ((Number(item.variant?.price ?? item.product?.price) || 0) * (Number(item.quantity) || 0)),
+      0,
+    ),
     [items]
   );
   

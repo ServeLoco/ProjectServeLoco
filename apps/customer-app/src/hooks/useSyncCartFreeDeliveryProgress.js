@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { cartApi } from '../api/cartApi';
 import { useCartStore } from '../stores';
 import { normalizeCartCalculation } from '../utils';
@@ -7,6 +8,10 @@ import { normalizeCartCalculation } from '../utils';
  * Keeps free-delivery progress on the cart store in sync whenever items
  * change (Home / ProductList / Categories sticky pill), not only when the
  * user opens Cart or Checkout.
+ *
+ * Also re-runs when the app returns to foreground so admin price changes
+ * land in local cart lines (list + sticky mini-cart) without needing a
+ * qty change.
  *
  * Debounced cart/calculate; sequence-guarded so rapid +/− doesn't apply stale
  * responses. Failures are silent — the pill falls back to last-known progress
@@ -21,6 +26,9 @@ export function useSyncCartFreeDeliveryProgress({ enabled = true, debounceMs = 3
   const setFreeDeliveryUnlocked = useCartStore((s) => s.setFreeDeliveryUnlocked);
 
   const seqRef = useRef(0);
+  // Bumped when app becomes active so cart prices re-pull from the server
+  // even if line ids/qty are unchanged.
+  const [resumeTick, setResumeTick] = useState(0);
 
   // Mirrors CartScreen's validItems filter — a malformed/stale cart entry
   // (no product.id) must not throw inside the debounced calculate below.
@@ -39,6 +47,14 @@ export function useSyncCartFreeDeliveryProgress({ enabled = true, debounceMs = 3
 
   useEffect(() => {
     if (!enabled) return undefined;
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') setResumeTick((n) => n + 1);
+    });
+    return () => sub.remove();
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled) return undefined;
 
     if (!validItems.length) {
       setFreeDeliveryProgress(null);
@@ -50,9 +66,10 @@ export function useSyncCartFreeDeliveryProgress({ enabled = true, debounceMs = 3
     const seq = ++seqRef.current;
     const timer = setTimeout(async () => {
       try {
-        // Read coupon flags at request time (not only effect-deps) so a remove
-        // mid-debounce still uses the latest store values.
+        // Always read latest cart lines (not only the effect-closure snapshot)
+        // so a resume re-fetch sees any qty edits during debounce.
         const {
+          items: liveItems,
           appliedCouponCode: code,
           appliedCouponId: couponId,
           couponAutoApplyDisabled: noAuto,
@@ -61,8 +78,11 @@ export function useSyncCartFreeDeliveryProgress({ enabled = true, debounceMs = 3
           softClearAppliedCoupon,
         } = useCartStore.getState();
 
+        const lines = (liveItems || []).filter((item) => item?.product?.id);
+        if (!lines.length) return;
+
         const payload = {
-          items: validItems.map((item) => ({
+          items: lines.map((item) => ({
             productId: item.product.id,
             variantId: item.variant?.id ?? null,
             quantity: item.quantity,
@@ -103,7 +123,8 @@ export function useSyncCartFreeDeliveryProgress({ enabled = true, debounceMs = 3
       cancelled = true;
       clearTimeout(timer);
     };
-    // cartKey captures item identity; coupon flags affect free-delivery apply.
+    // cartKey captures item identity; coupon flags affect free-delivery apply;
+    // resumeTick re-pulls live unit prices after background.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     enabled,
@@ -112,6 +133,7 @@ export function useSyncCartFreeDeliveryProgress({ enabled = true, debounceMs = 3
     appliedCouponId,
     couponAutoApplyDisabled,
     debounceMs,
+    resumeTick,
   ]);
 }
 
