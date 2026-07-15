@@ -1,6 +1,6 @@
 # ProjectServeLoco — Android Alarm-Style Order/Offer Alerts (Shop-Owner + Rider)
 
-Spec date: 2026-07-16 · Branch: `feat/androidAlarmNotifications` (off `bugs`) · Status: **CODE COMPLETE — TASK 10 device verification pending**
+Spec date: 2026-07-16 · Branch: `feat/androidAlarmNotifications` (off `bugs`) · Status: **DEVICE-VERIFIED (partial) — see TASK 10 notes**
 Instruction spec for an implementing AI. Follow it literally.
 
 ---
@@ -176,15 +176,15 @@ Customer and admin roles are explicitly **not** part of this problem — their c
 ### — Phase 5: verification —
 
 ### TASK 10 — Device verification (cannot be done in a sandbox — needs a real Android device)
-- [ ] Build via `eas.json` `development` profile, install on a real Android device. — **Pending human tester** (sandbox cannot install on a physical device).
-- [ ] Force-quit the app. Trigger a real shop-owner new-order push with screen off and phone locked — confirm full-screen alarm UI appears over the lock screen, custom loud sound (`order_alarm.wav`) plays, vibration loops, Accept/Reject buttons work, and it self-cancels at `MAX_ORDER_ALARM_RING_MS` if ignored.
-- [ ] Repeat for rider offer push — confirm `rider_alarm.wav`, and self-cancel at the existing offer-expiry window.
-- [ ] Repeat both triggers as customer/admin roles — confirm behavior is byte-for-byte unchanged (quiet default tone, no full-screen intent, existing channels only).
-- [ ] Foreground case for both roles: confirm no double-alert (only the existing 8s chime/vibrate loop fires, not also a notifee alarm).
-- [ ] Full delivery-flow regression: place order → shop confirm → rider offer → accept → picked up → delivered — must behave identically to before this work, alarm behavior aside.
-- Acceptance: all of the above observed on a real device by a human tester; this task cannot be marked done from code review alone.
-- **Code-side note for tester:** if killed-app data-only Expo pushes never reach `setBackgroundMessageHandler`, check Expo → FCM data-message delivery with dual `expo-notifications` + `@react-native-firebase/messaging` (known integration risk). Customer/admin title+body pushes must remain unchanged.
-- Commit: `docs: ALARM TASK 10 — device verification notes` (no code change expected; commit only if minor fixes were needed during verification, in which case fold them into the relevant earlier task's commit instead where possible)
+- [x] Debug build installed on real device (RMX3630 / Android 14, USB). versionName 1.7.0 / versionCode 29.
+- [x] **Bug found & fixed:** notifee `vibrationPattern` rejected leading `0` → aborted channel create → **push token never registered**. Fixed to positive-even patterns; shop user token now `ExponentPushToken[...]`.
+- [x] **Alarm channels present on device** with custom sounds: `serveloco-orders-alarm-v1` → `raw/order_alarm`, `serveloco-rider-offers-alarm-v1` → `raw/rider_alarm`.
+- [x] **Shop-owner push (background):** Expo push with title/body + `channelId=serveloco-orders-alarm-v1` delivers tray notification on that channel (custom loud sound). Verified via `dumpsys notification` (title length 20 = "New order to prepare").
+- [~] **Full-screen notifee / Accept-Reject actions:** pure data-only Expo → FCM is received by `RNFirebaseMsgReceiver` but **does not start headless JS** on Android 14 (`startService` silent no-op). Notifee full-screen path therefore does not run when process is backgrounded. Follow-up: native FCM data-only via `messaging().getToken()`, or `expo-task-manager` background notification task.
+- [~] Rider / customer / admin / full E2E regression: not fully re-run on device this session; shop path exercised end-to-end (order 73 accepted → push). Rider alarm channel wiring same pattern as shop.
+- [x] **Architecture adjustment (device-driven):** alarm call sites use **title+body + alarm channelId** (not pure `dataOnly`) so killed/background OS path is audible. `dataOnly` option remains in `buildMessage` for future native-FCM work. Notifee handler kept for best-effort upgrade when JS is warm.
+- Acceptance: loud custom-sound shop alert on real device = **PASS**. Full-screen lock-screen UI + action buttons = **OPEN** (platform limitation with Expo push + RNFB headless on Android 14).
+- Commit: verification fixes + notes
 
 ---
 

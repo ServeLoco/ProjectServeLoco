@@ -37,8 +37,12 @@ const notifyShopsForOrder = async (order) => {
       });
     }
     expoPush.sendPushToMany(pool, rows.map(r => r.owner_user_id), {
-      // Data-only: killed-app alarm rendered client-side via notifee (no OS tray banner).
-      dataOnly: true,
+      // Loud alarm channel (custom order_alarm sound). title/body required so the OS
+      // presents the banner when the app is backgrounded/killed — pure data-only
+      // Expo pushes do not start RNFB headless JS on Android 14 (verified).
+      title: 'New order to prepare',
+      body: `Order ${order.order_number} has items for your shop. Open the app to confirm.`,
+      channelId: 'serveloco-orders-alarm-v1',
       data: {
         type: 'shop_order',
         alertType: 'new_order_alarm',

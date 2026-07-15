@@ -184,10 +184,15 @@ export const RIDER_OFFER_CHANNEL_ID = 'serveloco-rider-offers';
 export const ORDER_ALARM_CHANNEL_ID = 'serveloco-orders-alarm-v1';
 export const RIDER_OFFER_ALARM_CHANNEL_ID = 'serveloco-rider-offers-alarm-v1';
 
-// Strong pattern: pause, buzz, pause, buzz… (ms)
+// Strong pattern: pause, buzz, pause, buzz… (ms) — RN Vibration API allows a
+// leading 0 (initial delay). Used by foreground alert hooks.
 export const RIDER_VIBRATION_PATTERN = [0, 600, 200, 600, 200, 600];
 // Shop-owner alarm vibration (matches useNewOrderAlert foreground pattern).
 export const SHOP_VIBRATION_PATTERN = [0, 500, 200, 500, 200, 500];
+// Notifee channel vibrationPattern requires an even count of *positive* ms
+// (leading 0 throws and aborts createChannel → push token registration).
+const NOTIFEE_SHOP_VIBRATION_PATTERN = [500, 200, 500, 200, 500, 200];
+const NOTIFEE_RIDER_VIBRATION_PATTERN = [600, 200, 600, 200, 600, 200];
 
 async function createAndroidChannel() {
   if (Platform.OS !== 'android') return;
@@ -246,31 +251,36 @@ async function createAndroidChannel() {
 export async function createNotifeeAlarmChannels() {
   if (Platform.OS !== 'android') return;
 
-  await notifee.createChannel({
-    id: ORDER_ALARM_CHANNEL_ID,
-    name: 'Shop Order Alarms',
-    importance: AndroidImportance.HIGH,
-    sound: 'order_alarm',
-    vibration: true,
-    vibrationPattern: SHOP_VIBRATION_PATTERN,
-    lights: true,
-    lightColor: BRAND_COLOR,
-    bypassDnd: true,
-    visibility: AndroidVisibility.PUBLIC,
-  });
+  try {
+    await notifee.createChannel({
+      id: ORDER_ALARM_CHANNEL_ID,
+      name: 'Shop Order Alarms',
+      importance: AndroidImportance.HIGH,
+      sound: 'order_alarm',
+      vibration: true,
+      vibrationPattern: NOTIFEE_SHOP_VIBRATION_PATTERN,
+      lights: true,
+      lightColor: BRAND_COLOR,
+      bypassDnd: true,
+      visibility: AndroidVisibility.PUBLIC,
+    });
 
-  await notifee.createChannel({
-    id: RIDER_OFFER_ALARM_CHANNEL_ID,
-    name: 'Rider Offer Alarms',
-    importance: AndroidImportance.HIGH,
-    sound: 'rider_alarm',
-    vibration: true,
-    vibrationPattern: RIDER_VIBRATION_PATTERN,
-    lights: true,
-    lightColor: BRAND_COLOR,
-    bypassDnd: true,
-    visibility: AndroidVisibility.PUBLIC,
-  });
+    await notifee.createChannel({
+      id: RIDER_OFFER_ALARM_CHANNEL_ID,
+      name: 'Rider Offer Alarms',
+      importance: AndroidImportance.HIGH,
+      sound: 'rider_alarm',
+      vibration: true,
+      vibrationPattern: NOTIFEE_RIDER_VIBRATION_PATTERN,
+      lights: true,
+      lightColor: BRAND_COLOR,
+      bypassDnd: true,
+      visibility: AndroidVisibility.PUBLIC,
+    });
+  } catch (err) {
+    // Never block Expo push token registration on channel setup failure.
+    console.warn('[notifications] createNotifeeAlarmChannels failed:', err?.message || err);
+  }
 }
 
 // Register the "order_update" category so Android and iOS show a
@@ -646,12 +656,34 @@ export function useLocalNotifications(navigationRef) {
   // ── 2b. Mark remote pushes as shown so catch-up doesn't replay them ──────
   // (fires when the OS delivers a push while JS is warm — foreground or,
   // on some Android builds, background).
+  // Also: when an alarm-type push arrives while JS is warm, upgrade to a
+  // notifee full-screen / FGS alarm (best-effort — killed process uses OS
+  // tray on the alarm channel with custom sound instead).
   useEffect(() => {
+    let cancelled = false;
     const subscription = Notifications.addNotificationReceivedListener((notification) => {
-      const data = notification?.request?.content?.data;
+      const data = notification?.request?.content?.data || {};
       markNotificationShown(data?.notificationId);
+
+      const alertType = data?.alertType;
+      if (
+        Platform.OS === 'android'
+        && (alertType === 'new_order_alarm' || alertType === 'rider_offer_alarm')
+        && AppState.currentState !== 'active'
+      ) {
+        // Lazy require so tests / non-android never load the alarm module path early.
+        import('../utils/orderAlarmNotifications')
+          .then(({ displayAlarmNotification }) => {
+            if (!cancelled) return displayAlarmNotification(data);
+            return undefined;
+          })
+          .catch(() => {});
+      }
     });
-    return () => subscription.remove();
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
   }, []);
 
   // ── 3. Handle tap / action button → navigate (live + cold start) ─────────

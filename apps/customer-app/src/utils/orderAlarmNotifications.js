@@ -16,8 +16,6 @@ import notifee, {
 import {
   ORDER_ALARM_CHANNEL_ID,
   RIDER_OFFER_ALARM_CHANNEL_ID,
-  SHOP_VIBRATION_PATTERN,
-  RIDER_VIBRATION_PATTERN,
   createNotifeeAlarmChannels,
 } from '../hooks/useLocalNotifications';
 import { shopApi } from '../api/shopApi';
@@ -119,9 +117,10 @@ export async function displayAlarmNotification(data) {
   const timeoutAfter = isRider
     ? resolveRiderTimeoutMs(data)
     : MAX_ORDER_ALARM_RING_MS;
+  // Notifee requires even-length positive ms (no leading 0 delay).
   const vibrationPattern = isRider
-    ? RIDER_VIBRATION_PATTERN
-    : SHOP_VIBRATION_PATTERN;
+    ? [600, 200, 600, 200, 600, 200]
+    : [500, 200, 500, 200, 500, 200];
 
   let canFullScreen = true;
   try {
@@ -283,12 +282,48 @@ export async function handleAlarmActionEvent({ type, detail }) {
  * Background FCM entry point — only called from setBackgroundMessageHandler.
  */
 export async function handleBackgroundAlarmMessage(remoteMessage) {
+  // Structured log for device verification (adb logcat | grep orderAlarm).
+  try {
+    console.warn(
+      '[orderAlarm] bg message',
+      JSON.stringify({
+        messageId: remoteMessage?.messageId,
+        from: remoteMessage?.from,
+        data: remoteMessage?.data || null,
+        notification: remoteMessage?.notification || null,
+      }),
+    );
+  } catch { /* ignore */ }
+
   const data = getRemoteAlarmData(remoteMessage);
-  if (!data || !isAlarmAlertType(data.alertType)) {
+  // Expo sometimes nests JSON under a single "body"/"data" string key.
+  let alertData = data;
+  if (data && !isAlarmAlertType(data.alertType)) {
+    for (const key of ['body', 'message', 'payload', 'data']) {
+      const raw = data[key];
+      if (typeof raw === 'string' && raw.startsWith('{')) {
+        try {
+          const nested = JSON.parse(raw);
+          if (nested && isAlarmAlertType(nested.alertType)) {
+            alertData = nested;
+            break;
+          }
+        } catch { /* ignore */ }
+      }
+    }
+  }
+
+  if (!alertData || !isAlarmAlertType(alertData.alertType)) {
     // Non-alarm data messages: no-op (other pushes keep title+body OS path).
     return;
   }
-  await displayAlarmNotification(data);
+  try {
+    console.warn('[orderAlarm] displaying alarm', alertData.alertType, alertData.orderId || alertData.offerId);
+    await displayAlarmNotification(alertData);
+    console.warn('[orderAlarm] display complete');
+  } catch (err) {
+    console.warn('[orderAlarm] display failed:', err?.message || err);
+  }
 }
 
 export function isAlarmPayload(data) {

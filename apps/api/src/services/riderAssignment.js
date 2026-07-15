@@ -95,12 +95,16 @@ const pushRiderOffer = async (userId, order, offer, { reminder = false } = {}) =
   if (!userId) return;
   const orderNumber = order.order_number || order.orderNumber || order.id;
   const expoPush = require('../utils/expoPush');
+  const mins = Math.max(1, Math.round(RIDER_OFFER_TIMEOUT_SEC / 60));
   await expoPush.sendPushToUser(pool, userId, {
-    // Data-only: killed-app alarm rendered client-side via notifee (no OS tray banner).
-    // Initial + remindPendingOffers both go through this path — one place for dataOnly.
-    dataOnly: true,
-    // Strong vibration channel (client creates serveloco-rider-offers).
-    channelId: 'serveloco-rider-offers',
+    // Loud alarm channel (custom rider_alarm sound). title/body so OS presents
+    // when app is backgrounded/killed — pure data-only Expo + RNFB headless
+    // does not run JS on Android 14 (device-verified).
+    title: reminder ? 'Delivery offer still waiting' : 'New delivery offer',
+    body: reminder
+      ? `Order ${orderNumber} — accept now before it expires`
+      : `Order ${orderNumber} — accept within ${mins} minutes`,
+    channelId: 'serveloco-rider-offers-alarm-v1',
     data: {
       type: 'rider_offer',
       alertType: 'rider_offer_alarm',
@@ -108,7 +112,6 @@ const pushRiderOffer = async (userId, order, offer, { reminder = false } = {}) =
       orderId: String(order.id || offer.order_id),
       orderNumber: String(orderNumber),
       expiresAt: String(offer.expires_at || offer.expiresAt || ''),
-      // Keep reminder flag for client diagnostics; not used for display path.
       reminder: reminder ? '1' : '0',
     },
   });
