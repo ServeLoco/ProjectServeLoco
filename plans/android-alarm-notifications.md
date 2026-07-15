@@ -1,7 +1,7 @@
 # ProjectServeLoco — Android Alarm-Style Order/Offer Alerts (Shop-Owner + Rider)
 
-Spec date: 2026-07-16 · Branch: `feat/androidAlarmNotifications` (off `bugs`) · Status: **COMPLETE (device-verified shop FCM full-screen path)**
-Instruction spec for an implementing AI. Follow it literally.
+Spec date: 2026-07-16 · Branch: `feat/androidAlarmNotifications` (off `bugs`) · Status: **AUDITED + FIXED 2026-07-16 — see §8. Real bug fixed & tested, dead code removed, test-coverage gaps closed. One unrelated bundled fix still needs your call on branch-split (§8). Rider full-screen path not independently device-confirmed (shares code path with shop, which was).**
+Instruction spec for an implementing AI. Follow it literally. See §8 for the full audit — do not trust the top-line status alone before shipping.
 
 ---
 
@@ -196,3 +196,27 @@ Play Console pre-launch report (release 1.7.0, before this feature existed) alre
 Root cause confirmed in this repo's post-prebuild merged manifest: `expo.modules.notifications.service.NotificationsService` (from `expo-notifications`, already installed for the existing chime/vibrate alerts) registers a receiver on `BOOT_COMPLETED`/`REBOOT`/`QUICKBOOT_POWERON`/`MY_PACKAGE_REPLACED`. Play's static analysis found a reachable call path from that boot receiver into `expo-audio`'s restricted-type foreground-service starters (`mediaPlayback`/`microphone` types, declared in `expo-audio`'s own `AndroidManifest.xml`). This is a library-level interaction between `expo-notifications` and `expo-audio`, not app code, and predates this alarm feature entirely.
 
 **This is a real Android 15+ crash risk on the current production app, independent of the alarm work.** Not fixed by this spec. Recommended before shipping any 1.7.0 build (this feature's or otherwise): check for a newer `expo-audio`/`expo-notifications` patch version that resolves the boot-receiver-to-restricted-FGS call path; if none exists yet, this needs its own separate investigation/spec — do not fold it into the ALARM TASK numbering above, it touches unrelated library internals, not this feature's files.
+
+## 8. Audit findings (verified 2026-07-16, against actual committed code — not the commit messages)
+
+20 commits landed on this branch, not just the original 10 TASK commits — real device testing surfaced problems and the implementation correctly iterated past the spec's original text in several places (channel IDs ended up `-alarm-v4` not `-v1`; the delivery mechanism pivoted from Expo-only `dataOnly` pushes to a native Firebase Admin SDK path, `apps/api/src/utils/fcmAlarmPush.js`, because Expo data-only pushes don't reliably wake `setBackgroundMessageHandler` on Android 14 — documented in that file's own header comment). None of that is a problem; it's the spec's original text going stale against real findings, which is expected. Verified: `apps/api` — 70 suites / 683 tests pass. `apps/customer-app` — 31 suites / 223 tests pass, eslint clean on all touched files. No committed secrets (`firebase-service-account.json` and `plans/villkro-firebase-adminsdk-*.json` both confirmed git-ignored, never tracked).
+
+**Confirmed bug — FIXED (commit `f2bcd2b`):**
+- `apps/customer-app/src/hooks/useLocalNotifications.js` (~:742-765) — the `addNotificationReceivedListener` added for the Expo-fallback transport (used only when a device has no native FCM token registered) played `alarmSound.js`'s loud tone with no `AppState` gate, layering on top of the existing 8s foreground chime loop. Gated to `AppState.currentState !== 'active'`, matching `useNewOrderAlert.js`'s own foreground-only convention. Verified: 31/31 suites, 223/223 tests pass, eslint clean.
+
+**Bundled but unrelated — still needs your call, not touched by me:**
+- Same branch also carries a real, well-tested fix for a cross-account session bug: shop logout left `auth.currentUser` (Firebase) pointed at the old phone, so a subsequent rider OTP login on the same device could fall back into the previous account. Fixed via a `sessionGeneration` counter guarding stale in-flight `/auth/me` responses (`useAuthStore.js`, `AuthScreen.js`, `ProfileScreen.js`, new tests in `__tests__/useAuthStore.adminMode.test.js`). Good fix, good tests, zero interaction with notification code — but it has nothing to do with this spec and wasn't asked for here. Options: leave it bundled (already committed, works, tested), or split it onto its own branch/PR before merging so the alarm feature's history stays clean. Your call — not acted on.
+
+**Test-coverage gaps — CLOSED (commits `e0ff7fb`, `c475967`):**
+- `apps/customer-app/src/utils/orderAlarmNotifications.js` and `src/utils/alarmSound.js` — added `__tests__/orderAlarmNotifications.test.js` (21 tests: dedupe, display/cancel wiring for both alert types, accept/reject action routing incl. no-token and API-throw cases, OS-banner-present vs true-data-only branching) and `__tests__/alarmSound.test.js` (7 tests: play/loop/stop, platform gate, per-kind memoization). Along the way found and fixed two real gaps in the shared `jest.setup.js` notifee/expo-audio mocks (missing `AndroidForegroundServiceType`, missing `setAudioModeAsync`/`pause`) that would have thrown as soon as anything invoked `displayAlarmNotification` — latent until these tests existed to hit that path.
+- `apps/api/src/utils/fcmAlarmPush.js` — added `tests/fcmAlarmPush.test.js` (9 tests) plus a `firebase-admin/messaging` jest mock. `riderAssignment.test.js` now explicitly mocks `fcmAlarmPush` (was unmocked, silently hitting real logic against an exhausted pool.query queue) and has 2 new tests asserting both branches: FCM sent → no Expo fallback; FCM not sent → Expo fallback with the alarm channel/sound.
+- `registerPushToken`'s `fcm_token` branch — 3 new tests in `pushTokenHygiene.test.js` (register+detach, skip-if-absent, skip-if-under-20-chars).
+- Verified: `apps/api` 71/71 suites, 696/696 tests. `apps/customer-app` 33/33 suites, 251/251 tests. All lint clean.
+
+**Dead code — REMOVED (commit `d6ecd08`):**
+- `expoPush.js` `buildMessage()`'s `dataOnly` option was fully implemented and tested but never called with `dataOnly: true` from any production call site (superseded by the `fcmAlarmPush.js` native-FCM pivot). Removed the branch and its two dead tests; replaced with one test covering the fallback shape that actually ships (custom sound/tag/collapseId).
+
+**Minor — FIXED (commit `5512600`):**
+- `fcmAlarmPush.js:9` now reads `config.NODE_ENV`, matching sibling `expoPush.js`.
+
+**Production-safety verdict:** No crash-class regressions, no data-shape changes leaking into customer/admin, no committed secrets, no new BOOT_COMPLETED-triggered foreground-service path. The one confirmed bug is fixed and tested. Only open item is the bundled-but-unrelated auth fix (your call on branch-split) — not a blocker to ship either way.
