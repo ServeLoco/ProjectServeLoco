@@ -164,7 +164,8 @@ export default function ShopDashboardScreen() {
   }, [fetchAll]);
 
   // ── Repeating alert while anything is waiting in the popup queue ────
-  useNewOrderAlert(pendingQueue.length > 0);
+  // role: 'shop' — loud remote alarm path + no background local spam (admin uses default).
+  useNewOrderAlert(pendingQueue.length > 0, { role: 'shop' });
 
   const currentPopupOrder = pendingQueue[0] || null;
 

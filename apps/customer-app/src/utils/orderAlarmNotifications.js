@@ -99,6 +99,10 @@ export async function displayAlarmNotification(data) {
   if (Platform.OS !== 'android') return;
   if (!data || !isAlarmAlertType(data.alertType)) return;
 
+  // Shop-owner + rider sessions only.
+  const { shop, rider } = useAuthStore.getState();
+  if (!shop && !rider) return;
+
   await createNotifeeAlarmChannels();
 
   // Replace any previous alarm of the same type (one ringing banner max).
@@ -336,10 +340,11 @@ export async function handleBackgroundAlarmMessage(remoteMessage) {
   }
 
   if (!alertData || !isAlarmAlertType(alertData.alertType)) {
-    // Non-alarm data messages: no-op (other pushes keep title+body OS path).
+    // Non-alarm data messages: no-op (customer/admin pushes keep title+body OS path).
     return;
   }
 
+  // Shop/rider alert types only — never act on customer/admin notification payloads.
   // If Expo/FCM already attached a notification payload (title+body), the OS
   // tray is showing that banner — only play media sound, do not post a second
   // notifee notification (duplicate spam).

@@ -246,13 +246,17 @@ async function createAndroidChannel() {
 }
 
 /**
- * Notifee alarm channels for shop-owner / rider killed-app full-screen alerts.
- * Separate from createAndroidChannel() — expo-notifications channels stay untouched.
- * Sound names match res/raw basenames (no extension) from withAlarmSounds plugin.
- * Importance HIGH is notifee's top level (heads-up / full-screen capable).
+ * Notifee / expo alarm channels for **shop-owner and rider only**.
+ * Customers and admins never need these channels; call only when the signed-in
+ * user has a shop or rider profile.
+ * Separate from createAndroidChannel() — expo-notifications order channels stay untouched.
  */
 export async function createNotifeeAlarmChannels() {
   if (Platform.OS !== 'android') return;
+
+  // Scope: shop-owner + rider only (never customer / plain admin).
+  const { shop, rider } = useAuthStore.getState();
+  if (!shop && !rider) return;
 
   try {
     // Drop superseded channel ids (settings frozen after first create).
@@ -721,23 +725,27 @@ export function useLocalNotifications(navigationRef) {
       const data = notification?.request?.content?.data || {};
       markNotificationShown(data?.notificationId);
 
-      // Alarm pushes already show ONE OS tray banner (title+body + alarm channel).
-      // Only play media sound here — do NOT also post a notifee banner (that was
-      // stacking "New order waiting" on top of "New order to prepare").
+      // Alarm media sound: shop new-order + rider offer only.
+      // Customers/admins never receive alertType new_order_alarm / rider_offer_alarm
+      // (those are only set on the two alarm push call sites). Extra role gate:
+      // only play if this device is currently a shop-owner or rider session.
       const alertType = data?.alertType;
       if (
         Platform.OS === 'android'
         && (alertType === 'new_order_alarm' || alertType === 'rider_offer_alarm')
       ) {
-        import('../utils/alarmSound')
-          .then(({ playAlarmSound }) => {
-            if (cancelled) return undefined;
-            return playAlarmSound(
-              alertType === 'rider_offer_alarm' ? 'rider' : 'order',
-              { loopMs: 15000 },
-            );
-          })
-          .catch(() => {});
+        const { shop, rider } = useAuthStore.getState();
+        if (shop || rider) {
+          import('../utils/alarmSound')
+            .then(({ playAlarmSound }) => {
+              if (cancelled) return undefined;
+              return playAlarmSound(
+                alertType === 'rider_offer_alarm' ? 'rider' : 'order',
+                { loopMs: 15000 },
+              );
+            })
+            .catch(() => {});
+        }
       }
     });
     return () => {

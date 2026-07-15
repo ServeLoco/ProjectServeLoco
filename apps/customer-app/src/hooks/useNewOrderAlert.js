@@ -14,23 +14,28 @@ const NOTIFICATION_ID = 'serveloco-new-order-alert';
 export { MAX_ORDER_ALARM_RING_MS } from '../utils/orderAlarmNotifications';
 
 /**
- * Repeating in-app alert for the shop-owner (and admin) new-order popup.
- * Local notification + chime + vibration every REPEAT_MS while `active` is
- * true AND the app is in the foreground. Background/killed delivery is the
- * remote alarm push (one tray row + media sound) — do not keep posting local
- * banners every 8s while backgrounded (that stacked notifications).
+ * Repeating in-app alert for the new-order popup.
  *
- * Opening the dashboard also silences any killed-app alarm and clears trays.
+ * Used by:
+ * - Shop dashboard (`options.role === 'shop'`) — alarm tray clear + background
+ *   pause so remote shop-alarm push owns background delivery.
+ * - Admin popups (default) — original quiet loop, unchanged for admin UX.
+ *
+ * @param {boolean} active
+ * @param {{ role?: 'shop' | 'admin' }} [options]
  */
-export function useNewOrderAlert(active) {
+export function useNewOrderAlert(active, options = {}) {
+  const isShop = options.role === 'shop';
   const intervalRef = useRef(null);
 
-  // Silences killed-app alarm + clears stacked OS trays when dashboard opens
-  // (proper flow: one popup in-app, not a pile of banners).
+  // Shop only: silence killed-app alarm + clear trays when dashboard opens.
+  // Admin must not dismissAll (would wipe unrelated admin notifications).
   useEffect(() => {
+    if (!isShop) return undefined;
     cancelOrderAlarm().catch(() => {});
     Notifications.dismissAllNotificationsAsync().catch(() => {});
-  }, []);
+    return undefined;
+  }, [isShop]);
 
   useEffect(() => {
     const stop = () => {
@@ -45,8 +50,9 @@ export function useNewOrderAlert(active) {
     };
 
     const fire = () => {
-      // Only while foreground — background uses the single remote alarm push.
-      if (AppState.currentState !== 'active') return;
+      // Shop: only while foreground (background uses remote alarm push).
+      // Admin: original behavior — fire whenever active (no AppState gate).
+      if (isShop && AppState.currentState !== 'active') return;
 
       Notifications.scheduleNotificationAsync({
         identifier: NOTIFICATION_ID,
@@ -83,24 +89,27 @@ export function useNewOrderAlert(active) {
     fire();
     intervalRef.current = setInterval(fire, REPEAT_MS);
 
-    const sub = AppState.addEventListener('change', (next) => {
-      if (next !== 'active') {
-        // Pause local spam while backgrounded; remote push owns that path.
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
+    // Shop only: pause local loop while backgrounded.
+    let sub = null;
+    if (isShop) {
+      sub = AppState.addEventListener('change', (next) => {
+        if (next !== 'active') {
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          try { Vibration.cancel(); } catch { /* ignore */ }
+          Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
+        } else if (active && !intervalRef.current) {
+          fire();
+          intervalRef.current = setInterval(fire, REPEAT_MS);
         }
-        try { Vibration.cancel(); } catch { /* ignore */ }
-        Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
-      } else if (active && !intervalRef.current) {
-        fire();
-        intervalRef.current = setInterval(fire, REPEAT_MS);
-      }
-    });
+      });
+    }
 
     return () => {
-      sub.remove();
+      if (sub) sub.remove();
       stop();
     };
-  }, [active]);
+  }, [active, isShop]);
 }
