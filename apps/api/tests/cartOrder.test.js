@@ -581,7 +581,7 @@ describe('calculateCart with variantId', () => {
     expect(res.body.items[1]).toMatchObject({ variantId: 11, unitPrice: 349, name: 'Pizza (Large)' });
   });
 
-  it('rejects an unknown variantId with 400', async () => {
+  it('soft-drops an unknown variantId and returns it in unavailableItems', async () => {
     pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
     pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]]);
     pool.query.mockResolvedValueOnce([[]]);
@@ -591,12 +591,15 @@ describe('calculateCart with variantId', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ items: [{ productId: 1, variantId: 999, quantity: 1 }] });
 
-    expect(res.statusCode).toEqual(400);
-    expect(res.body.code).toEqual('VALIDATION_ERROR');
-    expect(res.body.message).toContain('selected option is unavailable');
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.items).toEqual([]);
+    expect(res.body.subtotal).toEqual(0);
+    expect(res.body.unavailableItems).toEqual([
+      expect.objectContaining({ productId: 1, variantId: 999, reason: 'variant_unavailable' }),
+    ]);
   });
 
-  it('rejects a variantId belonging to a different product', async () => {
+  it('soft-drops a variantId belonging to a different product', async () => {
     pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
     pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]]);
     pool.query.mockResolvedValueOnce([[{ id: 10, product_id: 2, label: 'Large', price: 349, available: 1, deleted: 0 }]]);
@@ -606,25 +609,40 @@ describe('calculateCart with variantId', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ items: [{ productId: 1, variantId: 10, quantity: 1 }] });
 
-    expect(res.statusCode).toEqual(400);
-    expect(res.body.message).toContain('selected option is unavailable');
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.items).toEqual([]);
+    expect(res.body.unavailableItems[0]).toMatchObject({ reason: 'variant_unavailable', productId: 1 });
   });
 
-  it('rejects an available=0 variant', async () => {
+  it('soft-drops an available=0 variant and keeps remaining lines', async () => {
     pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
-    pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]]);
+    // Two products: pizza available, and we only load pizza for the mixed cart
+    pool.query.mockResolvedValueOnce([[
+      { id: 1, name: 'Pizza', price: 349, available: 1 },
+      { id: 2, name: 'Coke', price: 40, available: 1 },
+    ]]);
     pool.query.mockResolvedValueOnce([[{ id: 10, product_id: 1, label: 'Large', price: 349, available: 0, deleted: 0 }]]);
 
     const res = await request(app)
       .post('/api/cart/calculate')
       .set('Authorization', `Bearer ${token}`)
-      .send({ items: [{ productId: 1, variantId: 10, quantity: 1 }] });
+      .send({
+        items: [
+          { productId: 1, variantId: 10, quantity: 1 },
+          { productId: 2, quantity: 2 },
+        ],
+      });
 
-    expect(res.statusCode).toEqual(400);
-    expect(res.body.message).toContain('selected option is unavailable');
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.subtotal).toEqual(80);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0]).toMatchObject({ id: 2, unitPrice: 40, quantity: 2 });
+    expect(res.body.unavailableItems).toEqual([
+      expect.objectContaining({ productId: 1, variantId: 10, reason: 'variant_unavailable' }),
+    ]);
   });
 
-  it('rejects a soft-deleted variant (deleted=1)', async () => {
+  it('soft-drops a soft-deleted variant (deleted=1)', async () => {
     pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
     pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 349, available: 1 }]]);
     pool.query.mockResolvedValueOnce([[{ id: 10, product_id: 1, label: 'Large', price: 349, available: 1, deleted: 1 }]]);
@@ -634,8 +652,9 @@ describe('calculateCart with variantId', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ items: [{ productId: 1, variantId: 10, quantity: 1 }] });
 
-    expect(res.statusCode).toEqual(400);
-    expect(res.body.message).toContain('selected option is unavailable');
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.items).toEqual([]);
+    expect(res.body.unavailableItems[0].reason).toBe('variant_unavailable');
   });
 
   it('charges base products.price when no variantId is sent (old-client path)', async () => {

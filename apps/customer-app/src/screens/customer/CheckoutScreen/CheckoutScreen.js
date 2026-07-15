@@ -333,6 +333,7 @@ export default function CheckoutScreen() {
   const setFreeDeliveryProgress = useCartStore(state => state.setFreeDeliveryProgress);
   const setFreeDeliveryUnlocked = useCartStore(state => state.setFreeDeliveryUnlocked);
   const syncItemPricesFromServer = useCartStore(state => state.syncItemPricesFromServer);
+  const removeUnavailableItems = useCartStore(state => state.removeUnavailableItems);
   const shopStatus = useSettingsStore(state => state.shopStatus);
   const deliveryAvailable = useSettingsStore(state => state.deliveryAvailable);
   const upiQrImageId = useSettingsStore(state => state.upiQrImageId);
@@ -679,6 +680,9 @@ export default function CheckoutScreen() {
             && Number(normalized.appliedCoupon.freeDeliveryWaiver || 0) > 0,
           ));
           syncItemPricesFromServer(normalized.items);
+          if (normalized.unavailableItems?.length) {
+            removeUnavailableItems(normalized.unavailableItems);
+          }
         })
         .catch(error => {
           if (!isActive) return;

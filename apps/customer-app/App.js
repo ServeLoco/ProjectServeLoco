@@ -16,6 +16,7 @@ import {
   useNetworkStatus,
   usePreciseLocationPermissionOnStart,
   useShopStatusSync,
+  useProductAvailabilitySync,
   useAuthRoleSync,
 } from './src/hooks';
 import { useAuthStore } from './src/stores';
@@ -54,6 +55,7 @@ function App() {
   useLocalNotifications(navigationRef);
   usePreciseLocationPermissionOnStart();
   useShopStatusSync();
+  useProductAvailabilitySync();
   useAuthRoleSync();
   const { isOnline } = useNetworkStatus();
 

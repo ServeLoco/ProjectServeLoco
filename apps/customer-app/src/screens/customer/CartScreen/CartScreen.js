@@ -25,6 +25,7 @@ import {
 import { colors, typography, spacing, radius, shadows, layout, borderWidth, motionConfig, entryDistance, easing, smallMs, staggerMs, screenMs } from '../../../theme';
 import { useCartStore, useSettingsStore } from '../../../stores';
 import { cartApi } from '../../../api';
+import { showToast } from '../../../components/Toast';
 import { buildProgressHintText, normalizeCartCalculation, useReducedMotion } from '../../../utils';
 const getItemType = (item) =>
   item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');
@@ -49,6 +50,7 @@ export default function CartScreen() {
   const setFreeDeliveryProgress = useCartStore(state => state.setFreeDeliveryProgress);
   const setFreeDeliveryUnlocked = useCartStore(state => state.setFreeDeliveryUnlocked);
   const syncItemPricesFromServer = useCartStore(state => state.syncItemPricesFromServer);
+  const removeUnavailableItems = useCartStore(state => state.removeUnavailableItems);
   const shopStatus = useSettingsStore(state => state.shopStatus);
 
   const [isCalculating, setIsCalculating] = useState(false);
@@ -208,6 +210,16 @@ export default function CartScreen() {
       // Refresh local cart line prices from server so list + mini-cart match
       // Item Total after an admin price change (bill already uses live prices).
       syncItemPricesFromServer(calculatedBill.items);
+      // Drop OOS / deleted / closed-shop lines so cart never sticks on a dead
+      // item or shows a hard "something went wrong" calculate error.
+      if (calculatedBill.unavailableItems?.length) {
+        const removed = removeUnavailableItems(calculatedBill.unavailableItems);
+        if (removed.length > 0) {
+          const names = removed.map((r) => r.product?.name).filter(Boolean);
+          const label = names.length === 1 ? names[0] : `${names.length} items`;
+          showToast(`${label} removed — out of stock`, { type: 'info' });
+        }
+      }
       // Sync applied coupon from the bill response (handles auto-apply + validation).
       // When the backend returns no coupon (free-delivery min no longer met after
       // removing items, or auto-apply has nothing eligible), soft-clear local

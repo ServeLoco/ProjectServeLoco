@@ -296,6 +296,21 @@ function normalizeCartCalculation(payload = {}) {
       })(),
       variantLabel: pickFirst(item.variantLabel, item.variant_label) ?? null,
     })),
+    // Soft-dropped OOS / deleted / closed-shop lines — client removes matching
+    // cart rows so the cart never shows "something went wrong" for dead items.
+    unavailableItems: asArray(
+      pickFirst(bill.unavailableItems, bill.unavailable_items, []),
+      [],
+    ).map((item) => ({
+      productId: toIdString(pickFirst(item.productId, item.product_id, item.id)),
+      variantId: (() => {
+        const raw = pickFirst(item.variantId, item.variant_id, null);
+        return raw == null || raw === '' ? null : raw;
+      })(),
+      type: pickFirst(item.type, item.isCombo || item.is_combo ? 'combo' : 'product'),
+      quantity: numberOrZero(pickFirst(item.quantity, item.qty, 0)),
+      reason: pickFirst(item.reason, 'unavailable'),
+    })),
     appliedCoupon: (() => {
       const coupon = bill.appliedCoupon || bill.applied_coupon || null;
       if (!coupon) return null;

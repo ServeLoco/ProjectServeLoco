@@ -189,6 +189,28 @@ describe('api mappers', () => {
   it('defaults cart calculation items to empty array when absent', () => {
     const result = normalizeCartCalculation({ data: { subtotal: 100 } });
     expect(result.items).toEqual([]);
+    expect(result.unavailableItems).toEqual([]);
+  });
+
+  it('maps unavailableItems from cart/calculate for client cart prune', () => {
+    const result = normalizeCartCalculation({
+      data: {
+        subtotal: 40,
+        items: [{ id: 2, quantity: 1, unitPrice: 40, type: 'product' }],
+        unavailable_items: [
+          { product_id: 9, variant_id: 3, type: 'product', quantity: 2, reason: 'variant_unavailable' },
+        ],
+      },
+    });
+    expect(result.unavailableItems).toEqual([
+      {
+        productId: '9',
+        variantId: 3,
+        type: 'product',
+        quantity: 2,
+        reason: 'variant_unavailable',
+      },
+    ]);
   });
 
   it('maps delivery snapshot fields from order response', () => {

@@ -38,6 +38,7 @@ import {
 import { colors, typography, spacing, radius, layout } from '../../../theme';
 import { useCartStore, useSettingsStore } from '../../../stores';
 import { useAuthGate, useStoreModes } from '../../../hooks';
+import { subscribeProductAvailabilityEvents } from '../../../api/realtimeClient';
 
 
 import {
@@ -246,6 +247,40 @@ export default function HomeScreen() {
       })
       .catch(() => {});
   }, [currentApiStoreType, setSettings, markSettingsFetched]);
+
+  // Live OOS: when shop/admin marks a product unavailable, strip it from every
+  // product/combo rail immediately (no pull-to-refresh). Available=true →
+  // silent dashboard re-fetch so it can reappear in the right section.
+  useEffect(() => {
+    return subscribeProductAvailabilityEvents(({ payload }) => {
+      const productId = payload?.productId ?? payload?.id;
+      if (productId == null || productId === '') return;
+      const available = payload?.available;
+
+      if (available === false || available === 0 || available === '0') {
+        setDashboardSections((prev) => {
+          if (!Array.isArray(prev) || prev.length === 0) return prev;
+          return prev.map((section) => {
+            if (
+              section?.sectionType !== 'product_block' &&
+              section?.sectionType !== 'combo_block'
+            ) {
+              return section;
+            }
+            const items = section.items || [];
+            const nextItems = items.filter(
+              (item) => String(item?.id) !== String(productId),
+            );
+            if (nextItems.length === items.length) return section;
+            return { ...section, items: nextItems };
+          });
+        });
+        return;
+      }
+
+      refreshDashboardSilently();
+    });
+  }, [refreshDashboardSilently]);
 
   useFocusEffect(
     React.useCallback(() => {

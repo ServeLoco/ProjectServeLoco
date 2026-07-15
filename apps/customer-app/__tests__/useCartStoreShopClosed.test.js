@@ -149,3 +149,46 @@ describe('useCartStore.syncItemPricesFromServer', () => {
     expect(line.variant.price * line.quantity).toBe(140);
   });
 });
+
+describe('useCartStore.removeUnavailableItems', () => {
+  it('removes OOS product lines returned by cart/calculate unavailableItems', () => {
+    useCartStore.getState().addItem(product({ id: 70, price: 50 }), 2);
+    useCartStore.getState().addItem(product({ id: 71, price: 20 }), 1);
+
+    const removed = useCartStore.getState().removeUnavailableItems([
+      { productId: 70, type: 'product', reason: 'product_unavailable' },
+    ]);
+
+    expect(removed).toHaveLength(1);
+    expect(String(removed[0].product.id)).toBe('70');
+    expect(useCartStore.getState().items.map((i) => String(i.product.id))).toEqual(['71']);
+  });
+
+  it('removes only the matching variant line when variantId is set', () => {
+    const base = product({ id: 80, price: 40 });
+    useCartStore.getState().addItem(base, 1, { id: 1, label: 'Small', price: 40 });
+    useCartStore.getState().addItem(base, 1, { id: 2, label: 'Large', price: 60 });
+
+    const removed = useCartStore.getState().removeUnavailableItems([
+      { productId: 80, variantId: 1, type: 'product', reason: 'variant_unavailable' },
+    ]);
+
+    expect(removed).toHaveLength(1);
+    expect(removed[0].variant.id).toBe(1);
+    expect(useCartStore.getState().items).toHaveLength(1);
+    expect(useCartStore.getState().items[0].variant.id).toBe(2);
+  });
+
+  it('drops all variants when product-level OOS has no variantId', () => {
+    const base = product({ id: 90, price: 40 });
+    useCartStore.getState().addItem(base, 1, { id: 1, label: 'Small', price: 40 });
+    useCartStore.getState().addItem(base, 1, { id: 2, label: 'Large', price: 60 });
+
+    const removed = useCartStore.getState().removeUnavailableItems([
+      { productId: 90, type: 'product' },
+    ]);
+
+    expect(removed).toHaveLength(2);
+    expect(useCartStore.getState().items).toHaveLength(0);
+  });
+});

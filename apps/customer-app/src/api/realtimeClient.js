@@ -39,6 +39,11 @@ const SHOP_EVENTS = [
   'settings.shop_open.updated',
 ];
 
+// Shop/admin toggles product available (OOS) — customers drop cart lines + UI.
+const PRODUCT_AVAILABILITY_EVENTS = [
+  'product.availability.updated',
+];
+
 // Admin deleted/deactivated shop or rider → phone becomes customer mode.
 const AUTH_ROLE_EVENTS = [
   'auth.role.updated',
@@ -133,6 +138,14 @@ function subscribeShopEvents(handler) {
   return () => unsubscribers.forEach(unsubscribe => unsubscribe());
 }
 
+function subscribeProductAvailabilityEvents(handler) {
+  const unsubscribers = PRODUCT_AVAILABILITY_EVENTS.map(eventName =>
+    subscribeRealtime(eventName, payload => handler({ eventName, payload }))
+  );
+
+  return () => unsubscribers.forEach(unsubscribe => unsubscribe());
+}
+
 function subscribeAuthRoleEvents(handler) {
   const unsubscribers = AUTH_ROLE_EVENTS.map(eventName =>
     subscribeRealtime(eventName, payload => handler({ eventName, payload }))
@@ -149,6 +162,15 @@ SHOP_EVENTS.forEach(eventName => {
     invalidate('products:');
     invalidate('product:');
     invalidate('categories:');
+  });
+});
+
+PRODUCT_AVAILABILITY_EVENTS.forEach(eventName => {
+  subscribeRealtime(eventName, () => {
+    invalidate('products:');
+    invalidate('product:');
+    invalidate('categories:');
+    invalidate('dashboard:');
   });
 });
 
@@ -178,6 +200,10 @@ function bindSocketEvents(nextSocket) {
   });
 
   SHOP_EVENTS.forEach(eventName => {
+    nextSocket.on(eventName, payload => emitLocal(eventName, payload));
+  });
+
+  PRODUCT_AVAILABILITY_EVENTS.forEach(eventName => {
     nextSocket.on(eventName, payload => emitLocal(eventName, payload));
   });
 
@@ -282,4 +308,5 @@ export {
   subscribeRealtimeLifecycle,
   subscribeRiderLocation,
   subscribeShopEvents,
+  subscribeProductAvailabilityEvents,
 };

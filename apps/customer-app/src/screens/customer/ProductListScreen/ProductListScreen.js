@@ -29,6 +29,7 @@ import { colors, typography, spacing, radius, layout } from '../../../theme';
 import { useCartStore } from '../../../stores';
 import { useAuthGate, useStoreModes } from '../../../hooks';
 import { productsApi, dashboardApi } from '../../../api';
+import { subscribeProductAvailabilityEvents } from '../../../api/realtimeClient';
 import { asArray, normalizeProduct } from '../../../utils';
 import { getCached, setCached, stableKey, isFresh } from '../../../utils/apiCache';
 
@@ -107,6 +108,20 @@ export default function ProductListScreen() {
       useCartStore.getState().applyCatalogProductPrices(products);
     }
   }, [products]);
+
+  // Live OOS: drop product from the list as soon as shop marks it unavailable.
+  useEffect(() => {
+    return subscribeProductAvailabilityEvents(({ payload }) => {
+      const productId = payload?.productId ?? payload?.id;
+      if (productId == null || productId === '') return;
+      const available = payload?.available;
+      if (available === false || available === 0 || available === '0') {
+        setProducts((prev) =>
+          (prev || []).filter((p) => String(p?.id) !== String(productId)),
+        );
+      }
+    });
+  }, []);
 
   /**
    * @param {boolean|{ refresh?: boolean, loadMore?: boolean, silent?: boolean }} opts

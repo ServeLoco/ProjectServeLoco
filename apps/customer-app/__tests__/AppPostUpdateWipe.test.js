@@ -47,6 +47,7 @@ jest.mock('../src/hooks', () => ({
   useNetworkStatus: () => ({ isOnline: true }),
   usePreciseLocationPermissionOnStart: () => {},
   useShopStatusSync: () => {},
+  useProductAvailabilitySync: () => {},
   useAuthRoleSync: () => {},
 }));
 jest.mock('../src/api', () => ({

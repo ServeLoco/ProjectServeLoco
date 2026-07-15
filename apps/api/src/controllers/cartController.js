@@ -42,8 +42,6 @@ const calculateCart = async (req, res) => {
     }
     normalizedItems.push({ productId: Number(productId), variantId: rawVariantId !== null && rawVariantId !== undefined ? Number(rawVariantId) : null, quantity: Number(item.quantity), isCombo });
   }
-  const totalItemCount = normalizedItems.reduce((sum, i) => sum + i.quantity, 0);
-
   // Batch fetch products and combos in 2 queries instead of N queries
   const productIds = normalizedItems.filter(i => !i.isCombo).map(i => i.productId);
   const comboIds = normalizedItems.filter(i => i.isCombo).map(i => i.productId);
@@ -81,16 +79,24 @@ const calculateCart = async (req, res) => {
 
   let subtotal = 0;
   const processedItems = [];
+  // Soft-drop OOS / deleted / closed-shop lines so cart preview still works
+  // for remaining items. Client removes these from the local cart (see
+  // unavailableItems). Order placement still hard-validates separately.
+  const unavailableItems = [];
 
   for (let index = 0; index < normalizedItems.length; index++) {
     const { productId, variantId, quantity, isCombo } = normalizedItems[index];
     const product = isCombo ? comboMap[productId] : productMap[productId];
 
     if (!product) {
-      return res.status(400).json({
-        code: 'VALIDATION_ERROR',
-        message: `Item ${index + 1}: ${isCombo ? 'combo' : 'product'} is unavailable or does not exist`
+      unavailableItems.push({
+        productId,
+        variantId: isCombo ? null : variantId,
+        type: isCombo ? 'combo' : 'product',
+        quantity,
+        reason: isCombo ? 'combo_unavailable' : 'product_unavailable',
       });
+      continue;
     }
 
     let unitPrice;
@@ -101,10 +107,14 @@ const calculateCart = async (req, res) => {
       // Server-authoritative variant pricing: ALL four conditions must hold.
       const variant = variantMap[variantId];
       if (!variant || variant.deleted || !variant.available || Number(variant.product_id) !== productId) {
-        return res.status(400).json({
-          code: 'VALIDATION_ERROR',
-          message: `Item ${index + 1}: selected option is unavailable or does not exist`
+        unavailableItems.push({
+          productId,
+          variantId,
+          type: 'product',
+          quantity,
+          reason: 'variant_unavailable',
         });
+        continue;
       }
       unitPrice = toMoney(variant.price);
       variantLabel = variant.label;
@@ -133,6 +143,9 @@ const calculateCart = async (req, res) => {
       variant_label: effectiveVariantLabel,
     });
   }
+
+  // Free-delivery / coupon thresholds use remaining (available) lines only.
+  const totalItemCount = processedItems.reduce((sum, i) => sum + i.quantity, 0);
 
   const { latitude, longitude, lat, lng } = req.body;
   const customerLat = latitude !== undefined ? latitude : lat;
@@ -437,6 +450,10 @@ const calculateCart = async (req, res) => {
     grandTotal,
     total: grandTotal,
     items: processedItems,
+    // Lines dropped because product/combo/variant is OOS, deleted, or shop closed.
+    // Empty array when every requested line is orderable.
+    unavailableItems,
+    unavailable_items: unavailableItems,
     isValid: deliveryWithinRange,
     valid: deliveryWithinRange,
     message: !deliveryWithinRange ? deliveryMessage : '',

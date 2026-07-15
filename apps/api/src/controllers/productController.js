@@ -682,6 +682,19 @@ const updateProductAvailability = async (req, res) => {
   
   const [updatedRows] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
   bustProductCaches();
+  try {
+    const { emitToAllCustomers } = require('../realtime/socket');
+    const row = updatedRows[0] || {};
+    const productId = Number(row.id || id);
+    emitToAllCustomers('product.availability.updated', {
+      productId,
+      id: productId,
+      available: Boolean(normalizedAvailable),
+      shopId: row.shop_id != null ? Number(row.shop_id) : null,
+    });
+  } catch (_) {
+    // Realtime is best-effort — availability is already persisted.
+  }
   res.status(200).json({ message: 'Product availability updated', product: updatedRows[0] });
 };
 

@@ -166,6 +166,70 @@ export const useCartStore = create(
         freeDeliveryUnlocked: false,
       }),
 
+      // Drop cart lines for products marked OOS / deleted / unavailable by the
+      // shop or admin. Matches product id (+ optional variant + type). Returns
+      // removed lines for toast copy.
+      // entries: [{ productId, variantId?, type? }] or bare productId strings/numbers
+      removeUnavailableItems: (entries) => {
+        if (!Array.isArray(entries) || entries.length === 0) return [];
+
+        const keys = new Set();
+        const productOnly = new Set();
+        for (const entry of entries) {
+          if (entry == null) continue;
+          if (typeof entry === 'string' || typeof entry === 'number') {
+            productOnly.add(String(entry));
+            continue;
+          }
+          const productId = entry.productId ?? entry.product_id ?? entry.id;
+          if (productId == null || productId === '') continue;
+          const type = entry.type || (entry.isCombo || entry.is_combo ? 'combo' : 'product');
+          const variantId = entry.variantId ?? entry.variant_id ?? null;
+          // When server omits variant (whole product OOS), drop all variants.
+          if (variantId == null || variantId === '') {
+            productOnly.add(`${type}:${String(productId)}`);
+          } else {
+            keys.add(`${type}:${String(productId)}:${String(variantId)}`);
+          }
+        }
+        if (keys.size === 0 && productOnly.size === 0) return [];
+
+        const { items } = get();
+        const removedItems = [];
+        const kept = [];
+        for (const item of items) {
+          const type = item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');
+          const productId = String(item.product?.id ?? '');
+          const variantId = item.variant?.id ?? null;
+          const productKey = `${type}:${productId}`;
+          const lineKey = `${type}:${productId}:${variantId == null ? '' : String(variantId)}`;
+          const drop =
+            productOnly.has(productId) ||
+            productOnly.has(productKey) ||
+            (variantId != null && keys.has(`${type}:${productId}:${String(variantId)}`)) ||
+            (variantId == null && keys.has(lineKey));
+          // Also match product-level drop for any variant lines of that product.
+          const dropAllVariantsOfProduct = productOnly.has(productKey) || productOnly.has(productId);
+          if (drop || dropAllVariantsOfProduct) {
+            removedItems.push(item);
+          } else {
+            kept.push(item);
+          }
+        }
+
+        if (removedItems.length === 0) return [];
+        set({ items: kept });
+        removedItems.forEach((item) => {
+          trackEvent('cart_remove', {
+            productId: Number(item.product?.id),
+            qty: Number(item.quantity) || 0,
+            price: Number(item.variant?.price ?? item.product?.price) || 0,
+            reason: 'unavailable',
+          });
+        });
+        return removedItems;
+      },
+
       // Drops every cart line whose product belongs to a shop that just
       // closed (or went inactive). Combos and house products (shopId null)
       // are never shop-scoped and are left alone. Returns the removed items

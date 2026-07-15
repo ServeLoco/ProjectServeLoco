@@ -108,6 +108,11 @@ export function useSyncCartFreeDeliveryProgress({ enabled = true, debounceMs = 3
         // (admin can change product price while items sit in the local cart).
         useCartStore.getState().syncItemPricesFromServer(calculated.items);
 
+        // Drop OOS lines discovered during calculate (shop marked unavailable).
+        if (calculated.unavailableItems?.length) {
+          useCartStore.getState().removeUnavailableItems(calculated.unavailableItems);
+        }
+
         // Keep coupon row in store consistent with bill (same as CartScreen).
         if (calculated.appliedCoupon) {
           setAppliedCoupon(calculated.appliedCoupon.code, calculated.appliedCoupon);

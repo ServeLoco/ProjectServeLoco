@@ -123,14 +123,24 @@ const toggleMyProduct = async (req, res) => {
   if (typeof available !== 'boolean') {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'available (boolean) is required' });
   }
+  const productId = Number(req.params.id);
+  const isAvailable = Boolean(available);
   const [result] = await pool.query(
     'UPDATE products SET available = ? WHERE id = ? AND shop_id = ? AND deleted = 0',
-    [available ? 1 : 0, req.params.id, req.shop.id]
+    [isAvailable ? 1 : 0, productId, req.shop.id]
   );
   if (result.affectedRows === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
-  res.status(200).json({ message: 'Product updated' });
+  // Customers listening on dashboard/cart drop OOS lines live (and re-show when
+  // the shop marks the item available again via silent catalog refresh).
+  emitToAllCustomers('product.availability.updated', {
+    productId,
+    id: productId,
+    available: isAvailable,
+    shopId: req.shop.id,
+  });
+  res.status(200).json({ message: 'Product updated', productId, available: isAvailable });
 };
 
 // GET /orders — orders with ≥1 of this shop's items and status Accepted/Preparing.
