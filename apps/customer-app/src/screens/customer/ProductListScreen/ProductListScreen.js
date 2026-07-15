@@ -101,6 +101,13 @@ export default function ProductListScreen() {
     [items]
   );
 
+  // Live catalog prices → cart lines (qty preserved) so sticky total stays current.
+  useEffect(() => {
+    if (Array.isArray(products) && products.length > 0) {
+      useCartStore.getState().applyCatalogProductPrices(products);
+    }
+  }, [products]);
+
   /**
    * @param {boolean|{ refresh?: boolean, loadMore?: boolean, silent?: boolean }} opts
    *   boolean true = pull-to-refresh (legacy)

@@ -28,9 +28,12 @@ export default function VariantSheet({ visible, product, onClose }) {
   const quantityForVariant = (variantId) => {
     if (!product) return 0;
     const item = items.find(
-      (i) => i.product.id === product.id && i.type !== 'combo' && (i.variant?.id ?? null) === variantId,
+      (i) =>
+        String(i.product?.id) === String(product.id) &&
+        i.type !== 'combo' &&
+        String(i.variant?.id ?? '') === String(variantId ?? ''),
     );
-    return item?.quantity || 0;
+    return Number(item?.quantity) || 0;
   };
 
   if (!product) return null;
@@ -67,6 +70,17 @@ export default function VariantSheet({ visible, product, onClose }) {
             {variants.map((variant, index) => {
               const quantity = quantityForVariant(variant.id);
               const isOut = variant.available === false;
+              // Prefer cart-line unit price when this variant is already in the
+              // cart (live after admin price sync); fall back to catalog price.
+              const cartLine = items.find(
+                (i) =>
+                  String(i.product?.id) === String(product.id) &&
+                  i.type !== 'combo' &&
+                  String(i.variant?.id ?? '') === String(variant.id ?? ''),
+              );
+              const displayPrice = Number(
+                cartLine?.variant?.price ?? cartLine?.product?.price ?? variant.price,
+              ) || 0;
               return (
                 <View
                   key={variant.id}
@@ -77,7 +91,7 @@ export default function VariantSheet({ visible, product, onClose }) {
                       {variant.label}
                     </Text>
                     <View style={styles.priceRow}>
-                      <Text style={[styles.rowPrice, isOut && styles.rowLabelDisabled]}>₹{variant.price}</Text>
+                      <Text style={[styles.rowPrice, isOut && styles.rowLabelDisabled]}>₹{displayPrice}</Text>
                       {variant.originalPrice ? (
                         <Text style={styles.rowOriginalPrice}>₹{Math.floor(Number(variant.originalPrice))}</Text>
                       ) : null}

@@ -108,4 +108,44 @@ describe('useCartStore.syncItemPricesFromServer', () => {
     expect(changed).toBe(false);
     expect(useCartStore.getState().items).toBe(before);
   });
+
+  it('never overwrites quantity when syncing server prices', () => {
+    useCartStore.getState().addItem(product({ id: 40, price: 10 }), 5);
+    useCartStore.getState().syncItemPricesFromServer([
+      { id: 40, unitPrice: 25, type: 'product', quantity: 1 },
+    ]);
+    const line = useCartStore.getState().items[0];
+    expect(line.quantity).toBe(5);
+    expect(line.product.price).toBe(25);
+  });
+
+  it('applyCatalogProductPrices updates price and keeps quantity', () => {
+    useCartStore.getState().addItem(product({ id: 50, price: 20 }), 3);
+    const changed = useCartStore.getState().applyCatalogProductPrices([
+      { id: 50, price: 35, available: true, name: 'Updated' },
+    ]);
+    expect(changed).toBe(true);
+    const line = useCartStore.getState().items[0];
+    expect(line.quantity).toBe(3);
+    expect(line.product.price).toBe(35);
+    expect(line.product.name).toBe('Updated');
+    const sticky = line.product.price * line.quantity;
+    expect(sticky).toBe(105);
+  });
+
+  it('applyCatalogProductPrices updates variant line prices by variant id', () => {
+    const base = product({ id: 60, price: 40 });
+    useCartStore.getState().addItem(base, 2, { id: 7, label: 'Large', price: 40 });
+    useCartStore.getState().applyCatalogProductPrices([
+      {
+        id: 60,
+        price: 40,
+        variants: [{ id: 7, label: 'Large', price: 70, available: true }],
+      },
+    ]);
+    const line = useCartStore.getState().items[0];
+    expect(line.quantity).toBe(2);
+    expect(line.variant.price).toBe(70);
+    expect(line.variant.price * line.quantity).toBe(140);
+  });
 });

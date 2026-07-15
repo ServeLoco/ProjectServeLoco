@@ -29,14 +29,11 @@ import AppIcon from '../AppIcon';
  */
 function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = true, style, aboveTabBar = false }) {
   const insets = useSafeAreaInsets();
-  const cartTotal = Number(total ?? totalAmount ?? 0);
-  const displayTotal = Number.isFinite(cartTotal)
-    ? (Number.isInteger(cartTotal) ? cartTotal.toFixed(0) : cartTotal.toFixed(2))
-    : '0';
 
   // Server progress from cart/calculate + live recompute from local cart so
   // "Add ₹X more for FREE delivery" tracks +/− on Home without waiting for
-  // the user to open Cart.
+  // the user to open Cart. Totals always come from store (live price × qty)
+  // so admin price syncs and stepper qty changes show immediately.
   const storedProgress = useCartStore((s) => s.freeDeliveryProgress);
   const freeDeliveryUnlockedFlag = useCartStore((s) => s.freeDeliveryUnlocked);
   const cartItems = useCartStore((s) => s.items);
@@ -53,11 +50,17 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
     return { localSubtotal: subtotal, localItemCount: count };
   }, [cartItems]);
 
-  // Prefer prop totals when parent already computed them (same math).
-  const subtotalForProgress = Number.isFinite(cartTotal) && cartTotal > 0
-    ? cartTotal
-    : localSubtotal;
-  const itemCountForProgress = itemCount > 0 ? itemCount : localItemCount;
+  // Store is authoritative for price × quantity. Props are fallback only when
+  // the store is empty (e.g. parent still hydrating).
+  const propTotal = Number(total ?? totalAmount ?? 0);
+  const liveSubtotal = localItemCount > 0 ? localSubtotal : (Number.isFinite(propTotal) ? propTotal : 0);
+  const liveItemCount = localItemCount > 0 ? localItemCount : (Number(itemCount) || 0);
+  const displayTotal = Number.isFinite(liveSubtotal)
+    ? (Number.isInteger(liveSubtotal) ? liveSubtotal.toFixed(0) : liveSubtotal.toFixed(2))
+    : '0';
+
+  const subtotalForProgress = liveSubtotal;
+  const itemCountForProgress = liveItemCount;
 
   const liveProgress = useMemo(
     () => liveFreeDeliveryProgress(storedProgress, subtotalForProgress, itemCountForProgress),
@@ -70,13 +73,13 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
     ? 100
     : freeDeliveryUnlockPercent(liveProgress || storedProgress, subtotalForProgress, itemCountForProgress);
 
-  const isVisible = visible && itemCount > 0;
+  const isVisible = visible && liveItemCount > 0;
   const [shouldRender, setShouldRender] = useState(isVisible);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const progress = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
   const badgeScale = useRef(new Animated.Value(1)).current;
   const barFill = useRef(new Animated.Value(0)).current;
-  const prevCount = useRef(itemCount);
+  const prevCount = useRef(liveItemCount);
 
   // Effective visibility — hide entirely while the keyboard is up so the
   // popup stays docked at its resting position above the tab bar instead of
@@ -134,7 +137,7 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
   }, [aboveTabBar]);
 
   useEffect(() => {
-    if (itemCount > 0 && prevCount.current !== itemCount) {
+    if (liveItemCount > 0 && prevCount.current !== liveItemCount) {
       badgeScale.setValue(0.78);
       Animated.spring(badgeScale, {
         toValue: 1,
@@ -144,8 +147,8 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
       }).start();
     }
 
-    prevCount.current = itemCount;
-  }, [badgeScale, itemCount]);
+    prevCount.current = liveItemCount;
+  }, [badgeScale, liveItemCount]);
 
   if (!shouldRender) return null;
 
@@ -185,8 +188,8 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
         accessibilityRole="button"
         accessibilityLabel={
           showFreeDeliveryHint
-            ? `View cart, ${itemCount} item${itemCount !== 1 ? 's' : ''}, ${hintLabel}`
-            : `View cart, ${itemCount} item${itemCount !== 1 ? 's' : ''}`
+            ? `View cart, ${liveItemCount} item${liveItemCount !== 1 ? 's' : ''}, ${hintLabel}`
+            : `View cart, ${liveItemCount} item${liveItemCount !== 1 ? 's' : ''}`
         }
       >
         <View style={styles.barInner}>

@@ -190,10 +190,9 @@ export const useCartStore = create(
       },
 
       // Write live unit prices from /cart/calculate back into local cart lines.
-      // Cart lines snapshot product/variant at add-to-cart time; after an admin
-      // price change the bill (server) is correct but the cart list + sticky
-      // mini-cart still read the stale snapshot. Only mutates when a price
-      // actually differs so callers that depend on `items` don't loop.
+      // Quantities stay client-owned (server only echoes them); we never overwrite
+      // qty here. Only mutates when a price actually differs so `items` deps
+      // don't loop. After this, sticky total = sum(price * quantity) is live.
       // serverItems: [{ id, unitPrice, type?, variantId? }, ...]
       syncItemPricesFromServer: (serverItems) => {
         if (!Array.isArray(serverItems) || serverItems.length === 0) return false;
@@ -219,12 +218,14 @@ export const useCartStore = create(
           if (!priceByKey.has(key)) return item;
 
           const unitPrice = priceByKey.get(key);
+          // Preserve quantity exactly — only price fields change.
           if (item.variant) {
             const current = Number(item.variant.price) || 0;
             if (current === unitPrice) return item;
             changed = true;
             return {
               ...item,
+              quantity: item.quantity,
               variant: { ...item.variant, price: unitPrice },
               product: { ...item.product, price: unitPrice },
             };
@@ -235,7 +236,90 @@ export const useCartStore = create(
           changed = true;
           return {
             ...item,
+            quantity: item.quantity,
             product: { ...item.product, price: unitPrice },
+          };
+        });
+
+        if (changed) set({ items: updatedItems });
+        return changed;
+      },
+
+      // Patch cart line prices (and availability) from fresh catalog product
+      // payloads (Home dashboard / ProductList). Quantity is never changed —
+      // only unit prices and availability flags so sticky total (price × qty)
+      // updates as soon as product data reloads, without waiting for cart open.
+      applyCatalogProductPrices: (products) => {
+        if (!Array.isArray(products) || products.length === 0) return false;
+
+        const byId = new Map();
+        for (const p of products) {
+          if (p == null || p.id == null || p.id === '') continue;
+          byId.set(String(p.id), p);
+        }
+        if (byId.size === 0) return false;
+
+        const { items } = get();
+        let changed = false;
+        const updatedItems = items.map((item) => {
+          const catalog = byId.get(String(item.product?.id));
+          if (!catalog) return item;
+
+          const type = item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');
+          const catalogAvailable = catalog.available !== undefined && catalog.available !== null
+            ? Boolean(catalog.available)
+            : item.product?.available;
+
+          if (type === 'combo' || !item.variant) {
+            const unitPrice = Number(catalog.price);
+            if (!Number.isFinite(unitPrice)) return item;
+            const priceSame = (Number(item.product?.price) || 0) === unitPrice;
+            const availSame = item.product?.available === catalogAvailable;
+            if (priceSame && availSame) return item;
+            changed = true;
+            return {
+              ...item,
+              quantity: item.quantity,
+              product: {
+                ...item.product,
+                price: unitPrice,
+                available: catalogAvailable,
+                name: catalog.name || item.product?.name,
+              },
+            };
+          }
+
+          const catVariant = (catalog.variants || []).find(
+            (v) => String(v?.id) === String(item.variant?.id),
+          );
+          const unitPrice = Number(
+            catVariant != null ? catVariant.price : catalog.price,
+          );
+          if (!Number.isFinite(unitPrice)) return item;
+          const variantAvail = catVariant && catVariant.available !== undefined && catVariant.available !== null
+            ? Boolean(catVariant.available)
+            : item.variant?.available;
+          const priceSame = (Number(item.variant?.price) || 0) === unitPrice
+            && (Number(item.product?.price) || 0) === unitPrice;
+          const availSame = item.product?.available === catalogAvailable
+            && item.variant?.available === variantAvail;
+          if (priceSame && availSame) return item;
+          changed = true;
+          return {
+            ...item,
+            quantity: item.quantity,
+            variant: {
+              ...item.variant,
+              price: unitPrice,
+              available: variantAvail,
+              label: catVariant?.label || item.variant?.label,
+            },
+            product: {
+              ...item.product,
+              price: unitPrice,
+              available: catalogAvailable,
+              name: catalog.name || item.product?.name,
+            },
           };
         });
 

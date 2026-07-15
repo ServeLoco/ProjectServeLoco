@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Easing as RNEasing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   AppScreen,
@@ -54,8 +54,16 @@ export default function CartScreen() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [bill, setBill] = useState(null);
   const [calcError, setCalcError] = useState(null);
+  // Bumped on screen focus so bill + unit prices re-pull even if qty unchanged.
+  const [focusTick, setFocusTick] = useState(0);
 
   const reducedMotion = useReducedMotion();
+
+  useFocusEffect(
+    useCallback(() => {
+      setFocusTick((n) => n + 1);
+    }, []),
+  );
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -223,13 +231,14 @@ export default function CartScreen() {
   };
 
   useEffect(() => {
-    // Debounce bill recalculation to avoid rapid successive API calls
+    // Debounce bill recalculation to avoid rapid successive API calls.
+    // focusTick re-runs on every Cart visit so live admin prices apply.
     const timer = setTimeout(() => {
       calculateBill();
     }, 300);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, appliedCouponCode, appliedCouponId, couponAutoApplyDisabled]);
+  }, [items, appliedCouponCode, appliedCouponId, couponAutoApplyDisabled, focusTick]);
 
   const handleRemove = (id, type = 'product', variantId = null) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -1041,11 +1050,15 @@ export default function CartScreen() {
                 const itemType = getItemType(item);
                 const itemKey = getItemKey(item);
                 const itemAnim = getItemAnim(itemKey);
+                const qty = Number(item.quantity) || 0;
                 const unitPrice = Number(item.variant?.price ?? item.product.price ?? 0);
+                const lineTotal = unitPrice * qty;
+                // Live unit price + line total (price × qty) so both update when
+                // either admin price sync or stepper qty changes.
                 const metaBits = [
                   item.variant?.label,
                   item.product.unit,
-                  unitPrice > 0 ? `₹${unitPrice}` : null,
+                  unitPrice > 0 ? `₹${unitPrice} each` : null,
                 ].filter(Boolean);
                 const isLast = index === validItems.length - 1;
 
@@ -1077,6 +1090,9 @@ export default function CartScreen() {
                             {metaBits.join(' · ')}
                           </Text>
                         ) : null}
+                        {lineTotal > 0 ? (
+                          <Text style={styles.itemLineTotal}>₹{lineTotal}</Text>
+                        ) : null}
                         {!item.product.available ? (
                           <Text style={styles.itemUnavailable}>Currently unavailable</Text>
                         ) : null}
@@ -1085,11 +1101,11 @@ export default function CartScreen() {
                       <View style={styles.itemStepperWrap}>
                         <QuantityStepper
                           dense
-                          quantity={item.quantity}
-                          onIncrement={() => updateQuantity(item.product.id, item.quantity + 1, itemType, item.variant?.id ?? null)}
+                          quantity={qty}
+                          onIncrement={() => updateQuantity(item.product.id, qty + 1, itemType, item.variant?.id ?? null)}
                           onDecrement={() => {
-                            if (item.quantity <= 1) handleRemove(item.product.id, itemType, item.variant?.id ?? null);
-                            else updateQuantity(item.product.id, item.quantity - 1, itemType, item.variant?.id ?? null);
+                            if (qty <= 1) handleRemove(item.product.id, itemType, item.variant?.id ?? null);
+                            else updateQuantity(item.product.id, qty - 1, itemType, item.variant?.id ?? null);
                           }}
                         />
                       </View>
@@ -1266,6 +1282,13 @@ const styles = StyleSheet.create({
   itemMeta: {
     ...typography.caption,
     color: colors.textSecondary,
+    marginTop: 3,
+  },
+  itemLineTotal: {
+    ...typography.label,
+    color: colors.textPrimary,
+    fontWeight: '700',
+    fontSize: 13,
     marginTop: 3,
   },
   itemUnavailable: {

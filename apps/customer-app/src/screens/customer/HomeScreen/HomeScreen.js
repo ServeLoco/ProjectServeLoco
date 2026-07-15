@@ -100,6 +100,22 @@ export default function HomeScreen() {
     [items]
   );
 
+  // When dashboard product cards refresh, push live catalog prices into cart
+  // lines (qty unchanged) so sticky total = price × quantity stays current.
+  useEffect(() => {
+    if (!Array.isArray(dashboardSections) || dashboardSections.length === 0) return;
+    const catalog = [];
+    for (const section of dashboardSections) {
+      if (section?.sectionType !== 'product_block' && section?.sectionType !== 'combo_block') continue;
+      for (const raw of section.items || []) {
+        catalog.push(normalizeProduct(raw));
+      }
+    }
+    if (catalog.length > 0) {
+      useCartStore.getState().applyCatalogProductPrices(catalog);
+    }
+  }, [dashboardSections]);
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
