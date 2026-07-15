@@ -319,13 +319,13 @@ describe('coupons.computeDiscount', () => {
     )).toBe(30);
   });
 
-  it('free_delivery on a fast order waives only the STANDARD fee — the fast premium survives', () => {
-    // Fast delivery: effective charge ₹50, standard fee ₹30. The coupon
-    // must discount ₹30, leaving the ₹20 premium payable (owner decision).
+  it('free_delivery on a fast order does not waive delivery — full fast fee stays payable', () => {
+    // Fast delivery fully replaces standard. Free-delivery coupons only
+    // apply to Standard; Fast is always charged in full on the bill.
     expect(coupons.computeDiscount(
       buildCoupon({ discount_type: 'free_delivery', discount_value: 0 }),
       { subtotal: 200, deliveryCharge: 50, standardDeliveryCharge: 30 }
-    )).toBe(30);
+    )).toBe(0);
   });
 
   it('free_delivery falls back to the effective charge when standardDeliveryCharge is omitted', () => {
@@ -342,17 +342,32 @@ describe('coupons.computeDiscount', () => {
     )).toBe(0);
   });
 
-  it('checkEligibility threads standardDeliveryCharge through to the discount', async () => {
-    // Fast order: effective delivery ₹50, standard ₹30 → free_delivery
-    // discount must be ₹30 so the fast premium survives.
+  it('checkEligibility: free_delivery on fast order is rejected', async () => {
+    // Fast order: free delivery is not granted; full fast fee stays on bill.
     const result = await coupons.checkEligibility({
       coupon: buildCoupon({ discount_type: 'free_delivery', discount_value: 0 }),
       subtotal: 200,
       deliveryCharge: 50,
       standardDeliveryCharge: 30,
     });
-    expect(result.ok).toBe(true);
-    expect(result.discount).toBe(30);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toMatch(/Standard delivery only/i);
+  });
+
+  it('also_free_delivery keeps item discount on fast but drops free-delivery waiver', () => {
+    const coupon = buildCoupon({
+      discount_type: 'flat',
+      discount_value: 40,
+      also_free_delivery: 1,
+    });
+    const r = coupons.computeDiscountBreakdown(coupon, {
+      subtotal: 200,
+      deliveryCharge: 50,
+      standardDeliveryCharge: 30,
+    });
+    expect(r.itemDiscount).toBe(40);
+    expect(r.freeDeliveryWaiver).toBe(0);
+    expect(r.discount).toBe(40);
   });
 });
 

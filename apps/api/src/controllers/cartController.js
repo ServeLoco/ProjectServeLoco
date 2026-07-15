@@ -158,8 +158,8 @@ const calculateCart = async (req, res) => {
   const standardDeliveryCharge = deliveryCharge;
 
   // Fast delivery: when the user picks fast, the fast charge fully REPLACES the standard
-  // delivery charge — regardless of below-threshold state or a free-delivery offer.
-  // Night charge is independent and is added separately below.
+  // delivery charge. Free-delivery coupons apply to Standard only — Fast is always
+  // charged in full (see coupons.computeDiscountBreakdown). Night charge is independent.
   const fastDeliveryEnabled = Boolean(settings.fast_delivery_enabled);
   const fastDeliveryCharge = toMoney(settings.fast_delivery_charge || 0);
   const fastDeliveryAvailable = fastDeliveryEnabled;

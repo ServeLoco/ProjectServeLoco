@@ -28,12 +28,18 @@ function BillSummary({
   discount = 0,
   itemDiscount = null,
   isFreeDeliveryApplied = false,
+  // When true (Fast delivery), free-delivery coupons do not apply — always show charge.
+  isFastDelivery = false,
   total = 0,
   freeDeliveryProgress = null,
   style,
 }) {
   const showNight = nightCharge > 0;
-  const discountToShow = isFreeDeliveryApplied ? (itemDiscount ?? Math.max(0, discount - deliveryCharge)) : discount;
+  // FREE on the delivery line only for Standard + free-del coupon. Fast always pays.
+  const showDeliveryFree = isFreeDeliveryApplied && !isFastDelivery;
+  const discountToShow = showDeliveryFree
+    ? (itemDiscount ?? Math.max(0, discount - deliveryCharge))
+    : discount;
   const showDiscount = discountToShow > 0;
 
   return (
@@ -41,7 +47,7 @@ function BillSummary({
       <Text style={styles.heading}>Bill Summary</Text>
 
       <BillRow label="Subtotal" value={`₹${subtotal.toFixed(0)}`} />
-      {isFreeDeliveryApplied ? (
+      {showDeliveryFree ? (
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Delivery Charge</Text>
           <View style={styles.freeDeliveryValueRow}>
@@ -50,7 +56,10 @@ function BillSummary({
           </View>
         </View>
       ) : (
-        <BillRow label="Delivery Charge" value={`₹${deliveryCharge.toFixed(0)}`} />
+        <BillRow
+          label={isFastDelivery ? 'Fast Delivery' : 'Delivery Charge'}
+          value={`₹${deliveryCharge.toFixed(0)}`}
+        />
       )}
       {showNight ? (
         <BillRow label="Night Charge" value={`₹${nightCharge.toFixed(0)}`} />

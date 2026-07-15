@@ -7,9 +7,10 @@
  *    code it wins; otherwise the best auto-apply offer is picked.
  *  - A coupon never overrides any charge line — it only adds a Discount line
  *    that subtracts from the grand total.
- *  - free_delivery type = subtracts the STANDARD delivery fee only. On a
- *    fast-delivery order the customer still pays the fast premium (owner
- *    decision, 2026-07-04): discount = standard fee, not the fast fee.
+ *  - free_delivery (and also_free_delivery) applies to STANDARD delivery
+ *    only. On a fast-delivery order free delivery is not granted — the
+ *    customer pays the full fast fee (owner decision, 2026-07-15). Item
+ *    discounts from flat/percent coupons still apply on fast orders.
  *  - All time-window math is in Asia/Kolkata (matches order numbering).
  */
 
@@ -74,6 +75,16 @@ const isWithinActiveTime = (coupon, now = new Date()) => {
 };
 
 /**
+ * True when the effective delivery charge is the fast fee (fast fully
+ * replaces standard). Used so free-delivery is never granted on Fast.
+ * When standardDeliveryCharge is omitted we treat the order as standard.
+ */
+const isFastDeliveryOrder = (deliveryCharge, standardDeliveryCharge) => {
+  if (standardDeliveryCharge === undefined || standardDeliveryCharge === null) return false;
+  return toMoney(deliveryCharge) > toMoney(standardDeliveryCharge);
+};
+
+/**
  * Computes the discount amount for a given coupon based on its type.
  * Always returns a non-negative, rounded money value.
  *
@@ -106,9 +117,10 @@ const computeDiscount = (coupon, { subtotal, deliveryCharge, standardDeliveryCha
       return roundMoney(Math.min(raw, sub));
     }
     case 'free_delivery': {
-      // Waive the STANDARD delivery fee only — on a fast order the customer
-      // still pays the fast premium. Capped at the order total so the grand
-      // total can't go negative.
+      // Free delivery is for Standard only. Fast pays the full fast fee.
+      if (isFastDeliveryOrder(deliveryCharge, standardDeliveryCharge)) {
+        return 0;
+      }
       return roundMoney(Math.min(stdDel, sub + del));
     }
     default:
@@ -122,16 +134,21 @@ const computeDiscount = (coupon, { subtotal, deliveryCharge, standardDeliveryCha
  * separately so callers (bill summary UI) can show "Delivery: FREE" plus
  * only the remaining item-level discount, instead of one merged number.
  *
+ * Free-delivery waiver is never applied on Fast orders (full fast fee stays
+ * on the bill); item discounts still apply.
+ *
  * @returns {{ discount: number, itemDiscount: number, freeDeliveryWaiver: number }}
  */
 const computeDiscountBreakdown = (coupon, { subtotal, deliveryCharge, standardDeliveryCharge }) => {
   const itemDiscount = computeDiscount(coupon, { subtotal, deliveryCharge, standardDeliveryCharge });
+  const fastOrder = isFastDeliveryOrder(deliveryCharge, standardDeliveryCharge);
 
   if (coupon.discount_type === 'free_delivery') {
+    // itemDiscount from computeDiscount is already 0 on fast.
     return { discount: itemDiscount, itemDiscount: 0, freeDeliveryWaiver: itemDiscount };
   }
 
-  if (!coupon.also_free_delivery) {
+  if (!coupon.also_free_delivery || fastOrder) {
     return { discount: itemDiscount, itemDiscount, freeDeliveryWaiver: 0 };
   }
 
@@ -319,6 +336,21 @@ const checkEligibility = async ({
   }
 
   const { discount, itemDiscount, freeDeliveryWaiver } = computeDiscountBreakdown(coupon, { subtotal, deliveryCharge, standardDeliveryCharge });
+  // Pure free_delivery has no value on Fast — reject so auto-apply picks
+  // another offer (or none) and place-order does not attach a zero-value coupon.
+  // Do NOT reject when deliveryCharge is 0 / standard is omitted (threshold-hint
+  // probes call checkEligibility with deliveryCharge: 0 to test schedule/store
+  // eligibility only — free_delivery waiver is computed later at apply time).
+  if (
+    coupon.discount_type === 'free_delivery'
+    && freeDeliveryWaiver <= 0
+    && isFastDeliveryOrder(deliveryCharge, standardDeliveryCharge)
+  ) {
+    return {
+      ok: false,
+      reason: 'Free delivery applies to Standard delivery only',
+    };
+  }
   return { ok: true, coupon, discount, itemDiscount, freeDeliveryWaiver };
 };
 

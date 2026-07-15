@@ -1405,8 +1405,65 @@ export default function CheckoutScreen() {
         {(sheetExpanded || !mapMode) ? (
         <>
         {/* Delivery Type Selector — open chips, no card chrome.
-            Fast delivery fully replaces the standard charge, regardless of threshold/free-offer. */}
-        {bill?.fastDeliveryEnabled && (
+            Free-delivery coupons apply to Standard only; Fast is always charged. */}
+        {bill?.fastDeliveryEnabled && (() => {
+          // Standard is FREE when settings charge is 0 OR a free-delivery coupon
+          // (pure free_delivery or also_free_delivery) is applied on this bill.
+          // When Fast is selected the API drops free-delivery, so isFreeDeliveryApplied
+          // is only true for the Standard path — but the chip still shows FREE whenever
+          // the cart's applied coupon includes a free-delivery benefit, so users see
+          // Standard is the free option before switching back.
+          const standardWasFreeByCoupon = Boolean(
+            bill.isFreeDeliveryApplied
+            || Number(bill.appliedCoupon?.freeDeliveryWaiver || 0) > 0
+            || bill.appliedCoupon?.discountType === 'free_delivery'
+            || bill.appliedCoupon?.alsoFreeDelivery,
+          );
+          // When Fast is selected free-del is stripped server-side; still treat Standard
+          // as free if cart store still holds a free-del coupon that will re-apply on switch.
+          const cartCouponIsFreeDel = Boolean(
+            appliedCoupon
+            && (
+              appliedCoupon.discountType === 'free_delivery'
+              || appliedCoupon.alsoFreeDelivery
+              || Number(appliedCoupon.freeDeliveryWaiver || 0) > 0
+            ),
+          );
+          const standardIsFree = Number(bill.standardDeliveryCharge) === 0
+            || standardWasFreeByCoupon
+            || cartCouponIsFreeDel;
+          const standardListPrice = Number(bill.standardDeliveryCharge) || 0;
+          const showStandardStrike = standardIsFree && standardListPrice > 0;
+
+          const renderStandardPrice = (selected) => {
+            if (!standardIsFree) {
+              return (
+                <Text numberOfLines={1} style={selected ? styles.deliveryTypePriceOn : styles.deliveryTypePrice}>
+                  {standardListPrice === 0 ? 'FREE' : `₹${standardListPrice}`}
+                </Text>
+              );
+            }
+            return (
+              <View style={styles.deliveryTypePriceRow}>
+                {showStandardStrike ? (
+                  <Text
+                    numberOfLines={1}
+                    style={selected ? styles.deliveryTypePriceStrikeOn : styles.deliveryTypePriceStrike}
+                  >
+                    {`₹${standardListPrice}`}
+                  </Text>
+                ) : null}
+                <Text
+                  numberOfLines={1}
+                  style={selected ? styles.deliveryTypePriceFreeOn : styles.deliveryTypePriceFree}
+                >
+                  FREE
+                </Text>
+              </View>
+            );
+          };
+
+          return (
           <Animated.View
             onLayout={(e) => {
               sectionOffsetsRef.current.delivery = e.nativeEvent.layout.y;
@@ -1440,7 +1497,11 @@ export default function CheckoutScreen() {
                 <Text style={[styles.sectionTitle, deliveryError && styles.sectionTitleError]}>
                   Delivery Speed
                 </Text>
-                <Text style={styles.sectionSubtitle}>Choose how fast you need it</Text>
+                <Text style={styles.sectionSubtitle}>
+                  {standardIsFree
+                    ? 'Free delivery on Standard · Fast is charged'
+                    : 'Choose how fast you need it'}
+                </Text>
               </View>
             </View>
             {deliveryError ? (
@@ -1457,7 +1518,7 @@ export default function CheckoutScreen() {
                   onPress={() => pickDeliveryType('standard')}
                   scaleTo={0.96}
                   accessibilityRole="button"
-                  accessibilityLabel="Standard delivery"
+                  accessibilityLabel={standardIsFree ? 'Standard delivery, free' : 'Standard delivery'}
                   accessibilityState={{ selected: deliveryType === 'standard' }}
                 >
                   {deliveryType === 'standard' ? (
@@ -1474,9 +1535,7 @@ export default function CheckoutScreen() {
                           {formatEtaMinutes(bill.standardDeliveryMinutes) || '—'}
                         </Text>
                       </View>
-                      <Text numberOfLines={1} style={styles.deliveryTypePriceOn}>
-                        {bill.standardDeliveryCharge === 0 ? 'FREE' : `₹${bill.standardDeliveryCharge}`}
-                      </Text>
+                      {renderStandardPrice(true)}
                     </LinearGradient>
                   ) : (
                     <View style={[
@@ -1491,22 +1550,20 @@ export default function CheckoutScreen() {
                           {formatEtaMinutes(bill.standardDeliveryMinutes) || '—'}
                         </Text>
                       </View>
-                      <Text numberOfLines={1} style={styles.deliveryTypePrice}>
-                        {bill.standardDeliveryCharge === 0 ? 'FREE' : `₹${bill.standardDeliveryCharge}`}
-                      </Text>
+                      {renderStandardPrice(false)}
                     </View>
                   )}
                 </PressableScale>
               </View>
 
-              {/* Fast */}
+              {/* Fast — always full price; free-delivery coupons never apply here */}
               <View style={styles.deliveryTypeChipWrap}>
                 <PressableScale
                   style={styles.deliveryTypeChipPressable}
                   onPress={() => pickDeliveryType('fast')}
                   scaleTo={0.96}
                   accessibilityRole="button"
-                  accessibilityLabel="Fast delivery"
+                  accessibilityLabel={`Fast delivery, ₹${bill.fastDeliveryCharge}`}
                   accessibilityState={{ selected: deliveryType === 'fast' }}
                 >
                   {deliveryType === 'fast' ? (
@@ -1549,7 +1606,8 @@ export default function CheckoutScreen() {
               </View>
             </View>
           </Animated.View>
-        )}
+          );
+        })()}
 
         {/* Payment Method — unboxed bold chips */}
         <Animated.View
@@ -1854,7 +1912,9 @@ export default function CheckoutScreen() {
                   <Text style={styles.summaryLabel}>
                     {bill.deliveryType === 'fast' ? 'Fast Delivery' : 'Delivery Charge'}
                   </Text>
-                  {bill.isFreeDeliveryApplied ? (
+                  {/* FREE only when free-delivery actually waived this bill's delivery
+                      (Standard + free-del coupon). Fast always shows the charged fee. */}
+                  {bill.isFreeDeliveryApplied && bill.deliveryType !== 'fast' ? (
                     <View style={styles.freeDeliveryValueRow}>
                       <Text style={styles.summaryStrikethrough}>₹{bill.deliveryCharge}</Text>
                       <Text style={[styles.summaryValue, styles.freeDeliveryText]}>FREE</Text>
@@ -1870,7 +1930,12 @@ export default function CheckoutScreen() {
                   </View>
                 )}
                 {(() => {
-                  const discountToShow = bill.isFreeDeliveryApplied ? bill.itemDiscount : bill.discount;
+                  // When free-del fully covers delivery, Discount row is item-only
+                  // (free-del is shown on the Delivery line as FREE). On Fast,
+                  // free-del is not applied so show the full discount.
+                  const discountToShow = (bill.isFreeDeliveryApplied && bill.deliveryType !== 'fast')
+                    ? bill.itemDiscount
+                    : bill.discount;
                   if (!(discountToShow > 0)) return null;
                   return (
                     <View style={styles.summaryRow}>
@@ -2690,6 +2755,38 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   deliveryTypePriceOn: {
+    ...typography.labelLarge,
+    color: colors.textInverse,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  deliveryTypePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    maxWidth: '100%',
+  },
+  deliveryTypePriceStrike: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    textDecorationLine: 'line-through',
+    fontWeight: '600',
+  },
+  deliveryTypePriceStrikeOn: {
+    ...typography.caption,
+    color: colors.textInverse,
+    opacity: 0.75,
+    textDecorationLine: 'line-through',
+    fontWeight: '600',
+  },
+  deliveryTypePriceFree: {
+    ...typography.labelLarge,
+    color: colors.success,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  deliveryTypePriceFreeOn: {
     ...typography.labelLarge,
     color: colors.textInverse,
     fontWeight: '900',

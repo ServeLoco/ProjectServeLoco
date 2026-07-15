@@ -304,8 +304,8 @@ const createOrder = async (req, res) => {
 
     subtotal = roundMoney(subtotal);
     let deliveryCharge = roundMoney(toMoney(settings.delivery_charge || 0));
-    // Kept separately for free_delivery coupons: they waive only the standard
-    // fee, so on fast orders the discount must not include the fast premium.
+    // Kept separately so free_delivery can detect Fast (effective fee > standard)
+    // and skip free-delivery waiver — Fast always charges the full fast fee.
     const standardDeliveryCharge = deliveryCharge;
 
     const fastEnabled = Boolean(settings.fast_delivery_enabled);
@@ -358,7 +358,10 @@ const createOrder = async (req, res) => {
         failReason = await recheckUsageUnderLock(connection, result.coupon, userId);
       }
       if (failReason) {
-        if (!couponAutoApplied) {
+        // Free-delivery coupons only apply to Standard. Selecting Fast must
+        // not block place-order — drop the free-del benefit and continue.
+        const freeDelStandardOnly = /standard delivery only/i.test(String(failReason));
+        if (!couponAutoApplied && !freeDelStandardOnly) {
           throw new OrderError(failReason);
         }
         couponDropped = true;
