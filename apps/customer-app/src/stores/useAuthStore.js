@@ -23,6 +23,10 @@ export const useAuthStore = create(
       isAuthenticated: false,
       hasHydrated: false,
       sessionChecked: false,
+      // Bumped on every login/logout so in-flight /auth/me responses from a
+      // previous account cannot overwrite the new session (token vs user
+      // desync — e.g. JWT for 8888… with profile still showing 9999…).
+      sessionGeneration: 0,
       redirectRoute: null,
       previewStartedAt: Date.now(),
 
@@ -47,16 +51,24 @@ export const useAuthStore = create(
       validateSession: async () => {
         const state = useAuthStore.getState();
         const token = state.token;
+        const generation = state.sessionGeneration;
 
         const finish = (result) => {
-          useAuthStore.setState({ sessionChecked: true });
+          // Only mark sessionChecked if we still own this generation —
+          // a newer login/logout already set its own flags.
+          if (useAuthStore.getState().sessionGeneration === generation) {
+            useAuthStore.setState({ sessionChecked: true });
+          }
           return result;
         };
 
         if (!token) return finish(false);
 
         if (isJwtExpired(token)) {
-          state.logout();
+          // Only log out if this is still the same session we started with.
+          if (useAuthStore.getState().sessionGeneration === generation) {
+            useAuthStore.getState().logout();
+          }
           return finish(false);
         }
 
@@ -76,11 +88,25 @@ export const useAuthStore = create(
               )
             ),
           ]);
+
+          // Stale response: user logged out/in while getMe was in flight.
+          // Applying this would leave JWT for user A with profile for user B.
+          if (useAuthStore.getState().sessionGeneration !== generation) {
+            return false;
+          }
+          // Also bail if the token was swapped without a generation bump
+          // (defensive — generation should cover login/logout).
+          if (useAuthStore.getState().token !== token && !fresh.token) {
+            return finish(true);
+          }
+
           // fresh = { token, user } from normalizeSession.
-          // If the server sent a refreshed token (sliding renewal), update it.
+          // Always replace user/profile wholesale — never merge with a
+          // previous account's cached fields.
+          const nextUser = fresh.user || null;
           const updates = {
-            user: fresh.user || fresh,
-            profile: fresh.user || fresh,
+            user: nextUser,
+            profile: nextUser,
             shop: fresh.shop ?? null,
             rider: fresh.rider ?? null,
             admin: fresh.admin ?? null,
@@ -98,9 +124,12 @@ export const useAuthStore = create(
           }
           return finish(true);
         } catch (err) {
+          if (useAuthStore.getState().sessionGeneration !== generation) {
+            return false;
+          }
           const status = err && err.status;
           if (status === 401 || status === 403) {
-            state.logout();
+            useAuthStore.getState().logout();
             return finish(false);
           }
           return finish(true);
@@ -120,7 +149,22 @@ export const useAuthStore = create(
         } catch (_) {
           // Best-effort; never block sign-in on this.
         }
-        set({ token, user, profile: user, shop, rider, admin, isAuthenticated: true });
+        // Wholesale replace — never leave previous account fields hanging
+        // (adminToken, old profile phone, etc.). Bump sessionGeneration so
+        // any in-flight validateSession/getMe for the prior account is ignored.
+        const nextGen = (useAuthStore.getState().sessionGeneration || 0) + 1;
+        set({
+          token,
+          user: user || null,
+          profile: user || null,
+          shop: shop ?? null,
+          rider: rider ?? null,
+          admin: admin ?? null,
+          adminToken: null,
+          isAuthenticated: true,
+          sessionChecked: true,
+          sessionGeneration: nextGen,
+        });
         if (admin) {
           // Fire-and-forget — mints the admin JWT so AdminNavigator can render.
           useAuthStore.getState().mintAdminSession();
@@ -169,25 +213,14 @@ export const useAuthStore = create(
           useCartStore.getState()?.clearCart?.();
         } catch (_) { /* ignore cart clear errors on logout */ }
 
-        // Critical: also sign out of Firebase Auth. Otherwise auth.currentUser
-        // stays as the previous phone (e.g. shop 9999…) and the next OTP login
-        // as a different number (rider) can re-issue that old session via the
-        // code-expired auto-verify fallback in AuthScreen.
-        try {
-          // eslint-disable-next-line global-require
-          const { signOut } = require('@react-native-firebase/auth');
-          // eslint-disable-next-line global-require
-          const { auth } = require('../config/firebase');
-          if (auth?.currentUser) {
-            signOut(auth).catch(() => {});
-          }
-        } catch (_) { /* never block logout if Firebase is unavailable */ }
-
         // Force push-token re-register on next login (new account on same device).
+        // Do NOT touch Firebase Auth here — logout is JWT/Zustand only. OTP
+        // wrong-account protection lives in AuthScreen (same-phone check).
         try {
           AsyncStorage.removeItem('serveloco:lastPushToken').catch(() => {});
         } catch (_) { /* ignore */ }
 
+        const nextGen = (useAuthStore.getState().sessionGeneration || 0) + 1;
         set({
           token: null,
           user: null,
@@ -197,21 +230,52 @@ export const useAuthStore = create(
           admin: null,
           adminToken: null,
           isAuthenticated: false,
+          sessionChecked: true,
+          sessionGeneration: nextGen,
           previewStartedAt: Date.now(),
         });
       },
         
       updateUser: (userData) => 
-        set((state) => ({
-          user: { ...state.user, ...userData },
-          profile: { ...state.profile, ...userData },
-        })),
+        set((state) => {
+          // Never merge profile fields across different user ids.
+          const sameUser =
+            userData?.id == null
+            || state.user?.id == null
+            || String(state.user.id) === String(userData.id);
+          if (!sameUser) {
+            return {
+              user: userData,
+              profile: userData,
+            };
+          }
+          return {
+            user: { ...state.user, ...userData },
+            profile: { ...state.profile, ...userData },
+          };
+        }),
 
       setProfile: (profile) =>
-        set((state) => ({
-          profile,
-          user: { ...state.user, ...profile },
-        })),
+        set((state) => {
+          if (!profile || typeof profile !== 'object') {
+            return { profile: profile ?? null };
+          }
+          // Reject a profile that belongs to a different user id. A stale
+          // /auth/me for the previous account after re-login used to clobber
+          // the new session (JWT for user B, profile still showing user A).
+          // Account switches only go through setSession / validateSession.
+          if (
+            profile.id != null
+            && state.user?.id != null
+            && String(state.user.id) !== String(profile.id)
+          ) {
+            return {};
+          }
+          return {
+            profile,
+            user: state.user ? { ...state.user, ...profile } : profile,
+          };
+        }),
     }),
     {
       name: 'serveloco-customer-auth',

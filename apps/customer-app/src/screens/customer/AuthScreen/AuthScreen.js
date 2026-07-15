@@ -250,12 +250,12 @@ export default function AuthScreen() {
         // already signed in. Only fall back in those specific cases — otherwise an
         // unrelated error combined with a signed-in user from a previous session
         // would mix two accounts.
+        // Fallback for Android SMS auto-verify / code-expired.
+        // Only reuse auth.currentUser when its phone matches what the user typed.
+        // Never mint a session from a leftover Firebase user (previous login).
         const currentUser = auth.currentUser;
         const enteredPhone = phone.replace(/\D/g, '').slice(-10);
         const firebasePhone = (currentUser?.phoneNumber || '').replace(/\D/g, '').slice(-10);
-        // Only reuse Firebase currentUser if it matches the number the user typed.
-        // Without this, after shop logout (if Firebase stayed signed in) a rider
-        // login OTP error could silently re-open the shop/customer account.
         const samePhone =
           Boolean(currentUser)
           && enteredPhone.length === 10
@@ -270,18 +270,7 @@ export default function AuthScreen() {
           confirmErr.code === 'auth/session-expired' ||
           confirmErr.code === 'auth/code-expired'
         ) {
-          // SMS Retriever auto-consumed the OTP before the user could submit it
-          // (typical when the user backgrounds the app to read the SMS), and
-          // auto-sign-in didn't take (Play Services lag, hash mismatch, etc.).
-          // We owe them a fresh OTP — re-request silently, update state, and
-          // prompt them to enter the new code.
-          // If a *different* account is still signed in to Firebase, sign out first.
-          if (currentUser && !samePhone) {
-            try {
-              const { signOut } = await import('@react-native-firebase/auth');
-              await signOut(auth);
-            } catch { /* continue to re-send OTP */ }
-          }
+          // SMS Retriever consumed the OTP; send a fresh code for the number typed.
           const cleanPhoneRetry = phone.replace(/\D/g, '').slice(-10);
           const retryPhone = `${COUNTRY_CODE}${cleanPhoneRetry}`;
           const fresh = await signInWithPhoneNumber(auth, retryPhone);

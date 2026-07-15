@@ -183,10 +183,20 @@ export default function ProfileScreen() {
 
   const loadProfile = React.useCallback((refresh = false) => {
     if (refresh) setIsRefreshing(true);
+    // Capture session identity so a stale /auth/me from a previous login
+    // cannot overwrite the current account's profile (token/user desync).
+    const { token: requestToken, sessionGeneration } = useAuthStore.getState();
     authApi.getMe()
       .then(response => {
+        const current = useAuthStore.getState();
+        if (
+          current.sessionGeneration !== sessionGeneration
+          || (requestToken && current.token !== requestToken)
+        ) {
+          return;
+        }
         const nextProfile = response?.user || response?.profile || response?.data || response;
-        setProfile(nextProfile);
+        if (nextProfile) setProfile(nextProfile);
       })
       .catch(() => {})
       .finally(() => setIsRefreshing(false));

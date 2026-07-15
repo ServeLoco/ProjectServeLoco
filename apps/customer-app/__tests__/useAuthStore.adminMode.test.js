@@ -29,6 +29,7 @@ describe('useAuthStore — admin mode', () => {
     useAuthStore.setState({
       token: null, user: null, profile: null, shop: null, rider: null,
       admin: null, adminToken: null, isAuthenticated: false,
+      sessionGeneration: 0, sessionChecked: false,
     });
   });
 
@@ -114,5 +115,85 @@ describe('useAuthStore — admin mode', () => {
     await useAuthStore.getState().logout();
     expect(useAuthStore.getState().admin).toBeNull();
     expect(useAuthStore.getState().adminToken).toBeNull();
+  });
+
+  it('setSession replaces user/profile wholesale and bumps sessionGeneration', () => {
+    useAuthStore.setState({
+      token: 'old',
+      user: { id: '2', phone: '9999999999', name: 'Demo User' },
+      profile: { id: '2', phone: '9999999999', name: 'Demo User' },
+      sessionGeneration: 1,
+      isAuthenticated: true,
+    });
+
+    useAuthStore.getState().setSession(
+      'new-jwt',
+      { id: '3', phone: '8888888888', name: 'Blocked User' },
+      null,
+      null,
+      null,
+    );
+
+    const s = useAuthStore.getState();
+    expect(s.token).toBe('new-jwt');
+    expect(s.user).toEqual({ id: '3', phone: '8888888888', name: 'Blocked User' });
+    expect(s.profile).toEqual({ id: '3', phone: '8888888888', name: 'Blocked User' });
+    expect(s.sessionGeneration).toBe(2);
+    expect(s.adminToken).toBeNull();
+  });
+
+  it('setProfile ignores a profile for a different user id (stale getMe)', () => {
+    useAuthStore.setState({
+      token: 'jwt-3',
+      user: { id: '3', phone: '8888888888', name: 'Blocked User' },
+      profile: { id: '3', phone: '8888888888', name: 'Blocked User' },
+      isAuthenticated: true,
+    });
+
+    useAuthStore.getState().setProfile({
+      id: '2', phone: '9999999999', name: 'Demo User',
+    });
+
+    const s = useAuthStore.getState();
+    expect(s.user.phone).toBe('8888888888');
+    expect(s.user.id).toBe('3');
+    expect(s.profile.phone).toBe('8888888888');
+  });
+
+  it('validateSession ignores a stale getMe after re-login', async () => {
+    let resolveGetMe;
+    authApi.getMe.mockImplementation(
+      () => new Promise((resolve) => { resolveGetMe = resolve; }),
+    );
+
+    const tokenA = fakeJwt();
+    useAuthStore.setState({
+      token: tokenA,
+      user: { id: '2', phone: '9999999999' },
+      profile: { id: '2', phone: '9999999999' },
+      isAuthenticated: true,
+      sessionGeneration: 1,
+    });
+
+    const pending = useAuthStore.getState().validateSession();
+
+    // Re-login as a different user while /auth/me for A is still in flight.
+    useAuthStore.getState().setSession(
+      'jwt-b',
+      { id: '3', phone: '8888888888', name: 'B' },
+    );
+
+    resolveGetMe({
+      user: { id: '2', phone: '9999999999', name: 'A' },
+      shop: null,
+      rider: null,
+      admin: null,
+    });
+    await pending;
+
+    const s = useAuthStore.getState();
+    expect(s.token).toBe('jwt-b');
+    expect(s.user.phone).toBe('8888888888');
+    expect(s.user.id).toBe('3');
   });
 });
