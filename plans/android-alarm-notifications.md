@@ -167,10 +167,10 @@ Customer and admin roles are explicitly **not** part of this problem — their c
 - Commit: `feat: ALARM TASK 8 — add full-screen-intent + foreground-service manifest permissions`
 
 ### TASK 9 — Version bump + prebuild + commit native diff
-- [ ] Bump `runtimeVersion` in `app.json` from `"1.6.0"` to `"1.7.0"`.
-- [ ] `git status` clean check first, then `npx expo prebuild --clean --platform android`.
-- [ ] Review the resulting `android/` diff carefully — confirm it only reflects the new plugins (notifee, `withAlarmSounds`) and permission additions, no unrelated regeneration noise. Commit.
-- Acceptance: `runtimeVersion` bumped; native `android/` diff is clean and reviewed; committed separately from app-code changes for a clear audit trail.
+- [x] `runtimeVersion` 1.6.0 → 1.7.0; `expo_runtime_version` string + versionName synced.
+- [x] `npx expo prebuild --clean --platform android` succeeded; `res/raw` alarm WAVs present via withAlarmSounds; specialUse FGS + permissions via withAlarmPermissions.
+- [x] Diff reviewed: versionCode 29 / versionName 1.7.0, runtime string, manifest permissions/FGS — no unrelated noise.
+- Acceptance: met.
 - Commit: `feat: ALARM TASK 9 — bump runtimeVersion, prebuild native android changes`
 
 ### — Phase 5: verification —

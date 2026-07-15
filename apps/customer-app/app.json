@@ -28,7 +28,10 @@
       "expo-asset",
       "./plugins/withAlarmSounds",
       "./plugins/withAlarmPermissions",
-      ["@rnmapbox/maps", {}],
+      [
+        "@rnmapbox/maps",
+        {}
+      ],
       [
         "expo-location",
         {
@@ -43,7 +46,9 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "VillKro uses your location to pin your delivery address and show your position on the rider delivery map.",
         "NSPhotoLibraryUsageDescription": "VillKro lets admins choose product photos from the library.",
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       },
       "bundleIdentifier": "com.yashsiwach.villkro"
     },
@@ -73,7 +78,7 @@
       }
     },
     "owner": "yashsiwch",
-    "runtimeVersion": "1.6.0",
+    "runtimeVersion": "1.7.0",
     "updates": {
       "url": "https://u.expo.dev/1df5a9bf-de34-48ea-96f4-68f598d7d318"
     }
