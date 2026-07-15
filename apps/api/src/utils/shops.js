@@ -37,9 +37,14 @@ const notifyShopsForOrder = async (order) => {
       });
     }
     expoPush.sendPushToMany(pool, rows.map(r => r.owner_user_id), {
-      title: 'New order to prepare',
-      body: `Order ${order.order_number} has items for your shop. Open the app to confirm.`,
-      data: { type: 'shop_order', orderId: order.id },
+      // Data-only: killed-app alarm rendered client-side via notifee (no OS tray banner).
+      dataOnly: true,
+      data: {
+        type: 'shop_order',
+        alertType: 'new_order_alarm',
+        orderId: order.id,
+        orderNumber: order.order_number,
+      },
     }).catch(() => {});
   } catch (e) {
     console.error('[shops] notifyShopsForOrder failed for order', order?.id, e.message);

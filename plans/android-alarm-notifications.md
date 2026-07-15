@@ -116,11 +116,11 @@ Customer and admin roles are explicitly **not** part of this problem — their c
 - Commit: `feat: ALARM TASK 2 — add dataOnly option to buildMessage`
 
 ### TASK 3 — Wire `dataOnly` into the two alarm call sites
-- [ ] `apps/api/src/utils/shops.js:40-41` — shop-owner new-order push: pass `dataOnly: true`, `data: { alertType: 'new_order_alarm', orderId, orderNumber: order.order_number }` (keep whatever id fields the existing call already threads through `data`, just add `alertType`).
-- [ ] `apps/api/src/services/riderAssignment.js` `pushRiderOffer()` (~:94-114): pass `dataOnly: true`, `data: { alertType: 'rider_offer_alarm', offerId, orderId, orderNumber, expiresAt }` — reuse whatever offer/order identifiers are already available in scope there, do not add a new query.
-- [ ] Every other push call site in the codebase is untouched — grep for other `buildMessage(` / `sendPushToUser(` / `sendPushToMany(` callers and confirm none of them pass `dataOnly` and none of them changed.
-- [ ] `npm test` in `apps/api` — must pass.
-- Acceptance: only these two call sites opt into `dataOnly`; `remindPendingOffers()` reminder pushes for rider offers also need `dataOnly: true` (same alarm type) since they hit the same `pushRiderOffer()` path — verify this is automatic given TASK 3's change, don't duplicate the push-building logic.
+- [x] `apps/api/src/utils/shops.js:40-41` — shop-owner new-order push: dataOnly + alertType `new_order_alarm`, kept `type`/`orderId`, added `orderNumber`.
+- [x] `apps/api/src/services/riderAssignment.js` `pushRiderOffer()`: dataOnly + alertType `rider_offer_alarm`; kept offer/order ids + expiresAt; reminders reuse same path automatically.
+- [x] Every other push call site untouched — only shops.js notifyShopsForOrder + pushRiderOffer set dataOnly.
+- [x] `npm test` in `apps/api` — 70 suites / 683 passed.
+- Acceptance: only these two call sites opt into `dataOnly`; `remindPendingOffers()` reminder pushes for rider offers also need `dataOnly: true` (same alarm type) since they hit the same `pushRiderOffer()` path — verified automatic.
 - Commit: `feat: ALARM TASK 3 — send data-only push for shop/rider alarm alerts`
 
 ### — Phase 2: native sound assets —

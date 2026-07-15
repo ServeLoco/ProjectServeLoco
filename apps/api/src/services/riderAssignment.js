@@ -94,20 +94,22 @@ const loadOrder = async (orderId, connection = pool) => {
 const pushRiderOffer = async (userId, order, offer, { reminder = false } = {}) => {
   if (!userId) return;
   const orderNumber = order.order_number || order.orderNumber || order.id;
-  const mins = Math.max(1, Math.round(RIDER_OFFER_TIMEOUT_SEC / 60));
   const expoPush = require('../utils/expoPush');
   await expoPush.sendPushToUser(pool, userId, {
-    title: reminder ? 'Delivery offer still waiting' : 'New delivery offer',
-    body: reminder
-      ? `Order ${orderNumber} — accept now before it expires`
-      : `Order ${orderNumber} — accept within ${mins} minutes`,
+    // Data-only: killed-app alarm rendered client-side via notifee (no OS tray banner).
+    // Initial + remindPendingOffers both go through this path — one place for dataOnly.
+    dataOnly: true,
     // Strong vibration channel (client creates serveloco-rider-offers).
     channelId: 'serveloco-rider-offers',
     data: {
       type: 'rider_offer',
+      alertType: 'rider_offer_alarm',
       offerId: String(offer.id),
       orderId: String(order.id || offer.order_id),
+      orderNumber: String(orderNumber),
       expiresAt: String(offer.expires_at || offer.expiresAt || ''),
+      // Keep reminder flag for client diagnostics; not used for display path.
+      reminder: reminder ? '1' : '0',
     },
   });
   offerLastRemindAt.set(Number(offer.id), Date.now());
