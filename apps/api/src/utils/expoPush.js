@@ -9,37 +9,55 @@ const isProd = config.NODE_ENV === 'production';
 
 /**
  * Build a single Expo push message object.
- * Title + body + high priority + channelId are required so FCM/APNs show a
+ * Default: title + body + high priority + channelId so FCM/APNs show a
  * system banner when the app is backgrounded or fully killed (swiped away).
- * Data-only messages would NOT display when the process is dead.
+ *
+ * When `dataOnly` is true: omit top-level title/body/sound so the OS does
+ * not auto-render a tray notification. The client background handler reads
+ * `data` (e.g. alertType) and displays a notifee full-screen alarm instead.
+ * Only alarm call sites opt in; every other push keeps the default shape.
  *
  * Do NOT set `color` — Expo Push API currently rejects every hex form we
  * tried ("Must be a valid hex color") and the whole send fails, so no
  * device ever gets the banner. Brand tint stays on the Android channel
  * created client-side instead.
  */
-const buildMessage = (token, { title, body, data = {}, categoryId, channelId } = {}) => ({
-  to: token,
-  sound: 'default',
-  title: title || 'VillKro',
-  body: body || '',
-  data: {
+const buildMessage = (token, { title, body, data = {}, categoryId, channelId, dataOnly = false } = {}) => {
+  const dataPayload = {
     // Stringify-friendly payload; clients read these on tap from killed state.
     ...Object.fromEntries(
       Object.entries(data || {}).map(([k, v]) => [k, v == null ? v : String(v)])
     ),
-  },
-  // Default matches client ORDER_NOTIFICATION_CHANNEL_ID (sound + vibrate).
-  // Rider offers pass channelId: 'serveloco-rider-offers' (stronger vibrate).
-  channelId: channelId || 'serveloco-orders-v2',
-  // high = wake device / heads-up when app is not in foreground.
-  priority: 'high',
-  // Keep trying delivery for ~1h if device was offline.
-  ttl: 3600,
-  // categoryId wires up action buttons registered on the client side
-  // (e.g. "View Order") so the user can act without opening the app.
-  ...(categoryId ? { categoryId } : {}),
-});
+  };
+
+  // Shared delivery fields for both shapes.
+  const base = {
+    to: token,
+    data: dataPayload,
+    // Default matches client ORDER_NOTIFICATION_CHANNEL_ID (sound + vibrate).
+    // Rider offers pass channelId: 'serveloco-rider-offers' (stronger vibrate).
+    channelId: channelId || 'serveloco-orders-v2',
+    // high = wake device / heads-up when app is not in foreground.
+    priority: 'high',
+    // Keep trying delivery for ~1h if device was offline.
+    ttl: 3600,
+    // categoryId wires up action buttons registered on the client side
+    // (e.g. "View Order") so the user can act without opening the app.
+    ...(categoryId ? { categoryId } : {}),
+  };
+
+  if (dataOnly) {
+    // No title/body/sound — OS must not auto-display; JS notifee path renders.
+    return base;
+  }
+
+  return {
+    ...base,
+    sound: 'default',
+    title: title || 'VillKro',
+    body: body || '',
+  };
+};
 
 /**
  * Send a push notification to a single user identified by their DB userId.
@@ -48,7 +66,7 @@ const buildMessage = (token, { title, body, data = {}, categoryId, channelId } =
  *
  * @param {import('mysql2/promise').Pool} pool
  * @param {number} userId
- * @param {{ title: string, body: string, data?: object, categoryId?: string, channelId?: string }} opts
+ * @param {{ title?: string, body?: string, data?: object, categoryId?: string, channelId?: string, dataOnly?: boolean }} opts
  */
 const sendPushToUser = async (pool, userId, opts) => {
   try {
@@ -81,7 +99,7 @@ const sendPushToUser = async (pool, userId, opts) => {
  *
  * @param {import('mysql2/promise').Pool} pool
  * @param {number[]} userIds
- * @param {{ title: string, body: string, data?: object, categoryId?: string }} opts
+ * @param {{ title?: string, body?: string, data?: object, categoryId?: string, channelId?: string, dataOnly?: boolean }} opts
  */
 const sendPushToMany = async (pool, userIds, opts) => {
   const stats = { recipients: userIds?.length || 0, tokensFound: 0, sent: 0, failed: 0 };

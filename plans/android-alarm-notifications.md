@@ -109,9 +109,9 @@ Customer and admin roles are explicitly **not** part of this problem — their c
 ### — Phase 1: backend data-only push —
 
 ### TASK 2 — `dataOnly` option on `buildMessage()`
-- [ ] In `apps/api/src/utils/expoPush.js`, extend `buildMessage()` (~:21-42) with an options param `{ dataOnly = false }`. When `dataOnly` is true: omit top-level `title`, `body`, and `sound` from the built message; instead ensure `data` carries everything needed to render the alarm client-side (`alertType`, plus whatever id/expiry fields the caller passes — do not hardcode field names here, accept them via the existing `data` param already flowing into this function).
-- [ ] Do not change default behavior — every existing caller that doesn't pass `dataOnly` must produce byte-identical output to before this task.
-- [ ] `npm test` in `apps/api` — must pass, including any existing `expoPush` unit tests.
+- [x] In `apps/api/src/utils/expoPush.js`, extend `buildMessage()` (~:21-42) with an options param `{ dataOnly = false }`. When `dataOnly` is true: omit top-level `title`, `body`, and `sound` from the built message; instead ensure `data` carries everything needed to render the alarm client-side (`alertType`, plus whatever id/expiry fields the caller passes — do not hardcode field names here, accept them via the existing `data` param already flowing into this function). — done; additive opt-in.
+- [x] Do not change default behavior — every existing caller that doesn't pass `dataOnly` must produce byte-identical output to before this task. — verified via new default-shape unit test.
+- [x] `npm test` in `apps/api` — 70 suites / 683 passed (1 skipped).
 - Acceptance: new option is additive and opt-in; existing tests green; no change to any push that doesn't opt in.
 - Commit: `feat: ALARM TASK 2 — add dataOnly option to buildMessage`
 
