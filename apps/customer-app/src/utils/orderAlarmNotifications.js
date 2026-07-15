@@ -23,6 +23,7 @@ import { riderApi } from '../api/riderApi';
 import { setCustomerTokenProvider } from '../api/sessionTokens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../stores';
+import { playAlarmSound, stopAlarmSound } from './alarmSound';
 
 // Stable notification ids so cancel-on-open can silence a still-ringing alarm.
 export const ORDER_ALARM_NOTIFICATION_ID = 'serveloco-order-alarm';
@@ -181,7 +182,17 @@ export async function displayAlarmNotification(data) {
       expiresAt: String(data.expiresAt || data.expires_at || ''),
       type: String(data.type || ''),
     },
-    android,
+    android: {
+      ...android,
+      // Force custom raw sound on the notification itself (in addition to channel).
+      sound: isRider ? 'rider_alarm' : 'order_alarm',
+      loopSound: true,
+    },
+  });
+
+  // OEM-safe audible path: ColorOS often mutes channel sounds; media stack works.
+  await playAlarmSound(isRider ? 'rider' : 'order', {
+    loopMs: Math.min(timeoutAfter, 60_000),
   });
 }
 
@@ -190,6 +201,7 @@ export async function displayAlarmNotification(data) {
  */
 export async function cancelOrderAlarm() {
   if (Platform.OS !== 'android') return;
+  stopAlarmSound();
   try {
     await notifee.cancelNotification(ORDER_ALARM_NOTIFICATION_ID);
   } catch { /* ignore */ }
@@ -200,6 +212,7 @@ export async function cancelOrderAlarm() {
 
 export async function cancelRiderOfferAlarm() {
   if (Platform.OS !== 'android') return;
+  stopAlarmSound();
   try {
     await notifee.cancelNotification(RIDER_OFFER_ALARM_NOTIFICATION_ID);
   } catch { /* ignore */ }

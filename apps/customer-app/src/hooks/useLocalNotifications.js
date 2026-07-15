@@ -181,10 +181,11 @@ export const RIDER_OFFER_CHANNEL_ID = 'serveloco-rider-offers';
 
 // Notifee full-screen alarm channels (killed-app path). New IDs only — never
 // reuse the expo-notifications channels above (Android freezes channel settings).
-// Bumped when custom sound assets change — Android freezes channel sound after
-// first create (v1→v2 format fix; v2→v3 user notifi.wav).
-export const ORDER_ALARM_CHANNEL_ID = 'serveloco-orders-alarm-v3';
-export const RIDER_OFFER_ALARM_CHANNEL_ID = 'serveloco-rider-offers-alarm-v3';
+// Bumped when custom sound assets / audio attributes change.
+// Android freezes channel sound after first create.
+// v4: USAGE_ALARM + dual expo+notifee create so OEM actually plays audio.
+export const ORDER_ALARM_CHANNEL_ID = 'serveloco-orders-alarm-v4';
+export const RIDER_OFFER_ALARM_CHANNEL_ID = 'serveloco-rider-offers-alarm-v4';
 
 // Strong pattern: pause, buzz, pause, buzz… (ms) — RN Vibration API allows a
 // leading 0 (initial delay). Used by foreground alert hooks.
@@ -258,17 +259,59 @@ export async function createNotifeeAlarmChannels() {
     for (const oldId of [
       'serveloco-orders-alarm-v1',
       'serveloco-orders-alarm-v2',
+      'serveloco-orders-alarm-v3',
       'serveloco-rider-offers-alarm-v1',
       'serveloco-rider-offers-alarm-v2',
+      'serveloco-rider-offers-alarm-v3',
     ]) {
       try { await notifee.deleteChannel(oldId); } catch { /* ignore */ }
+      try { await Notifications.deleteNotificationChannelAsync(oldId); } catch { /* ignore */ }
     }
 
+    // Expo channel first: USAGE_ALARM is more likely to play on ColorOS than
+    // USAGE_NOTIFICATION for custom res/raw sounds (FCM tray path uses this).
+    const alarmAudio = {
+      usage: Notifications.AndroidAudioUsage.ALARM,
+      contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+      flags: {
+        enforceAudibility: true,
+        requestHardwareAudioVideoSynchronization: false,
+      },
+    };
+
+    await Notifications.setNotificationChannelAsync(ORDER_ALARM_CHANNEL_ID, {
+      name: 'Shop Order Alarms',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: NOTIFEE_SHOP_VIBRATION_PATTERN,
+      sound: 'order_alarm',
+      lightColor: BRAND_COLOR,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true,
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+      audioAttributes: alarmAudio,
+    });
+
+    await Notifications.setNotificationChannelAsync(RIDER_OFFER_ALARM_CHANNEL_ID, {
+      name: 'Rider Offer Alarms',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: NOTIFEE_RIDER_VIBRATION_PATTERN,
+      sound: 'rider_alarm',
+      lightColor: BRAND_COLOR,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true,
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+      audioAttributes: alarmAudio,
+    });
+
+    // Notifee twin (same ids) for full-screen / FGS display path.
     await notifee.createChannel({
       id: ORDER_ALARM_CHANNEL_ID,
       name: 'Shop Order Alarms',
       importance: AndroidImportance.HIGH,
-      // res/raw/order_alarm.wav (no extension) — 44.1kHz PCM16 mono
       sound: 'order_alarm',
       vibration: true,
       vibrationPattern: NOTIFEE_SHOP_VIBRATION_PATTERN,
@@ -682,15 +725,26 @@ export function useLocalNotifications(navigationRef) {
       if (
         Platform.OS === 'android'
         && (alertType === 'new_order_alarm' || alertType === 'rider_offer_alarm')
-        && AppState.currentState !== 'active'
       ) {
-        // Lazy require so tests / non-android never load the alarm module path early.
-        import('../utils/orderAlarmNotifications')
-          .then(({ displayAlarmNotification }) => {
-            if (!cancelled) return displayAlarmNotification(data);
-            return undefined;
+        // Always play via media stack (OEM often mutes channel sound).
+        // Full-screen notifee only when not already foreground (avoid double UI).
+        import('../utils/alarmSound')
+          .then(({ playAlarmSound }) => {
+            if (cancelled) return undefined;
+            return playAlarmSound(
+              alertType === 'rider_offer_alarm' ? 'rider' : 'order',
+              { loopMs: 20000 },
+            );
           })
           .catch(() => {});
+        if (AppState.currentState !== 'active') {
+          import('../utils/orderAlarmNotifications')
+            .then(({ displayAlarmNotification }) => {
+              if (!cancelled) return displayAlarmNotification(data);
+              return undefined;
+            })
+            .catch(() => {});
+        }
       }
     });
     return () => {
