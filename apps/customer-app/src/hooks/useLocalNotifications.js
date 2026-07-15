@@ -721,30 +721,23 @@ export function useLocalNotifications(navigationRef) {
       const data = notification?.request?.content?.data || {};
       markNotificationShown(data?.notificationId);
 
+      // Alarm pushes already show ONE OS tray banner (title+body + alarm channel).
+      // Only play media sound here — do NOT also post a notifee banner (that was
+      // stacking "New order waiting" on top of "New order to prepare").
       const alertType = data?.alertType;
       if (
         Platform.OS === 'android'
         && (alertType === 'new_order_alarm' || alertType === 'rider_offer_alarm')
       ) {
-        // Always play via media stack (OEM often mutes channel sound).
-        // Full-screen notifee only when not already foreground (avoid double UI).
         import('../utils/alarmSound')
           .then(({ playAlarmSound }) => {
             if (cancelled) return undefined;
             return playAlarmSound(
               alertType === 'rider_offer_alarm' ? 'rider' : 'order',
-              { loopMs: 20000 },
+              { loopMs: 15000 },
             );
           })
           .catch(() => {});
-        if (AppState.currentState !== 'active') {
-          import('../utils/orderAlarmNotifications')
-            .then(({ displayAlarmNotification }) => {
-              if (!cancelled) return displayAlarmNotification(data);
-              return undefined;
-            })
-            .catch(() => {});
-        }
       }
     });
     return () => {

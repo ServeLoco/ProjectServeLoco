@@ -106,6 +106,9 @@ const pushRiderOffer = async (userId, order, offer, { reminder = false } = {}) =
       : `Order ${orderNumber} — accept within ${mins} minutes`,
     channelId: 'serveloco-rider-offers-alarm-v4',
     sound: 'rider_alarm',
+    // Reminder re-pushes replace the same tray row (no spam stack).
+    tag: `rider_offer_${offer.id}`,
+    collapseId: `rider_offer_${offer.id}`,
     data: {
       type: 'rider_offer',
       alertType: 'rider_offer_alarm',

@@ -45,6 +45,9 @@ const notifyShopsForOrder = async (order) => {
       channelId: 'serveloco-orders-alarm-v4',
       // Custom res/raw/order_alarm — do not send sound:'default' (OEM override risk).
       sound: 'order_alarm',
+      // One tray row per order (re-notify replaces instead of stacking).
+      tag: `shop_order_${order.id}`,
+      collapseId: `shop_order_${order.id}`,
       data: {
         type: 'shop_order',
         alertType: 'new_order_alarm',

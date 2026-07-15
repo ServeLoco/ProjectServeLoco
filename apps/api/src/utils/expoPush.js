@@ -22,7 +22,9 @@ const isProd = config.NODE_ENV === 'production';
  * device ever gets the banner. Brand tint stays on the Android channel
  * created client-side instead.
  */
-const buildMessage = (token, { title, body, data = {}, categoryId, channelId, dataOnly = false, sound } = {}) => {
+const buildMessage = (token, {
+  title, body, data = {}, categoryId, channelId, dataOnly = false, sound, tag, collapseId,
+} = {}) => {
   const dataPayload = {
     // Stringify-friendly payload; clients read these on tap from killed state.
     ...Object.fromEntries(
@@ -44,6 +46,9 @@ const buildMessage = (token, { title, body, data = {}, categoryId, channelId, da
     // categoryId wires up action buttons registered on the client side
     // (e.g. "View Order") so the user can act without opening the app.
     ...(categoryId ? { categoryId } : {}),
+    // Android: same tag replaces the previous tray item (prevents spam).
+    ...(tag ? { tag: String(tag) } : {}),
+    ...(collapseId ? { collapseId: String(collapseId) } : {}),
   };
 
   if (dataOnly) {

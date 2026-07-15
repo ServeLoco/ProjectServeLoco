@@ -25,9 +25,11 @@ export { MAX_ORDER_ALARM_RING_MS } from '../utils/orderAlarmNotifications';
 export function useNewOrderAlert(active) {
   const intervalRef = useRef(null);
 
-  // Silences a still-ringing killed-app notifee alarm when the shop dashboard opens.
+  // Silences killed-app alarm + clears stacked OS trays when dashboard opens
+  // (proper flow: one popup in-app, not a pile of banners).
   useEffect(() => {
     cancelOrderAlarm().catch(() => {});
+    Notifications.dismissAllNotificationsAsync().catch(() => {});
   }, []);
 
   useEffect(() => {

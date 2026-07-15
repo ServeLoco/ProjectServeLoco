@@ -101,6 +101,15 @@ export async function displayAlarmNotification(data) {
 
   await createNotifeeAlarmChannels();
 
+  // Replace any previous alarm of the same type (one ringing banner max).
+  try {
+    await notifee.cancelNotification(
+      data.alertType === ALERT_TYPE_RIDER_OFFER
+        ? RIDER_OFFER_ALARM_NOTIFICATION_ID
+        : ORDER_ALARM_NOTIFICATION_ID,
+    );
+  } catch { /* ignore */ }
+
   const isRider = data.alertType === ALERT_TYPE_RIDER_OFFER;
   const orderNumber = data.orderNumber || data.order_number || '';
   const notificationId = isRider
@@ -330,7 +339,24 @@ export async function handleBackgroundAlarmMessage(remoteMessage) {
     // Non-alarm data messages: no-op (other pushes keep title+body OS path).
     return;
   }
+
+  // If Expo/FCM already attached a notification payload (title+body), the OS
+  // tray is showing that banner — only play media sound, do not post a second
+  // notifee notification (duplicate spam).
+  const hasOsBanner = Boolean(
+    remoteMessage?.notification?.title
+    || remoteMessage?.notification?.body
+  );
   try {
+    if (hasOsBanner) {
+      console.warn('[orderAlarm] OS banner present — sound only', alertData.alertType);
+      const { playAlarmSound } = require('./alarmSound');
+      await playAlarmSound(
+        alertData.alertType === ALERT_TYPE_RIDER_OFFER ? 'rider' : 'order',
+        { loopMs: 15000 },
+      );
+      return;
+    }
     console.warn('[orderAlarm] displaying alarm', alertData.alertType, alertData.orderId || alertData.offerId);
     await displayAlarmNotification(alertData);
     console.warn('[orderAlarm] display complete');
