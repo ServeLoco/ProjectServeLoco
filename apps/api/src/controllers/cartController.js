@@ -130,7 +130,9 @@ const calculateCart = async (req, res) => {
       // disambiguation existed.
       unavailableItems.push({
         productId,
+        product_id: productId,
         variantId: isCombo ? null : variantId,
+        variant_id: isCombo ? null : variantId,
         type: isCombo ? 'combo' : 'product',
         quantity,
         reason: isCombo ? 'combo_unavailable' : 'product_unavailable',
@@ -148,7 +150,9 @@ const calculateCart = async (req, res) => {
       if (!variant || variant.deleted || !variant.available || Number(variant.product_id) !== productId) {
         unavailableItems.push({
           productId,
+          product_id: productId,
           variantId,
+          variant_id: variantId,
           type: 'product',
           quantity,
           reason: 'variant_unavailable',

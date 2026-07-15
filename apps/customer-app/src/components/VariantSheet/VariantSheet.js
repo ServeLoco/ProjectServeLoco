@@ -91,9 +91,9 @@ export default function VariantSheet({ visible, product, onClose }) {
                       {variant.label}
                     </Text>
                     <View style={styles.priceRow}>
-                      <Text style={[styles.rowPrice, isOut && styles.rowLabelDisabled]}>₹{displayPrice}</Text>
+                      <Text style={[styles.rowPrice, isOut && styles.rowLabelDisabled]}>₹{displayPrice.toFixed(0)}</Text>
                       {variant.originalPrice ? (
-                        <Text style={styles.rowOriginalPrice}>₹{Math.floor(Number(variant.originalPrice))}</Text>
+                        <Text style={styles.rowOriginalPrice}>₹{Number(variant.originalPrice).toFixed(0)}</Text>
                       ) : null}
                     </View>
                   </View>

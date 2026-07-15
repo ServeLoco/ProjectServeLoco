@@ -203,14 +203,13 @@ export const useCartStore = create(
           const variantId = item.variant?.id ?? null;
           const productKey = `${type}:${productId}`;
           const lineKey = `${type}:${productId}:${variantId == null ? '' : String(variantId)}`;
+          // productOnly matches drop every variant line of that product too.
           const drop =
             productOnly.has(productId) ||
             productOnly.has(productKey) ||
             (variantId != null && keys.has(`${type}:${productId}:${String(variantId)}`)) ||
             (variantId == null && keys.has(lineKey));
-          // Also match product-level drop for any variant lines of that product.
-          const dropAllVariantsOfProduct = productOnly.has(productKey) || productOnly.has(productId);
-          if (drop || dropAllVariantsOfProduct) {
+          if (drop) {
             removedItems.push(item);
           } else {
             kept.push(item);
