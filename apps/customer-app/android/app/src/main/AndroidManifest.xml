@@ -1,12 +1,15 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.RECORD_AUDIO"/>
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
   <queries>
@@ -32,5 +35,12 @@
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
     </activity>
+    <!-- Notifee FGS: specialUse for ongoing shop/rider order alarms (Play Console declaration required). -->
+    <service android:name="app.notifee.core.ForegroundService" android:exported="false" android:foregroundServiceType="specialUse" tools:replace="android:foregroundServiceType">
+      <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Critical shop-owner and rider order/offer alerts that must ring over the lock screen until accepted, rejected, or timed out — time-sensitive delivery partner alerts equivalent to an incoming call."/>
+    </service>
+    <!-- Block notifee boot receivers from starting restricted FGS types (Android 15+). -->
+    <receiver android:name="app.notifee.core.RebootBroadcastReceiver" tools:node="remove"/>
+    <receiver android:name="app.notifee.core.NotificationAlarmReceiver" tools:node="remove"/>
   </application>
 </manifest>

@@ -27,6 +27,7 @@
       "expo-audio",
       "expo-asset",
       "./plugins/withAlarmSounds",
+      "./plugins/withAlarmPermissions",
       ["@rnmapbox/maps", {}],
       [
         "expo-location",
@@ -53,7 +54,10 @@
         "ACCESS_FINE_LOCATION",
         "POST_NOTIFICATIONS",
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "VIBRATE",
+        "USE_FULL_SCREEN_INTENT",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_SPECIAL_USE"
       ],
       "package": "com.yashsiwach.villkro",
       "versionCode": 29,

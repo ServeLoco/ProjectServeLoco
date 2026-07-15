@@ -159,11 +159,11 @@ Customer and admin roles are explicitly **not** part of this problem — their c
 ### — Phase 4: native manifest + rollout —
 
 ### TASK 8 — AndroidManifest permissions
-- [ ] Add to `android/app/src/main/AndroidManifest.xml` (or, if this repo's convention edits `app.json`'s `android.permissions` array and lets prebuild regenerate the manifest — check TASK 2 pattern used in `plans/mapbox-live-tracking.md` first and follow whichever convention is actually used for permissions in this repo): `USE_FULL_SCREEN_INTENT`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` with the required `<property>` metadata for the special-use justification string (Android 14+ requirement).
-- [ ] Confirm `MainActivity`'s `launchMode` is already `singleTask` (it is, per §2.1 — no change needed, just verify post-prebuild it's still set).
-- [ ] Add the Android 14+ runtime check (`notifee`'s `canUseFullScreenIntent()` or manifest-driven equivalent) with a heads-up-notification fallback if denied, inside the TASK 6 handler.
-- [ ] Do NOT declare `android:name="android.intent.action.BOOT_COMPLETED"` (or `REBOOT`/`QUICKBOOT_POWERON`) on any receiver/service tied to the new `FOREGROUND_SERVICE_SPECIAL_USE` alarm service. Grep the post-prebuild merged manifest (`android/app/build/intermediates/merged_manifest/*/AndroidManifest.xml`) for `BOOT_COMPLETED` after this task and confirm the only match is the pre-existing `expo.modules.notifications.service.NotificationsService` entry (unrelated, pre-existing, tracked separately in §7) — no new receiver from notifee/this feature should appear there.
-- Acceptance: manifest (post-prebuild) contains all three permissions; app doesn't crash on Android 14+ devices with full-screen-intent denied; no new BOOT_COMPLETED-triggered path into the alarm foreground service.
+- [x] Permissions in `app.json` + `AndroidManifest.xml`; `plugins/withAlarmPermissions.js` for prebuild-safe specialUse FGS override + property justification. Notifee boot receivers removed via `tools:node="remove"`.
+- [x] `MainActivity` `launchMode="singleTask"` verified.
+- [x] `canUseFullScreenIntent()` with heads-up fallback already in `displayAlarmNotification` (TASK 6).
+- [x] No new BOOT_COMPLETED path into alarm FGS; notifee boot receivers stripped. Full merged-manifest grep after TASK 9 prebuild/build.
+- Acceptance: permissions present; FSI fallback; boot safety for notifee FGS — met in source; merged check in TASK 9.
 - Commit: `feat: ALARM TASK 8 — add full-screen-intent + foreground-service manifest permissions`
 
 ### TASK 9 — Version bump + prebuild + commit native diff
