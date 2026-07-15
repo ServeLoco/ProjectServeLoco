@@ -135,10 +135,10 @@ Customer and admin roles are explicitly **not** part of this problem — their c
 ### — Phase 3: app-side notifee channels + display —
 
 ### TASK 5 — New notifee alarm channels
-- [ ] In `apps/customer-app/src/hooks/useLocalNotifications.js`, add a notifee-based channel setup (separate from the existing `createAndroidChannel()` which stays untouched for `expo-notifications`): create `serveloco-orders-alarm-v1` and `serveloco-rider-offers-alarm-v1` via notifee's `createChannel` API, importance MAX, `sound: 'order_alarm'` / `'rider_alarm'` (referencing the `res/raw/` filenames from TASK 4 without extension, per notifee's Android sound convention), `bypassDnd: true`, appropriate vibration pattern (reuse `RIDER_VIBRATION_PATTERN` for the rider channel; define a matching shop-owner pattern or reuse `SHOP_VIBRATION_PATTERN` from `useNewOrderAlert.js`).
-- [ ] Call this setup once at the same point the existing `createAndroidChannel()` is called (app init), guarded so it only runs on Android.
-- [ ] `npx eslint .` — clean.
-- Acceptance: channels created without touching `ORDER_NOTIFICATION_CHANNEL_ID`/`RIDER_OFFER_CHANNEL_ID` definitions or their creation call.
+- [x] Added `createNotifeeAlarmChannels()` for `serveloco-orders-alarm-v1` / `serveloco-rider-offers-alarm-v1` with notifee HIGH (top enum level), custom sounds, `bypassDnd: true`, shop/rider vibration patterns. Existing expo channels untouched.
+- [x] Called alongside `createAndroidChannel()` at app init + push registration (Android-only guard).
+- [x] `npx eslint` on touched files clean; jest mocks for notifee/messaging; 31 suites / 220 tests pass.
+- Acceptance: channels created without touching ORDER/RIDER expo channel IDs — met.
 - Commit: `feat: ALARM TASK 5 — create notifee alarm channels for shop/rider`
 
 ### TASK 6 — Background message handler + full-screen alarm display

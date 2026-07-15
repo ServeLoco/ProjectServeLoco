@@ -133,3 +133,54 @@ jest.mock('@react-native-firebase/app', () => ({
   __esModule: true,
   default: {},
 }));
+
+// Mock @notifee/react-native — native module not available in Node/Jest.
+jest.mock('@notifee/react-native', () => {
+  const notifee = {
+    createChannel: jest.fn(async () => 'mock-channel'),
+    displayNotification: jest.fn(async () => 'mock-notif-id'),
+    cancelNotification: jest.fn(async () => {}),
+    cancelDisplayedNotification: jest.fn(async () => {}),
+    stopForegroundService: jest.fn(async () => {}),
+    canUseFullScreenIntent: jest.fn(async () => true),
+    openFullScreenIntentSettings: jest.fn(async () => {}),
+    onForegroundEvent: jest.fn(() => jest.fn()),
+    onBackgroundEvent: jest.fn(),
+    getInitialNotification: jest.fn(async () => null),
+  };
+  return {
+    __esModule: true,
+    default: notifee,
+    AndroidImportance: { HIGH: 4, DEFAULT: 3, LOW: 2, MIN: 1, NONE: 0 },
+    AndroidVisibility: { PUBLIC: 1, PRIVATE: 0, SECRET: -1 },
+    AndroidCategory: { CALL: 'call', ALARM: 'alarm' },
+    EventType: {
+      DISMISS: 0,
+      PRESS: 1,
+      ACTION_PRESS: 2,
+      DELIVERED: 3,
+      APP_BLOCKED: 4,
+      CHANNEL_BLOCKED: 5,
+      CHANNEL_GROUP_BLOCKED: 6,
+      TRIGGER_NOTIFICATION_CREATED: 7,
+      FG_ALREADY_EXIST: 8,
+    },
+  };
+});
+
+// Mock @react-native-firebase/messaging — native module not available in Node/Jest.
+jest.mock('@react-native-firebase/messaging', () => {
+  const messagingInstance = {
+    setBackgroundMessageHandler: jest.fn(),
+    onMessage: jest.fn(() => jest.fn()),
+    getToken: jest.fn(async () => 'mock-fcm-token'),
+    requestPermission: jest.fn(async () => 1),
+  };
+  return {
+    __esModule: true,
+    default: jest.fn(() => messagingInstance),
+    getMessaging: jest.fn(() => messagingInstance),
+    setBackgroundMessageHandler: jest.fn(),
+    onMessage: jest.fn(() => jest.fn()),
+  };
+});

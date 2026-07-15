@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
+import notifee, { AndroidImportance, AndroidVisibility } from '@notifee/react-native';
 import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -178,8 +179,15 @@ export const ORDER_NOTIFICATION_CHANNEL_ID = 'serveloco-orders-v2';
 // Rider delivery offers — longer vibration so the phone is hard to miss.
 export const RIDER_OFFER_CHANNEL_ID = 'serveloco-rider-offers';
 
+// Notifee full-screen alarm channels (killed-app path). New IDs only — never
+// reuse the expo-notifications channels above (Android freezes channel settings).
+export const ORDER_ALARM_CHANNEL_ID = 'serveloco-orders-alarm-v1';
+export const RIDER_OFFER_ALARM_CHANNEL_ID = 'serveloco-rider-offers-alarm-v1';
+
 // Strong pattern: pause, buzz, pause, buzz… (ms)
 export const RIDER_VIBRATION_PATTERN = [0, 600, 200, 600, 200, 600];
+// Shop-owner alarm vibration (matches useNewOrderAlert foreground pattern).
+export const SHOP_VIBRATION_PATTERN = [0, 500, 200, 500, 200, 500];
 
 async function createAndroidChannel() {
   if (Platform.OS !== 'android') return;
@@ -226,6 +234,42 @@ async function createAndroidChannel() {
     enableLights: true,
     showBadge: true,
     audioAttributes: sharedAudio,
+  });
+}
+
+/**
+ * Notifee alarm channels for shop-owner / rider killed-app full-screen alerts.
+ * Separate from createAndroidChannel() — expo-notifications channels stay untouched.
+ * Sound names match res/raw basenames (no extension) from withAlarmSounds plugin.
+ * Importance HIGH is notifee's top level (heads-up / full-screen capable).
+ */
+export async function createNotifeeAlarmChannels() {
+  if (Platform.OS !== 'android') return;
+
+  await notifee.createChannel({
+    id: ORDER_ALARM_CHANNEL_ID,
+    name: 'Shop Order Alarms',
+    importance: AndroidImportance.HIGH,
+    sound: 'order_alarm',
+    vibration: true,
+    vibrationPattern: SHOP_VIBRATION_PATTERN,
+    lights: true,
+    lightColor: BRAND_COLOR,
+    bypassDnd: true,
+    visibility: AndroidVisibility.PUBLIC,
+  });
+
+  await notifee.createChannel({
+    id: RIDER_OFFER_ALARM_CHANNEL_ID,
+    name: 'Rider Offer Alarms',
+    importance: AndroidImportance.HIGH,
+    sound: 'rider_alarm',
+    vibration: true,
+    vibrationPattern: RIDER_VIBRATION_PATTERN,
+    lights: true,
+    lightColor: BRAND_COLOR,
+    bypassDnd: true,
+    visibility: AndroidVisibility.PUBLIC,
   });
 }
 
@@ -286,6 +330,7 @@ async function registerExpoPushTokenWithServer({ force = false } = {}) {
 
   // Channel must exist before the first closed-app push arrives on Android.
   await createAndroidChannel();
+  await createNotifeeAlarmChannels();
   await registerNotificationCategories();
 
   // getExpoPushTokenAsync can hang forever when the FCM handshake fails
@@ -484,6 +529,7 @@ export function useLocalNotifications(navigationRef) {
       const granted = await checkNotificationPermission();
       if (!cancelled) permissionGranted.current = granted;
       await createAndroidChannel();
+      await createNotifeeAlarmChannels();
       await registerNotificationCategories();
     })();
 
