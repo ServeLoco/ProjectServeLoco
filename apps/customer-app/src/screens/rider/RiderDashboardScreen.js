@@ -353,7 +353,19 @@ export default function RiderDashboardScreen({ navigation }) {
     }
   }, []);
 
+  const silenceRiderAlarm = useCallback(() => {
+    // Media alarm loop must stop on accept/reject (not only on notifee action).
+    try {
+      // Lazy requires avoid circular imports at module load.
+      // eslint-disable-next-line global-require
+      require('../../utils/alarmSound').stopAlarmSound();
+      // eslint-disable-next-line global-require
+      require('../../utils/orderAlarmNotifications').cancelRiderOfferAlarm().catch(() => {});
+    } catch { /* ignore */ }
+  }, []);
+
   const handleAcceptOffer = useCallback(async (offer) => {
+    silenceRiderAlarm();
     const id = offer.id || offer.offerId;
     const res = await riderApi.acceptOffer(id);
     // Drop accepted offer from queue, then load any next pending offer.
@@ -371,9 +383,10 @@ export default function RiderDashboardScreen({ navigation }) {
         order: res?.order || undefined,
       });
     }
-  }, [fetchAll, navigation, refreshOfferQueue]);
+  }, [fetchAll, navigation, refreshOfferQueue, silenceRiderAlarm]);
 
   const handleRejectOffer = useCallback(async (offer) => {
+    silenceRiderAlarm();
     const id = offer.id || offer.offerId;
     await riderApi.rejectOffer(id);
     setOfferQueue((prev) => prev.filter((o) => {
@@ -383,7 +396,7 @@ export default function RiderDashboardScreen({ navigation }) {
     await fetchAll();
     // Next offer in queue (if any) becomes the new popup front.
     await refreshOfferQueue();
-  }, [fetchAll, refreshOfferQueue]);
+  }, [fetchAll, refreshOfferQueue, silenceRiderAlarm]);
 
   const runAction = useCallback(async (key, fn) => {
     setActionBusy(key);

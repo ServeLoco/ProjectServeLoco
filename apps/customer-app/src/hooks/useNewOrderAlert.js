@@ -7,6 +7,7 @@ import {
   SHOP_VIBRATION_PATTERN,
 } from './useLocalNotifications';
 import { cancelOrderAlarm } from '../utils/orderAlarmNotifications';
+import { stopAlarmSound } from '../utils/alarmSound';
 
 const REPEAT_MS = 8000;
 const NOTIFICATION_ID = 'serveloco-new-order-alert';
@@ -37,6 +38,17 @@ export function useNewOrderAlert(active, options = {}) {
     return undefined;
   }, [isShop]);
 
+  // Shop only: when the pending queue empties (accept/reject last order),
+  // stop the looping media alarm immediately.
+  useEffect(() => {
+    if (!isShop) return undefined;
+    if (!active) {
+      stopAlarmSound();
+      cancelOrderAlarm().catch(() => {});
+    }
+    return undefined;
+  }, [active, isShop]);
+
   useEffect(() => {
     const stop = () => {
       if (intervalRef.current) {
@@ -47,6 +59,7 @@ export function useNewOrderAlert(active, options = {}) {
         Vibration.cancel();
       } catch { /* ignore */ }
       Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
+      if (isShop) stopAlarmSound();
     };
 
     const fire = () => {

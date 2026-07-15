@@ -9,6 +9,8 @@ import { colors, spacing, typography, radius, shadows } from '../../theme';
 import { useAuthStore } from '../../stores';
 import { shopApi, subscribeRealtime } from '../../api';
 import { useNewOrderAlert } from '../../hooks/useNewOrderAlert';
+import { stopAlarmSound } from '../../utils/alarmSound';
+import { cancelOrderAlarm } from '../../utils/orderAlarmNotifications';
 import AppIcon from '../../components/AppIcon';
 import ShopToggle from '../../components/shop/ShopToggle';
 import NewOrderPopup from './NewOrderPopup';
@@ -173,17 +175,25 @@ export default function ShopDashboardScreen() {
     setPendingQueue(prev => prev.filter(o => o.id !== orderId));
   }, []);
 
+  const silenceShopAlarm = useCallback(() => {
+    // Media loop keeps playing until stopAlarmSound — must run on accept/reject.
+    stopAlarmSound();
+    cancelOrderAlarm().catch(() => {});
+  }, []);
+
   const handleAccept = useCallback(async (orderId) => {
+    silenceShopAlarm();
     const order = pendingQueue.find(o => o.id === orderId);
     await shopApi.confirmOrder(orderId);
     dequeue(orderId);
     if (order) setActiveOrders(prev => [...prev, { ...order, confirmed: true }]);
-  }, [pendingQueue, dequeue]);
+  }, [pendingQueue, dequeue, silenceShopAlarm]);
 
   const handleReject = useCallback(async (orderId) => {
+    silenceShopAlarm();
     await shopApi.rejectOrder(orderId);
     dequeue(orderId);
-  }, [dequeue]);
+  }, [dequeue, silenceShopAlarm]);
 
   // ── Active-order actions: Cancel / Ready ─────────────────────────────
   const [actionBusy, setActionBusy] = useState({}); // { [orderId]: 'cancel' | 'ready' }

@@ -7,6 +7,7 @@ import {
   RIDER_VIBRATION_PATTERN,
 } from './useLocalNotifications';
 import { cancelRiderOfferAlarm } from '../utils/orderAlarmNotifications';
+import { stopAlarmSound } from '../utils/alarmSound';
 
 // Local chime + vibration while the Accept popup is open (app in foreground).
 // Server also re-sends Expo push every ~15s until accept/reject/expire so
@@ -29,6 +30,15 @@ export function useRiderOfferAlert(activeOffer) {
     cancelRiderOfferAlarm().catch(() => {});
     Notifications.dismissAllNotificationsAsync().catch(() => {});
   }, []);
+
+  // Stop media loop when offer queue clears (accept/reject last offer).
+  useEffect(() => {
+    if (!active) {
+      stopAlarmSound();
+      cancelRiderOfferAlarm().catch(() => {});
+    }
+  }, [active]);
+
   const orderNumber =
     (activeOffer && (activeOffer.orderNumber || activeOffer.order_number)) || null;
   // Identity for the effect: which offer is at the head of the queue, not the
@@ -53,6 +63,7 @@ export function useRiderOfferAlert(activeOffer) {
         Vibration.cancel();
       } catch { /* ignore */ }
       Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
+      stopAlarmSound();
     };
 
     const fire = () => {
