@@ -26,9 +26,12 @@ function useProductAvailabilitySync() {
       invalidate('categories:');
 
       if (available === false || available === 0 || available === '0') {
+        // Product-only event (products/combos are separate tables with
+        // separate id sequences) — a { type: 'combo' } entry here would match
+        // an unrelated, still-available combo that happens to share this
+        // numeric id and silently delete it from the persisted cart.
         const removed = useCartStore.getState().removeUnavailableItems([
           { productId, type: 'product' },
-          { productId, type: 'combo' },
         ]);
         if (removed.length > 0) {
           const names = removed.map((item) => item.product?.name).filter(Boolean);
