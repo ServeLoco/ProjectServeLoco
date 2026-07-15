@@ -22,7 +22,7 @@ const isProd = config.NODE_ENV === 'production';
  * device ever gets the banner. Brand tint stays on the Android channel
  * created client-side instead.
  */
-const buildMessage = (token, { title, body, data = {}, categoryId, channelId, dataOnly = false } = {}) => {
+const buildMessage = (token, { title, body, data = {}, categoryId, channelId, dataOnly = false, sound } = {}) => {
   const dataPayload = {
     // Stringify-friendly payload; clients read these on tap from killed state.
     ...Object.fromEntries(
@@ -35,7 +35,7 @@ const buildMessage = (token, { title, body, data = {}, categoryId, channelId, da
     to: token,
     data: dataPayload,
     // Default matches client ORDER_NOTIFICATION_CHANNEL_ID (sound + vibrate).
-    // Rider offers pass channelId: 'serveloco-rider-offers' (stronger vibrate).
+    // Rider offers / alarms pass a dedicated channelId.
     channelId: channelId || 'serveloco-orders-v2',
     // high = wake device / heads-up when app is not in foreground.
     priority: 'high',
@@ -51,9 +51,13 @@ const buildMessage = (token, { title, body, data = {}, categoryId, channelId, da
     return base;
   }
 
+  // sound: omit or pass custom res/raw basename (e.g. 'order_alarm') for alarm
+  // channels. 'default' can override channel custom audio on some OEMs.
+  const soundValue = sound === undefined ? 'default' : sound;
+
   return {
     ...base,
-    sound: 'default',
+    ...(soundValue != null ? { sound: soundValue } : {}),
     title: title || 'VillKro',
     body: body || '',
   };

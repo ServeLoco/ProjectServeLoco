@@ -42,7 +42,9 @@ const notifyShopsForOrder = async (order) => {
       // Expo pushes do not start RNFB headless JS on Android 14 (verified).
       title: 'New order to prepare',
       body: `Order ${order.order_number} has items for your shop. Open the app to confirm.`,
-      channelId: 'serveloco-orders-alarm-v1',
+      channelId: 'serveloco-orders-alarm-v2',
+      // Custom res/raw/order_alarm — do not send sound:'default' (OEM override risk).
+      sound: 'order_alarm',
       data: {
         type: 'shop_order',
         alertType: 'new_order_alarm',
