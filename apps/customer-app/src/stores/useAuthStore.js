@@ -168,6 +168,26 @@ export const useAuthStore = create(
         try {
           useCartStore.getState()?.clearCart?.();
         } catch (_) { /* ignore cart clear errors on logout */ }
+
+        // Critical: also sign out of Firebase Auth. Otherwise auth.currentUser
+        // stays as the previous phone (e.g. shop 9999…) and the next OTP login
+        // as a different number (rider) can re-issue that old session via the
+        // code-expired auto-verify fallback in AuthScreen.
+        try {
+          // eslint-disable-next-line global-require
+          const { signOut } = require('@react-native-firebase/auth');
+          // eslint-disable-next-line global-require
+          const { auth } = require('../config/firebase');
+          if (auth?.currentUser) {
+            signOut(auth).catch(() => {});
+          }
+        } catch (_) { /* never block logout if Firebase is unavailable */ }
+
+        // Force push-token re-register on next login (new account on same device).
+        try {
+          AsyncStorage.removeItem('serveloco:lastPushToken').catch(() => {});
+        } catch (_) { /* ignore */ }
+
         set({
           token: null,
           user: null,

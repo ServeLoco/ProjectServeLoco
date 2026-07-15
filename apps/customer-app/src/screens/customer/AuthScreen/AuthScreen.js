@@ -251,9 +251,19 @@ export default function AuthScreen() {
         // unrelated error combined with a signed-in user from a previous session
         // would mix two accounts.
         const currentUser = auth.currentUser;
+        const enteredPhone = phone.replace(/\D/g, '').slice(-10);
+        const firebasePhone = (currentUser?.phoneNumber || '').replace(/\D/g, '').slice(-10);
+        // Only reuse Firebase currentUser if it matches the number the user typed.
+        // Without this, after shop logout (if Firebase stayed signed in) a rider
+        // login OTP error could silently re-open the shop/customer account.
+        const samePhone =
+          Boolean(currentUser)
+          && enteredPhone.length === 10
+          && firebasePhone === enteredPhone;
+
         if (
-          currentUser &&
-          (confirmErr.code === 'auth/code-expired' || confirmErr.code === 'auth/session-expired')
+          samePhone
+          && (confirmErr.code === 'auth/code-expired' || confirmErr.code === 'auth/session-expired')
         ) {
           idToken = await getIdToken(currentUser, true);
         } else if (
@@ -265,6 +275,13 @@ export default function AuthScreen() {
           // auto-sign-in didn't take (Play Services lag, hash mismatch, etc.).
           // We owe them a fresh OTP — re-request silently, update state, and
           // prompt them to enter the new code.
+          // If a *different* account is still signed in to Firebase, sign out first.
+          if (currentUser && !samePhone) {
+            try {
+              const { signOut } = await import('@react-native-firebase/auth');
+              await signOut(auth);
+            } catch { /* continue to re-send OTP */ }
+          }
           const cleanPhoneRetry = phone.replace(/\D/g, '').slice(-10);
           const retryPhone = `${COUNTRY_CODE}${cleanPhoneRetry}`;
           const fresh = await signInWithPhoneNumber(auth, retryPhone);
