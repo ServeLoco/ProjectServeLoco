@@ -55,6 +55,20 @@ const calculateCart = async (req, res) => {
     prodRows.forEach(p => { productMap[p.id] = p; });
   }
 
+  // A product missing from productMap is ambiguous: OOS/deleted (soft-droppable)
+  // and shop-closed/group-inactive (must still hard-block checkout) both land
+  // here, since the query above filters on all four at once. Disambiguate with
+  // a second, narrower existence check on only the missing ids.
+  const missingProductIds = productIds.filter((id) => !productMap[id]);
+  const genuinelyUnavailableProductIds = new Set();
+  if (missingProductIds.length > 0) {
+    const [unavailRows] = await pool.query(
+      'SELECT id FROM products WHERE id IN (?) AND (deleted = 1 OR available = 0)',
+      [missingProductIds]
+    );
+    unavailRows.forEach((r) => { genuinelyUnavailableProductIds.add(r.id); });
+  }
+
   const comboMap = {};
   if (comboIds.length > 0) {
     const [comboRows] = await pool.query(
@@ -79,9 +93,10 @@ const calculateCart = async (req, res) => {
 
   let subtotal = 0;
   const processedItems = [];
-  // Soft-drop OOS / deleted / closed-shop lines so cart preview still works
-  // for remaining items. Client removes these from the local cart (see
-  // unavailableItems). Order placement still hard-validates separately.
+  // Soft-drop genuinely OOS/deleted lines so cart preview still works for
+  // remaining items. Client removes these from the local cart (see
+  // unavailableItems). Shop-closed / group-inactive items are NOT soft-dropped
+  // (see hard 400 below) — order placement still hard-validates separately.
   const unavailableItems = [];
 
   for (let index = 0; index < normalizedItems.length; index++) {
@@ -89,6 +104,15 @@ const calculateCart = async (req, res) => {
     const product = isCombo ? comboMap[productId] : productMap[productId];
 
     if (!product) {
+      if (!isCombo && !genuinelyUnavailableProductIds.has(productId)) {
+        // Product row exists (available, not deleted) but was excluded by the
+        // shop-open/group-active gate — do not silently drop it, the customer
+        // must know the whole shop/group is unavailable, not just this item.
+        return res.status(400).json({
+          code: 'SHOP_CLOSED',
+          message: `Item ${index + 1}: this shop is currently closed`,
+        });
+      }
       unavailableItems.push({
         productId,
         variantId: isCombo ? null : variantId,
@@ -232,11 +256,13 @@ const calculateCart = async (req, res) => {
 
   // Determine the cart's store type from the items' categories so we can
   // filter coupons by applies_to. We look up the category type for each
-  // product; combos carry their own store_type column.
+  // product; combos carry their own store_type column. Uses processedItems
+  // (post soft-drop) so a dropped unavailable line from another category
+  // can't wrongly bucket an otherwise single-category cart as 'mixed'.
   let cartStoreType = null;
   try {
-    const productIdsForStoreType = normalizedItems.filter(i => !i.isCombo).map(i => i.productId);
-    const comboIdsForStoreType = normalizedItems.filter(i => i.isCombo).map(i => i.productId);
+    const productIdsForStoreType = processedItems.filter(i => i.type !== 'combo').map(i => i.id);
+    const comboIdsForStoreType = processedItems.filter(i => i.type === 'combo').map(i => i.id);
     const storeTypes = new Set();
 
     if (productIdsForStoreType.length > 0) {
@@ -450,7 +476,8 @@ const calculateCart = async (req, res) => {
     grandTotal,
     total: grandTotal,
     items: processedItems,
-    // Lines dropped because product/combo/variant is OOS, deleted, or shop closed.
+    // Lines dropped because product/combo/variant is OOS or deleted (shop-closed
+    // and group-inactive items hard-fail the whole request instead — see above).
     // Empty array when every requested line is orderable.
     unavailableItems,
     unavailable_items: unavailableItems,
