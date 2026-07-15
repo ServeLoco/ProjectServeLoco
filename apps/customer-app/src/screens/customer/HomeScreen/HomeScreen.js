@@ -258,13 +258,13 @@ export default function HomeScreen() {
       const available = payload?.available;
 
       if (available === false || available === 0 || available === '0') {
+        // Product-only event — products/combos are separate tables with
+        // separate id sequences, so a combo_block card can share this
+        // numeric id by coincidence. Only strip product_block.
         setDashboardSections((prev) => {
           if (!Array.isArray(prev) || prev.length === 0) return prev;
           return prev.map((section) => {
-            if (
-              section?.sectionType !== 'product_block' &&
-              section?.sectionType !== 'combo_block'
-            ) {
+            if (section?.sectionType !== 'product_block') {
               return section;
             }
             const items = section.items || [];

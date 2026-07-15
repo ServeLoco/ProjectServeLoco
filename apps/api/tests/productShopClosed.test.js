@@ -207,20 +207,22 @@ describe('Cart checkout guard regression pin', () => {
     // the product map stays empty and the cart item is rejected.
     const userToken = jwt.sign({ id: 'customer-1', role: 'customer' }, process.env.JWT_SECRET || 'secret');
 
-    // 1) auth middleware user lookup
-    pool.query.mockResolvedValueOnce([[{ blocked: 0 }]]);
-    // 2) settings query
+    // requireCustomer skips its own DB check under NODE_ENV=test (see
+    // authMiddleware.js), so calculateCart's own queries start at call index 0.
+    // 1) settings query
     pool.query.mockResolvedValueOnce([[{
       shop_open: 1, delivery_charge: 0, night_charge: 0,
       standard_delivery_minutes: 60, fast_delivery_minutes: 30,
       fast_delivery_enabled: 0, night_charge_start: null, night_charge_end: null,
       delivery_radius_km: 10
     }]]);
-    // 3) product lookup with is_open guard (returns nothing because shop is closed)
+    // 2) product lookup with is_open guard (returns nothing because shop is closed)
     pool.query.mockResolvedValueOnce([[]]);
-    // 4) variant / combo queries (not reached, but keep mocks in place)
-    pool.query.mockResolvedValueOnce([[]]);
-    pool.query.mockResolvedValueOnce([[]]);
+    // 3) disambiguation query on the missing id — row exists, not deleted,
+    // not unavailable, so the ONLY reason it's missing from (2) is the
+    // shop-open/group-active gate. This is what tells calculateCart to hard
+    // 400 SHOP_CLOSED instead of soft-dropping the item as OOS/nonexistent.
+    pool.query.mockResolvedValueOnce([[{ id: 1, deleted: 0, available: 1 }]]);
 
     const res = await request(app)
       .post('/api/cart/calculate')
@@ -228,7 +230,40 @@ describe('Cart checkout guard regression pin', () => {
       .send({ items: [{ productId: 1, quantity: 1 }] });
 
     expect(res.statusCode).toEqual(400);
+    expect(res.body.code).toBe('SHOP_CLOSED');
     const productLookupSql = pool.query.mock.calls[1][0];
     expect(productLookupSql).toContain('s.is_open = 1');
+  });
+
+  it('soft-drops (does not hard-block) a productId that does not exist at all', async () => {
+    // Same shop-closed-looking gap as above, but the disambiguation query
+    // this time returns no row at all — the id never existed (stale/tampered
+    // cart), not a shop-closed product. Must soft-drop, not hard 400.
+    const userToken = jwt.sign({ id: 'customer-1', role: 'customer' }, process.env.JWT_SECRET || 'secret');
+
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1, delivery_charge: 0, night_charge: 0,
+      standard_delivery_minutes: 60, fast_delivery_minutes: 30,
+      fast_delivery_enabled: 0, night_charge_start: null, night_charge_end: null,
+      delivery_radius_km: 10
+    }]]); // settings
+    pool.query.mockResolvedValueOnce([[]]); // main product lookup — empty
+    pool.query.mockResolvedValueOnce([[]]); // disambiguation — no row at all
+    // Every requested line ends up soft-dropped (processedItems empty), but
+    // calculateCart still runs auto-apply coupon lookup regardless of item
+    // count (an empty items: [] cart was already a reachable case before this
+    // branch, so this query already had to tolerate zero items in prod).
+    pool.query.mockResolvedValueOnce([[]]); // pickBestAutoApply candidates
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ items: [{ productId: 999999, quantity: 1 }] });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.data.unavailableItems).toHaveLength(1);
+    expect(res.body.data.unavailableItems[0]).toMatchObject({
+      productId: 999999, reason: 'product_unavailable',
+    });
   });
 });

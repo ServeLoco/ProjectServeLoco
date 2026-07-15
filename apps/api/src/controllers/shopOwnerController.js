@@ -140,7 +140,11 @@ const toggleMyProduct = async (req, res) => {
     available: isAvailable,
     shopId: req.shop.id,
   });
-  res.status(200).json({ message: 'Product updated', productId, available: isAvailable });
+  res.status(200).json({
+    message: 'Product updated',
+    productId, product_id: productId,
+    available: isAvailable,
+  });
 };
 
 // GET /orders — orders with ≥1 of this shop's items and status Accepted/Preparing.

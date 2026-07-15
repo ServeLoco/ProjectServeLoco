@@ -55,18 +55,26 @@ const calculateCart = async (req, res) => {
     prodRows.forEach(p => { productMap[p.id] = p; });
   }
 
-  // A product missing from productMap is ambiguous: OOS/deleted (soft-droppable)
-  // and shop-closed/group-inactive (must still hard-block checkout) both land
-  // here, since the query above filters on all four at once. Disambiguate with
-  // a second, narrower existence check on only the missing ids.
+  // A product missing from productMap is ambiguous: OOS/deleted (soft-droppable),
+  // shop-closed/group-inactive (must still hard-block checkout), and a
+  // never-existed/hard-deleted id (stale or tampered client cart, also
+  // soft-droppable) all land here, since the query above filters on all four
+  // at once. Disambiguate with a second, narrower existence check on only the
+  // missing ids — fetch every matching row regardless of status so a
+  // genuinely-nonexistent id (no row at all) can be told apart from one that
+  // exists but is excluded only by the shop/group gate.
   const missingProductIds = productIds.filter((id) => !productMap[id]);
+  const existingProductIds = new Set();
   const genuinelyUnavailableProductIds = new Set();
   if (missingProductIds.length > 0) {
     const [unavailRows] = await pool.query(
-      'SELECT id FROM products WHERE id IN (?) AND (deleted = 1 OR available = 0)',
+      'SELECT id, deleted, available FROM products WHERE id IN (?)',
       [missingProductIds]
     );
-    unavailRows.forEach((r) => { genuinelyUnavailableProductIds.add(r.id); });
+    unavailRows.forEach((r) => {
+      existingProductIds.add(r.id);
+      if (r.deleted === 1 || r.available === 0) genuinelyUnavailableProductIds.add(r.id);
+    });
   }
 
   const comboMap = {};
@@ -104,7 +112,11 @@ const calculateCart = async (req, res) => {
     const product = isCombo ? comboMap[productId] : productMap[productId];
 
     if (!product) {
-      if (!isCombo && !genuinelyUnavailableProductIds.has(productId)) {
+      if (
+        !isCombo
+        && existingProductIds.has(productId)
+        && !genuinelyUnavailableProductIds.has(productId)
+      ) {
         // Product row exists (available, not deleted) but was excluded by the
         // shop-open/group-active gate — do not silently drop it, the customer
         // must know the whole shop/group is unavailable, not just this item.
@@ -113,9 +125,14 @@ const calculateCart = async (req, res) => {
           message: `Item ${index + 1}: this shop is currently closed`,
         });
       }
+      // Either genuinely OOS/deleted, or the id never existed at all (stale/
+      // tampered client cart) — both are soft-droppable, same as before this
+      // disambiguation existed.
       unavailableItems.push({
         productId,
+        product_id: productId,
         variantId: isCombo ? null : variantId,
+        variant_id: isCombo ? null : variantId,
         type: isCombo ? 'combo' : 'product',
         quantity,
         reason: isCombo ? 'combo_unavailable' : 'product_unavailable',
@@ -133,7 +150,9 @@ const calculateCart = async (req, res) => {
       if (!variant || variant.deleted || !variant.available || Number(variant.product_id) !== productId) {
         unavailableItems.push({
           productId,
+          product_id: productId,
           variantId,
+          variant_id: variantId,
           type: 'product',
           quantity,
           reason: 'variant_unavailable',
