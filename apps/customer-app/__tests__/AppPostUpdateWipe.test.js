@@ -164,3 +164,29 @@ it('does not reload when there was nothing to wipe (fresh install)', async () =>
   expect(Updates.reloadAsync).not.toHaveBeenCalled();
   expect(mockStore.get(MARKER_KEY)).toBe('1.7.0');
 });
+
+it('reloads exactly once when a native update and a pending OTA land on the same launch', async () => {
+  // Native version changed AND an OTA update is waiting — the wipe reload
+  // must win and the OTA fetch must be skipped on this pass (the reloaded
+  // JS re-runs the effect and picks the OTA up with a matching marker).
+  Updates.checkForUpdateAsync.mockResolvedValue({ isAvailable: true });
+  mockStore.set('serveloco-cart', '{"items":[{"stale":true}]}');
+  mockStore.set(MARKER_KEY, '1.6.0');
+
+  await renderApp();
+
+  expect(Updates.reloadAsync).toHaveBeenCalledTimes(1);
+  expect(Updates.fetchUpdateAsync).not.toHaveBeenCalled();
+  expect(mockStore.get(MARKER_KEY)).toBe('1.7.0');
+});
+
+it('fetches and applies a pending OTA when the native version is unchanged', async () => {
+  Updates.checkForUpdateAsync.mockResolvedValue({ isAvailable: true });
+  mockStore.set(MARKER_KEY, '1.7.0');
+
+  await renderApp();
+
+  expect(AsyncStorage.multiRemove).not.toHaveBeenCalled();
+  expect(Updates.fetchUpdateAsync).toHaveBeenCalledTimes(1);
+  expect(Updates.reloadAsync).toHaveBeenCalledTimes(1);
+});

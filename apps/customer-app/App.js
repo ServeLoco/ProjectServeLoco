@@ -57,59 +57,69 @@ function App() {
   useAuthRoleSync();
   const { isOnline } = useNetworkStatus();
 
-  // OTA: fetch + apply any pending JS bundle immediately instead of the
-  // default next-launch behavior, so a user who reopens the app right
-  // after we publish doesn't run stale JS against the current backend.
+  // Startup update sequence. ONE effect on purpose: the post-update wipe and
+  // the OTA check both end in Updates.reloadAsync(), and as separate effects
+  // they could race each other into two back-to-back reloads when a native
+  // update and a pending OTA land on the same launch. Running them
+  // sequentially guarantees at most one reload per JS pass.
   useEffect(() => {
     if (__DEV__) return;
     let cancelled = false;
-    Updates.checkForUpdateAsync()
-      .then((result) => {
-        if (cancelled || !result.isAvailable) return;
-        return Updates.fetchUpdateAsync().then(() => {
-          if (!cancelled) Updates.reloadAsync();
-        });
-      })
-      .catch(() => {
-        // No connectivity or update service unreachable — fall back to
-        // Expo's default next-launch check, don't block the current session.
-      });
-    return () => { cancelled = true; };
-  }, []);
 
-  // Post-update wipe: if the native binary version changed since the last
-  // launch, wipe ALL persisted data except the auth session and reload.
-  // ForceUpdateModal's own wipe only runs when the user taps "Update Now" —
-  // Play Store auto-updates and manual store updates bypass that button
-  // entirely, leaving stale carts/settings (e.g. cart lines pointing at
-  // products that no longer exist) to poison the new build. Keying on the
-  // native version (not the JS bundle) means OTA updates don't trigger it.
-  useEffect(() => {
-    if (__DEV__) return;
     (async () => {
+      // 1) Post-update wipe: if the native binary version changed since the
+      // last launch, wipe ALL persisted data except the auth session and
+      // reload. ForceUpdateModal's own wipe only runs when the user taps
+      // "Update Now" — Play Store auto-updates and manual store updates
+      // bypass that button entirely, leaving stale carts/settings (e.g. cart
+      // lines pointing at products that no longer exist) to poison the new
+      // build. Keying on the native version (not the JS bundle) means OTA
+      // updates don't trigger it.
       try {
         const nativeVersion = Application.nativeApplicationVersion;
-        if (!nativeVersion) return;
-        const lastVersion = await AsyncStorage.getItem(LAST_NATIVE_VERSION_KEY);
-        if (lastVersion === nativeVersion) return;
-        const keys = await AsyncStorage.getAllKeys();
-        const toRemove = keys.filter(
-          (k) => k !== AUTH_STORAGE_KEY && k !== LAST_NATIVE_VERSION_KEY
-        );
-        if (toRemove.length) {
-          await AsyncStorage.multiRemove(toRemove);
-        }
-        await AsyncStorage.setItem(LAST_NATIVE_VERSION_KEY, nativeVersion);
-        if (toRemove.length) {
-          // The zustand stores already hydrated the stale state into memory
-          // before this effect ran, and any state change would re-persist it.
-          // Reload the JS so every store rehydrates from the now-clean storage.
-          await Updates.reloadAsync();
+        if (nativeVersion) {
+          const lastVersion = await AsyncStorage.getItem(LAST_NATIVE_VERSION_KEY);
+          if (lastVersion !== nativeVersion) {
+            const keys = await AsyncStorage.getAllKeys();
+            const toRemove = keys.filter(
+              (k) => k !== AUTH_STORAGE_KEY && k !== LAST_NATIVE_VERSION_KEY
+            );
+            if (toRemove.length) {
+              await AsyncStorage.multiRemove(toRemove);
+            }
+            await AsyncStorage.setItem(LAST_NATIVE_VERSION_KEY, nativeVersion);
+            if (toRemove.length) {
+              // The zustand stores already hydrated the stale state into
+              // memory before this effect ran, and any state change would
+              // re-persist it. Reload the JS so every store rehydrates from
+              // the now-clean storage. The OTA check below is skipped on
+              // this pass — the reloaded JS runs this same effect again with
+              // a matching marker and falls through to it.
+              await Updates.reloadAsync();
+              return;
+            }
+          }
         }
       } catch (_) {
         // Best-effort — never block launch on the cleanup.
       }
+
+      // 2) OTA: fetch + apply any pending JS bundle immediately instead of
+      // the default next-launch behavior, so a user who reopens the app
+      // right after we publish doesn't run stale JS against the current
+      // backend.
+      try {
+        const result = await Updates.checkForUpdateAsync();
+        if (cancelled || !result.isAvailable) return;
+        await Updates.fetchUpdateAsync();
+        if (!cancelled) await Updates.reloadAsync();
+      } catch (_) {
+        // No connectivity or update service unreachable — fall back to
+        // Expo's default next-launch check, don't block the current session.
+      }
     })();
+
+    return () => { cancelled = true; };
   }, []);
 
   // Force-update gate: check server's minimum_version against installed version
