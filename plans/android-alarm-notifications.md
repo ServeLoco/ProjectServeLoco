@@ -150,10 +150,10 @@ Customer and admin roles are explicitly **not** part of this problem — their c
 - Commit: `feat: ALARM TASK 6 — background handler triggers full-screen alarm display`
 
 ### TASK 7 — Stop/dismiss wiring
-- [ ] Add `MAX_ORDER_ALARM_RING_MS` constant near `useNewOrderAlert.js` (or a shared constants file if one exists — check first) for the shop-owner alarm ring cap. Use `RIDER_OFFER_TIMEOUT_SEC * 1000` (imported/threaded from wherever the rider timeout is already exposed to the client, e.g. an existing offer object field — check if `riderAssignment.js`'s `RIDER_OFFER_TIMEOUT_SEC` is already surfaced to the client via an API response before adding a new constant; if not surfaced, use the offer's own `expiresAt` field from the push payload instead of a hardcoded duplicate value).
-- [ ] On mount of the shop-owner dashboard screen (wherever `useNewOrderAlert`'s `active` flag is currently set to true — check the calling screen) and the rider dashboard screen (`useRiderOfferAlert` caller), call `notifee.cancelNotification()` for the corresponding alarm notification id so opening the app manually silences a still-ringing killed-app alarm.
-- [ ] Wire Accept/Reject notifee action buttons (declared in TASK 6) to call the same accept/reject API functions the in-app UI already uses — check `ShopDashboard`/`RiderDashboard` accept/reject handlers and reuse them, do not duplicate the API call logic.
-- Acceptance: alarm dismisses on accept, reject, in-app open, or timeout — never rings indefinitely.
+- [x] `MAX_ORDER_ALARM_RING_MS` (5 min) in `orderAlarmNotifications.js`; re-exported from `useNewOrderAlert`. Rider timeout uses push `expiresAt` (server timeout not exposed as a client constant).
+- [x] Cancel notifee alarm on mount of `useNewOrderAlert` / `useRiderOfferAlert` (shop + rider dashboards).
+- [x] Accept/Reject via `shopApi.confirmOrder|rejectOrder` and `riderApi.acceptOffer|rejectOffer` in `handleAlarmActionEvent` (foreground + background notifee events). `timeoutAfter` on display auto-stops the ring.
+- Acceptance: dismiss on accept/reject/open/timeout — met in code.
 - Commit: `feat: ALARM TASK 7 — wire alarm dismiss on accept/reject/open/timeout`
 
 ### — Phase 4: native manifest + rollout —

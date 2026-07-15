@@ -6,6 +6,7 @@ import {
   RIDER_OFFER_CHANNEL_ID,
   RIDER_VIBRATION_PATTERN,
 } from './useLocalNotifications';
+import { cancelRiderOfferAlarm } from '../utils/orderAlarmNotifications';
 
 // Local chime + vibration while the Accept popup is open (app in foreground).
 // Server also re-sends Expo push every ~15s until accept/reject/expire so
@@ -15,11 +16,18 @@ const NOTIFICATION_ID = 'serveloco-rider-offer-alert';
 
 /**
  * Repeating in-app alert while a rider offer popup is open.
+ * Opening the rider dashboard (this hook mounts) silences any killed-app
+ * notifee alarm that may still be ringing.
  * @param {object|null|boolean} activeOffer — truthy while offer is waiting
  */
 export function useRiderOfferAlert(activeOffer) {
   const intervalRef = useRef(null);
   const active = Boolean(activeOffer);
+
+  // Silences a still-ringing killed-app notifee alarm when the rider dashboard opens.
+  useEffect(() => {
+    cancelRiderOfferAlarm().catch(() => {});
+  }, []);
   const orderNumber =
     (activeOffer && (activeOffer.orderNumber || activeOffer.order_number)) || null;
   // Identity for the effect: which offer is at the head of the queue, not the

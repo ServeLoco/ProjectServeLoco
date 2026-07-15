@@ -34,8 +34,6 @@ if (Platform.OS === 'android') {
 // Non-alarm FCM (if any) is also ignored — expo-notifications handles
 // customer/admin title+body pushes.
 if (Platform.OS === 'android') {
-  // Deferred so we don't attach until the JS runtime is ready; still
-  // registered before first paint via this top-level module eval.
   messaging().onMessage(async (remoteMessage) => {
     const data = remoteMessage?.data;
     if (isAlarmPayload(data)) {
@@ -43,6 +41,11 @@ if (Platform.OS === 'android') {
       return;
     }
     // Non-alarm: no-op (expo-notifications / socket path).
+  });
+
+  // Accept/Reject action presses while app is in foreground.
+  notifee.onForegroundEvent(async (event) => {
+    await handleAlarmActionEvent(event);
   });
 }
 

@@ -2,21 +2,33 @@ import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform, Vibration } from 'react-native';
 import { playNotificationChime } from '../utils/notificationChime';
-import { ORDER_NOTIFICATION_CHANNEL_ID } from './useLocalNotifications';
+import {
+  ORDER_NOTIFICATION_CHANNEL_ID,
+  SHOP_VIBRATION_PATTERN,
+} from './useLocalNotifications';
+import { cancelOrderAlarm } from '../utils/orderAlarmNotifications';
 
 const REPEAT_MS = 8000;
 const NOTIFICATION_ID = 'serveloco-new-order-alert';
-// Strong pattern so the shop owner feels the alert even when the phone is pocketed.
-const SHOP_VIBRATION_PATTERN = [0, 500, 200, 500, 200, 500];
+// Re-export ring cap for callers that need it (also defined in orderAlarmNotifications).
+export { MAX_ORDER_ALARM_RING_MS } from '../utils/orderAlarmNotifications';
 
 /**
  * Repeating in-app alert for the shop-owner (and admin) new-order popup.
  * Local notification + chime + vibration every REPEAT_MS while `active` is
  * true. Fires once immediately when active flips true, then loops.
  * Stops (and cancels vibration) when active flips false.
+ *
+ * Opening the dashboard (this hook mounts) also silences any killed-app
+ * notifee alarm that may still be ringing.
  */
 export function useNewOrderAlert(active) {
   const intervalRef = useRef(null);
+
+  // Silences a still-ringing killed-app notifee alarm when the shop dashboard opens.
+  useEffect(() => {
+    cancelOrderAlarm().catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fire = () => {
