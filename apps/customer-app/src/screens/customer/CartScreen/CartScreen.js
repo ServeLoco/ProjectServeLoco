@@ -1070,7 +1070,7 @@ export default function CartScreen() {
                 const metaBits = [
                   item.variant?.label,
                   item.product.unit,
-                  unitPrice > 0 ? `₹${unitPrice} each` : null,
+                  unitPrice > 0 ? `₹${unitPrice.toFixed(0)} each` : null,
                 ].filter(Boolean);
                 const isLast = index === validItems.length - 1;
 
@@ -1103,7 +1103,7 @@ export default function CartScreen() {
                           </Text>
                         ) : null}
                         {lineTotal > 0 ? (
-                          <Text style={styles.itemLineTotal}>₹{lineTotal}</Text>
+                          <Text style={styles.itemLineTotal}>₹{lineTotal.toFixed(0)}</Text>
                         ) : null}
                         {!item.product.available ? (
                           <Text style={styles.itemUnavailable}>Currently unavailable</Text>
