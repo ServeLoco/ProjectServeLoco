@@ -1,6 +1,7 @@
 // VillKro customer app — v1.6.0 production rebuild
 import React, { useEffect, useState } from 'react';
 import { AppState, StatusBar, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image as ExpoImage } from 'expo-image';
 import * as Updates from 'expo-updates';
 import * as Application from 'expo-application';
@@ -41,6 +42,13 @@ function isUpdateRequired(current, required) {
   return pa1 < pa2;
 }
 
+// AsyncStorage key remembering which native binary version last ran. When it
+// differs from the currently installed binary the app was updated outside the
+// ForceUpdateModal flow (Play Store auto-update / manual store update), so the
+// post-update wipe below must run.
+const LAST_NATIVE_VERSION_KEY = 'serveloco-last-native-version';
+const AUTH_STORAGE_KEY = 'serveloco-customer-auth';
+
 function App() {
   useCustomerRealtime();
   useLocalNotifications(navigationRef);
@@ -67,6 +75,41 @@ function App() {
         // Expo's default next-launch check, don't block the current session.
       });
     return () => { cancelled = true; };
+  }, []);
+
+  // Post-update wipe: if the native binary version changed since the last
+  // launch, wipe ALL persisted data except the auth session and reload.
+  // ForceUpdateModal's own wipe only runs when the user taps "Update Now" —
+  // Play Store auto-updates and manual store updates bypass that button
+  // entirely, leaving stale carts/settings (e.g. cart lines pointing at
+  // products that no longer exist) to poison the new build. Keying on the
+  // native version (not the JS bundle) means OTA updates don't trigger it.
+  useEffect(() => {
+    if (__DEV__) return;
+    (async () => {
+      try {
+        const nativeVersion = Application.nativeApplicationVersion;
+        if (!nativeVersion) return;
+        const lastVersion = await AsyncStorage.getItem(LAST_NATIVE_VERSION_KEY);
+        if (lastVersion === nativeVersion) return;
+        const keys = await AsyncStorage.getAllKeys();
+        const toRemove = keys.filter(
+          (k) => k !== AUTH_STORAGE_KEY && k !== LAST_NATIVE_VERSION_KEY
+        );
+        if (toRemove.length) {
+          await AsyncStorage.multiRemove(toRemove);
+        }
+        await AsyncStorage.setItem(LAST_NATIVE_VERSION_KEY, nativeVersion);
+        if (toRemove.length) {
+          // The zustand stores already hydrated the stale state into memory
+          // before this effect ran, and any state change would re-persist it.
+          // Reload the JS so every store rehydrates from the now-clean storage.
+          await Updates.reloadAsync();
+        }
+      } catch (_) {
+        // Best-effort — never block launch on the cleanup.
+      }
+    })();
   }, []);
 
   // Force-update gate: check server's minimum_version against installed version
