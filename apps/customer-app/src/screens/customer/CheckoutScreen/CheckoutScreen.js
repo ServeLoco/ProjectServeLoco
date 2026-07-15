@@ -985,9 +985,36 @@ export default function CheckoutScreen() {
       const pinLat = pin?.lat != null ? Number(pin.lat) : null;
       const pinLng = pin?.lng != null ? Number(pin.lng) : null;
       const hasPin = Number.isFinite(pinLat) && Number.isFinite(pinLng);
+
+      // checkoutItems is a memo off store state from this component's last
+      // render — a removeUnavailableItems() call earlier in this same submit
+      // doesn't flow into it until the next render. Filter currentBill's
+      // just-verified unavailableItems out here directly so an item that
+      // went unavailable seconds ago can't still ride along in this request.
+      const unavailableVariantKeys = new Set();
+      const unavailableProductKeys = new Set();
+      (currentBill?.unavailableItems || []).forEach((entry) => {
+        const productId = entry?.productId;
+        if (productId == null || productId === '') return;
+        const type = entry.type || 'product';
+        if (entry.variantId == null || entry.variantId === '') {
+          unavailableProductKeys.add(`${type}:${String(productId)}`);
+        } else {
+          unavailableVariantKeys.add(`${type}:${String(productId)}:${String(entry.variantId)}`);
+        }
+      });
+      const orderItems = (unavailableProductKeys.size === 0 && unavailableVariantKeys.size === 0)
+        ? checkoutItems
+        : checkoutItems.filter((item) => {
+          const productKey = `${item.type}:${String(item.productId)}`;
+          if (unavailableProductKeys.has(productKey)) return false;
+          if (item.variantId != null && unavailableVariantKeys.has(`${productKey}:${String(item.variantId)}`)) return false;
+          return true;
+        });
+
       const orderResponse = await ordersApi.createOrder(
         {
-          items: checkoutItems,
+          items: orderItems,
           deliveryAddress: address.trim(),
           address: address.trim(),
           // Explicit numbers + aliases so the API never drops the delivery pin.
@@ -1131,6 +1158,9 @@ export default function CheckoutScreen() {
       const verifiedBill = normalizeCartCalculation(await cartApi.calculate(calculationPayload));
       setBill(verifiedBill);
       syncItemPricesFromServer(verifiedBill.items);
+      if (verifiedBill.unavailableItems?.length) {
+        removeUnavailableItems(verifiedBill.unavailableItems);
+      }
 
       const oldGrandTotal = bill?.grandTotal;
       if (oldGrandTotal !== undefined && verifiedBill.grandTotal !== oldGrandTotal) {
