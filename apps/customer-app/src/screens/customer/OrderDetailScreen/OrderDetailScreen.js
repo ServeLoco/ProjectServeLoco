@@ -393,6 +393,23 @@ export default function OrderDetailScreen() {
     return digits || null;
   })();
 
+  // Pretty display for the Contact Rider box (still dials the raw tel: value).
+  const riderPhoneDisplay = (() => {
+    if (!riderPhone) return null;
+    const digits = String(riderPhone).replace(/[^0-9]/g, '');
+    if (digits.length === 10) return `${digits.slice(0, 5)} ${digits.slice(5)}`;
+    if (digits.length === 12 && digits.startsWith('91')) {
+      return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+    }
+    return riderPhone;
+  })();
+
+  // After delivery, fall back to Help & Support (same as pre-assignment).
+  // While rider is assigned and order is still active → Contact Rider + number.
+  const isDelivered = order?.status === 'Delivered';
+  const showContactRider = Boolean(riderPhone) && !isDelivered;
+  const showHelpSupport = Boolean(supportPhone) && !showContactRider;
+
   const handleContactRider = () => {
     if (!riderPhone) return;
     Linking.openURL(`tel:${riderPhone}`);
@@ -819,8 +836,8 @@ export default function OrderDetailScreen() {
 
           </ScrollView>
 
-          {/* Sticky sheet footer — cancel / contact */}
-          {(order.canCancel || riderPhone || supportPhone) ? (
+          {/* Sticky sheet footer — cancel / contact rider (with number) / help */}
+          {(order.canCancel || showContactRider || showHelpSupport) ? (
             <View
               style={[
                 styles.sheetFooter,
@@ -842,25 +859,36 @@ export default function OrderDetailScreen() {
                     </PressableScale>
                   </View>
                 ) : null}
-                {riderPhone ? (
+                {showContactRider ? (
                   <View style={styles.btnWrapper}>
                     <PressableScale
                       onPress={handleContactRider}
                       style={[styles.bottomBtn, styles.outlineBtn]}
                       scaleTo={0.96}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Contact rider ${riderPhoneDisplay || riderPhone}`}
                     >
-                      <View style={styles.btnContent}>
-                        <AppIcon name="phone" size={16} color={colors.success} />
-                        <Text style={styles.outlineBtnText}>Contact Rider</Text>
+                      <View style={styles.btnContentStacked}>
+                        <View style={styles.btnContentRow}>
+                          <AppIcon name="phone" size={16} color={colors.success} />
+                          <Text style={styles.outlineBtnText}>Contact Rider</Text>
+                        </View>
+                        {riderPhoneDisplay ? (
+                          <Text style={styles.outlineBtnPhone} numberOfLines={1}>
+                            {riderPhoneDisplay}
+                          </Text>
+                        ) : null}
                       </View>
                     </PressableScale>
                   </View>
-                ) : supportPhone ? (
+                ) : showHelpSupport ? (
                   <View style={styles.btnWrapper}>
                     <PressableScale
                       onPress={handleHelpSupport}
                       style={[styles.bottomBtn, styles.outlineBtn]}
                       scaleTo={0.96}
+                      accessibilityRole="button"
+                      accessibilityLabel="Help and Support"
                     >
                       <View style={styles.btnContent}>
                         <AppIcon name="whatsapp" size={16} color={colors.success} />
@@ -1845,6 +1873,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.xs,
   },
+  btnContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  btnContentStacked: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    gap: 2,
+  },
   cancelBtn: {
     borderColor: '#FCA5A5',
     backgroundColor: '#FFF0F0',
@@ -1864,6 +1905,14 @@ const styles = StyleSheet.create({
     color: colors.success,
     fontWeight: '700',
     fontSize: 13,
+  },
+  outlineBtnPhone: {
+    ...typography.caption,
+    color: colors.success,
+    fontWeight: '600',
+    fontSize: 12,
+    letterSpacing: 0.3,
+    opacity: 0.9,
   },
   modalOverlay: {
     flex: 1,
