@@ -416,15 +416,16 @@ async function registerExpoPushTokenWithServer({ force = false } = {}) {
   if (!token) return false;
 
   // Native FCM token for high-priority data-only shop/rider alarms (killed app).
+  // Modular API (getMessaging/getToken) — same token as messaging().getToken().
   let fcmToken = null;
   if (Platform.OS === 'android') {
     try {
       // eslint-disable-next-line global-require
-      const messaging = require('@react-native-firebase/messaging').default;
+      const { getMessaging, getToken } = require('@react-native-firebase/messaging');
       fcmToken = await Promise.race([
-        messaging().getToken(),
+        getToken(getMessaging()),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('messaging().getToken timed out')), 15000)
+          setTimeout(() => reject(new Error('FCM getToken timed out')), 15000)
         ),
       ]);
     } catch (err) {

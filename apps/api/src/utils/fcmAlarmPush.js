@@ -40,6 +40,15 @@ const sendFcmDataOnlyToUser = async (pool, userId, data = {}) => {
       stringData[k] = String(v);
     }
 
+    // Collapse same offer/order into one pending FCM delivery so the device
+    // does not queue three data-only wakes for one logical alarm.
+    const collapseKey =
+      stringData.offerId
+        ? `rider_offer_${stringData.offerId}`
+        : stringData.orderId
+          ? `order_alarm_${stringData.orderId}`
+          : stringData.alertType || 'alarm';
+
     await getMessaging(app).send({
       token,
       data: stringData,
@@ -47,6 +56,9 @@ const sendFcmDataOnlyToUser = async (pool, userId, data = {}) => {
       android: {
         priority: 'high',
         ttl: 3600 * 1000,
+        collapseKey,
+        // Replace any undelivered message with the same collapse key.
+        // (Does not cancel an already-displayed notifee; client dedupes that.)
       },
     });
 

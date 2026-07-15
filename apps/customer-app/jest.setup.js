@@ -170,6 +170,7 @@ jest.mock('@notifee/react-native', () => {
 });
 
 // Mock @react-native-firebase/messaging — native module not available in Node/Jest.
+// Supports modular API (getMessaging/getToken/onMessage/…) used in production code.
 jest.mock('@react-native-firebase/messaging', () => {
   const messagingInstance = {
     setBackgroundMessageHandler: jest.fn(),
@@ -181,6 +182,7 @@ jest.mock('@react-native-firebase/messaging', () => {
     __esModule: true,
     default: jest.fn(() => messagingInstance),
     getMessaging: jest.fn(() => messagingInstance),
+    getToken: jest.fn(async () => 'mock-fcm-token'),
     setBackgroundMessageHandler: jest.fn(),
     onMessage: jest.fn(() => jest.fn()),
   };
