@@ -9,13 +9,11 @@ const isProd = config.NODE_ENV === 'production';
 
 /**
  * Build a single Expo push message object.
- * Default: title + body + high priority + channelId so FCM/APNs show a
- * system banner when the app is backgrounded or fully killed (swiped away).
- *
- * When `dataOnly` is true: omit top-level title/body/sound so the OS does
- * not auto-render a tray notification. The client background handler reads
- * `data` (e.g. alertType) and displays a notifee full-screen alarm instead.
- * Only alarm call sites opt in; every other push keeps the default shape.
+ * Title + body + high priority + channelId so FCM/APNs show a system banner
+ * when the app is backgrounded or fully killed (swiped away). Shop/rider
+ * alarm alerts prefer native FCM data-only delivery instead (see
+ * fcmAlarmPush.js) and only fall back to this — with a custom sound/tag —
+ * when the device has no fcm_token registered yet.
  *
  * Do NOT set `color` — Expo Push API currently rejects every hex form we
  * tried ("Must be a valid hex color") and the whole send fails, so no
@@ -23,7 +21,7 @@ const isProd = config.NODE_ENV === 'production';
  * created client-side instead.
  */
 const buildMessage = (token, {
-  title, body, data = {}, categoryId, channelId, dataOnly = false, sound, tag, collapseId,
+  title, body, data = {}, categoryId, channelId, sound, tag, collapseId,
 } = {}) => {
   const dataPayload = {
     // Stringify-friendly payload; clients read these on tap from killed state.
@@ -32,10 +30,16 @@ const buildMessage = (token, {
     ),
   };
 
-  // Shared delivery fields for both shapes.
-  const base = {
+  // sound: omit or pass custom res/raw basename (e.g. 'order_alarm') for alarm
+  // channels. 'default' can override channel custom audio on some OEMs.
+  const soundValue = sound === undefined ? 'default' : sound;
+
+  return {
     to: token,
     data: dataPayload,
+    ...(soundValue != null ? { sound: soundValue } : {}),
+    title: title || 'VillKro',
+    body: body || '',
     // Default matches client ORDER_NOTIFICATION_CHANNEL_ID (sound + vibrate).
     // Rider offers / alarms pass a dedicated channelId.
     channelId: channelId || 'serveloco-orders-v2',
@@ -50,22 +54,6 @@ const buildMessage = (token, {
     ...(tag ? { tag: String(tag) } : {}),
     ...(collapseId ? { collapseId: String(collapseId) } : {}),
   };
-
-  if (dataOnly) {
-    // No title/body/sound — OS must not auto-display; JS notifee path renders.
-    return base;
-  }
-
-  // sound: omit or pass custom res/raw basename (e.g. 'order_alarm') for alarm
-  // channels. 'default' can override channel custom audio on some OEMs.
-  const soundValue = sound === undefined ? 'default' : sound;
-
-  return {
-    ...base,
-    ...(soundValue != null ? { sound: soundValue } : {}),
-    title: title || 'VillKro',
-    body: body || '',
-  };
 };
 
 /**
@@ -75,7 +63,7 @@ const buildMessage = (token, {
  *
  * @param {import('mysql2/promise').Pool} pool
  * @param {number} userId
- * @param {{ title?: string, body?: string, data?: object, categoryId?: string, channelId?: string, dataOnly?: boolean }} opts
+ * @param {{ title?: string, body?: string, data?: object, categoryId?: string, channelId?: string }} opts
  */
 const sendPushToUser = async (pool, userId, opts) => {
   try {
@@ -108,7 +96,7 @@ const sendPushToUser = async (pool, userId, opts) => {
  *
  * @param {import('mysql2/promise').Pool} pool
  * @param {number[]} userIds
- * @param {{ title?: string, body?: string, data?: object, categoryId?: string, channelId?: string, dataOnly?: boolean }} opts
+ * @param {{ title?: string, body?: string, data?: object, categoryId?: string, channelId?: string }} opts
  */
 const sendPushToMany = async (pool, userIds, opts) => {
   const stats = { recipients: userIds?.length || 0, tokensFound: 0, sent: 0, failed: 0 };

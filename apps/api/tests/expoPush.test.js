@@ -193,40 +193,17 @@ describe('expoPush.sendPushToUser', () => {
     ).resolves.toEqual({ sent: false, reason: 'expo down' });
   });
 
-  it('default (no dataOnly) still includes title, body, and sound', async () => {
+  it('includes title, body, and sound; accepts custom sound/tag/collapseId', async () => {
     pool.query.mockResolvedValueOnce([[{ push_token: VALID_TOKEN_A }]]);
     mockSendPushNotificationsAsync = jest.fn(async () => [{ status: 'ok', id: 't1' }]);
 
     await sendPushToUser(pool, 42, {
-      title: 'Hi',
-      body: 'There',
-      data: { type: 'info', orderId: 7 },
-    });
-
-    const [messages] = mockSendPushNotificationsAsync.mock.calls[0];
-    expect(messages).toHaveLength(1);
-    expect(messages[0]).toMatchObject({
-      to: VALID_TOKEN_A,
-      sound: 'default',
-      title: 'Hi',
-      body: 'There',
-      data: { type: 'info', orderId: '7' },
-      channelId: 'serveloco-orders-v2',
-      priority: 'high',
-      ttl: 3600,
-    });
-    expect(messages[0]).not.toHaveProperty('dataOnly');
-  });
-
-  it('dataOnly omits title, body, and sound but keeps data + delivery fields', async () => {
-    pool.query.mockResolvedValueOnce([[{ push_token: VALID_TOKEN_A }]]);
-    mockSendPushNotificationsAsync = jest.fn(async () => [{ status: 'ok', id: 't1' }]);
-
-    await sendPushToUser(pool, 42, {
-      title: 'ignored',
-      body: 'ignored',
-      dataOnly: true,
-      channelId: 'serveloco-rider-offers',
+      title: 'Delivery offer waiting',
+      body: 'Order 1042 — accept now before it expires',
+      channelId: 'serveloco-rider-offers-alarm-v4',
+      sound: 'rider_alarm',
+      tag: 'rider_offer_9',
+      collapseId: 'rider_offer_9',
       data: { alertType: 'rider_offer_alarm', offerId: 9 },
     });
 
@@ -234,14 +211,16 @@ describe('expoPush.sendPushToUser', () => {
     expect(messages).toHaveLength(1);
     expect(messages[0]).toEqual({
       to: VALID_TOKEN_A,
+      sound: 'rider_alarm',
+      title: 'Delivery offer waiting',
+      body: 'Order 1042 — accept now before it expires',
       data: { alertType: 'rider_offer_alarm', offerId: '9' },
-      channelId: 'serveloco-rider-offers',
+      channelId: 'serveloco-rider-offers-alarm-v4',
       priority: 'high',
       ttl: 3600,
+      tag: 'rider_offer_9',
+      collapseId: 'rider_offer_9',
     });
-    expect(messages[0]).not.toHaveProperty('title');
-    expect(messages[0]).not.toHaveProperty('body');
-    expect(messages[0]).not.toHaveProperty('sound');
   });
 });
 
