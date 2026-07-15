@@ -747,9 +747,17 @@ export function useLocalNotifications(navigationRef) {
       // Customers/admins never receive alertType new_order_alarm / rider_offer_alarm
       // (those are only set on the two alarm push call sites). Extra role gate:
       // only play if this device is currently a shop-owner or rider session.
+      //
+      // Foreground gate: while active, useNewOrderAlert/useRiderOfferAlert's own
+      // 8s loop already owns the alarm sound. Without this check, an Expo-fallback
+      // push (device has no fcm_token yet) delivered while foregrounded would
+      // trigger this listener too, layering a second sound on top of that loop.
+      // This listener exists for the backgrounded-but-JS-warm case, where that
+      // foreground loop is paused and nothing else would play audio.
       const alertType = data?.alertType;
       if (
         Platform.OS === 'android'
+        && AppState.currentState !== 'active'
         && (alertType === 'new_order_alarm' || alertType === 'rider_offer_alarm')
       ) {
         const { shop, rider } = useAuthStore.getState();
