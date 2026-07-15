@@ -126,10 +126,10 @@ Customer and admin roles are explicitly **not** part of this problem — their c
 ### — Phase 2: native sound assets —
 
 ### TASK 4 — Custom alarm sound files + prebuild-safe copy plugin
-- [ ] Obtain or produce two louder/distinct alarm-style sound files (ask the user for source files if not already provided, or generate/source royalty-free alarm tones — confirm licensing is clear for commercial app use). Name them `order_alarm.wav` (shop-owner) and `rider_alarm.wav` (rider). Place in `apps/customer-app/assets/sounds/`.
-- [ ] Write `apps/customer-app/plugins/withAlarmSounds.js` — an Expo config plugin (`withDangerousMod` or equivalent) that copies these two files from `assets/sounds/` into `android/app/src/main/res/raw/` during every `expo prebuild` run, so a future `--clean` prebuild doesn't silently drop them. Follow the existing plugin registration pattern already used for `@rnmapbox/maps` etc. in `app.json`'s `plugins` array (see `plans/mapbox-live-tracking.md` §1.3 for the pattern this repo follows for custom config plugins).
-- [ ] Register `./plugins/withAlarmSounds` in `app.json`'s `plugins` array.
-- Acceptance: after `expo prebuild --clean`, `android/app/src/main/res/raw/order_alarm.wav` and `rider_alarm.wav` exist without manual copying.
+- [x] Generated royalty-free dual-tone alarm WAVs (procedural sine bursts, no third-party samples) as `order_alarm.wav` + `rider_alarm.wav` under `assets/sounds/`.
+- [x] Wrote `plugins/withAlarmSounds.js` (`withDangerousMod` + `createRunOncePlugin`) copying both files into `android/app/src/main/res/raw/` on prebuild.
+- [x] Registered `./plugins/withAlarmSounds` in `app.json` plugins; Expo config resolves cleanly; dry-copy verified.
+- Acceptance: after `expo prebuild --clean`, raw files exist without manual copying — full prebuild in TASK 9.
 - Commit: `feat: ALARM TASK 4 — add custom alarm sound assets + prebuild copy plugin`
 
 ### — Phase 3: app-side notifee channels + display —

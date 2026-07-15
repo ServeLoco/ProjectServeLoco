@@ -26,6 +26,7 @@
       ],
       "expo-audio",
       "expo-asset",
+      "./plugins/withAlarmSounds",
       ["@rnmapbox/maps", {}],
       [
         "expo-location",
