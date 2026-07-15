@@ -45,13 +45,13 @@ function ExitAppModal({ visible, cartItemCount = 0, onStay, onExit }) {
           toValue: 1,
           duration: 180,
           easing: Easing.out(Easing.cubic),
-          useNativeValue: true,
+          useNativeDriver: true,
         }),
         Animated.spring(scale, {
           toValue: 1,
           friction: 8,
           tension: 80,
-          useNativeValue: true,
+          useNativeDriver: true,
         }),
       ]).start();
     } else {

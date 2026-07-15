@@ -491,7 +491,9 @@ export default function RiderLiveMap({
         // Padding on single-pin frame so the pin sits in the free map band (higher).
         cameraRef.current.setCamera({
           centerCoordinate: [p.longitude, p.latitude],
-          zoomLevel: 14,
+          // Slightly zoomed out from 14 so the delivery pin context is wider
+          // (no pitch/padding/focus changes — pin stays centered).
+          zoomLevel: immersive ? 13.5 : 14,
           pitch: immersive ? 0 : 55,
           padding: cameraPadding,
           animationMode: 'flyTo',
@@ -790,7 +792,7 @@ export default function RiderLiveMap({
             ref={cameraRef}
             defaultSettings={{
               centerCoordinate: [centerFallback.longitude, centerFallback.latitude],
-              zoomLevel: 14,
+              zoomLevel: immersive ? 13.5 : 14,
               pitch: 55,
             }}
           />

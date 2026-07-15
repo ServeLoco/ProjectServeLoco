@@ -53,7 +53,7 @@ function BillSummary({
         <BillRow label="Delivery Charge" value={`₹${deliveryCharge.toFixed(0)}`} />
       )}
       {showNight ? (
-        <BillRow label="Night Charge" value={`₹${nightCharge.toFixed(0)}`} warn />
+        <BillRow label="Night Charge" value={`₹${nightCharge.toFixed(0)}`} />
       ) : null}
       {showDiscount ? (
         <BillRow label="Discount" value={`- ₹${discountToShow.toFixed(0)}`} success />
