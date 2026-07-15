@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme';
 import { AppIcon } from '../components';
 import { useAuthStore } from '../stores';
+import { useSyncCartFreeDeliveryProgress } from '../hooks';
 
 import {
   HomeScreen,
@@ -276,22 +277,10 @@ const styles = StyleSheet.create({
 // ─────────────────────────────────────────────────────────────────────────────
 // CustomerNavigator — root navigator
 // ─────────────────────────────────────────────────────────────────────────────
-export default function CustomerNavigator() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const hasHydrated = useAuthStore((s) => s.hasHydrated);
-
-  // Block only until AsyncStorage has rehydrated the store. Once hydrated,
-  // render the cached auth state immediately — session validation (/auth/me)
-  // runs in the background. If the server rejects the token (401/403),
-  // validateSession() calls logout() which flips isAuthenticated → false and
-  // this navigator re-renders to the Auth screen automatically.
-  if (!hasHydrated) {
-    return (
-      <View style={styles.bootScreen}>
-        <ActivityIndicator size="small" color={colors.primary} />
-      </View>
-    );
-  }
+function CustomerNavigatorTree({ isAuthenticated }) {
+  // StickyMiniCart free-delivery line: keep store progress synced on every
+  // cart change (Home / list / categories), not only Cart/Checkout screens.
+  useSyncCartFreeDeliveryProgress({ enabled: isAuthenticated });
 
   return (
     <Stack.Navigator
@@ -326,4 +315,24 @@ export default function CustomerNavigator() {
       )}
     </Stack.Navigator>
   );
+}
+
+export default function CustomerNavigator() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
+
+  // Block only until AsyncStorage has rehydrated the store. Once hydrated,
+  // render the cached auth state immediately — session validation (/auth/me)
+  // runs in the background. If the server rejects the token (401/403),
+  // validateSession() calls logout() which flips isAuthenticated → false and
+  // this navigator re-renders to the Auth screen automatically.
+  if (!hasHydrated) {
+    return (
+      <View style={styles.bootScreen}>
+        <ActivityIndicator size="small" color={colors.primary} />
+      </View>
+    );
+  }
+
+  return <CustomerNavigatorTree isAuthenticated={isAuthenticated} />;
 }

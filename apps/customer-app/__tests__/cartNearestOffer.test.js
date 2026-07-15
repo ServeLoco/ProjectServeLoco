@@ -1,6 +1,6 @@
 /**
- * Tests for the generalized "nearest unlockable offer" progress hint on the
- * cart screen, and the CouponSheet's locked/unlocked offer split.
+ * Tests for the cart unlock progress ladder (free delivery first, then
+ * nearest discount offer) and the CouponSheet's locked/unlocked offer split.
  *
  * There is no @testing-library/react-native in this project (screen tests
  * elsewhere, e.g. HomeScreenBackExit.test.js, assert against the component
@@ -18,54 +18,48 @@ const couponSheetPath = path.join(
   __dirname, '..', 'src', 'screens', 'customer', 'CartScreen', 'CouponSheet.js'
 );
 
-describe('CartScreen nearest-offer progress hint', () => {
+describe('CartScreen unified unlock progress', () => {
   const source = fs.readFileSync(cartScreenPath, 'utf8');
 
-  it('reads nearestOfferProgress from the normalized bill', () => {
+  it('reads freeDeliveryProgress and nearestOfferProgress from the normalized bill', () => {
+    expect(source).toMatch(/const freeDeliveryProgress = bill\?\.freeDeliveryProgress \|\| null;/);
     expect(source).toMatch(/const nearestOfferProgress = bill\?\.nearestOfferProgress \|\| null;/);
   });
 
-  it('computes an animated progress percent from subtotal / minOrder, clamped 0-100', () => {
-    const match = source.match(/const nearestOfferPercent = useMemo\(\(\) => \{([\s\S]*?)\}, \[nearestOfferProgress, bill\?\.subtotal\]\);/);
+  it('builds a single unlockProgress that prefers free delivery over nearest offer', () => {
+    expect(source).toMatch(/const unlockProgress = useMemo\(\(\) => \{/);
+    expect(source).toMatch(/if \(freeDeliveryProgress\) \{/);
+    expect(source).toMatch(/kind: 'free_delivery'/);
+    expect(source).toMatch(/if \(nearestOfferProgress\) \{/);
+    expect(source).toMatch(/kind: 'offer'/);
+  });
+
+  it('computes unlock percent from subtotal / minOrder, clamped 0-100', () => {
+    const match = source.match(/const unlockPercent = useMemo\(\(\) => \{([\s\S]*?)\}, \[unlockProgress, bill\?\.subtotal\]\);/);
     expect(match).not.toBeNull();
     expect(match[1]).toMatch(/Math\.min\(100, Math\.max\(0, \(subtotal \/ minOrder\) \* 100\)\)/);
   });
 
-  it('hides the hint entirely when there is no nearest offer', () => {
-    expect(source).toMatch(/const renderNearestOfferHint = \(\) => \{\s*\n\s*if \(!nearestOfferProgress\) return null;/);
+  it('renders unlock progress inside bill summary, not as a separate box below it', () => {
+    expect(source).toMatch(/unlockProgress \? renderUnlockProgress\(\)/);
+    expect(source).not.toMatch(/renderNearestOfferHint/);
+    expect(source).not.toMatch(/nearestOfferBox/);
   });
 
-  it('only renders the hint outside of loading/error states', () => {
-    expect(source).toMatch(/\{!isCalculating && !calcError && renderNearestOfferHint\(\)\}/);
+  it('uses the same animated bar copy pattern for free delivery and discount offers', () => {
+    expect(source).toMatch(/to unlock \$\{unlockLabel\}/);
+    expect(source).toMatch(/title: 'free delivery'/);
+    expect(source).toMatch(/title: nearestOfferProgress\.title \|\| 'offer'/);
   });
 
-  it('renders the hint below the bill summary and above the coupon card', () => {
-    const billIdx = source.indexOf(': renderBillSummary()}');
-    const hintIdx = source.indexOf('renderNearestOfferHint()');
-    const couponIdx = source.indexOf('renderCouponCard()}');
-    expect(billIdx).toBeGreaterThan(-1);
-    expect(hintIdx).toBeGreaterThan(billIdx);
-    expect(couponIdx).toBeGreaterThan(hintIdx);
+  it('only replays entrance when the unlock goal itself changes', () => {
+    expect(source).toMatch(/const lastFreeDeliveryGoalKey = useRef\(null\);/);
+    expect(source).toMatch(/\$\{unlockProgress\.kind\}:\$\{unlockProgress\.title\}:\$\{unlockProgress\.minOrder\}/);
   });
 
-  it('tapping the hint opens the coupon sheet', () => {
-    const match = source.match(/const renderNearestOfferHint = \(\) => \{[\s\S]*?onPress=\{\(\) => setShowCouponSheet\(true\)\}[\s\S]*?\};/);
-    expect(match).not.toBeNull();
-  });
-
-  it('shows the amount-remaining + offer title copy via the shared hint helper', () => {
-    expect(source).toMatch(/buildProgressHintText\(nearestOfferProgress, \{ suffix: ` to unlock \$\{nearestOfferProgress\.title\}` \}\)/);
-  });
-
-  it('only replays the entrance animation when the nearest offer actually changes (not on every recalculation)', () => {
-    expect(source).toMatch(/const lastOfferHintKey = useRef\(null\);/);
-    const match = source.match(/useEffect\(\(\) => \{\s*const key = nearestOfferProgress[\s\S]*?if \(key === lastOfferHintKey\.current\) return;/);
-    expect(match).not.toBeNull();
-  });
-
-  it('animates opacity + translateY using native-driver-compatible motion tokens', () => {
+  it('animates bar width + entrance with motion tokens', () => {
     expect(source).toMatch(/import \{[^}]*motionConfig[^}]*entryDistance[^}]*\} from '..\/..\/..\/theme';/);
-    expect(source).toMatch(/Animated\.timing\(offerHintAnim, \{ toValue: 1, \.\.\.motionConfig\.screen \}\)\.start\(\);/);
+    expect(source).toMatch(/Animated\.spring\(freeDeliveryAnim,/);
     expect(source).toMatch(/outputRange: \[entryDistance, 0\]/);
   });
 });

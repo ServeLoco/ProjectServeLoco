@@ -5,11 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   Animated,
-  TouchableOpacity,
   LayoutAnimation,
+  Easing as RNEasing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   AppScreen,
   AppHeader,
@@ -25,8 +26,6 @@ import { colors, typography, spacing, radius, shadows, layout, borderWidth, moti
 import { useCartStore, useSettingsStore } from '../../../stores';
 import { cartApi } from '../../../api';
 import { buildProgressHintText, normalizeCartCalculation, useReducedMotion } from '../../../utils';
-import CouponSheet from './CouponSheet';
-
 const getItemType = (item) =>
   item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');
 // Includes variant id — two lines of the same product with different
@@ -46,15 +45,14 @@ export default function CartScreen() {
   const appliedCoupon = useCartStore(state => state.appliedCoupon);
   const couponAutoApplyDisabled = useCartStore(state => state.couponAutoApplyDisabled);
   const setAppliedCoupon = useCartStore(state => state.setAppliedCoupon);
-  const clearAppliedCoupon = useCartStore(state => state.clearAppliedCoupon);
   const softClearAppliedCoupon = useCartStore(state => state.softClearAppliedCoupon);
   const setFreeDeliveryProgress = useCartStore(state => state.setFreeDeliveryProgress);
+  const setFreeDeliveryUnlocked = useCartStore(state => state.setFreeDeliveryUnlocked);
   const shopStatus = useSettingsStore(state => state.shopStatus);
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [bill, setBill] = useState(null);
   const [calcError, setCalcError] = useState(null);
-  const [showCouponSheet, setShowCouponSheet] = useState(false);
 
   const reducedMotion = useReducedMotion();
 
@@ -62,10 +60,15 @@ export default function CartScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const listOpacity = useRef(new Animated.Value(1)).current;
   const arrowAnim = useRef(new Animated.Value(0)).current;
-  const offerHintAnim = useRef(new Animated.Value(0)).current;
-  const lastOfferHintKey = useRef(null);
   const freeDeliveryAnim = useRef(new Animated.Value(0)).current;
-  const nearestOfferAnim = useRef(new Animated.Value(0)).current;
+  const freeDeliveryEntrance = useRef(new Animated.Value(1)).current;
+  const freeDeliveryShimmer = useRef(new Animated.Value(0)).current;
+  const freeDeliveryBarGlow = useRef(new Animated.Value(0)).current;
+  const freeDeliveryAmountPop = useRef(new Animated.Value(1)).current;
+  const lastFreeDeliveryGoalKey = useRef(null);
+  const lastFreeDeliveryAmountRef = useRef(null);
+  const freeDeliveryLoopsRef = useRef(null);
+  const [freeDeliveryTrackWidth, setFreeDeliveryTrackWidth] = useState(0);
 
   // Coupon card animations
   const couponEntranceAnim = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
@@ -155,6 +158,8 @@ export default function CartScreen() {
 
     if (validItems.length === 0) {
       setBill(null);
+      setFreeDeliveryProgress(null);
+      setFreeDeliveryUnlocked(false);
       return;
     }
 
@@ -187,6 +192,10 @@ export default function CartScreen() {
       if (seq !== billRequestSeqRef.current) return; // a newer request superseded this one
       setBill(calculatedBill);
       setFreeDeliveryProgress(calculatedBill.freeDeliveryProgress);
+      setFreeDeliveryUnlocked(Boolean(
+        calculatedBill.appliedCoupon
+        && Number(calculatedBill.appliedCoupon.freeDeliveryWaiver || 0) > 0,
+      ));
       // Sync applied coupon from the bill response (handles auto-apply + validation).
       // When the backend returns no coupon (free-delivery min no longer met after
       // removing items, or auto-apply has nothing eligible), soft-clear local
@@ -232,14 +241,6 @@ export default function CartScreen() {
     navigation.navigate('Checkout');
   };
 
-  const handleApplyCoupon = (code, coupon) => {
-    setAppliedCoupon(code, coupon);
-  };
-
-  const handleRemoveCoupon = () => {
-    clearAppliedCoupon();
-  };
-
   const renderEmptyState = () => (
     <EmptyState
       icon={<AppIcon name="cart" size={56} color={colors.textTertiary} />}
@@ -262,61 +263,48 @@ export default function CartScreen() {
   const checkoutBtnText = bill ? `Proceed to Pay  •  ₹${bill.grandTotal}` : 'Checkout';
 
   const freeDeliveryProgress = bill?.freeDeliveryProgress || null;
-  const freeDeliveryPercent = useMemo(() => {
-    if (!freeDeliveryProgress || !freeDeliveryProgress.minOrder) return 0;
-    const subtotal = bill?.subtotal || 0;
-    const minOrder = freeDeliveryProgress.minOrder;
-    return Math.min(100, Math.max(0, (subtotal / minOrder) * 100));
-  }, [freeDeliveryProgress, bill?.subtotal]);
+  const nearestOfferProgress = bill?.nearestOfferProgress || null;
 
-  const couponHasOffers = (bill?.availableCoupons || []).length > 0;
+  // Single unlock ladder: free-delivery coupon first (backend nulls this once
+  // unlocked / applied), then the nearest discount offer. Same animated bar
+  // under Grand Total — never two status bars.
+  const unlockProgress = useMemo(() => {
+    if (freeDeliveryProgress) {
+      return {
+        kind: 'free_delivery',
+        minOrder: Number(freeDeliveryProgress.minOrder || 0),
+        amountRemaining: Number(freeDeliveryProgress.amountRemaining || 0),
+        minItemCount: Number(freeDeliveryProgress.minItemCount || 0),
+        itemsRemaining: Number(freeDeliveryProgress.itemsRemaining || 0),
+        title: 'free delivery',
+      };
+    }
+    if (nearestOfferProgress) {
+      return {
+        kind: 'offer',
+        minOrder: Number(nearestOfferProgress.minOrder || 0),
+        amountRemaining: Number(nearestOfferProgress.amountRemaining || 0),
+        minItemCount: Number(nearestOfferProgress.minItemCount || 0),
+        itemsRemaining: Number(nearestOfferProgress.itemsRemaining || 0),
+        title: nearestOfferProgress.title || 'offer',
+      };
+    }
+    return null;
+  }, [freeDeliveryProgress, nearestOfferProgress]);
+
+  const unlockPercent = useMemo(() => {
+    if (!unlockProgress || !unlockProgress.minOrder) return 0;
+    const subtotal = bill?.subtotal || 0;
+    const minOrder = unlockProgress.minOrder;
+    return Math.min(100, Math.max(0, (subtotal / minOrder) * 100));
+  }, [unlockProgress, bill?.subtotal]);
+
+  // Applied-only coupon UI (auto-apply). No manual pick list under the bill.
   const couponState = appliedCoupon
-    ? 'available'
+    ? 'applied'
     : bill?.couponError
     ? 'error'
-    : couponHasOffers
-    ? 'available'
     : 'empty';
-
-  // Top 2 unlocked offers (highest discount first) shown inline on the cart,
-  // with a "Show more" button to open the full CouponSheet. The applied
-  // coupon is excluded here — it's no longer "available to pick", it's
-  // already active — and rendered separately via its own applied row.
-  const pickableOffers = useMemo(() => {
-    const unlocked = (bill?.availableCoupons || []).filter(
-      coupon => coupon.unlocked !== false && coupon.available !== false
-        && !(appliedCoupon && coupon.id === appliedCoupon.id),
-    );
-    return unlocked
-      .slice()
-      .sort((a, b) => Number(b.discount || 0) - Number(a.discount || 0));
-  }, [bill?.availableCoupons, appliedCoupon]);
-  // Cap total inline rows at 2 — the applied-coupon row (if any) takes one
-  // of those 2 slots, otherwise a 3rd coupon appears once one is applied.
-  const topOffers = useMemo(
-    () => pickableOffers.slice(0, appliedCoupon ? 1 : 2),
-    [pickableOffers, appliedCoupon],
-  );
-
-  // Mirrors CouponSheet's bestCouponId logic so the same offer gets the
-  // "BEST" badge in both places.
-  const bestCouponId = useMemo(() => {
-    const candidates = appliedCoupon ? [...pickableOffers, appliedCoupon] : pickableOffers;
-    if (candidates.length < 2) return null;
-    const best = candidates.reduce(
-      (acc, coupon) => (Number(coupon.discount) > Number(acc?.discount || 0) ? coupon : acc),
-      null,
-    );
-    return best?.id ?? null;
-  }, [pickableOffers, appliedCoupon]);
-  // Header count stays stable whether or not a coupon is applied — counts
-  // every unlocked+available offer, including the currently applied one.
-  const totalOffersCount = useMemo(
-    () => (bill?.availableCoupons || []).filter(
-      coupon => coupon.unlocked !== false && coupon.available !== false,
-    ).length,
-    [bill?.availableCoupons],
-  );
 
   const formatOfferBadge = (coupon) => {
     if (!coupon) return null;
@@ -327,57 +315,204 @@ export default function CartScreen() {
     return null;
   };
 
-  const formatOfferMinOrder = (coupon) => {
-    const minOrder = Number(coupon?.minOrder || 0);
-    return minOrder > 0 ? `Min order ₹${minOrder}` : 'No minimum order';
+  // Higher ladder offers not yet unlocked — display-only under the applied row.
+  // auto_apply only so the list matches what the system will auto-upgrade to.
+  const futureOffers = useMemo(() => {
+    if (!appliedCoupon) return [];
+    const appliedId = appliedCoupon.id;
+    const appliedSavings = Number(appliedCoupon.discount || bill?.discount || 0);
+    const subtotal = Number(bill?.subtotal || 0);
+    const list = bill?.availableCoupons || [];
+
+    return list
+      .filter((coupon) => {
+        if (!coupon) return false;
+        if (appliedId != null && coupon.id === appliedId) return false;
+        if (coupon.autoApply === false) return false;
+        if (coupon.available === false) return false;
+        // Still locked on amount and/or item count.
+        const locked = coupon.unlocked === false
+          || Number(coupon.amountRemaining || 0) > 0
+          || Number(coupon.itemsRemaining || 0) > 0;
+        if (!locked) return false;
+        const couponSavings = Number(coupon.discount || 0);
+        const couponMin = Number(coupon.minOrder || 0);
+        // Greater = more savings at its threshold, or min order still ahead of cart.
+        return couponSavings > appliedSavings || couponMin > subtotal;
+      })
+      .slice()
+      .sort((a, b) => {
+        const minDiff = Number(a.minOrder || 0) - Number(b.minOrder || 0);
+        if (minDiff !== 0) return minDiff;
+        return Number(b.discount || 0) - Number(a.discount || 0);
+      });
+  }, [appliedCoupon, bill?.availableCoupons, bill?.discount, bill?.subtotal]);
+
+  const formatUnlockHint = (coupon) => {
+    const parts = [];
+    const amountLeft = Number(coupon.amountRemaining || 0);
+    const itemsLeft = Number(coupon.itemsRemaining || 0);
+    if (amountLeft > 0) parts.push(`₹${amountLeft.toFixed(0)} more`);
+    if (itemsLeft > 0) {
+      parts.push(`${itemsLeft} more item${itemsLeft === 1 ? '' : 's'}`);
+    }
+    if (parts.length === 0) {
+      const minOrder = Number(coupon.minOrder || 0);
+      const sub = Number(bill?.subtotal || 0);
+      if (minOrder > sub) parts.push(`₹${(minOrder - sub).toFixed(0)} more`);
+    }
+    if (parts.length === 0) return 'To be unlocked';
+    return `Add ${parts.join(' and ')} to unlock`;
   };
 
-  const nearestOfferProgress = bill?.nearestOfferProgress || null;
-  const nearestOfferPercent = useMemo(() => {
-    if (!nearestOfferProgress || !nearestOfferProgress.minOrder) return 0;
-    const subtotal = bill?.subtotal || 0;
-    const minOrder = nearestOfferProgress.minOrder;
-    return Math.min(100, Math.max(0, (subtotal / minOrder) * 100));
-  }, [nearestOfferProgress, bill?.subtotal]);
-
-  // Animate the free-delivery / nearest-offer progress bars smoothly whenever
-  // the underlying percentage changes, instead of snapping to the new width.
+  // Animate the unlock progress bar smoothly whenever the percentage changes.
   useEffect(() => {
-    Animated.timing(freeDeliveryAnim, {
-      toValue: freeDeliveryPercent,
-      duration: reducedMotion ? 0 : motionConfig.screen.duration,
-      easing,
-      useNativeDriver: false,
-    }).start();
-  }, [freeDeliveryPercent, freeDeliveryAnim, reducedMotion]);
-
-  useEffect(() => {
-    Animated.timing(nearestOfferAnim, {
-      toValue: nearestOfferPercent,
-      duration: reducedMotion ? 0 : motionConfig.screen.duration,
-      easing,
-      useNativeDriver: false,
-    }).start();
-  }, [nearestOfferPercent, nearestOfferAnim, reducedMotion]);
-
-  // Play a subtle entrance/update animation whenever cart changes surface a
-  // genuinely new nearest offer (different coupon or threshold) — not on
-  // every recalculation, so the animation doesn't replay on unrelated bill
-  // updates (e.g. quantity tweaks that don't change the nearest offer).
-  useEffect(() => {
-    const key = nearestOfferProgress
-      ? `${nearestOfferProgress.title}:${nearestOfferProgress.minOrder}`
-      : null;
-    if (key === lastOfferHintKey.current) return;
-    lastOfferHintKey.current = key;
-
-    if (key) {
-      offerHintAnim.setValue(0);
-      Animated.timing(offerHintAnim, { toValue: 1, ...motionConfig.screen }).start();
-    } else {
-      offerHintAnim.setValue(0);
+    if (reducedMotion) {
+      freeDeliveryAnim.setValue(unlockPercent);
+      return;
     }
-  }, [nearestOfferProgress, offerHintAnim]);
+    Animated.spring(freeDeliveryAnim, {
+      toValue: unlockPercent,
+      friction: 7,
+      tension: 48,
+      useNativeDriver: false,
+    }).start();
+  }, [unlockPercent, freeDeliveryAnim, reducedMotion]);
+
+  // Soft entrance when the active unlock goal changes (free delivery ↔ offer).
+  useEffect(() => {
+    const goalKey = unlockProgress
+      ? `${unlockProgress.kind}:${unlockProgress.title}:${unlockProgress.minOrder}:${unlockProgress.minItemCount || 0}`
+      : null;
+    if (!goalKey) {
+      freeDeliveryEntrance.setValue(0);
+      lastFreeDeliveryGoalKey.current = null;
+      return;
+    }
+    if (goalKey === lastFreeDeliveryGoalKey.current) {
+      freeDeliveryEntrance.setValue(1);
+      return;
+    }
+    lastFreeDeliveryGoalKey.current = goalKey;
+    if (reducedMotion) {
+      freeDeliveryEntrance.setValue(1);
+      return;
+    }
+    freeDeliveryEntrance.setValue(0);
+    Animated.timing(freeDeliveryEntrance, {
+      toValue: 1,
+      ...motionConfig.screen,
+    }).start();
+  }, [unlockProgress, freeDeliveryEntrance, reducedMotion]);
+
+  // Status-bar motion: continuous shimmer + glow while unlock progress is
+  // on screen. Cart recalculation swaps Bill Summary for a skeleton
+  // (isCalculating), which unmounts the bar and detaches native-driver
+  // loops — so we must STOP while calculating and RESTART when the bar
+  // remounts. Recursive .start({ finished }) is more reliable than
+  // Animated.loop({ resetBeforeIteration }) on some Android RN builds.
+  const hasUnlockProgress = Boolean(unlockProgress);
+  useEffect(() => {
+    const stopLoops = () => {
+      const active = freeDeliveryLoopsRef.current;
+      if (active) {
+        active.alive = false;
+        freeDeliveryShimmer.stopAnimation();
+        freeDeliveryBarGlow.stopAnimation();
+        freeDeliveryLoopsRef.current = null;
+      }
+    };
+
+    stopLoops();
+
+    // No bar on screen (no progress, reduced motion, or skeleton loading).
+    if (!hasUnlockProgress || reducedMotion || isCalculating) {
+      if (!hasUnlockProgress || reducedMotion) {
+        freeDeliveryShimmer.setValue(0);
+        freeDeliveryBarGlow.setValue(0);
+      }
+      return stopLoops;
+    }
+
+    const token = { alive: true };
+    freeDeliveryLoopsRef.current = token;
+
+    const runShimmer = () => {
+      if (!token.alive) return;
+      freeDeliveryShimmer.setValue(0);
+      Animated.timing(freeDeliveryShimmer, {
+        toValue: 1,
+        duration: 1400,
+        easing: RNEasing.linear,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished && token.alive) runShimmer();
+      });
+    };
+
+    const runGlow = () => {
+      if (!token.alive) return;
+      Animated.sequence([
+        Animated.timing(freeDeliveryBarGlow, {
+          toValue: 1,
+          duration: 900,
+          easing,
+          useNativeDriver: true,
+        }),
+        Animated.timing(freeDeliveryBarGlow, {
+          toValue: 0,
+          duration: 900,
+          easing,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished && token.alive) runGlow();
+      });
+    };
+
+    freeDeliveryShimmer.setValue(0);
+    freeDeliveryBarGlow.setValue(0);
+    runShimmer();
+    runGlow();
+
+    return stopLoops;
+  }, [
+    hasUnlockProgress,
+    isCalculating,
+    reducedMotion,
+    freeDeliveryShimmer,
+    freeDeliveryBarGlow,
+  ]);
+
+  // Pop the remaining amount when it changes (qty updates).
+  useEffect(() => {
+    if (!unlockProgress) {
+      lastFreeDeliveryAmountRef.current = null;
+      return;
+    }
+    const nextKey = `${unlockProgress.kind}:${unlockProgress.amountRemaining}:${unlockProgress.itemsRemaining}`;
+    if (lastFreeDeliveryAmountRef.current == null) {
+      lastFreeDeliveryAmountRef.current = nextKey;
+      return;
+    }
+    if (lastFreeDeliveryAmountRef.current === nextKey) return;
+    lastFreeDeliveryAmountRef.current = nextKey;
+    if (reducedMotion) return;
+    freeDeliveryAmountPop.setValue(0.86);
+    Animated.spring(freeDeliveryAmountPop, {
+      toValue: 1,
+      friction: 5,
+      tension: 140,
+      useNativeDriver: true,
+    }).start();
+  }, [
+    unlockProgress?.kind,
+    unlockProgress?.amountRemaining,
+    unlockProgress?.itemsRemaining,
+    unlockProgress,
+    freeDeliveryAmountPop,
+    reducedMotion,
+  ]);
 
   // Coupon card first-appearance animation: fade + slide up once, then a
   // subtle one-time chevron nudge. Runs only on mount, never on recalculation.
@@ -454,21 +589,25 @@ export default function CartScreen() {
     };
   }, [couponState, reducedMotion, couponContentOpacity, couponCheckScale, couponErrorShake]);
 
-  // Bounce the "Applied" check icon whenever a new coupon becomes applied.
-  const prevAppliedCodeRef = useRef(undefined);
+  // Bounce the "Applied" check icon whenever a new coupon becomes applied
+  // (auto-apply often has null code — key by id).
+  const prevAppliedKeyRef = useRef(undefined);
   useEffect(() => {
-    const isFirstRun = prevAppliedCodeRef.current === undefined;
-    const prevCode = prevAppliedCodeRef.current;
-    prevAppliedCodeRef.current = appliedCouponCode;
+    const key = appliedCoupon
+      ? `${appliedCoupon.id ?? ''}:${appliedCoupon.code ?? ''}`
+      : null;
+    const isFirstRun = prevAppliedKeyRef.current === undefined;
+    const prevKey = prevAppliedKeyRef.current;
+    prevAppliedKeyRef.current = key;
 
-    if (isFirstRun || reducedMotion || !appliedCouponCode || appliedCouponCode === prevCode) return;
+    if (isFirstRun || reducedMotion || !key || key === prevKey) return;
 
     couponCheckScale.setValue(0.75);
     Animated.sequence([
       Animated.timing(couponCheckScale, { toValue: 1.08, duration: 140, easing, useNativeDriver: true }),
       Animated.timing(couponCheckScale, { toValue: 1, duration: 120, easing, useNativeDriver: true }),
     ]).start();
-  }, [appliedCouponCode, reducedMotion, couponCheckScale]);
+  }, [appliedCoupon, reducedMotion, couponCheckScale]);
 
   const renderBillSkeleton = () => (
     <View style={styles.billCard}>
@@ -527,82 +666,179 @@ export default function CartScreen() {
           <Text style={styles.grandTotalValue}>₹{bill.grandTotal}</Text>
         </View>
 
-        {freeDeliveryProgress && (
-          <View style={styles.freeDeliveryBox}>
-            <View style={styles.progressTrack}>
-              <Animated.View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: freeDeliveryAnim.interpolate({
-                      inputRange: [0, 100],
-                      outputRange: ['0%', '100%'],
-                    }),
-                  },
-                ]}
-              />
-            </View>
-            <Text style={styles.freeDeliveryHint}>
-              {buildProgressHintText(freeDeliveryProgress, { suffix: ' for free delivery' })}
-            </Text>
-          </View>
-        )}
+        {unlockProgress ? <View style={styles.fdDivider} /> : null}
+
+        {unlockProgress ? renderUnlockProgress() : null}
       </Animated.View>
     );
   };
 
-  const renderNearestOfferHint = () => {
-    if (!nearestOfferProgress) return null;
+  const renderUnlockProgress = () => {
+    if (!unlockProgress) return null;
 
-    const translateY = offerHintAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [entryDistance, 0],
+    const amountLeft = Number(unlockProgress.amountRemaining || 0);
+    const itemsLeft = Number(unlockProgress.itemsRemaining || 0);
+    const unlockLabel = unlockProgress.title || 'offer';
+    const a11y = buildProgressHintText(unlockProgress, {
+      suffix: ` to unlock ${unlockLabel}`,
     });
+
+    let remainingHighlight = null;
+    if (amountLeft > 0) {
+      remainingHighlight = (
+        <Text style={styles.fdAmount}>₹{amountLeft.toFixed(0)}</Text>
+      );
+    } else if (itemsLeft > 0) {
+      remainingHighlight = (
+        <Text style={styles.fdAmount}>
+          {itemsLeft} item{itemsLeft === 1 ? '' : 's'}
+        </Text>
+      );
+    }
+
+    const trackW = freeDeliveryTrackWidth > 0 ? freeDeliveryTrackWidth : 240;
+    const showTip = unlockPercent > 4 && unlockPercent < 99;
 
     return (
       <Animated.View
-        style={{
-          opacity: offerHintAnim,
-          transform: [{ translateY }],
-        }}
+        style={[
+          styles.freeDeliveryBox,
+          {
+            opacity: freeDeliveryEntrance,
+            transform: [{
+              translateY: freeDeliveryEntrance.interpolate({
+                inputRange: [0, 1],
+                outputRange: [entryDistance, 0],
+              }),
+            }],
+          },
+        ]}
+        accessibilityLabel={a11y}
       >
-        <PressableScale
-          onPress={() => setShowCouponSheet(true)}
-          style={styles.nearestOfferBox}
-          scaleTo={0.98}
-          accessibilityRole="button"
-          accessibilityLabel={buildProgressHintText(nearestOfferProgress, { suffix: ` to unlock ${nearestOfferProgress.title}` })}
+        <View style={styles.fdTitleRow}>
+          <AppIcon name="ticket" size={16} color={colors.saffron} strokeWidth={2.4} />
+          <Animated.View
+            style={[
+              styles.fdLine,
+              { transform: [{ scale: freeDeliveryAmountPop }] },
+            ]}
+          >
+            {remainingHighlight ? (
+              <Text style={styles.fdLineBody} numberOfLines={1}>
+                <Text style={styles.fdLineBody}>Add </Text>
+                {remainingHighlight}
+                <Text style={styles.fdLineBody}> to unlock {unlockLabel}</Text>
+              </Text>
+            ) : (
+              <Text style={styles.fdLineBody} numberOfLines={1}>
+                Unlock {unlockLabel}
+              </Text>
+            )}
+          </Animated.View>
+        </View>
+
+        <View
+          style={styles.fdProgressTrack}
+          onLayout={(e) => {
+            const w = e.nativeEvent.layout.width;
+            if (w > 0 && Math.abs(w - freeDeliveryTrackWidth) > 1) {
+              setFreeDeliveryTrackWidth(w);
+            }
+          }}
         >
-          <View style={styles.freeDeliveryRow}>
-            <AppIcon name="box" size={16} color={colors.saffron} />
-            <Text style={styles.freeDeliveryHeading} numberOfLines={1}>
-              {nearestOfferProgress.title}
-            </Text>
-          </View>
-          <View style={styles.progressTrack}>
+          <Animated.View
+            style={[
+              styles.fdProgressFillWrap,
+              {
+                width: freeDeliveryAnim.interpolate({
+                  inputRange: [0, 100],
+                  outputRange: ['0%', '100%'],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ]}
+          >
             <Animated.View
               style={[
-                styles.progressFill,
+                styles.fdProgressFillInner,
                 {
-                  width: nearestOfferAnim.interpolate({
-                    inputRange: [0, 100],
-                    outputRange: ['0%', '100%'],
-                  }),
+                  opacity: reducedMotion
+                    ? 1
+                    : freeDeliveryBarGlow.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.86, 1],
+                      }),
                 },
               ]}
-            />
-          </View>
-          <Text style={styles.freeDeliveryHint}>
-            {buildProgressHintText(nearestOfferProgress, { suffix: ` to unlock ${nearestOfferProgress.title}` })}
-          </Text>
-        </PressableScale>
+            >
+              <LinearGradient
+                colors={['#FFC29A', colors.btnHighlightStart, colors.saffron, colors.saffronDark]}
+                locations={[0, 0.28, 0.68, 1]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={styles.fdProgressFill}
+              />
+              {showTip && !reducedMotion ? (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.fdProgressTip,
+                    {
+                      transform: [{
+                        scale: freeDeliveryBarGlow.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.35],
+                        }),
+                      }],
+                    },
+                  ]}
+                />
+              ) : null}
+            </Animated.View>
+          </Animated.View>
+
+          {!reducedMotion ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.fdShimmer,
+                {
+                  opacity: freeDeliveryShimmer.interpolate({
+                    inputRange: [0, 0.1, 0.5, 0.9, 1],
+                    outputRange: [0, 1, 1, 1, 0],
+                  }),
+                  transform: [{
+                    translateX: freeDeliveryShimmer.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-80, trackW + 20],
+                    }),
+                  }],
+                },
+              ]}
+            >
+              <LinearGradient
+                colors={[
+                  'transparent',
+                  'rgba(255,255,255,0.25)',
+                  'rgba(255,255,255,0.95)',
+                  'rgba(255,255,255,0.25)',
+                  'transparent',
+                ]}
+                locations={[0, 0.25, 0.5, 0.75, 1]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+            </Animated.View>
+          ) : null}
+        </View>
       </Animated.View>
     );
   };
 
+  // Auto-apply only: show the best applied coupon under the bill. No list,
+  // no tap-to-apply, no coupon sheet — server pickBest upgrades as cart grows.
   const renderCouponCard = () => {
-    const chevronStyle = { transform: [{ translateX: couponChevronNudge }] };
-
     const entranceStyle = {
       opacity: couponEntranceAnim,
       transform: [{
@@ -611,20 +847,36 @@ export default function CartScreen() {
     };
 
     if (couponState === 'empty') {
+      return null;
+    }
+
+    if (couponState === 'error') {
       return (
         <Animated.View style={entranceStyle}>
           <View
-            style={[styles.couponCard, styles.couponCardEmpty]}
+            style={[styles.couponCard, styles.couponCardError]}
             accessible
-            accessibilityLabel="No eligible offers for this cart"
+            accessibilityLabel={bill?.couponError || "Offer couldn't apply"}
           >
-            <Animated.View style={[styles.couponCardInner, { opacity: couponContentOpacity }]}>
-              <View style={[styles.couponIconWrap, styles.couponIconWrapEmpty]}>
-                <AppIcon name="ticket" size={20} color={colors.textTertiary} />
+            <Animated.View
+              style={[
+                styles.couponCardInner,
+                {
+                  opacity: couponContentOpacity,
+                  transform: [{ translateX: Animated.multiply(couponErrorShake, 4) }],
+                },
+              ]}
+            >
+              <View style={[styles.couponIconWrap, styles.couponIconWrapError]}>
+                <AppIcon name="close" size={18} color={colors.error} />
               </View>
               <View style={styles.couponTextWrap}>
-                <Text style={styles.couponStatusLabelEmpty}>No offers available</Text>
-                <Text style={styles.couponSubtextEmpty} numberOfLines={1}>No eligible offers for this cart</Text>
+                <Text style={styles.couponStatusLabelError} numberOfLines={1}>
+                  {"Offer couldn't apply"}
+                </Text>
+                <Text style={styles.couponErrorText} numberOfLines={2}>
+                  {bill?.couponError}
+                </Text>
               </View>
             </Animated.View>
           </View>
@@ -632,172 +884,108 @@ export default function CartScreen() {
       );
     }
 
-    let cardStyle;
-    let iconWrapStyle;
-    let iconNode;
-    let statusLabelStyle;
-    let statusLabel;
-    let titleNode;
-    let subtitleNode;
-    let actionNode;
-    let pressA11yLabel;
-    let chevronColor;
-
-    if (couponState === 'error') {
-      cardStyle = styles.couponCardError;
-      iconWrapStyle = styles.couponIconWrapError;
-      iconNode = (
-        <Animated.View style={{ transform: [{ translateX: Animated.multiply(couponErrorShake, 4) }] }}>
-          <AppIcon name="close" size={18} color={colors.error} />
-        </Animated.View>
-      );
-      statusLabelStyle = styles.couponStatusLabelError;
-      statusLabel = "Offer couldn't apply";
-      titleNode = (
-        <Text style={styles.couponErrorText} numberOfLines={2}>{bill.couponError}</Text>
-      );
-      subtitleNode = null;
-      actionNode = (
-        <Text style={styles.couponActionCaptionError}>Fix</Text>
-      );
-      chevronColor = colors.error;
-      pressA11yLabel = 'View offers to fix error';
-    } else {
-      // Available offers: show the top 2 inline, with a "Show more" button
-      // that opens the full CouponSheet.
-      return (
-        <Animated.View style={entranceStyle}>
-          <View style={styles.couponOffersSection}>
-            <View style={styles.couponOffersHeadingRow}>
-              <View style={styles.couponOffersHeadingLeft}>
-                <AppIcon name="ticket" size={16} color={colors.saffron} />
-                <Text style={styles.couponOffersHeading}>Available offers</Text>
-              </View>
-              <Text style={styles.couponOffersCount}>
-                {totalOffersCount} offer{totalOffersCount !== 1 ? 's' : ''}
-              </Text>
-            </View>
-
-            {/* A typed/tapped coupon failed but the server fell back to the
-                best auto offer — show why alongside the applied discount. */}
-            {bill?.couponError ? (
-              <Text style={styles.couponInlineError} numberOfLines={2}>
-                {bill.couponError}
-              </Text>
-            ) : null}
-
-            {appliedCoupon && (
-              <PressableScale
-                key={appliedCoupon.id || appliedCoupon.code}
-                onPress={handleRemoveCoupon}
-                style={[styles.couponOfferCard, styles.couponOfferCardApplied]}
-                scaleTo={0.98}
-                accessibilityRole="button"
-                accessibilityLabel={`Offer ${appliedCoupon.title} applied, ${
-                  bill?.discount > 0 ? `Save ₹${bill.discount}` : formatOfferBadge(appliedCoupon)
-                }. Double tap to remove`}
-              >
-                <View style={[styles.couponOfferIconFrame, styles.couponOfferIconFrameApplied]}>
-                  <Animated.View style={{ transform: [{ scale: couponCheckScale }] }}>
-                    <AppIcon name="check" size={16} color={colors.textInverse} strokeWidth={3} />
-                  </Animated.View>
-                </View>
-                <View style={styles.couponOfferText}>
-                  <View style={styles.couponOfferTitleRow}>
-                    <Text style={styles.couponOfferTitle} numberOfLines={1}>{appliedCoupon.title}</Text>
-                    {bestCouponId === appliedCoupon.id ? (
-                      <View style={styles.bestBadge}>
-                        <Text style={styles.bestBadgeText}>BEST</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  {appliedCoupon.description ? (
-                    <Text style={styles.couponOfferDesc} numberOfLines={1}>{appliedCoupon.description}</Text>
-                  ) : null}
-                </View>
-                <View style={[styles.couponOfferSavingsPill, styles.couponOfferSavingsPillApplied]}>
-                  <Text style={[styles.couponOfferSavingsText, styles.couponOfferSavingsTextApplied]} numberOfLines={1}>
-                    Applied
-                  </Text>
-                </View>
-              </PressableScale>
-            )}
-
-            {topOffers.map((coupon) => {
-              const savings = formatOfferBadge(coupon);
-              return (
-                <PressableScale
-                  key={coupon.id || coupon.code}
-                  onPress={() => handleApplyCoupon(coupon.code, coupon)}
-                  style={styles.couponOfferCard}
-                  scaleTo={0.98}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Apply offer ${coupon.title}, ${savings}`}
-                >
-                  <View style={styles.couponOfferIconFrame}>
-                    <AppIcon name="ticket" size={16} color={colors.saffron} />
-                  </View>
-                  <View style={styles.couponOfferText}>
-                    <View style={styles.couponOfferTitleRow}>
-                      <Text style={styles.couponOfferTitle} numberOfLines={1}>{coupon.title}</Text>
-                      {bestCouponId === coupon.id ? (
-                        <View style={styles.bestBadge}>
-                          <Text style={styles.bestBadgeText}>BEST</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                    <Text style={styles.couponOfferDesc} numberOfLines={1}>{formatOfferMinOrder(coupon)}</Text>
-                  </View>
-                  <View style={styles.couponOfferSavingsPill}>
-                    <Text style={styles.couponOfferSavingsText} numberOfLines={1}>
-                      {savings}
-                    </Text>
-                  </View>
-                </PressableScale>
-              );
-            })}
-
-            <PressableScale
-              onPress={() => setShowCouponSheet(true)}
-              style={styles.couponShowMoreBtn}
-              scaleTo={0.98}
-              accessibilityRole="button"
-              accessibilityLabel="Show more offers"
-            >
-              <Text style={styles.couponShowMoreText}>Show more offers</Text>
-              <AppIcon name="chevronRight" size={16} color={colors.saffron} />
-            </PressableScale>
-          </View>
-        </Animated.View>
-      );
-    }
+    // couponState === 'applied'
+    const savings = bill?.discount > 0
+      ? `Save ₹${bill.discount}`
+      : formatOfferBadge(appliedCoupon);
 
     return (
       <Animated.View style={entranceStyle}>
-        <PressableScale
-          onPress={() => setShowCouponSheet(true)}
-          style={[styles.couponCard, cardStyle]}
-          scaleTo={0.98}
-          accessibilityRole="button"
-          accessibilityLabel={pressA11yLabel}
-        >
-          <Animated.View style={[styles.couponCardInner, { opacity: couponContentOpacity }]}>
-            <View style={[styles.couponIconWrap, iconWrapStyle]}>
-              {iconNode}
+        <View style={styles.couponOffersSection}>
+          <View style={styles.couponOffersHeadingRow}>
+            <View style={styles.couponOffersHeadingLeft}>
+              <AppIcon name="ticket" size={16} color={colors.saffron} />
+              <Text style={styles.couponOffersHeading}>Applied offer</Text>
             </View>
-            <View style={styles.couponTextWrap}>
-              <Text style={statusLabelStyle} numberOfLines={1}>{statusLabel}</Text>
-              {titleNode}
-              {subtitleNode}
-            </View>
-            <View style={styles.couponAction}>
-              {actionNode}
-              <Animated.View style={chevronStyle}>
-                <AppIcon name="chevronRight" size={16} color={chevronColor} />
+          </View>
+
+          <View
+            style={[styles.couponOfferCard, styles.couponOfferCardApplied]}
+            accessible
+            accessibilityRole="text"
+            accessibilityLabel={`Best offer applied: ${appliedCoupon.title}${
+              savings ? `, ${savings}` : ''
+            }`}
+          >
+            <View style={[styles.couponOfferIconFrame, styles.couponOfferIconFrameApplied]}>
+              <Animated.View style={{ transform: [{ scale: couponCheckScale }] }}>
+                <AppIcon name="check" size={16} color={colors.textInverse} strokeWidth={3} />
               </Animated.View>
             </View>
-          </Animated.View>
-        </PressableScale>
+            <View style={styles.couponOfferText}>
+              <View style={styles.couponOfferTitleRow}>
+                <Text style={styles.couponOfferTitle} numberOfLines={1}>
+                  {appliedCoupon.title}
+                </Text>
+                <View style={styles.bestBadge}>
+                  <Text style={styles.bestBadgeText}>BEST</Text>
+                </View>
+              </View>
+              {appliedCoupon.description ? (
+                <Text style={styles.couponOfferDesc} numberOfLines={1}>
+                  {appliedCoupon.description}
+                </Text>
+              ) : savings ? (
+                <Text style={styles.couponOfferDesc} numberOfLines={1}>
+                  {savings}
+                </Text>
+              ) : null}
+            </View>
+            <View style={[styles.couponOfferSavingsPill, styles.couponOfferSavingsPillApplied]}>
+              <Text
+                style={[styles.couponOfferSavingsText, styles.couponOfferSavingsTextApplied]}
+                numberOfLines={1}
+              >
+                Applied
+              </Text>
+            </View>
+          </View>
+
+          {futureOffers.length > 0 ? (
+            <View style={styles.couponFutureList}>
+              <Text style={styles.couponFutureHeading}>Better offers to unlock</Text>
+              {futureOffers.map((coupon) => {
+                const savings = formatOfferBadge(coupon);
+                return (
+                  <View
+                    key={coupon.id || coupon.code || coupon.title}
+                    style={styles.couponFutureRow}
+                    accessible
+                    accessibilityRole="text"
+                    accessibilityLabel={`${coupon.title}. ${formatUnlockHint(coupon)}${
+                      savings ? `. ${savings}` : ''
+                    }`}
+                  >
+                    <AppIcon
+                      name="ticket"
+                      size={16}
+                      color={colors.saffron}
+                      strokeWidth={2.2}
+                      style={styles.couponFutureIcon}
+                    />
+                    <View style={styles.couponOfferText}>
+                      <Text style={styles.couponFutureTitle} numberOfLines={1}>
+                        {coupon.title}
+                      </Text>
+                      <Text style={styles.couponFutureHint} numberOfLines={1}>
+                        {formatUnlockHint(coupon)}
+                      </Text>
+                    </View>
+                    {savings ? (
+                      <Text style={styles.couponFutureSavings} numberOfLines={1}>
+                        {savings}
+                      </Text>
+                    ) : (
+                      <Text style={styles.couponFutureLocked} numberOfLines={1}>
+                        Locked
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
       </Animated.View>
     );
   };
@@ -833,7 +1021,7 @@ export default function CartScreen() {
             ]}
             showsVerticalScrollIndicator={false}
           >
-            {/* Cart Items */}
+            {/* Cart Items — white outer card, compact open rows inside */}
             <Animated.View
               style={[
                 styles.itemsCard,
@@ -849,7 +1037,14 @@ export default function CartScreen() {
                 const itemType = getItemType(item);
                 const itemKey = getItemKey(item);
                 const itemAnim = getItemAnim(itemKey);
+                const unitPrice = Number(item.variant?.price ?? item.product.price ?? 0);
+                const metaBits = [
+                  item.variant?.label,
+                  item.product.unit,
+                  unitPrice > 0 ? `₹${unitPrice}` : null,
+                ].filter(Boolean);
                 const isLast = index === validItems.length - 1;
+
                 return (
                   <Animated.View
                     key={itemKey}
@@ -863,34 +1058,29 @@ export default function CartScreen() {
                     <View style={styles.itemRow}>
                       <ProductImage
                         uri={item.product.imageUri || item.product.imageUrl}
-                        width={64}
-                        height={64}
-                        borderRadius={radius.md}
+                        width={52}
+                        height={52}
+                        borderRadius={radius.sm}
                         style={styles.itemImage}
                       />
 
-                      <View style={styles.itemInfo}>
+                      <View style={styles.itemBody}>
                         <Text style={styles.itemName} numberOfLines={2}>
                           {item.product.name}
                         </Text>
-                        {item.variant?.label && (
-                          <Text style={styles.itemUnit} numberOfLines={1}>{item.variant.label}</Text>
-                        )}
-                        <View style={styles.itemMetaRow}>
-                          <Text style={styles.itemUnit} numberOfLines={1}>
-                            {item.product.unit}
+                        {metaBits.length > 0 ? (
+                          <Text style={styles.itemMeta} numberOfLines={1}>
+                            {metaBits.join(' · ')}
                           </Text>
-                          <Text style={styles.itemMetaDot}>·</Text>
-                          <Text style={styles.itemPrice}>₹{item.variant?.price ?? item.product.price}</Text>
-                        </View>
-                        {!item.product.available && (
+                        ) : null}
+                        {!item.product.available ? (
                           <Text style={styles.itemUnavailable}>Currently unavailable</Text>
-                        )}
+                        ) : null}
                       </View>
 
-                      <View style={styles.itemControls}>
+                      <View style={styles.itemStepperWrap}>
                         <QuantityStepper
-                          compact
+                          dense
                           quantity={item.quantity}
                           onIncrement={() => updateQuantity(item.product.id, item.quantity + 1, itemType, item.variant?.id ?? null)}
                           onDecrement={() => {
@@ -898,18 +1088,9 @@ export default function CartScreen() {
                             else updateQuantity(item.product.id, item.quantity - 1, itemType, item.variant?.id ?? null);
                           }}
                         />
-                        <TouchableOpacity
-                          style={styles.removeBtn}
-                          onPress={() => handleRemove(item.product.id, itemType, item.variant?.id ?? null)}
-                          accessibilityRole="button"
-                          accessibilityLabel="Remove item"
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <AppIcon name="delete" size={15} color={colors.textSecondary} />
-                        </TouchableOpacity>
                       </View>
                     </View>
-                    {!isLast && <View style={styles.itemDivider} />}
+                    {!isLast ? <View style={styles.itemDivider} /> : null}
                   </Animated.View>
                 );
               })}
@@ -936,9 +1117,6 @@ export default function CartScreen() {
                 />
               </View>
             ) : renderBillSummary()}
-
-            {/* Nearest unlockable offer progress hint */}
-            {!isCalculating && !calcError && renderNearestOfferHint()}
 
             {/* Coupon / Offer Section */}
             {renderCouponCard()}
@@ -980,15 +1158,6 @@ export default function CartScreen() {
         </View>
       )}
 
-      <CouponSheet
-        visible={showCouponSheet}
-        onClose={() => setShowCouponSheet(false)}
-        subtotal={bill?.subtotal || 0}
-        availableCoupons={bill?.availableCoupons || []}
-        appliedCoupon={appliedCoupon}
-        onApplyCoupon={handleApplyCoupon}
-        onRemoveCoupon={handleRemoveCoupon}
-      />
     </AppScreen>
   );
 }
@@ -1049,15 +1218,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenPaddingH,
   },
 
-  // ── Cart items (single grouped card, divided rows) ──────────────
+  // ── Cart items (white outer card, compact rows inside) ────────
   itemsCard: {
     backgroundColor: colors.bgSurface,
     borderRadius: radius.lg,
     borderWidth: borderWidth.thin,
     borderColor: colors.border,
     paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
     marginBottom: spacing.md,
-    ...shadows.xs,
+    ...shadows.sm,
   },
   itemRow: {
     flexDirection: 'row',
@@ -1066,62 +1237,42 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   itemDivider: {
-    height: borderWidth.thin,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: colors.divider,
+    marginLeft: 52 + spacing.md, // under text (image width + gap)
   },
   itemImage: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.md,
+    width: 52,
+    height: 52,
+    borderRadius: radius.sm,
     backgroundColor: colors.surfaceMuted,
   },
-  itemInfo: {
+  itemBody: {
     flex: 1,
     minWidth: 0,
     justifyContent: 'center',
   },
   itemName: {
-    ...typography.labelLarge,
+    ...typography.label,
     color: colors.textPrimary,
     fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 18,
   },
-  itemMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: 6,
-  },
-  itemUnit: {
+  itemMeta: {
     ...typography.caption,
     color: colors.textSecondary,
-    flexShrink: 1,
-  },
-  itemMetaDot: {
-    ...typography.caption,
-    color: colors.textTertiary,
-  },
-  itemPrice: {
-    ...typography.labelSmall,
-    color: colors.textPrimary,
-    fontWeight: '800',
+    marginTop: 3,
   },
   itemUnavailable: {
     ...typography.captionMedium,
     color: colors.error,
-    marginTop: 4,
+    marginTop: 2,
   },
-  itemControls: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
+  itemStepperWrap: {
     flexShrink: 0,
-  },
-  removeBtn: {
-    padding: spacing.xs,
-    minWidth: layout.minTouchTarget,
-    minHeight: layout.minTouchTarget - 8,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
 
   shopClosedBox: {
@@ -1189,7 +1340,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   nightChargeValue: {
-    color: colors.warning,
+    color: colors.textPrimary,
   },
   discountValue: {
     color: colors.success,
@@ -1215,49 +1366,74 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  freeDeliveryBox: {
+  fdDivider: {
+    height: borderWidth.thin,
+    backgroundColor: colors.divider,
     marginTop: spacing.md,
-  },
-  nearestOfferBox: {
-    backgroundColor: colors.saffronLight,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: borderWidth.thin,
-    borderColor: colors.saffron,
     marginBottom: spacing.md,
-    ...shadows.xs,
   },
-  freeDeliveryRow: {
+  freeDeliveryBox: {
+    marginTop: 0,
+  },
+  fdTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
+    gap: 7,
+    marginBottom: spacing.sm + 2,
   },
-  freeDeliveryHeading: {
-    ...typography.labelSmall,
+  fdLine: {
+    flex: 1,
+    flexShrink: 1,
+  },
+  fdLineBody: {
+    ...typography.label,
     color: colors.saffronDark,
     fontWeight: '700',
+    fontSize: 14,
+    letterSpacing: 0.1,
   },
-  progressTrack: {
-    height: 5,
-    backgroundColor: colors.saffron + '26',
+  fdAmount: {
+    color: colors.saffron,
+    fontWeight: '800',
+    fontSize: 16,
+    letterSpacing: -0.2,
+  },
+  fdProgressTrack: {
+    height: 14,
+    backgroundColor: 'rgba(255, 122, 58, 0.12)',
     borderRadius: radius.pill,
     overflow: 'hidden',
-    marginBottom: spacing.sm,
   },
-  progressFill: {
+  fdProgressFillWrap: {
     height: '100%',
-    backgroundColor: colors.saffron,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+  },
+  fdProgressFillInner: {
+    flex: 1,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  fdProgressFill: {
+    ...StyleSheet.absoluteFillObject,
     borderRadius: radius.pill,
   },
-  freeDeliveryHint: {
-    ...typography.caption,
-    color: colors.textSecondary,
+  fdProgressTip: {
+    position: 'absolute',
+    right: 2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.textInverse,
+    borderWidth: 2,
+    borderColor: colors.saffronDark,
   },
-  freeDeliveryAmount: {
-    ...typography.captionMedium,
-    color: colors.saffronDark,
-    fontWeight: '700',
+  fdShimmer: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 78,
   },
   billSkeletonTitle: {
     height: 18,
@@ -1356,7 +1532,7 @@ const styles = StyleSheet.create({
     color: colors.error,
   },
 
-  // ── Inline offers section (top 2 offers + Show more button) ────
+  // ── Applied offer + future unlocks (auto-apply, display only) ──
   couponOffersSection: {
     gap: spacing.sm,
     marginBottom: spacing.md,
@@ -1371,6 +1547,55 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+  },
+  couponFutureList: {
+    marginTop: spacing.xs,
+    gap: spacing.sm,
+  },
+  couponFutureHeading: {
+    ...typography.captionMedium,
+    color: colors.saffronDark,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+    marginBottom: 2,
+  },
+  couponFutureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.bgSurface,
+    borderRadius: radius.md,
+  },
+  couponFutureIcon: {
+    marginRight: spacing.sm + 2,
+    flexShrink: 0,
+  },
+  couponFutureTitle: {
+    ...typography.label,
+    color: colors.textPrimary,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+  couponFutureHint: {
+    ...typography.caption,
+    color: colors.saffronDark,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  couponFutureSavings: {
+    ...typography.labelSmall,
+    color: colors.saffron,
+    fontWeight: '800',
+    marginLeft: spacing.sm,
+    flexShrink: 0,
+  },
+  couponFutureLocked: {
+    ...typography.captionMedium,
+    color: colors.textTertiary,
+    fontWeight: '700',
+    marginLeft: spacing.sm,
+    flexShrink: 0,
   },
   couponOffersHeading: {
     ...typography.label,

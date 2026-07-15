@@ -103,9 +103,35 @@ describe('api mappers', () => {
       },
     });
 
-    expect(result.appliedCoupon).toEqual({ id: 1, code: 'FLAT10', title: 'Flat 10', autoApplied: false });
+    expect(result.appliedCoupon).toEqual(expect.objectContaining({
+      id: 1,
+      code: 'FLAT10',
+      title: 'Flat 10',
+      autoApplied: false,
+    }));
     expect(result.couponError).toBe('Invalid coupon code');
     expect(result.availableCoupons).toEqual([{ id: 2, code: 'SAVE20' }]);
+  });
+
+  it('preserves autoApplied so auto-apply coupons are not force-locked on the client', () => {
+    const result = normalizeCartCalculation({
+      data: {
+        applied_coupon: {
+          id: 9,
+          code: 'FREEDEL',
+          title: 'Free Delivery',
+          discount_type: 'free_delivery',
+          auto_applied: true,
+          also_free_delivery: false,
+          free_delivery_waiver: 30,
+          item_discount: 0,
+          discount: 30,
+        },
+      },
+    });
+    expect(result.appliedCoupon.autoApplied).toBe(true);
+    expect(result.appliedCoupon.discountType).toBe('free_delivery');
+    expect(result.appliedCoupon.freeDeliveryWaiver).toBe(30);
   });
 
   it('maps delivery snapshot fields from order response', () => {

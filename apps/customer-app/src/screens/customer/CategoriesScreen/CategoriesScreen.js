@@ -78,13 +78,26 @@ export default function CategoriesScreen() {
     )).map(item => item.name || item).filter(Boolean)),
   ], [categories]);
 
+  // If the selected chip doesn't exist for the current mode (e.g. user picked
+  // "Burgers" on fast food then switched to sweets), fall back to All so the
+  // list is never wiped by a stale filter.
+  const effectiveChip = chips.includes(activeChip) ? activeChip : 'All';
+
+  // API already filters by store type (`getCategories({ type })`). Do NOT
+  // re-filter by category.type here — mismatches empty the list after mode
+  // switches even when the fetch returned categories.
   const displayCategories = useMemo(() => categories.filter(category => {
-    const type = String(category.type || '').toLowerCase();
-    const typeMatches = !type || type === normalizedStoreType.toLowerCase();
-    const chipMatches = activeChip === 'All'
-      || category.subcategories?.some(item => String(item.name || item).toLowerCase() === activeChip.toLowerCase());
-    return typeMatches && chipMatches;
-  }), [categories, normalizedStoreType, activeChip]);
+    if (effectiveChip === 'All') return true;
+    return category.subcategories?.some(
+      item => String(item.name || item).toLowerCase() === effectiveChip.toLowerCase(),
+    );
+  }), [categories, effectiveChip]);
+
+  // Reset chip when the shop mode changes so a previous mode's chip can't
+  // hide every category on the next mode.
+  useEffect(() => {
+    setActiveChip('All');
+  }, [storeType]);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -94,8 +107,17 @@ export default function CategoriesScreen() {
 
   useEffect(() => {
     if (isLoading || !categoriesData) return;
-    // Re-run entry animation when the mode's data first becomes available.
-    if (lastAnimatedKeyRef.current === categoriesCacheKey) return;
+
+    // Same mode key again (cache revalidate / remount): keep list visible.
+    // Without this, a revalidate can skip the entry animation while opacity
+    // is still 0 from a prior interrupted switch → "all categories gone".
+    if (lastAnimatedKeyRef.current === categoriesCacheKey) {
+      fadeAnim.setValue(1);
+      slideAnim.setValue(0);
+      staggerAnims.forEach(anim => anim.setValue(1));
+      return;
+    }
+
     lastAnimatedKeyRef.current = categoriesCacheKey;
     fadeAnim.setValue(0);
     slideAnim.setValue(20);
@@ -163,7 +185,9 @@ export default function CategoriesScreen() {
             renderLabel={(slug) => modes.find(m => m.slug === slug)?.label || slug}
             selectedOption={storeType}
             onSelect={(opt) => {
+              if (opt === storeType) return;
               LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setActiveChip('All');
               setStoreType(opt);
             }}
           />
@@ -191,7 +215,7 @@ export default function CategoriesScreen() {
             contentContainerStyle={styles.chipsScroll}
           >
             {chips.map((chip) => {
-              const isActive = activeChip === chip;
+              const isActive = effectiveChip === chip;
               return (
                 <TouchableOpacity
                   key={chip}

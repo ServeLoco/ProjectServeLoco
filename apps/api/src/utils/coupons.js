@@ -425,8 +425,24 @@ const validateCouponById = async ({
 
 /**
  * Finds the single best auto-apply coupon for the given context.
- * "Best" = highest discount; ties broken by higher priority, then by id.
- * Returns { coupon, discount } or null if none apply.
+ *
+ * Coupon model (product):
+ *  - free_delivery: pure free-delivery unlock (lower min order, e.g. ₹150)
+ *  - flat/percent: item discount; optional also_free_delivery checkbox adds
+ *    free delivery on the same coupon (higher min order, e.g. ₹200 / ₹300 / ₹400)
+ *
+ * Selection = maximum customer savings among currently eligible auto-apply
+ * coupons. Total discount already includes freeDeliveryWaiver when
+ * also_free_delivery is set, so a ₹400 "₹40 off + free delivery" beats both
+ * pure free delivery and a lower-tier ₹300 offer.
+ *
+ * Tie-breakers (after equal total savings):
+ *  1. Higher min_order (prefer the furthest unlocked ladder step, e.g. ₹400 > ₹300)
+ *  2. Higher min_item_count
+ *  3. Higher priority
+ *  4. Higher id
+ *
+ * Returns { coupon, discount, itemDiscount, freeDeliveryWaiver } or null.
  *
  * @param {Object} params - { subtotal, deliveryCharge, storeType, userId, now, connection }
  */
@@ -454,7 +470,7 @@ const pickBestAutoApply = async ({
     [now, now]
   );
 
-  let best = null;
+  const eligible = [];
   for (const coupon of rows) {
     const result = await checkEligibility({
       coupon,
@@ -467,12 +483,34 @@ const pickBestAutoApply = async ({
       connection: conn,
       itemCount,
     });
-    if (result.ok && (!best || result.discount > best.discount)) {
-      best = result;
-    }
+    if (result.ok) eligible.push(result);
   }
 
-  return best;
+  if (eligible.length === 0) return null;
+
+  // Max savings first; on a tie prefer the furthest ladder step the cart has
+  // unlocked (highest min_order), so completing the ₹400 bar applies the ₹400
+  // coupon — not a lower unlocked tier that happens to share priority.
+  const compareRank = (a, b) => {
+    if (a.discount !== b.discount) return b.discount - a.discount;
+
+    const ma = toMoney(a.coupon.min_order_amount);
+    const mb = toMoney(b.coupon.min_order_amount);
+    if (ma !== mb) return mb - ma;
+
+    const ia = Number(a.coupon.min_item_count) || 0;
+    const ib = Number(b.coupon.min_item_count) || 0;
+    if (ia !== ib) return ib - ia;
+
+    const pa = Number(a.coupon.priority) || 0;
+    const pb = Number(b.coupon.priority) || 0;
+    if (pa !== pb) return pb - pa;
+
+    return (Number(b.coupon.id) || 0) - (Number(a.coupon.id) || 0);
+  };
+
+  eligible.sort(compareRank);
+  return eligible[0];
 };
 
 /**

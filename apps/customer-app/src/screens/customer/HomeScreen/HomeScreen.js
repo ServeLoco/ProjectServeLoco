@@ -445,6 +445,19 @@ export default function HomeScreen() {
     navigation.navigate('ProductList', { categoryId: category.id, categoryName: category.name, storeType: currentApiStoreType });
   };
 
+  // Segment control only — no swipe-to-switch (avoids clashing with rails).
+  const selectStoreType = useCallback((val) => {
+    if (!val || val === storeType) return;
+    const cached = sectionsCacheRef.current[val];
+    if (cached) {
+      setDashboardSections(cached);
+    } else {
+      setDashboardSections([]);
+      setIsLoading(true);
+    }
+    setStoreType(val);
+  }, [storeType]);
+
   const handleProductPress = (product) => {
     const isCombo = product.isCombo || product.is_combo || product.comboItems?.length;
     navigation.navigate('ProductDetail', {
@@ -633,20 +646,7 @@ export default function HomeScreen() {
               options={modes.map(m => m.slug)}
               renderLabel={(slug) => modes.find(m => m.slug === slug)?.label || slug}
               selectedOption={storeType}
-              onSelect={(val) => {
-                if (val !== storeType) {
-                  const cached = sectionsCacheRef.current[val];
-                  if (cached) {
-                    // Instant swap from cache; the storeType change below
-                    // triggers a background revalidation via loadHomeData.
-                    setDashboardSections(cached);
-                  } else {
-                    setDashboardSections([]);
-                    setIsLoading(true);
-                  }
-                  setStoreType(val);
-                }
-              }}
+              onSelect={selectStoreType}
             />
           </View>
 
@@ -936,9 +936,31 @@ function HomeHeader({
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  // Idle typewriter placeholder: "Coca Cola" → erase → "Pizza" → …
+  const [typedPlaceholder, setTypedPlaceholder] = useState('');
   const searchInputRef = useRef(null);
   const debounceRef = useRef(null);
+  const typewriterTimerRef = useRef(null);
   const dropdownAnim = useRef(new Animated.Value(0)).current;
+  // Search bar motion: entrance, focus lift, idle icon pulse, go-chevron nudge
+  const searchEnterAnim = useRef(new Animated.Value(0)).current;
+  const searchFocusAnim = useRef(new Animated.Value(0)).current;
+  const searchIconPulse = useRef(new Animated.Value(1)).current;
+  const searchChevronNudge = useRef(new Animated.Value(0)).current;
+  const caretBlinkAnim = useRef(new Animated.Value(1)).current;
+
+  // Example names for the cycling typewriter (local-first food & drinks)
+  const SEARCH_TYPE_EXAMPLES = useMemo(
+    () => [
+      'Coca Cola',
+      'Pizza',
+      'Burger',
+      'Samosa',
+      'Cold drinks',
+      'Ice cream',
+    ],
+    []
+  );
 
   // Track the keyboard so we can shrink the result list while typing
   // (2 items) and let it expand to the full 6 once the keyboard hides.
@@ -956,6 +978,173 @@ function HomeHeader({
       hideSub.remove();
     };
   }, []);
+
+  // Entrance: fade + slide up + soft scale-in once on mount
+  useEffect(() => {
+    Animated.spring(searchEnterAnim, {
+      toValue: 1,
+      friction: 7,
+      tension: 55,
+      useNativeDriver: true,
+    }).start();
+  }, [searchEnterAnim]);
+
+  // Focus: slight lift/scale when the field is active
+  useEffect(() => {
+    Animated.spring(searchFocusAnim, {
+      toValue: isSearchOpen ? 1 : 0,
+      friction: 8,
+      tension: 120,
+      useNativeDriver: true,
+    }).start();
+  }, [isSearchOpen, searchFocusAnim]);
+
+  // Idle pulse on the saffron search icon (pauses while focused)
+  useEffect(() => {
+    if (isSearchOpen) {
+      searchIconPulse.stopAnimation();
+      Animated.spring(searchIconPulse, {
+        toValue: 1,
+        friction: 6,
+        tension: 140,
+        useNativeDriver: true,
+      }).start();
+      return undefined;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(searchIconPulse, {
+          toValue: 1.1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(searchIconPulse, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [isSearchOpen, searchIconPulse]);
+
+  // Soft left→right nudge on the go chevron while idle (no query)
+  useEffect(() => {
+    const hasQ = searchQuery.trim().length > 0;
+    if (hasQ) {
+      searchChevronNudge.stopAnimation();
+      searchChevronNudge.setValue(0);
+      return undefined;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(searchChevronNudge, {
+          toValue: 1,
+          duration: 850,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(searchChevronNudge, {
+          toValue: 0,
+          duration: 850,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [searchQuery, searchChevronNudge]);
+
+  // Typewriter placeholder: type → pause → backspace → next example.
+  // Pauses while the user is focused or has typed a real query.
+  useEffect(() => {
+    const idle = !isSearchOpen && !searchQuery.trim();
+    if (!idle) {
+      if (typewriterTimerRef.current) {
+        clearTimeout(typewriterTimerRef.current);
+        typewriterTimerRef.current = null;
+      }
+      return undefined;
+    }
+
+    let wordIndex = 0;
+    let charIndex = 0;
+    let deleting = false;
+    let cancelled = false;
+
+    const TYPE_MS = 70;
+    const DELETE_MS = 40;
+    const HOLD_MS = 1400;
+    const GAP_MS = 400;
+
+    const tick = () => {
+      if (cancelled) return;
+      const word = SEARCH_TYPE_EXAMPLES[wordIndex % SEARCH_TYPE_EXAMPLES.length];
+
+      if (!deleting) {
+        charIndex += 1;
+        setTypedPlaceholder(word.slice(0, charIndex));
+        if (charIndex >= word.length) {
+          deleting = true;
+          typewriterTimerRef.current = setTimeout(tick, HOLD_MS);
+          return;
+        }
+        typewriterTimerRef.current = setTimeout(tick, TYPE_MS);
+        return;
+      }
+
+      charIndex -= 1;
+      setTypedPlaceholder(word.slice(0, Math.max(0, charIndex)));
+      if (charIndex <= 0) {
+        deleting = false;
+        wordIndex = (wordIndex + 1) % SEARCH_TYPE_EXAMPLES.length;
+        typewriterTimerRef.current = setTimeout(tick, GAP_MS);
+        return;
+      }
+      typewriterTimerRef.current = setTimeout(tick, DELETE_MS);
+    };
+
+    typewriterTimerRef.current = setTimeout(tick, 350);
+    return () => {
+      cancelled = true;
+      if (typewriterTimerRef.current) {
+        clearTimeout(typewriterTimerRef.current);
+        typewriterTimerRef.current = null;
+      }
+    };
+  }, [isSearchOpen, searchQuery, SEARCH_TYPE_EXAMPLES]);
+
+  // Blinking caret next to the typed placeholder
+  useEffect(() => {
+    const idle = !isSearchOpen && !searchQuery.trim();
+    if (!idle) {
+      caretBlinkAnim.stopAnimation();
+      caretBlinkAnim.setValue(1);
+      return undefined;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(caretBlinkAnim, {
+          toValue: 0,
+          duration: 420,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(caretBlinkAnim, {
+          toValue: 1,
+          duration: 420,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [isSearchOpen, searchQuery, caretBlinkAnim]);
 
   const runSearch = useCallback(async (query) => {
     const trimmed = String(query || '').trim();
@@ -1141,6 +1330,45 @@ function HomeHeader({
 
   const hasQuery = searchQuery.trim().length > 0;
 
+  const searchBarMotionStyle = {
+    opacity: searchEnterAnim,
+    transform: [
+      {
+        translateY: searchEnterAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [16, 0],
+        }),
+      },
+      {
+        scale: Animated.multiply(
+          searchEnterAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.94, 1],
+          }),
+          searchFocusAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 1.02],
+          })
+        ),
+      },
+    ],
+  };
+
+  const searchIconMotionStyle = {
+    transform: [{ scale: searchIconPulse }],
+  };
+
+  const searchChevronMotionStyle = {
+    transform: [
+      {
+        translateX: searchChevronNudge.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 4],
+        }),
+      },
+    ],
+  };
+
   return (
     <View style={styles.homeHeader}>
       <View style={styles.homeHeaderCard}>
@@ -1206,20 +1434,17 @@ function HomeHeader({
         </View>
       </View>
 
-      {/* Search bar — full-width, real TextInput with live results */}
-      <View style={styles.searchBarOuter}>
-        <LinearGradient
-          colors={['rgba(255,255,255,0.95)', 'rgba(255,242,235,0.92)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.searchBarGradient}
+      {/* Search bar — full-width, real TextInput with live results.
+          Single rounded shell (no nested gradient ring) so Android never
+          paints square peach corners behind the pill. */}
+      <Animated.View style={[styles.searchBarOuter, searchBarMotionStyle]}>
+        <Pressable
+          style={styles.searchBar}
+          onPressIn={focusInput}
+          android_disableSound
+          accessibilityLabel="Search products"
         >
-          <Pressable
-            style={styles.searchBar}
-            onPressIn={focusInput}
-            android_disableSound
-            accessibilityLabel="Search products"
-          >
+          <Animated.View style={searchIconMotionStyle}>
             <LinearGradient
               colors={[colors.saffron, colors.saffronDark]}
               start={{ x: 0, y: 0 }}
@@ -1228,7 +1453,9 @@ function HomeHeader({
             >
               <AppIcon name="search" size={20} color="#FFFFFF" strokeWidth={2.4} />
             </LinearGradient>
-            <View style={styles.searchTextWrap}>
+          </Animated.View>
+          <View style={styles.searchTextWrap}>
+            <View style={styles.searchInputRow}>
               <TextInput
                 ref={searchInputRef}
                 style={styles.searchInput}
@@ -1236,7 +1463,11 @@ function HomeHeader({
                 onChangeText={setSearchQuery}
                 onFocus={handleFocus}
                 onSubmitEditing={handleSubmit}
-                placeholder="Search items, food, snacks..."
+                // Empty when idle so the typewriter overlay is visible;
+                // static placeholder only while focused with no text.
+                placeholder={
+                  hasQuery || isSearchOpen ? 'Search items, food, snacks...' : ''
+                }
                 placeholderTextColor={colors.textSecondary}
                 selectionColor={colors.saffronDark}
                 cursorColor={colors.saffronDark}
@@ -1246,54 +1477,82 @@ function HomeHeader({
                 accessibilityLabel="Search products"
                 showSoftInputOnFocus
               />
-              {!hasQuery && (
-                <Text pointerEvents="none" style={styles.searchHint} numberOfLines={1}>
-                  Try "samosa" or "cold drinks"
-                </Text>
-              )}
-              {hasQuery && (
-                <Text pointerEvents="none" style={styles.searchHint} numberOfLines={1}>
-                  {isSearching
-                    ? 'Searching...'
-                    : searchResults.length > 0
-                    ? `${searchResults.length} match${searchResults.length === 1 ? '' : 'es'} found`
-                    : 'No matches yet'}
-                </Text>
+              {!hasQuery && !isSearchOpen && (
+                <View
+                  pointerEvents="none"
+                  style={styles.searchTypewriterOverlay}
+                >
+                  <Text style={styles.searchTypewriterPrefix} numberOfLines={1}>
+                    Search{' '}
+                  </Text>
+                  <Text style={styles.searchTypewriterText} numberOfLines={1}>
+                    {typedPlaceholder}
+                  </Text>
+                  <Animated.Text
+                    style={[
+                      styles.searchTypewriterCaret,
+                      { opacity: caretBlinkAnim },
+                    ]}
+                  >
+                    |
+                  </Animated.Text>
+                </View>
               )}
             </View>
-            {hasQuery ? (
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={handleClear}
-                style={styles.searchClearButton}
-                accessibilityRole="button"
-                accessibilityLabel="Clear search"
-                hitSlop={8}
-              >
-                <AppIcon name="close" size={18} color={colors.saffronDark} strokeWidth={2.4} />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={handleSubmit}
-                style={styles.searchGoPill}
-                accessibilityRole="button"
-                accessibilityLabel="Search"
-                hitSlop={8}
-              >
-                <LinearGradient
-                  colors={[colors.saffron, colors.saffronDark]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.searchGoGradient}
-                >
-                  <AppIcon name="chevronRight" size={18} color="#FFFFFF" strokeWidth={2.8} />
-                </LinearGradient>
-              </TouchableOpacity>
+            {!hasQuery && !isSearchOpen && (
+              <Text pointerEvents="none" style={styles.searchHint} numberOfLines={1}>
+                Popular picks near you
+              </Text>
             )}
-          </Pressable>
-        </LinearGradient>
-      </View>
+            {!hasQuery && isSearchOpen && (
+              <Text pointerEvents="none" style={styles.searchHint} numberOfLines={1}>
+                Type a dish, drink, or snack
+              </Text>
+            )}
+            {hasQuery && (
+              <Text pointerEvents="none" style={styles.searchHint} numberOfLines={1}>
+                {isSearching
+                  ? 'Searching...'
+                  : searchResults.length > 0
+                  ? `${searchResults.length} match${searchResults.length === 1 ? '' : 'es'} found`
+                  : 'No matches yet'}
+              </Text>
+            )}
+          </View>
+          {hasQuery ? (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={handleClear}
+              style={styles.searchClearButton}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              hitSlop={8}
+            >
+              <AppIcon name="close" size={18} color={colors.saffronDark} strokeWidth={2.4} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleSubmit}
+              style={styles.searchGoPill}
+              accessibilityRole="button"
+              accessibilityLabel="Search"
+              hitSlop={8}
+            >
+              <LinearGradient
+                colors={[colors.saffron, colors.saffronDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.searchGoGradient}
+              >
+                <Animated.View style={searchChevronMotionStyle}>
+                  <AppIcon name="chevronRight" size={18} color="#FFFFFF" strokeWidth={2.8} />
+                </Animated.View>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+        </Pressable>
+      </Animated.View>
 
       {/* Live search dropdown — rendered inline below the search bar */}
       {isSearchOpen && hasQuery && (
@@ -1941,25 +2200,24 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     marginHorizontal: 0, // full width — escapes the card padding
     borderRadius: 28,
-    overflow: 'visible',
-    shadowColor: colors.saffronDark,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 5,
-  },
-  searchBarGradient: {
-    borderRadius: 28,
-    padding: 4,
+    // Solid white + matching radius + overflow hidden so Android elevation
+    // outline is fully rounded (no square peach corners in the bg).
+    backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: 'rgba(255, 122, 58, 0.35)',
+    overflow: 'hidden',
+    // Darker saffron drop shadow under the pill
+    shadowColor: colors.saffronDark || '#E05A1A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.42,
+    shadowRadius: 16,
+    elevation: 9,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     height: 58,
-    borderRadius: 24,
     paddingHorizontal: 6,
     paddingRight: 6,
   },
@@ -1980,6 +2238,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 4,
   },
+  searchInputRow: {
+    position: 'relative',
+    justifyContent: 'center',
+    minHeight: 22,
+  },
   searchInput: {
     ...typography.body,
     color: colors.textPrimary,
@@ -1987,6 +2250,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 1,
     padding: 0,
+  },
+  searchTypewriterOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 4,
+  },
+  searchTypewriterPrefix: {
+    ...typography.body,
+    fontSize: 14.5,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  searchTypewriterText: {
+    ...typography.body,
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: colors.saffronDark || colors.saffron,
+  },
+  searchTypewriterCaret: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: colors.saffronDark || colors.saffron,
+    marginLeft: 1,
+    marginTop: -1,
   },
   searchHint: {
     ...typography.caption,

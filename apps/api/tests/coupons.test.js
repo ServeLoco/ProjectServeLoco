@@ -77,6 +77,7 @@ const buildCoupon = (overrides = {}) => ({
   title: 'Welcome',
   description: 'Welcome offer',
   discount_type: 'flat',
+  also_free_delivery: 0,
   discount_value: 10,
   max_discount_amount: null,
   min_order_amount: 0,
@@ -876,6 +877,204 @@ describe('coupons.pickBestAutoApply', () => {
       expect.stringContaining('auto_apply = 1'),
       [now, now]
     );
+  });
+
+  it('keeps free_delivery when a later discount has lower total savings (no also_free_delivery)', async () => {
+    // FREEDEL waives ₹35. SAVE10 is only ₹20 item off without free delivery → free_delivery is best.
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({
+        id: 1,
+        code: 'FREEDEL',
+        discount_type: 'free_delivery',
+        discount_value: 0,
+        min_order_amount: 150,
+        auto_apply: 1,
+        requires_code: 0,
+        priority: 5,
+      }),
+      buildCoupon({
+        id: 2,
+        code: 'SAVE10',
+        discount_type: 'percent',
+        discount_value: 10,
+        min_order_amount: 200,
+        auto_apply: 1,
+        requires_code: 0,
+        priority: 1,
+      }),
+    ]]);
+    const r = await coupons.pickBestAutoApply({
+      subtotal: 200,
+      deliveryCharge: 35,
+      standardDeliveryCharge: 35,
+    });
+    expect(r).not.toBeNull();
+    expect(r.coupon.id).toBe(1);
+    expect(r.coupon.discount_type).toBe('free_delivery');
+    expect(r.discount).toBe(35);
+  });
+
+  it('keeps free_delivery when the later discount is not yet unlocked', async () => {
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({
+        id: 1,
+        code: 'FREEDEL',
+        discount_type: 'free_delivery',
+        discount_value: 0,
+        min_order_amount: 150,
+        auto_apply: 1,
+        requires_code: 0,
+      }),
+      buildCoupon({
+        id: 2,
+        code: 'SAVE10',
+        discount_type: 'flat',
+        discount_value: 40,
+        also_free_delivery: 1,
+        min_order_amount: 200,
+        auto_apply: 1,
+        requires_code: 0,
+      }),
+    ]]);
+    const r = await coupons.pickBestAutoApply({
+      subtotal: 170,
+      deliveryCharge: 35,
+      standardDeliveryCharge: 35,
+    });
+    expect(r).not.toBeNull();
+    expect(r.coupon.id).toBe(1);
+    expect(r.coupon.discount_type).toBe('free_delivery');
+  });
+
+  it('prefers combined also_free_delivery offer over pure free_delivery (higher total savings)', async () => {
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({
+        id: 1,
+        code: 'FREEDEL',
+        discount_type: 'free_delivery',
+        discount_value: 0,
+        min_order_amount: 150,
+        auto_apply: 1,
+        requires_code: 0,
+      }),
+      buildCoupon({
+        id: 2,
+        code: 'SAVE10FREE',
+        discount_type: 'percent',
+        discount_value: 10,
+        also_free_delivery: 1,
+        min_order_amount: 200,
+        auto_apply: 1,
+        requires_code: 0,
+      }),
+    ]]);
+    const r = await coupons.pickBestAutoApply({
+      subtotal: 200,
+      deliveryCharge: 35,
+      standardDeliveryCharge: 35,
+    });
+    expect(r).not.toBeNull();
+    expect(r.coupon.id).toBe(2);
+    // 10% of 200 = 20 item + 35 free delivery waiver
+    expect(r.discount).toBe(55);
+    expect(r.freeDeliveryWaiver).toBe(35);
+    expect(r.itemDiscount).toBe(20);
+  });
+
+  it('at a filled ₹400 bar picks the ₹400 coupon, not a lower unlocked ₹300 tier', async () => {
+    // Free delivery @150, then discount+free ladder @200 / @300 / @400.
+    // Completing ₹400 must auto-apply the ₹400 offer (max savings), not ₹300.
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({
+        id: 1,
+        code: 'FREEDEL',
+        discount_type: 'free_delivery',
+        discount_value: 0,
+        min_order_amount: 150,
+        auto_apply: 1,
+        requires_code: 0,
+        priority: 10,
+      }),
+      buildCoupon({
+        id: 2,
+        code: 'SAVE10',
+        discount_type: 'flat',
+        discount_value: 10,
+        also_free_delivery: 1,
+        min_order_amount: 200,
+        auto_apply: 1,
+        requires_code: 0,
+        priority: 9,
+      }),
+      buildCoupon({
+        id: 3,
+        code: 'SAVE20',
+        discount_type: 'flat',
+        discount_value: 20,
+        also_free_delivery: 1,
+        min_order_amount: 300,
+        auto_apply: 1,
+        requires_code: 0,
+        priority: 8,
+      }),
+      buildCoupon({
+        id: 4,
+        code: 'SAVE40',
+        discount_type: 'flat',
+        discount_value: 40,
+        also_free_delivery: 1,
+        min_order_amount: 400,
+        auto_apply: 1,
+        requires_code: 0,
+        priority: 1, // lower priority must not beat higher savings
+      }),
+    ]]);
+    const r = await coupons.pickBestAutoApply({
+      subtotal: 400,
+      deliveryCharge: 35,
+      standardDeliveryCharge: 35,
+    });
+    expect(r).not.toBeNull();
+    expect(r.coupon.id).toBe(4);
+    expect(r.coupon.code).toBe('SAVE40');
+    // 40 item + 35 free delivery
+    expect(r.discount).toBe(75);
+    expect(r.itemDiscount).toBe(40);
+    expect(r.freeDeliveryWaiver).toBe(35);
+  });
+
+  it('when two coupons save the same amount, prefers the higher min_order ladder step', async () => {
+    pool.query.mockResolvedValueOnce([[
+      buildCoupon({
+        id: 3,
+        code: 'TIER300',
+        discount_type: 'flat',
+        discount_value: 50,
+        also_free_delivery: 1,
+        min_order_amount: 300,
+        auto_apply: 1,
+        requires_code: 0,
+        priority: 5,
+      }),
+      buildCoupon({
+        id: 4,
+        code: 'TIER400',
+        discount_type: 'flat',
+        discount_value: 50,
+        also_free_delivery: 1,
+        min_order_amount: 400,
+        auto_apply: 1,
+        requires_code: 0,
+        priority: 5,
+      }),
+    ]]);
+    const r = await coupons.pickBestAutoApply({
+      subtotal: 400,
+      deliveryCharge: 30,
+      standardDeliveryCharge: 30,
+    });
+    expect(r.coupon.id).toBe(4);
+    expect(r.coupon.code).toBe('TIER400');
   });
 });
 

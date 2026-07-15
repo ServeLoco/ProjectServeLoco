@@ -1,9 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radius, shadows, layout } from '../../theme';
 import { useCartStore } from '../../stores';
-import { buildProgressHintText } from '../../utils';
+import {
+  buildProgressHintText,
+  freeDeliveryUnlockPercent,
+  isFreeDeliveryUnlocked,
+  liveFreeDeliveryProgress,
+} from '../../utils';
 import PressableScale from '../PressableScale';
 import AppIcon from '../AppIcon';
 
@@ -29,19 +34,48 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
     ? (Number.isInteger(cartTotal) ? cartTotal.toFixed(0) : cartTotal.toFixed(2))
     : '0';
 
-  // Free-delivery progress hint, from the most recent cart-calculate call
-  // (set by CartScreen/CheckoutScreen). Display-only and may be stale/absent;
-  // the backend always re-verifies the fee and any coupon at checkout.
-  const freeDeliveryProgress = useCartStore((s) => s.freeDeliveryProgress);
-  const amountToFreeDelivery = freeDeliveryProgress?.amountRemaining || 0;
-  const itemsToFreeDelivery = freeDeliveryProgress?.itemsRemaining || 0;
-  const showFreeDeliveryHint = amountToFreeDelivery > 0 || itemsToFreeDelivery > 0;
+  // Server progress from cart/calculate + live recompute from local cart so
+  // "Add ₹X more for FREE delivery" tracks +/− on Home without waiting for
+  // the user to open Cart.
+  const storedProgress = useCartStore((s) => s.freeDeliveryProgress);
+  const freeDeliveryUnlockedFlag = useCartStore((s) => s.freeDeliveryUnlocked);
+  const cartItems = useCartStore((s) => s.items);
+
+  const { localSubtotal, localItemCount } = useMemo(() => {
+    let subtotal = 0;
+    let count = 0;
+    for (const item of cartItems || []) {
+      const qty = Number(item?.quantity) || 0;
+      const price = Number(item?.variant?.price ?? item?.product?.price) || 0;
+      subtotal += price * qty;
+      count += qty;
+    }
+    return { localSubtotal: subtotal, localItemCount: count };
+  }, [cartItems]);
+
+  // Prefer prop totals when parent already computed them (same math).
+  const subtotalForProgress = Number.isFinite(cartTotal) && cartTotal > 0
+    ? cartTotal
+    : localSubtotal;
+  const itemCountForProgress = itemCount > 0 ? itemCount : localItemCount;
+
+  const liveProgress = useMemo(
+    () => liveFreeDeliveryProgress(storedProgress, subtotalForProgress, itemCountForProgress),
+    [storedProgress, subtotalForProgress, itemCountForProgress],
+  );
+
+  const unlocked = isFreeDeliveryUnlocked(storedProgress, liveProgress, freeDeliveryUnlockedFlag);
+  const showFreeDeliveryHint = Boolean(liveProgress) || unlocked;
+  const unlockPercent = unlocked
+    ? 100
+    : freeDeliveryUnlockPercent(liveProgress || storedProgress, subtotalForProgress, itemCountForProgress);
 
   const isVisible = visible && itemCount > 0;
   const [shouldRender, setShouldRender] = useState(isVisible);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const progress = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
   const badgeScale = useRef(new Animated.Value(1)).current;
+  const barFill = useRef(new Animated.Value(0)).current;
   const prevCount = useRef(itemCount);
 
   // Effective visibility — hide entirely while the keyboard is up so the
@@ -65,6 +99,20 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
       }
     });
   }, [effectiveVisible, progress]);
+
+  // Animate the free-delivery track fill (width %).
+  useEffect(() => {
+    if (!showFreeDeliveryHint) {
+      barFill.setValue(0);
+      return;
+    }
+    Animated.spring(barFill, {
+      toValue: unlockPercent,
+      friction: 8,
+      tension: 60,
+      useNativeDriver: false,
+    }).start();
+  }, [unlockPercent, showFreeDeliveryHint, barFill]);
 
   // Hide the cart when the keyboard opens. Only wired on tab screens (Home)
   // since stack screens (ProductList, Categories) don't have the bottom tab
@@ -101,6 +149,10 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
 
   if (!shouldRender) return null;
 
+  const hintLabel = unlocked
+    ? 'Free delivery unlocked'
+    : buildProgressHintText(liveProgress, { suffix: ' for FREE delivery' });
+
   // Entrance is opacity-only (no translateY/scale transform) — a transform on
   // this container would move the Pressable's actual hit-test bounds with it,
   // so a real tap landing while the spring is still mid-flight (very common:
@@ -131,25 +183,53 @@ function StickyMiniCart({ itemCount = 0, total, totalAmount, onPress, visible = 
         style={styles.bar}
         scaleTo={0.96}
         accessibilityRole="button"
-        accessibilityLabel={`View cart, ${itemCount} item${itemCount !== 1 ? 's' : ''}`}
+        accessibilityLabel={
+          showFreeDeliveryHint
+            ? `View cart, ${itemCount} item${itemCount !== 1 ? 's' : ''}, ${hintLabel}`
+            : `View cart, ${itemCount} item${itemCount !== 1 ? 's' : ''}`
+        }
       >
-        {/* Left: total price, with the free-delivery nudge as a small line below it */}
-        <Animated.View style={[styles.textContainer, { transform: [{ scale: badgeScale }] }]}>
-          <Text style={styles.total} numberOfLines={1}>
-            <Text style={styles.totalLabel}>Total </Text>₹{displayTotal}
-          </Text>
-          {showFreeDeliveryHint && (
-            <Text style={styles.hintText} numberOfLines={1}>
-              {buildProgressHintText(freeDeliveryProgress, { suffix: ' for FREE delivery' })}
+        <View style={styles.barInner}>
+          {/* Left: total price, free-delivery nudge under it */}
+          <Animated.View style={[styles.textContainer, { transform: [{ scale: badgeScale }] }]}>
+            <Text style={styles.total} numberOfLines={1}>
+              <Text style={styles.totalLabel}>Total </Text>₹{displayTotal}
             </Text>
-          )}
-        </Animated.View>
+            {showFreeDeliveryHint && hintLabel ? (
+              <Text
+                style={[styles.hintText, unlocked && styles.hintTextUnlocked]}
+                numberOfLines={1}
+              >
+                {hintLabel}
+              </Text>
+            ) : null}
+          </Animated.View>
 
-        {/* Right: compact saffron "View Cart" pill button */}
-        <View style={styles.viewCartPill}>
-          <Text style={styles.title}>View Cart</Text>
-          <AppIcon name="chevronRight" size={13} color="#FFFFFF" />
+          {/* Right: compact saffron "View Cart" pill button */}
+          <View style={styles.viewCartPill}>
+            <Text style={styles.title}>View Cart</Text>
+            <AppIcon name="chevronRight" size={12} color="#FFFFFF" />
+          </View>
         </View>
+
+        {/* Status progress track inside the pill card */}
+        {showFreeDeliveryHint ? (
+          <View style={styles.progressTrack} accessibilityElementsHidden>
+            <Animated.View
+              style={[
+                styles.progressFill,
+                unlocked && styles.progressFillUnlocked,
+                {
+                  width: barFill.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: ['0%', '100%'],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ]}
+            />
+          </View>
+        ) : null}
       </PressableScale>
     </Animated.View>
   );
@@ -171,27 +251,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 1,
   },
+  hintTextUnlocked: {
+    color: '#7DFFB3',
+  },
   bar: {
     backgroundColor: '#1A1A1A',
     borderRadius: radius.pill,
     minHeight: 62,
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
+  barInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 36,
   },
   textContainer: {
     flex: 1,
     justifyContent: 'center',
     paddingLeft: spacing.md,
+    paddingRight: spacing.xs,
   },
   title: {
     ...typography.labelLarge,
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 12,
   },
   total: {
     ...typography.labelLarge,
@@ -208,12 +297,28 @@ const styles = StyleSheet.create({
   viewCartPill: {
     backgroundColor: colors.saffron,
     borderRadius: radius.pill,
-    height: 40,
+    height: 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    gap: 4,
+    paddingHorizontal: 12,
+    gap: 3,
+  },
+  progressTrack: {
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    marginTop: spacing.xs,
+    marginHorizontal: spacing.xs,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: colors.saffron,
+  },
+  progressFillUnlocked: {
+    backgroundColor: '#3DDC97',
   },
 });
 

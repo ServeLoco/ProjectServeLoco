@@ -13,6 +13,7 @@ import {
   Alert,
   LayoutAnimation,
   Platform,
+  UIManager,
   KeyboardAvoidingView,
   AppState,
   Dimensions,
@@ -29,7 +30,7 @@ import {
   ConfirmModal,
   LocationPicker,
 } from '../../../components';
-import { colors, typography, spacing, radius, shadows } from '../../../theme';
+import { colors, typography, spacing, radius, shadows, smallMs, easing } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore } from '../../../stores';
 import { cartApi, ordersApi, imagesApi, settingsApi } from '../../../api';
 import { trackEvent } from '../../../api/analyticsClient';
@@ -330,6 +331,7 @@ export default function CheckoutScreen() {
   const appliedCoupon = useCartStore(state => state.appliedCoupon);
   const couponAutoApplyDisabled = useCartStore(state => state.couponAutoApplyDisabled);
   const setFreeDeliveryProgress = useCartStore(state => state.setFreeDeliveryProgress);
+  const setFreeDeliveryUnlocked = useCartStore(state => state.setFreeDeliveryUnlocked);
   const shopStatus = useSettingsStore(state => state.shopStatus);
   const deliveryAvailable = useSettingsStore(state => state.deliveryAvailable);
   const upiQrImageId = useSettingsStore(state => state.upiQrImageId);
@@ -388,6 +390,10 @@ export default function CheckoutScreen() {
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  // Inline section errors (delivery / payment) — not the bottom red banner.
+  const [deliveryError, setDeliveryError] = useState(null);
+  const [paymentError, setPaymentError] = useState(null);
+  const sectionOffsetsRef = useRef({ delivery: 0, payment: 0 });
   const [showCodNightModal, setShowCodNightModal] = useState(false);
   const showCodNightWarning = () => {
     setSubmitError(null);
@@ -395,6 +401,7 @@ export default function CheckoutScreen() {
   };
   const handleSwitchToUpi = () => {
     setPaymentMethod('UPI');
+    setPaymentError(null);
     setShowCodNightModal(false);
     setSubmitError(null);
   };
@@ -422,9 +429,16 @@ export default function CheckoutScreen() {
   }), [checkoutItems, coordinates, deliveryType, appliedCouponCode, appliedCouponId, couponAutoApplyDisabled]);
 
   // Animations
-  const deliverySlide = useRef(new Animated.Value(20)).current;
-  const paymentSlide = useRef(new Animated.Value(20)).current;
-  const summarySlide = useRef(new Animated.Value(20)).current;
+  const deliverySlide = useRef(new Animated.Value(24)).current;
+  const paymentSlide = useRef(new Animated.Value(24)).current;
+  const summarySlide = useRef(new Animated.Value(24)).current;
+  const deliveryOpacity = useRef(new Animated.Value(0)).current;
+  const paymentOpacity = useRef(new Animated.Value(0)).current;
+  const summaryOpacity = useRef(new Animated.Value(0)).current;
+  const deliveryShakeX = useRef(new Animated.Value(0)).current;
+  const paymentShakeX = useRef(new Animated.Value(0)).current;
+  const deliveryErrorPulse = useRef(new Animated.Value(0)).current;
+  const paymentErrorPulse = useRef(new Animated.Value(0)).current;
   const btnScale = useRef(new Animated.Value(1)).current;
   const arrowAnim = useRef(new Animated.Value(0)).current;
   const gpsIconScale = useRef(new Animated.Value(1)).current;
@@ -434,6 +448,64 @@ export default function CheckoutScreen() {
   // fill, row border/background, and radio-dot animations together.
   const gpsRowProgress = useRef(new Animated.Value(0)).current;
   const manualRowProgress = useRef(new Animated.Value(0)).current;
+
+  const animateSectionChoice = useCallback(() => {
+    // Paper (old arch) Android needs this flag once so LayoutAnimation runs.
+    // Fabric / New Architecture implements the method as a no-op that WARN-logs
+    // every call — skip it so delivery/payment taps stay quiet.
+    const isNewArch = Boolean(
+      global?.nativeFabricUIManager || global?.RN$Bridgeless === true,
+    );
+    if (
+      Platform.OS === 'android'
+      && !isNewArch
+      && typeof UIManager?.setLayoutAnimationEnabledExperimental === 'function'
+    ) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+    LayoutAnimation.configureNext(
+      LayoutAnimation.create(smallMs, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity),
+    );
+  }, []);
+
+  const runSectionErrorAnim = useCallback((shakeX, pulse) => {
+    shakeX.setValue(0);
+    pulse.setValue(0);
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(shakeX, { toValue: 10, duration: 45, useNativeDriver: true }),
+        Animated.timing(shakeX, { toValue: -10, duration: 45, useNativeDriver: true }),
+        Animated.timing(shakeX, { toValue: 8, duration: 45, useNativeDriver: true }),
+        Animated.timing(shakeX, { toValue: -8, duration: 45, useNativeDriver: true }),
+        Animated.timing(shakeX, { toValue: 4, duration: 40, useNativeDriver: true }),
+        Animated.timing(shakeX, { toValue: 0, duration: 40, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 180, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.35, duration: 220, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 180, useNativeDriver: true }),
+      ]),
+    ]).start();
+  }, []);
+
+  const scrollToCheckoutSection = useCallback((key) => {
+    const y = sectionOffsetsRef.current[key] ?? 0;
+    setTimeout(() => {
+      scrollRef.current?.scrollTo?.({ y: Math.max(0, y - 8), animated: true });
+    }, 0);
+  }, []);
+
+  const pickDeliveryType = useCallback((type) => {
+    animateSectionChoice();
+    setDeliveryType(type);
+    setDeliveryError(null);
+  }, [animateSectionChoice]);
+
+  const pickPaymentMethod = useCallback((method) => {
+    animateSectionChoice();
+    setPaymentMethod(method);
+    setPaymentError(null);
+  }, [animateSectionChoice]);
 
   // Profile has no saved address — fall back to the address on the user's
   // most recent order so they don't have to retype it from scratch.
@@ -487,13 +559,22 @@ export default function CheckoutScreen() {
   }, [navigation]);
 
   useEffect(() => {
-    // Staggered entrance
-    Animated.stagger(100, [
-      Animated.timing(deliverySlide, { toValue: 0, duration: 400, useNativeDriver: true }),
-      Animated.timing(paymentSlide, { toValue: 0, duration: 400, useNativeDriver: true }),
-      Animated.timing(summarySlide, { toValue: 0, duration: 400, useNativeDriver: true }),
+    // Staggered fade + slide entrance for checkout sections
+    Animated.stagger(90, [
+      Animated.parallel([
+        Animated.timing(deliverySlide, { toValue: 0, duration: 380, easing, useNativeDriver: true }),
+        Animated.timing(deliveryOpacity, { toValue: 1, duration: 380, easing, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(paymentSlide, { toValue: 0, duration: 380, easing, useNativeDriver: true }),
+        Animated.timing(paymentOpacity, { toValue: 1, duration: 380, easing, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(summarySlide, { toValue: 0, duration: 380, easing, useNativeDriver: true }),
+        Animated.timing(summaryOpacity, { toValue: 1, duration: 380, easing, useNativeDriver: true }),
+      ]),
     ]).start();
-  }, [deliverySlide, paymentSlide, summarySlide]);
+  }, [deliverySlide, paymentSlide, summarySlide, deliveryOpacity, paymentOpacity, summaryOpacity]);
 
   // If the admin disables fast delivery, clear a stale fast selection.
   useEffect(() => {
@@ -574,6 +655,8 @@ export default function CheckoutScreen() {
     if (checkoutItems.length === 0) {
       setBill(null);
       setCalcError(null);
+      setFreeDeliveryProgress(null);
+      setFreeDeliveryUnlocked(false);
       return undefined;
     }
 
@@ -590,6 +673,10 @@ export default function CheckoutScreen() {
           const normalized = normalizeCartCalculation(response);
           setBill(normalized);
           setFreeDeliveryProgress(normalized.freeDeliveryProgress);
+          setFreeDeliveryUnlocked(Boolean(
+            normalized.appliedCoupon
+            && Number(normalized.appliedCoupon.freeDeliveryWaiver || 0) > 0,
+          ));
         })
         .catch(error => {
           if (!isActive) return;
@@ -708,6 +795,29 @@ export default function CheckoutScreen() {
       useNativeDriver: false,
     }).start();
   }, [sheetHeightAnim]);
+
+  const focusSectionError = useCallback((key, message) => {
+    snapSheet(true);
+    setSubmitError(null);
+    if (key === 'delivery') {
+      setDeliveryError(message);
+      setPaymentError(null);
+      runSectionErrorAnim(deliveryShakeX, deliveryErrorPulse);
+    } else {
+      setPaymentError(message);
+      setDeliveryError(null);
+      runSectionErrorAnim(paymentShakeX, paymentErrorPulse);
+    }
+    setTimeout(() => scrollToCheckoutSection(key), 300);
+  }, [
+    deliveryErrorPulse,
+    deliveryShakeX,
+    paymentErrorPulse,
+    paymentShakeX,
+    runSectionErrorAnim,
+    scrollToCheckoutSection,
+    snapSheet,
+  ]);
 
   // Drag the sheet from anywhere (not only the handle). When fully expanded,
   // vertical drags at scroll-top collapse; otherwise ScrollView owns the gesture.
@@ -970,14 +1080,13 @@ export default function CheckoutScreen() {
       setSubmitError('Please enter a delivery address');
       return;
     }
-    if (!paymentMethod) {
-      setSubmitError('Please select a payment method');
-      snapSheet(true);
+    // Section-first validation: inline errors + scroll, not the bottom red box.
+    if (bill?.fastDeliveryEnabled && !deliveryType) {
+      focusSectionError('delivery', 'Please choose Standard or Fast delivery');
       return;
     }
-    if (bill?.fastDeliveryEnabled && !deliveryType) {
-      setSubmitError('Please select a delivery speed');
-      snapSheet(true);
+    if (!paymentMethod) {
+      focusSectionError('payment', 'Please choose how you would like to pay');
       return;
     }
     if (shopStatus === 'closed') {
@@ -998,6 +1107,8 @@ export default function CheckoutScreen() {
 
     isSubmittingRef.current = true;
     setSubmitError(null);
+    setDeliveryError(null);
+    setPaymentError(null);
     setIsSubmitting(true);
 
     // Generate a fresh Idempotency-Key for this Place Order attempt. If the
@@ -1018,6 +1129,10 @@ export default function CheckoutScreen() {
       if (oldGrandTotal !== undefined && verifiedBill.grandTotal !== oldGrandTotal) {
         setBill(verifiedBill);
         setFreeDeliveryProgress(verifiedBill.freeDeliveryProgress);
+        setFreeDeliveryUnlocked(Boolean(
+          verifiedBill.appliedCoupon
+          && Number(verifiedBill.appliedCoupon.freeDeliveryWaiver || 0) > 0,
+        ));
         isSubmittingRef.current = false;
         setIsSubmitting(false);
         Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
@@ -1084,6 +1199,15 @@ export default function CheckoutScreen() {
     ? `Place Order • ₹${bill.grandTotal}`
     : 'Place Order';
   const mapMode = locationMode !== 'manual';
+
+  // Status under "Checkout" tracks sheet phase: pin buttons → options → place order.
+  const sheetStatusText = useMemo(() => {
+    if (!mapMode) return 'Enter delivery address';
+    if (!sheetExpanded) return 'Drag map to set pin · Confirm when ready';
+    if (bill?.fastDeliveryEnabled && !deliveryType) return 'Choose delivery speed';
+    if (!paymentMethod) return 'Choose payment method';
+    return 'Review & place your order';
+  }, [mapMode, sheetExpanded, bill?.fastDeliveryEnabled, deliveryType, paymentMethod]);
 
   return (
     <View style={styles.immersiveRoot}>
@@ -1161,11 +1285,7 @@ export default function CheckoutScreen() {
             <View style={[styles.sheetHeader, !mapMode && styles.sheetHeaderManual]}>
               <View style={styles.sheetHeaderText}>
                 <Text style={styles.sheetTitle}>Checkout</Text>
-                <Text style={styles.sheetStatusLine}>
-                  {mapMode
-                    ? 'Drag map to set pin · Confirm when ready'
-                    : 'Enter delivery address'}
-                </Text>
+                <Text style={styles.sheetStatusLine}>{sheetStatusText}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
@@ -1284,200 +1404,333 @@ export default function CheckoutScreen() {
         {/* Full form only when sheet is pulled up (or manual mode fills the screen). */}
         {(sheetExpanded || !mapMode) ? (
         <>
-        {/* Delivery Type Selector — shown whenever the admin has enabled fast delivery.
+        {/* Delivery Type Selector — open chips, no card chrome.
             Fast delivery fully replaces the standard charge, regardless of threshold/free-offer. */}
         {bill?.fastDeliveryEnabled && (
-          <Animated.View style={[styles.deliverySpeedSection, { transform: [{ translateY: paymentSlide }] }]}>
-            <View style={styles.deliverySpeedHeader}>
-              <View style={styles.deliverySpeedIconWrap}>
-                <AppIcon name="box" size={16} color={colors.textPrimary} />
-              </View>
-              <View style={styles.deliverySpeedHeaderText}>
-                <Text style={styles.deliverySpeedTitle}>Delivery Speed</Text>
-                <Text style={styles.deliverySpeedSubtitle}>Choose how fast you need it</Text>
+          <Animated.View
+            onLayout={(e) => {
+              sectionOffsetsRef.current.delivery = e.nativeEvent.layout.y;
+            }}
+            style={[
+              styles.deliverySpeedSection,
+              deliveryError && styles.sectionErrorWrap,
+              {
+                opacity: deliveryOpacity,
+                transform: [
+                  { translateY: deliverySlide },
+                  { translateX: deliveryShakeX },
+                ],
+              },
+            ]}
+          >
+            <View style={styles.sectionHead}>
+              <Animated.View
+                style={[
+                  styles.sectionAccent,
+                  deliveryError && styles.sectionAccentError,
+                  deliveryError && {
+                    opacity: deliveryErrorPulse.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.45, 1],
+                    }),
+                  },
+                ]}
+              />
+              <View style={styles.sectionHeadText}>
+                <Text style={[styles.sectionTitle, deliveryError && styles.sectionTitleError]}>
+                  Delivery Speed
+                </Text>
+                <Text style={styles.sectionSubtitle}>Choose how fast you need it</Text>
               </View>
             </View>
+            {deliveryError ? (
+              <View style={styles.sectionErrorRow} accessibilityLiveRegion="polite">
+                <AppIcon name="warning" size={14} color={colors.error} />
+                <Text style={styles.sectionErrorText}>{deliveryError}</Text>
+              </View>
+            ) : null}
             <View style={styles.deliveryTypeRow}>
               {/* Standard */}
-              <PressableScale
-                style={[styles.deliveryTypeCard, deliveryType === 'standard' && styles.deliveryTypeCardActive]}
-                onPress={() => setDeliveryType('standard')}
-                scaleTo={0.97}
-                accessibilityRole="button"
-                accessibilityLabel="Standard delivery"
-                accessibilityState={{ selected: deliveryType === 'standard' }}
-              >
-                <Text style={styles.deliveryTypeEmoji}>🕐</Text>
-                <View style={styles.deliveryTypeInfo}>
-                  <Text numberOfLines={1} style={[styles.deliveryTypeTitle, deliveryType === 'standard' && styles.deliveryTypeTitleActive]}>Standard Delivery</Text>
-                  <Text numberOfLines={1} style={styles.deliveryTypeTime}>Arrives in {formatEtaMinutes(bill.standardDeliveryMinutes) || '—'}</Text>
-                </View>
-                <Text numberOfLines={1} style={[styles.deliveryTypePrice, deliveryType === 'standard' && styles.deliveryTypePriceActive]}>
-                  {bill.standardDeliveryCharge === 0 ? 'FREE' : `₹${bill.standardDeliveryCharge}`}
-                </Text>
-                {deliveryType === 'standard' && (
-                  <View style={styles.deliveryTypeCheck}><Text style={styles.deliveryTypeCheckText}>✓</Text></View>
-                )}
-              </PressableScale>
+              <View style={styles.deliveryTypeChipWrap}>
+                <PressableScale
+                  style={styles.deliveryTypeChipPressable}
+                  onPress={() => pickDeliveryType('standard')}
+                  scaleTo={0.96}
+                  accessibilityRole="button"
+                  accessibilityLabel="Standard delivery"
+                  accessibilityState={{ selected: deliveryType === 'standard' }}
+                >
+                  {deliveryType === 'standard' ? (
+                    <LinearGradient
+                      colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={[styles.deliveryTypeChip, styles.chip3dSelected]}
+                    >
+                      <Text style={styles.deliveryTypeEmojiOn}>🕐</Text>
+                      <View style={styles.deliveryTypeTextBlock}>
+                        <Text numberOfLines={1} style={styles.deliveryTypeTitleOn}>Standard</Text>
+                        <Text numberOfLines={1} style={styles.deliveryTypeTimeOn}>
+                          {formatEtaMinutes(bill.standardDeliveryMinutes) || '—'}
+                        </Text>
+                      </View>
+                      <Text numberOfLines={1} style={styles.deliveryTypePriceOn}>
+                        {bill.standardDeliveryCharge === 0 ? 'FREE' : `₹${bill.standardDeliveryCharge}`}
+                      </Text>
+                    </LinearGradient>
+                  ) : (
+                    <View style={[
+                      styles.deliveryTypeChip,
+                      styles.chip3dIdle,
+                      deliveryError && styles.chip3dIdleError,
+                    ]}>
+                      <Text style={styles.deliveryTypeEmoji}>🕐</Text>
+                      <View style={styles.deliveryTypeTextBlock}>
+                        <Text numberOfLines={1} style={styles.deliveryTypeTitle}>Standard</Text>
+                        <Text numberOfLines={1} style={styles.deliveryTypeTime}>
+                          {formatEtaMinutes(bill.standardDeliveryMinutes) || '—'}
+                        </Text>
+                      </View>
+                      <Text numberOfLines={1} style={styles.deliveryTypePrice}>
+                        {bill.standardDeliveryCharge === 0 ? 'FREE' : `₹${bill.standardDeliveryCharge}`}
+                      </Text>
+                    </View>
+                  )}
+                </PressableScale>
+              </View>
 
               {/* Fast */}
-              <PressableScale
-                style={[styles.deliveryTypeCard, deliveryType === 'fast' && styles.deliveryTypeCardActive]}
-                onPress={() => setDeliveryType('fast')}
-                scaleTo={0.97}
-                accessibilityRole="button"
-                accessibilityLabel="Fast delivery"
-                accessibilityState={{ selected: deliveryType === 'fast' }}
-              >
-                <Text style={styles.deliveryTypeEmoji}>⚡</Text>
-                <View style={styles.deliveryTypeInfo}>
-                  <Text numberOfLines={1} style={[styles.deliveryTypeTitle, deliveryType === 'fast' && styles.deliveryTypeTitleActive]}>Fast Delivery</Text>
-                  <Text numberOfLines={1} style={styles.deliveryTypeTime}>Arrives in {formatEtaMinutes(bill.fastDeliveryMinutes) || '—'}</Text>
-                </View>
-                <Text numberOfLines={1} style={[styles.deliveryTypePrice, deliveryType === 'fast' && styles.deliveryTypePriceActive]}>
-                  ₹{bill.fastDeliveryCharge}
-                </Text>
-                {deliveryType === 'fast' && (
-                  <View style={styles.deliveryTypeCheck}><Text style={styles.deliveryTypeCheckText}>✓</Text></View>
-                )}
-              </PressableScale>
+              <View style={styles.deliveryTypeChipWrap}>
+                <PressableScale
+                  style={styles.deliveryTypeChipPressable}
+                  onPress={() => pickDeliveryType('fast')}
+                  scaleTo={0.96}
+                  accessibilityRole="button"
+                  accessibilityLabel="Fast delivery"
+                  accessibilityState={{ selected: deliveryType === 'fast' }}
+                >
+                  {deliveryType === 'fast' ? (
+                    <LinearGradient
+                      colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={[styles.deliveryTypeChip, styles.chip3dSelected]}
+                    >
+                      <Text style={styles.deliveryTypeEmojiOn}>⚡</Text>
+                      <View style={styles.deliveryTypeTextBlock}>
+                        <Text numberOfLines={1} style={styles.deliveryTypeTitleOn}>Fast</Text>
+                        <Text numberOfLines={1} style={styles.deliveryTypeTimeOn}>
+                          {formatEtaMinutes(bill.fastDeliveryMinutes) || '—'}
+                        </Text>
+                      </View>
+                      <Text numberOfLines={1} style={styles.deliveryTypePriceOn}>
+                        ₹{bill.fastDeliveryCharge}
+                      </Text>
+                    </LinearGradient>
+                  ) : (
+                    <View style={[
+                      styles.deliveryTypeChip,
+                      styles.chip3dIdle,
+                      deliveryError && styles.chip3dIdleError,
+                    ]}>
+                      <Text style={styles.deliveryTypeEmoji}>⚡</Text>
+                      <View style={styles.deliveryTypeTextBlock}>
+                        <Text numberOfLines={1} style={styles.deliveryTypeTitle}>Fast</Text>
+                        <Text numberOfLines={1} style={styles.deliveryTypeTime}>
+                          {formatEtaMinutes(bill.fastDeliveryMinutes) || '—'}
+                        </Text>
+                      </View>
+                      <Text numberOfLines={1} style={styles.deliveryTypePrice}>
+                        ₹{bill.fastDeliveryCharge}
+                      </Text>
+                    </View>
+                  )}
+                </PressableScale>
+              </View>
             </View>
           </Animated.View>
         )}
 
-        {/* Payment Method */}
-        <View style={styles.paymentSection}>
-          <Animated.View style={{ transform: [{ translateY: paymentSlide }] }}>
-            <View style={styles.paymentSectionHeader}>
-              <View style={styles.paymentSectionIconWrap}>
-                <AppIcon name="creditCard" size={16} color={colors.textPrimary} />
-              </View>
-              <View style={styles.paymentSectionHeaderText}>
-                <Text style={styles.paymentSectionTitle}>Payment Method</Text>
-                <Text style={styles.paymentSectionSubtitle}>How would you like to pay?</Text>
+        {/* Payment Method — unboxed bold chips */}
+        <Animated.View
+          onLayout={(e) => {
+            sectionOffsetsRef.current.payment = e.nativeEvent.layout.y;
+          }}
+          style={[
+            styles.paymentSection,
+            paymentError && styles.sectionErrorWrap,
+            {
+              opacity: paymentOpacity,
+              transform: [
+                { translateY: paymentSlide },
+                { translateX: paymentShakeX },
+              ],
+            },
+          ]}
+        >
+            <View style={styles.sectionHead}>
+              <Animated.View
+                style={[
+                  styles.sectionAccent,
+                  styles.sectionAccentSuccess,
+                  paymentError && styles.sectionAccentError,
+                  paymentError && {
+                    opacity: paymentErrorPulse.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.45, 1],
+                    }),
+                  },
+                ]}
+              />
+              <View style={styles.sectionHeadText}>
+                <Text style={[styles.sectionTitle, paymentError && styles.sectionTitleError]}>
+                  Payment Method
+                </Text>
+                <Text style={styles.sectionSubtitle}>How would you like to pay?</Text>
               </View>
             </View>
 
+            {paymentError ? (
+              <View style={styles.sectionErrorRow} accessibilityLiveRegion="polite">
+                <AppIcon name="warning" size={14} color={colors.error} />
+                <Text style={styles.sectionErrorText}>{paymentError}</Text>
+              </View>
+            ) : null}
+
             {codBlockedByNight && (
               <View style={styles.paymentNightBar}>
-                <AppIcon name="clock" size={14} color={colors.textSecondary} />
+                <AppIcon name="clock" size={14} color={colors.saffronDark} />
                 <Text style={styles.paymentNightBarText}>
                   COD unavailable {nightChargeStart || '—'}–{nightChargeEnd || '—'}. Use UPI.
                 </Text>
               </View>
             )}
 
-            <View style={styles.optionPicker}>
-              <View style={styles.optionCardRow}>
-                <View style={styles.optionColumn}>
-                  <View style={styles.optionPillSlot}>
-                    <View style={styles.recommendPill}>
-                      <Text style={styles.recommendPillText}>
-                        {codBlockedByNight ? 'Recommend' : 'Popular'}
-                      </Text>
-                    </View>
-                  </View>
-                  <PressableScale
-                    onPress={() => setPaymentMethod('UPI')}
-                    style={[
-                      styles.optionCard,
-                      styles.paymentCard,
-                      paymentMethod === 'UPI' && styles.paymentCardActive,
-                    ]}
-                    scaleTo={0.98}
-                    accessibilityRole="button"
-                    accessibilityLabel="UPI / Online"
-                    accessibilityState={{ selected: paymentMethod === 'UPI' }}
-                  >
-                    {paymentMethod === 'UPI' && (
-                      <View style={[styles.optionCardActiveBadge, styles.paymentCardBadge]}>
-                        <AppIcon name="check" size={9} color={colors.textInverse} />
+            <View style={styles.optionCardRow}>
+              <View style={styles.optionColumn}>
+                <PressableScale
+                  style={styles.paymentChipPressable}
+                  onPress={() => pickPaymentMethod('UPI')}
+                  scaleTo={0.96}
+                  accessibilityRole="button"
+                  accessibilityLabel="UPI / Online"
+                  accessibilityState={{ selected: paymentMethod === 'UPI' }}
+                >
+                  {paymentMethod === 'UPI' ? (
+                    <LinearGradient
+                      colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={[styles.paymentChip, styles.chip3dSelected]}
+                    >
+                      <View style={styles.paymentChipTopRow}>
+                        <View style={styles.recommendPillOnChipSelected}>
+                          <Text style={styles.recommendPillTextSelected}>
+                            {codBlockedByNight ? 'Recommend' : 'Popular'}
+                          </Text>
+                        </View>
+                        <View style={styles.paymentChipCheck}>
+                          <AppIcon name="check" size={11} color={colors.saffronDark} />
+                        </View>
                       </View>
-                    )}
-                    <View
-                      style={[
-                        styles.optionCardIconWrap,
-                        styles.paymentCardIconWrap,
-                        paymentMethod === 'UPI' && styles.paymentCardIconWrapActive,
-                      ]}
-                    >
-                      <AppIcon
-                        name="creditCard"
-                        size={16}
-                        color={paymentMethod === 'UPI' ? colors.textPrimary : colors.textSecondary}
-                      />
+                      <View style={styles.paymentChipBody}>
+                        <View style={styles.paymentChipIconSlot}>
+                          <AppIcon name="creditCard" size={20} color={colors.textInverse} />
+                        </View>
+                        <Text numberOfLines={2} style={styles.paymentChipTitleOn}>UPI / Online</Text>
+                      </View>
+                    </LinearGradient>
+                  ) : (
+                    <View style={[
+                      styles.paymentChip,
+                      styles.chip3dIdle,
+                      paymentError && styles.chip3dIdleError,
+                    ]}>
+                      <View style={styles.paymentChipTopRow}>
+                        <View style={styles.recommendPillOnChip}>
+                          <Text style={styles.recommendPillText}>
+                            {codBlockedByNight ? 'Recommend' : 'Popular'}
+                          </Text>
+                        </View>
+                        <View style={styles.paymentChipTopSpacer} />
+                      </View>
+                      <View style={styles.paymentChipBody}>
+                        <View style={styles.paymentChipIconSlot}>
+                          <AppIcon name="creditCard" size={20} color={colors.textPrimary} />
+                        </View>
+                        <Text numberOfLines={2} style={styles.paymentChipTitle}>UPI / Online</Text>
+                      </View>
                     </View>
-                    <Text
-                      numberOfLines={2}
-                      style={[
-                        styles.optionCardTitle,
-                        styles.paymentCardTitle,
-                        paymentMethod === 'UPI' && styles.paymentCardTitleActive,
-                      ]}
-                    >
-                      UPI / Online
-                    </Text>
-                  </PressableScale>
-                </View>
+                  )}
+                </PressableScale>
+              </View>
 
-                <View style={styles.optionColumn}>
-                  <View style={styles.optionPillSlot} />
-                  <PressableScale
-                    onPress={() => {
-                      if (!codBlockedByNight) setPaymentMethod('Cash');
-                    }}
-                    disabled={codBlockedByNight}
-                    style={[
-                      styles.optionCard,
-                      styles.paymentCard,
-                      paymentMethod === 'Cash' && !codBlockedByNight && styles.paymentCardActive,
-                      codBlockedByNight && styles.optionCardDisabled,
-                    ]}
-                    scaleTo={codBlockedByNight ? 1 : 0.98}
-                    accessibilityRole="button"
-                    accessibilityLabel="Cash on Delivery"
-                    accessibilityState={{ disabled: codBlockedByNight, selected: paymentMethod === 'Cash' && !codBlockedByNight }}
-                  >
-                    {paymentMethod === 'Cash' && !codBlockedByNight && (
-                      <View style={[styles.optionCardActiveBadge, styles.paymentCardBadge]}>
-                        <AppIcon name="check" size={9} color={colors.textInverse} />
+              <View style={styles.optionColumn}>
+                <PressableScale
+                  style={styles.paymentChipPressable}
+                  onPress={() => {
+                    if (!codBlockedByNight) pickPaymentMethod('Cash');
+                  }}
+                  disabled={codBlockedByNight}
+                  scaleTo={codBlockedByNight ? 1 : 0.96}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cash on Delivery"
+                  accessibilityState={{ disabled: codBlockedByNight, selected: paymentMethod === 'Cash' && !codBlockedByNight }}
+                >
+                  {paymentMethod === 'Cash' && !codBlockedByNight ? (
+                    <LinearGradient
+                      colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={[styles.paymentChip, styles.chip3dSelected]}
+                    >
+                      <View style={styles.paymentChipTopRow}>
+                        <View style={styles.paymentChipTopSpacer} />
+                        <View style={styles.paymentChipCheck}>
+                          <AppIcon name="check" size={11} color={colors.saffronDark} />
+                        </View>
                       </View>
-                    )}
-                    <View
-                      style={[
-                        styles.optionCardIconWrap,
-                        styles.paymentCardIconWrap,
-                        paymentMethod === 'Cash' && !codBlockedByNight && styles.paymentCardIconWrapActive,
-                      ]}
-                    >
-                      <AppIcon
-                        name="rupee"
-                        size={16}
-                        color={
-                          codBlockedByNight
-                            ? colors.textDisabled
-                            : paymentMethod === 'Cash'
-                            ? colors.textPrimary
-                            : colors.textSecondary
-                        }
-                      />
+                      <View style={styles.paymentChipBody}>
+                        <View style={styles.paymentChipIconSlot}>
+                          <AppIcon name="rupee" size={20} color={colors.textInverse} />
+                        </View>
+                        <Text numberOfLines={2} style={styles.paymentChipTitleOn}>Cash on Delivery</Text>
+                      </View>
+                    </LinearGradient>
+                  ) : (
+                    <View style={[
+                      styles.paymentChip,
+                      styles.chip3dIdle,
+                      paymentError && styles.chip3dIdleError,
+                      codBlockedByNight && styles.optionCardDisabled,
+                    ]}>
+                      <View style={styles.paymentChipTopRow}>
+                        <View style={styles.paymentChipTopSpacer} />
+                      </View>
+                      <View style={styles.paymentChipBody}>
+                        <View style={styles.paymentChipIconSlot}>
+                          <AppIcon
+                            name="rupee"
+                            size={20}
+                            color={codBlockedByNight ? colors.textDisabled : colors.textPrimary}
+                          />
+                        </View>
+                        <Text
+                          numberOfLines={2}
+                          style={[
+                            styles.paymentChipTitle,
+                            codBlockedByNight && styles.paymentCardTitleDisabled,
+                          ]}
+                        >
+                          Cash on Delivery
+                        </Text>
+                        {codBlockedByNight ? (
+                          <Text style={styles.paymentCardHint}>Unavailable at night</Text>
+                        ) : null}
+                      </View>
                     </View>
-                    <Text
-                      numberOfLines={2}
-                      style={[
-                        styles.optionCardTitle,
-                        styles.paymentCardTitle,
-                        paymentMethod === 'Cash' && !codBlockedByNight && styles.paymentCardTitleActive,
-                        codBlockedByNight && styles.paymentCardTitleDisabled,
-                      ]}
-                    >
-                      Cash on Delivery
-                    </Text>
-                    {codBlockedByNight && (
-                      <Text style={styles.paymentCardHint}>Unavailable at night</Text>
-                    )}
-                  </PressableScale>
-                </View>
+                  )}
+                </PressableScale>
               </View>
             </View>
 
@@ -1493,15 +1746,10 @@ export default function CheckoutScreen() {
 
             {paymentMethod === 'UPI' && (
               <View style={styles.upiBlock}>
-                <View style={styles.upiBlockHeader}>
-                  <AppIcon name="creditCard" size={16} color={colors.textPrimary} />
-                  <View style={styles.upiBlockHeaderText}>
-                    <Text style={styles.upiBlockTitle}>Complete UPI Payment</Text>
-                    <Text style={styles.upiBlockSubtitle}>
-                      Scan with PhonePe, GPay, Paytm, or any UPI app
-                    </Text>
-                  </View>
-                </View>
+                <Text style={styles.upiBlockTitle}>Complete UPI Payment</Text>
+                <Text style={styles.upiBlockSubtitle}>
+                  Scan with PhonePe, GPay, Paytm, or any UPI app
+                </Text>
 
                 <View style={styles.upiAmountRow}>
                   <Text style={styles.upiAmountLabel}>Amount to pay</Text>
@@ -1512,31 +1760,23 @@ export default function CheckoutScreen() {
 
                 <View style={styles.upiQrBlock}>
                   <Text style={styles.upiQrBlockLabel}>Merchant QR Code</Text>
-                  <View style={styles.qrFrame}>
-                    <View style={[styles.qrCorner, styles.qrCornerTL]} />
-                    <View style={[styles.qrCorner, styles.qrCornerTR]} />
-                    <View style={[styles.qrCorner, styles.qrCornerBL]} />
-                    <View style={[styles.qrCorner, styles.qrCornerBR]} />
-                    <View style={styles.qrShell}>
-                      {upiQrImageUrl ? (
-                        <ExpoImage
-                          source={{ uri: upiQrImageUrl }}
-                          style={styles.qrImage}
-                          contentFit="contain"
-                          transition={200}
-                        />
-                      ) : (
-                        <View style={styles.qrPlaceholder}>
-                          <View style={styles.qrPlaceholderIconWrap}>
-                            <AppIcon name="image" size={22} color={colors.textTertiary} />
-                          </View>
-                          <Text style={styles.qrPlaceholderTitle}>QR not uploaded</Text>
-                          <Text style={styles.qrPlaceholderText}>
-                            Ask the shop to add a UPI QR in admin settings
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+                  <View style={styles.qrShell}>
+                    {upiQrImageUrl ? (
+                      <ExpoImage
+                        source={{ uri: upiQrImageUrl }}
+                        style={styles.qrImage}
+                        contentFit="contain"
+                        transition={200}
+                      />
+                    ) : (
+                      <View style={styles.qrPlaceholder}>
+                        <AppIcon name="image" size={28} color={colors.textTertiary} />
+                        <Text style={styles.qrPlaceholderTitle}>QR not uploaded</Text>
+                        <Text style={styles.qrPlaceholderText}>
+                          Ask the shop to add a UPI QR in admin settings
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </View>
 
@@ -1547,14 +1787,14 @@ export default function CheckoutScreen() {
                     </View>
                     <Text style={styles.upiStepText}>Scan QR</Text>
                   </View>
-                  <View style={styles.upiStepDivider} />
+                  <View style={styles.upiStepLine} />
                   <View style={styles.upiStep}>
                     <View style={styles.upiStepBadge}>
                       <Text style={styles.upiStepBadgeText}>2</Text>
                     </View>
                     <Text style={styles.upiStepText}>Pay amount</Text>
                   </View>
-                  <View style={styles.upiStepDivider} />
+                  <View style={styles.upiStepLine} />
                   <View style={styles.upiStep}>
                     <View style={styles.upiStepBadge}>
                       <Text style={styles.upiStepBadgeText}>3</Text>
@@ -1564,37 +1804,34 @@ export default function CheckoutScreen() {
                 </View>
 
                 <View style={styles.upiAutoCancelWarning}>
-                  <View style={[styles.upiNoticeIconWrap, styles.upiNoticeIconWrapWarning]}>
-                    <AppIcon name="warning" size={12} color={colors.error} />
-                  </View>
+                  <AppIcon name="warning" size={14} color={colors.error} />
                   <Text style={styles.upiAutoCancelWarningText}>
                     Unpaid orders are auto-cancelled.
                   </Text>
                 </View>
 
                 <View style={styles.screenshotNote}>
-                  <View style={[styles.upiNoticeIconWrap, styles.upiNoticeIconWrapSuccess]}>
-                    <AppIcon name="check" size={12} color={colors.successDark} />
-                  </View>
+                  <AppIcon name="check" size={14} color={colors.successDark} />
                   <Text style={styles.screenshotNoteText}>
                     Show payment screenshot to delivery boy.
                   </Text>
                 </View>
               </View>
             )}
-          </Animated.View>
-        </View>
+        </Animated.View>
 
-        {/* Order Summary */}
-        <View style={styles.summarySection}>
-          <Animated.View style={{ transform: [{ translateY: summarySlide }] }}>
-            <View style={styles.summarySectionHeader}>
-              <View style={styles.summarySectionIconWrap}>
-                <AppIcon name="shoppingBag" size={16} color={colors.textPrimary} />
-              </View>
-              <View style={styles.summarySectionHeaderText}>
-                <Text style={styles.summarySectionTitle}>Order Summary</Text>
-                <Text style={styles.summarySectionSubtitle}>Review your bill breakdown</Text>
+        {/* Order Summary — open bill, bold total */}
+        <Animated.View
+          style={[
+            styles.summarySection,
+            { opacity: summaryOpacity, transform: [{ translateY: summarySlide }] },
+          ]}
+        >
+            <View style={styles.sectionHead}>
+              <View style={[styles.sectionAccent, styles.sectionAccentInk]} />
+              <View style={styles.sectionHeadText}>
+                <Text style={styles.sectionTitle}>Order Summary</Text>
+                <Text style={styles.sectionSubtitle}>Review your bill breakdown</Text>
               </View>
             </View>
 
@@ -1674,10 +1911,15 @@ export default function CheckoutScreen() {
                   return null;
                 })()}
 
-                <View style={styles.summaryGrandTotalRow}>
+                <LinearGradient
+                  colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.summaryGrandTotalRow}
+                >
                   <Text style={styles.summaryTotalLabel}>Total to Pay</Text>
                   <Text style={styles.summaryTotalValue}>₹{bill.grandTotal}</Text>
-                </View>
+                </LinearGradient>
               </>
             ) : (
               <Text style={styles.calcText}>Add items to view total.</Text>
@@ -1685,9 +1927,7 @@ export default function CheckoutScreen() {
 
             {bill && freeDeliveryProgress && (
               <View style={styles.summaryProgressNote}>
-                <View style={[styles.upiNoticeIconWrap, styles.summaryProgressNoteIcon]}>
-                  <AppIcon name="box" size={12} color={colors.textSecondary} />
-                </View>
+                <AppIcon name="box" size={14} color={colors.saffron} />
                 <Text style={styles.summaryProgressNoteText}>
                   {buildProgressHintText(freeDeliveryProgress, {
                     includeWorth: true,
@@ -1696,8 +1936,7 @@ export default function CheckoutScreen() {
                 </Text>
               </View>
             )}
-          </Animated.View>
-        </View>
+        </Animated.View>
 
         {/* Global Error Banner */}
         {submitError && (
@@ -1824,7 +2063,7 @@ const styles = StyleSheet.create({
   },
   sheetScrollContent: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.xl,
     flexGrow: 0,
   },
   sheetHeader: {
@@ -1832,14 +2071,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     marginBottom: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
   sheetHeaderManual: {
     paddingTop: spacing.sm,
   },
   sheetHeaderText: {
     flex: 1,
-    // Nudge title + subtitle slightly right from the left edge.
-    paddingLeft: spacing.lg + spacing.sm,
   },
   sheetIconBtn: {
     width: 40,
@@ -1848,8 +2086,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgApp,
     alignItems: 'center',
     justifyContent: 'center',
-    // Nudge back button slightly inward from the right edge.
-    marginRight: spacing.sm,
   },
   sheetTitle: {
     ...typography.h2,
@@ -1977,23 +2213,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   section: {
-    backgroundColor: colors.bgSurface,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    ...shadows.sm,
+    marginBottom: spacing.lg,
   },
   sectionTitle: {
-    ...typography.h3,
+    ...typography.h4,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
+    fontWeight: '800',
   },
   sectionSubtitle: {
     ...typography.caption,
     color: colors.textSecondary,
-    marginBottom: spacing.xs,
+    marginTop: 2,
   },
   deliveryInputWrap: {
     marginTop: spacing.sm,
@@ -2170,69 +2400,72 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: '700',
   },
-  paymentSection: {
-    backgroundColor: colors.bgSurface,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderRadius: radius.xl,
-    borderWidth: 1.5,
-    borderColor: colors.borderStrong,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.saffron,
-    ...shadows.card,
-  },
-  paymentSectionHeader: {
+  // Open section chrome — accent bar + title, no card boxes.
+  sectionHead: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    marginBottom: spacing.md,
   },
-  paymentSectionIconWrap: {
-    width: 36,
+  sectionAccent: {
+    width: 4,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: colors.saffron,
+    marginTop: 3,
+  },
+  sectionAccentSuccess: {
+    backgroundColor: colors.success,
+  },
+  sectionAccentInk: {
+    backgroundColor: colors.textPrimary,
+  },
+  sectionAccentError: {
+    backgroundColor: colors.error,
+    width: 4,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.saffronLight,
-    borderWidth: 1.5,
-    borderColor: colors.saffron + '35',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.xs,
   },
-  paymentSectionHeaderText: {
+  sectionHeadText: {
     flex: 1,
   },
-  paymentSectionTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    marginBottom: 2,
+  sectionTitleError: {
+    color: colors.error,
   },
-  paymentSectionSubtitle: {
+  sectionErrorWrap: {
+    // keep open layout — red accent + text only (no full red card box)
+  },
+  sectionErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.sm,
+    paddingBottom: spacing.xs,
+    borderBottomWidth: 1.5,
+    borderBottomColor: colors.error,
+  },
+  sectionErrorText: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: colors.error,
+    fontWeight: '700',
+    flex: 1,
+    lineHeight: 16,
+  },
+
+  paymentSection: {
+    marginBottom: spacing.lg,
   },
   paymentNightBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.xs,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    marginBottom: spacing.sm,
   },
   paymentNightBarText: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: colors.saffronDark,
     flex: 1,
     fontWeight: '600',
-  },
-  // Shared option-card layout used by Payment Method (UPI / COD).
-  // Restored after map redesign removed Delivery Details option cards but
-  // left the payment row still referencing these styles (buttons collapsed).
-  optionPicker: {
-    overflow: 'visible',
   },
   optionCardRow: {
     flexDirection: 'row',
@@ -2244,111 +2477,136 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: 'visible',
   },
-  optionPillSlot: {
-    minHeight: 24,
-    marginBottom: spacing.xs,
-    justifyContent: 'flex-start',
+  paymentChipPressable: {
+    width: '100%',
   },
-  recommendPill: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.successLight,
+  paymentChipTopRow: {
+    height: 22,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+    marginBottom: 4,
+  },
+  paymentChipTopSpacer: {
+    width: 20,
+    height: 20,
+  },
+  // Shared 3D "popped up" chip look — same idle for all option pairs.
+  // Shadow is always black (not tinted by selected button color).
+  chip3dIdle: {
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    borderBottomWidth: 4,
+    borderBottomColor: 'rgba(0,0,0,0.18)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  chip3dIdleError: {
+    borderColor: colors.error + '55',
+    borderBottomColor: colors.error + '90',
+  },
+  chip3dSelected: {
+    borderWidth: 0,
+    borderBottomWidth: 4,
+    borderBottomColor: 'rgba(0,0,0,0.28)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  recommendPillOnChip: {
+    backgroundColor: colors.saffronLight,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: colors.palette.success200,
-    ...shadows.xs,
+    borderColor: colors.saffron + '40',
   },
   recommendPillText: {
     fontSize: 9,
     lineHeight: 11,
-    color: colors.successDark,
-    fontWeight: '700',
-    letterSpacing: 0.4,
+    color: colors.saffronDark,
+    fontWeight: '800',
+    letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
-  optionCard: {
-    alignSelf: 'stretch',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    minHeight: 50,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xs,
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    position: 'relative',
+  recommendPillOnChipSelected: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
   },
-  optionCardActiveBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.bgSurface,
-    zIndex: 2,
+  recommendPillTextSelected: {
+    fontSize: 9,
+    lineHeight: 11,
+    color: colors.saffronDark,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
   optionCardDisabled: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
-  optionCardIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  paymentChip: {
+    width: '100%',
+    height: 112,
+    borderRadius: radius.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'center',
+  },
+  paymentChipBody: {
+    flex: 1,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
-  optionCardTitle: {
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '500',
+  paymentChipIconSlot: {
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  paymentChipCheck: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.bgSurface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentChipTitle: {
+    fontSize: 13,
+    lineHeight: 16,
+    fontWeight: '700',
     textAlign: 'center',
-  },
-  paymentCard: {
-    backgroundColor: colors.bgInput,
-    borderColor: colors.borderStrong,
-  },
-  paymentCardActive: {
-    borderColor: colors.success,
-    borderWidth: 2,
-    backgroundColor: colors.bgSurface,
-    shadowColor: colors.success,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  paymentCardBadge: {
-    backgroundColor: colors.success,
-  },
-  paymentCardIconWrap: {
-    backgroundColor: colors.bgSurface,
-    borderColor: colors.border,
-  },
-  paymentCardIconWrapActive: {
-    backgroundColor: colors.successLight,
-    borderColor: colors.success,
-    borderWidth: 1.5,
-  },
-  paymentCardTitle: {
-    color: colors.textSecondary,
-  },
-  paymentCardTitleActive: {
     color: colors.textPrimary,
+    minHeight: 32,
+  },
+  paymentChipTitleOn: {
+    fontSize: 13,
+    lineHeight: 16,
     fontWeight: '800',
+    textAlign: 'center',
+    color: colors.textInverse,
+    minHeight: 32,
   },
   paymentCardTitleDisabled: {
     color: colors.textDisabled,
   },
   paymentCardHint: {
+    marginTop: 2,
     fontSize: 9,
     lineHeight: 11,
-    color: colors.textDisabled,
+    color: colors.textTertiary,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -2356,133 +2614,94 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     marginTop: spacing.sm,
-    marginBottom: spacing.xs,
+    fontWeight: '500',
+    textAlign: 'left',
   },
+
   deliverySpeedSection: {
-    backgroundColor: colors.bgSurface,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderRadius: radius.xl,
-    borderWidth: 1.5,
-    borderColor: colors.borderStrong,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.saffron,
-    ...shadows.card,
-  },
-  deliverySpeedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  deliverySpeedIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.saffronLight,
-    borderWidth: 1.5,
-    borderColor: colors.saffron + '35',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.xs,
-  },
-  deliverySpeedHeaderText: {
-    flex: 1,
-  },
-  deliverySpeedTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  deliverySpeedSubtitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    marginBottom: spacing.lg,
   },
   deliveryTypeRow: {
-    flexDirection: 'column',
-    gap: spacing.sm,
-  },
-  deliveryTypeCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.bgApp,
+    alignItems: 'stretch',
     gap: spacing.sm,
+    overflow: 'visible',
   },
-  deliveryTypeCardActive: {
-    borderColor: colors.saffron,
-    borderWidth: 2,
-    backgroundColor: colors.bgSurface,
-    shadowColor: colors.saffron,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  deliveryTypeInfo: {
+  deliveryTypeChipWrap: {
     flex: 1,
+    overflow: 'visible',
+  },
+  deliveryTypeChipPressable: {
+    width: '100%',
+  },
+  deliveryTypeChip: {
+    width: '100%',
+    height: 124,
+    borderRadius: radius.xl,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  deliveryTypeTextBlock: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    minHeight: 36,
   },
   deliveryTypeEmoji: {
     fontSize: 22,
+    lineHeight: 26,
+    textAlign: 'center',
   },
-  deliveryTypeCheck: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.saffron,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deliveryTypeCheckText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
+  deliveryTypeEmojiOn: {
+    fontSize: 22,
+    lineHeight: 26,
+    textAlign: 'center',
   },
   deliveryTypeTitle: {
     ...typography.label,
-    color: colors.textSecondary,
-    fontWeight: '700',
-  },
-  deliveryTypeTitleActive: {
     color: colors.textPrimary,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  deliveryTypeTitleOn: {
+    ...typography.label,
+    color: colors.textInverse,
+    fontWeight: '800',
+    textAlign: 'center',
   },
   deliveryTypeTime: {
     ...typography.caption,
-    color: colors.textTertiary,
-    marginTop: 2,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  deliveryTypeTimeOn: {
+    ...typography.caption,
+    color: colors.textInverse,
+    opacity: 0.92,
+    textAlign: 'center',
   },
   deliveryTypePrice: {
     ...typography.labelLarge,
     color: colors.textPrimary,
     fontWeight: '800',
+    textAlign: 'center',
   },
-  deliveryTypePriceActive: {
-    color: colors.textPrimary,
+  deliveryTypePriceOn: {
+    ...typography.labelLarge,
+    color: colors.textInverse,
+    fontWeight: '900',
+    textAlign: 'center',
   },
+
   upiBlock: {
     marginTop: spacing.md,
     paddingTop: spacing.md,
-    borderTopWidth: 1.5,
-    borderTopColor: colors.borderStrong,
-  },
-  upiBlockHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  upiBlockHeaderText: {
-    flex: 1,
   },
   upiBlockTitle: {
-    ...typography.label,
+    ...typography.labelLarge,
     color: colors.textPrimary,
     fontWeight: '800',
     marginBottom: 2,
@@ -2491,22 +2710,18 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     lineHeight: 16,
+    marginBottom: spacing.md,
   },
   upiAmountRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
     marginBottom: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
   },
   upiAmountLabel: {
     ...typography.caption,
     color: colors.textSecondary,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    fontWeight: '600',
   },
   upiAmountValue: {
     ...typography.h2,
@@ -2521,83 +2736,29 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
     marginBottom: spacing.sm,
   },
-  qrFrame: {
-    position: 'relative',
-    padding: spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qrCorner: {
-    position: 'absolute',
-    width: 18,
-    height: 18,
-    borderColor: colors.saffron,
-  },
-  qrCornerTL: {
-    top: 0,
-    left: 0,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-    borderTopLeftRadius: 4,
-  },
-  qrCornerTR: {
-    top: 0,
-    right: 0,
-    borderTopWidth: 3,
-    borderRightWidth: 3,
-    borderTopRightRadius: 4,
-  },
-  qrCornerBL: {
-    bottom: 0,
-    left: 0,
-    borderBottomWidth: 3,
-    borderLeftWidth: 3,
-    borderBottomLeftRadius: 4,
-  },
-  qrCornerBR: {
-    bottom: 0,
-    right: 0,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderBottomRightRadius: 4,
-  },
   qrShell: {
-    width: 196,
-    height: 196,
-    borderRadius: radius.lg,
-    padding: spacing.xs,
+    width: 188,
+    height: 188,
+    borderRadius: radius.xl,
+    padding: spacing.sm,
     backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.textPrimary,
-    ...shadows.xs,
+    ...shadows.md,
   },
   qrImage: {
     width: '100%',
     height: '100%',
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
   },
   qrPlaceholder: {
     flex: 1,
-    borderRadius: radius.md,
-    backgroundColor: colors.bgInput,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.md,
-  },
-  qrPlaceholderIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
+    gap: spacing.xs,
   },
   qrPlaceholderTitle: {
     ...typography.labelSmall,
@@ -2607,8 +2768,7 @@ const styles = StyleSheet.create({
   },
   qrPlaceholderText: {
     ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 4,
+    color: colors.textTertiary,
     textAlign: 'center',
     lineHeight: 16,
   },
@@ -2616,172 +2776,111 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   upiStep: {
     flex: 1,
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   upiStepBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: colors.saffron,
     alignItems: 'center',
     justifyContent: 'center',
   },
   upiStepBadgeText: {
-    fontSize: 11,
-    lineHeight: 13,
+    fontSize: 12,
+    lineHeight: 14,
     color: colors.textInverse,
     fontWeight: '800',
   },
   upiStepText: {
-    fontSize: 10,
-    lineHeight: 12,
+    fontSize: 11,
+    lineHeight: 13,
     color: colors.textSecondary,
     fontWeight: '700',
     textAlign: 'center',
   },
-  upiStepDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: colors.border,
+  upiStepLine: {
+    width: 20,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.saffronLight,
+    marginBottom: 18,
   },
   upiAutoCancelWarning: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
     marginBottom: spacing.sm,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.errorBorder,
-    backgroundColor: colors.errorLight,
   },
   upiAutoCancelWarningText: {
     ...typography.caption,
     color: colors.error,
     flex: 1,
     fontWeight: '700',
-    lineHeight: 18,
+    lineHeight: 16,
   },
   screenshotNote: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.palette.success200,
-    backgroundColor: colors.successLight,
-  },
-  upiNoticeIconWrap: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  upiNoticeIconWrapWarning: {
-    borderColor: colors.errorBorder,
-  },
-  upiNoticeIconWrapSuccess: {
-    borderColor: colors.palette.success200,
   },
   screenshotNoteText: {
     ...typography.caption,
     color: colors.successDark,
     flex: 1,
     fontWeight: '600',
-    lineHeight: 18,
+    lineHeight: 16,
   },
+
   summarySection: {
-    backgroundColor: colors.bgSurface,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderRadius: radius.xl,
-    borderWidth: 1.5,
-    borderColor: colors.borderStrong,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.saffron,
-    ...shadows.card,
-  },
-  summarySectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  summarySectionIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.saffronLight,
-    borderWidth: 1.5,
-    borderColor: colors.saffron + '35',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.xs,
-  },
-  summarySectionHeaderText: {
-    flex: 1,
-  },
-  summarySectionTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  summarySectionSubtitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    paddingBottom: spacing.md,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    minHeight: 36,
+    paddingVertical: 8,
   },
   summaryRowFirst: {
-    borderTopWidth: 0,
+    paddingTop: 0,
   },
   summaryLabel: {
-    ...typography.caption,
+    ...typography.body,
     color: colors.textSecondary,
-    fontWeight: '600',
+    fontWeight: '500',
+    flex: 1,
+    paddingRight: spacing.sm,
   },
   summaryValue: {
-    ...typography.label,
+    ...typography.body,
     color: colors.textPrimary,
     fontWeight: '700',
+    textAlign: 'right',
   },
   summaryDiscountValue: {
-    color: colors.textPrimary,
+    color: colors.successDark,
   },
   freeDeliveryValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: spacing.xs,
   },
   summaryStrikethrough: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: colors.textTertiary,
     textDecorationLine: 'line-through',
   },
   freeDeliveryText: {
-    color: colors.textPrimary,
-    fontWeight: '700',
+    color: colors.successDark,
+    fontWeight: '800',
   },
   calcText: {
     ...typography.body,
@@ -2791,73 +2890,59 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.error,
   },
-
   summaryStatusNote: {
-    paddingVertical: spacing.sm,
-    marginTop: spacing.xs,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.xs,
   },
-  summaryStatusNoteError: {
-    backgroundColor: colors.errorLight,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-  },
-  summaryStatusNoteSuccess: {
-    backgroundColor: colors.bgInput,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-  },
+  summaryStatusNoteError: {},
+  summaryStatusNoteSuccess: {},
   deliveryStatusText: {
     ...typography.caption,
     color: colors.textSecondary,
     lineHeight: 16,
+    fontWeight: '500',
   },
   deliveryStatusError: {
     color: colors.error,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   deliveryStatusSuccess: {
-    color: colors.textPrimary,
-    fontWeight: '600',
+    color: colors.successDark,
+    fontWeight: '700',
   },
   summaryGrandTotalRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: spacing.sm,
-    marginTop: spacing.xs,
-    borderTopWidth: 1.5,
-    borderTopColor: colors.borderStrong,
+    marginTop: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.xl,
+    minHeight: 56,
   },
   summaryTotalLabel: {
-    ...typography.label,
-    color: colors.textPrimary,
+    ...typography.labelLarge,
+    color: colors.textInverse,
     fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
   },
   summaryTotalValue: {
     ...typography.h2,
-    color: colors.textPrimary,
+    color: colors.textInverse,
     fontWeight: '900',
+    textAlign: 'right',
   },
   summaryProgressNote: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-  },
-  summaryProgressNoteIcon: {
-    borderColor: colors.borderStrong,
+    marginTop: spacing.md,
   },
   summaryProgressNoteText: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: colors.saffronDark,
     flex: 1,
     fontWeight: '600',
-    lineHeight: 18,
+    lineHeight: 16,
   },
   divider: {
     height: 1,

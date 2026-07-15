@@ -52,12 +52,15 @@ export const useCartStore = create(
         appliedCoupon: null,
       }),
 
-      // Last known "add ₹X more for free delivery" progress from the most
-      // recent cart-calculate call (Cart/Checkout screens). Used by
-      // StickyMiniCart for a lightweight hint elsewhere in the app; may be
-      // stale/absent until the user has opened the cart this session.
+      // Last known "add ₹X more for free delivery" progress from cart/calculate
+      // (Cart/Checkout + useSyncCartFreeDeliveryProgress on shopping screens).
+      // StickyMiniCart re-derives remaining amount/items from live cart totals
+      // so the pill stays realtime between API round-trips.
       freeDeliveryProgress: null,
       setFreeDeliveryProgress: (progress) => set({ freeDeliveryProgress: progress || null }),
+      // True when the latest bill has free delivery applied (waiver > 0).
+      freeDeliveryUnlocked: false,
+      setFreeDeliveryUnlocked: (unlocked) => set({ freeDeliveryUnlocked: Boolean(unlocked) }),
 
       // addItem now accepts an optional variant. When a variant is provided,
       // two items with the same product but different variants are SEPARATE
@@ -153,7 +156,15 @@ export const useCartStore = create(
         }
       },
 
-      clearCart: () => set({ items: [], appliedCouponCode: null, appliedCouponId: null, appliedCoupon: null, couponAutoApplyDisabled: false }),
+      clearCart: () => set({
+        items: [],
+        appliedCouponCode: null,
+        appliedCouponId: null,
+        appliedCoupon: null,
+        couponAutoApplyDisabled: false,
+        freeDeliveryProgress: null,
+        freeDeliveryUnlocked: false,
+      }),
 
       // Drops every cart line whose product belongs to a shop that just
       // closed (or went inactive). Combos and house products (shopId null)

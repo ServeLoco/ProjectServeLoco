@@ -13,3 +13,4 @@ export * from './useRiderLocationTracking';
 export * from './useRiderLocationPermission';
 export * from './usePreciseLocationPermissionOnStart';
 export * from './useNewOrderAlert';
+export * from './useSyncCartFreeDeliveryProgress';

@@ -279,7 +279,24 @@ function normalizeCartCalculation(payload = {}) {
     fastDeliveryMinutes: numberOrZero(pickFirst(bill.fastDeliveryMinutes, bill.fast_delivery_minutes)),
     standardDeliveryCharge: numberOrZero(pickFirst(bill.standardDeliveryCharge, bill.standard_delivery_charge, bill.deliveryCharge, bill.delivery_charge)),
     standardDeliveryMinutes: numberOrZero(pickFirst(bill.standardDeliveryMinutes, bill.standard_delivery_minutes)),
-    appliedCoupon: bill.appliedCoupon || null,
+    appliedCoupon: (() => {
+      const coupon = bill.appliedCoupon || bill.applied_coupon || null;
+      if (!coupon) return null;
+      return {
+        ...coupon,
+        id: coupon.id,
+        code: pickFirst(coupon.code, null),
+        title: pickFirst(coupon.title, ''),
+        discountType: pickFirst(coupon.discountType, coupon.discount_type, null),
+        alsoFreeDelivery: asBoolean(pickFirst(coupon.alsoFreeDelivery, coupon.also_free_delivery), false),
+        discount: numberOrZero(pickFirst(coupon.discount, 0)),
+        itemDiscount: numberOrZero(pickFirst(coupon.itemDiscount, coupon.item_discount, 0)),
+        freeDeliveryWaiver: numberOrZero(pickFirst(coupon.freeDeliveryWaiver, coupon.free_delivery_waiver, 0)),
+        // Critical for auto-apply ladder: if this flag is lost, the client
+        // re-sends coupon_code/id and locks free_delivery forever.
+        autoApplied: asBoolean(pickFirst(coupon.autoApplied, coupon.auto_applied), false),
+      };
+    })(),
     couponError: pickFirst(bill.couponError, bill.coupon_error, null),
     availableCoupons: asArray(bill.availableCoupons || bill.available_coupons, []),
     // Nearest not-yet-unlocked coupon (any type except free_delivery, which
