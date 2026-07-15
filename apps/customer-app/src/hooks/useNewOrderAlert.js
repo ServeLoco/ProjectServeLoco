@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
-import { Platform, Vibration } from 'react-native';
+import { AppState, Platform, Vibration } from 'react-native';
 import { playNotificationChime } from '../utils/notificationChime';
 import {
   ORDER_NOTIFICATION_CHANNEL_ID,
@@ -16,11 +16,11 @@ export { MAX_ORDER_ALARM_RING_MS } from '../utils/orderAlarmNotifications';
 /**
  * Repeating in-app alert for the shop-owner (and admin) new-order popup.
  * Local notification + chime + vibration every REPEAT_MS while `active` is
- * true. Fires once immediately when active flips true, then loops.
- * Stops (and cancels vibration) when active flips false.
+ * true AND the app is in the foreground. Background/killed delivery is the
+ * remote alarm push (one tray row + media sound) — do not keep posting local
+ * banners every 8s while backgrounded (that stacked notifications).
  *
- * Opening the dashboard (this hook mounts) also silences any killed-app
- * notifee alarm that may still be ringing.
+ * Opening the dashboard also silences any killed-app alarm and clears trays.
  */
 export function useNewOrderAlert(active) {
   const intervalRef = useRef(null);
@@ -33,7 +33,21 @@ export function useNewOrderAlert(active) {
   }, []);
 
   useEffect(() => {
+    const stop = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      try {
+        Vibration.cancel();
+      } catch { /* ignore */ }
+      Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
+    };
+
     const fire = () => {
+      // Only while foreground — background uses the single remote alarm push.
+      if (AppState.currentState !== 'active') return;
+
       Notifications.scheduleNotificationAsync({
         identifier: NOTIFICATION_ID,
         content: {
@@ -62,27 +76,31 @@ export function useNewOrderAlert(active) {
     };
 
     if (!active) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      try {
-        Vibration.cancel();
-      } catch { /* ignore */ }
-      Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
+      stop();
       return undefined;
     }
 
     fire();
     intervalRef.current = setInterval(fire, REPEAT_MS);
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') {
+        // Pause local spam while backgrounded; remote push owns that path.
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        try { Vibration.cancel(); } catch { /* ignore */ }
+        Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
+      } else if (active && !intervalRef.current) {
+        fire();
+        intervalRef.current = setInterval(fire, REPEAT_MS);
       }
-      try {
-        Vibration.cancel();
-      } catch { /* ignore */ }
+    });
+
+    return () => {
+      sub.remove();
+      stop();
     };
   }, [active]);
 }

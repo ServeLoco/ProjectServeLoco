@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
-import { Platform, Vibration } from 'react-native';
+import { AppState, Platform, Vibration } from 'react-native';
 import { playNotificationChime } from '../utils/notificationChime';
 import {
   RIDER_OFFER_CHANNEL_ID,
@@ -15,9 +15,9 @@ const REPEAT_MS = 8000;
 const NOTIFICATION_ID = 'serveloco-rider-offer-alert';
 
 /**
- * Repeating in-app alert while a rider offer popup is open.
- * Opening the rider dashboard (this hook mounts) silences any killed-app
- * notifee alarm that may still be ringing.
+ * Repeating in-app alert while a rider offer popup is open (foreground only).
+ * Background uses the single remote alarm push with tag replace — not a local
+ * 8s banner stack.
  * @param {object|null|boolean} activeOffer — truthy while offer is waiting
  */
 export function useRiderOfferAlert(activeOffer) {
@@ -27,6 +27,7 @@ export function useRiderOfferAlert(activeOffer) {
   // Silences a still-ringing killed-app notifee alarm when the rider dashboard opens.
   useEffect(() => {
     cancelRiderOfferAlarm().catch(() => {});
+    Notifications.dismissAllNotificationsAsync().catch(() => {});
   }, []);
   const orderNumber =
     (activeOffer && (activeOffer.orderNumber || activeOffer.order_number)) || null;
@@ -43,7 +44,20 @@ export function useRiderOfferAlert(activeOffer) {
   offerRef.current = activeOffer;
 
   useEffect(() => {
+    const stop = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      try {
+        Vibration.cancel();
+      } catch { /* ignore */ }
+      Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
+    };
+
     const fire = () => {
+      if (AppState.currentState !== 'active') return;
+
       const offer = offerRef.current;
       const body = orderNumber
         ? `Order ${orderNumber} — accept now before it expires`
@@ -78,27 +92,30 @@ export function useRiderOfferAlert(activeOffer) {
     };
 
     if (!active) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      try {
-        Vibration.cancel();
-      } catch { /* ignore */ }
-      Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
+      stop();
       return undefined;
     }
 
     fire();
     intervalRef.current = setInterval(fire, REPEAT_MS);
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        try { Vibration.cancel(); } catch { /* ignore */ }
+        Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
+      } else if (active && !intervalRef.current) {
+        fire();
+        intervalRef.current = setInterval(fire, REPEAT_MS);
       }
-      try {
-        Vibration.cancel();
-      } catch { /* ignore */ }
+    });
+
+    return () => {
+      sub.remove();
+      stop();
     };
   }, [active, offerId, orderId, orderNumber]);
 }
