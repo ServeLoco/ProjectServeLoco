@@ -130,6 +130,18 @@ jest.mock('../src/db/mysql', () => {
       return [{ affectedRows: 0 }];
     }
 
+    if (normalized.startsWith('UPDATE notifications SET deleted_at = CURRENT_TIMESTAMP WHERE user_id = ? AND deleted_at IS NULL')) {
+      const userId = params[0];
+      let affectedRows = 0;
+      state.notifications.forEach(row => {
+        if (row.user_id === userId && !row.deleted_at) {
+          row.deleted_at = new Date();
+          affectedRows += 1;
+        }
+      });
+      return [{ affectedRows }];
+    }
+
     if (normalized.startsWith('SELECT id FROM notifications WHERE id = ?')) {
       const [id, userId] = params;
       return [state.notifications.filter(row => row.id === Number(id) && row.user_id === userId)];
@@ -275,6 +287,28 @@ describe('Notifications API', () => {
     
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+  });
+
+  it('Customer should be able to clear all notifications', async () => {
+    // Seed another notification for this user (simulate inbox with items left).
+    await pool.query(
+      'INSERT IGNORE INTO notifications (user_id, title, body, type, source_type, source_id, event_key, batch_id, action_type, action_payload, created_by_admin_id) VALUES ?',
+      [[[customerId, 'Clear me', 'body', 'info', null, null, null, null, null, null, null]]]
+    );
+
+    const res = await request(app)
+      .delete('/api/notifications/clear-all')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.deletedCount).toBeGreaterThan(0);
+
+    const list = await request(app)
+      .get('/api/notifications')
+      .set('Authorization', `Bearer ${userToken}`);
+    expect(list.status).toBe(200);
+    expect(list.body.data.length).toBe(0);
   });
 
   it('Admin should be able to delete a broadcast', async () => {

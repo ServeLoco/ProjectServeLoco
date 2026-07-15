@@ -118,10 +118,22 @@ const deleteNotification = async (req, res) => {
   res.json({ success: true, message: 'Notification deleted' });
 };
 
+const clearAllNotifications = async (req, res) => {
+  const userId = req.user.id;
+  const result = await notificationService.softDeleteAllNotifications(userId);
+  await emitUnreadCountUpdated(userId);
+  res.json({
+    success: true,
+    message: 'All notifications cleared',
+    deletedCount: result?.affectedRows || 0,
+  });
+};
+
 module.exports = {
   getNotifications,
   getUnreadCount,
   markAllRead,
   markRead,
-  deleteNotification
+  deleteNotification,
+  clearAllNotifications
 };

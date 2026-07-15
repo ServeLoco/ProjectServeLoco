@@ -33,10 +33,15 @@ export const deleteNotification = async (id) => {
   return apiClient.delete(`/notifications/${id}`, { auth: 'customer' });
 };
 
+export const clearAll = async () => {
+  return apiClient.delete('/notifications/clear-all', { auth: 'customer' });
+};
+
 export default {
   list,
   getUnreadCount,
   markAllRead,
   markRead,
-  deleteNotification
+  deleteNotification,
+  clearAll,
 };

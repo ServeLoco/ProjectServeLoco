@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   StyleSheet, Text, View, FlatList,
-  TouchableOpacity, ActivityIndicator, Platform,
+  TouchableOpacity, ActivityIndicator, Platform, Alert,
 } from 'react-native';
 import { AppScreen, AppHeader, AppIcon, ErrorState } from '../../../components';
 import { colors } from '../../../theme';
@@ -71,7 +71,8 @@ export default function NotificationsScreen({ navigation }) {
   const refreshTimer = useRef(null);
 
   const flatData = useMemo(() => buildFlatData(notifications), [notifications]);
-  const hasUnread = notifications.some(n => !n.read);
+  const hasNotifications = notifications.length > 0;
+  const [clearingAll, setClearingAll] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) fetchNotifications();
@@ -85,9 +86,20 @@ export default function NotificationsScreen({ navigation }) {
       const res = await notificationsApi.list({ limit: 50 });
       const items = res.data || [];
       setNotifications(items);
+      // Mark as read in the background for badge count — do not block the
+      // header actions on unread state (users still need Clear all).
       if (items.some(n => !n.read)) {
-        await notificationsApi.markAllRead();
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        // Capture which ids this call is marking read — a notification that
+        // streams in via socket after this fires but before it resolves
+        // must not be flipped to read by the stale closure below.
+        const idsBeingMarkedRead = new Set(items.filter(n => !n.read).map(n => n.id));
+        notificationsApi.markAllRead()
+          .then(() => {
+            setNotifications(prev => prev.map(
+              n => idsBeingMarkedRead.has(n.id) ? { ...n, read: true } : n
+            ));
+          })
+          .catch(() => {});
       }
     } catch (err) {
       console.warn('Failed to fetch notifications', err);
@@ -127,15 +139,6 @@ export default function NotificationsScreen({ navigation }) {
     };
   }, [isAuthenticated, queueRefresh]);
 
-  const markAllAsRead = useCallback(async () => {
-    try {
-      await notificationsApi.markAllRead();
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    } catch (err) {
-      console.warn('Failed to mark all as read', err);
-    }
-  }, []);
-
   const clearNotification = useCallback(async (id) => {
     try {
       await notificationsApi.deleteNotification(id);
@@ -144,6 +147,33 @@ export default function NotificationsScreen({ navigation }) {
       console.warn('Failed to delete notification', err);
     }
   }, []);
+
+  const clearAllNotifications = useCallback(() => {
+    if (!hasNotifications || clearingAll) return;
+    Alert.alert(
+      'Clear all notifications?',
+      'This removes every notification from your inbox. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear all',
+          style: 'destructive',
+          onPress: async () => {
+            setClearingAll(true);
+            try {
+              await notificationsApi.clearAll();
+              setNotifications([]);
+            } catch (err) {
+              console.warn('Failed to clear all notifications', err);
+              Alert.alert('Could not clear', err?.message || 'Try again.');
+            } finally {
+              setClearingAll(false);
+            }
+          },
+        },
+      ],
+    );
+  }, [hasNotifications, clearingAll]);
 
   const openNotification = useCallback(async (n) => {
     const orderId = getNotificationOrderId(n);
@@ -236,12 +266,16 @@ export default function NotificationsScreen({ navigation }) {
         title="Notifications"
         onBack={() => navigation.goBack()}
         rightActions={
-          hasUnread
+          hasNotifications
             ? [{
-                icon: <Text style={styles.markReadBtn}>Mark all read</Text>,
-                onPress: markAllAsRead,
-                label: 'Mark all as read',
-                style: { width: 'auto', paddingHorizontal: 10 },
+                icon: (
+                  <Text style={[styles.clearAllBtn, clearingAll && styles.clearAllBtnDisabled]}>
+                    {clearingAll ? 'Clearing…' : 'Clear all'}
+                  </Text>
+                ),
+                onPress: clearAllNotifications,
+                label: 'Clear all notifications',
+                style: { width: 'auto', paddingHorizontal: 10, minWidth: 88 },
               }]
             : []
         }
@@ -438,10 +472,13 @@ const styles = StyleSheet.create({
   },
 
   // ── Header right button ──
-  markReadBtn: {
+  clearAllBtn: {
     fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
+    fontWeight: '700',
+    color: colors.saffron,
+  },
+  clearAllBtnDisabled: {
+    opacity: 0.5,
   },
 
   // ── Empty state ──
