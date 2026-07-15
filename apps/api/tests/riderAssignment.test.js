@@ -23,6 +23,15 @@ jest.mock('../src/utils/expoPush', () => ({
   sendPushToMany: jest.fn().mockResolvedValue({}),
 }));
 
+// Default: FCM "succeeds" so flow tests (which don't care about push
+// delivery) don't fall through to the real fcmAlarmPush logic against an
+// exhausted pool.query mock queue. Branch-specific behavior is asserted in
+// the dedicated 'pushRiderOffer FCM/Expo branching' describe block below.
+jest.mock('../src/utils/fcmAlarmPush', () => ({
+  sendFcmDataOnlyToUser: jest.fn().mockResolvedValue({ sent: true }),
+  sendFcmDataOnlyToMany: jest.fn().mockResolvedValue([]),
+}));
+
 jest.mock('../src/utils/adminNotifications', () => ({
   TYPES: {
     RIDER_ASSIGNMENT_FAILED: 'rider_assignment_failed',
@@ -248,6 +257,74 @@ describe('continueAssignment search window', () => {
     expect(r.continued).toBe(true);
     expect(r.riderId).toBe(7);
     expect(r.offer?.id).toBe(55);
+  });
+});
+
+describe('pushRiderOffer FCM/Expo branching', () => {
+  // Same fixture as 'offers a rider who becomes eligible during the wait' —
+  // the simplest real path that reaches pushRiderOffer via continueAssignment.
+  const order = {
+    id: 10,
+    status: 'Accepted',
+    rider_id: null,
+    rider_assignment_status: 'searching',
+    order_number: 'O-10',
+    customer_id: 5,
+  };
+  const rider = {
+    id: 7, user_id: 70, display_name: 'R', phone: null,
+    active: true, is_online: true, last_heartbeat_at: new Date(),
+  };
+
+  function queueOfferFixture() {
+    pool.query
+      .mockResolvedValueOnce([[order]]) // loadOrder
+      .mockResolvedValueOnce([[]]) // no pending
+      .mockResolvedValueOnce([[]]) // excluded
+      .mockResolvedValueOnce([[rider]]) // eligible
+      .mockResolvedValueOnce([[]]) // countCompletedDeliveriesTodayBatch
+      .mockResolvedValueOnce([{ affectedRows: 1 }]); // markSearching
+
+    const offerConn = makeConn([
+      [[]], // no pending FOR UPDATE
+      [[order]], // order FOR UPDATE
+      [[{ e: new Date(Date.now() + 300000) }]], // expires_at
+      [{ insertId: 55, affectedRows: 1 }], // insert offer
+      [{ affectedRows: 1 }], // order offered
+    ]);
+    pool.getConnection.mockResolvedValueOnce(offerConn);
+  }
+
+  it('does not fall back to Expo when native FCM reports sent', async () => {
+    const fcmAlarm = require('../src/utils/fcmAlarmPush');
+    const expoPush = require('../src/utils/expoPush');
+    fcmAlarm.sendFcmDataOnlyToUser.mockResolvedValueOnce({ sent: true });
+    queueOfferFixture();
+
+    await assignment.continueAssignment(10);
+
+    expect(fcmAlarm.sendFcmDataOnlyToUser).toHaveBeenCalledWith(
+      pool, 70, expect.objectContaining({ alertType: 'rider_offer_alarm', offerId: '55' })
+    );
+    expect(expoPush.sendPushToUser).not.toHaveBeenCalled();
+  });
+
+  it('falls back to Expo with the alarm channel/sound when FCM does not report sent', async () => {
+    const fcmAlarm = require('../src/utils/fcmAlarmPush');
+    const expoPush = require('../src/utils/expoPush');
+    fcmAlarm.sendFcmDataOnlyToUser.mockResolvedValueOnce({ sent: false, reason: 'no_fcm_token' });
+    queueOfferFixture();
+
+    await assignment.continueAssignment(10);
+
+    expect(expoPush.sendPushToUser).toHaveBeenCalledWith(
+      pool, 70,
+      expect.objectContaining({
+        channelId: 'serveloco-rider-offers-alarm-v4',
+        sound: 'rider_alarm',
+        data: expect.objectContaining({ alertType: 'rider_offer_alarm' }),
+      })
+    );
   });
 });
 

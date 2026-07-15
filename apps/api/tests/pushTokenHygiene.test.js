@@ -82,4 +82,58 @@ describe('TASK 9 — push-token hygiene', () => {
     expect(pool.query.mock.calls[0][0]).toMatch(/UPDATE users SET push_token = NULL,\s*fcm_token = NULL WHERE id = \?/i);
     expect(pool.query.mock.calls[0][1]).toEqual([5]);
   });
+
+  it('registering with a valid fcm_token also detaches and claims it', async () => {
+    pool.query
+      .mockResolvedValueOnce([{ affectedRows: 1 }]) // detach push_token from others
+      .mockResolvedValueOnce([{ affectedRows: 1 }]) // claim push_token
+      .mockResolvedValueOnce([{ affectedRows: 1 }]) // detach fcm_token from others
+      .mockResolvedValueOnce([{ affectedRows: 1 }]); // claim fcm_token
+
+    const tokenB = signToken(2);
+    const fcmToken = 'a'.repeat(20); // meets the length >= 20 gate
+
+    const res = await request(app)
+      .post('/api/auth/me/push-token')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ push_token: 'ExponentPushToken[x]', fcm_token: fcmToken });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(pool.query).toHaveBeenCalledTimes(4);
+
+    const calls = pool.query.mock.calls;
+    expect(calls[2][0]).toMatch(/UPDATE users SET fcm_token = NULL WHERE fcm_token = \? AND id != \?/i);
+    expect(calls[2][1]).toEqual([fcmToken, 2]);
+    expect(calls[3][0]).toMatch(/UPDATE users SET fcm_token = \? WHERE id = \?/i);
+    expect(calls[3][1]).toEqual([fcmToken, 2]);
+  });
+
+  it('registering without a fcm_token skips the fcm_token queries entirely', async () => {
+    pool.query
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const res = await request(app)
+      .post('/api/auth/me/push-token')
+      .set('Authorization', `Bearer ${signToken(2)}`)
+      .send({ push_token: 'ExponentPushToken[x]' });
+
+    expect(res.statusCode).toBe(200);
+    expect(pool.query).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects a too-short fcm_token (below the 20-char validity gate) without querying it', async () => {
+    pool.query
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const res = await request(app)
+      .post('/api/auth/me/push-token')
+      .set('Authorization', `Bearer ${signToken(2)}`)
+      .send({ push_token: 'ExponentPushToken[x]', fcm_token: 'too-short' });
+
+    expect(res.statusCode).toBe(200);
+    expect(pool.query).toHaveBeenCalledTimes(2); // push_token detach+claim only
+  });
 });

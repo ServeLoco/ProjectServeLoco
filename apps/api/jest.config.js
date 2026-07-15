@@ -10,6 +10,7 @@ module.exports = {
     // package) which Jest can't transform. The auth controller's Firebase
     // verification path is exercised via integration tests, not unit tests.
     '^firebase-admin/app$': '<rootDir>/tests/__mocks__/firebase-admin-app.js',
-    '^firebase-admin/auth$': '<rootDir>/tests/__mocks__/firebase-admin-auth.js'
+    '^firebase-admin/auth$': '<rootDir>/tests/__mocks__/firebase-admin-auth.js',
+    '^firebase-admin/messaging$': '<rootDir>/tests/__mocks__/firebase-admin-messaging.js'
   }
 };
