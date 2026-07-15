@@ -84,6 +84,10 @@ export function useSyncCartFreeDeliveryProgress({ enabled = true, debounceMs = 3
         );
         setFreeDeliveryUnlocked(unlocked);
 
+        // Keep sticky mini-cart totals + free-delivery progress on live prices
+        // (admin can change product price while items sit in the local cart).
+        useCartStore.getState().syncItemPricesFromServer(calculated.items);
+
         // Keep coupon row in store consistent with bill (same as CartScreen).
         if (calculated.appliedCoupon) {
           setAppliedCoupon(calculated.appliedCoupon.code, calculated.appliedCoupon);

@@ -332,6 +332,7 @@ export default function CheckoutScreen() {
   const couponAutoApplyDisabled = useCartStore(state => state.couponAutoApplyDisabled);
   const setFreeDeliveryProgress = useCartStore(state => state.setFreeDeliveryProgress);
   const setFreeDeliveryUnlocked = useCartStore(state => state.setFreeDeliveryUnlocked);
+  const syncItemPricesFromServer = useCartStore(state => state.syncItemPricesFromServer);
   const shopStatus = useSettingsStore(state => state.shopStatus);
   const deliveryAvailable = useSettingsStore(state => state.deliveryAvailable);
   const upiQrImageId = useSettingsStore(state => state.upiQrImageId);
@@ -677,6 +678,7 @@ export default function CheckoutScreen() {
             normalized.appliedCoupon
             && Number(normalized.appliedCoupon.freeDeliveryWaiver || 0) > 0,
           ));
+          syncItemPricesFromServer(normalized.items);
         })
         .catch(error => {
           if (!isActive) return;
@@ -1124,6 +1126,7 @@ export default function CheckoutScreen() {
     try {
       const verifiedBill = normalizeCartCalculation(await cartApi.calculate(calculationPayload));
       setBill(verifiedBill);
+      syncItemPricesFromServer(verifiedBill.items);
 
       const oldGrandTotal = bill?.grandTotal;
       if (oldGrandTotal !== undefined && verifiedBill.grandTotal !== oldGrandTotal) {

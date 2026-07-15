@@ -134,6 +134,63 @@ describe('api mappers', () => {
     expect(result.appliedCoupon.freeDeliveryWaiver).toBe(30);
   });
 
+  it('maps server-priced cart line items (unitPrice) for client price sync', () => {
+    const result = normalizeCartCalculation({
+      data: {
+        subtotal: 180,
+        items: [
+          {
+            id: 12,
+            name: 'Milk (1L)',
+            quantity: 2,
+            unitPrice: 45,
+            lineTotal: 90,
+            type: 'product',
+            variantId: 3,
+            variantLabel: '1L',
+          },
+          {
+            id: 99,
+            name: 'Combo Box',
+            quantity: 1,
+            unit_price: 90,
+            line_total: 90,
+            type: 'combo',
+            variant_id: null,
+          },
+        ],
+      },
+    });
+
+    expect(result.items).toEqual([
+      {
+        id: '12',
+        name: 'Milk (1L)',
+        quantity: 2,
+        unitPrice: 45,
+        lineTotal: 90,
+        type: 'product',
+        variantId: 3,
+        variantLabel: '1L',
+      },
+      {
+        id: '99',
+        name: 'Combo Box',
+        quantity: 1,
+        unitPrice: 90,
+        lineTotal: 90,
+        type: 'combo',
+        variantId: null,
+        variantLabel: null,
+      },
+    ]);
+  });
+
+  it('defaults cart calculation items to empty array when absent', () => {
+    const result = normalizeCartCalculation({ data: { subtotal: 100 } });
+    expect(result.items).toEqual([]);
+  });
+
   it('maps delivery snapshot fields from order response', () => {
     const result = normalizeOrder({
       id: 10,

@@ -189,6 +189,60 @@ export const useCartStore = create(
         return removedItems;
       },
 
+      // Write live unit prices from /cart/calculate back into local cart lines.
+      // Cart lines snapshot product/variant at add-to-cart time; after an admin
+      // price change the bill (server) is correct but the cart list + sticky
+      // mini-cart still read the stale snapshot. Only mutates when a price
+      // actually differs so callers that depend on `items` don't loop.
+      // serverItems: [{ id, unitPrice, type?, variantId? }, ...]
+      syncItemPricesFromServer: (serverItems) => {
+        if (!Array.isArray(serverItems) || serverItems.length === 0) return false;
+
+        const priceByKey = new Map();
+        for (const row of serverItems) {
+          const id = row?.id ?? row?.productId ?? row?.product_id;
+          if (id == null || id === '') continue;
+          const type = row?.type || (row?.isCombo || row?.is_combo ? 'combo' : 'product');
+          const variantId = row?.variantId ?? row?.variant_id ?? null;
+          const unitPrice = Number(row?.unitPrice ?? row?.unit_price ?? row?.price);
+          if (!Number.isFinite(unitPrice)) continue;
+          priceByKey.set(`${type}:${String(id)}:${variantId == null ? 'base' : String(variantId)}`, unitPrice);
+        }
+        if (priceByKey.size === 0) return false;
+
+        const { items } = get();
+        let changed = false;
+        const updatedItems = items.map((item) => {
+          const type = item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');
+          const variantId = item.variant?.id ?? null;
+          const key = `${type}:${String(item.product?.id)}:${variantId == null ? 'base' : String(variantId)}`;
+          if (!priceByKey.has(key)) return item;
+
+          const unitPrice = priceByKey.get(key);
+          if (item.variant) {
+            const current = Number(item.variant.price) || 0;
+            if (current === unitPrice) return item;
+            changed = true;
+            return {
+              ...item,
+              variant: { ...item.variant, price: unitPrice },
+              product: { ...item.product, price: unitPrice },
+            };
+          }
+
+          const current = Number(item.product?.price) || 0;
+          if (current === unitPrice) return item;
+          changed = true;
+          return {
+            ...item,
+            product: { ...item.product, price: unitPrice },
+          };
+        });
+
+        if (changed) set({ items: updatedItems });
+        return changed;
+      },
+
       // Selectors (computed properties)
       get totalItems() {
         return get().items.reduce((total, item) => total + item.quantity, 0);

@@ -279,6 +279,23 @@ function normalizeCartCalculation(payload = {}) {
     fastDeliveryMinutes: numberOrZero(pickFirst(bill.fastDeliveryMinutes, bill.fast_delivery_minutes)),
     standardDeliveryCharge: numberOrZero(pickFirst(bill.standardDeliveryCharge, bill.standard_delivery_charge, bill.deliveryCharge, bill.delivery_charge)),
     standardDeliveryMinutes: numberOrZero(pickFirst(bill.standardDeliveryMinutes, bill.standard_delivery_minutes)),
+    // Server-priced line items from /cart/calculate. Cart UI snapshots product
+    // prices at add-to-cart time; these unitPrices are the live admin prices
+    // and must be written back into the cart store so list + sticky mini-cart
+    // stay in sync with Item Total on the bill.
+    items: asArray(bill.items, []).map((item) => ({
+      id: toIdString(pickFirst(item.id, item.productId, item.product_id)),
+      name: pickFirst(item.name, item.productName, item.product_name, ''),
+      quantity: numberOrZero(pickFirst(item.quantity, item.qty, 0)),
+      unitPrice: numberOrZero(pickFirst(item.unitPrice, item.unit_price, item.price)),
+      lineTotal: numberOrZero(pickFirst(item.lineTotal, item.line_total)),
+      type: pickFirst(item.type, item.isCombo || item.is_combo ? 'combo' : 'product'),
+      variantId: (() => {
+        const raw = pickFirst(item.variantId, item.variant_id, null);
+        return raw == null || raw === '' ? null : raw;
+      })(),
+      variantLabel: pickFirst(item.variantLabel, item.variant_label) ?? null,
+    })),
     appliedCoupon: (() => {
       const coupon = bill.appliedCoupon || bill.applied_coupon || null;
       if (!coupon) return null;

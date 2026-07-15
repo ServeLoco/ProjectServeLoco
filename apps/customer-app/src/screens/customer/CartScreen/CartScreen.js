@@ -48,6 +48,7 @@ export default function CartScreen() {
   const softClearAppliedCoupon = useCartStore(state => state.softClearAppliedCoupon);
   const setFreeDeliveryProgress = useCartStore(state => state.setFreeDeliveryProgress);
   const setFreeDeliveryUnlocked = useCartStore(state => state.setFreeDeliveryUnlocked);
+  const syncItemPricesFromServer = useCartStore(state => state.syncItemPricesFromServer);
   const shopStatus = useSettingsStore(state => state.shopStatus);
 
   const [isCalculating, setIsCalculating] = useState(false);
@@ -196,6 +197,9 @@ export default function CartScreen() {
         calculatedBill.appliedCoupon
         && Number(calculatedBill.appliedCoupon.freeDeliveryWaiver || 0) > 0,
       ));
+      // Refresh local cart line prices from server so list + mini-cart match
+      // Item Total after an admin price change (bill already uses live prices).
+      syncItemPricesFromServer(calculatedBill.items);
       // Sync applied coupon from the bill response (handles auto-apply + validation).
       // When the backend returns no coupon (free-delivery min no longer met after
       // removing items, or auto-apply has nothing eligible), soft-clear local
