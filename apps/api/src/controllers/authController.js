@@ -143,6 +143,7 @@ const { Expo } = require('expo-server-sdk');
 const registerPushToken = async (req, res) => {
   const userId = req.user.id;
   const token = req.body?.push_token || req.body?.pushToken;
+  const fcmToken = req.body?.fcm_token || req.body?.fcmToken || null;
 
   if (!token || typeof token !== 'string') {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'push_token is required' });
@@ -157,6 +158,13 @@ const registerPushToken = async (req, res) => {
   // they would keep receiving the new user's order notifications.
   await pool.query('UPDATE users SET push_token = NULL WHERE push_token = ? AND id != ?', [token, userId]);
   await pool.query('UPDATE users SET push_token = ? WHERE id = ?', [token, userId]);
+
+  // Optional native FCM token for shop/rider data-only killed-app alarms.
+  if (fcmToken && typeof fcmToken === 'string' && fcmToken.length >= 20) {
+    await pool.query('UPDATE users SET fcm_token = NULL WHERE fcm_token = ? AND id != ?', [fcmToken, userId]);
+    await pool.query('UPDATE users SET fcm_token = ? WHERE id = ?', [fcmToken, userId]);
+  }
+
   res.json({ success: true });
 };
 
@@ -165,7 +173,7 @@ const registerPushToken = async (req, res) => {
 // expiry (no revocation store — out of scope, see plans/bugs.md TASK 4).
 const logout = async (req, res) => {
   const userId = req.user.id;
-  await pool.query('UPDATE users SET push_token = NULL WHERE id = ?', [userId]);
+  await pool.query('UPDATE users SET push_token = NULL, fcm_token = NULL WHERE id = ?', [userId]);
   res.status(200).json({ data: { ok: true } });
 };
 

@@ -36,25 +36,30 @@ const notifyShopsForOrder = async (order) => {
         orderId: order.id, orderNumber: order.order_number, shopId: row.shop_id,
       });
     }
-    expoPush.sendPushToMany(pool, rows.map(r => r.owner_user_id), {
-      // Loud alarm channel (custom order_alarm sound). title/body required so the OS
-      // presents the banner when the app is backgrounded/killed — pure data-only
-      // Expo pushes do not start RNFB headless JS on Android 14 (verified).
-      title: 'New order to prepare',
-      body: `Order ${order.order_number} has items for your shop. Open the app to confirm.`,
-      channelId: 'serveloco-orders-alarm-v4',
-      // Custom res/raw/order_alarm — do not send sound:'default' (OEM override risk).
-      sound: 'order_alarm',
-      // One tray row per order (re-notify replaces instead of stacking).
-      tag: `shop_order_${order.id}`,
-      collapseId: `shop_order_${order.id}`,
-      data: {
-        type: 'shop_order',
-        alertType: 'new_order_alarm',
-        orderId: order.id,
-        orderNumber: order.order_number,
-      },
-    }).catch(() => {});
+    // Prefer native FCM data-only (killed-app notifee full-screen). Fallback to
+    // Expo title+body tray for owners without an fcm_token yet.
+    const ownerIds = rows.map((r) => r.owner_user_id);
+    const alarmData = {
+      type: 'shop_order',
+      alertType: 'new_order_alarm',
+      orderId: order.id,
+      orderNumber: order.order_number,
+    };
+    const fcmAlarm = require('./fcmAlarmPush');
+    fcmAlarm.sendFcmDataOnlyToMany(pool, ownerIds, alarmData)
+      .then((needExpo) => {
+        if (!needExpo.length) return null;
+        return expoPush.sendPushToMany(pool, needExpo, {
+          title: 'New order to prepare',
+          body: `Order ${order.order_number} has items for your shop. Open the app to confirm.`,
+          channelId: 'serveloco-orders-alarm-v4',
+          sound: 'order_alarm',
+          tag: `shop_order_${order.id}`,
+          collapseId: `shop_order_${order.id}`,
+          data: alarmData,
+        });
+      })
+      .catch(() => {});
   } catch (e) {
     console.error('[shops] notifyShopsForOrder failed for order', order?.id, e.message);
   }

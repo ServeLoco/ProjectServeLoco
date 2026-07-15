@@ -95,6 +95,10 @@ const migrate = async () => {
     // Used to send real push notifications when the app is in the background.
     await ensureColumn('users', 'push_token',
       'push_token VARCHAR(255) NULL DEFAULT NULL AFTER deletion_reason');
+    // Native FCM registration token (Android) for high-priority data-only
+    // alarm pushes (shop/rider). Separate from Expo push_token.
+    await ensureColumn('users', 'fcm_token',
+      'fcm_token VARCHAR(255) NULL DEFAULT NULL AFTER push_token');
     console.log('Users table ready.');
 
     // Shops Table — one row per physical shop. Shop owners are normal users who

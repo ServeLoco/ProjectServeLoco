@@ -95,30 +95,33 @@ const pushRiderOffer = async (userId, order, offer, { reminder = false } = {}) =
   if (!userId) return;
   const orderNumber = order.order_number || order.orderNumber || order.id;
   const expoPush = require('../utils/expoPush');
+  const fcmAlarm = require('../utils/fcmAlarmPush');
   const mins = Math.max(1, Math.round(RIDER_OFFER_TIMEOUT_SEC / 60));
-  await expoPush.sendPushToUser(pool, userId, {
-    // Loud alarm channel (custom rider_alarm sound). title/body so OS presents
-    // when app is backgrounded/killed — pure data-only Expo + RNFB headless
-    // does not run JS on Android 14 (device-verified).
-    title: reminder ? 'Delivery offer still waiting' : 'New delivery offer',
-    body: reminder
-      ? `Order ${orderNumber} — accept now before it expires`
-      : `Order ${orderNumber} — accept within ${mins} minutes`,
-    channelId: 'serveloco-rider-offers-alarm-v4',
-    sound: 'rider_alarm',
-    // Reminder re-pushes replace the same tray row (no spam stack).
-    tag: `rider_offer_${offer.id}`,
-    collapseId: `rider_offer_${offer.id}`,
-    data: {
-      type: 'rider_offer',
-      alertType: 'rider_offer_alarm',
-      offerId: String(offer.id),
-      orderId: String(order.id || offer.order_id),
-      orderNumber: String(orderNumber),
-      expiresAt: String(offer.expires_at || offer.expiresAt || ''),
-      reminder: reminder ? '1' : '0',
-    },
-  });
+  const alarmData = {
+    type: 'rider_offer',
+    alertType: 'rider_offer_alarm',
+    offerId: String(offer.id),
+    orderId: String(order.id || offer.order_id),
+    orderNumber: String(orderNumber),
+    expiresAt: String(offer.expires_at || offer.expiresAt || ''),
+    reminder: reminder ? '1' : '0',
+  };
+
+  // Prefer native FCM data-only for killed-app notifee full-screen.
+  const fcm = await fcmAlarm.sendFcmDataOnlyToUser(pool, userId, alarmData);
+  if (!fcm.sent) {
+    await expoPush.sendPushToUser(pool, userId, {
+      title: reminder ? 'Delivery offer still waiting' : 'New delivery offer',
+      body: reminder
+        ? `Order ${orderNumber} — accept now before it expires`
+        : `Order ${orderNumber} — accept within ${mins} minutes`,
+      channelId: 'serveloco-rider-offers-alarm-v4',
+      sound: 'rider_alarm',
+      tag: `rider_offer_${offer.id}`,
+      collapseId: `rider_offer_${offer.id}`,
+      data: alarmData,
+    });
+  }
   offerLastRemindAt.set(Number(offer.id), Date.now());
 };
 

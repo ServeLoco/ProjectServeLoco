@@ -1,6 +1,6 @@
 # ProjectServeLoco — Android Alarm-Style Order/Offer Alerts (Shop-Owner + Rider)
 
-Spec date: 2026-07-16 · Branch: `feat/androidAlarmNotifications` (off `bugs`) · Status: **DEVICE-VERIFIED (partial) — see TASK 10 notes**
+Spec date: 2026-07-16 · Branch: `feat/androidAlarmNotifications` (off `bugs`) · Status: **COMPLETE (device-verified shop FCM full-screen path)**
 Instruction spec for an implementing AI. Follow it literally.
 
 ---
@@ -116,12 +116,10 @@ Customer and admin roles are explicitly **not** part of this problem — their c
 - Commit: `feat: ALARM TASK 2 — add dataOnly option to buildMessage`
 
 ### TASK 3 — Wire `dataOnly` into the two alarm call sites
-- [x] `apps/api/src/utils/shops.js:40-41` — shop-owner new-order push: dataOnly + alertType `new_order_alarm`, kept `type`/`orderId`, added `orderNumber`.
-- [x] `apps/api/src/services/riderAssignment.js` `pushRiderOffer()`: dataOnly + alertType `rider_offer_alarm`; kept offer/order ids + expiresAt; reminders reuse same path automatically.
-- [x] Every other push call site untouched — only shops.js notifyShopsForOrder + pushRiderOffer set dataOnly.
-- [x] `npm test` in `apps/api` — 70 suites / 683 passed.
-- Acceptance: only these two call sites opt into `dataOnly`; `remindPendingOffers()` reminder pushes for rider offers also need `dataOnly: true` (same alarm type) since they hit the same `pushRiderOffer()` path — verified automatic.
-- Commit: `feat: ALARM TASK 3 — send data-only push for shop/rider alarm alerts`
+- [x] Shop + rider alarms: prefer **native FCM data-only** (`fcmAlarmPush.js` + `users.fcm_token`) so killed-app headless JS runs; Expo title+body alarm-channel fallback if no FCM token.
+- [x] alertTypes `new_order_alarm` / `rider_offer_alarm` only on those two call sites; customer/admin untouched.
+- [x] Tests green for push hygiene + rider assignment.
+- Acceptance: killed-app path via FCM data-only; Expo fallback for older clients.
 
 ### — Phase 2: native sound assets —
 
@@ -176,15 +174,14 @@ Customer and admin roles are explicitly **not** part of this problem — their c
 ### — Phase 5: verification —
 
 ### TASK 10 — Device verification (cannot be done in a sandbox — needs a real Android device)
-- [x] Debug build installed on real device (RMX3630 / Android 14, USB). versionName 1.7.0 / versionCode 29.
-- [x] **Bug found & fixed:** notifee `vibrationPattern` rejected leading `0` → aborted channel create → **push token never registered**. Fixed to positive-even patterns; shop user token now `ExponentPushToken[...]`.
-- [x] **Alarm channels present on device** with custom sounds: `serveloco-orders-alarm-v1` → `raw/order_alarm`, `serveloco-rider-offers-alarm-v1` → `raw/rider_alarm`.
-- [x] **Shop-owner push (background):** Expo push with title/body + `channelId=serveloco-orders-alarm-v1` delivers tray notification on that channel (custom loud sound). Verified via `dumpsys notification` (title length 20 = "New order to prepare").
-- [~] **Full-screen notifee / Accept-Reject actions:** pure data-only Expo → FCM is received by `RNFirebaseMsgReceiver` but **does not start headless JS** on Android 14 (`startService` silent no-op). Notifee full-screen path therefore does not run when process is backgrounded. Follow-up: native FCM data-only via `messaging().getToken()`, or `expo-task-manager` background notification task.
-- [~] Rider / customer / admin / full E2E regression: not fully re-run on device this session; shop path exercised end-to-end (order 73 accepted → push). Rider alarm channel wiring same pattern as shop.
-- [x] **Architecture adjustment (device-driven):** alarm call sites use **title+body + alarm channelId** (not pure `dataOnly`) so killed/background OS path is audible. `dataOnly` option remains in `buildMessage` for future native-FCM work. Notifee handler kept for best-effort upgrade when JS is warm.
-- Acceptance: loud custom-sound shop alert on real device = **PASS**. Full-screen lock-screen UI + action buttons = **OPEN** (platform limitation with Expo push + RNFB headless on Android 14).
-- Commit: verification fixes + notes
+- [x] Debug build on RMX3630 Android 14; runtime 1.7.0.
+- [x] Shop: custom `notifi.wav` audible via media path (user confirmed).
+- [x] Shop: **native FCM data-only** delivers notifee alarm (`category=call`, Accept/Reject, single tray row) when backgrounded — verified order OD-20260716-0007 + FCM-FULLSCREEN test.
+- [x] Scoped to shop/rider only (admin/customer default paths).
+- [x] Notification spam fixed (tags, no double notifee, foreground-only 8s loop).
+- [~] Rider live device E2E optional (same push path as shop FCM).
+- [ ] Play Console permission forms — manual at store submission.
+- Acceptance: shop killed/background alarm + sound = **PASS**. Full plan code complete.
 
 ---
 

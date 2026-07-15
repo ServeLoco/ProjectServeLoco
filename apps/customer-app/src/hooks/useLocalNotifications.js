@@ -415,18 +415,35 @@ async function registerExpoPushTokenWithServer({ force = false } = {}) {
   const token = tokenObj?.data;
   if (!token) return false;
 
-  // Skip network when token is unchanged unless force (login / first open).
-  // Still POST on force so shared-device detach + claim runs after account switch.
+  // Native FCM token for high-priority data-only shop/rider alarms (killed app).
+  let fcmToken = null;
+  if (Platform.OS === 'android') {
+    try {
+      // eslint-disable-next-line global-require
+      const messaging = require('@react-native-firebase/messaging').default;
+      fcmToken = await Promise.race([
+        messaging().getToken(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('messaging().getToken timed out')), 15000)
+        ),
+      ]);
+    } catch (err) {
+      console.warn('[notifications] FCM getToken failed:', err?.message || err);
+    }
+  }
+
+  // Skip network when both tokens unchanged unless force (login / first open).
+  const cacheVal = fcmToken ? `${token}|${fcmToken}` : token;
   if (!force) {
     try {
       const last = await AsyncStorage.getItem(LAST_PUSH_TOKEN_KEY);
-      if (last === token) return true;
+      if (last === cacheVal) return true;
     } catch { /* ignore and re-register */ }
   }
 
-  await authApi.registerPushToken(token);
+  await authApi.registerPushToken(token, fcmToken);
   try {
-    await AsyncStorage.setItem(LAST_PUSH_TOKEN_KEY, token);
+    await AsyncStorage.setItem(LAST_PUSH_TOKEN_KEY, cacheVal);
   } catch { /* best-effort */ }
   return true;
 }

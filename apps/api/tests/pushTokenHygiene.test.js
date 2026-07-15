@@ -79,7 +79,7 @@ describe('TASK 9 — push-token hygiene', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({ data: { ok: true } });
-    expect(pool.query.mock.calls[0][0]).toMatch(/UPDATE users SET push_token = NULL WHERE id = \?/i);
+    expect(pool.query.mock.calls[0][0]).toMatch(/UPDATE users SET push_token = NULL,\s*fcm_token = NULL WHERE id = \?/i);
     expect(pool.query.mock.calls[0][1]).toEqual([5]);
   });
 });

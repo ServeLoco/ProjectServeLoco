@@ -345,9 +345,8 @@ export async function handleBackgroundAlarmMessage(remoteMessage) {
   }
 
   // Shop/rider alert types only — never act on customer/admin notification payloads.
-  // If Expo/FCM already attached a notification payload (title+body), the OS
-  // tray is showing that banner — only play media sound, do not post a second
-  // notifee notification (duplicate spam).
+  // Native FCM data-only has no notification key → full notifee display.
+  // Expo fallback may include title+body → sound only (avoid double banner).
   const hasOsBanner = Boolean(
     remoteMessage?.notification?.title
     || remoteMessage?.notification?.body
@@ -362,7 +361,8 @@ export async function handleBackgroundAlarmMessage(remoteMessage) {
       );
       return;
     }
-    console.warn('[orderAlarm] displaying alarm', alertData.alertType, alertData.orderId || alertData.offerId);
+    // True data-only (native FCM): full-screen notifee + media sound.
+    console.warn('[orderAlarm] data-only → full-screen alarm', alertData.alertType, alertData.orderId || alertData.offerId);
     await displayAlarmNotification(alertData);
     console.warn('[orderAlarm] display complete');
   } catch (err) {
