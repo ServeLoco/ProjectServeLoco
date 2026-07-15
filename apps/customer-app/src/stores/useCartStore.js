@@ -316,20 +316,24 @@ export const useCartStore = create(
       applyCatalogProductPrices: (products) => {
         if (!Array.isArray(products) || products.length === 0) return false;
 
+        // Keyed by type:id — products and combos are separate tables/id
+        // sequences, so an id-only key could apply a combo's price/name to a
+        // same-id product line (or vice versa).
         const byId = new Map();
         for (const p of products) {
           if (p == null || p.id == null || p.id === '') continue;
-          byId.set(String(p.id), p);
+          const catalogType = p.type || (p.isCombo || p.is_combo ? 'combo' : 'product');
+          byId.set(`${catalogType}:${String(p.id)}`, p);
         }
         if (byId.size === 0) return false;
 
         const { items } = get();
         let changed = false;
         const updatedItems = items.map((item) => {
-          const catalog = byId.get(String(item.product?.id));
+          const type = item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');
+          const catalog = byId.get(`${type}:${String(item.product?.id)}`);
           if (!catalog) return item;
 
-          const type = item.type || (item.product?.isCombo || item.product?.is_combo ? 'combo' : 'product');
           const catalogAvailable = catalog.available !== undefined && catalog.available !== null
             ? Boolean(catalog.available)
             : item.product?.available;
