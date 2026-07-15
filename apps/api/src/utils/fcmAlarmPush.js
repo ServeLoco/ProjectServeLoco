@@ -9,8 +9,9 @@
  */
 const { getMessaging } = require('firebase-admin/messaging');
 const { initFirebase } = require('../config/firebase');
+const config = require('../config/env');
 
-const isProd = process.env.NODE_ENV === 'production';
+const isProd = config.NODE_ENV === 'production';
 
 /**
  * @param {import('mysql2/promise').Pool} pool
