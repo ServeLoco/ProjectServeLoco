@@ -142,6 +142,7 @@ jest.mock('@notifee/react-native', () => {
     cancelNotification: jest.fn(async () => {}),
     cancelDisplayedNotification: jest.fn(async () => {}),
     stopForegroundService: jest.fn(async () => {}),
+    registerForegroundService: jest.fn(),
     canUseFullScreenIntent: jest.fn(async () => true),
     openFullScreenIntentSettings: jest.fn(async () => {}),
     onForegroundEvent: jest.fn(() => jest.fn()),

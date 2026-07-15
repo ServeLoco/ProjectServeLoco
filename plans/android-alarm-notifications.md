@@ -142,11 +142,11 @@ Customer and admin roles are explicitly **not** part of this problem — their c
 - Commit: `feat: ALARM TASK 5 — create notifee alarm channels for shop/rider`
 
 ### TASK 6 — Background message handler + full-screen alarm display
-- [ ] In `apps/customer-app/index.js` (top-level, before `AppRegistry.registerComponent`), register `messaging().setBackgroundMessageHandler(async (remoteMessage) => { ... })`. Inspect `remoteMessage.data.alertType`; if `'new_order_alarm'` or `'rider_offer_alarm'`, call `notifee.displayNotification()` with `android.fullScreenAction` pointing at the app's main activity, `android.asForegroundService: true` (or notifee's documented equivalent for an ongoing alarm-style notification), the matching channel id from TASK 5, and Accept/Reject `android.actions`. If `alertType` doesn't match either alarm type, no-op (let existing behavior handle it — but recall these two push types are now data-only, so nothing else will render them; that's intended, this handler is their only path).
-- [ ] Add a foreground `messaging().onMessage` listener (if one doesn't already exist for FCM specifically — check whether `expo-notifications`' existing foreground handling already covers this before adding a duplicate) that explicitly no-ops for `alertType: 'new_order_alarm' | 'rider_offer_alarm'` payloads, since `useNewOrderAlert.js`/`useRiderOfferAlert.js` already handle the foreground case via socket events, not via this FCM listener.
-- [ ] `npx eslint .` — clean.
-- [ ] **BOOT_COMPLETED safety check** (see §7 below): confirm `notifee.displayNotification()`/foreground-service start in this handler is reachable ONLY from `setBackgroundMessageHandler` (i.e. an actual FCM push arriving), never from any boot/reboot broadcast receiver. Do not register this handler or any code path that starts the alarm foreground service inside a `BOOT_COMPLETED`/`REBOOT`/`QUICKBOOT_POWERON` receiver — Android 15+ crashes apps that start restricted foreground-service types from boot receivers (Play Console already flags this exact crash class against `expo-notifications`' existing boot receiver reaching into `expo-audio`'s foreground services — do not add a second instance of it).
-- Acceptance: killed-app push with `alertType: 'new_order_alarm'` or `'rider_offer_alarm'` triggers a notifee full-screen display; foreground behavior unchanged (verify no double-alert once on a device in TASK 10); confirmed zero code path from any boot receiver into this handler.
+- [x] `index.js`: `setBackgroundMessageHandler` → `handleBackgroundAlarmMessage` → notifee full-screen + FGS + Accept/Reject actions; `registerForegroundService` for ongoing alarm. Logic in `src/utils/orderAlarmNotifications.js`.
+- [x] Foreground `messaging().onMessage` no-ops for alarm alertTypes (existing 8s hooks own foreground).
+- [x] eslint clean; tests 220 pass.
+- [x] **BOOT_COMPLETED safety**: handler only registered from `index.js` top-level for FCM arrivals; no boot/reboot receivers added.
+- Acceptance: code path ready for device verify in TASK 10.
 - Commit: `feat: ALARM TASK 6 — background handler triggers full-screen alarm display`
 
 ### TASK 7 — Stop/dismiss wiring
