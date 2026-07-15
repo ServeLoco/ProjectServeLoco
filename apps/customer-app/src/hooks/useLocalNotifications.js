@@ -181,10 +181,10 @@ export const RIDER_OFFER_CHANNEL_ID = 'serveloco-rider-offers';
 
 // Notifee full-screen alarm channels (killed-app path). New IDs only — never
 // reuse the expo-notifications channels above (Android freezes channel settings).
-// Bumped v1→v2: rebuild custom WAVs at 44.1kHz (v1 22kHz was often silent on OEM
-// notification players) and re-apply sound/bypass after immutable channel freeze.
-export const ORDER_ALARM_CHANNEL_ID = 'serveloco-orders-alarm-v2';
-export const RIDER_OFFER_ALARM_CHANNEL_ID = 'serveloco-rider-offers-alarm-v2';
+// Bumped when custom sound assets change — Android freezes channel sound after
+// first create (v1→v2 format fix; v2→v3 user notifi.wav).
+export const ORDER_ALARM_CHANNEL_ID = 'serveloco-orders-alarm-v3';
+export const RIDER_OFFER_ALARM_CHANNEL_ID = 'serveloco-rider-offers-alarm-v3';
 
 // Strong pattern: pause, buzz, pause, buzz… (ms) — RN Vibration API allows a
 // leading 0 (initial delay). Used by foreground alert hooks.
@@ -255,8 +255,14 @@ export async function createNotifeeAlarmChannels() {
 
   try {
     // Drop superseded channel ids (settings frozen after first create).
-    try { await notifee.deleteChannel('serveloco-orders-alarm-v1'); } catch { /* ignore */ }
-    try { await notifee.deleteChannel('serveloco-rider-offers-alarm-v1'); } catch { /* ignore */ }
+    for (const oldId of [
+      'serveloco-orders-alarm-v1',
+      'serveloco-orders-alarm-v2',
+      'serveloco-rider-offers-alarm-v1',
+      'serveloco-rider-offers-alarm-v2',
+    ]) {
+      try { await notifee.deleteChannel(oldId); } catch { /* ignore */ }
+    }
 
     await notifee.createChannel({
       id: ORDER_ALARM_CHANNEL_ID,
