@@ -99,7 +99,8 @@ jest.mock('expo-notifications', () => ({
 
 // Mock expo-audio — native module not available in Node/Jest environment
 jest.mock('expo-audio', () => ({
-  createAudioPlayer: jest.fn(() => ({ play: jest.fn(), seekTo: jest.fn() })),
+  createAudioPlayer: jest.fn(() => ({ play: jest.fn(), pause: jest.fn(), seekTo: jest.fn() })),
+  setAudioModeAsync: jest.fn(async () => {}),
 }));
 
 // Mock expo-linear-gradient
@@ -155,6 +156,7 @@ jest.mock('@notifee/react-native', () => {
     AndroidImportance: { HIGH: 4, DEFAULT: 3, LOW: 2, MIN: 1, NONE: 0 },
     AndroidVisibility: { PUBLIC: 1, PRIVATE: 0, SECRET: -1 },
     AndroidCategory: { CALL: 'call', ALARM: 'alarm' },
+    AndroidForegroundServiceType: { FOREGROUND_SERVICE_TYPE_SPECIAL_USE: 1024 },
     EventType: {
       DISMISS: 0,
       PRESS: 1,
