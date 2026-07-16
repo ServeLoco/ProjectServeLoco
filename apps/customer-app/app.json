@@ -2,7 +2,7 @@
   "expo": {
     "name": "VillKro",
     "slug": "villkro",
-    "version": "1.7.0",
+    "version": "1.8.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -66,7 +66,7 @@
         "FOREGROUND_SERVICE_SPECIAL_USE"
       ],
       "package": "com.yashsiwach.villkro",
-      "versionCode": 29,
+      "versionCode": 30,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/icon/adaptive-icon-background.png",
@@ -79,7 +79,7 @@
       }
     },
     "owner": "yashsiwch",
-    "runtimeVersion": "1.7.0",
+    "runtimeVersion": "1.8.0",
     "updates": {
       "url": "https://u.expo.dev/1df5a9bf-de34-48ea-96f4-68f598d7d318"
     }
