@@ -283,8 +283,8 @@ export async function displayAlarmNotification(data) {
       loopSound: true,
       vibrationPattern,
       lightUpScreen: true,
-      // Keep ringing until accept/reject/timeout (OEM may still mute channel sound).
-      timeoutAfter,
+      // Rider offers expire; shop stays until accept/reject (no auto-timeout).
+      ...(isRider ? { timeoutAfter } : {}),
       // Always attach fullScreenAction when OS allows — critical for lock screen.
       ...(canFullScreen
         ? {
@@ -317,9 +317,11 @@ export async function displayAlarmNotification(data) {
     });
 
     // OEM-safe audible path: ColorOS often mutes channel sounds; media stack works.
-    await playAlarmSound(isRider ? 'rider' : 'order', {
-      loopMs: Math.min(timeoutAfter, 60_000),
-    });
+    // Shop: loop until accept/reject (stopAlarmSound via cancelOrderAlarm).
+    // Rider: loop until offer expiry (timeoutAfter) or accept/reject.
+    await playAlarmSound(isRider ? 'rider' : 'order', isRider
+      ? { loopMs: timeoutAfter }
+      : { untilStopped: true });
   } catch (err) {
     clearAlarmActive(isRider ? 'rider' : 'order');
     console.warn('[orderAlarm] display failed:', err?.message || err);
@@ -377,11 +379,18 @@ async function silenceAlarmForAlertType(alertType) {
  * Reuses shopApi / riderApi (same endpoints as dashboard UI).
  */
 export async function handleAlarmActionEvent({ type, detail }) {
+  const data = detail?.notification?.data || {};
+  const alertType = data.alertType;
+
+  // Swipe-dismiss / system timeout: always stop media loop.
+  if (type === EventType.DISMISSED) {
+    await silenceAlarmForAlertType(alertType);
+    return;
+  }
+
   if (type !== EventType.ACTION_PRESS && type !== EventType.PRESS) return;
 
   const pressId = detail?.pressAction?.id;
-  const data = detail?.notification?.data || {};
-  const alertType = data.alertType;
 
   // Tap-to-open (or default press): silence media + banner + FGS completely.
   if (type === EventType.PRESS || pressId === 'default') {
@@ -480,9 +489,12 @@ export async function handleBackgroundAlarmMessage(remoteMessage) {
     if (hasOsBanner) {
       console.warn('[orderAlarm] OS banner present — sound only', alertData.alertType);
       const { playAlarmSound } = require('./alarmSound');
+      const isRiderOffer = alertData.alertType === ALERT_TYPE_RIDER_OFFER;
       await playAlarmSound(
-        alertData.alertType === ALERT_TYPE_RIDER_OFFER ? 'rider' : 'order',
-        { loopMs: 15000 },
+        isRiderOffer ? 'rider' : 'order',
+        isRiderOffer
+          ? { loopMs: resolveRiderTimeoutMs(alertData) }
+          : { untilStopped: true },
       );
       return;
     }

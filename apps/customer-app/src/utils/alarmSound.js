@@ -91,15 +91,29 @@ async function getPlayer(kind) {
 }
 
 /**
- * Play the alarm tone immediately, optionally looping for a short window.
+ * Play the alarm tone immediately and loop.
+ *
  * @param {'order'|'rider'} kind
- * @param {{ loopMs?: number }} [opts]
+ * @param {{
+ *   loopMs?: number,
+ *   untilStopped?: boolean,
+ * }} [opts]
+ *   - untilStopped: true → loop until stopAlarmSound() (accept/reject).
+ *   - loopMs: finite ms cap (rider offer expiry). 0 = play once, no loop.
+ *   - default loopMs 20000 if neither set.
  */
 export async function playAlarmSound(kind = 'order', opts = {}) {
   if (Platform.OS !== 'android') return;
-  const loopMs = opts.loopMs ?? 20000;
+  const untilStopped = opts.untilStopped === true;
+  const loopMs = untilStopped
+    ? Infinity
+    : (opts.loopMs !== undefined ? opts.loopMs : 20_000);
 
-  console.warn('[alarmSound] play start', kind, 'loopMs=', loopMs);
+  console.warn(
+    '[alarmSound] play start',
+    kind,
+    untilStopped ? 'untilStopped' : `loopMs=${loopMs}`,
+  );
 
   // Always buzz — even if audio fails.
   try {
@@ -115,6 +129,25 @@ export async function playAlarmSound(kind = 'order', opts = {}) {
     const player = await getPlayer(kind);
     if (!player) {
       console.warn('[alarmSound] no player — vibration only');
+      // Still re-buzz until stopped when untilStopped.
+      if (loopTimer) {
+        clearInterval(loopTimer);
+        loopTimer = null;
+      }
+      if (untilStopped || (Number.isFinite(loopMs) && loopMs > 0)) {
+        const started = Date.now();
+        loopTimer = setInterval(() => {
+          if (Number.isFinite(loopMs) && Date.now() - started >= loopMs) {
+            clearInterval(loopTimer);
+            loopTimer = null;
+            try { Vibration.cancel(); } catch { /* ignore */ }
+            return;
+          }
+          try {
+            Vibration.vibrate(kind === 'rider' ? [0, 500] : [0, 400]);
+          } catch { /* ignore */ }
+        }, 1100);
+      }
       return;
     }
     try {
@@ -127,25 +160,26 @@ export async function playAlarmSound(kind = 'order', opts = {}) {
       clearInterval(loopTimer);
       loopTimer = null;
     }
-    if (loopMs > 0) {
-      const started = Date.now();
-      loopTimer = setInterval(() => {
-        if (Date.now() - started >= loopMs) {
-          clearInterval(loopTimer);
-          loopTimer = null;
-          try { player.pause(); } catch { /* ignore */ }
-          try { Vibration.cancel(); } catch { /* ignore */ }
-          return;
-        }
-        try {
-          player.seekTo(0);
-          player.play();
-        } catch { /* ignore */ }
-        try {
-          Vibration.vibrate(kind === 'rider' ? [0, 500] : [0, 400]);
-        } catch { /* ignore */ }
-      }, 1100);
-    }
+    // loopMs === 0 → single shot only.
+    if (loopMs === 0) return;
+
+    const started = Date.now();
+    loopTimer = setInterval(() => {
+      if (Number.isFinite(loopMs) && Date.now() - started >= loopMs) {
+        clearInterval(loopTimer);
+        loopTimer = null;
+        try { player.pause(); } catch { /* ignore */ }
+        try { Vibration.cancel(); } catch { /* ignore */ }
+        return;
+      }
+      try {
+        player.seekTo(0);
+        player.play();
+      } catch { /* ignore */ }
+      try {
+        Vibration.vibrate(kind === 'rider' ? [0, 500] : [0, 400]);
+      } catch { /* ignore */ }
+    }, 1100);
   } catch (err) {
     console.warn('[alarmSound] play failed:', err?.message || err);
   }
