@@ -29,17 +29,8 @@ export function useNewOrderAlert(active, options = {}) {
   const isShop = options.role === 'shop';
   const intervalRef = useRef(null);
 
-  // Shop only: silence killed-app alarm + clear trays when dashboard opens.
-  // Admin must not dismissAll (would wipe unrelated admin notifications).
-  useEffect(() => {
-    if (!isShop) return undefined;
-    cancelOrderAlarm().catch(() => {});
-    Notifications.dismissAllNotificationsAsync().catch(() => {});
-    return undefined;
-  }, [isShop]);
-
-  // Shop only: when the pending queue empties (accept/reject last order),
-  // stop the looping media alarm immediately.
+  // Shop only: keep loud alarm after opening the app (notification tap).
+  // Stop only when the pending queue is empty (accept/reject done).
   useEffect(() => {
     if (!isShop) return undefined;
     if (!active) {

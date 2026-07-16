@@ -29,13 +29,8 @@ export function useRiderOfferAlert(activeOffer) {
   const intervalRef = useRef(null);
   const active = Boolean(activeOffer);
 
-  // Silences a still-ringing killed-app notifee alarm when the rider dashboard opens.
-  useEffect(() => {
-    cancelRiderOfferAlarm().catch(() => {});
-    Notifications.dismissAllNotificationsAsync().catch(() => {});
-  }, []);
-
-  // Stop media loop when offer queue clears (accept/reject last offer).
+  // Do NOT cancel the loud alarm when the dashboard opens after a notification
+  // tap — ring continues until Accept/Reject. Only clear when the offer is gone.
   useEffect(() => {
     if (!active) {
       stopAlarmSound();

@@ -385,9 +385,9 @@ export async function handleAlarmActionEvent({ type, detail }) {
 
   const pressId = detail?.pressAction?.id;
 
-  // Tap-to-open (or default press): silence media + banner + FGS completely.
+  // Tap notification body / default open: launch app but KEEP ringing until
+  // Accept or Reject (shop + rider). Only action buttons silence via cancel*.
   if (type === EventType.PRESS || pressId === 'default') {
-    await silenceAlarmForAlertType(alertType);
     return;
   }
 
