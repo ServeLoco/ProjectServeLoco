@@ -206,13 +206,13 @@ describe('orderAlarmNotifications', () => {
       expect(notifee.cancelNotification).not.toHaveBeenCalled();
     });
 
-    it('a plain tap (PRESS) silences the alarm without calling any API', async () => {
+    it('a plain tap (PRESS) opens the app but keeps the alarm ringing', async () => {
       await handleAlarmActionEvent({
         type: EventType.PRESS,
         detail: { notification: { data: { alertType: ALERT_TYPE_NEW_ORDER } } },
       });
       expect(shopApi.confirmOrder).not.toHaveBeenCalled();
-      expect(notifee.cancelNotification).toHaveBeenCalledWith(ORDER_ALARM_NOTIFICATION_ID);
+      expect(notifee.cancelNotification).not.toHaveBeenCalled();
     });
 
     it('Accept on a shop new-order alarm calls shopApi.confirmOrder and cancels the alarm', async () => {
