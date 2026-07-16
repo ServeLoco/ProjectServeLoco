@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  AppState,
   Easing,
   Linking,
   RefreshControl,
@@ -212,6 +213,18 @@ export default function RiderDashboardScreen({ navigation }) {
             }
           })
           .catch(() => {});
+        // Warm background: ring until accept/reject (main JS — works with Metro).
+        if (AppState.currentState !== 'active') {
+          const { displayAlarmNotification, ALERT_TYPE_RIDER_OFFER } = require('../../utils/orderAlarmNotifications');
+          displayAlarmNotification({
+            alertType: ALERT_TYPE_RIDER_OFFER,
+            type: 'rider_offer',
+            offerId: String(incoming.offerId || ''),
+            orderId: String(incoming.orderId || ''),
+            orderNumber: String(incoming.orderNumber || ''),
+            expiresAt: String(incoming.expiresAt || ''),
+          }).catch(() => {});
+        }
       }),
       // Server reminder while offer still pending — rehydrate popup if needed.
       subscribeRealtime('rider.offer.reminder', (payload) => {

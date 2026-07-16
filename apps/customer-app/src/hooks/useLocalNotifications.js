@@ -759,12 +759,10 @@ export function useLocalNotifications(navigationRef) {
           import('../utils/alarmSound')
             .then(({ playAlarmSound }) => {
               if (cancelled) return undefined;
-              // Shop: keep ringing until accept/reject; rider: long loop.
+              // Shop + rider: keep ringing until accept/reject.
               return playAlarmSound(
                 alertType === 'rider_offer_alarm' ? 'rider' : 'order',
-                alertType === 'rider_offer_alarm'
-                  ? { loopMs: 120_000 }
-                  : { untilStopped: true },
+                { untilStopped: true },
               );
             })
             .catch(() => {});

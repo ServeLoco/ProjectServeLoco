@@ -239,9 +239,6 @@ export async function displayAlarmNotification(data) {
       : (isRider
         ? 'Accept or reject before this offer expires.'
         : 'Accept or reject the order to keep the queue moving.');
-    const timeoutAfter = isRider
-      ? resolveRiderTimeoutMs(data)
-      : MAX_ORDER_ALARM_RING_MS;
     // Notifee requires even-length positive ms (no leading 0 delay).
     const vibrationPattern = isRider
       ? [600, 200, 600, 200, 600, 200]
@@ -283,8 +280,7 @@ export async function displayAlarmNotification(data) {
       loopSound: true,
       vibrationPattern,
       lightUpScreen: true,
-      // Rider offers expire; shop stays until accept/reject (no auto-timeout).
-      ...(isRider ? { timeoutAfter } : {}),
+      // No timeoutAfter — banner + media stay until accept/reject (or swipe).
       // Always attach fullScreenAction when OS allows — critical for lock screen.
       ...(canFullScreen
         ? {
@@ -317,11 +313,8 @@ export async function displayAlarmNotification(data) {
     });
 
     // OEM-safe audible path: ColorOS often mutes channel sounds; media stack works.
-    // Shop: loop until accept/reject (stopAlarmSound via cancelOrderAlarm).
-    // Rider: loop until offer expiry (timeoutAfter) or accept/reject.
-    await playAlarmSound(isRider ? 'rider' : 'order', isRider
-      ? { loopMs: timeoutAfter }
-      : { untilStopped: true });
+    // Shop + rider: loop until accept/reject (stop via cancel*Alarm).
+    await playAlarmSound(isRider ? 'rider' : 'order', { untilStopped: true });
   } catch (err) {
     clearAlarmActive(isRider ? 'rider' : 'order');
     console.warn('[orderAlarm] display failed:', err?.message || err);
@@ -489,12 +482,9 @@ export async function handleBackgroundAlarmMessage(remoteMessage) {
     if (hasOsBanner) {
       console.warn('[orderAlarm] OS banner present — sound only', alertData.alertType);
       const { playAlarmSound } = require('./alarmSound');
-      const isRiderOffer = alertData.alertType === ALERT_TYPE_RIDER_OFFER;
       await playAlarmSound(
-        isRiderOffer ? 'rider' : 'order',
-        isRiderOffer
-          ? { loopMs: resolveRiderTimeoutMs(alertData) }
-          : { untilStopped: true },
+        alertData.alertType === ALERT_TYPE_RIDER_OFFER ? 'rider' : 'order',
+        { untilStopped: true },
       );
       return;
     }

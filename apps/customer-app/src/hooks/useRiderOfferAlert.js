@@ -6,7 +6,11 @@ import {
   RIDER_OFFER_CHANNEL_ID,
   RIDER_VIBRATION_PATTERN,
 } from './useLocalNotifications';
-import { cancelRiderOfferAlarm } from '../utils/orderAlarmNotifications';
+import {
+  cancelRiderOfferAlarm,
+  displayAlarmNotification,
+  ALERT_TYPE_RIDER_OFFER,
+} from '../utils/orderAlarmNotifications';
 import { stopAlarmSound } from '../utils/alarmSound';
 
 // Local chime + vibration while the Accept popup is open (app in foreground).
@@ -118,6 +122,20 @@ export function useRiderOfferAlert(activeOffer) {
         }
         try { Vibration.cancel(); } catch { /* ignore */ }
         Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
+        // Background: keep full-screen media alarm until accept/reject.
+        if (active) {
+          const offer = offerRef.current;
+          displayAlarmNotification({
+            alertType: ALERT_TYPE_RIDER_OFFER,
+            type: 'rider_offer',
+            offerId: String(offer?.id || offer?.offerId || ''),
+            orderId: String(offer?.orderId || offer?.order_id || ''),
+            orderNumber: String(
+              offer?.orderNumber || offer?.order_number || orderNumber || '',
+            ),
+            expiresAt: String(offer?.expiresAt || offer?.expires_at || ''),
+          }).catch(() => {});
+        }
       } else if (active && !intervalRef.current) {
         fire();
         intervalRef.current = setInterval(fire, REPEAT_MS);
