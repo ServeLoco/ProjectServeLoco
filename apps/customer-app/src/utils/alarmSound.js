@@ -1,12 +1,14 @@
 /**
  * Play shop/rider alarm audio through the media stack.
  *
- * ColorOS / Realme mute notification-channel custom sounds often. We play via
- * expo-audio. In headless FCM JS, `require(asset)` can resolve to a Metro HTTP
- * URL that 404s — prefer the packaged raw resource URI that always exists in
- * the APK (res/raw/order_alarm.wav → android.resource://…/raw/order_alarm).
+ * ColorOS often mutes notification-channel sounds. We play via expo-audio and
+ * always vibrate. Source resolution order:
+ *  1) expo-asset localUri (warm JS / Metro — most reliable for dev)
+ *  2) android.resource raw URI (headless / no Metro)
+ *  3) require() module (last resort)
  */
 import { Platform, Vibration } from 'react-native';
+import { Asset } from 'expo-asset';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import Constants from 'expo-constants';
 
@@ -18,8 +20,12 @@ let loopTimer = null;
 const ANDROID_PACKAGE =
   Constants.expoConfig?.android?.package || 'com.yashsiwach.villkro';
 
+const SOUND_MODULE = {
+  order: require('../../assets/sounds/order_alarm.wav'),
+  rider: require('../../assets/sounds/rider_alarm.wav'),
+};
+
 function rawResourceUri(name) {
-  // Android drops the extension for res/raw names.
   return `android.resource://${ANDROID_PACKAGE}/raw/${name}`;
 }
 
@@ -31,6 +37,8 @@ async function ensureAudioMode() {
       shouldPlayInBackground: true,
       interruptionMode: 'duckOthers',
       allowsRecording: false,
+      // Route as media so volume keys + media stream work on ColorOS.
+      playsInSilentModeIOS: true,
     });
     modeReady = true;
   } catch (err) {
@@ -38,32 +46,47 @@ async function ensureAudioMode() {
   }
 }
 
-function createPlayer(kind) {
-  const rawName = kind === 'rider' ? 'rider_alarm' : 'order_alarm';
-  // 1) Preferred: APK raw resource (works in headless / no Metro).
+async function resolveSource(kind) {
+  const mod = SOUND_MODULE[kind] || SOUND_MODULE.order;
+  // 1) Packaged asset → on-disk file (best for warm main JS / Metro).
   try {
-    return createAudioPlayer({ uri: rawResourceUri(rawName) });
-  } catch (err) {
-    console.warn('[alarmSound] raw uri player failed:', err?.message || err);
-  }
-  // 2) Fallback: bundled asset via Metro/require (foreground only).
-  try {
-    if (kind === 'rider') {
-      return createAudioPlayer(require('../../assets/sounds/rider_alarm.wav'));
+    const asset = Asset.fromModule(mod);
+    if (!asset.localUri) {
+      await asset.downloadAsync();
     }
-    return createAudioPlayer(require('../../assets/sounds/order_alarm.wav'));
+    if (asset.localUri) {
+      return { uri: asset.localUri };
+    }
   } catch (err) {
-    console.warn('[alarmSound] require() player failed:', err?.message || err);
+    console.warn('[alarmSound] asset localUri failed:', err?.message || err);
+  }
+  // 2) APK res/raw (headless FCM — no Metro HTTP).
+  try {
+    const rawName = kind === 'rider' ? 'rider_alarm' : 'order_alarm';
+    return { uri: rawResourceUri(rawName) };
+  } catch (err) {
+    console.warn('[alarmSound] raw uri failed:', err?.message || err);
+  }
+  // 3) Direct require module.
+  return mod;
+}
+
+async function createPlayer(kind) {
+  const source = await resolveSource(kind);
+  try {
+    return createAudioPlayer(source);
+  } catch (err) {
+    console.warn('[alarmSound] createAudioPlayer failed:', err?.message || err, source);
     return null;
   }
 }
 
-function getPlayer(kind) {
+async function getPlayer(kind) {
   if (kind === 'rider') {
-    if (!riderPlayer) riderPlayer = createPlayer('rider');
+    if (!riderPlayer) riderPlayer = await createPlayer('rider');
     return riderPlayer;
   }
-  if (!orderPlayer) orderPlayer = createPlayer('order');
+  if (!orderPlayer) orderPlayer = await createPlayer('order');
   return orderPlayer;
 }
 
@@ -76,26 +99,29 @@ export async function playAlarmSound(kind = 'order', opts = {}) {
   if (Platform.OS !== 'android') return;
   const loopMs = opts.loopMs ?? 20000;
 
-  // Always buzz — even if audio fails (OEM silent mode / 404 asset).
+  console.warn('[alarmSound] play start', kind, 'loopMs=', loopMs);
+
+  // Always buzz — even if audio fails.
   try {
     Vibration.vibrate(
       kind === 'rider'
-        ? [0, 600, 200, 600, 200, 600]
-        : [0, 500, 200, 500, 200, 500],
+        ? [0, 600, 200, 600, 200, 600, 200, 600]
+        : [0, 500, 200, 500, 200, 500, 200, 500],
     );
   } catch { /* ignore */ }
 
   try {
     await ensureAudioMode();
-    const player = getPlayer(kind);
+    const player = await getPlayer(kind);
     if (!player) {
-      console.warn('[alarmSound] no player available');
+      console.warn('[alarmSound] no player — vibration only');
       return;
     }
     try {
       player.seekTo(0);
-    } catch { /* some sources ignore seek */ }
+    } catch { /* ignore */ }
     player.play();
+    console.warn('[alarmSound] play() called ok');
 
     if (loopTimer) {
       clearInterval(loopTimer);
@@ -116,7 +142,7 @@ export async function playAlarmSound(kind = 'order', opts = {}) {
           player.play();
         } catch { /* ignore */ }
         try {
-          Vibration.vibrate(kind === 'rider' ? [0, 400] : [0, 350]);
+          Vibration.vibrate(kind === 'rider' ? [0, 500] : [0, 400]);
         } catch { /* ignore */ }
       }, 1100);
     }

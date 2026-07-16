@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Easing, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View,
+  ActivityIndicator, Alert, Animated, AppState, Easing, FlatList, Platform,
+  RefreshControl, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,7 +11,10 @@ import { useAuthStore } from '../../stores';
 import { shopApi, subscribeRealtime } from '../../api';
 import { useNewOrderAlert } from '../../hooks/useNewOrderAlert';
 import { stopAlarmSound } from '../../utils/alarmSound';
-import { cancelOrderAlarm } from '../../utils/orderAlarmNotifications';
+import {
+  cancelOrderAlarm,
+  displayAlarmNotification,
+} from '../../utils/orderAlarmNotifications';
 import AppIcon from '../../components/AppIcon';
 import ShopToggle from '../../components/shop/ShopToggle';
 import NewOrderPopup from './NewOrderPopup';
@@ -123,6 +127,44 @@ export default function ShopDashboardScreen() {
     }, [fetchAll])
   );
 
+  // Latest pending head for background alarm (socket may fire while Home).
+  const pendingHeadRef = useRef(null);
+  pendingHeadRef.current = pendingQueue[0] || null;
+
+  /**
+   * When the shop app is backgrounded, FCM data-only often never reaches Metro
+   * (headless JS logs only in logcat) and ColorOS may drop audio. Socket is
+   * still connected — ring the full notifee + media alarm from the main JS
+   * context so the owner hears it.
+   */
+  const ringBackgroundShopAlarm = useCallback((payload = {}) => {
+    if (Platform.OS !== 'android') return;
+    if (AppState.currentState === 'active') return;
+    const head = pendingHeadRef.current;
+    const orderId = payload?.orderId ?? payload?.order_id ?? head?.id;
+    const orderNumber =
+      payload?.orderNumber
+      ?? payload?.order_number
+      ?? head?.orderNumber
+      ?? head?.order_number
+      ?? '';
+    console.warn(
+      '[orderAlarm] socket/bg ring shop order',
+      orderId,
+      orderNumber,
+      'appState=',
+      AppState.currentState,
+    );
+    displayAlarmNotification({
+      alertType: 'new_order_alarm',
+      type: 'shop_order',
+      orderId: orderId != null ? String(orderId) : '',
+      orderNumber: orderNumber != null ? String(orderNumber) : '',
+    }).catch((err) => {
+      console.warn('[orderAlarm] socket/bg ring failed:', err?.message || err);
+    });
+  }, []);
+
   useEffect(() => {
     // shop.order.updated: admin confirm/ready/reject, rider Out for Delivery /
     // Delivered, or cancel — refetch so Active list + Accept popup stay live.
@@ -134,7 +176,11 @@ export default function ShopDashboardScreen() {
       setActiveOrders((prev) => prev.filter((o) => Number(o.id) !== Number(orderId)));
     };
     const terminalStatuses = new Set(['Delivered', 'Cancelled', 'Out for Delivery']);
-    const unsubAssigned = subscribeRealtime('shop.order.assigned', () => fetchAll());
+    const unsubAssigned = subscribeRealtime('shop.order.assigned', (payload) => {
+      fetchAll();
+      // Warm background: don't wait for FCM — socket owns the loud path.
+      ringBackgroundShopAlarm(payload || {});
+    });
     const unsubCancelled = subscribeRealtime('shop.order.cancelled', (payload) => {
       dropOrder(payload);
       fetchAll();
@@ -154,6 +200,20 @@ export default function ShopDashboardScreen() {
     });
     const unsubForeground = subscribeRealtime('lifecycle.foreground', () => fetchAll());
     const unsubReconnected = subscribeRealtime('lifecycle.reconnected', () => fetchAll());
+
+    // If owner backgrounds while a popup is already waiting, start notifee now
+    // (local 8s loop is paused for shop in background).
+    const appSub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active' && pendingHeadRef.current) {
+        ringBackgroundShopAlarm({
+          orderId: pendingHeadRef.current.id,
+          orderNumber:
+            pendingHeadRef.current.orderNumber
+            || pendingHeadRef.current.order_number,
+        });
+      }
+    });
+
     return () => {
       unsubAssigned();
       unsubCancelled();
@@ -162,11 +222,13 @@ export default function ShopDashboardScreen() {
       unsubRiderFailed();
       unsubForeground();
       unsubReconnected();
+      appSub.remove();
     };
-  }, [fetchAll]);
+  }, [fetchAll, ringBackgroundShopAlarm]);
 
   // ── Repeating alert while anything is waiting in the popup queue ────
-  // role: 'shop' — loud remote alarm path + no background local spam (admin uses default).
+  // role: 'shop' — alarm tray clear + foreground 8s loop; background uses
+  // socket ringBackgroundShopAlarm + FCM (admin uses default quiet loop).
   useNewOrderAlert(pendingQueue.length > 0, { role: 'shop' });
 
   const currentPopupOrder = pendingQueue[0] || null;
