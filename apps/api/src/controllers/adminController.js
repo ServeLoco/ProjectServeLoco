@@ -9,7 +9,7 @@ const {
   notifyShopsOrderStatusChanged,
 } = require('../utils/shops');
 const realtimeEvents = require('../realtime/orderEvents');
-const { emitToCustomer } = require('../realtime/socket');
+const { emitToCustomer, emitToAdmins } = require('../realtime/socket');
 const orderAutoAccept = require('../realtime/orderAutoAccept');
 const adminInbox = require('../utils/adminNotifications');
 const bcrypt = require('bcrypt');
@@ -683,8 +683,14 @@ const updateOrderStatus = async (req, res) => {
     }
   } else {
     const setDeliveredAt = status === 'Delivered' ? ', delivered_at = NOW()' : '';
+    // Delivered orders shouldn't sit at 'Pending' payment forever — flip to
+    // 'Success' automatically, but only if the admin hasn't already set a
+    // manual payment status (e.g. marked Failed for a COD dispute).
+    const setPaymentSuccess = (status === 'Delivered' && orderRows[0].payment_status === 'Pending')
+      ? ', payment_status = "Success"'
+      : '';
     const [updateResult] = await pool.query(
-      `UPDATE orders SET status = ?${setDeliveredAt} WHERE id = ? AND status = ?`,
+      `UPDATE orders SET status = ?${setDeliveredAt}${setPaymentSuccess} WHERE id = ? AND status = ?`,
       [status, id, currentStatus]
     );
     if (updateResult.affectedRows === 0) {
@@ -771,12 +777,37 @@ const updateOrderStatus = async (req, res) => {
   res.status(200).json({ message: 'Order status updated successfully', order: updatedOrder });
 };
 
+// Admin "+30s" button — pushes the real server-side auto-accept timer back,
+// not just a client-side display. Broadcasts the new deadline so every open
+// admin tab/device stays in sync on the same countdown.
+const extendAutoAccept = async (req, res) => {
+  const { id } = req.params;
+  const extraMs = 30_000;
+
+  const [orderRows] = await pool.query('SELECT id, status, order_number FROM orders WHERE id = ?', [id]);
+  if (orderRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+  }
+  if (orderRows[0].status !== 'Pending') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Order is no longer pending' });
+  }
+
+  const newDeadline = orderAutoAccept.extend(parseInt(id, 10), extraMs);
+  if (newDeadline == null) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No active auto-accept timer for this order' });
+  }
+
+  const payload = { orderId: orderRows[0].id, orderNumber: orderRows[0].order_number, deadline: newDeadline };
+  emitToAdmins('admin.order.snoozed', payload);
+  res.status(200).json({ message: 'Auto-accept window extended', ...payload });
+};
+
 const updateOrderPayment = async (req, res) => {
   const { id } = req.params;
   const { payment_status, paymentStatus } = req.body;
 
   const finalStatus = payment_status || paymentStatus;
-  const validPaymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'];
+  const validPaymentStatuses = ['Pending', 'Paid', 'Success', 'Failed', 'Refunded'];
   
   if (!finalStatus || !validPaymentStatuses.includes(finalStatus)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Valid payment status is required' });
@@ -1096,6 +1127,7 @@ module.exports = {
   getAdminOrders,
   getAdminOrderById,
   updateOrderStatus,
+  extendAutoAccept,
   updateOrderPayment,
   getAdminCustomerById,
   getTopProductsReport,

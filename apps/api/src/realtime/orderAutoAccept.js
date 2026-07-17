@@ -8,6 +8,10 @@ const AUTO_ACCEPT_MS = 120_000;
 // In-memory map of orderId → Node Timeout handle. Cleared on cancel/completion.
 const timers = new Map();
 
+// In-memory map of orderId → absolute epoch ms the auto-accept fires at.
+// Lets extend() add time without re-deriving delay from a stale start point.
+const deadlines = new Map();
+
 // Process-wide shutdown flag. Once set, any in-flight timer callback skips
 // its DB write (the pool may already be closed during graceful shutdown).
 let shuttingDown = false;
@@ -59,6 +63,37 @@ const acceptPendingOrder = async (orderId, orderNumber, logTag = 'auto-accept') 
   return order;
 };
 
+// Fires when an order's auto-accept window elapses. Shared by schedule()'s
+// initial timer and extend()'s rescheduled one so the accept logic lives once.
+const fire = async (id, orderNumber) => {
+  timers.delete(id);
+  deadlines.delete(id);
+  if (shuttingDown) return; // pool may be closed; skip silently
+
+  try {
+    // orders has no soft-delete column — only status gates accept.
+    const [rows] = await pool.query(
+      'SELECT id, status, order_number FROM orders WHERE id = ?',
+      [id]
+    );
+    if (rows.length === 0) return;
+    if (rows[0].status !== 'Pending') return; // admin already acted
+
+    await acceptPendingOrder(id, orderNumber || rows[0].order_number, 'auto-accept');
+  } catch (e) {
+    console.error('[auto-accept] failed for order', id, e.message);
+  } finally {
+    claimedOrders.delete(id);
+  }
+};
+
+const armTimer = (id, orderNumber, wait) => {
+  const t = setTimeout(() => fire(id, orderNumber), wait);
+  // Unref so a lone timer does not keep the process alive during tests/shutdown.
+  if (typeof t.unref === 'function') t.unref();
+  timers.set(id, t);
+};
+
 /**
  * Schedule an auto-accept for a newly created order. If no admin accepts
  * (or cancels) within delayMs (default AUTO_ACCEPT_MS), the order moves to
@@ -71,29 +106,33 @@ const schedule = (orderId, orderNumber, delayMs = AUTO_ACCEPT_MS) => {
   claimedOrders.add(id);
 
   const wait = Math.max(0, Number(delayMs) || AUTO_ACCEPT_MS);
-  const t = setTimeout(async () => {
-    timers.delete(id);
-    if (shuttingDown) return; // pool may be closed; skip silently
+  deadlines.set(id, { deadline: Date.now() + wait, orderNumber });
+  armTimer(id, orderNumber, wait);
+};
 
-    try {
-      // orders has no soft-delete column — only status gates accept.
-      const [rows] = await pool.query(
-        'SELECT id, status, order_number FROM orders WHERE id = ?',
-        [id]
-      );
-      if (rows.length === 0) return;
-      if (rows[0].status !== 'Pending') return; // admin already acted
+/**
+ * Push an order's auto-accept deadline back by extraMs (admin "+30s" button).
+ * No-op if the order has no live auto-accept timer (already accepted/cancelled,
+ * or never scheduled in this process). Returns the new deadline (epoch ms), or
+ * null if there was nothing to extend.
+ */
+const extend = (orderId, extraMs = 30_000) => {
+  const id = Number(orderId);
+  const meta = deadlines.get(id);
+  const t = timers.get(id);
+  if (!meta || !t) return null;
 
-      await acceptPendingOrder(id, orderNumber || rows[0].order_number, 'auto-accept');
-    } catch (e) {
-      console.error('[auto-accept] failed for order', id, e.message);
-    } finally {
-      claimedOrders.delete(id);
-    }
-  }, wait);
-  // Unref so a lone timer does not keep the process alive during tests/shutdown.
-  if (typeof t.unref === 'function') t.unref();
-  timers.set(id, t);
+  clearTimeout(t);
+  const newDeadline = meta.deadline + Math.max(0, Number(extraMs) || 0);
+  const newWait = Math.max(0, newDeadline - Date.now());
+  deadlines.set(id, { deadline: newDeadline, orderNumber: meta.orderNumber });
+  armTimer(id, meta.orderNumber, newWait);
+  return newDeadline;
+};
+
+const getDeadline = (orderId) => {
+  const meta = deadlines.get(Number(orderId));
+  return meta ? meta.deadline : null;
 };
 
 const cancel = (orderId) => {
@@ -103,6 +142,7 @@ const cancel = (orderId) => {
     clearTimeout(t);
     timers.delete(id);
   }
+  deadlines.delete(id);
   claimedOrders.delete(id);
 };
 
@@ -110,6 +150,7 @@ const clearAll = () => {
   shuttingDown = true;
   for (const t of timers.values()) clearTimeout(t);
   timers.clear();
+  deadlines.clear();
   claimedOrders.clear();
 };
 
@@ -155,6 +196,8 @@ const rehydratePendingOrders = async () => {
 module.exports = {
   AUTO_ACCEPT_MS,
   schedule,
+  extend,
+  getDeadline,
   cancel,
   clearAll,
   rehydratePendingOrders,

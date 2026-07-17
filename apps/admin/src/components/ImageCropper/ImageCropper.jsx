@@ -25,6 +25,7 @@ const ASPECT_LABELS = {
   offer: '2:1 (home banner)',
   qr: '1:1 (square QR code)',
   library: '1:1 (library thumbnail)',
+  storeMode: '1:1 (mode-switcher icon, square)',
 };
 
 // Aspect the customer app actually renders each image type at.
@@ -35,13 +36,14 @@ const TYPE_DEFAULT_ASPECTS = {
   offer: 2,
   qr: 1,
   library: 1,
+  storeMode: 1,
 };
 
 export default function ImageCropper({
   open,
   file,                       // File selected by user (kept for filename)
   imageSrc,                   // Object URL created from file
-  type = 'product',           // 'product' | 'category' | 'combo' | 'offer' | 'qr' | 'library'
+  type = 'product',           // 'product' | 'category' | 'combo' | 'offer' | 'qr' | 'library' | 'storeMode'
   defaultAspect,              // number, e.g. 1 or 16/9
   onCancel,
   onApply,                    // (croppedFile: File) => void

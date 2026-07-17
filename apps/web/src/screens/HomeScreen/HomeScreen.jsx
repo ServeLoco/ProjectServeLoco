@@ -119,10 +119,12 @@ export default function HomeScreen() {
         return (
           <div className="dashboard-section" key={idx}>
             <div className="section-header">
-              <div className="section-title-row">
-                <div className="section-indicator" />
-                <div className="section-title">{section.title || 'Shop by Category'}</div>
-              </div>
+              {section.title && (
+                <div className="section-title-row">
+                  <div className="section-indicator" />
+                  <div className="section-title">{section.title}</div>
+                </div>
+              )}
               <button
                 type="button"
                 className="section-see-all"

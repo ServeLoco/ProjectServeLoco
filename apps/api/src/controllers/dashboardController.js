@@ -57,7 +57,13 @@ const asNonNegativeInteger = (value, fallback = 0) => {
 };
 
 const validateSectionPayload = async ({ title, slug, section_type, store_type, display_order, max_visible_items, starts_at, ends_at }, { partial = false } = {}) => {
-  if (!partial && (!title || !slug || !section_type)) {
+  if (!partial && (!slug || !section_type)) {
+    return 'Slug and section type are required';
+  }
+  // Category grid cards carry their own name — the section title above the
+  // grid is purely optional real estate, unlike other block types where it's
+  // the only label the customer sees.
+  if (!partial && !title && section_type !== 'category_grid') {
     return 'Title, slug, and section type are required';
   }
   if (section_type !== undefined && !SECTION_TYPES.includes(section_type)) {

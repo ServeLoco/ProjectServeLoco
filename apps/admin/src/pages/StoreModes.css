@@ -85,6 +85,44 @@
   flex-shrink: 0;
 }
 
+.store-mode-card-icon-image {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.store-mode-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.store-mode-edit-image-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.store-mode-edit-image-preview {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.store-mode-edit-image-upload {
+  flex: 1;
+  min-width: 0;
+}
+
 .store-mode-card-order-badge {
   display: inline-flex;
   align-items: center;
@@ -161,6 +199,18 @@
   align-items: center;
   gap: 0.45rem;
   margin-top: 0.2rem;
+}
+
+.store-mode-default-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  background: var(--primary-bg, rgba(22, 163, 74, 0.12));
+  border: 1px solid var(--primary-color);
 }
 
 .store-mode-system-badge {

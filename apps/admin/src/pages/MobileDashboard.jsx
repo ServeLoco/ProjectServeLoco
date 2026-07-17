@@ -117,6 +117,7 @@ export default function MobileDashboard() {
       setEditForm({
         title: section.title,
         slug: section.slug,
+        section_type: section.section_type,
         store_type: section.store_type || 'all',
         active: section.active === 1 || section.active === true ? 1 : 0,
         display_order: section.display_order || 0,
@@ -587,14 +588,17 @@ export default function MobileDashboard() {
                 
                 <div className="form-grid-2">
                   <div className="form-group">
-                    <label className="form-label">Section Title</label>
-                    <input 
-                      type="text" 
-                      name="title" 
-                      required 
-                      className="form-input" 
-                      value={editForm.title} 
-                      onChange={handleEditFormChange} 
+                    <label className="form-label">
+                      Section Title{editForm.section_type === 'category_grid' ? ' (optional)' : ''}
+                    </label>
+                    <input
+                      type="text"
+                      name="title"
+                      required={editForm.section_type !== 'category_grid'}
+                      placeholder={editForm.section_type === 'category_grid' ? 'Leave blank to hide the header' : ''}
+                      className="form-input"
+                      value={editForm.title}
+                      onChange={handleEditFormChange}
                     />
                   </div>
                   <div className="form-group">
@@ -913,15 +917,17 @@ export default function MobileDashboard() {
 
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">Section Title</label>
-                  <input 
-                    type="text" 
-                    name="title" 
-                    required 
-                    placeholder="e.g. Milk Products, Daily Banners" 
-                    className="form-input" 
-                    value={newSectionForm.title} 
-                    onChange={handleModalFormChange} 
+                  <label className="form-label">
+                    Section Title{newSectionForm.section_type === 'category_grid' ? ' (optional)' : ''}
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    required={newSectionForm.section_type !== 'category_grid'}
+                    placeholder={newSectionForm.section_type === 'category_grid' ? 'Leave blank to hide the header' : 'e.g. Milk Products, Daily Banners'}
+                    className="form-input"
+                    value={newSectionForm.title}
+                    onChange={handleModalFormChange}
                   />
                 </div>
 

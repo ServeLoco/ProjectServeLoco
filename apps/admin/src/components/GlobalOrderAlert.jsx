@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { subscribeAdminOrderEvents, subscribeRealtime } from '../api';
+import { subscribeAdminOrderEvents, subscribeRealtime, OrdersApi } from '../api';
 import { apiClient } from '../api/client';
 import { broadcastAdminOrderStatus } from '../utils/realtimeOrder';
+import LiveOrderMap from './LiveOrderMap';
 import './GlobalOrderAlert.css';
 
 const SOUND_LOOP_INTERVAL_MS = 8000;
@@ -28,7 +29,10 @@ function formatCurrency(value) {
 }
 
 // Countdown for the head of the queue only. Resets when activeId changes.
-function useHeadCountdown(activeId, paused) {
+// `deadline` (epoch ms) is the real server auto-accept deadline once known
+// (pushed back for real by the "+30s" button) — falls back to a plain
+// mount-relative countdown until the first deadline arrives.
+function useHeadCountdown(activeId, paused, deadline) {
   const [seconds, setSeconds] = useState(AUTO_ACCEPT_SECONDS);
   useEffect(() => {
     if (paused && !activeId) {
@@ -36,16 +40,20 @@ function useHeadCountdown(activeId, paused) {
       return undefined;
     }
     if (paused) return undefined;
-    setSeconds(AUTO_ACCEPT_SECONDS);
+
     const start = Date.now();
+    const computeRemaining = deadline
+      ? () => Math.max(0, (deadline - Date.now()) / 1000)
+      : () => Math.max(0, AUTO_ACCEPT_SECONDS - (Date.now() - start) / 1000);
+
+    setSeconds(computeRemaining());
     const id = setInterval(() => {
-      const elapsed = (Date.now() - start) / 1000;
-      const remaining = Math.max(0, AUTO_ACCEPT_SECONDS - elapsed);
+      const remaining = computeRemaining();
       setSeconds(remaining);
       if (remaining <= 0) clearInterval(id);
     }, 100);
     return () => clearInterval(id);
-  }, [activeId, paused]);
+  }, [activeId, paused, deadline]);
   return seconds;
 }
 
@@ -54,6 +62,9 @@ export default function GlobalOrderAlert() {
   const [busy, setBusy] = useState({});
   const [errors, setErrors] = useState({});
   const [autoAcknowledged, setAutoAcknowledged] = useState({});
+  const [minimized, setMinimized] = useState(false);
+  const [deadlines, setDeadlines] = useState({});
+  const [extending, setExtending] = useState({});
   const audioCtxRef = useRef(null);
   const soundLoopRef = useRef(null);
   const prevQueueLengthRef = useRef(0);
@@ -61,10 +72,13 @@ export default function GlobalOrderAlert() {
   // Always show the first (oldest) pending alert — one full card at a time.
   const current = modals.length > 0 ? modals[0] : null;
   const currentId = current ? current.id : null;
+  const currentOrderId = current ? current.payload?.orderId : null;
   const currentBusy = current ? Boolean(busy[current.id]) : false;
   const currentAutoAccepted = current ? Boolean(autoAcknowledged[current.payload?.orderId]) : false;
   const countdownPaused = !current || currentBusy || currentAutoAccepted;
-  const secondsLeft = useHeadCountdown(currentId, countdownPaused);
+  const currentDeadline = currentOrderId != null ? deadlines[currentOrderId] : null;
+  const secondsLeft = useHeadCountdown(currentId, countdownPaused, currentDeadline);
+  const isExtending = currentOrderId != null ? Boolean(extending[currentOrderId]) : false;
 
   const playAlertSound = useCallback(async () => {
     try {
@@ -168,7 +182,25 @@ export default function GlobalOrderAlert() {
   }, []);
 
   const removeModal = useCallback((id) => {
-    setModals(prev => prev.filter(m => m.id !== id));
+    setModals(prev => {
+      const target = prev.find(m => m.id === id);
+      const oid = target?.payload?.orderId;
+      if (oid != null) {
+        setDeadlines((d) => {
+          if (!(oid in d)) return d;
+          const next = { ...d };
+          delete next[oid];
+          return next;
+        });
+        setExtending((e) => {
+          if (!(oid in e)) return e;
+          const next = { ...e };
+          delete next[oid];
+          return next;
+        });
+      }
+      return prev.filter(m => m.id !== id);
+    });
     setBusy(prev => {
       const { [id]: _gone, ...rest } = prev;
       return rest;
@@ -178,6 +210,41 @@ export default function GlobalOrderAlert() {
       return rest;
     });
   }, []);
+
+  useEffect(() => {
+    const off = subscribeRealtime('admin.order.snoozed', (payload) => {
+      const oid = payload?.orderId;
+      const deadline = payload?.deadline;
+      if (oid == null || !deadline) return;
+      setDeadlines((prev) => ({ ...prev, [oid]: deadline }));
+      setExtending((prev) => {
+        if (!(oid in prev)) return prev;
+        const next = { ...prev };
+        delete next[oid];
+        return next;
+      });
+    });
+    return off;
+  }, []);
+
+  const handleExtend = useCallback(async (orderId) => {
+    if (orderId == null) return;
+    setExtending((prev) => ({ ...prev, [orderId]: true }));
+    try {
+      await OrdersApi.extendAutoAccept(orderId);
+      // Local countdown updates once the 'admin.order.snoozed' broadcast
+      // lands — that's the real server deadline, not an optimistic guess.
+    } catch (err) {
+      setExtending((prev) => {
+        const next = { ...prev };
+        delete next[orderId];
+        return next;
+      });
+      if (current) {
+        setErrors((prev) => ({ ...prev, [current.id]: err?.message || 'Failed to add time' }));
+      }
+    }
+  }, [current]);
 
   useEffect(() => {
     const off = subscribeRealtime('admin.order.auto_accepted', (payload) => {
@@ -271,7 +338,7 @@ export default function GlobalOrderAlert() {
   const total = modals.length;
   const waiting = modals.slice(1);
   const countdownCeil = Math.ceil(secondsLeft);
-  const ringPct = (secondsLeft / AUTO_ACCEPT_SECONDS) * 100;
+  const ringPct = Math.min(100, (secondsLeft / AUTO_ACCEPT_SECONDS) * 100);
 
   const { id, payload } = current;
   const orderId = payload?.orderId;
@@ -279,6 +346,10 @@ export default function GlobalOrderAlert() {
   const customerName = payload?.customerName || 'Customer';
   const address = payload?.address || '';
   const customerPhone = payload?.customerPhone || '';
+  const latitude = payload?.latitude;
+  const longitude = payload?.longitude;
+  const mapUrl = payload?.mapUrl || payload?.map_url || '';
+  const hasPin = latitude != null && longitude != null;
   const paymentMethod = payload?.paymentMethod || 'Cash';
   const totalAmount = payload?.total;
   const createdAt = payload?.createdAt;
@@ -289,6 +360,28 @@ export default function GlobalOrderAlert() {
   const wasAutoAccepted = Boolean(
     autoAcknowledged[orderId] || autoAcknowledged[String(orderId)]
   );
+
+  // Minimized — small always-visible pill, timer keeps running underneath.
+  // Overlay/backdrop is gone entirely so the admin can freely browse the app.
+  if (minimized) {
+    return (
+      <button
+        type="button"
+        className="order-alert-minimized"
+        onClick={() => setMinimized(false)}
+        aria-label={`Restore new order alert. Order number ${orderNumber}${wasAutoAccepted ? ', auto-accepted' : `, ${countdownCeil} seconds left`}`}
+      >
+        <span className="order-alert-minimized-bell" aria-hidden="true">{wasAutoAccepted ? '⚡' : '🔔'}</span>
+        <span className="order-alert-minimized-text">
+          <strong>#{orderNumber}</strong>
+          <span>
+            {total > 1 ? `+${total - 1} more · ` : ''}
+            {wasAutoAccepted ? 'auto-accepted' : `${countdownCeil}s`}
+          </span>
+        </span>
+      </button>
+    );
+  }
 
   return (
     <div className="order-alert-overlay" role="presentation">
@@ -349,14 +442,25 @@ export default function GlobalOrderAlert() {
               </span>
             </div>
             {!wasAutoAccepted ? (
-              <div className="order-alert-countdown" aria-live="polite">
-                <div className="order-alert-countdown-ring">
-                  <svg viewBox="0 0 36 36" aria-hidden="true">
-                    <circle cx="18" cy="18" r="16" className="order-alert-countdown-track" />
-                    <circle cx="18" cy="18" r="16" className="order-alert-countdown-fill" />
-                  </svg>
-                  <span className="order-alert-countdown-text">{countdownCeil}s</span>
+              <div className="order-alert-countdown-block">
+                <div className="order-alert-countdown" aria-live="polite">
+                  <div className="order-alert-countdown-ring">
+                    <svg viewBox="0 0 36 36" aria-hidden="true">
+                      <circle cx="18" cy="18" r="16" className="order-alert-countdown-track" />
+                      <circle cx="18" cy="18" r="16" className="order-alert-countdown-fill" />
+                    </svg>
+                    <span className="order-alert-countdown-text">{countdownCeil}s</span>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  className="order-alert-extend-btn"
+                  onClick={() => handleExtend(orderId)}
+                  disabled={isBusy || isExtending}
+                  title="Add 30 seconds before this order auto-accepts"
+                >
+                  {isExtending ? '…' : '+30s'}
+                </button>
               </div>
             ) : null}
             {total > 1 ? (
@@ -371,9 +475,20 @@ export default function GlobalOrderAlert() {
                 ▶
               </button>
             ) : null}
+            <button
+              type="button"
+              className="order-alert-minimize-btn"
+              onClick={() => setMinimized(true)}
+              aria-label="Minimize (keeps timer running)"
+              title="Minimize — timer keeps running"
+            >
+              ✕
+            </button>
           </div>
 
           <div className="order-alert-body">
+            {hasPin ? <LiveOrderMap order={{ id: orderId, latitude, longitude, status: 'Pending' }} /> : null}
+
             <div className="order-alert-row">
               <span className="order-alert-label">Customer</span>
               <span className="order-alert-value order-alert-customer" title={customerName}>
@@ -384,7 +499,9 @@ export default function GlobalOrderAlert() {
             {customerPhone ? (
               <div className="order-alert-row">
                 <span className="order-alert-label">Phone</span>
-                <span className="order-alert-value">{customerPhone}</span>
+                <a className="order-alert-value order-alert-phone-link" href={`tel:${customerPhone}`}>
+                  {customerPhone}
+                </a>
               </div>
             ) : null}
 
@@ -393,6 +510,11 @@ export default function GlobalOrderAlert() {
                 <span className="order-alert-label">Address</span>
                 <span className="order-alert-value order-alert-address" title={address}>
                   {address}
+                  {mapUrl ? (
+                    <a className="order-alert-map-link" href={mapUrl} target="_blank" rel="noreferrer">
+                      View Map
+                    </a>
+                  ) : null}
                 </span>
               </div>
             ) : null}
@@ -407,12 +529,15 @@ export default function GlobalOrderAlert() {
             {items.length > 0 ? (
               <div className="order-alert-row order-alert-items">
                 <span className="order-alert-label">Items</span>
-                <span
-                  className="order-alert-value order-alert-items-list"
-                  title={items.map((it) => `${it.quantity}x ${it.name}`).join(', ')}
-                >
-                  {items.map((it) => `${it.quantity}x ${it.name}`).join(', ')}
-                </span>
+                <ul className="order-alert-value order-alert-items-list">
+                  {items.map((it, idx) => (
+                    <li key={idx}>
+                      {it.quantity}x {it.name}
+                      {it.variantLabel ? ` (${it.variantLabel})` : ''}
+                      {it.lineTotal != null ? ` — ${formatCurrency(it.lineTotal)}` : ''}
+                    </li>
+                  ))}
+                </ul>
               </div>
             ) : null}
 

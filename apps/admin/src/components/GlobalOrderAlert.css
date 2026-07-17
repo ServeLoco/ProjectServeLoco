@@ -280,19 +280,51 @@
 }
 
 .order-alert-address {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   font-size: 13px;
   color: var(--text-secondary, #4b5563);
   font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.order-alert-items {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
 }
 
 .order-alert-items-list {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  list-style: none;
+  margin: 0;
+  padding: 0;
   font-size: 13px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-alert-items-list li {
+  display: block;
+}
+
+.order-alert-map-link,
+.order-alert-phone-link {
+  color: var(--primary-color, #0f8a5a);
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.order-alert-map-link:hover,
+.order-alert-phone-link:hover {
+  text-decoration: underline;
+}
+
+.order-alert-phone-link {
+  font-size: 14px;
 }
 
 .order-alert-total {
@@ -423,7 +455,113 @@
   border: 1px solid #fde68a;
 }
 
-/* ── Countdown ring ──────────────────────────────────────────────────── */
+/* ── Minimize button (top-right, always visible) ─────────────────────── */
+.order-alert-minimize-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms ease;
+  flex-shrink: 0;
+}
+
+.order-alert-minimize-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Minimized pill — no backdrop, floats above the app, timer keeps going ── */
+.order-alert-minimized {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 10px 10px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #1fb574 0%, #0f8a5a 100%);
+  color: #fff;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  animation: orderAlertFadeIn 160ms ease-out;
+}
+
+.order-alert-minimized:hover {
+  filter: brightness(1.05);
+}
+
+.order-alert-minimized-bell {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.order-alert-minimized-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.25;
+}
+
+.order-alert-minimized-text strong {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.order-alert-minimized-text span {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Countdown ring + add-time button ────────────────────────────────── */
+.order-alert-countdown-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.order-alert-extend-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.order-alert-extend-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.order-alert-extend-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .order-alert-countdown {
   width: 48px;
   height: 48px;

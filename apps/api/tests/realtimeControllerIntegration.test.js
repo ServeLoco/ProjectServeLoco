@@ -304,6 +304,56 @@ describe('Controller -> realtime event integration', () => {
         expect.objectContaining({ status: 'Cancelled' })
       );
     });
+
+    it('auto-sets payment_status to Success when a Pending-payment order is marked Delivered', async () => {
+      pool.query.mockResolvedValueOnce([[{
+        id: 706, status: 'Out for Delivery', customer_id: 5, order_number: 'OD-706',
+        payment_status: 'Pending',
+      }]]);
+      pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
+      pool.query.mockResolvedValueOnce([[{
+        id: 706, status: 'Delivered', customer_id: 5, order_number: 'OD-706',
+        payment_status: 'Success', total: 300,
+      }]]);
+
+      notificationService.createOrderNotification.mockReturnValue(Promise.resolve({ insertId: 207 }));
+
+      const req = { params: { id: 706 }, body: { status: 'Delivered' } };
+      const res = mockRes();
+
+      await adminController.updateOrderStatus(req, res);
+
+      expect(res.statusCode).toBe(200);
+      // The UPDATE call (2nd pool.query call) must include the payment_status flip.
+      const updateCall = pool.query.mock.calls[1];
+      expect(updateCall[0]).toMatch(/payment_status = "Success"/);
+      expect(realtimeEvents.emitOrderStatusUpdated).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'Delivered', payment_status: 'Success' })
+      );
+    });
+
+    it('does not override an already-set payment_status when marking Delivered', async () => {
+      pool.query.mockResolvedValueOnce([[{
+        id: 707, status: 'Out for Delivery', customer_id: 6, order_number: 'OD-707',
+        payment_status: 'Failed',
+      }]]);
+      pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
+      pool.query.mockResolvedValueOnce([[{
+        id: 707, status: 'Delivered', customer_id: 6, order_number: 'OD-707',
+        payment_status: 'Failed', total: 300,
+      }]]);
+
+      notificationService.createOrderNotification.mockReturnValue(Promise.resolve({ insertId: 208 }));
+
+      const req = { params: { id: 707 }, body: { status: 'Delivered' } };
+      const res = mockRes();
+
+      await adminController.updateOrderStatus(req, res);
+
+      expect(res.statusCode).toBe(200);
+      const updateCall = pool.query.mock.calls[1];
+      expect(updateCall[0]).not.toMatch(/payment_status/);
+    });
   });
 
   describe('adminController.updateOrderPayment', () => {

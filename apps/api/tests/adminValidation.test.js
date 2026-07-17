@@ -96,6 +96,36 @@ describe('Admin Validation — Dashboard Sections', () => {
     expect(res.body.message).toBe('Dashboard section created');
   });
 
+  it('POST /dashboard-sections accepts a blank title for section_type category_grid', async () => {
+    pool.query
+      .mockResolvedValueOnce([[]]) // slug uniqueness check
+      .mockResolvedValueOnce([[]]) // display_order uniqueness check
+      .mockResolvedValueOnce([{ insertId: 43 }]); // INSERT
+
+    const res = await request(app)
+      .post('/api/admin/dashboard-sections')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        title: '',
+        slug: 'category-rail',
+        section_type: 'category_grid',
+        store_type: 'packed',
+        display_order: 3,
+        active: true
+      });
+
+    expect(res.statusCode).toEqual(201);
+    expect(res.body.message).toBe('Dashboard section created');
+  });
+
+  it('POST /dashboard-sections still rejects a blank title for section_type product_block', async () => {
+    const res = await request(app)
+      .post('/api/admin/dashboard-sections')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ title: '', slug: 'featured', section_type: 'product_block' });
+    expectSchemaRejection(res);
+  });
+
   it('PATCH /dashboard-sections/reorder rejects non-array sectionIds', async () => {
     const res = await request(app)
       .patch('/api/admin/dashboard-sections/reorder')
@@ -118,6 +148,14 @@ describe('Admin Validation — Dashboard Sections', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ title: '' });
     expectSchemaRejection(res);
+  });
+
+  it('PATCH /dashboard-sections/:id accepts empty title when section_type is category_grid', async () => {
+    const res = await request(app)
+      .patch('/api/admin/dashboard-sections/1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ title: '', section_type: 'category_grid' });
+    expect(res.statusCode).not.toBe(400);
   });
 
   it('POST /dashboard-sections/:id/items rejects missing item_type/item_id', async () => {

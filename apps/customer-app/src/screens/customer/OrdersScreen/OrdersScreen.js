@@ -471,6 +471,7 @@ export default function OrdersScreen() {
   const getPaymentStatusColor = (status) => {
     switch (status) {
       case 'Paid':
+      case 'Success':
       case 'Refunded':
         return colors.success;
       case 'Failed':

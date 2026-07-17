@@ -14,6 +14,9 @@ export const IMAGE_GUIDANCE = {
   qr: {
     label: 'Recommended: 600 × 600 px (1:1 square). Sharp QR code, ≥ 10 px white quiet border around all sides.',
   },
+  storeMode: {
+    label: 'Recommended: 512 × 512 px (1:1 square). Icon is displayed inside a circle, so keep the subject centred with padding — corners get cropped off.',
+  },
   library: {
     label: 'Sizes — product/combo: 780 × 1000 px (0.78:1) | category: 720 × 800 px (0.9:1) | QR: 600 × 600 px | offer banner: 1200 × 600 px (2:1). Formats: JPG, PNG, WebP (max 5 MB).',
   },

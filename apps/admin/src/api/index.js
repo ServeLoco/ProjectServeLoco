@@ -39,6 +39,7 @@ export const OrdersApi = {
     `/admin/orders/${id}/payment`,
     { method: 'PATCH', body: { paymentStatus, payment_status: paymentStatus } }
   ),
+  extendAutoAccept: (id) => apiClient(`/admin/orders/${id}/extend-auto-accept`, { method: 'POST' }),
 };
 
 export const ProductsApi = {

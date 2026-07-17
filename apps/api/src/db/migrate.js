@@ -259,6 +259,13 @@ const migrate = async () => {
       INSERT IGNORE INTO store_modes (slug, label, display_order, active, is_system)
       VALUES ('packed', 'Packed Items', 1, TRUE, TRUE), ('fast_food', 'Fast Food', 2, TRUE, TRUE)
     `);
+    // Admin-uploaded icon shown in the mode-switcher capsule (falls back to a
+    // built-in lucide icon client-side when unset). Same image_id-FK-by-
+    // convention as categories/products/combos/offers — see images table.
+    await ensureColumn('store_modes', 'icon_image_id', 'icon_image_id INT NULL DEFAULT NULL AFTER is_system');
+    // Which mode the customer app opens into on cold start. Only one row may
+    // be TRUE at a time — enforced in the controller, not a DB constraint.
+    await ensureColumn('store_modes', 'is_default', 'is_default BOOLEAN NOT NULL DEFAULT FALSE AFTER icon_image_id');
     console.log('Store modes table ready.');
 
     // Products Table
@@ -422,7 +429,7 @@ const migrate = async () => {
         night_charge DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
         total DECIMAL(10, 2) NOT NULL,
         payment_method ENUM('Cash', 'UPI') DEFAULT 'Cash',
-        payment_status ENUM('Pending', 'Paid', 'Failed', 'Refunded') DEFAULT 'Pending',
+        payment_status ENUM('Pending', 'Paid', 'Failed', 'Refunded', 'Success') DEFAULT 'Pending',
         status ENUM('Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled') DEFAULT 'Pending',
         note TEXT,
         cancel_reason TEXT,
@@ -437,6 +444,12 @@ const migrate = async () => {
     await connection.query(`
       ALTER TABLE orders
       MODIFY COLUMN status ENUM('Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled') DEFAULT 'Pending'
+    `);
+    // 'Success' added so a delivered order's payment auto-flips off 'Pending'
+    // instead of sitting there forever (existing installs need the widen too).
+    await connection.query(`
+      ALTER TABLE orders
+      MODIFY COLUMN payment_status ENUM('Pending', 'Paid', 'Failed', 'Refunded', 'Success') DEFAULT 'Pending'
     `);
     await ensureColumn('orders', 'delivery_distance_km', 'delivery_distance_km DECIMAL(10, 4) DEFAULT NULL AFTER longitude');
     await ensureColumn('orders', 'delivery_radius_km_snapshot', 'delivery_radius_km_snapshot DECIMAL(10, 2) DEFAULT NULL AFTER delivery_distance_km');

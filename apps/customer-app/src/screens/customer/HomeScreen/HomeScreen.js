@@ -80,8 +80,22 @@ export default function HomeScreen() {
   const isSettingsStale = useSettingsStore(state => state.isStale);
   const markSettingsFetched = useSettingsStore(state => state.markFetched);
   
-  const { modes } = useStoreModes();
+  const { modes, refetchModes } = useStoreModes();
+  // 'fast_food' is only the pre-fetch fallback — swapped for the admin's
+  // configured default mode (store_modes.is_default) once modes load, but
+  // only if the user hasn't already switched tabs this session.
   const [storeType, setStoreType] = useState('fast_food');
+  const userChangedStoreTypeRef = useRef(false);
+  const appliedDefaultModeRef = useRef(false);
+  useEffect(() => {
+    if (appliedDefaultModeRef.current || userChangedStoreTypeRef.current) return;
+    const defaultMode = modes.find(m => m.is_default || m.isDefault);
+    if (!defaultMode) return;
+    appliedDefaultModeRef.current = true;
+    if (defaultMode.slug !== storeType) {
+      setStoreType(defaultMode.slug);
+    }
+  }, [modes, storeType]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dashboardSections, setDashboardSections] = useState([]);
@@ -142,6 +156,9 @@ export default function HomeScreen() {
     let isMounted = true;
     if (refresh) {
       setIsRefreshing(true);
+      // Mode icons/labels are admin-editable and otherwise only fetched once
+      // on mount — pull-to-refresh is the escape hatch to pick up changes.
+      refetchModes();
     } else if (!sectionsCacheRef.current[currentApiStoreType]) {
       // Only show the skeleton when we have nothing cached for this mode;
       // otherwise the cached sections stay visible while we revalidate.
@@ -209,7 +226,7 @@ export default function HomeScreen() {
     return () => {
       isMounted = false;
     };
-  }, [currentApiStoreType, fadeAnim, setSettings, markSettingsFetched, isSettingsStale, slideAnim, staggerCatAnims, staggerComboAnims]);
+  }, [currentApiStoreType, fadeAnim, setSettings, markSettingsFetched, isSettingsStale, slideAnim, staggerCatAnims, staggerComboAnims, refetchModes]);
 
   useEffect(() => {
     let cleanupLoad;
@@ -499,6 +516,7 @@ export default function HomeScreen() {
   // Segment control only — no swipe-to-switch (avoids clashing with rails).
   const selectStoreType = useCallback((val) => {
     if (!val || val === storeType) return;
+    userChangedStoreTypeRef.current = true;
     const cached = sectionsCacheRef.current[val];
     if (cached) {
       setDashboardSections(cached);
@@ -696,6 +714,7 @@ export default function HomeScreen() {
             <SegmentedControl
               options={modes.map(m => m.slug)}
               renderLabel={(slug) => modes.find(m => m.slug === slug)?.label || slug}
+              renderIconUrl={(slug) => modes.find(m => m.slug === slug)?.iconImageUrl || modes.find(m => m.slug === slug)?.icon_image_url}
               selectedOption={storeType}
               onSelect={selectStoreType}
             />
@@ -739,31 +758,33 @@ export default function HomeScreen() {
                 normalizedItems.length > 2;
               return (
                 <View key={section.id} style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <View style={styles.titleRow}>
-                      <View style={styles.headerIndicator} />
-                      {(section.sectionIcon === 'box' || (!section.sectionIcon && section.sectionType === 'category_grid')) && (
-                        <AppIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
-                      )}
-                      {section.sectionIcon && section.sectionIcon !== 'box' && (
-                        <AppIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
-                      )}
-                      <Text style={styles.sectionTitlePremium}>{section.title || 'Shop by Category'}</Text>
-                      {section.showHotBadge === true && (
-                        <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
-                          <LinearGradient
-                            colors={['#FF6B6B', '#FF8E53']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.hotBadgeGradient}
-                          >
-                            <AppIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
-                            <Text style={styles.hotBadgeText}>HOT</Text>
-                          </LinearGradient>
-                        </Animated.View>
-                      )}
+                  {!!section.title && (
+                    <View style={styles.sectionHeader}>
+                      <View style={styles.titleRow}>
+                        <View style={styles.headerIndicator} />
+                        {(section.sectionIcon === 'box' || (!section.sectionIcon && section.sectionType === 'category_grid')) && (
+                          <AppIcon name="box" size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                        )}
+                        {section.sectionIcon && section.sectionIcon !== 'box' && (
+                          <AppIcon name={section.sectionIcon} size={14} color={colors.primary} style={styles.sectionTypeIcon} />
+                        )}
+                        <Text style={styles.sectionTitlePremium}>{section.title}</Text>
+                        {section.showHotBadge === true && (
+                          <Animated.View style={[styles.hotBadge, { transform: [{ scale: hotBadgePulse }] }]}>
+                            <LinearGradient
+                              colors={['#FF6B6B', '#FF8E53']}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              style={styles.hotBadgeGradient}
+                            >
+                              <AppIcon name="star" size={10} color="#FFFFFF" fill="#FFFFFF" style={styles.hotBadgeIcon} />
+                              <Text style={styles.hotBadgeText}>HOT</Text>
+                            </LinearGradient>
+                          </Animated.View>
+                        )}
+                      </View>
                     </View>
-                  </View>
+                  )}
                   <Animated.FlatList
                     data={visibleItems}
                     keyExtractor={(item) => String(item.id)}

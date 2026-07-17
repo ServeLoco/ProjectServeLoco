@@ -18,6 +18,7 @@ const getUsedImageIds = async () => {
   const [combos] = await pool.query('SELECT DISTINCT image_id FROM combos WHERE image_id IS NOT NULL AND deleted = 0');
   const [offers] = await pool.query('SELECT DISTINCT image_id FROM offers WHERE image_id IS NOT NULL AND deleted = 0');
   const [settings] = await pool.query('SELECT upi_qr_image_id FROM settings WHERE upi_qr_image_id IS NOT NULL LIMIT 1');
+  const [storeModes] = await pool.query('SELECT DISTINCT icon_image_id FROM store_modes WHERE icon_image_id IS NOT NULL');
 
   const used = new Set();
   const usageMap = {};
@@ -36,6 +37,7 @@ const getUsedImageIds = async () => {
   addUsage(combos, 'Combo');
   addUsage(offers, 'Offer');
   addUsage(settings, 'Settings', 'upi_qr_image_id');
+  addUsage(storeModes, 'Store Mode', 'icon_image_id');
 
   return { used, usageMap };
 };

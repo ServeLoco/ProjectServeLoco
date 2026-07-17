@@ -119,6 +119,7 @@ const getCancelledPaymentStatus = (paymentMethod) => (
 const getPaymentStatusTheme = (status) => {
   switch (status) {
     case 'Paid':
+    case 'Success':
     case 'Refunded':
       return {
         color: colors.successDark,

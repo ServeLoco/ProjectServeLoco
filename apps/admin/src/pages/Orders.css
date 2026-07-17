@@ -305,7 +305,8 @@
 .status-badge.cancelled { background: var(--badge-cancelled-bg); color: var(--badge-cancelled-text); border-color: var(--badge-cancelled-border); }
 
 .payment-pill.pending { background: var(--payment-pending-bg); color: var(--payment-pending-text); }
-.payment-pill.paid { background: var(--payment-paid-bg); color: var(--payment-paid-text); }
+.payment-pill.paid,
+.payment-pill.success { background: var(--payment-paid-bg); color: var(--payment-paid-text); }
 .payment-pill.failed,
 .payment-pill.refunded { background: var(--payment-failed-bg); color: var(--payment-failed-text); }
 

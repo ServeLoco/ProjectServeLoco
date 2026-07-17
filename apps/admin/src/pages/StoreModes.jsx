@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { StoreModesApi } from '../api';
+import React, { useState, useEffect, useRef } from 'react';
+import { StoreModesApi, ImagesApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { GENERIC_ERROR } from '../utils/constants';
+import { getUploadedImage, normalizeImageUrl, handleImageError } from '../utils/imageUrl';
+import { IMAGE_GUIDANCE } from '../utils/imageGuidance';
+import { getImageUploadError } from '../utils/fileValidation';
+import { useImageCropper } from '../hooks/useImageCropper';
+import ImageCropper from '../components/ImageCropper/ImageCropper';
 import './Categories.css';
 import './StoreModes.css';
 
@@ -36,6 +41,17 @@ export default function StoreModes() {
       setError(err.message || GENERIC_ERROR);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const setDefault = async (mode) => {
+    try {
+      setError(null);
+      await StoreModesApi.update(mode.id, { is_default: true });
+      fetchModes();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || GENERIC_ERROR);
     }
   };
 
@@ -124,9 +140,18 @@ export default function StoreModes() {
               >
                 <div className="store-mode-card-header">
                   <div className="store-mode-card-icon-wrap">
-                    <span className="store-mode-card-icon" aria-hidden="true">
-                      {modeIcon(m.slug)}
-                    </span>
+                    {(m.icon_image_url || m.iconImageUrl) ? (
+                      <img
+                        src={normalizeImageUrl(m.icon_image_url || m.iconImageUrl)}
+                        onError={handleImageError}
+                        alt=""
+                        className="store-mode-card-icon-image"
+                      />
+                    ) : (
+                      <span className="store-mode-card-icon" aria-hidden="true">
+                        {modeIcon(m.slug)}
+                      </span>
+                    )}
                     <div>
                       <span className="store-mode-card-order-badge">#{m.display_order ?? idx + 1}</span>
                       <div className="store-mode-reorder">
@@ -168,6 +193,9 @@ export default function StoreModes() {
                       <span className="store-mode-system-badge">Custom mode</span>
                     )}
                     <span className="category-card-order">Display order {m.display_order ?? 0}</span>
+                    {(m.is_default || m.isDefault) ? (
+                      <span className="store-mode-default-badge">Opens by default</span>
+                    ) : null}
                   </div>
                   {m.is_system && m.active ? (
                     <p className="store-mode-card-hint">Built-in mode — cannot be hidden while active.</p>
@@ -177,6 +205,7 @@ export default function StoreModes() {
                 <StoreModeCardFooter
                   mode={m}
                   onToggle={() => toggleActive(m)}
+                  onSetDefault={() => setDefault(m)}
                   onSaved={fetchModes}
                 />
               </article>
@@ -192,8 +221,9 @@ export default function StoreModes() {
   );
 }
 
-function StoreModeCardFooter({ mode, onToggle, onSaved }) {
+function StoreModeCardFooter({ mode, onToggle, onSetDefault, onSaved }) {
   const [editing, setEditing] = useState(false);
+  const isDefault = mode.is_default || mode.isDefault;
 
   return (
     <div className={`store-mode-card-footer ${editing ? 'is-editing' : ''}`}>
@@ -208,12 +238,17 @@ function StoreModeCardFooter({ mode, onToggle, onSaved }) {
           >
             {mode.active ? 'Active' : 'Hidden'}
           </button>
+          {mode.active && !isDefault ? (
+            <button type="button" className="action-link" onClick={onSetDefault}>
+              Set as default
+            </button>
+          ) : null}
           <button type="button" className="action-link" onClick={() => setEditing(true)}>
-            Rename
+            Edit
           </button>
         </>
       ) : (
-        <RenameForm
+        <EditModeForm
           mode={mode}
           onSaved={() => { setEditing(false); onSaved(); }}
           onCancel={() => setEditing(false)}
@@ -223,16 +258,56 @@ function StoreModeCardFooter({ mode, onToggle, onSaved }) {
   );
 }
 
-function RenameForm({ mode, onSaved, onCancel }) {
+function EditModeForm({ mode, onSaved, onCancel }) {
   const [label, setLabel] = useState(mode.label);
+  const [iconImageId, setIconImageId] = useState(mode.icon_image_id || '');
+  const [iconImageUrl, setIconImageUrl] = useState(mode.icon_image_url || mode.iconImageUrl || '');
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState(null);
   const [error, setError] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const uploadImageFile = async (file) => {
+    const sizeError = getImageUploadError(file);
+    if (sizeError) {
+      setUploadMessage({ type: 'error', text: sizeError });
+      return;
+    }
+    const data = new FormData();
+    data.append('image', file);
+    const previousPendingId = iconImageId;
+
+    try {
+      setUploadingImage(true);
+      setUploadMessage(null);
+      const res = await ImagesApi.upload(data);
+      const image = getUploadedImage(res);
+      setIconImageId(image.id);
+      setIconImageUrl(image.url);
+      if (previousPendingId && previousPendingId !== mode.icon_image_id) {
+        ImagesApi.delete(previousPendingId).catch(() => {});
+      }
+      setUploadMessage({ type: 'success', text: 'Image uploaded. Save to apply it.' });
+    } catch (err) {
+      console.error(err);
+      setUploadMessage({ type: 'error', text: err.message || GENERIC_ERROR });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const { fileInputProps, cropperProps } = useImageCropper({
+    type: 'storeMode',
+    defaultAspect: 1,
+    onCropped: uploadImageFile,
+  });
 
   const save = async () => {
     try {
       setSaving(true);
       setError(null);
-      await StoreModesApi.update(mode.id, { label });
+      await StoreModesApi.update(mode.id, { label, icon_image_id: iconImageId || null });
       onSaved();
     } catch (err) {
       console.error(err);
@@ -242,19 +317,45 @@ function RenameForm({ mode, onSaved, onCancel }) {
   };
 
   return (
-    <div className="store-mode-rename-form">
-      <input
-        className="form-input"
-        value={label}
-        onChange={e => setLabel(e.target.value)}
-        disabled={saving}
-        aria-label={`Rename ${mode.label}`}
-      />
-      <button type="button" className="action-link" onClick={save} disabled={saving}>Save</button>
-      <button type="button" className="action-link" onClick={() => { onCancel(); setError(null); }} disabled={saving}>
-        Cancel
-      </button>
-      {error && <span className="store-mode-rename-error">{error}</span>}
+    <div className="store-mode-edit-form">
+      <p className="image-dimension-hint">{IMAGE_GUIDANCE.storeMode.label}</p>
+      <div className="store-mode-edit-image-row">
+        {iconImageUrl ? (
+          <img
+            src={normalizeImageUrl(iconImageUrl)}
+            onError={handleImageError}
+            alt=""
+            className="store-mode-edit-image-preview"
+          />
+        ) : null}
+        <div
+          className="image-upload-zone store-mode-edit-image-upload"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input type="file" hidden ref={fileInputRef} {...fileInputProps} accept="image/*" />
+          {uploadingImage ? 'Uploading...' : iconImageUrl ? 'Change icon' : 'Upload icon'}
+        </div>
+      </div>
+      {uploadMessage && (
+        <p className={`upload-message ${uploadMessage.type}`}>{uploadMessage.text}</p>
+      )}
+
+      <div className="store-mode-rename-form">
+        <input
+          className="form-input"
+          value={label}
+          onChange={e => setLabel(e.target.value)}
+          disabled={saving}
+          aria-label={`Rename ${mode.label}`}
+        />
+        <button type="button" className="action-link" onClick={save} disabled={saving || uploadingImage}>Save</button>
+        <button type="button" className="action-link" onClick={() => { onCancel(); setError(null); }} disabled={saving}>
+          Cancel
+        </button>
+        {error && <span className="store-mode-rename-error">{error}</span>}
+      </div>
+
+      <ImageCropper {...cropperProps} />
     </div>
   );
 }
@@ -262,8 +363,13 @@ function RenameForm({ mode, onSaved, onCancel }) {
 function NewModeDrawer({ onClose, onSave }) {
   const [slug, setSlug] = useState('');
   const [label, setLabel] = useState('');
+  const [iconImageId, setIconImageId] = useState('');
+  const [iconImageUrl, setIconImageUrl] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState(null);
   const [formError, setFormError] = useState(null);
+  const fileInputRef = useRef(null);
 
   const slugify = (value) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 
@@ -272,12 +378,47 @@ function NewModeDrawer({ onClose, onSave }) {
     setSlug(prev => (prev === slugify(label) || prev === '' ? slugify(value) : prev));
   };
 
+  const uploadImageFile = async (file) => {
+    const sizeError = getImageUploadError(file);
+    if (sizeError) {
+      setUploadMessage({ type: 'error', text: sizeError });
+      return;
+    }
+    const data = new FormData();
+    data.append('image', file);
+    const previousPendingId = iconImageId;
+
+    try {
+      setUploadingImage(true);
+      setUploadMessage(null);
+      const res = await ImagesApi.upload(data);
+      const image = getUploadedImage(res);
+      setIconImageId(image.id);
+      setIconImageUrl(image.url);
+      if (previousPendingId) {
+        ImagesApi.delete(previousPendingId).catch(() => {});
+      }
+      setUploadMessage({ type: 'success', text: 'Image uploaded. Create the mode to apply it.' });
+    } catch (err) {
+      console.error(err);
+      setUploadMessage({ type: 'error', text: err.message || GENERIC_ERROR });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const { fileInputProps, cropperProps } = useImageCropper({
+    type: 'storeMode',
+    defaultAspect: 1,
+    onCropped: uploadImageFile,
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setFormError(null);
       setSaving(true);
-      await StoreModesApi.create({ slug, label });
+      await StoreModesApi.create({ slug, label, icon_image_id: iconImageId || null });
       onSave();
     } catch (err) {
       console.error(err);
@@ -306,15 +447,40 @@ function NewModeDrawer({ onClose, onSave }) {
               <input required type="text" className="form-input" value={slug} onChange={e => setSlug(slugify(e.target.value))} placeholder="e.g. bakery" />
               <p className="image-dimension-hint">Lowercase letters, numbers, underscores only. Cannot be changed after creation.</p>
             </div>
+            <div className="form-group">
+              <label className="form-label">Mode Icon (optional)</label>
+              <p className="image-dimension-hint">{IMAGE_GUIDANCE.storeMode.label} Leave empty to use a built-in icon.</p>
+              <div className="store-mode-edit-image-row">
+                {iconImageUrl ? (
+                  <img
+                    src={normalizeImageUrl(iconImageUrl)}
+                    onError={handleImageError}
+                    alt=""
+                    className="store-mode-edit-image-preview"
+                  />
+                ) : null}
+                <div
+                  className="image-upload-zone store-mode-edit-image-upload"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input type="file" hidden ref={fileInputRef} {...fileInputProps} accept="image/*" />
+                  {uploadingImage ? 'Uploading...' : iconImageUrl ? 'Change icon' : 'Click to Upload Icon'}
+                </div>
+              </div>
+              {uploadMessage && (
+                <p className={`upload-message ${uploadMessage.type}`}>{uploadMessage.text}</p>
+              )}
+            </div>
           </div>
 
           <div className="drawer-footer">
             <button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
-            <button type="submit" className="btn-primary" disabled={saving}>
+            <button type="submit" className="btn-primary" disabled={saving || uploadingImage}>
               {saving ? 'Saving...' : 'Create Mode'}
             </button>
           </div>
         </form>
+        <ImageCropper {...cropperProps} />
       </div>
     </div>
   );

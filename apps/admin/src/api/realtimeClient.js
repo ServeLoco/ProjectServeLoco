@@ -11,7 +11,7 @@ const ADMIN_ORDER_EVENTS = [
   'admin.order.rider_updated',
   'admin.order.cancel_request',
 ];
-const ADMIN_NOTIFICATION_EVENTS = ['admin.notification.created', 'admin.notification.unread_count', 'admin.order.auto_accepted'];
+const ADMIN_NOTIFICATION_EVENTS = ['admin.notification.created', 'admin.notification.unread_count', 'admin.order.auto_accepted', 'admin.order.snoozed'];
 const ADMIN_ANALYTICS_EVENTS = ['analytics.live'];
 const ADMIN_RIDER_EVENTS = ['admin.rider.updated'];
 const LIFECYCLE_EVENTS = ['connected', 'reconnected', 'disconnected', 'visible'];

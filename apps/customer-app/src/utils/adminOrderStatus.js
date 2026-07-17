@@ -40,6 +40,7 @@ export function getOrderStatusColors(status) {
 const PAYMENT_STATUS_COLORS = {
   Pending: { bg: colors.warningLight, text: colors.warning },
   Paid: { bg: colors.successLight, text: colors.successDark },
+  Success: { bg: colors.successLight, text: colors.successDark },
   Failed: { bg: colors.errorLight, text: colors.error },
   Refunded: { bg: colors.bgApp, text: colors.textSecondary },
 };
@@ -48,4 +49,4 @@ export function getPaymentStatusColors(status) {
   return PAYMENT_STATUS_COLORS[status] || { bg: colors.bgApp, text: colors.textSecondary };
 }
 
-export const PAYMENT_STATUS_OPTIONS = ['Pending', 'Paid', 'Failed', 'Refunded'];
+export const PAYMENT_STATUS_OPTIONS = ['Pending', 'Paid', 'Success', 'Failed', 'Refunded'];

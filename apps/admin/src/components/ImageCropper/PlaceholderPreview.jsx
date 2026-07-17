@@ -98,6 +98,22 @@ const styles = {
     background: 'var(--bg-surface, #f6f6f6)',
   },
   libraryImg: { width: '100%', height: '100%', objectFit: 'cover' },
+
+  storeMode: { width: 90, textAlign: 'center' },
+  storeModeImg: {
+    width: 70,
+    height: 70,
+    borderRadius: '50%',
+    margin: '0 auto',
+    background: 'var(--bg-surface, #fff)',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  storeModeImgInner: { width: '100%', height: '100%', objectFit: 'cover' },
+  storeModeName: { fontSize: 10, color: '#333', marginTop: 6, fontWeight: 500 },
 };
 
 /**
@@ -162,6 +178,18 @@ export default function PlaceholderPreview({ imageSrc, type = 'product' }) {
             ? <img src={src} alt="" style={styles.qrImg} />
             : <div style={styles.qrImg} />}
           <div style={styles.qrLabel}>UPI QR Code</div>
+        </div>
+      );
+
+    case 'storeMode':
+      return (
+        <div style={styles.storeMode}>
+          <div style={styles.storeModeImg}>
+            {src
+              ? <img src={src} alt="" style={styles.storeModeImgInner} />
+              : null}
+          </div>
+          <div style={styles.storeModeName}>Mode icon</div>
         </div>
       );
 

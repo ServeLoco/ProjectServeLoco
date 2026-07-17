@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { storeModesApi } from '../api';
 
 // Matches the two system rows that always exist server-side, so the capsule
@@ -10,22 +10,27 @@ const FALLBACK_MODES = [
 
 export function useStoreModes() {
   const [modes, setModes] = useState(FALLBACK_MODES);
+  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    storeModesApi.list()
+  const refetch = useCallback(() => {
+    return storeModesApi.list()
       .then(res => {
-        if (cancelled) return;
+        if (!mountedRef.current) return;
         const list = res?.data || res?.storeModes || [];
         if (Array.isArray(list) && list.length > 0) {
           setModes([...list].sort((a, b) => a.display_order - b.display_order));
         }
       })
       .catch(() => {
-        // Keep fallback modes — the capsule stays usable offline.
+        // Keep whatever modes are already loaded — the capsule stays usable offline.
       });
-    return () => { cancelled = true; };
   }, []);
 
-  return { modes };
+  useEffect(() => {
+    mountedRef.current = true;
+    refetch();
+    return () => { mountedRef.current = false; };
+  }, [refetch]);
+
+  return { modes, refetchModes: refetch };
 }

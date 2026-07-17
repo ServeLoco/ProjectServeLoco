@@ -684,8 +684,13 @@ const adminUpdateAssignmentStatus = async (req, res) => {
   }
 
   const setDeliveredAt = status === 'Delivered' ? ', delivered_at = NOW()' : '';
+  // Same auto-success rule as the rider/admin status endpoints — don't leave
+  // payment at 'Pending' once delivered, but don't clobber a manual override.
+  const setPaymentSuccess = (status === 'Delivered' && order.payment_status === 'Pending')
+    ? ', payment_status = "Success"'
+    : '';
   const [updateResult] = await pool.query(
-    `UPDATE orders SET status = ?${setDeliveredAt} WHERE id = ? AND status = ? AND rider_id = ?`,
+    `UPDATE orders SET status = ?${setDeliveredAt}${setPaymentSuccess} WHERE id = ? AND status = ? AND rider_id = ?`,
     [status, orderId, order.status, riderId]
   );
   if (updateResult.affectedRows === 0) {

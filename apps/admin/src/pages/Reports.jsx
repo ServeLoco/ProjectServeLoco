@@ -154,7 +154,7 @@ export default function Reports() {
               <ul className="breakdown-list">
                 <li className="breakdown-item">
                   <span className="breakdown-name">Paid (Completed)</span>
-                  <span className="breakdown-stat">{salesData?.payment_status?.paid || 0}</span>
+                  <span className="breakdown-stat">{(salesData?.payment_status?.paid || 0) + (salesData?.payment_status?.success || 0)}</span>
                 </li>
                 <li className="breakdown-item">
                   <span className="breakdown-name">Pending</span>

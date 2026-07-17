@@ -343,10 +343,14 @@ export default function Orders() {
         status: newStatus,
         cancelReason,
       });
-      // Patch list row optimistically (status chip) without full page reload.
+      // Patch list row optimistically (status + payment chip) without full page reload.
       setOrders((prev) => prev.map((o) => (
         o.id === selectedOrder.id
-          ? mergeAdminOrderPatch(o, { status: newStatus, cancel_reason: cancelReason })
+          ? mergeAdminOrderPatch(o, {
+              status: newStatus,
+              cancel_reason: cancelReason,
+              paymentStatus: serverOrder?.payment_status,
+            })
           : o
       )));
     } catch (err) {
@@ -660,6 +664,7 @@ export default function Orders() {
             <option value="">All Payment Status</option>
             <option value="Pending">Pending</option>
             <option value="Paid">Paid</option>
+            <option value="Success">Success</option>
             <option value="Failed">Failed</option>
             <option value="Refunded">Refunded</option>
           </select>
@@ -889,6 +894,7 @@ export default function Orders() {
                   >
                     <option value="Pending">Pending</option>
                     <option value="Paid">Paid</option>
+                    <option value="Success">Success</option>
                     <option value="Failed">Failed</option>
                     <option value="Refunded">Refunded</option>
                   </select>

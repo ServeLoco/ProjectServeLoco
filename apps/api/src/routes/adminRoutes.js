@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { login, me, revokeSessions, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
+const { login, me, revokeSessions, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, extendAutoAccept, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { getAdminStoreModes, createStoreMode, updateStoreMode } = require('../controllers/storeModeController');
@@ -450,10 +450,14 @@ const dashboardSectionSchema = (req) => {
   const errors = [];
   const data = {};
   const body = req.body || {};
-  if (!body.title || typeof body.title !== 'string' || body.title.trim() === '') {
+  // Category grid cards already show their own names — the section title
+  // above the grid is the only block type where it's optional.
+  const titleOptional = body.section_type === 'category_grid';
+  const titleBlank = !body.title || typeof body.title !== 'string' || body.title.trim() === '';
+  if (titleBlank && !titleOptional) {
     errors.push('title is required');
   } else {
-    data.title = body.title.trim();
+    data.title = titleBlank ? '' : body.title.trim();
   }
   if (body.display_order !== undefined) {
     const n = Number(body.display_order);
@@ -483,8 +487,14 @@ const dashboardSectionUpdateSchema = (req) => {
   const data = {};
   const body = req.body || {};
   if (body.title !== undefined) {
-    if (typeof body.title !== 'string' || body.title.trim() === '') errors.push('title must be a non-empty string');
-    else data.title = body.title.trim();
+    const titleBlank = typeof body.title !== 'string' || body.title.trim() === '';
+    // Same category_grid exemption as create — an admin clearing the title
+    // on an existing category grid section must not be blocked.
+    if (titleBlank && body.section_type !== 'category_grid') {
+      errors.push('title must be a non-empty string');
+    } else {
+      data.title = titleBlank ? '' : body.title.trim();
+    }
   }
   if (body.display_order !== undefined) {
     const n = Number(body.display_order);
@@ -768,6 +778,7 @@ router.get('/orders', requireAdmin, asyncHandler(getAdminOrders));
 router.get('/orders/:id', requireAdmin, asyncHandler(getAdminOrderById));
 router.patch('/orders/:id/status', requireAdmin, asyncHandler(updateOrderStatus));
 router.patch('/orders/:id/payment', requireAdmin, asyncHandler(updateOrderPayment));
+router.post('/orders/:id/extend-auto-accept', requireAdmin, asyncHandler(extendAutoAccept));
 
 // Settings
 router.get('/settings', requireAdmin, asyncHandler(getSettings));

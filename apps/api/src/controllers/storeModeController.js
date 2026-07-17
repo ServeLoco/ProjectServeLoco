@@ -3,30 +3,64 @@ const { invalidateStoreModeCache } = require('../utils/storeMode');
 
 const RESERVED_SLUGS = new Set(['all']);
 const SLUG_PATTERN = /^[a-z][a-z0-9_]{1,30}$/;
+
+// `??` treats an explicit `null` as absent and falls through to the alias —
+// wrong here, since `icon_image_id: null` is a meaningful "clear it" value.
+const pickImageIdField = (body) =>
+  Object.prototype.hasOwnProperty.call(body, 'icon_image_id') ? body.icon_image_id : body.iconImageId;
 // SegmentedControl on the customer/web capsule only renders 2-5 options —
 // more active modes than that makes the capsule disappear entirely.
 const MAX_ACTIVE_MODES = 5;
 
+// Adds the camelCase duplicates + strips the raw join column, per house
+// response-shape convention (fields duplicated in both casings).
+const withIconUrl = (row) => {
+  const { icon_image_url, is_default, ...rest } = row;
+  const isDefault = Boolean(is_default);
+  return {
+    ...rest,
+    icon_image_url: icon_image_url || null,
+    iconImageUrl: icon_image_url || null,
+    is_default: isDefault,
+    isDefault,
+  };
+};
+
 // Public endpoint: GET /api/store-modes — active modes for the customer/web capsule.
 const getStoreModes = async (req, res) => {
   const [rows] = await pool.query(
-    'SELECT id, slug, label, display_order FROM store_modes WHERE active = TRUE ORDER BY display_order ASC, id ASC'
+    `SELECT sm.id, sm.slug, sm.label, sm.display_order, sm.is_default, i.url AS icon_image_url
+     FROM store_modes sm
+     LEFT JOIN images i ON i.id = sm.icon_image_id
+     WHERE sm.active = TRUE
+     ORDER BY sm.display_order ASC, sm.id ASC`
   );
-  res.status(200).json({ data: rows, storeModes: rows });
+  const data = rows.map(withIconUrl);
+  res.status(200).json({ data, storeModes: data });
 };
 
 // Admin endpoint: GET /api/admin/store-modes — all modes including inactive.
 const getAdminStoreModes = async (req, res) => {
   const [rows] = await pool.query(
-    'SELECT * FROM store_modes ORDER BY display_order ASC, id ASC'
+    `SELECT sm.*, i.url AS icon_image_url
+     FROM store_modes sm
+     LEFT JOIN images i ON i.id = sm.icon_image_id
+     ORDER BY sm.display_order ASC, sm.id ASC`
   );
-  res.status(200).json({ data: rows });
+  res.status(200).json({ data: rows.map(withIconUrl) });
 };
+
+const isValidImageId = (id) => /^\d+$/.test(String(id));
 
 const createStoreMode = async (req, res) => {
   const { slug, label } = req.body;
+  const iconImageId = pickImageIdField(req.body);
   const cleanSlug = String(slug || '').trim().toLowerCase();
   const cleanLabel = String(label || '').trim();
+
+  if (iconImageId != null && !isValidImageId(iconImageId)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid icon_image_id' });
+  }
 
   if (!SLUG_PATTERN.test(cleanSlug)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Slug must be lowercase letters, numbers, and underscores, starting with a letter (2-31 chars)' });
@@ -51,8 +85,8 @@ const createStoreMode = async (req, res) => {
   const [[{ maxOrder }]] = await pool.query('SELECT COALESCE(MAX(display_order), 0) as maxOrder FROM store_modes');
 
   const [result] = await pool.query(
-    'INSERT INTO store_modes (slug, label, display_order, active, is_system) VALUES (?, ?, ?, TRUE, FALSE)',
-    [cleanSlug, cleanLabel, Number(maxOrder) + 1]
+    'INSERT INTO store_modes (slug, label, display_order, active, is_system, icon_image_id) VALUES (?, ?, ?, TRUE, FALSE, ?)',
+    [cleanSlug, cleanLabel, Number(maxOrder) + 1, iconImageId != null ? iconImageId : null]
   );
   invalidateStoreModeCache();
   res.status(201).json({ message: 'Store mode created', id: result.insertId });
@@ -61,10 +95,20 @@ const createStoreMode = async (req, res) => {
 const updateStoreMode = async (req, res) => {
   const { id } = req.params;
   const { label, display_order, active } = req.body;
+  const iconImageId = pickImageIdField(req.body);
+  const isDefault = req.body.is_default !== undefined ? req.body.is_default : req.body.isDefault;
+
+  if (iconImageId !== undefined && iconImageId !== null && !isValidImageId(iconImageId)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid icon_image_id' });
+  }
 
   const [[existing]] = await pool.query('SELECT * FROM store_modes WHERE id = ?', [id]);
   if (!existing) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Store mode not found' });
+  }
+
+  if (isDefault === true && !existing.active && active !== true) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Only an active mode can be set as default' });
   }
 
   if (existing.is_system && active === false) {
@@ -116,9 +160,22 @@ const updateStoreMode = async (req, res) => {
     updates.push('active = ?');
     params.push(active ? 1 : 0);
   }
+  if (iconImageId !== undefined) {
+    updates.push('icon_image_id = ?');
+    params.push(iconImageId === null ? null : iconImageId);
+  }
+  if (isDefault !== undefined) {
+    updates.push('is_default = ?');
+    params.push(isDefault ? 1 : 0);
+  }
 
   if (updates.length === 0) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No valid fields provided' });
+  }
+
+  // Only one mode may be default at a time — clear the others first.
+  if (isDefault === true) {
+    await pool.query('UPDATE store_modes SET is_default = FALSE WHERE id != ?', [id]);
   }
 
   params.push(id);
