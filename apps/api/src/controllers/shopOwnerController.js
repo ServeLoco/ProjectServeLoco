@@ -140,6 +140,11 @@ const toggleMyProduct = async (req, res) => {
     available: isAvailable,
     shopId: req.shop.id,
   });
+  // Bust the server-side dashboard/categories cache too — otherwise the socket
+  // event tells clients to refetch, but they'd get the same stale (30s TTL)
+  // cached response back until it naturally expires.
+  require('../utils/microCache').bust('dashboard');
+  require('../utils/microCache').bust('categories');
   res.status(200).json({
     message: 'Product updated',
     productId, product_id: productId,
