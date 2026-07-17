@@ -117,6 +117,10 @@ describe('orderAlarmNotifications', () => {
       expect(call.android.channelId).toBe('serveloco-orders-alarm-v5');
       expect(call.android.sound).toBe('order_alarm');
       expect(playAlarmSound).toHaveBeenCalledWith('order', expect.any(Object));
+      // Must be time-bounded (Play FGS policy: "runs only as long as necessary") —
+      // capped at MAX_ORDER_ALARM_RING_MS since shop orders have no server expiry.
+      expect(call.android.timeoutAfter).toBeGreaterThan(Date.now());
+      expect(call.android.timeoutAfter).toBeLessThanOrEqual(Date.now() + 5 * 60 * 1000 + 1000);
     });
 
     it('displays a full-screen alarm for a rider offer alert', async () => {
@@ -132,6 +136,9 @@ describe('orderAlarmNotifications', () => {
       expect(call.android.channelId).toBe('serveloco-rider-offers-alarm-v5');
       expect(call.android.sound).toBe('rider_alarm');
       expect(playAlarmSound).toHaveBeenCalledWith('rider', expect.any(Object));
+      // Bounded by the offer's own expiresAt (~120s out here), not left open-ended.
+      expect(call.android.timeoutAfter).toBeGreaterThan(Date.now());
+      expect(call.android.timeoutAfter).toBeLessThanOrEqual(Date.now() + 121000);
     });
 
     it('skips re-displaying the same offer within the dedupe window (server reminder resend)', async () => {

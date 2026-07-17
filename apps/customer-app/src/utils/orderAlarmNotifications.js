@@ -254,6 +254,15 @@ export async function displayAlarmNotification(data) {
     }
     console.warn('[orderAlarm] canUseFullScreenIntent=', canFullScreen);
 
+    // Google Play FGS policy requires the alert to run only as long as
+    // necessary — an indefinite ring is not "user perceptible, time-bounded"
+    // behavior. Rider offers already expire server-side (data.expiresAt);
+    // shop-owner new-order alerts have no server expiry, so cap them at
+    // MAX_ORDER_ALARM_RING_MS. Android auto-cancels the notification at this
+    // time and fires EventType.DISMISSED, which already stops the alarm
+    // sound + foreground service (see handleAlarmActionEvent above).
+    const ringTimeoutAt = Date.now() + (isRider ? resolveRiderTimeoutMs(data) : MAX_ORDER_ALARM_RING_MS);
+
     const android = {
       channelId,
       category: AndroidCategory.CALL,
@@ -280,7 +289,10 @@ export async function displayAlarmNotification(data) {
       loopSound: true,
       vibrationPattern,
       lightUpScreen: true,
-      // No timeoutAfter — banner + media stay until accept/reject (or swipe).
+      // Hard cap so the FGS can't ring forever — required for Play policy
+      // compliance (see ringTimeoutAt above). Android fires DISMISSED at this
+      // time even if the user never touches the notification.
+      timeoutAfter: ringTimeoutAt,
       // Always attach fullScreenAction when OS allows — critical for lock screen.
       ...(canFullScreen
         ? {
