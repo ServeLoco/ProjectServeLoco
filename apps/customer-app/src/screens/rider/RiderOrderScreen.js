@@ -121,6 +121,16 @@ export default function RiderOrderScreen({ route, navigation }) {
     ]);
   };
 
+  const handleMarkPaid = () => {
+    Alert.alert('Mark payment received?', 'Confirm you have collected payment for this order.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Mark paid',
+        onPress: () => runAction('mark_paid', () => riderApi.markPaid(orderId)),
+      },
+    ]);
+  };
+
   if (loading && !order) {
     return (
       <SafeAreaView style={styles.container}>
@@ -184,6 +194,21 @@ export default function RiderOrderScreen({ route, navigation }) {
             </Text>
           ) : null}
 
+          {Array.isArray(order.items) && order.items.length > 0 ? (
+            <View style={styles.itemsBlock}>
+              <Text style={styles.itemsLabel}>Order items</Text>
+              {order.items.map((it, idx) => {
+                const variant = it.variantLabel || it.variant_label;
+                return (
+                  <Text key={it.id ?? idx} style={styles.itemLine} numberOfLines={1}>
+                    {it.quantity}x {it.productName || it.product_name}
+                    {variant ? ` (${variant})` : ''}
+                  </Text>
+                );
+              })}
+            </View>
+          ) : null}
+
           {!flags.terminal ? (
             <View style={styles.actions}>
               {flags.showPickedUp ? (
@@ -211,6 +236,15 @@ export default function RiderOrderScreen({ route, navigation }) {
                   variant="success"
                   busy={actionBusy === 'delivered'}
                   onPress={handleDelivered}
+                />
+              ) : null}
+              {flags.showMarkPaid ? (
+                <ActionBtn
+                  label="Mark paid"
+                  icon="check"
+                  variant="saffron"
+                  busy={actionBusy === 'mark_paid'}
+                  onPress={handleMarkPaid}
                 />
               ) : null}
             </View>
@@ -308,6 +342,26 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '700',
     marginBottom: spacing.md,
+  },
+  itemsBlock: {
+    backgroundColor: colors.bgApp,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  itemsLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing.xs,
+  },
+  itemLine: {
+    ...typography.body,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: 2,
   },
   actions: { gap: spacing.sm },
   primaryBtn: {

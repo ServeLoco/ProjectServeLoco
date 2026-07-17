@@ -31,6 +31,8 @@ const shapeOrderSummary = (o) => {
     customer_name: o.customer_name,
     paymentMethod: o.payment_method,
     payment_method: o.payment_method,
+    paymentStatus: o.payment_status,
+    payment_status: o.payment_status,
     total: o.total,
     note: o.note,
     riderId: o.rider_id,
@@ -157,7 +159,7 @@ const getMe = async (req, res) => {
     [req.rider.id]
   );
 
-  const assignments = assignRows.map(shapeOrderSummary);
+  const assignments = await loadAssignmentExtrasBatch(assignRows);
   const pendingOffers = offerRows.map(shapeOffer);
   res.status(200).json({
     rider,
@@ -326,6 +328,12 @@ const getActiveOffer = async (req, res) => {
       [row.order_id]
     );
     offer.shops = shops;
+    const [items] = await pool.query(
+      `SELECT id, product_name, quantity, variant_label, shop_id
+       FROM order_items WHERE order_id = ?`,
+      [row.order_id]
+    );
+    offer.items = items.map(shapeItemRow);
     offers.push(offer);
   }
 
@@ -556,8 +564,13 @@ const updateAssignmentStatus = async (req, res) => {
   }
 
   const setDeliveredAt = status === 'Delivered' ? ', delivered_at = NOW()' : '';
+  // Same auto-success rule as the admin panel's status update — don't leave
+  // payment at 'Pending' once delivered, but don't clobber a manual override.
+  const setPaymentSuccess = (status === 'Delivered' && order.payment_status === 'Pending')
+    ? ', payment_status = "Success"'
+    : '';
   const [updateResult] = await pool.query(
-    `UPDATE orders SET status = ?${setDeliveredAt} WHERE id = ? AND status = ? AND rider_id = ?`,
+    `UPDATE orders SET status = ?${setDeliveredAt}${setPaymentSuccess} WHERE id = ? AND status = ? AND rider_id = ?`,
     [status, orderId, order.status, req.rider.id]
   );
   if (updateResult.affectedRows === 0) {
@@ -611,6 +624,73 @@ const updateAssignmentStatus = async (req, res) => {
   });
 };
 
+// POST /api/rider/assignments/:orderId/mark-paid — rider confirms payment (e.g. COD cash) received.
+// Compare-and-set from 'Pending' only; never overwrites Success/Failed/Refunded.
+const markPaid = async (req, res) => {
+  const orderId = Number(req.params.orderId);
+  if (!Number.isFinite(orderId)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid order id' });
+  }
+
+  const [rows] = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+  if (rows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+  }
+  const order = rows[0];
+  if (Number(order.rider_id) !== Number(req.rider.id)) {
+    return res.status(403).json({ code: 'FORBIDDEN', message: 'Not your assignment' });
+  }
+  if (order.status === 'Cancelled') {
+    return res.status(409).json({ code: 'CONFLICT', message: 'Order is cancelled' });
+  }
+  if (order.payment_status !== 'Pending') {
+    return res.status(200).json({ message: 'Payment already recorded', order: shapeOrderSummary(order) });
+  }
+
+  const [updateResult] = await pool.query(
+    'UPDATE orders SET payment_status = "Paid" WHERE id = ? AND payment_status = "Pending" AND rider_id = ?',
+    [orderId, req.rider.id]
+  );
+  if (updateResult.affectedRows === 0) {
+    const [fresh] = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+    return res.status(409).json({
+      code: 'CONCURRENCY_CONFLICT',
+      message: 'Payment status was updated by someone else.',
+      order: shapeOrderSummary(fresh[0]),
+    });
+  }
+
+  const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+  const updated = updatedRows[0];
+
+  notificationService.createOrderNotification({
+    userId: updated.customer_id,
+    order: updated,
+    event: 'payment_paid',
+  })
+    .then((result) => realtimeEvents.emitNotificationCreated(updated.customer_id, result))
+    .catch(() => {});
+
+  realtimeEvents.emitOrderPaymentUpdated(updated);
+
+  const summary = shapeOrderSummary(updated);
+  try {
+    if (req.rider.user_id) {
+      emitToCustomer(req.rider.user_id, 'rider.assignment.updated', {
+        orderId, status: updated.status, riderId: req.rider.id, order: summary,
+      });
+    }
+    emitToAdmins('admin.order.rider_updated', {
+      orderId, status: updated.status, riderId: req.rider.id,
+    });
+  } catch (_) { /* best-effort */ }
+
+  res.status(200).json({
+    message: 'Payment marked as paid',
+    order: summary,
+  });
+};
+
 module.exports = {
   getMe,
   setOnline,
@@ -624,4 +704,5 @@ module.exports = {
   cancelAssignmentHttp,
   markPickedUp,
   updateAssignmentStatus,
+  markPaid,
 };

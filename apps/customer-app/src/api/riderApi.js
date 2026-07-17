@@ -25,6 +25,8 @@ const riderApi = {
     apiClient.post(`/rider/assignments/${orderId}/picked-up`, {}, { auth: 'customer' }),
   updateStatus: (orderId, status) =>
     apiClient.patch(`/rider/assignments/${orderId}/status`, { status }, { auth: 'customer' }),
+  markPaid: (orderId) =>
+    apiClient.post(`/rider/assignments/${orderId}/mark-paid`, {}, { auth: 'customer' }),
 };
 
 export { riderApi };

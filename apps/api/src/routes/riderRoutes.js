@@ -15,6 +15,7 @@ const {
   cancelAssignmentHttp,
   markPickedUp,
   updateAssignmentStatus,
+  markPaid,
 } = require('../controllers/riderController');
 
 const router = express.Router();
@@ -38,5 +39,6 @@ router.get('/assignments/:orderId', asyncHandler(getAssignmentById));
 router.post('/assignments/:orderId/cancel', asyncHandler(cancelAssignmentHttp));
 router.post('/assignments/:orderId/picked-up', asyncHandler(markPickedUp));
 router.patch('/assignments/:orderId/status', asyncHandler(updateAssignmentStatus));
+router.post('/assignments/:orderId/mark-paid', asyncHandler(markPaid));
 
 module.exports = router;

@@ -29,6 +29,7 @@ jest.mock('../src/utils/notificationService', () => ({
 }));
 jest.mock('../src/realtime/orderEvents', () => ({
   emitOrderStatusUpdated: jest.fn(),
+  emitOrderPaymentUpdated: jest.fn(),
   emitNotificationCreated: jest.fn(),
 }));
 
@@ -69,7 +70,7 @@ describe('Rider offers & assignments API', () => {
     expect(res.body.offer).toBeNull();
   });
 
-  it('GET /offers/active returns offer with shops', async () => {
+  it('GET /offers/active returns offer with shops and items', async () => {
     const expires = new Date(Date.now() + 60000);
     pool.query
       .mockResolvedValueOnce([[RIDER]])
@@ -77,7 +78,10 @@ describe('Rider offers & assignments API', () => {
         id: 9, order_id: 10, status: 'pending', expires_at: expires,
         order_number: 'ORD-1', address: 'Street 1', phone: '111', customer_name: 'C',
       }]])
-      .mockResolvedValueOnce([[{ id: 1, name: 'Shop A' }]]);
+      .mockResolvedValueOnce([[{ id: 1, name: 'Shop A' }]])
+      .mockResolvedValueOnce([[{
+        id: 5, order_id: 10, product_name: 'Milk', quantity: 2, variant_label: '1L', shop_id: 1,
+      }]]);
 
     const res = await request(app)
       .get('/api/rider/offers/active')
@@ -87,6 +91,8 @@ describe('Rider offers & assignments API', () => {
     expect(res.body.offer.id).toBe(9);
     expect(res.body.offer.secondsRemaining).toBeGreaterThan(0);
     expect(res.body.offer.shops).toEqual([{ id: 1, name: 'Shop A' }]);
+    expect(res.body.offer.items).toHaveLength(1);
+    expect(res.body.offer.items[0].productName).toBe('Milk');
   });
 
   it('POST accept delegates to engine', async () => {
@@ -198,6 +204,54 @@ describe('Rider offers & assignments API', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.order.status).toBe('Out for Delivery');
+  });
+
+  it('POST mark-paid sets payment_status from Pending', async () => {
+    const order = {
+      id: 10, rider_id: 3, status: 'Accepted', customer_id: 5,
+      order_number: 'O', payment_status: 'Pending',
+    };
+    pool.query
+      .mockResolvedValueOnce([[RIDER]])
+      .mockResolvedValueOnce([[order]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([[{ ...order, payment_status: 'Paid' }]]);
+
+    const res = await request(app)
+      .post('/api/rider/assignments/10/mark-paid')
+      .set('Authorization', `Bearer ${token()}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.order.paymentStatus).toBe('Paid');
+  });
+
+  it('POST mark-paid forbidden for other rider', async () => {
+    pool.query
+      .mockResolvedValueOnce([[RIDER]])
+      .mockResolvedValueOnce([[{
+        id: 10, rider_id: 99, status: 'Accepted', payment_status: 'Pending',
+      }]]);
+
+    const res = await request(app)
+      .post('/api/rider/assignments/10/mark-paid')
+      .set('Authorization', `Bearer ${token()}`);
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('POST mark-paid no-ops when already paid', async () => {
+    pool.query
+      .mockResolvedValueOnce([[RIDER]])
+      .mockResolvedValueOnce([[{
+        id: 10, rider_id: 3, status: 'Accepted', payment_status: 'Success',
+      }]]);
+
+    const res = await request(app)
+      .post('/api/rider/assignments/10/mark-paid')
+      .set('Authorization', `Bearer ${token()}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toMatch(/already recorded/i);
   });
 
   it('PATCH status forbidden for other rider', async () => {

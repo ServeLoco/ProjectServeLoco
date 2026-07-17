@@ -15,21 +15,30 @@ export function isOutForDelivery(status) {
   return status === 'Out for Delivery' || status === 'Out for delivery';
 }
 
+export function isPaymentPending(order) {
+  const paymentStatus = order?.paymentStatus || order?.payment_status;
+  return !paymentStatus || paymentStatus === 'Pending';
+}
+
 /**
  * Which primary actions to show for this order.
- * @returns {{ showPickedUp: boolean, showOutForDelivery: boolean, showDelivered: boolean, terminal: boolean }}
+ * @returns {{ showPickedUp: boolean, showOutForDelivery: boolean, showDelivered: boolean, showMarkPaid: boolean, terminal: boolean }}
  */
 export function getRiderActionFlags(order) {
   const status = order?.status || '';
   const terminal = isRiderOrderTerminal(status);
   const pickedUp = isRiderPickedUp(order);
   const ofd = isOutForDelivery(status);
+  // Payment can still be collected/marked up to and including delivery,
+  // but never once the order is cancelled.
+  const showMarkPaid = status !== 'Cancelled' && isPaymentPending(order);
 
   if (terminal) {
     return {
       showPickedUp: false,
       showOutForDelivery: false,
       showDelivered: false,
+      showMarkPaid,
       terminal: true,
       pickedUp,
       status,
@@ -43,6 +52,7 @@ export function getRiderActionFlags(order) {
     showOutForDelivery: !ofd,
     // Only when actively out for delivery.
     showDelivered: ofd,
+    showMarkPaid,
     terminal: false,
     pickedUp,
     status,

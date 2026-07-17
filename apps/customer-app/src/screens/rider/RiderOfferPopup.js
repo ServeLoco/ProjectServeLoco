@@ -129,6 +129,7 @@ export default function RiderOfferPopup({
   const countdownLabel = formatCountdown(secondsLeft);
   const countdownUrgent = secondsLeft <= 30;
   const shops = offer.shops || [];
+  const items = offer.items || [];
   const phone = offer.phone;
   const progress = Math.min(1, Math.max(0, secondsLeft / OFFER_TIMEOUT_SEC));
 
@@ -262,6 +263,29 @@ export default function RiderOfferPopup({
                       <Text style={styles.shopName}>{s.name}</Text>
                     </View>
                   ))}
+                </ScrollView>
+              </>
+            ) : null}
+
+            {items.length > 0 ? (
+              <>
+                <Text style={styles.sectionLabel}>Order items</Text>
+                <ScrollView style={styles.itemsCard} showsVerticalScrollIndicator={false}>
+                  {items.map((it, idx) => {
+                    const variant = it.variantLabel || it.variant_label;
+                    return (
+                      <View
+                        key={it.id ?? idx}
+                        style={[styles.itemRow, idx === items.length - 1 && styles.itemRowLast]}
+                      >
+                        <Text style={styles.itemQty}>{it.quantity}x</Text>
+                        <Text style={styles.itemName} numberOfLines={1}>
+                          {it.productName || it.product_name}
+                          {variant ? ` (${variant})` : ''}
+                        </Text>
+                      </View>
+                    );
+                  })}
                 </ScrollView>
               </>
             ) : null}
@@ -544,6 +568,32 @@ const styles = StyleSheet.create({
   },
   shopIndexText: { color: colors.saffronDark, fontWeight: '800', fontSize: 12 },
   shopName: { flex: 1, ...typography.body, color: colors.textPrimary, fontWeight: '600' },
+
+  itemsCard: {
+    backgroundColor: colors.bgApp,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+    maxHeight: 140,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  itemRowLast: { borderBottomWidth: 0 },
+  itemQty: {
+    fontWeight: '800',
+    fontSize: 13,
+    color: colors.saffronDark,
+    minWidth: 28,
+  },
+  itemName: { flex: 1, ...typography.body, color: colors.textPrimary, fontWeight: '600' },
 
   errorPill: {
     flexDirection: 'row',

@@ -457,6 +457,17 @@ export default function RiderDashboardScreen({ navigation }) {
     ]);
   }, [assignment, runAction]);
 
+  const handleMarkPaid = useCallback(() => {
+    if (!assignment?.id) return;
+    Alert.alert('Mark payment received?', 'Confirm you have collected payment for this order.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Mark paid',
+        onPress: () => runAction('mark_paid', () => riderApi.markPaid(assignment.id)),
+      },
+    ]);
+  }, [assignment, runAction]);
+
   const openDeliveryMap = useCallback((job) => {
     if (!job?.id) return;
     // Pass snapshot so map sheet buttons match the card on first paint.
@@ -681,6 +692,21 @@ export default function RiderDashboardScreen({ navigation }) {
                 </View>
               ) : null}
 
+              {Array.isArray(assignment.items) && assignment.items.length > 0 ? (
+                <View style={styles.itemsBlock}>
+                  <Text style={styles.itemsLabel}>Order items</Text>
+                  {assignment.items.map((it, idx) => {
+                    const variant = it.variantLabel || it.variant_label;
+                    return (
+                      <Text key={it.id ?? idx} style={styles.itemLine} numberOfLines={1}>
+                        {it.quantity}x {it.productName || it.product_name}
+                        {variant ? ` (${variant})` : ''}
+                      </Text>
+                    );
+                  })}
+                </View>
+              ) : null}
+
               {(assignment.customerName || assignment.customer_name || phone) ? (
                 <View style={styles.customerRow}>
                   <View style={styles.avatar}>
@@ -743,6 +769,15 @@ export default function RiderDashboardScreen({ navigation }) {
                     busy={actionBusy === 'delivered'}
                     onPress={handleDelivered}
                     variant="success"
+                  />
+                ) : null}
+                {actionFlags?.showMarkPaid ? (
+                  <PrimaryBtn
+                    label="Mark paid"
+                    icon="check"
+                    busy={actionBusy === 'mark_paid'}
+                    onPress={handleMarkPaid}
+                    variant="saffron"
                   />
                 ) : null}
               </View>
@@ -1197,6 +1232,27 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: '600',
     lineHeight: 20,
+  },
+
+  itemsBlock: {
+    backgroundColor: colors.bgApp,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  itemsLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing.xs,
+  },
+  itemLine: {
+    ...typography.body,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: 2,
   },
 
   customerRow: {
