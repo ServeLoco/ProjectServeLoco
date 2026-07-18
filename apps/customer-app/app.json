@@ -39,6 +39,16 @@
           "locationWhenInUsePermission": "VillKro uses your location on the delivery map and for live rider tracking while you are online.",
           "isAndroidForegroundServiceEnabled": false
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
       ]
     ],
     "ios": {
