@@ -7,6 +7,11 @@
  *   PROPERTY_SPECIAL_USE_FGS_SUBTYPE justification string
  * - Removes notifee BOOT_COMPLETED / QUICKBOOT receivers so the alarm FGS
  *   cannot be started from a boot broadcast (Android 15+ crash class)
+ * - Strips expo-audio's AudioControlsService/AudioRecordingService (restricted
+ *   mediaPlayback/microphone FGS types) and their permissions — this app only
+ *   plays short static alarm clips via createAudioPlayer, never background
+ *   media-session controls or recording, so the services are dead weight that
+ *   Play's Android-15 scanner flags as BOOT_COMPLETED-reachable restricted FGS
  */
 const {
   withAndroidManifest,
@@ -29,6 +34,19 @@ const SPECIAL_USE_JUSTIFICATION =
 const NOTIFEE_BOOT_RECEIVERS = [
   'app.notifee.core.RebootBroadcastReceiver',
   'app.notifee.core.NotificationAlarmReceiver',
+];
+
+// Unused expo-audio background services — restricted FGS types (mediaPlayback,
+// microphone) under Android 15. Not started anywhere in this app's JS.
+const EXPO_AUDIO_SERVICES = [
+  'expo.modules.audio.service.AudioControlsService',
+  'expo.modules.audio.service.AudioRecordingService',
+];
+
+// Permissions expo-audio declares unconditionally for the services above.
+const EXPO_AUDIO_UNUSED_PERMISSIONS = [
+  'android.permission.RECORD_AUDIO',
+  'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
 ];
 
 function ensureToolsNamespace(manifest) {
@@ -104,6 +122,36 @@ function withAlarmPermissions(config) {
         (r) => r.$?.['android:name'] !== name
       );
       app.receiver.push({
+        $: {
+          'android:name': name,
+          'tools:node': 'remove',
+        },
+      });
+    }
+
+    // Strip expo-audio's restricted-FGS-type services (unused by this app).
+    for (const name of EXPO_AUDIO_SERVICES) {
+      app.service = (app.service || []).filter(
+        (s) => s.$?.['android:name'] !== name
+      );
+      app.service.push({
+        $: {
+          'android:name': name,
+          'tools:node': 'remove',
+        },
+      });
+    }
+
+    // Strip the permissions those services pulled in unconditionally.
+    if (!androidManifest.manifest['uses-permission']) {
+      androidManifest.manifest['uses-permission'] = [];
+    }
+    for (const name of EXPO_AUDIO_UNUSED_PERMISSIONS) {
+      androidManifest.manifest['uses-permission'] =
+        androidManifest.manifest['uses-permission'].filter(
+          (p) => p.$?.['android:name'] !== name
+        );
+      androidManifest.manifest['uses-permission'].push({
         $: {
           'android:name': name,
           'tools:node': 'remove',
