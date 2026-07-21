@@ -27,6 +27,7 @@ export default function Products() {
   const [filters, setFilters] = useState({
     search: '',
     category_id: '',
+    shop_id: '',
     available: '',
     featured: '',
     is_combo: '0',
@@ -219,6 +220,13 @@ export default function Products() {
           <option value="">All Categories</option>
           {categories.filter(c => c.type === filters.type && !c.deleted).map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        <select name="shop_id" className="filter-select" value={filters.shop_id} onChange={handleFilterChange}>
+          <option value="">All Shops</option>
+          <option value="none">House (no shop)</option>
+          {shops.map(s => (
+            <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>
         <select name="available" className="filter-select" value={filters.available} onChange={handleFilterChange}>
@@ -466,6 +474,18 @@ function ProductFormDrawer({ product, categories, shops, currentMode, onClose, o
   });
 
   const [initialHadVariants] = useState(() => isEdit && normalizeVariants(product?.variants).length > 0);
+  // Snapshot the very first render's formData (before any edits) so an
+  // accidental click on the overlay can be told apart from a real "I'm done"
+  // close — losing a half-filled product form to a stray click was the bug.
+  const initialFormDataRef = useRef(null);
+  if (initialFormDataRef.current === null) {
+    initialFormDataRef.current = formData;
+  }
+  const isDirty = JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
+  const handleCloseAttempt = () => {
+    if (isDirty && !window.confirm('Discard unsaved changes to this product?')) return;
+    onClose();
+  };
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -753,12 +773,12 @@ function ProductFormDrawer({ product, categories, shops, currentMode, onClose, o
   };
 
   return (
-    <div className="drawer-overlay" onClick={onClose}>
+    <div className="drawer-overlay" onClick={handleCloseAttempt}>
       <div className="drawer-content" onClick={e => e.stopPropagation()}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div className="drawer-header">
             <h3 className="drawer-title">{isEdit ? 'Edit Product' : 'New Product'}</h3>
-            <button type="button" className="drawer-close" onClick={onClose}>&times;</button>
+            <button type="button" className="drawer-close" onClick={handleCloseAttempt}>&times;</button>
           </div>
           <div className="drawer-body">
             <MessageBanner type="error" message={formError} onDismiss={() => setFormError(null)} />

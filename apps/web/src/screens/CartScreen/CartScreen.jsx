@@ -57,6 +57,8 @@ export default function CartScreen() {
       subtotal: displayTotal,
       deliveryCharge: 0,
       nightCharge: 0,
+      rainCharge: 0,
+      fastDeliveryFee: 0,
       discount: 0,
       itemDiscount: 0,
       grandTotal: displayTotal,
@@ -264,6 +266,8 @@ export default function CartScreen() {
               subtotal={bill.subtotal}
               deliveryCharge={bill.deliveryCharge}
               nightCharge={bill.nightCharge}
+              rainCharge={bill.rainCharge}
+              fastDeliveryFee={bill.fastDeliveryFee}
               discount={bill.discount}
               itemDiscount={bill.itemDiscount}
               isFreeDeliveryApplied={bill.isFreeDeliveryApplied === true}

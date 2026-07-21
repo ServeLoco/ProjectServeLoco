@@ -28,12 +28,14 @@ export default function OrderConfirmationScreen() {
   const deliveryCharge = order.bill?.delivery || 0;
   const isFreeDeliveryApplied = Boolean(order.bill?.freeDeliveryApplied);
   const itemDiscount = order.bill?.itemDiscount || 0;
-  const deliveryType = order.bill?.deliveryType || order.deliveryType || 'standard';
-  const deliveryLabel = deliveryType === 'fast'
-    ? '⚡ Fast Delivery'
-    : order.bill?.belowThresholdDelivery
-      ? 'Delivery Charge (Below Minimum)'
-      : 'Delivery Charge';
+  // Delivery Charge is always the standard fee — Fast is a separate additive
+  // line below, never discounted.
+  const fastDeliveryFee = order.bill?.fastDeliveryFee || 0;
+  const nightCharge = order.bill?.nightCharge || 0;
+  const rainCharge = order.bill?.rainCharge || 0;
+  const deliveryLabel = order.bill?.belowThresholdDelivery
+    ? 'Delivery Charge (Below Minimum)'
+    : 'Delivery Charge';
   const paymentMethod = order.paymentMethod || 'Cash';
   const address = order.address || order.customer?.address || 'Delivery address saved with your order';
   // Server sets this when an auto-applied offer lapsed between cart and
@@ -203,6 +205,33 @@ export default function OrderConfirmationScreen() {
                 <Text style={styles.value}>{deliveryCharge > 0 ? `₹${deliveryCharge}` : 'FREE'}</Text>
               )}
             </View>
+            {fastDeliveryFee > 0 && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.row}>
+                  <Text style={styles.label}>⚡ Fast Delivery Add-on</Text>
+                  <Text style={styles.value}>₹{fastDeliveryFee}</Text>
+                </View>
+              </>
+            )}
+            {nightCharge > 0 && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.row}>
+                  <Text style={styles.label}>Night Charge</Text>
+                  <Text style={styles.value}>₹{nightCharge}</Text>
+                </View>
+              </>
+            )}
+            {rainCharge > 0 && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.row}>
+                  <Text style={styles.label}>Rain Charge</Text>
+                  <Text style={styles.value}>₹{rainCharge}</Text>
+                </View>
+              </>
+            )}
             {itemDiscount > 0 && (
               <>
                 <View style={styles.divider} />

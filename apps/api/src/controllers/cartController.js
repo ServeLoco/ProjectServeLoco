@@ -3,6 +3,7 @@ const { isId, isPositiveInteger, validateCoordinates } = require('../validators'
 // Location-based distance pricing is removed, so we no longer import calculateDeliveryPricing
 const { roundMoney, toMoney } = require('../utils/money');
 const { calculateNightCharge } = require('../utils/nightDelivery');
+const { calculateRainCharge } = require('../utils/rainCharge');
 const { validateCoupon, validateCouponById, pickBestAutoApply, findApplicableCoupons, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon } = require('../utils/coupons');
 
 const calculateCart = async (req, res) => {
@@ -16,7 +17,7 @@ const calculateCart = async (req, res) => {
   }
 
   const [settingRows] = await pool.query(
-    'SELECT shop_open, delivery_charge, night_charge, night_charge_start, night_charge_end, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, delivery_radius_km FROM settings LIMIT 1'
+    'SELECT shop_open, delivery_charge, night_charge, night_charge_start, night_charge_end, rain_charge_enabled, rain_charge, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, delivery_radius_km FROM settings LIMIT 1'
   );
   const settings = settingRows[0] || {
     shop_open: 1, delivery_charge: 0, night_charge: 0,
@@ -213,9 +214,14 @@ const calculateCart = async (req, res) => {
   let deliveryCharge = roundMoney(toMoney(settings.delivery_charge || 0));
   const standardDeliveryCharge = deliveryCharge;
 
-  // Fast delivery: when the user picks fast, the fast charge fully REPLACES the standard
-  // delivery charge. Free-delivery coupons apply to Standard only — Fast is always
-  // charged in full (see coupons.computeDiscountBreakdown). Night charge is independent.
+  // Fast delivery is an ADD-ON, not a replacement: the standard delivery
+  // charge always stays on the bill — with its coupon/free-delivery rules
+  // untouched — and the fast fee is added on top when chosen.
+  //
+  // `deliveryCharge` therefore stays the STANDARD fee even on fast orders,
+  // including for every coupon-engine call: free-delivery coupons keep
+  // waiving the standard fee exactly as on a standard order. The fast fee
+  // is never passed into the engine, so it can never be discounted.
   const fastDeliveryEnabled = Boolean(settings.fast_delivery_enabled);
   const fastDeliveryCharge = toMoney(settings.fast_delivery_charge || 0);
   const fastDeliveryAvailable = fastDeliveryEnabled;
@@ -226,9 +232,9 @@ const calculateCart = async (req, res) => {
     ? Number(settings.fast_delivery_minutes)
     : 30;
   const isFast = deliveryTypeInput === 'fast' && fastDeliveryAvailable;
-  if (isFast) {
-    deliveryCharge = fastDeliveryCharge;
-  }
+  // Additive fast-delivery fee actually charged on this order (0 unless Fast
+  // is selected).
+  let fastDeliveryFee = isFast ? fastDeliveryCharge : 0;
 
   if (customerLat === undefined || customerLat === null || customerLat === '' ||
       customerLng === undefined || customerLng === null || customerLng === '') {
@@ -250,9 +256,17 @@ const calculateCart = async (req, res) => {
     if (raw > 0) nightCharge = toMoney(raw);
   }
 
+  let rainCharge = 0;
+  if (settings.rain_charge_enabled) {
+    const raw = calculateRainCharge(settings);
+    if (raw > 0) rainCharge = toMoney(raw);
+  }
+
   subtotal = roundMoney(subtotal);
   deliveryCharge = roundMoney(deliveryCharge);
   nightCharge = roundMoney(nightCharge);
+  rainCharge = roundMoney(rainCharge);
+  fastDeliveryFee = roundMoney(fastDeliveryFee);
 
   // ───────────────────────────────────────────────────────────────────
   // Coupon / offer application
@@ -432,8 +446,10 @@ const calculateCart = async (req, res) => {
 
   discount = roundMoney(discount);
   // Clamp grand total so it never goes negative (discount can't exceed the
-  // sum of subtotal + delivery + night charge).
-  const rawTotal = subtotal + deliveryCharge + nightCharge - discount;
+  // sum of subtotal + delivery + night charge + rain charge). Bill delivery
+  // is always the standard fee (free-delivery-eligible); the fast fee is a
+  // separate additive line that's never discounted.
+  const rawTotal = subtotal + standardDeliveryCharge + fastDeliveryFee + nightCharge + rainCharge - discount;
   const grandTotal = roundMoney(Math.max(0, rawTotal));
 
   // Free-delivery progress hint: only relevant when no free_delivery coupon
@@ -481,16 +497,18 @@ const calculateCart = async (req, res) => {
         parts.push(`${freeDeliveryProgress.itemsRemaining} more item(s)`);
       }
       const addHint = parts.join(' and ');
-      deliveryMessage = `Add ${addHint} for free delivery. ₹${deliveryCharge} delivery applied.`;
+      deliveryMessage = `Add ${addHint} for free delivery. ₹${standardDeliveryCharge} delivery applied.`;
     } else {
-      deliveryMessage = `₹${deliveryCharge} delivery applied.`;
+      deliveryMessage = `₹${standardDeliveryCharge} delivery applied.`;
     }
   }
 
   const calculation = {
     subtotal,
-    deliveryCharge,
+    deliveryCharge: standardDeliveryCharge,
     nightCharge,
+    rainCharge,
+    fastDeliveryFee,
     discount,
     grandTotal,
     total: grandTotal,

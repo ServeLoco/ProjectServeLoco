@@ -176,6 +176,15 @@ export default function LiveOrderMap({ order }) {
   }, [riderCoord]);
 
   // Fit bounds whenever the set of visible points changes.
+  // Keyed on coordinate values (not object refs) so a poll tick that
+  // refetches the same order without any pin actually moving doesn't
+  // re-trigger fitBounds/setView and stomp the admin's manual zoom/pan.
+  const pointsKey = [
+    ...shops.map((s) => `${s.lat},${s.lng}`),
+    destination ? `${destination.lat},${destination.lng}` : '',
+    riderCoord ? `${riderCoord.lat},${riderCoord.lng}` : '',
+  ].join('|');
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -188,7 +197,8 @@ export default function LiveOrderMap({ order }) {
     } else {
       map.fitBounds(points, { padding: [40, 40] });
     }
-  }, [shops, destination, riderCoord]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pointsKey]);
 
   return (
     <div

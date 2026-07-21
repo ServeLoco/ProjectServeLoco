@@ -74,6 +74,7 @@ function ProductCard({
   const resolvedAvailable = product.available ?? available ?? product.isAvailable ?? !resolvedDisabled;
   const isShopClosed = product.shopIsOpen === false || product.shop_is_open === false || product.shopIsOpen === 0 || product.shop_is_open === 0;
   const isUnavailable = !resolvedAvailable;
+  const isGrayedOut = isShopClosed || isUnavailable;
 
   // Multi-variant products (e.g. pizza sizes, burger types) show the plain
   // lowest variant price and open the VariantSheet on tap instead of a bare
@@ -241,21 +242,25 @@ function ProductCard({
             height="100%"
             resizeMode="cover"
             priority="high"
-            filter={isShopClosed ? [{ grayscale: 1 }] : undefined}
+            filter={isGrayedOut ? [{ grayscale: 1 }] : undefined}
             recyclingKey={product?.id != null ? String(product.id) : undefined}
           />
 
-          {/* Closed-shop white wash (reinforces muted look, esp. on iOS) */}
-          {isShopClosed ? (
+          {/* Closed-shop / product-off white wash (reinforces muted look, esp. on iOS) */}
+          {isGrayedOut ? (
             <View style={styles.closedWash} pointerEvents="none">
               <View style={styles.closedWashInner} />
             </View>
           ) : null}
 
-          {/* "Shop closed" label — centered horizontally, just above vertical center */}
+          {/* "Shop closed" / "Temporarily Unavailable" label — centered horizontally, just above vertical center */}
           {isShopClosed ? (
             <View style={styles.shopClosedLabel} pointerEvents="none">
               <Text style={styles.shopClosedText}>Shop closed</Text>
+            </View>
+          ) : isUnavailable ? (
+            <View style={styles.shopClosedLabel} pointerEvents="none">
+              <Text style={styles.shopClosedText}>Temporarily Unavailable</Text>
             </View>
           ) : null}
 
@@ -267,9 +272,6 @@ function ProductCard({
             pointerEvents="none"
             style={StyleSheet.absoluteFillObject}
           />
-
-          {/* Out-of-stock wash */}
-          {isUnavailable ? <View style={styles.oosWash} pointerEvents="none" /> : null}
 
           {/* Bottom scrim for white text legibility */}
           <LinearGradient
@@ -374,13 +376,7 @@ const styles = StyleSheet.create({
     aspectRatio: 0.82,
   },
 
-  // Out-of-stock dark wash over the image
-  oosWash: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10,10,12,0.58)',
-  },
-
-  // Closed-shop muted overlay + centered label
+  // Closed-shop / product-off muted overlay + centered label
   closedWash: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',

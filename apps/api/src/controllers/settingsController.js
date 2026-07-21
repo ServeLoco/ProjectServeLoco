@@ -122,6 +122,8 @@ const getSettings = async (req, res) => {
       minimum_order_amount: 50,
       delivery_charge: 10,
       night_charge: 0,
+      rain_charge_enabled: 0,
+      rain_charge: 0,
       support_phone: '',
       support_whatsapp: '',
       shop_latitude: null,
@@ -177,6 +179,7 @@ const updateSettings = async (req, res) => {
   const fields = [
     'shop_open', 'delivery_available', 'minimum_order_amount', 'delivery_charge',
     'night_charge', 'night_charge_start', 'night_charge_end',
+    'rain_charge_enabled', 'rain_charge',
     'whatsapp_number', 'support_phone', 'upi_id', 'upi_qr_image_id',
     'below_threshold_delivery_charge', 'free_delivery_above_minimum_active',
     'free_delivery_offer_active', 'fast_delivery_enabled', 'fast_delivery_charge',
@@ -193,6 +196,7 @@ const updateSettings = async (req, res) => {
     ['minimum_order_amount', 'Minimum order amount cannot be negative'],
     ['delivery_charge', 'Standard delivery charge cannot be negative'],
     ['night_charge', 'Night delivery surcharge cannot be negative'],
+    ['rain_charge', 'Rain charge cannot be negative'],
     ['below_threshold_delivery_charge', 'Below-threshold delivery charge cannot be negative'],
     ['fast_delivery_charge', 'Fast delivery charge cannot be negative']
   ];
@@ -291,12 +295,13 @@ const updateSettings = async (req, res) => {
     if (body[field] !== undefined) {
       updates.push(`${field} = ?`);
       let val = body[field];
-      if (['shop_open', 'delivery_available', 'free_delivery_offer_active', 'free_delivery_above_minimum_active'].includes(field)) {
+      if (['shop_open', 'delivery_available', 'free_delivery_offer_active', 'free_delivery_above_minimum_active', 'rain_charge_enabled'].includes(field)) {
         val = (val === true || val === 'true' || val === 1 || val === '1') ? 1 : 0;
       } else if ([
         'minimum_order_amount',
         'delivery_charge',
         'night_charge',
+        'rain_charge',
         'below_threshold_delivery_charge'
         // DEPRECATED: free_delivery_above, shop_latitude, shop_longitude,
         // delivery_radius_km, delivery_cost_per_km — no longer stored

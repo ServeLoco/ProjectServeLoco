@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
-const { login, me, revokeSessions, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, extendAutoAccept, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
+const { login, me, revokeSessions, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getShopsReport, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, updateOrderRemark, extendAutoAccept, adminCalculateOrder, adminCreateOrder, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
+const { createOrderSchema, expressValidatorChecks: orderExpressValidatorChecks, validateExpress: validateOrderExpress } = require('./orderRoutes');
 const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { getAdminStoreModes, createStoreMode, updateStoreMode } = require('../controllers/storeModeController');
@@ -772,13 +773,21 @@ router.delete('/dashboard-sections/:id/items/:itemId', requireAdmin, asyncHandle
 
 router.get('/reports/sales', requireAdmin, asyncHandler(getSalesReport));
 router.get('/reports/customers', requireAdmin, asyncHandler(getCustomersReport));
+router.get('/reports/shops', requireAdmin, asyncHandler(getShopsReport));
 router.get('/reports/top-products', requireAdmin, asyncHandler(getTopProductsReport));
 
 router.get('/orders', requireAdmin, asyncHandler(getAdminOrders));
 router.get('/orders/:id', requireAdmin, asyncHandler(getAdminOrderById));
 router.patch('/orders/:id/status', requireAdmin, asyncHandler(updateOrderStatus));
 router.patch('/orders/:id/payment', requireAdmin, asyncHandler(updateOrderPayment));
+router.patch('/orders/:id/remark', requireAdmin, asyncHandler(updateOrderRemark));
 router.post('/orders/:id/extend-auto-accept', requireAdmin, asyncHandler(extendAutoAccept));
+
+// Admin places an order on behalf of an existing customer (e.g. phone order)
+// — reuses the exact customer-facing validation + money-calculation code
+// (see adminCalculateOrder/adminCreateOrder), just targeting customer_id.
+router.post('/orders/calculate', requireAdmin, asyncHandler(adminCalculateOrder));
+router.post('/orders', requireAdmin, ...orderExpressValidatorChecks, validateOrderExpress, validate(createOrderSchema), asyncHandler(adminCreateOrder));
 
 // Settings
 router.get('/settings', requireAdmin, asyncHandler(getSettings));

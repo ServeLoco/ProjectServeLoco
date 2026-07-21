@@ -425,7 +425,9 @@ export default function AdminOrderDetailScreen() {
           <View style={styles.totalsBlock}>
             <Row label="Subtotal" value={`₹${formatMoney(order.subtotal)}`} />
             <Row label="Delivery" value={`₹${formatMoney(order.delivery_charge)}`} />
+            {order.fast_delivery_charge > 0 ? <Row label="Fast delivery add-on" value={`₹${formatMoney(order.fast_delivery_charge)}`} /> : null}
             {order.night_charge > 0 ? <Row label="Night charge" value={`₹${formatMoney(order.night_charge)}`} /> : null}
+            {order.rain_charge > 0 ? <Row label="Rain charge" value={`₹${formatMoney(order.rain_charge)}`} /> : null}
             <Row label="Total" value={`₹${formatMoney(order.total)}`} big />
           </View>
         </Section>

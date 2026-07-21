@@ -160,6 +160,18 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
   const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Snapshot the first render's formData so an accidental overlay click can
+  // be told apart from a real "I'm done" close — don't silently drop edits.
+  const initialFormDataRef = useRef(null);
+  if (initialFormDataRef.current === null) {
+    initialFormDataRef.current = formData;
+  }
+  const isDirty = JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
+  const handleCloseAttempt = () => {
+    if (isDirty && !window.confirm('Discard unsaved changes to this offer?')) return;
+    onClose();
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
@@ -244,12 +256,12 @@ function OfferFormDrawer({ offer, currentMode, onClose, onSave }) {
   };
 
   return (
-    <div className="drawer-overlay" onClick={onClose}>
+    <div className="drawer-overlay" onClick={handleCloseAttempt}>
       <div className="drawer-content" onClick={e => e.stopPropagation()}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div className="drawer-header">
             <h3 className="drawer-title">{isEdit ? 'Edit Offer' : 'New Offer'}</h3>
-            <button type="button" className="drawer-close" onClick={onClose}>&times;</button>
+            <button type="button" className="drawer-close" onClick={handleCloseAttempt}>&times;</button>
           </div>
           
           <div className="drawer-body">

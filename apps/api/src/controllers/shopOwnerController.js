@@ -170,7 +170,7 @@ const getMyOrders = async (req, res) => {
 // view, not a paginated report.
 const getMyOrderHistory = async (req, res) => {
   const [orders] = await pool.query(
-    `SELECT DISTINCT o.id, o.order_number, o.status, o.note, o.created_at, o.delivery_type
+    `SELECT DISTINCT o.id, o.order_number, o.status, o.note, o.admin_remark, o.created_at, o.delivery_type
      FROM orders o JOIN order_items oi ON oi.order_id = o.id
      WHERE oi.shop_id = ?
      ORDER BY o.created_at DESC
@@ -205,6 +205,8 @@ const getMyOrderHistory = async (req, res) => {
       order_number: o.order_number,
       status: o.status,
       note: o.note,
+      adminRemark: o.admin_remark,
+      admin_remark: o.admin_remark,
       createdAt: o.created_at,
       created_at: o.created_at,
       deliveryType: o.delivery_type,

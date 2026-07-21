@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput,
   TouchableOpacity, View, Alert,
@@ -32,14 +32,37 @@ export default function ShopProductsScreen() {
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [pickerProduct, setPickerProduct] = useState(null); // product being reassigned
 
+  // fetchAll (focus effect, socket foreground/reconnect) can race an in-flight
+  // toggle/group-move PATCH and overwrite the optimistic local state with the
+  // pre-update DB value — these track which rows are mid-mutation so fetchAll
+  // keeps the local (already-correct) copy for them instead of clobbering it.
+  const productInFlightRef = useRef(new Set());
+  const groupInFlightRef = useRef(new Set());
+
   const fetchAll = useCallback(async () => {
     try {
       const [productsRes, groupsRes] = await Promise.all([
         shopApi.getMyProducts(),
         shopApi.getMyGroups(),
       ]);
-      setProducts(productsRes.products || []);
-      setGroups(groupsRes.groups || []);
+      setProducts(prev => {
+        const fetched = productsRes.products || [];
+        const prevById = new Map(prev.map(p => [p.id, p]));
+        return fetched.map(p => (
+          p && productInFlightRef.current.has(p.id) && prevById.has(p.id)
+            ? prevById.get(p.id)
+            : p
+        ));
+      });
+      setGroups(prev => {
+        const fetched = groupsRes.groups || [];
+        const prevById = new Map(prev.map(g => [g.id, g]));
+        return fetched.map(g => (
+          g && groupInFlightRef.current.has(g.id) && prevById.has(g.id)
+            ? prevById.get(g.id)
+            : g
+        ));
+      });
       setLoadError(false);
     } catch (_) {
       setLoadError(true);
@@ -72,22 +95,28 @@ export default function ShopProductsScreen() {
   const handleProductToggle = useCallback(async (product, value) => {
     if (!product || product.id == null) return;
     const safeValue = Boolean(value);
+    productInFlightRef.current.add(product.id);
     setProducts(prev => prev.map(p => (p && p.id === product.id ? { ...p, available: safeValue } : p)));
     try {
       await shopApi.toggleProduct(product.id, safeValue);
     } catch (_) {
       setProducts(prev => prev.map(p => (p && p.id === product.id ? { ...p, available: !safeValue } : p)));
+    } finally {
+      productInFlightRef.current.delete(product.id);
     }
   }, []);
 
   const handleGroupToggle = useCallback(async (group, value) => {
     if (!group || group.id == null) return;
     const safeValue = Boolean(value);
+    groupInFlightRef.current.add(group.id);
     setGroups(prev => prev.map(g => (g && g.id === group.id ? { ...g, active: safeValue } : g)));
     try {
       await shopApi.updateGroup(group.id, { active: safeValue });
     } catch (_) {
       setGroups(prev => prev.map(g => (g && g.id === group.id ? { ...g, active: !safeValue } : g)));
+    } finally {
+      groupInFlightRef.current.delete(group.id);
     }
   }, []);
 
@@ -131,14 +160,26 @@ export default function ShopProductsScreen() {
   const handleAssignGroup = useCallback(async (groupId) => {
     if (!pickerProduct) return;
     const product = pickerProduct;
+    const prevGroupId = product.groupId ?? product.group_id ?? null;
     setPickerProduct(null);
+    productInFlightRef.current.add(product.id);
+    // Optimistic move — was awaiting the PATCH then a full products+groups
+    // refetch before the row moved, costing 2 extra network round-trips
+    // (~1-1.5s in production) for something the client already knows.
+    setProducts(prev => prev.map(p => (
+      p && p.id === product.id ? { ...p, groupId, group_id: groupId } : p
+    )));
     try {
       await shopApi.assignProductGroup(product.id, groupId);
-      fetchAll();
     } catch (err) {
+      setProducts(prev => prev.map(p => (
+        p && p.id === product.id ? { ...p, groupId: prevGroupId, group_id: prevGroupId } : p
+      )));
       Alert.alert('Could not move product', err?.message || 'Please try again.');
+    } finally {
+      productInFlightRef.current.delete(product.id);
     }
-  }, [pickerProduct, fetchAll]);
+  }, [pickerProduct]);
 
   const handleSearchChange = useCallback((text) => {
     setSearchQuery(text);
@@ -190,29 +231,19 @@ export default function ShopProductsScreen() {
   const renderProductRow = (item) => {
     if (!item || item.id == null) return null;
     const isAvailable = Boolean(item.available);
-    const variants = item.variants || [];
-    const variantLabel = variants
-      .map(v => `${v.label} ₹${Number(v.price).toFixed(0)}`)
-      .join(' · ');
     return (
       <View key={item.id} style={styles.row}>
-        <View style={[styles.rowIconWrap, !isAvailable && styles.rowIconWrapMuted]}>
-          <AppIcon name="box" size={18} color={isAvailable ? colors.saffronDark : colors.textTertiary} />
-        </View>
+        <View style={[styles.rowDot, !isAvailable && styles.rowDotOff]} />
         <View style={styles.rowNameWrap}>
           <Text style={[styles.rowName, !isAvailable && styles.rowNameOff]} numberOfLines={1}>{item.name || 'Unnamed product'}</Text>
-          {variants.length > 0 ? (
-            <Text style={[styles.rowPrice, !isAvailable && styles.rowPriceOff]} numberOfLines={1}>{variantLabel}</Text>
-          ) : item.price != null && (
-            <Text style={[styles.rowPrice, !isAvailable && styles.rowPriceOff]}>₹{Number(item.price).toFixed(2)}</Text>
-          )}
         </View>
         <TouchableOpacity
           style={styles.rowMoveBtn}
           onPress={() => setPickerProduct(item)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <AppIcon name="chevronRight" size={18} color={colors.textMuted} />
+          <AppIcon name="chevronRight" size={14} color={colors.saffronDark} />
+          <Text style={styles.rowMoveBtnText}>Move</Text>
         </TouchableOpacity>
         <ShopToggle
           value={isAvailable}
@@ -542,17 +573,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     paddingVertical: 12, paddingHorizontal: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  rowIconWrap: {
-    width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.saffronLight,
-    alignItems: 'center', justifyContent: 'center',
+  rowDot: {
+    width: 6, height: 6, borderRadius: radius.circle, backgroundColor: colors.saffronDark,
   },
-  rowIconWrapMuted: { backgroundColor: colors.surfaceMuted },
+  rowDotOff: { backgroundColor: colors.textTertiary },
   rowNameWrap: { flex: 1 },
   rowName: { ...typography.bodyLarge, color: colors.textPrimary, fontWeight: '600' },
   rowNameOff: { color: colors.textTertiary },
-  rowPrice: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600', marginTop: 1 },
-  rowPriceOff: { color: colors.textTertiary },
-  rowMoveBtn: { padding: 4 },
+  rowMoveBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: colors.saffronLight, borderRadius: radius.pill,
+    paddingHorizontal: 10, paddingVertical: 6,
+  },
+  rowMoveBtnText: { color: colors.saffronDark, fontWeight: '700', fontSize: 12 },
   emptyState: { alignItems: 'center', paddingHorizontal: spacing.xl, marginTop: spacing.xl },
   emptyIconWrap: {
     width: 72, height: 72, borderRadius: radius.circle, backgroundColor: colors.saffronLight,

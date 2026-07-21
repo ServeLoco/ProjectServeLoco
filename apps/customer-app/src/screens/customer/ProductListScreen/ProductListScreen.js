@@ -109,7 +109,8 @@ export default function ProductListScreen() {
     }
   }, [products]);
 
-  // Live OOS: drop product from the list as soon as shop marks it unavailable.
+  // Live OOS: grey the product out as soon as shop marks it unavailable,
+  // instead of removing it — ProductCard renders the greyed-out state.
   useEffect(() => {
     return subscribeProductAvailabilityEvents(({ payload }) => {
       const productId = payload?.productId ?? payload?.id;
@@ -117,7 +118,9 @@ export default function ProductListScreen() {
       const available = payload?.available;
       if (available === false || available === 0 || available === '0') {
         setProducts((prev) =>
-          (prev || []).filter((p) => String(p?.id) !== String(productId)),
+          (prev || []).map((p) =>
+            String(p?.id) === String(productId) ? { ...p, available: false, isAvailable: false } : p
+          ),
         );
       }
     });

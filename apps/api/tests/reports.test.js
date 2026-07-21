@@ -65,4 +65,33 @@ describe('Reports API', () => {
     expect(res.body.data.new_customers).toEqual(5);
     expect(pool.query.mock.calls[0][0]).toContain('MONTH');
   });
+
+  it('should return shop-wise report grouped with products, excluding cancelled orders', async () => {
+    pool.query
+      .mockResolvedValueOnce([[
+        { shop_id: 1, shop_name: 'Green Mart', order_count: 3, total_amount: 450, total_items_sold: 9 },
+        { shop_id: null, shop_name: null, order_count: 1, total_amount: 50, total_items_sold: 2 },
+      ]]) // shopRows
+      .mockResolvedValueOnce([[
+        { shop_id: 1, product_id: 10, item_type: 'product', product_name: 'Milk', quantity: 6, total_sales: 300 },
+        { shop_id: 1, product_id: 11, item_type: 'product', product_name: 'Bread', quantity: 3, total_sales: 150 },
+        { shop_id: null, product_id: 12, item_type: 'product', product_name: 'Eggs', quantity: 2, total_sales: 50 },
+      ]]); // productRows
+
+    const res = await request(app)
+      .get('/api/admin/reports/shops?period=today')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.data).toHaveLength(2);
+    expect(res.body.data[0].shop_name).toEqual('Green Mart');
+    expect(res.body.data[0].order_count).toEqual(3);
+    expect(res.body.data[0].products).toHaveLength(2);
+    expect(res.body.data[0].products[0].product_name).toEqual('Milk');
+    expect(res.body.data[1].shop_name).toEqual('House (No Shop)');
+    expect(res.body.data[1].products[0].product_name).toEqual('Eggs');
+
+    expect(pool.query.mock.calls[0][0]).toContain("status != 'Cancelled'");
+    expect(pool.query.mock.calls[0][0]).toContain('CURDATE()');
+  });
 });

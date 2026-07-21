@@ -675,6 +675,13 @@ export default function CartScreen() {
               valueStyle={styles.nightChargeValue}
             />
           )}
+          {bill.rainCharge > 0 && (
+            <BillRow
+              label="Rain Charge"
+              value={`₹${bill.rainCharge}`}
+              valueStyle={styles.nightChargeValue}
+            />
+          )}
           {discountToShow > 0 && (
             <BillRow
               label="Discount"

@@ -9,6 +9,10 @@ import './BillSummary.css';
  *   subtotal          - number
  *   deliveryCharge    - number
  *   nightCharge       - number (0 or undefined = not shown)
+ *   rainCharge        - number (0 or undefined = not shown)
+ *   fastDeliveryFee   - number (0 or undefined = not shown) — additive Fast
+ *                        Delivery add-on on top of the (always-standard)
+ *                        Delivery Charge row; never discounted
  *   discount          - number (0 or undefined = not shown) — total coupon discount
  *   itemDiscount      - number — discount excluding any free-delivery waiver
  *   isFreeDeliveryApplied - bool — renders Delivery Charge as struck-through + FREE
@@ -21,6 +25,8 @@ function BillSummary({
   subtotal = 0,
   deliveryCharge = 0,
   nightCharge = 0,
+  rainCharge = 0,
+  fastDeliveryFee = 0,
   discount = 0,
   itemDiscount = null,
   isFreeDeliveryApplied = false,
@@ -38,6 +44,8 @@ function BillSummary({
     : 0;
 
   const showNight = nightCharge > 0;
+  const showRain = rainCharge > 0;
+  const showFastFee = fastDeliveryFee > 0;
   const discountToShow = isFreeDeliveryApplied ? (itemDiscount ?? Math.max(0, discount - deliveryCharge)) : discount;
   const showDiscount = discountToShow > 0;
 
@@ -83,10 +91,24 @@ function BillSummary({
         </div>
       )}
 
+      {showFastFee && (
+        <div className="bill-row">
+          <div className="bill-row-label">Fast Delivery Add-on</div>
+          <div className="bill-row-value bill-fast-delivery-fee">{formatPrice(fastDeliveryFee)}</div>
+        </div>
+      )}
+
       {showNight && (
         <div className="bill-row">
           <div className="bill-row-label">Night Charge</div>
           <div className="bill-row-value bill-night-charge">{formatPrice(nightCharge)}</div>
+        </div>
+      )}
+
+      {showRain && (
+        <div className="bill-row">
+          <div className="bill-row-label">Rain Charge</div>
+          <div className="bill-row-value bill-rain-charge">{formatPrice(rainCharge)}</div>
         </div>
       )}
 

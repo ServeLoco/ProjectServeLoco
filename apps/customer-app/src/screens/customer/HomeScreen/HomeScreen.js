@@ -265,9 +265,11 @@ export default function HomeScreen() {
       .catch(() => {});
   }, [currentApiStoreType, setSettings, markSettingsFetched]);
 
-  // Live OOS: when shop/admin marks a product unavailable, strip it from every
-  // product/combo rail immediately (no pull-to-refresh). Available=true →
-  // silent dashboard re-fetch so it can reappear in the right section.
+  // Live OOS: when shop/admin marks a product unavailable, grey it out on
+  // every product rail immediately (no pull-to-refresh) instead of removing
+  // it — ProductCard renders the greyed-out "Temporarily Unavailable" state
+  // itself. Available=true → silent dashboard re-fetch so it comes back with
+  // fully correct data/ordering.
   useEffect(() => {
     return subscribeProductAvailabilityEvents(({ payload }) => {
       const productId = payload?.productId ?? payload?.id;
@@ -277,7 +279,7 @@ export default function HomeScreen() {
       if (available === false || available === 0 || available === '0') {
         // Product-only event — products/combos are separate tables with
         // separate id sequences, so a combo_block card can share this
-        // numeric id by coincidence. Only strip product_block.
+        // numeric id by coincidence. Only patch product_block.
         setDashboardSections((prev) => {
           if (!Array.isArray(prev) || prev.length === 0) return prev;
           return prev.map((section) => {
@@ -285,10 +287,13 @@ export default function HomeScreen() {
               return section;
             }
             const items = section.items || [];
-            const nextItems = items.filter(
-              (item) => String(item?.id) !== String(productId),
-            );
-            if (nextItems.length === items.length) return section;
+            let changed = false;
+            const nextItems = items.map((item) => {
+              if (String(item?.id) !== String(productId)) return item;
+              changed = true;
+              return { ...item, available: false, isAvailable: false };
+            });
+            if (!changed) return section;
             return { ...section, items: nextItems };
           });
         });

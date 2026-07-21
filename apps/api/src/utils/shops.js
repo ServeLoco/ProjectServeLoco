@@ -175,6 +175,34 @@ const notifyShopsOrderStatusChanged = async (order) => {
   }
 };
 
+// Notify shops when an admin adds/edits the remark on their order — reuses
+// shop.order.updated (same event ShopOrdersScreen already refetches on for
+// status changes), just with action: 'remark' for future callers that want
+// to distinguish it. No push — a note isn't urgent enough to alert on.
+const notifyShopsOrderRemarkUpdated = async (order) => {
+  try {
+    if (!order?.id) return;
+    const [rows] = await pool.query(
+      `SELECT DISTINCT s.id AS shop_id, s.owner_user_id
+       FROM order_items oi JOIN shops s ON s.id = oi.shop_id
+       WHERE oi.order_id = ? AND s.active = 1 AND s.owner_user_id IS NOT NULL`,
+      [order.id]
+    );
+    if (rows.length === 0) return;
+    const { emitToCustomer } = require('../realtime/socket');
+    for (const row of rows) {
+      emitToCustomer(row.owner_user_id, 'shop.order.updated', {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        shopId: row.shop_id,
+        action: 'remark',
+      });
+    }
+  } catch (e) {
+    console.error('[shops] notifyShopsOrderRemarkUpdated failed for order', order?.id, e.message);
+  }
+};
+
 // Notify shops when rider assignment failed and the order was cancelled.
 const notifyShopsRiderAssignmentFailed = async (order) => {
   try {
@@ -382,5 +410,6 @@ module.exports = {
   notifyShopsRiderAssigned,
   notifyShopsRiderAssignmentFailed,
   notifyShopsOrderStatusChanged,
+  notifyShopsOrderRemarkUpdated,
   maybeAutoCancelOrderWhenAllShopsRejected,
 };

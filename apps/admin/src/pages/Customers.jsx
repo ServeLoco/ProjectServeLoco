@@ -110,7 +110,10 @@ export default function Customers() {
   return (
     <div className="customers-container">
       <header className="customers-header">
-        <h1 className="customers-title">Customers</h1>
+        <div>
+          <h1 className="customers-title">Customers</h1>
+          <p className="customers-total-count">{pagination.total ?? 0} registered customers</p>
+        </div>
         <MessageBanner
           type={actionMessage?.type || 'info'}
           message={actionMessage?.text}

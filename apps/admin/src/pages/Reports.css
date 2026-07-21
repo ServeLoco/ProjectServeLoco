@@ -160,6 +160,74 @@
   white-space: nowrap;
 }
 
+.top-items-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.top-items-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px 90px;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.top-items-row:last-child {
+  border-bottom: none;
+}
+
+.top-items-head {
+  padding-top: 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+.top-items-head span:not(:first-child),
+.top-items-units,
+.top-items-price {
+  text-align: right;
+}
+
+.top-items-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-items-combo-tag {
+  margin-left: 0.5rem;
+  font-size: 0.7rem;
+  background-color: var(--bg-elevated);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+.top-items-units {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.top-items-price {
+  font-weight: 700;
+  color: var(--primary-color);
+  font-size: 0.95rem;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  white-space: nowrap;
+}
+
 @media (max-width: 900px) {
   .reports-grid {
     grid-template-columns: 1fr;
@@ -211,4 +279,109 @@
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+.shops-report-section {
+  background: var(--surface-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
+}
+
+.shops-report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+.shop-report-card {
+  background: var(--bg-elevated, rgba(148, 163, 184, 0.05));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 10px);
+  padding: 1.1rem;
+}
+
+.shop-report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.shop-report-name {
+  font-weight: 800;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.shop-report-amount {
+  font-weight: 800;
+  color: var(--primary-color);
+  font-family: 'Outfit', 'Inter', sans-serif;
+  white-space: nowrap;
+}
+
+.shop-report-subtext {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.shop-report-products {
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  border-top: 1px dashed var(--border-color);
+}
+
+.shop-report-product-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed var(--border-color);
+  font-size: 0.85rem;
+}
+
+.shop-report-product-row:last-child {
+  border-bottom: none;
+}
+
+.shop-report-product-name {
+  flex: 1;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.shop-report-combo-tag {
+  margin-left: 0.4rem;
+  font-size: 0.68rem;
+  background: var(--bg-elevated);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+.shop-report-product-qty {
+  color: var(--text-secondary);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.shop-report-product-price {
+  color: var(--text-primary);
+  font-weight: 700;
+  white-space: nowrap;
+  font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+.shop-report-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }

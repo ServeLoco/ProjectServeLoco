@@ -18,7 +18,7 @@ import AppIcon from '../../components/AppIcon';
  * @param {number} [queueIndex=0]
  * @param {number} [queueTotal=1]
  */
-const RESPONSE_WINDOW_SEC = 120;
+const RESPONSE_WINDOW_SEC = 600; // 10 minutes
 
 export default function NewOrderPopup({
   order,

@@ -80,6 +80,14 @@
   color: var(--warning);
 }
 
+.bill-rain-charge {
+  color: var(--warning);
+}
+
+.bill-fast-delivery-fee {
+  color: var(--warning);
+}
+
 .bill-min-order-warn {
   background-color: var(--warning-light);
   border-radius: var(--radius-sm);

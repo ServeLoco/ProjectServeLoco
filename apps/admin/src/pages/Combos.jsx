@@ -372,6 +372,18 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
   const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Snapshot the first render's form + items so an accidental overlay click
+  // can be told apart from a real "I'm done" close — don't silently drop edits.
+  const initialSnapshotRef = useRef(null);
+  if (initialSnapshotRef.current === null) {
+    initialSnapshotRef.current = JSON.stringify({ formData, comboItems });
+  }
+  const isDirty = JSON.stringify({ formData, comboItems }) !== initialSnapshotRef.current;
+  const handleCloseAttempt = () => {
+    if (isDirty && !window.confirm('Discard unsaved changes to this combo?')) return;
+    onClose();
+  };
+
   const uploadImageFile = async (file) => {
     const sizeError = getImageUploadError(file);
     if (sizeError) {
@@ -547,12 +559,12 @@ function ProductFormDrawer({ product, products, onClose, onSave, currentMode }) 
   };
 
   return (
-    <div className="drawer-overlay" onClick={onClose}>
+    <div className="drawer-overlay" onClick={handleCloseAttempt}>
       <div className="drawer-content" onClick={e => e.stopPropagation()}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div className="drawer-header">
             <h3 className="drawer-title">{isEdit ? 'Edit Combo' : 'New Combo'}</h3>
-            <button type="button" className="drawer-close" onClick={onClose}>&times;</button>
+            <button type="button" className="drawer-close" onClick={handleCloseAttempt}>&times;</button>
           </div>
           
           <div className="drawer-body">

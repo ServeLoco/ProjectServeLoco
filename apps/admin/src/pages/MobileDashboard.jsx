@@ -1,6 +1,6 @@
 // MobileDashboard.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { MobileDashboardApi, ProductsApi, CategoriesApi, OffersApi, CombosApi } from '../api';
+import { MobileDashboardApi, ProductsApi, CategoriesApi, OffersApi, CombosApi, ShopsApi } from '../api';
 import './MobileDashboard.css';
 import { GENERIC_ERROR } from '../utils/constants';
 
@@ -56,23 +56,30 @@ export default function MobileDashboard() {
   const [candidates, setCandidates] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
   const [allOffers, setAllOffers] = useState([]);
+  const [allShops, setAllShops] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [shopFilter, setShopFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [addingItemId, setAddingItemId] = useState(null);
   const addingItemRef = useRef(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
 
-  // Load categories and offers once for the linked_*_id selects.
+  // Load categories, offers and shops once for the linked_*_id selects and the
+  // assign-item filters.
   useEffect(() => {
     (async () => {
       try {
-        const [catRes, offRes] = await Promise.all([
+        const [catRes, offRes, shopRes] = await Promise.all([
           CategoriesApi.list({}),
           OffersApi.list({}),
+          ShopsApi.list(),
         ]);
         setAllCategories(readList(catRes, 'categories'));
         setAllOffers(readList(offRes, 'offers'));
+        setAllShops(readList(shopRes, 'shops'));
       } catch (err) {
-        console.warn('MobileDashboard: failed to preload categories/offers', err);
+        console.warn('MobileDashboard: failed to preload categories/offers/shops', err);
       }
     })();
   }, []);
@@ -89,6 +96,9 @@ export default function MobileDashboard() {
       setCandidates([]);
     }
     setSearchQuery('');
+    setShopFilter('');
+    setCategoryFilter('');
+    setIsAssignOpen(false);
   }, [selectedSection?.id, selectedSection?.section_type]);
 
   const fetchSections = async () => {
@@ -344,31 +354,55 @@ export default function MobileDashboard() {
     }
   };
 
-  const handleMoveSection = async (index, direction) => {
-    if (direction === 'up' && index === 0) return;
-    if (direction === 'down' && index === sections.length - 1) return;
+  // Optimistic reorder: update the UI immediately, then persist in the
+  // background. Waiting on the network round-trip before repainting is what
+  // made drag/reorder feel like a ~2s freeze; the backend call itself is fast.
+  const applySectionOrder = (newSections) => {
+    const withOrder = newSections.map((section, displayOrder) => ({
+      ...section,
+      display_order: displayOrder,
+    }));
+    setSections(withOrder);
+    MobileDashboardApi
+      .reorderSections(withOrder.map(s => s.id), { store_type: storeType })
+      .catch(err => {
+        console.error(err);
+        setError(GENERIC_ERROR);
+        fetchSections();
+      });
+  };
+
+  const draggedSectionIndex = useRef(null);
+  const [activeDragIndex, setActiveDragIndex] = useState(null);
+  const [dragOverSectionIndex, setDragOverSectionIndex] = useState(null);
+
+  const handleSectionDragStart = (index) => {
+    draggedSectionIndex.current = index;
+    setActiveDragIndex(index);
+  };
+
+  const handleSectionDragOver = (index, e) => {
+    e.preventDefault();
+    if (dragOverSectionIndex !== index) setDragOverSectionIndex(index);
+  };
+
+  const handleSectionDrop = (dropIndex) => {
+    const fromIndex = draggedSectionIndex.current;
+    draggedSectionIndex.current = null;
+    setActiveDragIndex(null);
+    setDragOverSectionIndex(null);
+    if (fromIndex === null || fromIndex === dropIndex) return;
 
     const newSections = [...sections];
-    const swapWith = direction === 'up' ? index - 1 : index + 1;
-    
-    // Swap elements
-    const temp = newSections[index];
-    newSections[index] = newSections[swapWith];
-    newSections[swapWith] = temp;
+    const [moved] = newSections.splice(fromIndex, 1);
+    newSections.splice(dropIndex, 0, moved);
+    applySectionOrder(newSections);
+  };
 
-    // Call reorder API
-    try {
-      const sectionIds = newSections.map(s => s.id);
-      await MobileDashboardApi.reorderSections(sectionIds, { store_type: storeType });
-      setSections(newSections.map((section, displayOrder) => ({
-        ...section,
-        display_order: displayOrder,
-      })));
-    } catch (err) {
-      console.error(err);
-      setError(GENERIC_ERROR);
-      fetchSections();
-    }
+  const handleSectionDragEnd = () => {
+    draggedSectionIndex.current = null;
+    setActiveDragIndex(null);
+    setDragOverSectionIndex(null);
   };
 
   const handleAddItem = async (itemId) => {
@@ -387,22 +421,33 @@ export default function MobileDashboard() {
       };
 
       const itemType = sectionTypeToItemType[selectedSection.section_type];
-      
+
       // Calculate display order as max + 1
       const currentItems = selectedSection.items || [];
-      const nextOrder = currentItems.length > 0 
-        ? Math.max(...currentItems.map(item => item.display_order || 0)) + 1 
+      const nextOrder = currentItems.length > 0
+        ? Math.max(...currentItems.map(item => item.display_order || 0)) + 1
         : 0;
 
-      await MobileDashboardApi.addSectionItem(selectedSection.id, {
+      // The backend now returns the newly-created item already hydrated with
+      // its product/category/combo/offer details, so we can append it locally
+      // instead of paying for a second network round-trip (a full section
+      // refetch that re-hydrates every existing item too). That second
+      // round-trip was the real source of the multi-second "Add" lag,
+      // especially on a production DB where each query carries real latency.
+      const res = await MobileDashboardApi.addSectionItem(selectedSection.id, {
         item_type: itemType,
         item_id: itemId,
         display_order: nextOrder,
         active: 1
       });
 
-      // Reload section items
-      await fetchSectionDetail(selectedSection.id);
+      const newItem = res?.data;
+      if (newItem) {
+        setSelectedSection(prev => ({ ...prev, items: [...(prev.items || []), newItem] }));
+      } else {
+        // Fallback, e.g. against an older API build without the hydrated item.
+        await fetchSectionDetail(selectedSection.id);
+      }
     } catch (err) {
       console.error(err);
       setError(GENERIC_ERROR);
@@ -413,23 +458,42 @@ export default function MobileDashboard() {
     }
   };
 
-  const handleRemoveItem = async (sectionItemId) => {
-    if (!selectedSection) return;
-    if (!window.confirm('Remove this item from the section?')) return;
+  const [removeConfirmItem, setRemoveConfirmItem] = useState(null);
+
+  const confirmRemoveItem = async () => {
+    if (!selectedSection || !removeConfirmItem) return;
+    const sectionItemId = removeConfirmItem.id;
+    setRemoveConfirmItem(null);
+
+    // Optimistic: drop it from the list immediately, persist in the
+    // background, restore (via a real refetch) only if the delete fails.
+    const previousItems = selectedSection.items || [];
+    setSelectedSection(prev => ({ ...prev, items: prev.items.filter(i => i.id !== sectionItemId) }));
+    setSavingItem(true);
     try {
-      setSavingItem(true);
-      setError(null);
       await MobileDashboardApi.deleteSectionItem(selectedSection.id, sectionItemId);
-      await fetchSectionDetail(selectedSection.id);
     } catch (err) {
       console.error(err);
       setError(GENERIC_ERROR);
+      setSelectedSection(prev => ({ ...prev, items: previousItems }));
     } finally {
       setSavingItem(false);
     }
   };
 
-  const handleMoveItem = async (index, direction) => {
+  // Optimistic: repaint immediately, persist in the background.
+  const applyItemOrder = (newItems) => {
+    setSelectedSection(prev => ({ ...prev, items: newItems }));
+    MobileDashboardApi
+      .reorderSectionItems(selectedSection.id, newItems.map(item => item.id))
+      .catch(err => {
+        console.error(err);
+        setError(GENERIC_ERROR);
+        fetchSectionDetail(selectedSection.id);
+      });
+  };
+
+  const handleMoveItem = (index, direction) => {
     if (!selectedSection) return;
     const items = selectedSection.items || [];
     if (direction === 'up' && index === 0) return;
@@ -437,34 +501,79 @@ export default function MobileDashboard() {
 
     const newItems = [...items];
     const swapWith = direction === 'up' ? index - 1 : index + 1;
-    
+
     const temp = newItems[index];
     newItems[index] = newItems[swapWith];
     newItems[swapWith] = temp;
-
-    try {
-      const itemIds = newItems.map(item => item.id);
-      await MobileDashboardApi.reorderSectionItems(selectedSection.id, itemIds);
-      // Optimistically update locally or reload
-      setSelectedSection(prev => ({
-        ...prev,
-        items: newItems
-      }));
-    } catch (err) {
-      console.error(err);
-      setError(GENERIC_ERROR);
-      fetchSectionDetail(selectedSection.id);
-    }
+    applyItemOrder(newItems);
   };
+
+  // Item drag-and-drop (used inside the "Rearrange Items" modal, where there's
+  // room to do it properly instead of the cramped inline arrow buttons).
+  const [isRearrangeOpen, setIsRearrangeOpen] = useState(false);
+  const draggedItemIndex = useRef(null);
+  const [activeItemDragIndex, setActiveItemDragIndex] = useState(null);
+  const [dragOverItemIndex, setDragOverItemIndex] = useState(null);
+
+  const handleItemDragStart = (index) => {
+    draggedItemIndex.current = index;
+    setActiveItemDragIndex(index);
+  };
+
+  const handleItemDragOver = (index, e) => {
+    e.preventDefault();
+    if (dragOverItemIndex !== index) setDragOverItemIndex(index);
+  };
+
+  const handleItemDrop = (dropIndex) => {
+    const fromIndex = draggedItemIndex.current;
+    draggedItemIndex.current = null;
+    setActiveItemDragIndex(null);
+    setDragOverItemIndex(null);
+    if (fromIndex === null || fromIndex === dropIndex) return;
+
+    const items = selectedSection?.items || [];
+    const newItems = [...items];
+    const [moved] = newItems.splice(fromIndex, 1);
+    newItems.splice(dropIndex, 0, moved);
+    applyItemOrder(newItems);
+  };
+
+  const handleItemDragEnd = () => {
+    draggedItemIndex.current = null;
+    setActiveItemDragIndex(null);
+    setDragOverItemIndex(null);
+  };
+
+  const getShopLabel = (details) => details?.shop_name || 'Home';
 
   const getFilteredCandidates = () => {
-    if (!searchQuery.trim()) return candidates;
-    const query = searchQuery.toLowerCase();
-    return candidates.filter(item => {
-      const name = item.name || item.title || '';
-      return name.toLowerCase().includes(query);
-    });
+    let list = candidates;
+
+    if (shopFilter === 'home') {
+      list = list.filter(item => !item.shop_id);
+    } else if (shopFilter) {
+      list = list.filter(item => String(item.shop_id ?? '') === String(shopFilter));
+    }
+
+    if (categoryFilter) {
+      list = list.filter(item => String(item.category_id ?? '') === String(categoryFilter));
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      list = list.filter(item => {
+        const name = item.name || item.title || '';
+        return name.toLowerCase().includes(query);
+      });
+    }
+
+    return list;
   };
+
+  // Shop/category filters only make sense for product_block — combos have no
+  // shop_id, and category/offer sections' candidates ARE categories/offers.
+  const showAssignFilters = selectedSection?.section_type === 'product_block';
 
   return (
     <div>
@@ -526,27 +635,23 @@ export default function MobileDashboard() {
             </div>
           ) : (
             sections.map((sec, index) => (
-              <div 
-                key={sec.id} 
-                className={`section-card ${selectedSection?.id === sec.id ? 'selected' : ''}`}
+              <div
+                key={sec.id}
+                className={`section-card ${selectedSection?.id === sec.id ? 'selected' : ''} ${dragOverSectionIndex === index ? 'drag-over' : ''} ${activeDragIndex === index ? 'dragging' : ''}`}
+                draggable
+                onDragStart={() => handleSectionDragStart(index)}
+                onDragOver={(e) => handleSectionDragOver(index, e)}
+                onDrop={() => handleSectionDrop(index)}
+                onDragEnd={handleSectionDragEnd}
                 onClick={() => fetchSectionDetail(sec.id)}
               >
-                <div className="section-reorder-controls" onClick={e => e.stopPropagation()}>
-                  <button 
-                    className="btn-order-arrow" 
-                    disabled={index === 0} 
-                    onClick={() => handleMoveSection(index, 'up')}
-                  >
-                    ▲
-                  </button>
-                  <button 
-                    className="btn-order-arrow" 
-                    disabled={index === sections.length - 1} 
-                    onClick={() => handleMoveSection(index, 'down')}
-                  >
-                    ▼
-                  </button>
-                </div>
+                <span className="section-drag-handle" title="Drag to reorder" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor">
+                    <circle cx="6" cy="4" r="1.5" /><circle cx="14" cy="4" r="1.5" />
+                    <circle cx="6" cy="10" r="1.5" /><circle cx="14" cy="10" r="1.5" />
+                    <circle cx="6" cy="16" r="1.5" /><circle cx="14" cy="16" r="1.5" />
+                  </svg>
+                </span>
                 <div className="section-meta-info">
                   <span className="section-card-title">{sec.title}</span>
                   <div className="section-card-badges">
@@ -772,9 +877,19 @@ export default function MobileDashboard() {
 
               {/* Items Management */}
               <div className="section-items-workspace">
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                  Assigned Items ({selectedSection.items?.length || 0})
-                </h3>
+                <div className="items-workspace-header">
+                  <h3 className="items-workspace-title">
+                    Assigned Items ({selectedSection.items?.length || 0})
+                  </h3>
+                  <button
+                    type="button"
+                    className="btn-secondary btn-rearrange"
+                    onClick={() => setIsRearrangeOpen(true)}
+                    disabled={(selectedSection.items?.length || 0) < 2}
+                  >
+                    ⇅ Rearrange
+                  </button>
+                </div>
 
                 <div className="items-list">
                   {selectedSection.items?.length === 0 ? (
@@ -790,7 +905,10 @@ export default function MobileDashboard() {
                         <div key={item.id} className="item-row">
                           <img src={img} onError={handleImageError} alt={name} className="item-thumbnail" />
                           <div className="item-details">
-                            <div className="item-title-name">{name}</div>
+                            <div className="item-title-name">
+                              <span className="item-name-text">{name}</span>
+                              <span className="item-shop-tag">{getShopLabel(details)}</span>
+                            </div>
                             <div className="item-subtitle-meta">
                               {item.item_type} • ID: {item.item_id}
                               {details.price && ` • ₹${details.price}`}
@@ -799,23 +917,23 @@ export default function MobileDashboard() {
                             </div>
                           </div>
                           <div className="item-action-controls">
-                            <button 
-                              className="btn-order-arrow" 
-                              disabled={idx === 0} 
+                            <button
+                              className="btn-order-arrow"
+                              disabled={idx === 0}
                               onClick={() => handleMoveItem(idx, 'up')}
                             >
                               ▲
                             </button>
-                            <button 
-                              className="btn-order-arrow" 
-                              disabled={idx === selectedSection.items.length - 1} 
+                            <button
+                              className="btn-order-arrow"
+                              disabled={idx === selectedSection.items.length - 1}
                               onClick={() => handleMoveItem(idx, 'down')}
                             >
                               ▼
                             </button>
-                            <button 
+                            <button
                               className="btn-remove-item"
-                              onClick={() => handleRemoveItem(item.id)}
+                              onClick={() => setRemoveConfirmItem({ id: item.id, name })}
                               disabled={savingItem}
                             >
                               Remove
@@ -828,70 +946,11 @@ export default function MobileDashboard() {
                 </div>
               </div>
 
-              {/* Add Items Picker */}
-              <div className="add-items-picker">
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 600 }}>Assign New Item</h4>
-                <div className="picker-search-bar">
-                  <input 
-                    type="text" 
-                    placeholder="Search available candidates..." 
-                    className="form-input" 
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                  />
-                </div>
-
-                <div className="picker-results">
-                  {loadingCandidates ? (
-                    <div style={{ padding: '1rem', textAlign: 'center' }}>Loading candidates...</div>
-                  ) : getFilteredCandidates().length === 0 ? (
-                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                      No items found.
-                    </div>
-                  ) : (
-                    getFilteredCandidates()
-                      .filter(cand => {
-                        // Exclude items already in this section
-                        return !selectedSection.items?.some(i => String(i.item_id) === String(cand.id));
-                      })
-                      .map(cand => {
-                        const name = cand.name || cand.title || 'Unnamed';
-                        const img = normalizeImageUrl(cand.imageUrl || cand.image_url);
-                        
-                        const isOfferBanner = selectedSection.section_type === 'offer_banner';
-                        const hasImage = !!img;
-                        const isInactiveOffer = isOfferBanner && !(cand.active === 1 || cand.active === true);
-                        const disabled = (isOfferBanner && (!hasImage || isInactiveOffer)) || addingItemId === cand.id;
-
-                        return (
-                          <div key={cand.id} className={`picker-result-row ${disabled ? 'disabled-item' : ''}`}>
-                            <img src={img || FALLBACK_IMAGE} onError={handleImageError} alt={name} className="item-thumbnail" style={disabled ? { opacity: 0.5 } : {}} />
-                            <div style={{ flex: 1, minWidth: 0, opacity: disabled ? 0.6 : 1 }}>
-                              <div className="item-title-name">{name}</div>
-                              <div className="item-subtitle-meta">
-                                ID: {cand.id} 
-                                {cand.price && ` • ₹${cand.price}`} 
-                                {cand.store_type && ` • ${modeLabel(modes, cand.store_type)}`}
-                                {cand.type && ` • ${modeLabel(modes, cand.type)}`}
-                                {isOfferBanner && ` • ${cand.active ? 'Active' : 'Inactive'}`}
-                                {isOfferBanner && ` • ${cand.isClickable || cand.is_clickable ? 'Clickable' : 'Image only'}`}
-                                {isOfferBanner && !hasImage && <span style={{color: 'var(--danger-color)'}}> • Missing image</span>}
-                                {isInactiveOffer && <span style={{color: 'var(--danger-color)'}}> • Activate offer first</span>}
-                              </div>
-                            </div>
-                            <button 
-                              type="button" 
-                              className="btn-primary btn-add-item-action"
-                              onClick={() => handleAddItem(cand.id)}
-                              disabled={savingItem || disabled}
-                            >
-                              {addingItemId === cand.id ? 'Adding...' : '+ Add'}
-                            </button>
-                          </div>
-                        );
-                      })
-                  )}
-                </div>
+              {/* Add Items trigger */}
+              <div className="add-items-trigger">
+                <button type="button" className="btn-primary btn-assign-open" onClick={() => setIsAssignOpen(true)}>
+                  + Assign New Item
+                </button>
               </div>
 
             </div>
@@ -1114,6 +1173,180 @@ export default function MobileDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Item Confirm */}
+      {removeConfirmItem && (
+        <div className="modal-overlay" onClick={() => setRemoveConfirmItem(null)}>
+          <div className="modal-content confirm-modal" onClick={e => e.stopPropagation()}>
+            <header className="modal-header modal-header-danger">
+              <h3 className="modal-title">Remove Item</h3>
+              <button type="button" style={{ background: 'none', border: 'none', color: 'var(--text-on-primary)', fontSize: '1.5rem' }} onClick={() => setRemoveConfirmItem(null)}>&times;</button>
+            </header>
+            <div className="modal-body">
+              <p className="confirm-message">
+                Remove <strong>{removeConfirmItem.name}</strong> from this section? It stays in the catalog — this only unassigns it from the layout.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn-secondary" onClick={() => setRemoveConfirmItem(null)}>Cancel</button>
+              <button type="button" className="btn-danger" onClick={confirmRemoveItem}>Remove</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign New Item Modal */}
+      {isAssignOpen && selectedSection && (
+        <div className="modal-overlay" onClick={() => setIsAssignOpen(false)}>
+          <div className="modal-content assign-modal" onClick={e => e.stopPropagation()}>
+            <header className="modal-header">
+              <h3 className="modal-title">Assign Item — {selectedSection.title}</h3>
+              <button type="button" style={{ background: 'none', border: 'none', color: 'var(--text-on-primary)', fontSize: '1.5rem' }} onClick={() => setIsAssignOpen(false)}>&times;</button>
+            </header>
+
+            <div className="modal-body">
+              <div className="assign-filters-row">
+                <input
+                  type="text"
+                  placeholder="Search available candidates..."
+                  className="form-input assign-search-input"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+                {showAssignFilters && (
+                  <>
+                    <select className="form-select" value={shopFilter} onChange={e => setShopFilter(e.target.value)}>
+                      <option value="">All Shops</option>
+                      <option value="home">Home (No Shop)</option>
+                      {allShops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                    <select className="form-select" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+                      <option value="">All Categories</option>
+                      {allCategories
+                        .filter(c => !c.type || c.type === storeType)
+                        .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </>
+                )}
+              </div>
+
+              <div className="picker-results assign-results">
+                {loadingCandidates ? (
+                  <div style={{ padding: '1rem', textAlign: 'center' }}>Loading candidates...</div>
+                ) : getFilteredCandidates().filter(cand => !selectedSection.items?.some(i => String(i.item_id) === String(cand.id))).length === 0 ? (
+                  <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    No items found.
+                  </div>
+                ) : (
+                  getFilteredCandidates()
+                    .filter(cand => {
+                      // Exclude items already in this section
+                      return !selectedSection.items?.some(i => String(i.item_id) === String(cand.id));
+                    })
+                    .map(cand => {
+                      const name = cand.name || cand.title || 'Unnamed';
+                      const img = normalizeImageUrl(cand.imageUrl || cand.image_url);
+
+                      const isOfferBanner = selectedSection.section_type === 'offer_banner';
+                      const hasImage = !!img;
+                      const isInactiveOffer = isOfferBanner && !(cand.active === 1 || cand.active === true);
+                      const disabled = (isOfferBanner && (!hasImage || isInactiveOffer)) || addingItemId === cand.id;
+
+                      return (
+                        <div key={cand.id} className={`picker-result-row ${disabled ? 'disabled-item' : ''}`}>
+                          <img src={img || FALLBACK_IMAGE} onError={handleImageError} alt={name} className="item-thumbnail" style={disabled ? { opacity: 0.5 } : {}} />
+                          <div style={{ flex: 1, minWidth: 0, opacity: disabled ? 0.6 : 1 }}>
+                            <div className="item-title-name">
+                              <span className="item-name-text">{name}</span>
+                              {!isOfferBanner && <span className="item-shop-tag">{getShopLabel(cand)}</span>}
+                            </div>
+                            <div className="item-subtitle-meta">
+                              ID: {cand.id}
+                              {cand.price && ` • ₹${cand.price}`}
+                              {cand.store_type && ` • ${modeLabel(modes, cand.store_type)}`}
+                              {cand.type && ` • ${modeLabel(modes, cand.type)}`}
+                              {isOfferBanner && ` • ${cand.active ? 'Active' : 'Inactive'}`}
+                              {isOfferBanner && ` • ${cand.isClickable || cand.is_clickable ? 'Clickable' : 'Image only'}`}
+                              {isOfferBanner && !hasImage && <span style={{color: 'var(--danger-color)'}}> • Missing image</span>}
+                              {isInactiveOffer && <span style={{color: 'var(--danger-color)'}}> • Activate offer first</span>}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn-primary btn-add-item-action"
+                            onClick={() => handleAddItem(cand.id)}
+                            disabled={savingItem || disabled}
+                          >
+                            {addingItemId === cand.id ? 'Adding...' : '+ Add'}
+                          </button>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" className="btn-primary" onClick={() => setIsAssignOpen(false)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rearrange Items Modal */}
+      {isRearrangeOpen && selectedSection && (
+        <div className="modal-overlay" onClick={() => setIsRearrangeOpen(false)}>
+          <div className="modal-content rearrange-modal" onClick={e => e.stopPropagation()}>
+            <header className="modal-header">
+              <h3 className="modal-title">Rearrange Items — {selectedSection.title}</h3>
+              <button type="button" style={{ background: 'none', border: 'none', color: 'var(--text-on-primary)', fontSize: '1.5rem' }} onClick={() => setIsRearrangeOpen(false)}>&times;</button>
+            </header>
+
+            <div className="modal-body">
+              <p className="rearrange-hint">Drag items into the order they should appear in the customer app.</p>
+              <div className="rearrange-list">
+                {(selectedSection.items || []).map((item, idx) => {
+                  const details = item.details || {};
+                  const name = details.name || details.title || `Item #${item.item_id}`;
+                  const img = normalizeImageUrl(details.imageUrl || details.image_url) || FALLBACK_IMAGE;
+                  return (
+                    <div
+                      key={item.id}
+                      className={`rearrange-row ${dragOverItemIndex === idx ? 'drag-over' : ''} ${activeItemDragIndex === idx ? 'dragging' : ''}`}
+                      draggable
+                      onDragStart={() => handleItemDragStart(idx)}
+                      onDragOver={(e) => handleItemDragOver(idx, e)}
+                      onDrop={() => handleItemDrop(idx)}
+                      onDragEnd={handleItemDragEnd}
+                    >
+                      <span className="section-drag-handle" aria-hidden="true">
+                        <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor">
+                          <circle cx="6" cy="4" r="1.5" /><circle cx="14" cy="4" r="1.5" />
+                          <circle cx="6" cy="10" r="1.5" /><circle cx="14" cy="10" r="1.5" />
+                          <circle cx="6" cy="16" r="1.5" /><circle cx="14" cy="16" r="1.5" />
+                        </svg>
+                      </span>
+                      <span className="rearrange-position">{idx + 1}</span>
+                      <img src={img} onError={handleImageError} alt={name} className="item-thumbnail" />
+                      <div className="item-details">
+                        <div className="item-title-name">
+                          <span className="item-name-text">{name}</span>
+                          <span className="item-shop-tag">{getShopLabel(details)}</span>
+                        </div>
+                        <div className="item-subtitle-meta">{item.item_type} • ID: {item.item_id}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" className="btn-primary" onClick={() => setIsRearrangeOpen(false)}>Done</button>
+            </div>
           </div>
         </div>
       )}

@@ -271,6 +271,107 @@
   font-family: 'Outfit', 'Inter', sans-serif;
 }
 
+.orders-table td.items-cell {
+  min-width: 260px;
+  max-width: 360px;
+  white-space: normal;
+  vertical-align: top;
+  padding-top: 1.1rem;
+  padding-bottom: 1.1rem;
+}
+
+.item-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.item-line + .item-line {
+  margin-top: 0.15rem;
+}
+
+.item-line-name {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.item-line-price {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-weight: 650;
+}
+
+.fast-delivery-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+  font-size: 0.68rem;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+.admin-remark-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+  font-size: 0.68rem;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+.admin-remark-caption {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: -0.5rem 0 0.75rem;
+}
+
+.admin-remark-textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-color, #fafafa);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.admin-remark-textarea:disabled {
+  opacity: 0.6;
+}
+
+.admin-remark-save-btn {
+  margin-top: 0.75rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.admin-remark-save-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.admin-remark-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .table-refresh-bar {
   position: sticky;
   left: 0;
@@ -378,7 +479,7 @@
 
 .drawer-content {
   width: 100%;
-  max-width: 500px;
+  max-width: 720px;
   background: var(--surface-color);
   height: 100%;
   box-shadow: var(--shadow-lg);
@@ -470,6 +571,19 @@
 .detail-row strong {
   color: var(--text-primary);
   font-weight: 600;
+}
+
+.badge-trusted-inline {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-color);
+  font-size: 0.7rem;
+  padding: 0.18rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 700;
+  vertical-align: middle;
 }
 
 .action-buttons {

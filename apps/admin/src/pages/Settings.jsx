@@ -16,6 +16,8 @@ const DEFAULT_SETTINGS = {
   night_charge: 0,
   night_charge_start: '',
   night_charge_end: '',
+  rain_charge_enabled: false,
+  rain_charge: 0,
   fast_delivery_enabled: false,
   fast_delivery_charge: 0,
   standard_delivery_minutes: 60,
@@ -130,6 +132,7 @@ export default function Settings() {
       const nonNegativeFields = [
         ['delivery_charge', 'Delivery charge'],
         ['night_charge', 'Night delivery surcharge'],
+        ['rain_charge', 'Rain charge'],
         ['fast_delivery_charge', 'Fast delivery surcharge'],
       ];
 
@@ -137,6 +140,7 @@ export default function Settings() {
         // Skip fields that aren't active — a stale negative value hidden in
         // the DB must not block save (the input isn't even rendered).
         if (field === 'fast_delivery_charge' && !settings.fast_delivery_enabled) continue;
+        if (field === 'rain_charge' && !settings.rain_charge_enabled) continue;
         const value = settings[field];
         const numeric = Number(value);
         if (!Number.isFinite(numeric) || numeric < 0) {
@@ -187,6 +191,8 @@ export default function Settings() {
         ...settings,
         delivery_charge: Number(settings.delivery_charge),
         night_charge: Number(settings.night_charge),
+        rain_charge_enabled: Boolean(settings.rain_charge_enabled),
+        rain_charge: Number(settings.rain_charge || 0),
         fast_delivery_enabled: Boolean(settings.fast_delivery_enabled),
         fast_delivery_charge: Number(settings.fast_delivery_charge || 0),
         standard_delivery_minutes: Number.parseInt(settings.standard_delivery_minutes, 10) || 60,
@@ -367,7 +373,7 @@ export default function Settings() {
                   </span>
                 )}
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  This replaces the standard delivery charge when the customer selects fast delivery.
+                  Added on top of the standard delivery charge when the customer opts into fast delivery.
                 </span>
               </div>
               <div className="settings-form-group">
@@ -462,6 +468,59 @@ export default function Settings() {
               End before start means the window crosses midnight (e.g. 21:00 → 07:00).
             </span>
           </div>
+        </div>
+      </section>
+
+      {/* ── 5b. Rain Charge ─────────────────────────────────────────────── */}
+      <section className="settings-section">
+        <h2 className="settings-section-title">Rain Charge</h2>
+        <div className="settings-form-grid">
+          <div className="toggle-switch-wrapper full-width">
+            <div style={{ flex: 1 }}>
+              <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                🌧️ Rain Charge
+              </strong>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                When enabled, a fixed surcharge is added to every order's bill. Turn this on/off
+                manually during rain — unlike Night Delivery, there's no time window.
+              </span>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                name="rain_charge_enabled"
+                checked={Boolean(settings.rain_charge_enabled)}
+                onChange={handleChange}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {Boolean(settings.rain_charge_enabled) && (
+            <div className="settings-form-group">
+              <label className="settings-label">🌧️ Rain Charge (₹)</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                name="rain_charge"
+                className="settings-input"
+                value={settings.rain_charge ?? 0}
+                onChange={handleChange}
+                placeholder="e.g. 15"
+                aria-invalid={Boolean(fieldErrors.rain_charge)}
+                aria-errormessage={fieldErrors.rain_charge ? 'rain_charge-error' : undefined}
+              />
+              {fieldErrors.rain_charge && (
+                <span id="rain_charge-error" className="field-error" style={{ fontSize: '0.8rem', color: 'var(--danger-color)', marginTop: '4px' }}>
+                  {fieldErrors.rain_charge}
+                </span>
+              )}
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                Extra amount added to every order while rain charge is on.
+              </span>
+            </div>
+          )}
         </div>
       </section>
 

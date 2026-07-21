@@ -371,6 +371,14 @@ function NewModeDrawer({ onClose, onSave }) {
   const [formError, setFormError] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Always starts blank (new mode only) — dirty means the admin typed
+  // something. Don't silently drop it on an accidental overlay click.
+  const isDirty = Boolean(slug || label || iconImageId);
+  const handleCloseAttempt = () => {
+    if (isDirty && !window.confirm('Discard this new store mode?')) return;
+    onClose();
+  };
+
   const slugify = (value) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 
   const handleLabelChange = (value) => {
@@ -428,12 +436,12 @@ function NewModeDrawer({ onClose, onSave }) {
   };
 
   return (
-    <div className="drawer-overlay" onClick={onClose}>
+    <div className="drawer-overlay" onClick={handleCloseAttempt}>
       <div className="drawer-content" onClick={e => e.stopPropagation()}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div className="drawer-header">
             <h3 className="drawer-title">New Store Mode</h3>
-            <button type="button" className="drawer-close" onClick={onClose}>&times;</button>
+            <button type="button" className="drawer-close" onClick={handleCloseAttempt}>&times;</button>
           </div>
 
           <div className="drawer-body">

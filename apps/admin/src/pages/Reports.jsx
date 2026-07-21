@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { ReportsApi } from '../api';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ReportsApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } from '../api';
+import { useAdminRefresh } from '../hooks/useAdminRefresh';
 import './Reports.css';
 
 import { GENERIC_ERROR } from '../utils/constants';
@@ -11,29 +12,36 @@ const escapeCsvCell = (value) => {
   return `"${s.replace(/"/g, '""')}"`;
 };
 
+const formatMoney = (value) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric.toFixed(2) : '0.00';
+};
+
 export default function Reports() {
   const [period, setPeriod] = useState('today'); // today, week, month, all
   const [salesData, setSalesData] = useState(null);
   const [topProducts, setTopProducts] = useState([]);
   const [customerData, setCustomerData] = useState(null);
-  
+  const [shopsData, setShopsData] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const periodRef = useRef(period);
+  const refreshTimerRef = useRef(null);
 
-  useEffect(() => {
-    fetchReports();
-  }, [period]);
+  useEffect(() => { periodRef.current = period; }, [period]);
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       setError(null);
-      const params = { period };
-      
-      const [salesRes, productsRes, custRes] = await Promise.all([
+      const params = { period: periodRef.current };
+
+      const [salesRes, productsRes, custRes, shopsRes] = await Promise.all([
         ReportsApi.getSales(params).catch(() => ({ data: {} })),
         ReportsApi.getTopProducts(params).catch(() => ({ data: [] })),
-        ReportsApi.getCustomers(params).catch(() => ({ data: {} }))
+        ReportsApi.getCustomers(params).catch(() => ({ data: {} })),
+        ReportsApi.getShops(params).catch(() => ({ data: [] })),
       ]);
 
       const rawSales = salesRes.data || salesRes || {};
@@ -45,7 +53,7 @@ export default function Reports() {
       };
       setSalesData({
         ...rawSales,
-        total_revenue: rawSales.total_revenue ?? revenueByPeriod[period] ?? 0,
+        total_revenue: rawSales.total_revenue ?? revenueByPeriod[periodRef.current] ?? 0,
         total_orders: rawSales.total_orders ?? 0,
         status_breakdown: rawSales.status_breakdown || {},
         payment_breakdown: rawSales.payment_breakdown || {},
@@ -60,13 +68,35 @@ export default function Reports() {
         blocked_total: rawCustomers.blocked_total ?? rawCustomers.blocked_customers ?? 0,
         total_users: rawCustomers.total_users ?? rawCustomers.total_customers ?? 0,
       });
+      setShopsData(shopsRes.data || []);
     } catch (err) {
       console.error(err);
       setError(GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => { fetchReports(); }, [period, fetchReports]);
+
+  useAdminRefresh(fetchReports);
+
+  const queueReportsRefresh = useCallback((delay = 350) => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => fetchReports(false), delay);
+  }, [fetchReports]);
+
+  useEffect(() => {
+    const unsubscribeOrders = subscribeAdminOrderEvents(() => queueReportsRefresh());
+    const unsubscribeLifecycle = subscribeRealtimeLifecycle(({ eventName }) => {
+      if (eventName === 'reconnected' || eventName === 'visible') queueReportsRefresh();
+    });
+    return () => {
+      unsubscribeOrders();
+      unsubscribeLifecycle();
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, [queueReportsRefresh]);
 
   const handleExport = () => {
     // Generate a simple CSV for sales
@@ -172,20 +202,23 @@ export default function Reports() {
               {topProducts.length === 0 ? (
                 <p style={{ color: 'var(--text-secondary)' }}>No item data available for this period.</p>
               ) : (
-                <ul className="breakdown-list">
-                  {topProducts.slice(0, 5).map((p, i) => (
-                    <li key={`${p.product_id}-${p.item_type}`} className="breakdown-item">
-                      <div className="breakdown-info">
-                        <span className="breakdown-label">
-                          {p.product_name}
-                          {p.item_type === 'combo' && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', backgroundColor: 'var(--bg-elevated)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>Combo</span>}
-                        </span>
-                        <span className="breakdown-subtext">{p.total_quantity} units sold</span>
-                      </div>
-                      <span className="breakdown-value">₹{p.total_sales}</span>
-                    </li>
+                <div className="top-items-table">
+                  <div className="top-items-row top-items-head">
+                    <span>Item</span>
+                    <span>Units Sold</span>
+                    <span>Price</span>
+                  </div>
+                  {topProducts.map((p) => (
+                    <div key={`${p.product_id}-${p.item_type}`} className="top-items-row">
+                      <span className="top-items-name">
+                        {p.product_name}
+                        {p.item_type === 'combo' && <span className="top-items-combo-tag">Combo</span>}
+                      </span>
+                      <span className="top-items-units">{p.total_quantity}</span>
+                      <span className="top-items-price">₹{p.total_sales}</span>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </div>
 
@@ -207,6 +240,47 @@ export default function Reports() {
               </ul>
             </div>
           </div>
+
+          <section className="shops-report-section">
+            <h3 className="report-section-title">Shop-wise Performance</h3>
+            {shopsData.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)' }}>No shop activity for this period.</p>
+            ) : (
+              <div className="shops-report-grid">
+                {shopsData.map((shop) => {
+                  const orderCount = Number(shop.order_count) || 0;
+                  const itemsSold = Number(shop.total_items_sold) || 0;
+                  return (
+                  <div className="shop-report-card" key={shop.shop_id ?? 'house'}>
+                    <div className="shop-report-header">
+                      <span className="shop-report-name">{shop.shop_name}</span>
+                      <span className="shop-report-amount">₹{formatMoney(shop.total_amount)}</span>
+                    </div>
+                    <div className="shop-report-subtext">
+                      {orderCount} order{orderCount === 1 ? '' : 's'} • {itemsSold} item{itemsSold === 1 ? '' : 's'} sold
+                    </div>
+                    <ul className="shop-report-products">
+                      {shop.products.map((p) => (
+                        <li key={`${p.product_id}-${p.item_type}`} className="shop-report-product-row">
+                          <span className="shop-report-product-name">
+                            {p.product_name}
+                            {p.item_type === 'combo' && <span className="shop-report-combo-tag">Combo</span>}
+                          </span>
+                          <span className="shop-report-product-qty">x{p.quantity}</span>
+                          <span className="shop-report-product-price">₹{formatMoney(p.total_sales)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="shop-report-footer">
+                      <span>Total products sold</span>
+                      <strong>{itemsSold}</strong>
+                    </div>
+                  </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         </>
       )}
     </div>

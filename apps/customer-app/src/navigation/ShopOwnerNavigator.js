@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, shadows, spacing, radius } from '../theme';
 import AppIcon from '../components/AppIcon';
 import { ShopDashboardScreen, ShopOrdersScreen, ShopProductsScreen } from '../screens/shop';
@@ -24,6 +25,8 @@ function TabIcon({ name, focused, size, color }) {
 }
 
 export default function ShopOwnerNavigator() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -34,8 +37,8 @@ export default function ShopOwnerNavigator() {
         tabBarStyle: {
           backgroundColor: colors.navBg,
           borderTopWidth: 0,
-          height: 64,
-          paddingBottom: 8,
+          height: 64 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
           paddingTop: 6,
           ...shadows.navBar,
         },

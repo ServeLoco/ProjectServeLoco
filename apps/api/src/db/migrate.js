@@ -462,6 +462,11 @@ const migrate = async () => {
     // window and returns the existing order instead of inserting a new row.
     await ensureColumn('orders', 'idempotency_key', 'idempotency_key VARCHAR(64) DEFAULT NULL AFTER delivery_type');
     await ensureColumn('orders', 'idempotency_key_created_at', 'idempotency_key_created_at DATETIME DEFAULT NULL AFTER idempotency_key');
+    // Rain charge snapshot — flat amount applied at order time, same shape as night_charge.
+    await ensureColumn('orders', 'rain_charge', 'rain_charge DECIMAL(10, 2) NOT NULL DEFAULT 0.00 AFTER night_charge');
+    // Fast delivery add-on fee snapshot — additive on top of delivery_charge
+    // (the standard fee), not a replacement. 0 when standard delivery was used.
+    await ensureColumn('orders', 'fast_delivery_charge', 'fast_delivery_charge DECIMAL(10, 2) NOT NULL DEFAULT 0.00 AFTER rain_charge');
     // Rider assignment (auto engine). No FK — integrity enforced in service layer
     // (same pattern as products.shop_id). rider_assignment_status tracks engine
     // progress; rider_picked_up_at is soft "picked up" without a new status enum.
@@ -478,6 +483,10 @@ const migrate = async () => {
     // (D8, Asia/Kolkata "today") keys off this instead of updated_at, which drifts if the
     // row is touched again later (e.g. an unrelated admin edit) after delivery.
     await ensureColumn('orders', 'delivered_at', 'delivered_at TIMESTAMP NULL DEFAULT NULL AFTER rider_search_started_at');
+    // Admin-authored remark on the order (e.g. "delayed — rider shortage").
+    // Distinct from `note`, which is the customer's own checkout note.
+    // Visible to admins and to the shop owner (getMyOrderHistory).
+    await ensureColumn('orders', 'admin_remark', 'admin_remark TEXT DEFAULT NULL AFTER note');
 
     // Performance indexes for common order filter queries
     const ensureIndex = async (tableName, indexName, columns) => {
@@ -664,6 +673,11 @@ const migrate = async () => {
     // informational — shown in the admin panel so the admin knows what value to
     // set minimum_version to. Admin-editable; not enforced anywhere.
     await ensureColumn('settings', 'current_version', 'current_version VARCHAR(20) NULL DEFAULT NULL AFTER minimum_version');
+
+    // Rain charge: manual admin on/off surcharge (unlike night_charge, no time
+    // window — just a flat amount added to the bill while enabled).
+    await ensureColumn('settings', 'rain_charge_enabled', 'rain_charge_enabled BOOLEAN DEFAULT FALSE AFTER current_version');
+    await ensureColumn('settings', 'rain_charge', 'rain_charge DECIMAL(10, 2) DEFAULT 0.00 AFTER rain_charge_enabled');
 
     // Drop free_delivery_above column if it exists (Task 1.1)
     try {

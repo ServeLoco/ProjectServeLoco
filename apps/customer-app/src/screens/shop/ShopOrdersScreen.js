@@ -107,6 +107,12 @@ export default function ShopOrdersScreen() {
               <Text style={styles.rejectedNoteText}>You rejected this order</Text>
             </View>
           )}
+          {item.adminRemark ? (
+            <View style={styles.remarkNote}>
+              <AppIcon name="pencil" size={12} color={colors.textSecondary} />
+              <Text style={styles.remarkNoteText}>{item.adminRemark}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
     );
@@ -221,6 +227,11 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border,
   },
   rejectedNoteText: { color: colors.error, fontSize: 12, fontWeight: '700' },
+  remarkNote: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: spacing.sm,
+    paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border,
+  },
+  remarkNoteText: { flex: 1, color: colors.textSecondary, fontSize: 12, fontWeight: '600', lineHeight: 16 },
   emptyState: { alignItems: 'center', paddingHorizontal: spacing.xl, marginTop: spacing.xl },
   emptyIconWrap: {
     width: 72, height: 72, borderRadius: radius.circle, backgroundColor: colors.saffronLight,

@@ -11,6 +11,10 @@ import { buildProgressHintText } from '../../utils';
  *   subtotal          - number
  *   deliveryCharge    - number
  *   nightCharge       - number (0 or undefined = not shown)
+ *   rainCharge        - number (0 or undefined = not shown)
+ *   fastDeliveryFee   - number (0 or undefined = not shown) — additive Fast
+ *                        Delivery add-on on top of the (always-standard)
+ *                        Delivery Charge row; never discounted
  *   discount          - number (0 or undefined = not shown) — total coupon discount
  *   itemDiscount      - number — discount excluding any free-delivery waiver;
  *                        shown on the Discount row when isFreeDeliveryApplied
@@ -25,19 +29,19 @@ function BillSummary({
   subtotal = 0,
   deliveryCharge = 0,
   nightCharge = 0,
+  rainCharge = 0,
+  fastDeliveryFee = 0,
   discount = 0,
   itemDiscount = null,
   isFreeDeliveryApplied = false,
-  // When true (Fast delivery), free-delivery coupons do not apply — always show charge.
-  isFastDelivery = false,
   total = 0,
   freeDeliveryProgress = null,
   style,
 }) {
   const showNight = nightCharge > 0;
-  // FREE on the delivery line only for Standard + free-del coupon. Fast always pays.
-  const showDeliveryFree = isFreeDeliveryApplied && !isFastDelivery;
-  const discountToShow = showDeliveryFree
+  const showRain = rainCharge > 0;
+  const showFastFee = fastDeliveryFee > 0;
+  const discountToShow = isFreeDeliveryApplied
     ? (itemDiscount ?? Math.max(0, discount - deliveryCharge))
     : discount;
   const showDiscount = discountToShow > 0;
@@ -47,7 +51,7 @@ function BillSummary({
       <Text style={styles.heading}>Bill Summary</Text>
 
       <BillRow label="Subtotal" value={`₹${subtotal.toFixed(0)}`} />
-      {showDeliveryFree ? (
+      {isFreeDeliveryApplied ? (
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Delivery Charge</Text>
           <View style={styles.freeDeliveryValueRow}>
@@ -56,13 +60,16 @@ function BillSummary({
           </View>
         </View>
       ) : (
-        <BillRow
-          label={isFastDelivery ? 'Fast Delivery' : 'Delivery Charge'}
-          value={`₹${deliveryCharge.toFixed(0)}`}
-        />
+        <BillRow label="Delivery Charge" value={`₹${deliveryCharge.toFixed(0)}`} />
       )}
+      {showFastFee ? (
+        <BillRow label="Fast Delivery Add-on" value={`₹${fastDeliveryFee.toFixed(0)}`} warn />
+      ) : null}
       {showNight ? (
         <BillRow label="Night Charge" value={`₹${nightCharge.toFixed(0)}`} />
+      ) : null}
+      {showRain ? (
+        <BillRow label="Rain Charge" value={`₹${rainCharge.toFixed(0)}`} />
       ) : null}
       {showDiscount ? (
         <BillRow label="Discount" value={`- ₹${discountToShow.toFixed(0)}`} success />

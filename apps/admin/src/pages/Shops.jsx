@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ShopsApi,
   subscribeAdminOrderEvents,
@@ -587,6 +587,18 @@ function ShopFormDrawer({ shop, onClose, onSave, onDelete }) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
 
+  // Snapshot the first render's fields so an accidental overlay click can be
+  // told apart from a real "I'm done" close — don't silently drop edits.
+  const initialSnapshotRef = useRef(null);
+  if (initialSnapshotRef.current === null) {
+    initialSnapshotRef.current = JSON.stringify({ name, ownerPhone, location });
+  }
+  const isDirty = JSON.stringify({ name, ownerPhone, location }) !== initialSnapshotRef.current;
+  const handleCloseAttempt = () => {
+    if (isDirty && !window.confirm('Discard unsaved changes to this shop?')) return;
+    onClose();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -637,12 +649,12 @@ function ShopFormDrawer({ shop, onClose, onSave, onDelete }) {
   };
 
   return (
-    <div className="drawer-overlay" onClick={onClose}>
+    <div className="drawer-overlay" onClick={handleCloseAttempt}>
       <div className="drawer-content" onClick={e => e.stopPropagation()}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div className="drawer-header">
             <h3 className="drawer-title">{isEdit ? 'Edit Shop' : 'New Shop'}</h3>
-            <button type="button" className="drawer-close" onClick={onClose}>&times;</button>
+            <button type="button" className="drawer-close" onClick={handleCloseAttempt}>&times;</button>
           </div>
 
           <div className="drawer-body">

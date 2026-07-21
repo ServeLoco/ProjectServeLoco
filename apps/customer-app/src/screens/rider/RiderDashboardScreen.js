@@ -32,15 +32,13 @@ import RiderOfferPopup from './RiderOfferPopup';
 
 const STEPS = [
   { key: 'assigned', label: 'Assigned' },
-  { key: 'picked', label: 'Picked up' },
   { key: 'ofd', label: 'On the way' },
   { key: 'done', label: 'Delivered' },
 ];
 
-function stepIndex(status, pickedUp) {
-  if (status === 'Delivered') return 3;
-  if (isOutForDelivery(status)) return 2;
-  if (pickedUp) return 1;
+function stepIndex(status) {
+  if (status === 'Delivered') return 2;
+  if (isOutForDelivery(status)) return 1;
   return 0;
 }
 
@@ -436,11 +434,6 @@ export default function RiderDashboardScreen({ navigation }) {
     }
   }, [fetchAll]);
 
-  const handlePickedUp = useCallback(() => {
-    if (!assignment?.id) return;
-    runAction('picked_up', () => riderApi.markPickedUp(assignment.id));
-  }, [assignment, runAction]);
-
   const handleOutForDelivery = useCallback(() => {
     if (!assignment?.id) return;
     runAction('ofd', () => riderApi.updateStatus(assignment.id, 'Out for Delivery'));
@@ -478,7 +471,8 @@ export default function RiderDashboardScreen({ navigation }) {
   const actionFlags = assignment ? getRiderActionFlags(assignment) : null;
   const pickedUp = actionFlags?.pickedUp || false;
   const status = actionFlags?.status || assignment?.status;
-  const currentStep = stepIndex(status, pickedUp);
+  const currentStep = stepIndex(status);
+  const isFastDelivery = assignment?.deliveryType === 'fast' || assignment?.delivery_type === 'fast';
   const displayName = rider?.displayName || rider?.display_name || 'Rider';
 
   return (
@@ -632,6 +626,11 @@ export default function RiderDashboardScreen({ navigation }) {
                   <Text style={styles.jobOrderNum}>
                     #{assignment.orderNumber || assignment.order_number}
                   </Text>
+                  <View style={[styles.deliveryTypeBadge, isFastDelivery && styles.deliveryTypeBadgeFast]}>
+                    <Text style={[styles.deliveryTypeBadgeText, isFastDelivery && styles.deliveryTypeBadgeTextFast]}>
+                      {isFastDelivery ? 'Fast' : 'Standard'}
+                    </Text>
+                  </View>
                 </View>
                 <View style={[
                   styles.statusChip,
@@ -698,12 +697,20 @@ export default function RiderDashboardScreen({ navigation }) {
                   {assignment.items.map((it, idx) => {
                     const variant = it.variantLabel || it.variant_label;
                     return (
-                      <Text key={it.id ?? idx} style={styles.itemLine} numberOfLines={1}>
-                        {it.quantity}x {it.productName || it.product_name}
-                        {variant ? ` (${variant})` : ''}
-                      </Text>
+                      <View key={it.id ?? idx} style={styles.itemRow}>
+                        <Text style={styles.itemLine} numberOfLines={1}>
+                          {it.quantity}x {it.productName || it.product_name}
+                          {variant ? ` (${variant})` : ''}
+                        </Text>
+                      </View>
                     );
                   })}
+                  {assignment.total != null ? (
+                    <View style={styles.totalRow}>
+                      <Text style={styles.totalLabel}>Order total</Text>
+                      <Text style={styles.totalValue}>₹{Number(assignment.total).toFixed(0)}</Text>
+                    </View>
+                  ) : null}
                 </View>
               ) : null}
 
@@ -744,15 +751,6 @@ export default function RiderDashboardScreen({ navigation }) {
 
               {/* Primary action stack — same rules as map sheet (getRiderActionFlags) */}
               <View style={styles.actionsCol}>
-                {actionFlags?.showPickedUp ? (
-                  <PrimaryBtn
-                    label="Mark picked up"
-                    icon="check"
-                    busy={actionBusy === 'picked_up'}
-                    onPress={handlePickedUp}
-                    variant="saffron"
-                  />
-                ) : null}
                 {actionFlags?.showOutForDelivery ? (
                   <PrimaryBtn
                     label="Out for delivery"
@@ -1149,6 +1147,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   jobOrderNum: { ...typography.h2, fontSize: 22, color: colors.textPrimary },
+  deliveryTypeBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.infoLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginTop: 4,
+  },
+  deliveryTypeBadgeFast: { backgroundColor: colors.saffron },
+  deliveryTypeBadgeText: { fontSize: 10, fontWeight: '800', color: colors.info },
+  deliveryTypeBadgeTextFast: { color: colors.textInverse },
   statusChip: {
     backgroundColor: colors.surfaceMuted,
     borderRadius: radius.pill,
@@ -1248,12 +1257,31 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: spacing.xs,
   },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: 2,
+  },
   itemLine: {
     ...typography.body,
     color: colors.textPrimary,
     fontWeight: '600',
-    marginBottom: 2,
+    flex: 1,
   },
+  itemPrice: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
+  totalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+    paddingTop: spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  totalLabel: { ...typography.body, color: colors.textSecondary, fontWeight: '600' },
+  totalValue: { ...typography.body, color: colors.textPrimary, fontWeight: '800' },
 
   customerRow: {
     flexDirection: 'row',

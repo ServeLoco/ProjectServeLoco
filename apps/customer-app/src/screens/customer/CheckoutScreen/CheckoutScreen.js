@@ -55,7 +55,7 @@ const GPS_ERROR_SETTINGS = 'GPS_SETTINGS';
 const WIN_H = Dimensions.get('window').height;
 // Default drawer height (collapsed). Raise this fraction to start the sheet higher.
 // Pull up further to expand payment / summary.
-const SHEET_COLLAPSED = Math.round(WIN_H * 0.40);
+const SHEET_COLLAPSED = Math.round(WIN_H * 0.45);
 const SHEET_EXPANDED = Math.round(WIN_H * 0.74);
 const SHEET_MID = (SHEET_COLLAPSED + SHEET_EXPANDED) / 2;
 
@@ -392,8 +392,8 @@ export default function CheckoutScreen() {
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  // Inline section errors (delivery / payment) — not the bottom red banner.
-  const [deliveryError, setDeliveryError] = useState(null);
+  // Inline section error (payment) — not the bottom red banner. Delivery has
+  // no equivalent: Fast is an optional add-on, nothing to validate there.
   const [paymentError, setPaymentError] = useState(null);
   const sectionOffsetsRef = useRef({ delivery: 0, payment: 0 });
   const [showCodNightModal, setShowCodNightModal] = useState(false);
@@ -437,12 +437,11 @@ export default function CheckoutScreen() {
   const deliveryOpacity = useRef(new Animated.Value(0)).current;
   const paymentOpacity = useRef(new Animated.Value(0)).current;
   const summaryOpacity = useRef(new Animated.Value(0)).current;
-  const deliveryShakeX = useRef(new Animated.Value(0)).current;
   const paymentShakeX = useRef(new Animated.Value(0)).current;
-  const deliveryErrorPulse = useRef(new Animated.Value(0)).current;
   const paymentErrorPulse = useRef(new Animated.Value(0)).current;
   const btnScale = useRef(new Animated.Value(1)).current;
   const arrowAnim = useRef(new Animated.Value(0)).current;
+  const locationWarnPulse = useRef(new Animated.Value(0)).current;
   const gpsIconScale = useRef(new Animated.Value(1)).current;
   const manualIconScale = useRef(new Animated.Value(1)).current;
   const addressTouchedRef = useRef(false);
@@ -500,14 +499,27 @@ export default function CheckoutScreen() {
   const pickDeliveryType = useCallback((type) => {
     animateSectionChoice();
     setDeliveryType(type);
-    setDeliveryError(null);
   }, [animateSectionChoice]);
 
   const pickPaymentMethod = useCallback((method) => {
     animateSectionChoice();
     setPaymentMethod(method);
     setPaymentError(null);
-  }, [animateSectionChoice]);
+    if (method === 'UPI') {
+      // QR block only mounts now (conditional on paymentMethod) — give it a
+      // beat to render + lay out before measuring/scrolling to it.
+      setTimeout(() => scrollToCheckoutSection('upiQr'), 120);
+    } else if (method === 'Cash') {
+      // Order Summary is the last section — pinning its top edge to the
+      // viewport top (like scrollToCheckoutSection does) leaves the section's
+      // own short height as blank space below it, above the footer. Scroll
+      // to the true end of content instead so the summary sits flush with
+      // the bottom of the sheet, no dead space.
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd?.({ animated: true });
+      }, 0);
+    }
+  }, [animateSectionChoice, scrollToCheckoutSection]);
 
   // Profile has no saved address — fall back to the address on the user's
   // most recent order so they don't have to retype it from scratch.
@@ -650,6 +662,24 @@ export default function CheckoutScreen() {
       arrowLoop.stop();
     };
   }, [arrowAnim]);
+
+  // Pulsing warning loop for the top-of-map "location off" chip.
+  useEffect(() => {
+    if (hasLocationPermission) return undefined;
+    locationWarnPulse.setValue(0);
+    // useNativeDriver: false — this value drives borderColor/shadowOpacity
+    // (non-transform props), which the native driver can't animate.
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(locationWarnPulse, { toValue: 1, duration: 550, useNativeDriver: false }),
+        Animated.timing(locationWarnPulse, { toValue: 0, duration: 550, useNativeDriver: false }),
+      ])
+    );
+    pulseLoop.start();
+    return () => {
+      pulseLoop.stop();
+    };
+  }, [hasLocationPermission, locationWarnPulse]);
 
   useEffect(() => {
     let isActive = true;
@@ -802,22 +832,15 @@ export default function CheckoutScreen() {
     }).start();
   }, [sheetHeightAnim]);
 
-  const focusSectionError = useCallback((key, message) => {
+  // Only the payment section has an inline validation error now — Fast
+  // Delivery is an optional add-on with nothing to require.
+  const focusSectionError = useCallback((message) => {
     snapSheet(true);
     setSubmitError(null);
-    if (key === 'delivery') {
-      setDeliveryError(message);
-      setPaymentError(null);
-      runSectionErrorAnim(deliveryShakeX, deliveryErrorPulse);
-    } else {
-      setPaymentError(message);
-      setDeliveryError(null);
-      runSectionErrorAnim(paymentShakeX, paymentErrorPulse);
-    }
-    setTimeout(() => scrollToCheckoutSection(key), 300);
+    setPaymentError(message);
+    runSectionErrorAnim(paymentShakeX, paymentErrorPulse);
+    setTimeout(() => scrollToCheckoutSection('payment'), 300);
   }, [
-    deliveryErrorPulse,
-    deliveryShakeX,
     paymentErrorPulse,
     paymentShakeX,
     runSectionErrorAnim,
@@ -900,6 +923,39 @@ export default function CheckoutScreen() {
     });
     return () => sub.remove();
   }, [gpsError]);
+
+  // Standalone permission check for the top-of-map "Enable location" chip —
+  // independent of gpsStatus/gpsError, which only populate after the user
+  // has already tried an action (recenter, confirm). Re-checked whenever the
+  // app comes back to foreground (e.g. returning from device Settings).
+  const [hasLocationPermission, setHasLocationPermission] = useState(true);
+  useEffect(() => {
+    let isActive = true;
+    const checkPermission = async () => {
+      try {
+        const existing = await Location.getForegroundPermissionsAsync();
+        if (isActive) setHasLocationPermission(Boolean(existing?.granted));
+      } catch (_) { /* ignore */ }
+    };
+    checkPermission();
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') checkPermission();
+    });
+    return () => {
+      isActive = false;
+      sub.remove();
+    };
+  }, []);
+
+  const handleEnableLocationPress = useCallback(async () => {
+    const result = await requestPreciseLocationPermission();
+    if (result.granted) {
+      setHasLocationPermission(true);
+      locationPickerRef.current?.locateToLive?.();
+      return;
+    }
+    openAppLocationSettings();
+  }, []);
 
   // Error bar: open Settings or clear error so user can tap recenter FAB.
   const openLocationPicker = async () => {
@@ -1114,12 +1170,10 @@ export default function CheckoutScreen() {
       return;
     }
     // Section-first validation: inline errors + scroll, not the bottom red box.
-    if (bill?.fastDeliveryEnabled && !deliveryType) {
-      focusSectionError('delivery', 'Please choose Standard or Fast delivery');
-      return;
-    }
+    // Fast Delivery is an optional add-on now (Standard always applies), so
+    // there's nothing to require here — only payment method is mandatory.
     if (!paymentMethod) {
-      focusSectionError('payment', 'Please choose how you would like to pay');
+      focusSectionError('Please choose how you would like to pay');
       return;
     }
     if (shopStatus === 'closed') {
@@ -1140,7 +1194,6 @@ export default function CheckoutScreen() {
 
     isSubmittingRef.current = true;
     setSubmitError(null);
-    setDeliveryError(null);
     setPaymentError(null);
     setIsSubmitting(true);
 
@@ -1241,10 +1294,9 @@ export default function CheckoutScreen() {
   const sheetStatusText = useMemo(() => {
     if (!mapMode) return 'Enter delivery address';
     if (!sheetExpanded) return 'Drag map to set pin · Confirm when ready';
-    if (bill?.fastDeliveryEnabled && !deliveryType) return 'Choose delivery speed';
     if (!paymentMethod) return 'Choose payment method';
     return 'Review & place your order';
-  }, [mapMode, sheetExpanded, bill?.fastDeliveryEnabled, deliveryType, paymentMethod]);
+  }, [mapMode, sheetExpanded, paymentMethod]);
 
   return (
     <View style={styles.immersiveRoot}>
@@ -1267,6 +1319,55 @@ export default function CheckoutScreen() {
             onLocateStatus={handleLocateStatus}
             onPinMoved={handlePinMoved}
           />
+          {!hasLocationPermission ? (
+            <View
+              style={[styles.locationPermissionRow, { top: Math.max(insets.top, spacing.md) + spacing.sm }]}
+              pointerEvents="box-none"
+            >
+              <TouchableOpacity
+                onPress={handleEnableLocationPress}
+                activeOpacity={0.9}
+                accessibilityRole="button"
+                accessibilityLabel="Enable location access"
+              >
+                <Animated.View
+                  style={[
+                    styles.locationPermissionBtn,
+                    {
+                      transform: [
+                        {
+                          scale: locationWarnPulse.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [1, 1.06],
+                          }),
+                        },
+                      ],
+                      shadowOpacity: locationWarnPulse.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.12, 0.35],
+                      }),
+                      borderColor: locationWarnPulse.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [colors.error + '30', colors.error],
+                      }),
+                    },
+                  ]}
+                >
+                  <Animated.View
+                    style={{
+                      opacity: locationWarnPulse.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.55, 1],
+                      }),
+                    }}
+                  >
+                    <AppIcon name="warning" size={14} color={colors.error} />
+                  </Animated.View>
+                  <Text style={styles.locationPermissionBtnText}>Location permission off — Tap to enable</Text>
+                </Animated.View>
+              </TouchableOpacity>
+            </View>
+          ) : null}
           {mapToast ? (
             <View
               style={[styles.mapStatusChipRow, { top: Math.max(insets.top, spacing.md) + spacing.sm }]}
@@ -1441,210 +1542,78 @@ export default function CheckoutScreen() {
         {/* Full form only when sheet is pulled up (or manual mode fills the screen). */}
         {(sheetExpanded || !mapMode) ? (
         <>
-        {/* Delivery Type Selector — open chips, no card chrome.
-            Free-delivery coupons apply to Standard only; Fast is always charged. */}
-        {bill?.fastDeliveryEnabled && (() => {
-          // Standard is FREE when settings charge is 0 OR a free-delivery coupon
-          // (pure free_delivery or also_free_delivery) is applied on this bill.
-          // When Fast is selected the API drops free-delivery, so isFreeDeliveryApplied
-          // is only true for the Standard path — but the chip still shows FREE whenever
-          // the cart's applied coupon includes a free-delivery benefit, so users see
-          // Standard is the free option before switching back.
-          const standardWasFreeByCoupon = Boolean(
-            bill.isFreeDeliveryApplied
-            || Number(bill.appliedCoupon?.freeDeliveryWaiver || 0) > 0
-            || bill.appliedCoupon?.discountType === 'free_delivery'
-            || bill.appliedCoupon?.alsoFreeDelivery,
-          );
-          // When Fast is selected free-del is stripped server-side; still treat Standard
-          // as free if cart store still holds a free-del coupon that will re-apply on switch.
-          const cartCouponIsFreeDel = Boolean(
-            appliedCoupon
-            && (
-              appliedCoupon.discountType === 'free_delivery'
-              || appliedCoupon.alsoFreeDelivery
-              || Number(appliedCoupon.freeDeliveryWaiver || 0) > 0
-            ),
-          );
-          const standardIsFree = Number(bill.standardDeliveryCharge) === 0
-            || standardWasFreeByCoupon
-            || cartCouponIsFreeDel;
-          const standardListPrice = Number(bill.standardDeliveryCharge) || 0;
-          const showStandardStrike = standardIsFree && standardListPrice > 0;
-
-          const renderStandardPrice = (selected) => {
-            if (!standardIsFree) {
-              return (
-                <Text numberOfLines={1} style={selected ? styles.deliveryTypePriceOn : styles.deliveryTypePrice}>
-                  {standardListPrice === 0 ? 'FREE' : `₹${standardListPrice}`}
-                </Text>
-              );
-            }
-            return (
-              <View style={styles.deliveryTypePriceRow}>
-                {showStandardStrike ? (
-                  <Text
-                    numberOfLines={1}
-                    style={selected ? styles.deliveryTypePriceStrikeOn : styles.deliveryTypePriceStrike}
-                  >
-                    {`₹${standardListPrice}`}
-                  </Text>
-                ) : null}
-                <Text
-                  numberOfLines={1}
-                  style={selected ? styles.deliveryTypePriceFreeOn : styles.deliveryTypePriceFree}
-                >
-                  FREE
-                </Text>
-              </View>
-            );
-          };
-
-          return (
+        {/* Fast Delivery — optional add-on, not a replacement for Standard.
+            Standard delivery always applies (and free-delivery coupons still
+            waive it exactly as before); Fast just adds its fee on top. */}
+        {bill?.fastDeliveryEnabled && (
           <Animated.View
             onLayout={(e) => {
               sectionOffsetsRef.current.delivery = e.nativeEvent.layout.y;
             }}
             style={[
               styles.deliverySpeedSection,
-              deliveryError && styles.sectionErrorWrap,
               {
                 opacity: deliveryOpacity,
-                transform: [
-                  { translateY: deliverySlide },
-                  { translateX: deliveryShakeX },
-                ],
+                transform: [{ translateY: deliverySlide }],
               },
             ]}
           >
             <View style={styles.sectionHead}>
-              <Animated.View
-                style={[
-                  styles.sectionAccent,
-                  deliveryError && styles.sectionAccentError,
-                  deliveryError && {
-                    opacity: deliveryErrorPulse.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.45, 1],
-                    }),
-                  },
-                ]}
-              />
+              <View style={styles.sectionAccent} />
               <View style={styles.sectionHeadText}>
-                <Text style={[styles.sectionTitle, deliveryError && styles.sectionTitleError]}>
-                  Delivery Speed
-                </Text>
+                <Text style={styles.sectionTitle}>Fast Delivery</Text>
                 <Text style={styles.sectionSubtitle}>
-                  {standardIsFree
-                    ? 'Free delivery on Standard · Fast is charged'
-                    : 'Choose how fast you need it'}
+                  Optional priority add-on on top of standard delivery
                 </Text>
               </View>
             </View>
-            {deliveryError ? (
-              <View style={styles.sectionErrorRow} accessibilityLiveRegion="polite">
-                <AppIcon name="warning" size={14} color={colors.error} />
-                <Text style={styles.sectionErrorText}>{deliveryError}</Text>
-              </View>
-            ) : null}
-            <View style={styles.deliveryTypeRow}>
-              {/* Standard */}
-              <View style={styles.deliveryTypeChipWrap}>
-                <PressableScale
-                  style={styles.deliveryTypeChipPressable}
-                  onPress={() => pickDeliveryType('standard')}
-                  scaleTo={0.96}
-                  accessibilityRole="button"
-                  accessibilityLabel={standardIsFree ? 'Standard delivery, free' : 'Standard delivery'}
-                  accessibilityState={{ selected: deliveryType === 'standard' }}
+            <PressableScale
+              style={styles.fastTogglePressable}
+              onPress={() => pickDeliveryType(deliveryType === 'fast' ? 'standard' : 'fast')}
+              scaleTo={0.98}
+              accessibilityRole="switch"
+              accessibilityLabel={`Add Fast Delivery, plus ₹${bill.fastDeliveryCharge}`}
+              accessibilityState={{ checked: deliveryType === 'fast' }}
+            >
+              {deliveryType === 'fast' ? (
+                <LinearGradient
+                  colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.fastToggleCard, styles.chip3dSelected]}
                 >
-                  {deliveryType === 'standard' ? (
-                    <LinearGradient
-                      colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={[styles.deliveryTypeChip, styles.chip3dSelected]}
-                    >
-                      <Text style={styles.deliveryTypeEmojiOn}>🕐</Text>
-                      <View style={styles.deliveryTypeTextBlock}>
-                        <Text numberOfLines={1} style={styles.deliveryTypeTitleOn}>Standard</Text>
-                        <Text numberOfLines={1} style={styles.deliveryTypeTimeOn}>
-                          {formatEtaMinutes(bill.standardDeliveryMinutes) || '—'}
-                        </Text>
-                      </View>
-                      {renderStandardPrice(true)}
-                    </LinearGradient>
-                  ) : (
-                    <View style={[
-                      styles.deliveryTypeChip,
-                      styles.chip3dIdle,
-                      deliveryError && styles.chip3dIdleError,
-                    ]}>
-                      <Text style={styles.deliveryTypeEmoji}>🕐</Text>
-                      <View style={styles.deliveryTypeTextBlock}>
-                        <Text numberOfLines={1} style={styles.deliveryTypeTitle}>Standard</Text>
-                        <Text numberOfLines={1} style={styles.deliveryTypeTime}>
-                          {formatEtaMinutes(bill.standardDeliveryMinutes) || '—'}
-                        </Text>
-                      </View>
-                      {renderStandardPrice(false)}
-                    </View>
-                  )}
-                </PressableScale>
-              </View>
-
-              {/* Fast — always full price; free-delivery coupons never apply here */}
-              <View style={styles.deliveryTypeChipWrap}>
-                <PressableScale
-                  style={styles.deliveryTypeChipPressable}
-                  onPress={() => pickDeliveryType('fast')}
-                  scaleTo={0.96}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Fast delivery, ₹${bill.fastDeliveryCharge}`}
-                  accessibilityState={{ selected: deliveryType === 'fast' }}
-                >
-                  {deliveryType === 'fast' ? (
-                    <LinearGradient
-                      colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={[styles.deliveryTypeChip, styles.chip3dSelected]}
-                    >
-                      <Text style={styles.deliveryTypeEmojiOn}>⚡</Text>
-                      <View style={styles.deliveryTypeTextBlock}>
-                        <Text numberOfLines={1} style={styles.deliveryTypeTitleOn}>Fast</Text>
-                        <Text numberOfLines={1} style={styles.deliveryTypeTimeOn}>
-                          {formatEtaMinutes(bill.fastDeliveryMinutes) || '—'}
-                        </Text>
-                      </View>
-                      <Text numberOfLines={1} style={styles.deliveryTypePriceOn}>
-                        ₹{bill.fastDeliveryCharge}
-                      </Text>
-                    </LinearGradient>
-                  ) : (
-                    <View style={[
-                      styles.deliveryTypeChip,
-                      styles.chip3dIdle,
-                      deliveryError && styles.chip3dIdleError,
-                    ]}>
-                      <Text style={styles.deliveryTypeEmoji}>⚡</Text>
-                      <View style={styles.deliveryTypeTextBlock}>
-                        <Text numberOfLines={1} style={styles.deliveryTypeTitle}>Fast</Text>
-                        <Text numberOfLines={1} style={styles.deliveryTypeTime}>
-                          {formatEtaMinutes(bill.fastDeliveryMinutes) || '—'}
-                        </Text>
-                      </View>
-                      <Text numberOfLines={1} style={styles.deliveryTypePrice}>
-                        ₹{bill.fastDeliveryCharge}
-                      </Text>
-                    </View>
-                  )}
-                </PressableScale>
-              </View>
-            </View>
+                  <Text style={styles.deliveryTypeEmojiOn}>⚡</Text>
+                  <View style={styles.fastToggleTextBlock}>
+                    <Text numberOfLines={1} style={styles.deliveryTypeTitleOn}>Add Fast Delivery</Text>
+                    <Text numberOfLines={1} style={styles.deliveryTypeTimeOn}>
+                      Arrives in {formatEtaMinutes(bill.fastDeliveryMinutes) || '—'}
+                    </Text>
+                  </View>
+                  <Text numberOfLines={1} style={styles.deliveryTypePriceOn}>
+                    Extra ₹{bill.fastDeliveryCharge}
+                  </Text>
+                  <View style={styles.fastToggleCheck}>
+                    <AppIcon name="check" size={14} color={colors.btnHighlightEnd} />
+                  </View>
+                </LinearGradient>
+              ) : (
+                <View style={[styles.fastToggleCard, styles.chip3dIdle]}>
+                  <Text style={styles.deliveryTypeEmoji}>⚡</Text>
+                  <View style={styles.fastToggleTextBlock}>
+                    <Text numberOfLines={1} style={styles.deliveryTypeTitle}>Add Fast Delivery</Text>
+                    <Text numberOfLines={1} style={styles.deliveryTypeTime}>
+                      Arrives in {formatEtaMinutes(bill.fastDeliveryMinutes) || '—'}
+                    </Text>
+                  </View>
+                  <Text numberOfLines={1} style={styles.deliveryTypePrice}>
+                    Extra ₹{bill.fastDeliveryCharge}
+                  </Text>
+                  <View style={styles.fastToggleCheckOff} />
+                </View>
+              )}
+            </PressableScale>
           </Animated.View>
-          );
-        })()}
+        )}
 
         {/* Payment Method — unboxed bold chips */}
         <Animated.View
@@ -1840,7 +1809,16 @@ export default function CheckoutScreen() {
             )}
 
             {paymentMethod === 'UPI' && (
-              <View style={styles.upiBlock}>
+              <View
+                style={styles.upiBlock}
+                onLayout={(e) => {
+                  // Relative to the payment section (its own parent), not the
+                  // scroll content root — add the payment section's own
+                  // offset (already captured) to get an absolute scroll-to Y.
+                  sectionOffsetsRef.current.upiQr =
+                    (sectionOffsetsRef.current.payment || 0) + e.nativeEvent.layout.y;
+                }}
+              >
                 <Text style={styles.upiBlockTitle}>Complete UPI Payment</Text>
                 <Text style={styles.upiBlockSubtitle}>
                   Scan with PhonePe, GPay, Paytm, or any UPI app
@@ -1917,6 +1895,9 @@ export default function CheckoutScreen() {
 
         {/* Order Summary — open bill, bold total */}
         <Animated.View
+          onLayout={(e) => {
+            sectionOffsetsRef.current.summary = e.nativeEvent.layout.y;
+          }}
           style={[
             styles.summarySection,
             { opacity: summaryOpacity, transform: [{ translateY: summarySlide }] },
@@ -1946,12 +1927,10 @@ export default function CheckoutScreen() {
                   <Text style={styles.summaryValue}>₹{bill.subtotal}</Text>
                 </View>
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>
-                    {bill.deliveryType === 'fast' ? 'Fast Delivery' : 'Delivery Charge'}
-                  </Text>
-                  {/* FREE only when free-delivery actually waived this bill's delivery
-                      (Standard + free-del coupon). Fast always shows the charged fee. */}
-                  {bill.isFreeDeliveryApplied && bill.deliveryType !== 'fast' ? (
+                  <Text style={styles.summaryLabel}>Delivery Charge</Text>
+                  {/* Delivery Charge is always the standard fee — Fast is a
+                      separate additive line below, never discounted. */}
+                  {bill.isFreeDeliveryApplied ? (
                     <View style={styles.freeDeliveryValueRow}>
                       <Text style={styles.summaryStrikethrough}>₹{bill.deliveryCharge}</Text>
                       <Text style={[styles.summaryValue, styles.freeDeliveryText]}>FREE</Text>
@@ -1960,17 +1939,28 @@ export default function CheckoutScreen() {
                     <Text style={styles.summaryValue}>₹{bill.deliveryCharge}</Text>
                   )}
                 </View>
+                {bill.fastDeliveryFee > 0 && (
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Fast Delivery Add-on</Text>
+                    <Text style={styles.summaryValue}>₹{bill.fastDeliveryFee}</Text>
+                  </View>
+                )}
                 {bill.nightCharge > 0 && (
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Night Charge</Text>
                     <Text style={styles.summaryValue}>₹{bill.nightCharge}</Text>
                   </View>
                 )}
+                {bill.rainCharge > 0 && (
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Rain Charge</Text>
+                    <Text style={styles.summaryValue}>₹{bill.rainCharge}</Text>
+                  </View>
+                )}
                 {(() => {
                   // When free-del fully covers delivery, Discount row is item-only
-                  // (free-del is shown on the Delivery line as FREE). On Fast,
-                  // free-del is not applied so show the full discount.
-                  const discountToShow = (bill.isFreeDeliveryApplied && bill.deliveryType !== 'fast')
+                  // (free-del is shown on the Delivery line as FREE).
+                  const discountToShow = bill.isFreeDeliveryApplied
                     ? bill.itemDiscount
                     : bill.discount;
                   if (!(discountToShow > 0)) return null;
@@ -2257,6 +2247,31 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   // Compact floating pill on the map (loading / location set).
+  locationPermissionRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 6,
+  },
+  locationPermissionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderWidth: 1,
+    borderColor: colors.error + '55',
+    ...shadows.sm,
+  },
+  locationPermissionBtnText: {
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: '700',
+    color: colors.error,
+  },
   mapStatusChipRow: {
     position: 'absolute',
     top: spacing.md,
@@ -2723,34 +2738,38 @@ const styles = StyleSheet.create({
   deliverySpeedSection: {
     marginBottom: spacing.lg,
   },
-  deliveryTypeRow: {
+  fastTogglePressable: {
+    width: '100%',
+  },
+  fastToggleCard: {
+    width: '100%',
     flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: spacing.sm,
-    overflow: 'visible',
-  },
-  deliveryTypeChipWrap: {
-    flex: 1,
-    overflow: 'visible',
-  },
-  deliveryTypeChipPressable: {
-    width: '100%',
-  },
-  deliveryTypeChip: {
-    width: '100%',
-    height: 124,
+    alignItems: 'center',
     borderRadius: radius.xl,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
   },
-  deliveryTypeTextBlock: {
-    width: '100%',
-    alignItems: 'center',
+  fastToggleTextBlock: {
+    flex: 1,
+    alignItems: 'flex-start',
     justifyContent: 'center',
     gap: 2,
-    minHeight: 36,
+  },
+  fastToggleCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.bgSurface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fastToggleCheckOff: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: 'rgba(0,0,0,0.14)',
   },
   deliveryTypeEmoji: {
     fontSize: 22,
@@ -2797,39 +2816,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textAlign: 'center',
   },
-  deliveryTypePriceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    maxWidth: '100%',
-  },
-  deliveryTypePriceStrike: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textDecorationLine: 'line-through',
-    fontWeight: '600',
-  },
-  deliveryTypePriceStrikeOn: {
-    ...typography.caption,
-    color: colors.textInverse,
-    opacity: 0.75,
-    textDecorationLine: 'line-through',
-    fontWeight: '600',
-  },
-  deliveryTypePriceFree: {
-    ...typography.labelLarge,
-    color: colors.success,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  deliveryTypePriceFreeOn: {
-    ...typography.labelLarge,
-    color: colors.textInverse,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-
   upiBlock: {
     marginTop: spacing.md,
     paddingTop: spacing.md,

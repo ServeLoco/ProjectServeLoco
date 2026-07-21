@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { OrdersApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } from '../api';
 import MessageBanner from '../components/MessageBanner';
 import LiveOrderMap from '../components/LiveOrderMap';
+import CreateOrderModal from '../components/CreateOrderModal';
 import { GENERIC_ERROR } from '../utils/constants';
 import { readList } from '../utils/apiResponse';
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
@@ -76,7 +77,10 @@ export default function Orders() {
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [updating, setUpdating] = useState(false);
+  const [remarkDraft, setRemarkDraft] = useState('');
+  const [remarkSaving, setRemarkSaving] = useState(false);
   const [pageMessage, setPageMessage] = useState(null);
+  const [showCreateOrder, setShowCreateOrder] = useState(false);
   const filtersRef = useRef(filters);
   const paginationRef = useRef(pagination);
   const selectedOrderRef = useRef(selectedOrder);
@@ -165,6 +169,12 @@ export default function Orders() {
     window.addEventListener('admin:close-order-drawer', onCloseDrawer);
     return () => window.removeEventListener('admin:close-order-drawer', onCloseDrawer);
   }, []);
+
+  // Reset the remark draft whenever the drawer switches to a different order
+  // (or closes) so a half-typed note doesn't leak onto the next order.
+  useEffect(() => {
+    setRemarkDraft(selectedOrder?.admin_remark || '');
+  }, [selectedOrder?.id]);
 
   useEffect(() => {
     const unsubscribeOrders = subscribeAdminOrderEvents(({ eventName, payload }) => {
@@ -414,6 +424,31 @@ export default function Orders() {
     }
   };
 
+  const handleSaveRemark = async () => {
+    if (!selectedOrder) return;
+    const trimmed = remarkDraft.trim();
+    setRemarkSaving(true);
+    try {
+      const patchRes = await OrdersApi.updateRemark(selectedOrder.id, trimmed);
+      const serverOrder = patchRes?.order;
+      const nextRemark = serverOrder ? serverOrder.admin_remark : (trimmed || null);
+      setSelectedOrder((prev) => (
+        prev ? { ...prev, admin_remark: nextRemark, adminRemark: nextRemark } : prev
+      ));
+      setOrders((prev) => prev.map((o) => (
+        o.id === selectedOrder.id
+          ? mergeAdminOrderPatch(o, { admin_remark: nextRemark })
+          : o
+      )));
+      setRemarkDraft(nextRemark || '');
+    } catch (err) {
+      console.error(err);
+      setError(err?.response?.data?.message || err?.message || GENERIC_ERROR);
+    } finally {
+      setRemarkSaving(false);
+    }
+  };
+
   const handleExportCSV = async () => {
     try {
       setLoading(true);
@@ -438,6 +473,8 @@ export default function Orders() {
         'Subtotal',
         'Delivery Charge',
         'Night Charge',
+        'Rain Charge',
+        'Fast Delivery Add-on',
         'Total',
         'Payment Method',
         'Payment Status',
@@ -454,6 +491,8 @@ export default function Orders() {
         `₹${formatMoney(o.subtotal)}`,
         `₹${formatMoney(o.delivery_charge)}`,
         `₹${formatMoney(o.night_charge || 0)}`,
+        `₹${formatMoney(o.rain_charge || 0)}`,
+        `₹${formatMoney(o.fast_delivery_charge || 0)}`,
         `₹${formatMoney(o.total)}`,
         o.payment_method || '',
         o.payment_status || '',
@@ -548,6 +587,8 @@ export default function Orders() {
           <div>Subtotal: Rs. ${formatMoney(selectedOrder.subtotal)}</div>
           <div>Delivery Charge: Rs. ${formatMoney(selectedOrder.delivery_charge)}</div>
           ${selectedOrder.night_charge > 0 ? `<div>Night Charge: Rs. ${formatMoney(selectedOrder.night_charge)}</div>` : ''}
+          ${selectedOrder.rain_charge > 0 ? `<div>Rain Charge: Rs. ${formatMoney(selectedOrder.rain_charge)}</div>` : ''}
+          ${selectedOrder.fast_delivery_charge > 0 ? `<div>Fast Delivery Add-on: Rs. ${formatMoney(selectedOrder.fast_delivery_charge)}</div>` : ''}
           <div style="margin-top: 10px;"><strong>Grand Total: Rs. ${formatMoney(selectedOrder.total)}</strong></div>
         </div>
         <div style="margin-top: 40px; text-align: center; color: #888; font-size: 12px;">
@@ -606,18 +647,35 @@ export default function Orders() {
           <p className="orders-subtitle">Newest orders are shown first. Open any row to update status, payment, invoice, or delivery details.</p>
         </div>
         <div className="orders-header-actions">
+          <button className="btn-primary" onClick={() => setShowCreateOrder(true)}>
+            + Create Order
+          </button>
           <button className="btn-secondary" onClick={() => fetchOrders(pagination.page)} disabled={loading}>
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
-          <button 
-            className="btn-export" 
-            onClick={handleExportCSV} 
+          <button
+            className="btn-export"
+            onClick={handleExportCSV}
             disabled={loading || orders.length === 0}
           >
             Export CSV
           </button>
         </div>
       </header>
+
+      {showCreateOrder && (
+        <CreateOrderModal
+          onClose={() => setShowCreateOrder(false)}
+          onCreated={(order) => {
+            setShowCreateOrder(false);
+            setPageMessage({
+              type: 'success',
+              text: `Order #${order?.orderNumber || order?.order_number || ''} placed for the customer.`,
+            });
+            fetchOrders(1);
+          }}
+        />
+      )}
 
       <MessageBanner
         type={pageMessage?.type || 'info'}
@@ -718,6 +776,7 @@ export default function Orders() {
               <th>Order #</th>
               <th>Date</th>
               <th>Customer</th>
+              <th>Items Ordered</th>
               <th>Amount</th>
               <th>Status</th>
               <th>Payment</th>
@@ -725,20 +784,41 @@ export default function Orders() {
           </thead>
           <tbody>
             {loading && orders.length === 0 ? (
-              <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>Loading orders...</td></tr>
+              <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>Loading orders...</td></tr>
             ) : orders.length === 0 ? (
-              <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>No orders found.</td></tr>
+              <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>No orders found.</td></tr>
             ) : (
               orders.map(order => (
                 <tr key={order.id} onClick={() => handleRowClick(order.id)}>
                   <td className="order-id">
                     #{order.order_number}
+                    {(order.deliveryType || order.delivery_type) === 'fast' && (
+                      <span className="fast-delivery-tag">⚡ Fast</span>
+                    )}
+                    {(order.adminRemark || order.admin_remark) && (
+                      <span className="admin-remark-tag" title={order.adminRemark || order.admin_remark}>📝 Note</span>
+                    )}
                     <span className="row-hint">Open details</span>
                   </td>
                   <td className="date-cell">{formatDateTime(order.created_at)}</td>
                   <td>
                     <span className="customer-name">{order.customer_name}</span>
                     <span className="customer-phone">{order.phone}</span>
+                  </td>
+                  <td className="items-cell">
+                    {(order.items || []).length === 0 ? (
+                      <span className="row-hint">No items</span>
+                    ) : (
+                      order.items.map((item, idx) => (
+                        <div className="item-line" key={idx}>
+                          <span className="item-line-name">
+                            {item.quantity}x {item.product_name}
+                            {item.variant_label ? ` (${item.variant_label})` : ''}
+                          </span>
+                          <span className="item-line-price">₹{formatMoney(item.line_total)}</span>
+                        </div>
+                      ))
+                    )}
                   </td>
                   <td className="amount-cell">₹{formatMoney(order.total)}</td>
                   <td>
@@ -788,6 +868,11 @@ export default function Orders() {
               <span className={`status-badge ${statusClassName(selectedOrder.status)}`}>
                 {getOrderStatusLabel(selectedOrder.status)}
               </span>
+              {(selectedOrder.deliveryType || selectedOrder.delivery_type) === 'fast' && (
+                <span className="status-badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#b45309' }}>
+                  ⚡ Fast Delivery
+                </span>
+              )}
               <button className="drawer-close" onClick={closeDrawer}>&times;</button>
             </div>
             
@@ -798,7 +883,13 @@ export default function Orders() {
 
               <div className="detail-section">
                 <h4>Customer Details</h4>
-                <div className="detail-row"><span>Name:</span> <strong>{selectedOrder.customer_name}</strong></div>
+                <div className="detail-row">
+                  <span>Name:</span>
+                  <strong>
+                    {selectedOrder.customer_name}
+                    {selectedOrder.customer_trusted && <span className="badge-trusted-inline">✓ Trusted</span>}
+                  </strong>
+                </div>
                 <div className="detail-row"><span>Phone:</span> <strong>{selectedOrder.phone}</strong></div>
                 <div className="detail-row"><span>Address:</span> <strong>{selectedOrder.address}</strong></div>
                 <div className="action-buttons" style={{ flexWrap: 'wrap' }}>
@@ -902,6 +993,28 @@ export default function Orders() {
               </div>
 
               <div className="detail-section">
+                <h4>Admin Remark</h4>
+                <p className="admin-remark-caption">Visible to the shop owner in their order history.</p>
+                <textarea
+                  className="admin-remark-textarea"
+                  value={remarkDraft}
+                  onChange={(e) => setRemarkDraft(e.target.value)}
+                  placeholder="e.g. Delayed — rider shortage in this area"
+                  disabled={remarkSaving}
+                  rows={3}
+                  maxLength={1000}
+                />
+                <button
+                  type="button"
+                  className="admin-remark-save-btn"
+                  onClick={handleSaveRemark}
+                  disabled={remarkSaving || remarkDraft.trim() === (selectedOrder.admin_remark || '').trim()}
+                >
+                  {remarkSaving ? 'Saving…' : 'Save Note'}
+                </button>
+              </div>
+
+              <div className="detail-section">
                 <h4>Items</h4>
                 {selectedOrder.shopConfirmations && selectedOrder.shopConfirmations.length > 0 && (
                   <div style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -945,6 +1058,23 @@ export default function Orders() {
                   <div className="detail-row"><span>Delivery:</span> <strong>₹{formatMoney(selectedOrder.delivery_charge)}</strong></div>
                   {selectedOrder.night_charge > 0 && (
                     <div className="detail-row"><span>Night Charge:</span> <strong>₹{formatMoney(selectedOrder.night_charge)}</strong></div>
+                  )}
+                  {selectedOrder.rain_charge > 0 && (
+                    <div className="detail-row"><span>Rain Charge:</span> <strong>₹{formatMoney(selectedOrder.rain_charge)}</strong></div>
+                  )}
+                  {selectedOrder.fast_delivery_charge > 0 && (
+                    <div className="detail-row"><span>Fast Delivery Add-on:</span> <strong>₹{formatMoney(selectedOrder.fast_delivery_charge)}</strong></div>
+                  )}
+                  <div className="detail-row">
+                    <span>Coupon applied:</span>
+                    <strong>
+                      {(selectedOrder.couponCode || selectedOrder.coupon_code)
+                        ? `${selectedOrder.couponCode || selectedOrder.coupon_code}${(selectedOrder.couponTitle || selectedOrder.coupon_title) ? ` — ${selectedOrder.couponTitle || selectedOrder.coupon_title}` : ''}`
+                        : 'None'}
+                    </strong>
+                  </div>
+                  {Number(selectedOrder.discountAmount ?? selectedOrder.discount_amount) > 0 && (
+                    <div className="detail-row"><span>Discount:</span> <strong>- ₹{formatMoney(selectedOrder.discountAmount ?? selectedOrder.discount_amount)}</strong></div>
                   )}
                   <div className="detail-row" style={{ fontSize: '1.2rem', marginTop: '0.5rem' }}>
                     <span>Total:</span> <strong style={{ color: 'var(--primary-color)' }}>₹{formatMoney(selectedOrder.total)}</strong>

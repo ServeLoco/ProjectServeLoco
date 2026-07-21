@@ -1011,7 +1011,7 @@ export default function LocationPicker({
               {recentering ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <AppIcon name="navigation" size={15} color="#fff" />
+                <AppIcon name="locate" size={15} color="#fff" />
               )}
             </PressableScale>
           </View>

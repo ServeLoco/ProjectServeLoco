@@ -82,6 +82,11 @@ export function mergeAdminOrderPatch(order, payload = {}) {
     next.cancel_reason = payload.cancel_reason ?? payload.cancelReason ?? next.cancel_reason;
   }
 
+  if (payload.admin_remark !== undefined || payload.adminRemark !== undefined) {
+    next.admin_remark = payload.admin_remark ?? payload.adminRemark ?? null;
+    next.adminRemark = next.admin_remark;
+  }
+
   if (updatedAt) {
     next.updated_at = updatedAt;
     next.updatedAt = updatedAt;

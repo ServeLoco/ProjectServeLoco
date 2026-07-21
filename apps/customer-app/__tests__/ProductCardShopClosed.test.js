@@ -1,10 +1,12 @@
 /**
- * Tests for the ProductCard closed-shop treatment.
+ * Tests for the ProductCard closed-shop / product-off treatment.
  *
- * When a product's shop is closed (shopIsOpen === false) the card must
- * still show the product photo and name, but the photo is desaturated,
- * a "Shop closed" label is overlaid just above the vertical center, and
- * the buy control / outer press are locked.
+ * When a product's shop is closed (shopIsOpen === false), or the product
+ * itself is toggled off (available === false), the card must still show
+ * the product photo and name, but the photo is desaturated and a label is
+ * overlaid just above the vertical center — "Shop closed" for the former,
+ * "Temporarily Unavailable" for the latter. Only the shop-closed state
+ * locks the buy control / outer press.
  *
  * These tests use static source assertions (no React render) so they run
  * fast and cannot silently regress when someone refactors the card.
@@ -52,18 +54,28 @@ describe('ProductCard renders closed-shop products as disabled', () => {
     expect(source).toMatch(/onPressOut=\{isShopClosed \? null : handlePressOut\}/);
   });
 
-  it('passes a grayscale filter to the product image when closed', () => {
-    expect(source).toMatch(/filter=\{isShopClosed \? \[\{ grayscale: 1 \}\] : undefined\}/);
+  it('passes a grayscale filter to the product image when closed or out of stock', () => {
+    expect(source).toMatch(/isGrayedOut\s*=\s*isShopClosed \|\| isUnavailable/);
+    expect(source).toMatch(/filter=\{isGrayedOut \? \[\{ grayscale: 1 \}\] : undefined\}/);
   });
 
-  it('overlays a semi-transparent white wash when the shop is closed', () => {
+  it('overlays a semi-transparent white wash when the shop is closed or out of stock', () => {
     expect(source).toMatch(/closedWash/);
     expect(source).toMatch(/rgba\(255,255,255,0\.45\)/);
+    expect(source).toMatch(/\{isGrayedOut \? \(/);
   });
 
   it('renders a "Shop closed" label near the vertical center of the card', () => {
     expect(source).toMatch(/Shop closed/);
     expect(source).toMatch(/top:\s*['"]38%['"]/);
+  });
+
+  it('renders a "Temporarily Unavailable" label for out-of-stock (but shop-open) products', () => {
+    expect(source).toMatch(/Temporarily Unavailable/);
+  });
+
+  it('does not render a separate dark out-of-stock wash anymore', () => {
+    expect(source).not.toMatch(/oosWash/);
   });
 
   it('hides the discount ribbon when the shop is closed', () => {

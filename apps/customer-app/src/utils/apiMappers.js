@@ -248,6 +248,8 @@ function normalizeCartCalculation(payload = {}) {
     subtotal: numberOrZero(pickFirst(bill.subtotal, bill.itemTotal, bill.item_total)),
     deliveryCharge: numberOrZero(pickFirst(bill.deliveryCharge, bill.delivery_charge)),
     nightCharge: numberOrZero(pickFirst(bill.nightCharge, bill.night_charge)),
+    rainCharge: numberOrZero(pickFirst(bill.rainCharge, bill.rain_charge)),
+    fastDeliveryFee: numberOrZero(pickFirst(bill.fastDeliveryFee, bill.fast_delivery_fee)),
     discount: numberOrZero(pickFirst(bill.discount, bill.discountAmount, bill.discount_amount)),
     itemDiscount: numberOrZero(pickFirst(bill.itemDiscount, bill.item_discount)),
     isFreeDeliveryApplied: asBoolean(pickFirst(bill.isFreeDeliveryApplied, bill.is_free_delivery_applied), false),
@@ -450,6 +452,8 @@ function normalizeOrder(order = {}) {
   const subtotal = numberOrZero(pickFirst(bill.subtotal, order.subtotal, order.itemTotal, order.item_total));
   const delivery = numberOrZero(pickFirst(bill.delivery, bill.deliveryCharge, bill.delivery_charge, order.deliveryCharge, order.delivery_charge));
   const nightCharge = numberOrZero(pickFirst(bill.nightCharge, bill.night_charge, order.nightCharge, order.night_charge));
+  const rainCharge = numberOrZero(pickFirst(bill.rainCharge, bill.rain_charge, order.rainCharge, order.rain_charge));
+  const fastDeliveryFee = numberOrZero(pickFirst(bill.fastDeliveryFee, bill.fast_delivery_fee, order.fastDeliveryFee, order.fast_delivery_charge));
   const discount = numberOrZero(pickFirst(bill.discount, bill.discountAmount, order.discount, order.discount_amount));
   const freeDeliveryWaiver = numberOrZero(pickFirst(
     bill.freeDeliveryWaiver, bill.free_delivery_waiver_amount,
@@ -519,6 +523,8 @@ function normalizeOrder(order = {}) {
       subtotal,
       delivery,
       nightCharge,
+      rainCharge,
+      fastDeliveryFee,
       discount,
       freeDeliveryWaiver,
       itemDiscount,

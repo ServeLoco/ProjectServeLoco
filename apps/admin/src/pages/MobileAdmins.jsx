@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MobileAdminsApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { GENERIC_ERROR } from '../utils/constants';
@@ -33,20 +33,34 @@ export default function MobileAdmins() {
     fetchMobileAdmins();
   }, [fetchMobileAdmins]);
 
+  // Snapshot what the form looked like when the drawer opened, so an
+  // accidental overlay click can be told apart from a real "I'm done" close.
+  const initialFormRef = useRef({ phone: '', displayName: '' });
+
   const openCreate = () => {
     setEditingId(null);
     setPhone('');
     setDisplayName('');
     setFormError(null);
+    initialFormRef.current = { phone: '', displayName: '' };
     setDrawerOpen(true);
   };
 
   const openEdit = (admin) => {
+    const initialPhone = admin.phone || '';
+    const initialDisplayName = admin.displayName || admin.display_name || '';
     setEditingId(admin.id);
-    setPhone(admin.phone || '');
-    setDisplayName(admin.displayName || admin.display_name || '');
+    setPhone(initialPhone);
+    setDisplayName(initialDisplayName);
     setFormError(null);
+    initialFormRef.current = { phone: initialPhone, displayName: initialDisplayName };
     setDrawerOpen(true);
+  };
+
+  const closeDrawerAttempt = () => {
+    const isDirty = phone !== initialFormRef.current.phone || displayName !== initialFormRef.current.displayName;
+    if (isDirty && !window.confirm('Discard unsaved changes to this mobile admin?')) return;
+    setDrawerOpen(false);
   };
 
   const submit = async (e) => {
@@ -167,7 +181,7 @@ export default function MobileAdmins() {
       </section>
 
       {drawerOpen && (
-        <div className="shop-drawer-overlay" onClick={() => setDrawerOpen(false)} role="presentation">
+        <div className="shop-drawer-overlay" onClick={closeDrawerAttempt} role="presentation">
           <div
             className="shop-drawer"
             onClick={(e) => e.stopPropagation()}
@@ -176,7 +190,7 @@ export default function MobileAdmins() {
           >
             <header className="shop-drawer-header">
               <h2>{editingId ? 'Edit mobile admin' : 'Add mobile admin'}</h2>
-              <button type="button" className="btn-secondary" onClick={() => setDrawerOpen(false)}>
+              <button type="button" className="btn-secondary" onClick={closeDrawerAttempt}>
                 Close
               </button>
             </header>

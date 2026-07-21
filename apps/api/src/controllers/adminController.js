@@ -7,6 +7,7 @@ const {
   notifyShopsForOrder,
   notifyShopsOrderCancelled,
   notifyShopsOrderStatusChanged,
+  notifyShopsOrderRemarkUpdated,
 } = require('../utils/shops');
 const realtimeEvents = require('../realtime/orderEvents');
 const { emitToCustomer, emitToAdmins } = require('../realtime/socket');
@@ -14,6 +15,8 @@ const orderAutoAccept = require('../realtime/orderAutoAccept');
 const adminInbox = require('../utils/adminNotifications');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const { calculateCart } = require('./cartController');
+const { createOrder } = require('./orderController');
 
 const ORDER_STATUS_VALUES = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
@@ -217,7 +220,7 @@ const getDashboard = async (req, res) => {
       COUNT(CASE WHEN status = 'Delivered' THEN 1 END) as delivered_orders,
       COALESCE(SUM(CASE WHEN payment_method = 'Cash' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as cash_total,
       COALESCE(SUM(CASE WHEN payment_method = 'UPI' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as upi_total,
-      COALESCE(SUM(CASE WHEN payment_status = 'Pending' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as pending_payment_total
+      COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() AND payment_status = 'Pending' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as pending_payment_total
     FROM orders
   `);
 
@@ -241,7 +244,7 @@ const getDashboard = async (req, res) => {
     LIMIT 5
   `);
 
-  const [settingsRow] = await queryRows('SELECT shop_open, delivery_available FROM settings LIMIT 1');
+  const [settingsRow] = await queryRows('SELECT shop_open, delivery_available, rain_charge_enabled FROM settings LIMIT 1');
 
   res.status(200).json({
     data: {
@@ -258,6 +261,7 @@ const getDashboard = async (req, res) => {
       },
       shop_open: settingsRow ? !!settingsRow.shop_open : true,
       delivery_available: settingsRow ? !!settingsRow.delivery_available : true,
+      rain_charge_enabled: settingsRow ? !!settingsRow.rain_charge_enabled : false,
       latest_orders: latestOrders,
       product_alerts: unavailableProducts,
       top_products: topProducts
@@ -367,7 +371,6 @@ const getTopProductsReport = async (req, res) => {
     WHERE o.status != 'Cancelled' AND ${dateFilter}
     GROUP BY oi.product_id, oi.item_type, oi.product_name
     ORDER BY total_quantity DESC
-    LIMIT 50
   `);
   res.status(200).json({ data: rows });
 };
@@ -400,17 +403,84 @@ const getCustomersReport = async (req, res) => {
   res.status(200).json({ data: metrics });
 };
 
+const getShopsReport = async (req, res) => {
+  const { period } = req.query;
+  const allowedPeriods = ['today', 'week', 'month', 'all'];
+  if (period && !allowedPeriods.includes(period)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid period parameter' });
+  }
+
+  let dateFilter = '1=1';
+  if (period === 'today') {
+    dateFilter = 'DATE(o.created_at) = CURDATE()';
+  } else if (period === 'week') {
+    dateFilter = 'YEARWEEK(o.created_at, 1) = YEARWEEK(CURDATE(), 1)';
+  } else if (period === 'month') {
+    dateFilter = 'YEAR(o.created_at) = YEAR(CURDATE()) AND MONTH(o.created_at) = MONTH(CURDATE())';
+  }
+
+  // Excluding Cancelled here means a cancelled order simply never counts —
+  // covers the "handle cancellations" requirement without any separate
+  // subtraction logic to keep in sync.
+  const [shopRows] = await pool.query(`
+    SELECT oi.shop_id, s.name AS shop_name,
+      COUNT(DISTINCT oi.order_id) AS order_count,
+      COALESCE(SUM(oi.line_total), 0) AS total_amount,
+      COALESCE(SUM(oi.quantity), 0) AS total_items_sold
+    FROM order_items oi
+    JOIN orders o ON oi.order_id = o.id
+    LEFT JOIN shops s ON s.id = oi.shop_id
+    WHERE o.status != 'Cancelled' AND ${dateFilter}
+    GROUP BY oi.shop_id, s.name
+    ORDER BY total_amount DESC
+  `);
+
+  const [productRows] = await pool.query(`
+    SELECT oi.shop_id, oi.product_id, oi.item_type, oi.product_name,
+      SUM(oi.quantity) AS quantity,
+      SUM(oi.line_total) AS total_sales
+    FROM order_items oi
+    JOIN orders o ON oi.order_id = o.id
+    WHERE o.status != 'Cancelled' AND ${dateFilter}
+    GROUP BY oi.shop_id, oi.product_id, oi.item_type, oi.product_name
+    ORDER BY quantity DESC
+  `);
+
+  const productsByShop = new Map();
+  for (const row of productRows) {
+    const key = row.shop_id ?? 'house';
+    if (!productsByShop.has(key)) productsByShop.set(key, []);
+    productsByShop.get(key).push(row);
+  }
+
+  const data = shopRows.map((row) => {
+    const key = row.shop_id ?? 'house';
+    return {
+      shop_id: row.shop_id,
+      shop_name: row.shop_id ? (row.shop_name || 'Deleted Shop') : 'House (No Shop)',
+      order_count: row.order_count,
+      total_amount: row.total_amount,
+      total_items_sold: row.total_items_sold,
+      products: productsByShop.get(key) || [],
+    };
+  });
+
+  res.status(200).json({ data });
+};
+
 const getAdminOrders = async (req, res) => {
   const { status, paymentStatus, payment_status, paymentMethod, payment_method, search, dateFrom, from, dateTo, to, page, limit } = req.query;
   const pagination = validatePagination(page, limit);
 
   let query = `SELECT o.id, o.order_number, o.customer_id, o.customer_name, o.phone, o.whatsapp_number, o.address,
-    o.latitude, o.longitude, o.map_url, o.subtotal, o.delivery_charge, o.night_charge, o.total, o.delivery_type,
-    o.payment_method, o.payment_status, o.status, o.note, o.cancel_reason, o.created_at, o.updated_at,
+    o.latitude, o.longitude, o.map_url, o.subtotal, o.delivery_charge, o.night_charge, o.rain_charge, o.fast_delivery_charge, o.total, o.delivery_type,
+    o.coupon_id, o.coupon_code, o.coupon_title, o.discount_amount, o.free_delivery_waiver_amount,
+    o.payment_method, o.payment_status, o.status, o.note, o.admin_remark, o.cancel_reason, o.created_at, o.updated_at,
     o.rider_id, o.rider_assigned_at, o.rider_picked_up_at, o.rider_assignment_status,
-    r.display_name AS rider_name
+    r.display_name AS rider_name, u.trusted AS customer_trusted
     FROM orders o
     LEFT JOIN riders r ON r.id = o.rider_id
+    LEFT JOIN users u ON u.id = o.customer_id
     WHERE 1=1`;
   const params = [];
 
@@ -466,6 +536,18 @@ const getAdminOrders = async (req, res) => {
 
   const [rows] = await pool.query(query, params);
 
+  const itemsByOrderId = {};
+  if (rows.length > 0) {
+    const [itemRows] = await pool.query(
+      'SELECT order_id, product_name, variant_label, quantity, unit_price, line_total FROM order_items WHERE order_id IN (?) ORDER BY id ASC',
+      [rows.map((row) => row.id)]
+    );
+    for (const item of itemRows) {
+      if (!itemsByOrderId[item.order_id]) itemsByOrderId[item.order_id] = [];
+      itemsByOrderId[item.order_id].push(item);
+    }
+  }
+
   res.status(200).json({
     data: rows.map((row) => ({
       ...row,
@@ -473,6 +555,15 @@ const getAdminOrders = async (req, res) => {
       riderName: row.rider_name,
       riderAssignmentStatus: row.rider_assignment_status,
       rider_assignment_status: row.rider_assignment_status,
+      deliveryType: row.delivery_type,
+      adminRemark: row.admin_remark,
+      couponCode: row.coupon_code,
+      couponTitle: row.coupon_title,
+      discountAmount: row.discount_amount,
+      freeDeliveryWaiverAmount: row.free_delivery_waiver_amount,
+      customer_trusted: Boolean(row.customer_trusted),
+      customerTrusted: Boolean(row.customer_trusted),
+      items: itemsByOrderId[row.id] || [],
     })),
     pagination: {
       total,
@@ -488,12 +579,14 @@ const getAdminOrderById = async (req, res) => {
 
   const [orderRows] = await pool.query(
     `SELECT o.id, o.order_number, o.customer_id, o.customer_name, o.phone, o.whatsapp_number, o.address,
-      o.latitude, o.longitude, o.map_url, o.subtotal, o.delivery_charge, o.night_charge, o.total, o.delivery_type,
-      o.payment_method, o.payment_status, o.status, o.note, o.cancel_reason, o.created_at, o.updated_at,
+      o.latitude, o.longitude, o.map_url, o.subtotal, o.delivery_charge, o.night_charge, o.rain_charge, o.fast_delivery_charge, o.total, o.delivery_type,
+      o.coupon_id, o.coupon_code, o.coupon_title, o.discount_amount, o.free_delivery_waiver_amount,
+      o.payment_method, o.payment_status, o.status, o.note, o.admin_remark, o.cancel_reason, o.created_at, o.updated_at,
       o.rider_id, o.rider_assigned_at, o.rider_picked_up_at, o.rider_assignment_status,
-      r.display_name AS rider_name
+      r.display_name AS rider_name, u.trusted AS customer_trusted
      FROM orders o
      LEFT JOIN riders r ON r.id = o.rider_id
+     LEFT JOIN users u ON u.id = o.customer_id
      WHERE o.id = ?`,
     [id]
   );
@@ -505,6 +598,14 @@ const getAdminOrderById = async (req, res) => {
   order.riderId = order.rider_id;
   order.riderName = order.rider_name;
   order.riderAssignmentStatus = order.rider_assignment_status;
+  order.deliveryType = order.delivery_type;
+  order.adminRemark = order.admin_remark;
+  order.couponCode = order.coupon_code;
+  order.couponTitle = order.coupon_title;
+  order.discountAmount = order.discount_amount;
+  order.freeDeliveryWaiverAmount = order.free_delivery_waiver_amount;
+  order.customer_trusted = Boolean(order.customer_trusted);
+  order.customerTrusted = order.customer_trusted;
   const [itemsRows] = await pool.query('SELECT oi.*, s.name AS shop_name FROM order_items oi LEFT JOIN shops s ON s.id = oi.shop_id WHERE oi.order_id = ?', [id]);
 
   order.items = itemsRows;
@@ -746,6 +847,13 @@ const updateOrderStatus = async (req, res) => {
       notifyShopsOrderStatusChanged(updatedOrder);
     }
 
+    // Admin moving Accepted -> Preparing directly (bypassing the shop's own
+    // confirm-order action) must still reach the shop dashboard in real time,
+    // not just on the next focus/foreground refetch.
+    if (status === 'Preparing' && currentStatus === 'Accepted') {
+      notifyShopsOrderStatusChanged(updatedOrder);
+    }
+
     // A rider already en route must be told the order died underneath them —
     // otherwise they keep driving to a cancelled order (any prior status,
     // since a rider can be assigned as early as 'Accepted').
@@ -859,6 +967,51 @@ const updateOrderPayment = async (req, res) => {
   }
 
   res.status(200).json({ message: 'Order payment status updated successfully', order: updatedOrder });
+};
+
+// Free-text admin note on an order (e.g. "delayed — rider shortage"),
+// distinct from the customer's own checkout `note`. Visible to other admins
+// and to the shop owner (getMyOrderHistory). Last-write-wins — unlike
+// status/payment this isn't a state machine, so no compare-and-set — and
+// editable on any order regardless of status (a note is often written after
+// delivery/cancellation to explain what happened).
+const MAX_ADMIN_REMARK_LENGTH = 1000;
+const updateOrderRemark = async (req, res) => {
+  const { id } = req.params;
+  const { remark, admin_remark, adminRemark } = req.body;
+  const rawRemark = remark ?? admin_remark ?? adminRemark ?? '';
+
+  if (typeof rawRemark !== 'string') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Remark must be text' });
+  }
+  const trimmedRemark = rawRemark.trim();
+  if (trimmedRemark.length > MAX_ADMIN_REMARK_LENGTH) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Remark must be ${MAX_ADMIN_REMARK_LENGTH} characters or fewer` });
+  }
+  const finalRemark = trimmedRemark || null;
+
+  const [orderRows] = await pool.query('SELECT id FROM orders WHERE id = ?', [id]);
+  if (orderRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+  }
+
+  await pool.query('UPDATE orders SET admin_remark = ? WHERE id = ?', [finalRemark, id]);
+  const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+  const updatedOrder = updatedRows[0];
+
+  try {
+    emitToAdmins('admin.order.updated', {
+      orderId: updatedOrder.id,
+      id: updatedOrder.id,
+      admin_remark: updatedOrder.admin_remark,
+      adminRemark: updatedOrder.admin_remark,
+    });
+    notifyShopsOrderRemarkUpdated(updatedOrder); // fire-and-forget
+  } catch (_) {
+    // Realtime is best-effort — the remark is already persisted.
+  }
+
+  res.status(200).json({ message: 'Order remark updated successfully', order: updatedOrder });
 };
 
 const getAdminNotifications = async (req, res) => {
@@ -1129,13 +1282,58 @@ module.exports = {
   updateOrderStatus,
   extendAutoAccept,
   updateOrderPayment,
+  updateOrderRemark,
   getAdminCustomerById,
   getTopProductsReport,
   getCustomersReport,
+  getShopsReport,
   getAdminNotifications,
   createAdminNotification,
   getAdminNotificationById,
   deleteAdminNotification
+};
+
+// ──────────────────────────────────────────────────────────────────────────
+// Admin-placed orders — lets an admin build and submit an order on behalf of
+// an existing registered customer (phone lookup via GET /admin/customers),
+// same money rules as the customer app. Both handlers resolve + validate the
+// target customer, then delegate to the real cart/order controllers with
+// req.user overridden to that customer — the money-calculation code itself
+// is untouched, so cart preview and order creation stay byte-for-byte
+// identical to what the customer would get placing it themselves.
+// ──────────────────────────────────────────────────────────────────────────
+
+const resolveOrderTargetCustomer = async (req, res) => {
+  const customerId = Number(req.body?.customer_id || req.body?.customerId);
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'customer_id is required' });
+    return null;
+  }
+  const [rows] = await pool.query('SELECT id, blocked FROM users WHERE id = ?', [customerId]);
+  const customer = rows[0];
+  if (!customer) {
+    res.status(404).json({ code: 'NOT_FOUND', message: 'Customer not found' });
+    return null;
+  }
+  if (customer.blocked) {
+    res.status(403).json({ code: 'FORBIDDEN', message: 'This customer is blocked' });
+    return null;
+  }
+  return customer;
+};
+
+const adminCalculateOrder = async (req, res) => {
+  const customer = await resolveOrderTargetCustomer(req, res);
+  if (!customer) return;
+  req.user = { id: customer.id };
+  return calculateCart(req, res);
+};
+
+const adminCreateOrder = async (req, res) => {
+  const customer = await resolveOrderTargetCustomer(req, res);
+  if (!customer) return;
+  req.user = { id: customer.id };
+  return createOrder(req, res);
 };
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -1192,6 +1390,8 @@ const dismissInbox = async (req, res) => {
   res.status(200).json({ message: 'Dismissed' });
 };
 
+module.exports.adminCalculateOrder = adminCalculateOrder;
+module.exports.adminCreateOrder = adminCreateOrder;
 module.exports.getInbox = getInbox;
 module.exports.getInboxUnreadCount = getInboxUnreadCount;
 module.exports.markInboxRead = markInboxRead;

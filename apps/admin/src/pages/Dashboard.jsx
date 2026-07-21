@@ -81,6 +81,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [togglingDelivery, setTogglingDelivery] = useState(false);
+  const [togglingRain, setTogglingRain] = useState(false);
   const refreshTimerRef = useRef(null);
 
   const fetchDashboardData = useCallback(async (showLoading = true) => {
@@ -140,6 +141,21 @@ export default function Dashboard() {
     }
   };
 
+  const handleToggleRain = async () => {
+    if (!metrics) return;
+    setTogglingRain(true);
+    const newStatus = !metrics.rain_charge_enabled;
+    try {
+      await SettingsApi.update({ rain_charge_enabled: newStatus });
+      await fetchDashboardData(false);
+    } catch (err) {
+      console.error(err);
+      setError(GENERIC_ERROR);
+    } finally {
+      setTogglingRain(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="dashboard-container">
@@ -168,7 +184,7 @@ export default function Dashboard() {
 
   if (!metrics) return null;
 
-  const { sales = {}, latest_orders = [], product_alerts = [], top_products = [], shop_open, delivery_available } = metrics;
+  const { sales = {}, latest_orders = [], product_alerts = [], top_products = [], shop_open, delivery_available, rain_charge_enabled } = metrics;
 
   return (
     <div className="dashboard-container">
@@ -205,6 +221,19 @@ export default function Dashboard() {
               {shop_open ? 'Open' : 'Closed'}
               <span className="status-auto-tag">Auto</span>
             </span>
+          </div>
+
+          <div className="shop-status-card">
+            <span className="status-label">Rain Charge</span>
+            <button
+              className={`status-toggle ${rain_charge_enabled ? 'open' : 'closed'}`}
+              onClick={handleToggleRain}
+              disabled={togglingRain}
+              aria-label={rain_charge_enabled ? 'Rain charge is on. Click to turn off.' : 'Rain charge is off. Click to turn on.'}
+            >
+              <span className="status-dot" aria-hidden="true" />
+              {togglingRain ? 'Updating...' : rain_charge_enabled ? 'On' : 'Off'}
+            </button>
           </div>
         </div>
       </header>

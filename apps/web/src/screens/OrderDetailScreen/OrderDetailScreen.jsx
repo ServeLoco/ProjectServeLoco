@@ -251,10 +251,22 @@ export default function OrderDetailScreen() {
             <span>Delivery Charge</span>
             <span>{order.delivery_charge ? formatPrice(order.delivery_charge) : 'FREE'}</span>
           </div>
+          {order.fast_delivery_charge > 0 && (
+            <div className="od-row">
+              <span>Fast Delivery Add-on</span>
+              <span>{formatPrice(order.fast_delivery_charge)}</span>
+            </div>
+          )}
           {order.night_charge > 0 && (
             <div className="od-row">
               <span>Night Charge</span>
               <span>{formatPrice(order.night_charge)}</span>
+            </div>
+          )}
+          {order.rain_charge > 0 && (
+            <div className="od-row">
+              <span>Rain Charge</span>
+              <span>{formatPrice(order.rain_charge)}</span>
             </div>
           )}
           {order.discount > 0 && (

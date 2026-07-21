@@ -117,3 +117,8 @@ router.patch('/:id/cancel', requireCustomer, asyncHandler(cancelOrder));
 router.post('/:id/cancel', requireCustomer, asyncHandler(cancelOrder)); // alias for frontend
 
 module.exports = router;
+// Reused by adminRoutes.js so "create order on behalf of a customer" runs
+// through the exact same validation shape as the customer-facing route.
+module.exports.createOrderSchema = createOrderSchema;
+module.exports.expressValidatorChecks = expressValidatorChecks;
+module.exports.validateExpress = validateExpress;

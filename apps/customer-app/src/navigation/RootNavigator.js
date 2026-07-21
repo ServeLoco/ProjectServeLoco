@@ -118,7 +118,7 @@ export default function RootNavigator() {
   const showOffline = !isReachable;
   const message = isDeviceOffline
     ? 'You appear to be offline.'
-    : "Can't reach the server. Retrying…";
+    : 'Trouble connecting. Retrying…';
 
   // Init analytics batching (AppState listener) on mount; clean up on unmount.
   useEffect(() => {

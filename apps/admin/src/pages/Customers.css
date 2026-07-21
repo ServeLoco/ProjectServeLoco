@@ -25,6 +25,13 @@
   font-family: 'Outfit', 'Inter', sans-serif;
 }
 
+.customers-total-count {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0.25rem 0 0;
+  font-weight: 600;
+}
+
 .customers-actions {
   display: flex;
   gap: 0.5rem;
@@ -335,7 +342,7 @@
 
 .drawer-content {
   width: 100%;
-  max-width: 500px;
+  max-width: 640px;
   background: var(--surface-color);
   height: 100%;
   box-shadow: var(--shadow-lg);

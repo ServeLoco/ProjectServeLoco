@@ -41,6 +41,11 @@ export default function ShopDashboardScreen() {
   // ── Shop open/closed toggle ──────────────────────────────────────────
   const [isOpen, setIsOpen] = useState(Boolean(shop?.isOpen));
   const [toggleBusy, setToggleBusy] = useState(false);
+  // fetchAll() (focus effect, socket events, foreground/reconnect) can race
+  // an in-flight PATCH /shop/me/toggle and overwrite the optimistic isOpen
+  // with the pre-toggle DB value — this ref stops it from clobbering the
+  // toggle while one is in flight (fixes "toggle needs a second press").
+  const toggleInFlightRef = useRef(false);
 
   // ── Orders ────────────────────────────────────────────────────────────
   const [activeOrders, setActiveOrders] = useState([]); // confirmed:true
@@ -49,6 +54,30 @@ export default function ShopDashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const mountedRef = useRef(true);
+
+  // ── Order-cancelled notice ───────────────────────────────────────────
+  // Shown for 3s when admin/backend cancels an order the shop already
+  // accepted (or was still queued to accept), so the owner isn't left
+  // guessing why a card silently vanished mid-prep.
+  const [cancelledNotice, setCancelledNotice] = useState(null); // { orderNumber, items }
+  const cancelledNoticeTimerRef = useRef(null);
+
+  const showCancelledNotice = useCallback((order) => {
+    if (!order) return;
+    if (cancelledNoticeTimerRef.current) clearTimeout(cancelledNoticeTimerRef.current);
+    setCancelledNotice({
+      orderNumber: order.orderNumber || order.order_number,
+      items: order.items || [],
+    });
+    cancelledNoticeTimerRef.current = setTimeout(() => {
+      setCancelledNotice(null);
+      cancelledNoticeTimerRef.current = null;
+    }, 3000);
+  }, []);
+
+  useEffect(() => () => {
+    if (cancelledNoticeTimerRef.current) clearTimeout(cancelledNoticeTimerRef.current);
+  }, []);
 
   // Ticking clock for the elapsed-time readout on each active order card.
   // Only ticks while there is something to show — avoids re-rendering the
@@ -88,7 +117,7 @@ export default function ShopDashboardScreen() {
         shopApi.getMyOrders(),
       ]);
       if (!mountedRef.current) return;
-      if (shopRes?.shop) setIsOpen(Boolean(shopRes.shop.isOpen));
+      if (shopRes?.shop && !toggleInFlightRef.current) setIsOpen(Boolean(shopRes.shop.isOpen));
 
       const orders = ordersRes.orders || [];
       setActiveOrders(orders.filter(o => o.confirmed && !o.rejected));
@@ -169,11 +198,25 @@ export default function ShopDashboardScreen() {
     // shop.order.updated: admin confirm/ready/reject, rider Out for Delivery /
     // Delivered, or cancel — refetch so Active list + Accept popup stay live.
     // shop.order.cancelled: admin cancelled whole order.
-    const dropOrder = (payload) => {
+    const dropOrder = (payload, { cancelled = false } = {}) => {
       const orderId = payload?.orderId ?? payload?.order_id;
       if (orderId == null) return;
-      setPendingQueue((prev) => prev.filter((o) => Number(o.id) !== Number(orderId)));
-      setActiveOrders((prev) => prev.filter((o) => Number(o.id) !== Number(orderId)));
+      const matchId = (o) => Number(o.id) === Number(orderId);
+      if (cancelled) {
+        setActiveOrders((prev) => {
+          const match = prev.find(matchId);
+          if (match) showCancelledNotice(match);
+          return prev.filter((o) => !matchId(o));
+        });
+        setPendingQueue((prev) => {
+          const match = prev.find(matchId);
+          if (match) showCancelledNotice(match);
+          return prev.filter((o) => !matchId(o));
+        });
+      } else {
+        setPendingQueue((prev) => prev.filter((o) => !matchId(o)));
+        setActiveOrders((prev) => prev.filter((o) => !matchId(o)));
+      }
     };
     const terminalStatuses = new Set(['Delivered', 'Cancelled', 'Out for Delivery']);
     const unsubAssigned = subscribeRealtime('shop.order.assigned', (payload) => {
@@ -182,14 +225,15 @@ export default function ShopDashboardScreen() {
       ringBackgroundShopAlarm(payload || {});
     });
     const unsubCancelled = subscribeRealtime('shop.order.cancelled', (payload) => {
-      dropOrder(payload);
+      dropOrder(payload, { cancelled: true });
       fetchAll();
     });
     const unsubUpdated = subscribeRealtime('shop.order.updated', (payload) => {
       const status = payload?.status;
-      if (payload?.action === 'cancelled' || (status && terminalStatuses.has(status))) {
+      const isCancelled = payload?.action === 'cancelled' || status === 'Cancelled';
+      if (isCancelled || (status && terminalStatuses.has(status))) {
         // Optimistic remove so Active cards clear before the GET returns.
-        dropOrder(payload);
+        dropOrder(payload, { cancelled: isCancelled });
       }
       fetchAll();
     });
@@ -224,7 +268,7 @@ export default function ShopDashboardScreen() {
       unsubReconnected();
       appSub.remove();
     };
-  }, [fetchAll, ringBackgroundShopAlarm]);
+  }, [fetchAll, ringBackgroundShopAlarm, showCancelledNotice]);
 
   // ── Repeating alert while anything is waiting in the popup queue ────
   // role: 'shop' — alarm tray clear + foreground 8s loop; background uses
@@ -306,6 +350,7 @@ export default function ShopDashboardScreen() {
   // ── Shop toggle ───────────────────────────────────────────────────────
   const handleToggle = useCallback(async (value) => {
     const prev = isOpen;
+    toggleInFlightRef.current = true;
     setIsOpen(value); // optimistic
     setToggleBusy(true);
     try {
@@ -314,6 +359,7 @@ export default function ShopDashboardScreen() {
       setIsOpen(prev); // rollback
       Alert.alert('Could not update shop', err?.message || 'Please try again.');
     } finally {
+      toggleInFlightRef.current = false;
       setToggleBusy(false);
     }
   }, [isOpen]);
@@ -499,12 +545,45 @@ export default function ShopDashboardScreen() {
         queueIndex={0}
         queueTotal={pendingQueue.length}
       />
+
+      {cancelledNotice && (
+        <View style={styles.cancelledNotice} pointerEvents="none">
+          <View style={styles.cancelledNoticeIconWrap}>
+            <AppIcon name="close" size={16} color={colors.white} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cancelledNoticeTitle}>
+              Order cancelled{cancelledNotice.orderNumber ? ` — #${cancelledNotice.orderNumber}` : ''}
+            </Text>
+            {cancelledNotice.items.length > 0 && (
+              <Text style={styles.cancelledNoticeItems} numberOfLines={2}>
+                {cancelledNotice.items
+                  .map((it) => `${it.quantity}× ${it.productName || it.product_name}`)
+                  .join(', ')}
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgApp },
+  cancelledNotice: {
+    position: 'absolute', top: spacing.md, left: spacing.lg, right: spacing.lg,
+    flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
+    backgroundColor: colors.error, borderRadius: radius.lg,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
+    ...shadows.lg,
+  },
+  cancelledNoticeIconWrap: {
+    width: 24, height: 24, borderRadius: radius.circle, backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center', justifyContent: 'center', marginTop: 1,
+  },
+  cancelledNoticeTitle: { color: colors.white, fontWeight: '800', fontSize: 14 },
+  cancelledNoticeItems: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '500', marginTop: 2 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,

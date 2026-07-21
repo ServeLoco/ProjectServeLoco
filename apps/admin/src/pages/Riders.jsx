@@ -364,7 +364,7 @@ export default function Riders() {
 
 /**
  * Side panel: pending offer (Accept / Reject like the rider popup) + active
- * jobs (Picked up → Out for Delivery → Delivered).
+ * jobs (Out for Delivery → Delivered).
  */
 function RiderDispatchPanel({ rider, onClose, onRiderPatched }) {
   const [loading, setLoading] = useState(true);
@@ -610,7 +610,6 @@ function RiderDispatchPanel({ rider, onClose, onRiderPatched }) {
                       key={order.id}
                       order={order}
                       busy={busy}
-                      onPickedUp={() => run(`pu-${order.id}`, () => RidersApi.markPickedUp(rider.id, order.id))}
                       onOutForDelivery={() => run(`ofd-${order.id}`, () => RidersApi.updateAssignmentStatus(
                         rider.id,
                         order.id,
@@ -645,7 +644,7 @@ function RiderDispatchPanel({ rider, onClose, onRiderPatched }) {
   );
 }
 
-function RiderJobCard({ order, busy, onPickedUp, onOutForDelivery, onDelivered }) {
+function RiderJobCard({ order, busy, onOutForDelivery, onDelivered }) {
   const pickedUp = Boolean(order.riderPickedUpAt || order.rider_picked_up_at);
   const status = order.status;
   const terminal = status === 'Delivered' || status === 'Cancelled';
@@ -694,16 +693,6 @@ function RiderJobCard({ order, busy, onPickedUp, onOutForDelivery, onDelivered }
 
       {!terminal && (
         <div className="shop-order-actions">
-          {!pickedUp && (
-            <button
-              type="button"
-              className="btn-secondary"
-              disabled={!!busy}
-              onClick={onPickedUp}
-            >
-              {busy === `pu-${order.id}` ? '…' : 'Picked up'}
-            </button>
-          )}
           {status !== 'Out for Delivery' && status !== 'Delivered' && (
             <button
               type="button"

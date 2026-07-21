@@ -34,6 +34,8 @@ const shapeOrderSummary = (o) => {
     paymentStatus: o.payment_status,
     payment_status: o.payment_status,
     total: o.total,
+    deliveryType: o.delivery_type,
+    delivery_type: o.delivery_type,
     note: o.note,
     riderId: o.rider_id,
     rider_id: o.rider_id,
@@ -66,6 +68,10 @@ const shapeItemRow = (it) => ({
   variant_label: it.variant_label,
   shopId: it.shop_id,
   shop_id: it.shop_id,
+  unitPrice: it.unit_price,
+  unit_price: it.unit_price,
+  lineTotal: it.line_total,
+  line_total: it.line_total,
 });
 
 /**
@@ -85,7 +91,7 @@ const loadAssignmentExtrasBatch = async (orderRows) => {
     [orderIds]
   );
   const [itemRows] = await pool.query(
-    `SELECT id, order_id, product_name, quantity, variant_label, shop_id
+    `SELECT id, order_id, product_name, quantity, variant_label, shop_id, unit_price, line_total
      FROM order_items WHERE order_id IN (?)`,
     [orderIds]
   );
@@ -131,6 +137,9 @@ const shapeOffer = (row) => {
     seconds_remaining: secondsRemaining,
     orderNumber: row.order_number,
     order_number: row.order_number,
+    total: row.total,
+    deliveryType: row.delivery_type,
+    delivery_type: row.delivery_type,
     // Address is needed for the accept/reject decision; customer phone is
     // withheld until the rider actually accepts (see shapeOrderSummary).
     address: row.address || null,
@@ -305,7 +314,7 @@ const updateLocation = async (req, res) => {
 // GET /api/rider/offers/active — primary offer + full pending queue
 const getActiveOffer = async (req, res) => {
   const [rows] = await pool.query(
-    `SELECT o.*, ord.order_number, ord.address, ord.phone, ord.customer_name, ord.note, ord.total
+    `SELECT o.*, ord.order_number, ord.address, ord.phone, ord.customer_name, ord.note, ord.total, ord.delivery_type
      FROM rider_order_offers o
      JOIN orders ord ON ord.id = o.order_id
      WHERE o.rider_id = ? AND o.status = 'pending' AND o.expires_at > NOW()
@@ -329,7 +338,7 @@ const getActiveOffer = async (req, res) => {
     );
     offer.shops = shops;
     const [items] = await pool.query(
-      `SELECT id, product_name, quantity, variant_label, shop_id
+      `SELECT id, product_name, quantity, variant_label, shop_id, unit_price, line_total
        FROM order_items WHERE order_id = ?`,
       [row.order_id]
     );

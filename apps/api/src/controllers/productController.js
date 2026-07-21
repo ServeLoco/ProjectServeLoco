@@ -318,7 +318,7 @@ const getProducts = async (req, res) => {
     finalIsCombo = 'false';
   }
 
-  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt, p.shop_id, ${shopIsOpenProjection}
+  const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt, p.shop_id, sh.name as shop_name, ${shopIsOpenProjection}
     FROM products p LEFT JOIN categories c ON p.category_id = c.id
     LEFT JOIN shops sh ON sh.id = p.shop_id
     WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenClause} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))`;
@@ -368,6 +368,7 @@ const getProducts = async (req, res) => {
 
   filteredRows.forEach(r => {
     r.shopId = r.shop_id ?? null;
+    r.shopName = r.shop_name ?? null;
     r.shopIsOpen = r.shop_is_open === undefined ? 1 : r.shop_is_open;
   });
 
@@ -560,8 +561,9 @@ const updateProduct = async (req, res) => {
 };
 
 const getAdminProducts = async (req, res) => {
-  const { categoryId, category_id, search, available, isCombo, is_combo, featured, type, page, limit } = req.query;
+  const { categoryId, category_id, search, available, isCombo, is_combo, featured, type, page, limit, shopId, shop_id } = req.query;
   const finalCategoryId = categoryId || category_id;
+  const finalShopId = shopId || shop_id;
   const finalIsCombo = isCombo !== undefined ? isCombo : is_combo;
   const normalizedType = type ? await normalizeStoreType(type, { allowAll: true }) : null;
   const pagination = validatePagination(page, limit);
@@ -572,6 +574,17 @@ const getAdminProducts = async (req, res) => {
   if (finalCategoryId) {
     whereClause += ' AND p.category_id = ?';
     params.push(finalCategoryId);
+  }
+
+  // shop_id = numeric id → that shop's products; 'none' → house products
+  // (no shop assigned). Anything non-numeric other than 'none' is ignored.
+  if (finalShopId !== undefined && finalShopId !== '') {
+    if (finalShopId === 'none') {
+      whereClause += ' AND p.shop_id IS NULL';
+    } else if (Number.isInteger(Number(finalShopId)) && Number(finalShopId) > 0) {
+      whereClause += ' AND p.shop_id = ?';
+      params.push(Number(finalShopId));
+    }
   }
 
   if (search) {

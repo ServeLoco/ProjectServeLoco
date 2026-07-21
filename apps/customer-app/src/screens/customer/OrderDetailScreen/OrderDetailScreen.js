@@ -46,7 +46,7 @@ import {
 
 const WIN_H = Dimensions.get('window').height;
 // Checkout-style sheet: collapsed = big map; expanded = order details.
-const SHEET_COLLAPSED = Math.round(WIN_H * 0.40);
+const SHEET_COLLAPSED = Math.round(WIN_H * 0.47);
 const SHEET_EXPANDED = Math.round(WIN_H * 0.78);
 const SHEET_MID = (SHEET_COLLAPSED + SHEET_EXPANDED) / 2;
 
@@ -493,11 +493,11 @@ export default function OrderDetailScreen() {
     : 0;
   const orderItemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
   const orderItemsSubtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const deliveryChargeLabel = order.bill.deliveryType === 'fast'
-    ? 'Fast Delivery'
-    : order.bill.belowThresholdDelivery
-      ? 'Delivery (Below Minimum)'
-      : 'Delivery Charge';
+  // Delivery Charge is always the standard fee — Fast is a separate
+  // additive line shown below, never discounted.
+  const deliveryChargeLabel = order.bill.belowThresholdDelivery
+    ? 'Delivery (Below Minimum)'
+    : 'Delivery Charge';
   const billDiscount = order.bill.freeDeliveryApplied ? order.bill.itemDiscount : order.bill.discount;
   // Hide map after delivery or cancel — full sheet only (no live tracking map).
   const mapMode = order.status !== 'Cancelled' && order.status !== 'Delivered';
@@ -813,10 +813,26 @@ export default function OrderDetailScreen() {
             ) : `₹${order.bill.delivery}`}
           />
 
+          {order.bill.fastDeliveryFee > 0 ? (
+            <BillLineRow
+              label="Fast Delivery Add-on"
+              value={`₹${order.bill.fastDeliveryFee}`}
+              tone="warning"
+            />
+          ) : null}
+
           {order.bill.nightCharge > 0 ? (
             <BillLineRow
               label="Night Charge"
               value={`₹${order.bill.nightCharge}`}
+              tone="warning"
+            />
+          ) : null}
+
+          {order.bill.rainCharge > 0 ? (
+            <BillLineRow
+              label="Rain Charge"
+              value={`₹${order.bill.rainCharge}`}
               tone="warning"
             />
           ) : null}

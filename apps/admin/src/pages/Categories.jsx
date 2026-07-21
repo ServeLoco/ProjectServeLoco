@@ -182,6 +182,18 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
   const [uploadMessage, setUploadMessage] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Snapshot the first render's formData so an accidental overlay click can
+  // be told apart from a real "I'm done" close — don't silently drop edits.
+  const initialFormDataRef = useRef(null);
+  if (initialFormDataRef.current === null) {
+    initialFormDataRef.current = formData;
+  }
+  const isDirty = JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
+  const handleCloseAttempt = () => {
+    if (isDirty && !window.confirm('Discard unsaved changes to this category?')) return;
+    onClose();
+  };
+
   const generateSlug = (name) => {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
   };
@@ -290,12 +302,12 @@ function CategoryFormDrawer({ category, onClose, onSave }) {
   };
 
   return (
-    <div className="drawer-overlay" onClick={onClose}>
+    <div className="drawer-overlay" onClick={handleCloseAttempt}>
       <div className="drawer-content" onClick={e => e.stopPropagation()}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div className="drawer-header">
             <h3 className="drawer-title">{isEdit ? 'Edit Category' : 'New Category'}</h3>
-            <button type="button" className="drawer-close" onClick={onClose}>&times;</button>
+            <button type="button" className="drawer-close" onClick={handleCloseAttempt}>&times;</button>
           </div>
           
           <div className="drawer-body">

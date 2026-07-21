@@ -797,6 +797,44 @@ const getAdminSections = async (req, res) => {
   }
 };
 
+// Attaches the product/category/combo/offer row an item points to. Shared by
+// getAdminSectionById (hydrates a whole section's items in parallel) and
+// addAdminSectionItem (hydrates just the one item it created), so adding an
+// item doesn't have to pay for a full section refetch to show it.
+const hydrateSectionItem = async (item) => {
+  let details = null;
+  if (item.item_type === 'product') {
+    const [prods] = await pool.query(
+      'SELECT p.*, s.name AS shop_name FROM products p LEFT JOIN shops s ON s.id = p.shop_id WHERE p.id = ?',
+      [item.item_id]
+    );
+    if (prods.length > 0) {
+      details = prods[0];
+      await resolveImageUrls([details]);
+    }
+  } else if (item.item_type === 'category') {
+    const [cats] = await pool.query('SELECT * FROM categories WHERE id = ?', [item.item_id]);
+    if (cats.length > 0) {
+      details = cats[0];
+      await resolveImageUrls([details]);
+    }
+  } else if (item.item_type === 'combo') {
+    const [combos] = await pool.query('SELECT *, 1 as is_combo FROM combos WHERE id = ?', [item.item_id]);
+    if (combos.length > 0) {
+      details = combos[0];
+      await resolveImageUrls([details]);
+      await attachComboItems([details]);
+    }
+  } else if (item.item_type === 'offer') {
+    const [offers] = await pool.query('SELECT * FROM offers WHERE id = ?', [item.item_id]);
+    if (offers.length > 0) {
+      details = offers[0];
+      await resolveImageUrls([details]);
+    }
+  }
+  return { ...item, details };
+};
+
 /**
  * Admin: GET /api/admin/dashboard-sections/:id
  */
@@ -817,40 +855,12 @@ const getAdminSectionById = async (req, res) => {
       [id]
     );
 
-    const hydratedItems = [];
-    for (const item of items) {
-      let details = null;
-      if (item.item_type === 'product') {
-        const [prods] = await pool.query('SELECT * FROM products WHERE id = ?', [item.item_id]);
-        if (prods.length > 0) {
-          details = prods[0];
-          await resolveImageUrls([details]);
-        }
-      } else if (item.item_type === 'category') {
-        const [cats] = await pool.query('SELECT * FROM categories WHERE id = ?', [item.item_id]);
-        if (cats.length > 0) {
-          details = cats[0];
-          await resolveImageUrls([details]);
-        }
-      } else if (item.item_type === 'combo') {
-        const [combos] = await pool.query('SELECT *, 1 as is_combo FROM combos WHERE id = ?', [item.item_id]);
-        if (combos.length > 0) {
-          details = combos[0];
-          await resolveImageUrls([details]);
-          await attachComboItems([details]);
-        }
-      } else if (item.item_type === 'offer') {
-        const [offers] = await pool.query('SELECT * FROM offers WHERE id = ?', [item.item_id]);
-        if (offers.length > 0) {
-          details = offers[0];
-          await resolveImageUrls([details]);
-        }
-      }
-      hydratedItems.push({
-        ...item,
-        details
-      });
-    }
+    // Hydrate every item's details in parallel instead of one DB round-trip
+    // per item in sequence — a section with 10+ items was previously paying
+    // 10+ awaited queries back-to-back, which is what made opening a section
+    // feel like a multi-second freeze, worse still on a production DB where
+    // each round-trip carries real network latency instead of localhost's ~0.
+    const hydratedItems = await Promise.all(items.map(hydrateSectionItem));
 
     res.status(200).json({ data: { ...section, items: hydratedItems } });
   } catch (error) {
@@ -1120,8 +1130,8 @@ const addAdminSectionItem = async (req, res) => {
         section_id, item_type, item_id, display_order, active, starts_at, ends_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
-        id, item_type, item_id, 
-        finalDisplayOrder, 
+        id, item_type, item_id,
+        finalDisplayOrder,
         active !== undefined ? active : 1,
         starts_at || null,
         ends_at || null
@@ -1129,7 +1139,31 @@ const addAdminSectionItem = async (req, res) => {
     );
 
     microCache.bust('dashboard');
-    res.status(201).json({ message: 'Dashboard section item added', id: result.insertId });
+
+    // Return the new item already hydrated with its product/category/combo/offer
+    // details so the admin UI can append it locally instead of re-fetching (and
+    // re-hydrating) the entire section just to show one new row. The insert has
+    // already committed at this point — a hydration failure must not turn the
+    // response into a 500 (the client would report a failure for an item that
+    // was actually added); it degrades to data: null, which the admin UI
+    // already handles by refetching the section.
+    let hydratedItem = null;
+    try {
+      hydratedItem = await hydrateSectionItem({
+        id: result.insertId,
+        section_id: Number(id),
+        item_type,
+        item_id,
+        display_order: finalDisplayOrder,
+        active: active !== undefined ? active : 1,
+        starts_at: starts_at || null,
+        ends_at: ends_at || null
+      });
+    } catch (hydrateError) {
+      console.error('[dashboard] hydrate after add failed for item', result.insertId, hydrateError.message);
+    }
+
+    res.status(201).json({ message: 'Dashboard section item added', id: result.insertId, data: hydratedItem });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
   }

@@ -39,7 +39,13 @@ export const OrdersApi = {
     `/admin/orders/${id}/payment`,
     { method: 'PATCH', body: { paymentStatus, payment_status: paymentStatus } }
   ),
+  updateRemark: (id, remark) => apiClient(`/admin/orders/${id}/remark`, {
+    method: 'PATCH',
+    body: { remark, admin_remark: remark },
+  }),
   extendAutoAccept: (id) => apiClient(`/admin/orders/${id}/extend-auto-accept`, { method: 'POST' }),
+  calculateForCustomer: (data) => apiClient('/admin/orders/calculate', { method: 'POST', body: data }),
+  createForCustomer: (data) => apiClient('/admin/orders', { method: 'POST', body: data }),
 };
 
 export const ProductsApi = {
@@ -176,6 +182,7 @@ export const ReportsApi = {
   getSales: (params) => apiClient(withQuery('/admin/reports/sales', params), { method: 'GET' }),
   getCustomers: (params) => apiClient(withQuery('/admin/reports/customers', params), { method: 'GET' }),
   getTopProducts: (params) => apiClient(withQuery('/admin/reports/top-products', params), { method: 'GET' }),
+  getShops: (params) => apiClient(withQuery('/admin/reports/shops', params), { method: 'GET' }),
 };
 
 export const HealthApi = {

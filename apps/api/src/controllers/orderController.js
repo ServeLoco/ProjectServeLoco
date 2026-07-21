@@ -6,6 +6,7 @@ const adminInbox = require('../utils/adminNotifications');
 const orderAutoAccept = require('../realtime/orderAutoAccept');
 const { roundMoney, toMoney } = require('../utils/money');
 const { calculateNightCharge, isCodBlockedDuringNight } = require('../utils/nightDelivery');
+const { calculateRainCharge } = require('../utils/rainCharge');
 const { validateCoupon, validateCouponById, pickBestAutoApply } = require('../utils/coupons');
 
 class OrderError extends Error {}  // expected business failures → 400
@@ -56,6 +57,8 @@ const buildReplayOrderJson = (existing, itemsRows, couponSnap, req) => {
     subtotal: Number(existing.subtotal),
     deliveryCharge: null,
     nightCharge: null,
+    rainCharge: null,
+    fastDeliveryFee: null,
     discount: Number(couponSnap.discount_amount) || 0,
     freeDeliveryWaiver: Number(couponSnap.free_delivery_waiver_amount) || 0,
     itemDiscount: roundMoney((Number(couponSnap.discount_amount) || 0) - (Number(couponSnap.free_delivery_waiver_amount) || 0)),
@@ -189,7 +192,7 @@ const createOrder = async (req, res) => {
       return res.status(403).json({ code: 'FORBIDDEN', message: 'Your account is blocked' });
     }
 
-    const [settingRows] = await connection.query('SELECT shop_open, delivery_available, delivery_charge, night_charge, night_charge_start, night_charge_end, fast_delivery_enabled, fast_delivery_charge FROM settings LIMIT 1');
+    const [settingRows] = await connection.query('SELECT shop_open, delivery_available, delivery_charge, night_charge, night_charge_start, night_charge_end, rain_charge_enabled, rain_charge, fast_delivery_enabled, fast_delivery_charge FROM settings LIMIT 1');
     const settings = settingRows[0];
 
     if (settings.shop_open === 0 || settings.shop_open === false) throw new OrderError('Shop is currently closed');
@@ -303,22 +306,30 @@ const createOrder = async (req, res) => {
     }
 
     subtotal = roundMoney(subtotal);
-    let deliveryCharge = roundMoney(toMoney(settings.delivery_charge || 0));
-    // Kept separately so free_delivery can detect Fast (effective fee > standard)
-    // and skip free-delivery waiver — Fast always charges the full fast fee.
+    // Fast delivery is an ADD-ON, not a replacement: `deliveryCharge` stays
+    // the STANDARD fee even on fast orders, including for every coupon-engine
+    // call, so free-delivery coupons keep waiving the standard fee exactly as
+    // on a standard order (see cartController for the full rationale). The
+    // fast fee is never passed into the engine, so it's never discounted.
+    const deliveryCharge = roundMoney(toMoney(settings.delivery_charge || 0));
     const standardDeliveryCharge = deliveryCharge;
 
     const fastEnabled = Boolean(settings.fast_delivery_enabled);
     const isFastDelivery = delivery_type === 'fast' && fastEnabled;
-    if (isFastDelivery) {
-      deliveryCharge = roundMoney(toMoney(settings.fast_delivery_charge || 0));
-    }
+    // Additive fast-delivery fee actually charged on this order.
+    const fastDeliveryFee = isFastDelivery ? roundMoney(toMoney(settings.fast_delivery_charge || 0)) : 0;
     const finalDeliveryType = isFastDelivery ? 'fast' : 'standard';
 
     let nightCharge = 0;
     if (settings.night_charge && settings.night_charge_start && settings.night_charge_end) {
       const raw = calculateNightCharge(settings);
       if (raw > 0) nightCharge = toMoney(raw);
+    }
+
+    let rainCharge = 0;
+    if (settings.rain_charge_enabled) {
+      const raw = calculateRainCharge(settings);
+      if (raw > 0) rainCharge = toMoney(raw);
     }
 
     // ───────────────────────────────────────────────────────────────────
@@ -358,10 +369,7 @@ const createOrder = async (req, res) => {
         failReason = await recheckUsageUnderLock(connection, result.coupon, userId);
       }
       if (failReason) {
-        // Free-delivery coupons only apply to Standard. Selecting Fast must
-        // not block place-order — drop the free-del benefit and continue.
-        const freeDelStandardOnly = /standard delivery only/i.test(String(failReason));
-        if (!couponAutoApplied && !freeDelStandardOnly) {
+        if (!couponAutoApplied) {
           throw new OrderError(failReason);
         }
         couponDropped = true;
@@ -390,7 +398,7 @@ const createOrder = async (req, res) => {
       }
     }
 
-    const total = roundMoney(Math.max(0, subtotal + deliveryCharge + nightCharge - discount));
+    const total = roundMoney(Math.max(0, subtotal + standardDeliveryCharge + fastDeliveryFee + nightCharge + rainCharge - discount));
     const orderNumber = await generateOrderNumber(connection);
 
     const finalAddress = address || user.address;
@@ -401,17 +409,17 @@ const createOrder = async (req, res) => {
       const [orderResult] = await connection.query(
         `INSERT INTO orders (
           order_number, customer_id, customer_name, phone, whatsapp_number, address,
-          latitude, longitude, map_url, subtotal, delivery_charge, night_charge, total,
+          latitude, longitude, map_url, subtotal, delivery_charge, night_charge, rain_charge, fast_delivery_charge, total,
           payment_method, payment_status, status, note,
           delivery_distance_km, delivery_radius_km_snapshot, delivery_cost_per_km_snapshot,
           free_delivery_offer_snapshot, delivery_type,
           idempotency_key, idempotency_key_created_at,
           coupon_id, coupon_code, coupon_title, discount_amount, free_delivery_waiver_amount
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           orderNumber, userId, user.name, user.phone, user.whatsapp_number, finalAddress,
           latitude || null, longitude || null, map_url || null,
-          subtotal, deliveryCharge, nightCharge, total,
+          subtotal, standardDeliveryCharge, nightCharge, rainCharge, fastDeliveryFee, total,
           payment_method, note || null,
           null, null, null,
           null,
@@ -508,8 +516,10 @@ const createOrder = async (req, res) => {
       map_url: map_url || null,
       mapUrl: map_url || null,
       subtotal,
-      deliveryCharge,
+      deliveryCharge: standardDeliveryCharge,
       nightCharge,
+      rainCharge,
+      fastDeliveryFee,
       discount,
       freeDeliveryWaiver,
       itemDiscount: roundMoney(discount - freeDeliveryWaiver),
@@ -528,7 +538,7 @@ const createOrder = async (req, res) => {
       deliveryType: finalDeliveryType,
       deliveryMessage: freeDeliveryWaiver > 0
         ? 'Free delivery unlocked!'
-        : `₹${deliveryCharge} delivery applied.`,
+        : `₹${standardDeliveryCharge} delivery applied.`,
       couponId: appliedCoupon ? appliedCoupon.id : null,
       couponCode: appliedCoupon ? appliedCoupon.code : null,
       couponTitle: appliedCoupon ? appliedCoupon.title : null,

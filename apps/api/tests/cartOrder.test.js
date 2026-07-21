@@ -52,6 +52,64 @@ describe('Cart and Order Tests', () => {
     expect(res.body.valid).toEqual(true);
   });
 
+  it('adds the fast delivery fee on top of the standard delivery charge instead of replacing it', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      delivery_charge: 10,
+      night_charge: 0,
+      fast_delivery_enabled: 1,
+      fast_delivery_charge: 25,
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1 }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        items: [{ productId: 1, quantity: 2 }],
+        delivery_type: 'fast',
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.subtotal).toEqual(200);
+    expect(res.body.deliveryCharge).toEqual(10);
+    expect(res.body.fastDeliveryFee).toEqual(25);
+    expect(res.body.total).toEqual(235);
+  });
+
+  it('keeps the free_delivery waiver on the standard fee when fast delivery is added on top', async () => {
+    pool.query.mockResolvedValueOnce([[{
+      shop_open: 1,
+      delivery_charge: 10,
+      night_charge: 0,
+      fast_delivery_enabled: 1,
+      fast_delivery_charge: 25,
+    }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, price: 100, available: 1 }]]);
+    pickBestAutoApply.mockResolvedValueOnce({
+      coupon: { id: 5, code: null, title: 'Free Delivery', discount_type: 'free_delivery' },
+      discount: 10,
+      itemDiscount: 0,
+      freeDeliveryWaiver: 10,
+    });
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        items: [{ productId: 1, quantity: 2 }],
+        delivery_type: 'fast',
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.deliveryCharge).toEqual(10);
+    expect(res.body.fastDeliveryFee).toEqual(25);
+    expect(res.body.discount).toEqual(10);
+    // 200 + 10 (std, waived by discount) + 25 (fast add-on, never discounted)
+    expect(res.body.total).toEqual(225);
+    expect(res.body.isFreeDeliveryApplied).toBe(true);
+  });
+
   it('should net delivery to zero via discount when an auto-apply free_delivery coupon applies', async () => {
     pool.query.mockResolvedValueOnce([[{
       shop_open: 1,

@@ -22,7 +22,9 @@ export function isPaymentPending(order) {
 
 /**
  * Which primary actions to show for this order.
- * @returns {{ showPickedUp: boolean, showOutForDelivery: boolean, showDelivered: boolean, showMarkPaid: boolean, terminal: boolean }}
+ * No separate "picked up" action — rider goes straight to "Out for delivery",
+ * which the API auto-stamps as pickup too.
+ * @returns {{ showOutForDelivery: boolean, showDelivered: boolean, showMarkPaid: boolean, terminal: boolean }}
  */
 export function getRiderActionFlags(order) {
   const status = order?.status || '';
@@ -35,7 +37,6 @@ export function getRiderActionFlags(order) {
 
   if (terminal) {
     return {
-      showPickedUp: false,
       showOutForDelivery: false,
       showDelivered: false,
       showMarkPaid,
@@ -46,8 +47,6 @@ export function getRiderActionFlags(order) {
   }
 
   return {
-    // Hide once already picked up or already past pickup stage.
-    showPickedUp: !pickedUp && !ofd,
     // Hide once already out for delivery (or delivered/cancelled).
     showOutForDelivery: !ofd,
     // Only when actively out for delivery.

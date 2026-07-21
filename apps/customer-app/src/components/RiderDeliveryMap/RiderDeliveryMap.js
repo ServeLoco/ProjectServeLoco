@@ -384,10 +384,29 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo }
     } catch (_) { /* ignore */ }
   }, [riderCoord, shops, customer, topPad]);
 
+  // Auto-fit only on real context changes (new assignment, or the
+  // shop/customer waypoint set changing — e.g. pickup happened). Deliberately
+  // NOT keyed on `fitAll` itself, which is recreated on every GPS tick
+  // (riderCoord updates every few seconds) — including it here was snapping
+  // the camera back to fitBounds() on every tick, fighting the rider's manual
+  // zoom/pan (reported bug: map "auto centers" and won't stay where shifted).
   useEffect(() => {
     const t = setTimeout(fitAll, 400);
     return () => clearTimeout(t);
-  }, [fitAll, order?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.id, waypointKey]);
+
+  // One-time fit when the rider's GPS fix first resolves, so the initial
+  // view frames the rider dot too — but never again after that, so later
+  // ticks can't re-trigger it.
+  const riderFirstFitDoneRef = useRef(false);
+  useEffect(() => {
+    if (!riderCoord || riderFirstFitDoneRef.current) return undefined;
+    riderFirstFitDoneRef.current = true;
+    const t = setTimeout(fitAll, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [riderCoord]);
 
   const center = customer || shops[0] || riderCoord || DEFAULT_MAP_CENTER;
 

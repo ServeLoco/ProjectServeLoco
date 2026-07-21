@@ -280,6 +280,8 @@ export default function CheckoutScreen() {
         delivery_charge: bill.deliveryCharge,
         discount: bill.discount,
         night_charge: bill.nightCharge,
+        rain_charge: bill.rainCharge,
+        fast_delivery_charge: bill.fastDeliveryFee,
         total_amount: bill.grandTotal,
         coupon_code: appliedCoupon?.code || appliedCouponCode || undefined,
         coupon_id:
@@ -388,36 +390,21 @@ export default function CheckoutScreen() {
 
         {bill?.fastDeliveryEnabled && (
           <div className="co-section">
-            <div className="co-section-title">Delivery Speed</div>
+            <div className="co-section-title">Fast Delivery</div>
             <div className="co-radio-group">
-              <label className={`co-radio-card ${deliveryType === 'standard' ? 'active' : ''}`}>
-                <input
-                  type="radio"
-                  name="speed"
-                  checked={deliveryType === 'standard'}
-                  onChange={() => setDeliveryType('standard')}
-                />
-                <div className="co-radio-content">
-                  <div className="co-radio-title">Standard Delivery</div>
-                  <div className="co-radio-desc">
-                    Usually takes {formatEtaMinutes(bill?.standardDeliveryMinutes) || '—'}
-                  </div>
-                </div>
-              </label>
-
               <label className={`co-radio-card ${deliveryType === 'fast' ? 'active' : ''}`}>
                 <input
-                  type="radio"
-                  name="speed"
+                  type="checkbox"
                   checked={deliveryType === 'fast'}
-                  onChange={() => setDeliveryType('fast')}
+                  onChange={(e) => setDeliveryType(e.target.checked ? 'fast' : 'standard')}
                 />
                 <div className="co-radio-content">
                   <div className="co-radio-title">
-                    Express Delivery (₹{bill?.fastDeliveryCharge || '10'})
+                    Add Fast Delivery (+₹{bill?.fastDeliveryCharge || '10'})
                   </div>
                   <div className="co-radio-desc">
-                    Prioritized preparation & delivery — arrives in{' '}
+                    Optional add-on on top of standard delivery — prioritized
+                    preparation & delivery, arrives in{' '}
                     {formatEtaMinutes(bill?.fastDeliveryMinutes) || '—'}
                   </div>
                 </div>
@@ -558,6 +545,8 @@ export default function CheckoutScreen() {
                 subtotal={bill.subtotal}
                 deliveryCharge={bill.deliveryCharge}
                 nightCharge={bill.nightCharge}
+                rainCharge={bill.rainCharge}
+                fastDeliveryFee={bill.fastDeliveryFee}
                 discount={bill.discount}
                 itemDiscount={bill.itemDiscount}
                 isFreeDeliveryApplied={bill.isFreeDeliveryApplied === true}

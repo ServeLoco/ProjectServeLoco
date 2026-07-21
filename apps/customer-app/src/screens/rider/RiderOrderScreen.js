@@ -99,10 +99,6 @@ export default function RiderOrderScreen({ route, navigation }) {
     }
   }, [fetchOrder, navigation]);
 
-  const handlePickedUp = () => {
-    runAction('picked_up', () => riderApi.markPickedUp(orderId));
-  };
-
   const handleOutForDelivery = () => {
     runAction('ofd', () => riderApi.updateStatus(orderId, 'Out for Delivery'));
   };
@@ -153,6 +149,7 @@ export default function RiderOrderScreen({ route, navigation }) {
   const flags = getRiderActionFlags(order);
   const phone = order?.phone;
   const pickedUp = flags.pickedUp;
+  const isFast = order?.deliveryType === 'fast' || order?.delivery_type === 'fast';
 
   return (
     <View style={styles.root}>
@@ -171,7 +168,14 @@ export default function RiderOrderScreen({ route, navigation }) {
             </TouchableOpacity>
             <View style={{ flex: 1 }}>
               <Text style={styles.orderNum}>#{order.orderNumber || order.order_number}</Text>
-              <Text style={styles.statusLine}>{flags.status || 'Assigned'}</Text>
+              <View style={styles.statusRow}>
+                <Text style={styles.statusLine}>{flags.status || 'Assigned'}</Text>
+                <View style={[styles.deliveryTypeBadge, isFast && styles.deliveryTypeBadgeFast]}>
+                  <Text style={[styles.deliveryTypeBadgeText, isFast && styles.deliveryTypeBadgeTextFast]}>
+                    {isFast ? 'Fast' : 'Standard'}
+                  </Text>
+                </View>
+              </View>
             </View>
             {phone ? (
               <TouchableOpacity
@@ -200,26 +204,25 @@ export default function RiderOrderScreen({ route, navigation }) {
               {order.items.map((it, idx) => {
                 const variant = it.variantLabel || it.variant_label;
                 return (
-                  <Text key={it.id ?? idx} style={styles.itemLine} numberOfLines={1}>
-                    {it.quantity}x {it.productName || it.product_name}
-                    {variant ? ` (${variant})` : ''}
-                  </Text>
+                  <View key={it.id ?? idx} style={styles.itemRow}>
+                    <Text style={styles.itemLine} numberOfLines={1}>
+                      {it.quantity}x {it.productName || it.product_name}
+                      {variant ? ` (${variant})` : ''}
+                    </Text>
+                  </View>
                 );
               })}
+              {order.total != null ? (
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Order total</Text>
+                  <Text style={styles.totalValue}>₹{Number(order.total).toFixed(0)}</Text>
+                </View>
+              ) : null}
             </View>
           ) : null}
 
           {!flags.terminal ? (
             <View style={styles.actions}>
-              {flags.showPickedUp ? (
-                <ActionBtn
-                  label="Mark picked up"
-                  icon="check"
-                  variant="saffron"
-                  busy={actionBusy === 'picked_up'}
-                  onPress={handlePickedUp}
-                />
-              ) : null}
               {flags.showOutForDelivery ? (
                 <ActionBtn
                   label="Out for delivery"
@@ -322,7 +325,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   orderNum: { ...typography.h2, fontSize: 20 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   statusLine: { ...typography.caption, color: colors.textSecondary, fontWeight: '700' },
+  deliveryTypeBadge: {
+    backgroundColor: colors.infoLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  deliveryTypeBadgeFast: { backgroundColor: colors.saffron },
+  deliveryTypeBadgeText: { fontSize: 10, fontWeight: '800', color: colors.info },
+  deliveryTypeBadgeTextFast: { color: colors.textInverse },
   callBtn: {
     width: 44,
     height: 44,
@@ -357,12 +370,31 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: spacing.xs,
   },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: 2,
+  },
   itemLine: {
     ...typography.body,
     color: colors.textPrimary,
     fontWeight: '600',
-    marginBottom: 2,
+    flex: 1,
   },
+  itemPrice: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
+  totalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+    paddingTop: spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  totalLabel: { ...typography.body, color: colors.textSecondary, fontWeight: '600' },
+  totalValue: { ...typography.body, color: colors.textPrimary, fontWeight: '800' },
   actions: { gap: spacing.sm },
   primaryBtn: {
     minHeight: 50,

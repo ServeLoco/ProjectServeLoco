@@ -263,6 +263,9 @@ describe('Dashboard Public and Admin API Tests', () => {
       pool.query.mockResolvedValueOnce([[]]);
       // Mock insert item
       pool.query.mockResolvedValueOnce([{ insertId: 500 }]);
+      // Mock hydration fetch of the newly-added product (returned inline so the
+      // admin UI can show it without a full section refetch)
+      pool.query.mockResolvedValueOnce([[{ id: 50, name: 'Milk', is_combo: 0 }]]);
 
       const res = await request(app)
         .post('/api/admin/dashboard-sections/1/items')
@@ -275,6 +278,7 @@ describe('Dashboard Public and Admin API Tests', () => {
 
       expect(res.statusCode).toEqual(201);
       expect(res.body.id).toEqual(500);
+      expect(res.body.data.details.name).toEqual('Milk');
     });
 
     it('should reject duplicate item in same section', async () => {

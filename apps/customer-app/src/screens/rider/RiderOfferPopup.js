@@ -131,6 +131,7 @@ export default function RiderOfferPopup({
   const shops = offer.shops || [];
   const items = offer.items || [];
   const phone = offer.phone;
+  const isFast = offer.deliveryType === 'fast' || offer.delivery_type === 'fast';
   const progress = Math.min(1, Math.max(0, secondsLeft / OFFER_TIMEOUT_SEC));
 
   return (
@@ -182,6 +183,16 @@ export default function RiderOfferPopup({
             >
               #{offer.orderNumber || offer.order_number}
             </Text>
+            <View style={[styles.deliveryTypeBadge, isFast && styles.deliveryTypeBadgeFast]}>
+              <AppIcon
+                name="navigation"
+                size={13}
+                color={isFast ? colors.textInverse : colors.info}
+              />
+              <Text style={[styles.deliveryTypeBadgeText, isFast && styles.deliveryTypeBadgeTextFast]}>
+                {isFast ? 'Fast delivery' : 'Standard delivery'}
+              </Text>
+            </View>
             <Text style={styles.countdownHint}>
               {secondsLeft > 0
                 ? countdownUrgent
@@ -287,6 +298,12 @@ export default function RiderOfferPopup({
                     );
                   })}
                 </ScrollView>
+                {offer.total != null ? (
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>Order total</Text>
+                    <Text style={styles.totalValue}>₹{Number(offer.total).toFixed(0)}</Text>
+                  </View>
+                ) : null}
               </>
             ) : null}
 
@@ -428,6 +445,24 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: 4,
   },
+  deliveryTypeBadge: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.infoLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginBottom: spacing.xs,
+  },
+  deliveryTypeBadgeFast: { backgroundColor: colors.saffron },
+  deliveryTypeBadgeText: {
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.info,
+  },
+  deliveryTypeBadgeTextFast: { color: colors.textInverse },
   countdownHint: {
     ...typography.caption,
     color: colors.textSecondary,
@@ -594,6 +629,18 @@ const styles = StyleSheet.create({
     minWidth: 28,
   },
   itemName: { flex: 1, ...typography.body, color: colors.textPrimary, fontWeight: '600' },
+  itemPrice: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
+
+  totalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xs,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  totalLabel: { ...typography.body, color: colors.textSecondary, fontWeight: '600' },
+  totalValue: { ...typography.body, color: colors.textPrimary, fontWeight: '800', fontSize: 16 },
 
   errorPill: {
     flexDirection: 'row',

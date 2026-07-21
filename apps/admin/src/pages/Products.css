@@ -458,7 +458,7 @@
 
 .drawer-content {
   width: 100%;
-  max-width: 550px;
+  max-width: 760px;
   background: var(--surface-color);
   height: 100%;
   box-shadow: var(--shadow-lg);

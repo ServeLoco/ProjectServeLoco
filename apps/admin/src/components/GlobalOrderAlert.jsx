@@ -165,16 +165,29 @@ export default function GlobalOrderAlert() {
 
   useEffect(() => {
     const handleEvent = ({ eventName, payload }) => {
-      if (eventName !== 'admin.order.created') return;
-      const orderId = payload?.orderId;
-      if (!orderId) return;
+      if (eventName === 'admin.order.created') {
+        const orderId = payload?.orderId;
+        if (!orderId) return;
 
-      const id = `${orderId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const id = `${orderId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-      setModals(prev => {
-        if (prev.some(m => m.payload?.orderId === orderId)) return prev;
-        return [...prev, { id, payload, addedAt: Date.now() }];
-      });
+        setModals(prev => {
+          if (prev.some(m => m.payload?.orderId === orderId)) return prev;
+          return [...prev, { id, payload, addedAt: Date.now() }];
+        });
+        return;
+      }
+
+      if (eventName === 'admin.order.updated') {
+        // Another admin session (a second tab, another device, or this same
+        // tab's own drawer) already accepted/rejected/cancelled this order —
+        // drop it from the popup queue everywhere instead of leaving it
+        // ringing here with a decision that no longer applies.
+        const orderId = payload?.orderId;
+        const status = payload?.status;
+        if (!orderId || !status || status === 'Pending') return;
+        setModals(prev => prev.filter(m => Number(m.payload?.orderId) !== Number(orderId)));
+      }
     };
 
     const unsubscribe = subscribeAdminOrderEvents(handleEvent);

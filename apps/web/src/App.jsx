@@ -36,7 +36,7 @@ export default function App() {
       <AddToHomePrompt />
       <OfflineBanner
         visible={!online}
-        message="Can't reach the server. Check your connection."
+        message="Trouble connecting. Retrying…"
         onRetry={retry}
       />
       <Routes>
