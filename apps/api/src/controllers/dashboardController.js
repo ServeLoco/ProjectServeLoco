@@ -427,6 +427,10 @@ const getDashboard = async (req, res) => {
     : '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))';
   const shopIsOpenSelect = 'IF(p.shop_id IS NULL OR (sh.is_open = 1 AND sh.active = 1), 1, 0) AS shop_is_open';
   const shopJoin = 'LEFT JOIN shops sh ON sh.id = p.shop_id';
+  // Same opt-in flag as shopOpenWhere: a product the shop owner toggled off
+  // is still returned (with available: 0) so the client renders it as a
+  // greyed-out "Temporarily Unavailable" card instead of it just vanishing.
+  const availableWhere = includeClosedShops ? '1=1' : 'p.available = 1';
 
   try {
     let query = `
@@ -497,7 +501,7 @@ const getDashboard = async (req, res) => {
            LEFT JOIN categories cat ON p.category_id = cat.id
            ${shopJoin}
            WHERE dsi.section_id = ? AND dsi.item_type = 'product' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-             AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenWhere} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
+             AND ${availableWhere} AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenWhere} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
@@ -595,6 +599,8 @@ const getSectionItems = async (req, res) => {
     : '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))';
   const shopIsOpenSelect = 'IF(p.shop_id IS NULL OR (sh.is_open = 1 AND sh.active = 1), 1, 0) AS shop_is_open';
   const shopJoin = 'LEFT JOIN shops sh ON sh.id = p.shop_id';
+  // Same opt-in flag as shopOpenWhere — see getDashboard for the rationale.
+  const availableWhere = includeClosedShops ? '1=1' : 'p.available = 1';
   const pageNumber = Math.max(1, Number(page) || 1);
   const limitNumber = Math.min(100, Math.max(1, Number(limit) || 50));
   const offset = (pageNumber - 1) * limitNumber;
@@ -672,7 +678,7 @@ const getSectionItems = async (req, res) => {
          LEFT JOIN categories cat ON p.category_id = cat.id
          ${shopJoin}
          WHERE dsi.section_id = ? AND dsi.item_type = 'product' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-           AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenWhere} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
+           AND ${availableWhere} AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenWhere} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
            ${productStoreFilter}
            AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
            AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())

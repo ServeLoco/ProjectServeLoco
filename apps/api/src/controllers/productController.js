@@ -266,6 +266,10 @@ const getProducts = async (req, res) => {
     ? '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.active = 1))'
     : '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.is_open = 1 AND s.active = 1))';
   const shopIsOpenProjection = 'IF(p.shop_id IS NULL OR (sh.is_open = 1 AND sh.active = 1), 1, 0) AS shop_is_open';
+  // Same opt-in flag as shopOpenClause: a product the shop owner toggled off
+  // is still returned (with available: 0) so the client renders it as a
+  // greyed-out "Temporarily Unavailable" card instead of it just vanishing.
+  const availableClause = includeClosedShops ? '1=1' : 'p.available = 1';
 
   if (finalOfferId) {
     // 1. Validate the offer
@@ -284,7 +288,7 @@ const getProducts = async (req, res) => {
       JOIN products p ON op.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN shops sh ON sh.id = p.shop_id
-      WHERE op.offer_id = ? AND op.active = 1 AND p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenClause} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
+      WHERE op.offer_id = ? AND op.active = 1 AND ${availableClause} AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenClause} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
     `;
     const params = [finalOfferId];
 
@@ -321,8 +325,8 @@ const getProducts = async (req, res) => {
   const productQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, p.is_combo, p.featured, p.original_price, p.discount_label, p.available_from_time, p.available_until_time, p.category_id, c.name as category_name, c.type as category_type, c.display_order as cat_display_order, p.display_order as item_display_order, p.variant_prompt, p.shop_id, sh.name as shop_name, ${shopIsOpenProjection}
     FROM products p LEFT JOIN categories c ON p.category_id = c.id
     LEFT JOIN shops sh ON sh.id = p.shop_id
-    WHERE p.available = 1 AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenClause} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))`;
-  
+    WHERE ${availableClause} AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenClause} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))`;
+
   const comboQuery = `SELECT p.id, p.name, p.price, p.unit, p.description, p.image_id, p.available, 1 as is_combo, p.featured, p.original_price, p.discount_label, NULL as category_id, NULL as category_name, p.store_type as category_type, 999 as cat_display_order, p.display_order as item_display_order
     FROM combos p
     WHERE p.available = 1 AND p.deleted = 0`;

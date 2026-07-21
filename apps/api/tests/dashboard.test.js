@@ -92,6 +92,73 @@ describe('Dashboard Public and Admin API Tests', () => {
       expect(res.body.data.sections[0].items[0].comboItems).toHaveLength(1);
     });
 
+    it('product_block: relaxes the available filter and still returns a toggled-off product when include_closed_shops=1', async () => {
+      pool.query.mockResolvedValueOnce([[
+        {
+          id: 3,
+          title: 'Fresh Picks',
+          slug: 'fresh-picks',
+          section_type: 'product_block',
+          store_type: 'packed',
+          active: 1,
+          display_order: 0,
+          max_visible_items: 8,
+          show_see_all: 1
+        }
+      ]]);
+
+      pool.query.mockResolvedValueOnce([[
+        {
+          id: 30,
+          name: 'Toggled-off Product',
+          price: 40,
+          available: 0, // shop owner turned this off — must still come back
+          deleted: 0,
+          category_type: 'packed',
+          section_item_id: 300,
+          shop_is_open: 1
+        }
+      ]]);
+
+      pool.query.mockResolvedValueOnce([[]]); // attachVariants query for product id 30
+
+      const res = await request(app).get('/api/dashboard?storeType=packed&include_closed_shops=1');
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.data.sections).toHaveLength(1);
+      expect(res.body.data.sections[0].items).toHaveLength(1);
+      expect(res.body.data.sections[0].items[0].available).toEqual(0);
+
+      // The relaxed clause must actually be sent to MySQL — the query-string
+      // is the real regression surface here (mocked DB can't filter for us).
+      const productQueryCall = pool.query.mock.calls.find(call => /FROM dashboard_section_items dsi\s+JOIN products p/.test(call[0]));
+      expect(productQueryCall[0]).toMatch(/1=1 AND p\.deleted = 0/);
+      expect(productQueryCall[0]).not.toMatch(/p\.available = 1/);
+    });
+
+    it('product_block: keeps the strict available filter when include_closed_shops is not set', async () => {
+      pool.query.mockResolvedValueOnce([[
+        {
+          id: 4,
+          title: 'Fresh Picks',
+          slug: 'fresh-picks-2',
+          section_type: 'product_block',
+          store_type: 'packed',
+          active: 1,
+          display_order: 0,
+          max_visible_items: 8,
+          show_see_all: 1
+        }
+      ]]);
+      pool.query.mockResolvedValueOnce([[]]);
+
+      const res = await request(app).get('/api/dashboard?storeType=packed');
+
+      expect(res.statusCode).toEqual(200);
+      const productQueryCall = pool.query.mock.calls.find(call => /FROM dashboard_section_items dsi\s+JOIN products p/.test(call[0]));
+      expect(productQueryCall[0]).toMatch(/p\.available = 1 AND p\.deleted = 0/);
+    });
+
     it('should hide the category section when no items are explicitly assigned', async () => {
       pool.query.mockResolvedValueOnce([[
         {
