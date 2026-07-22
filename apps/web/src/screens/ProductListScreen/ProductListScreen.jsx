@@ -64,7 +64,10 @@ export default function ProductListScreen() {
       const params = {
         page: pageNum,
         limit: 20,
-        type: storeType
+        type: storeType,
+        // Keep toggled-off / shop-closed products in the list so they render
+        // grayed-out ("Temporarily Unavailable") instead of vanishing.
+        include_closed_shops: 1
       };
       if (activeCategory) params.category_id = activeCategory;
       if (searchQuery) params.search = searchQuery;

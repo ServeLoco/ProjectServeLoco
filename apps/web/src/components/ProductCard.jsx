@@ -116,7 +116,10 @@ export default function ProductCard({ item, isCombo = false }) {
 
   return (
     <>
-      <div className="product-card" onClick={handleCardClick}>
+      <div
+        className={`product-card${!isAvailable ? ' product-card-unavailable' : ''}`}
+        onClick={handleCardClick}
+      >
         <div className="product-img-wrapper">
           {(isCombo || product.isCombo) && <div className="hot-badge">HOT</div>}
           {discountLabel && <div className="discount-badge">{discountLabel}</div>}
@@ -130,6 +133,13 @@ export default function ProductCard({ item, isCombo = false }) {
               e.target.src = PLACEHOLDER;
             }}
           />
+          {!isAvailable && (
+            <div className="product-unavailable-wash">
+              <span className="product-unavailable-label">
+                {shopClosedForItem ? 'Shop closed' : 'Temporarily Unavailable'}
+              </span>
+            </div>
+          )}
         </div>
         <div className="product-info">
           <div className="product-name">{product.name}</div>

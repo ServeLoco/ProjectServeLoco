@@ -1236,6 +1236,7 @@ function HomeHeader({
         search: trimmed,
         q: trimmed,
         limit: 6,
+        include_closed_shops: 1,
       });
       const items = asArray(response, ['products']).map(normalizeProduct);
       setSearchResults(items);
