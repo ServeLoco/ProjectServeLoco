@@ -1542,10 +1542,10 @@ export default function CheckoutScreen() {
         {/* Full form only when sheet is pulled up (or manual mode fills the screen). */}
         {(sheetExpanded || !mapMode) ? (
         <>
-        {/* Fast Delivery — optional add-on, not a replacement for Standard.
-            Standard delivery always applies (and free-delivery coupons still
-            waive it exactly as before); Fast just adds its fee on top. */}
-        {bill?.fastDeliveryEnabled && (
+        {/* Delivery options — Standard (default, always applies) + optional Fast.
+            Standard is selected whenever Fast isn't; free-delivery coupons waive
+            the standard fee (shown as FREE). Fast just adds its fee on top. */}
+        {bill && (
           <Animated.View
             onLayout={(e) => {
               sectionOffsetsRef.current.delivery = e.nativeEvent.layout.y;
@@ -1561,57 +1561,126 @@ export default function CheckoutScreen() {
             <View style={styles.sectionHead}>
               <View style={styles.sectionAccent} />
               <View style={styles.sectionHeadText}>
-                <Text style={styles.sectionTitle}>Fast Delivery</Text>
+                <Text style={styles.sectionTitle}>Delivery</Text>
                 <Text style={styles.sectionSubtitle}>
-                  Optional priority add-on on top of standard delivery
+                  {bill.fastDeliveryEnabled
+                    ? 'Standard delivery applies. Add Fast for priority.'
+                    : 'Standard delivery applies to your order.'}
                 </Text>
               </View>
             </View>
-            <PressableScale
-              style={styles.fastTogglePressable}
-              onPress={() => pickDeliveryType(deliveryType === 'fast' ? 'standard' : 'fast')}
-              scaleTo={0.98}
-              accessibilityRole="switch"
-              accessibilityLabel={`Add Fast Delivery, plus ₹${bill.fastDeliveryCharge}`}
-              accessibilityState={{ checked: deliveryType === 'fast' }}
-            >
-              {deliveryType === 'fast' ? (
-                <LinearGradient
-                  colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={[styles.fastToggleCard, styles.chip3dSelected]}
+
+            {/* Standard Delivery — default selection (active unless Fast is chosen) */}
+            {(() => {
+              const standardSelected = deliveryType !== 'fast';
+              const standardIsFree = Boolean(bill.isFreeDeliveryApplied) || !Number(bill.deliveryCharge);
+              const renderStandardPrice = (priceStyle) => (
+                standardIsFree ? (
+                  <View style={styles.deliveryFreePriceRow}>
+                    {Number(bill.deliveryCharge) > 0 && (
+                      <Text numberOfLines={1} style={[priceStyle, styles.deliveryPriceStrike]}>
+                        ₹{bill.deliveryCharge}
+                      </Text>
+                    )}
+                    <Text numberOfLines={1} style={priceStyle}>FREE</Text>
+                  </View>
+                ) : (
+                  <Text numberOfLines={1} style={priceStyle}>₹{bill.deliveryCharge}</Text>
+                )
+              );
+              return (
+                <PressableScale
+                  style={styles.fastTogglePressable}
+                  onPress={() => pickDeliveryType('standard')}
+                  scaleTo={0.98}
+                  accessibilityRole="switch"
+                  accessibilityLabel="Standard Delivery"
+                  accessibilityState={{ checked: standardSelected }}
                 >
-                  <Text style={styles.deliveryTypeEmojiOn}>⚡</Text>
-                  <View style={styles.fastToggleTextBlock}>
-                    <Text numberOfLines={1} style={styles.deliveryTypeTitleOn}>Add Fast Delivery</Text>
-                    <Text numberOfLines={1} style={styles.deliveryTypeTimeOn}>
-                      Arrives in {formatEtaMinutes(bill.fastDeliveryMinutes) || '—'}
+                  {standardSelected ? (
+                    <LinearGradient
+                      colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={[styles.fastToggleCard, styles.chip3dSelected]}
+                    >
+                      <Text style={styles.deliveryTypeEmojiOn}>🛵</Text>
+                      <View style={styles.fastToggleTextBlock}>
+                        <Text numberOfLines={1} style={styles.deliveryTypeTitleOn}>Standard Delivery</Text>
+                        <Text numberOfLines={1} style={styles.deliveryTypeTimeOn}>
+                          Applied by default
+                        </Text>
+                      </View>
+                      {renderStandardPrice(styles.deliveryTypePriceOn)}
+                      <View style={styles.fastToggleCheck}>
+                        <AppIcon name="check" size={14} color={colors.btnHighlightEnd} />
+                      </View>
+                    </LinearGradient>
+                  ) : (
+                    <View style={[styles.fastToggleCard, styles.chip3dIdle]}>
+                      <Text style={styles.deliveryTypeEmoji}>🛵</Text>
+                      <View style={styles.fastToggleTextBlock}>
+                        <Text numberOfLines={1} style={styles.deliveryTypeTitle}>Standard Delivery</Text>
+                        <Text numberOfLines={1} style={styles.deliveryTypeTime}>
+                          Applied by default
+                        </Text>
+                      </View>
+                      {renderStandardPrice(styles.deliveryTypePrice)}
+                      <View style={styles.fastToggleCheckOff} />
+                    </View>
+                  )}
+                </PressableScale>
+              );
+            })()}
+
+            {/* Fast Delivery — optional priority add-on, only when admin-enabled */}
+            {bill.fastDeliveryEnabled && (
+              <PressableScale
+                style={styles.fastTogglePressable}
+                onPress={() => pickDeliveryType(deliveryType === 'fast' ? 'standard' : 'fast')}
+                scaleTo={0.98}
+                accessibilityRole="switch"
+                accessibilityLabel={`Add Fast Delivery, plus ₹${bill.fastDeliveryCharge}`}
+                accessibilityState={{ checked: deliveryType === 'fast' }}
+              >
+                {deliveryType === 'fast' ? (
+                  <LinearGradient
+                    colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[styles.fastToggleCard, styles.chip3dSelected]}
+                  >
+                    <Text style={styles.deliveryTypeEmojiOn}>⚡</Text>
+                    <View style={styles.fastToggleTextBlock}>
+                      <Text numberOfLines={1} style={styles.deliveryTypeTitleOn}>Add Fast Delivery</Text>
+                      <Text numberOfLines={1} style={styles.deliveryTypeTimeOn}>
+                        Arrives in {formatEtaMinutes(bill.fastDeliveryMinutes) || '—'}
+                      </Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.deliveryTypePriceOn}>
+                      Extra ₹{bill.fastDeliveryCharge}
                     </Text>
-                  </View>
-                  <Text numberOfLines={1} style={styles.deliveryTypePriceOn}>
-                    Extra ₹{bill.fastDeliveryCharge}
-                  </Text>
-                  <View style={styles.fastToggleCheck}>
-                    <AppIcon name="check" size={14} color={colors.btnHighlightEnd} />
-                  </View>
-                </LinearGradient>
-              ) : (
-                <View style={[styles.fastToggleCard, styles.chip3dIdle]}>
-                  <Text style={styles.deliveryTypeEmoji}>⚡</Text>
-                  <View style={styles.fastToggleTextBlock}>
-                    <Text numberOfLines={1} style={styles.deliveryTypeTitle}>Add Fast Delivery</Text>
-                    <Text numberOfLines={1} style={styles.deliveryTypeTime}>
-                      Arrives in {formatEtaMinutes(bill.fastDeliveryMinutes) || '—'}
+                    <View style={styles.fastToggleCheck}>
+                      <AppIcon name="check" size={14} color={colors.btnHighlightEnd} />
+                    </View>
+                  </LinearGradient>
+                ) : (
+                  <View style={[styles.fastToggleCard, styles.chip3dIdle]}>
+                    <Text style={styles.deliveryTypeEmoji}>⚡</Text>
+                    <View style={styles.fastToggleTextBlock}>
+                      <Text numberOfLines={1} style={styles.deliveryTypeTitle}>Add Fast Delivery</Text>
+                      <Text numberOfLines={1} style={styles.deliveryTypeTime}>
+                        Arrives in {formatEtaMinutes(bill.fastDeliveryMinutes) || '—'}
+                      </Text>
+                    </View>
+                    <Text numberOfLines={1} style={styles.deliveryTypePrice}>
+                      Extra ₹{bill.fastDeliveryCharge}
                     </Text>
+                    <View style={styles.fastToggleCheckOff} />
                   </View>
-                  <Text numberOfLines={1} style={styles.deliveryTypePrice}>
-                    Extra ₹{bill.fastDeliveryCharge}
-                  </Text>
-                  <View style={styles.fastToggleCheckOff} />
-                </View>
-              )}
-            </PressableScale>
+                )}
+              </PressableScale>
+            )}
           </Animated.View>
         )}
 
@@ -2740,6 +2809,16 @@ const styles = StyleSheet.create({
   },
   fastTogglePressable: {
     width: '100%',
+    marginBottom: spacing.sm,
+  },
+  deliveryFreePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  deliveryPriceStrike: {
+    textDecorationLine: 'line-through',
+    opacity: 0.55,
   },
   fastToggleCard: {
     width: '100%',
