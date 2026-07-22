@@ -1697,7 +1697,7 @@ export default function CheckoutScreen() {
                       pointerEvents="none"
                       style={[
                         styles.fastElectricGlow,
-                        { opacity: fastPulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.85] }) },
+                        { opacity: fastPulse.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) },
                       ]}
                     />
                     <Animated.View
@@ -1714,7 +1714,7 @@ export default function CheckoutScreen() {
                       ]}
                     >
                       <LinearGradient
-                        colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0)']}
+                        colors={['rgba(255,238,88,0)', 'rgba(255,238,88,0.95)', 'rgba(255,255,255,0.95)', 'rgba(255,238,88,0)']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         style={styles.fastShimmerFill}
@@ -1750,7 +1750,7 @@ export default function CheckoutScreen() {
                       pointerEvents="none"
                       style={[
                         styles.fastElectricGlow,
-                        { opacity: fastPulse.interpolate({ inputRange: [0, 1], outputRange: [0.1, 0.45] }) },
+                        { opacity: fastPulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.7] }) },
                       ]}
                     />
                     <Animated.View
@@ -1767,7 +1767,7 @@ export default function CheckoutScreen() {
                       ]}
                     >
                       <LinearGradient
-                        colors={['rgba(125,249,255,0)', 'rgba(125,249,255,0.45)', 'rgba(125,249,255,0)']}
+                        colors={['rgba(176,38,255,0)', 'rgba(176,38,255,0.8)', 'rgba(0,245,255,0.8)', 'rgba(176,38,255,0)']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         style={styles.fastShimmerFill}
@@ -2951,7 +2951,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
-  // Pulsing electric-cyan halo hugging the card edge.
+  // Pulsing bold neon halo hugging the card edge.
   fastElectricGlow: {
     position: 'absolute',
     top: 0,
@@ -2959,12 +2959,13 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: radius.xl,
-    borderWidth: 2,
-    borderColor: '#7DF9FF',
-    shadowColor: '#7DF9FF',
+    borderWidth: 3,
+    borderColor: '#00F5FF',
+    shadowColor: '#B026FF',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
+    shadowOpacity: 1,
+    shadowRadius: 14,
+    elevation: 12,
   },
   // Diagonal light-sweep stripe that travels across the card.
   fastShimmerStripe: {
