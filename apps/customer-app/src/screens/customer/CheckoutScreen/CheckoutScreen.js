@@ -1608,7 +1608,7 @@ export default function CheckoutScreen() {
                       <View style={styles.fastToggleTextBlock}>
                         <Text numberOfLines={1} style={styles.deliveryTypeTitleOn}>Standard Delivery</Text>
                         <Text numberOfLines={1} style={styles.deliveryTypeTimeOn}>
-                          Applied by default
+                          {standardIsFree ? 'Free delivery applied' : 'Applied by default'}
                         </Text>
                       </View>
                       {renderStandardPrice(styles.deliveryTypePriceOn)}
@@ -1622,7 +1622,7 @@ export default function CheckoutScreen() {
                       <View style={styles.fastToggleTextBlock}>
                         <Text numberOfLines={1} style={styles.deliveryTypeTitle}>Standard Delivery</Text>
                         <Text numberOfLines={1} style={styles.deliveryTypeTime}>
-                          Applied by default
+                          {standardIsFree ? 'Free delivery applied' : 'Applied by default'}
                         </Text>
                       </View>
                       {renderStandardPrice(styles.deliveryTypePrice)}
