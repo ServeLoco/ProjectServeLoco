@@ -430,7 +430,7 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo }
     <View style={[styles.wrap, style]}>
       <Mapbox.MapView
         style={styles.map}
-        styleURL={Mapbox.StyleURL.Street}
+        styleURL={Mapbox.StyleURL.SatelliteStreet}
         compassEnabled
         // Margins are from the map edges; y must clear status bar + leave a gap.
         compassViewMargins={{ x: 12, y: topPad }}
