@@ -18,6 +18,7 @@ import {
   AppState,
   Dimensions,
   PanResponder,
+  Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
@@ -444,6 +445,11 @@ export default function CheckoutScreen() {
   const locationWarnPulse = useRef(new Animated.Value(0)).current;
   const gpsIconScale = useRef(new Animated.Value(1)).current;
   const manualIconScale = useRef(new Animated.Value(1)).current;
+  // Fast Delivery "electrified" loops: pulsing glow, light-sweep shimmer, and
+  // a flickering ⚡ bolt. All native-driver (opacity/transform only).
+  const fastPulse = useRef(new Animated.Value(0)).current;
+  const fastShimmer = useRef(new Animated.Value(0)).current;
+  const fastBolt = useRef(new Animated.Value(1)).current;
   const addressTouchedRef = useRef(false);
   // 0 -> 1 selected-state progress per delivery-mode row, driving the badge
   // fill, row border/background, and radio-dot animations together.
@@ -662,6 +668,43 @@ export default function CheckoutScreen() {
       arrowLoop.stop();
     };
   }, [arrowAnim]);
+
+  // Electrified Fast Delivery button: runs while the fast option is available.
+  useEffect(() => {
+    if (!bill?.fastDeliveryEnabled) return undefined;
+    const glow = Animated.loop(
+      Animated.sequence([
+        Animated.timing(fastPulse, { toValue: 1, duration: 820, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(fastPulse, { toValue: 0, duration: 820, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    const sweep = Animated.loop(
+      Animated.sequence([
+        Animated.timing(fastShimmer, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.delay(650),
+        Animated.timing(fastShimmer, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ])
+    );
+    // Irregular flicker — mimics an electric arc rather than a steady blink.
+    const bolt = Animated.loop(
+      Animated.sequence([
+        Animated.timing(fastBolt, { toValue: 0.45, duration: 70, useNativeDriver: true }),
+        Animated.timing(fastBolt, { toValue: 1, duration: 70, useNativeDriver: true }),
+        Animated.delay(130),
+        Animated.timing(fastBolt, { toValue: 0.7, duration: 55, useNativeDriver: true }),
+        Animated.timing(fastBolt, { toValue: 1, duration: 55, useNativeDriver: true }),
+        Animated.delay(820),
+      ])
+    );
+    glow.start();
+    sweep.start();
+    bolt.start();
+    return () => {
+      glow.stop();
+      sweep.stop();
+      bolt.stop();
+    };
+  }, [bill?.fastDeliveryEnabled, fastPulse, fastShimmer, fastBolt]);
 
   // Pulsing warning loop for the top-of-map "location off" chip.
   useEffect(() => {
@@ -1648,9 +1691,46 @@ export default function CheckoutScreen() {
                     colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={[styles.fastToggleCard, styles.chip3dSelected]}
+                    style={[styles.fastToggleCard, styles.chip3dSelected, styles.fastElectricClip]}
                   >
-                    <Text style={styles.deliveryTypeEmojiOn}>⚡</Text>
+                    <Animated.View
+                      pointerEvents="none"
+                      style={[
+                        styles.fastElectricGlow,
+                        { opacity: fastPulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.85] }) },
+                      ]}
+                    />
+                    <Animated.View
+                      pointerEvents="none"
+                      style={[
+                        styles.fastShimmerStripe,
+                        {
+                          opacity: fastShimmer.interpolate({ inputRange: [0, 0.05, 0.95, 1], outputRange: [0, 1, 1, 0] }),
+                          transform: [
+                            { translateX: fastShimmer.interpolate({ inputRange: [0, 1], outputRange: [-160, 360] }) },
+                            { rotate: '18deg' },
+                          ],
+                        },
+                      ]}
+                    >
+                      <LinearGradient
+                        colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0)']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.fastShimmerFill}
+                      />
+                    </Animated.View>
+                    <Animated.Text
+                      style={[
+                        styles.deliveryTypeEmojiOn,
+                        {
+                          opacity: fastBolt,
+                          transform: [{ scale: fastPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.16] }) }],
+                        },
+                      ]}
+                    >
+                      ⚡
+                    </Animated.Text>
                     <View style={styles.fastToggleTextBlock}>
                       <Text numberOfLines={1} style={styles.deliveryTypeTitleOn}>Add Fast Delivery</Text>
                       <Text numberOfLines={1} style={styles.deliveryTypeTimeOn}>
@@ -1665,8 +1745,45 @@ export default function CheckoutScreen() {
                     </View>
                   </LinearGradient>
                 ) : (
-                  <View style={[styles.fastToggleCard, styles.chip3dIdle]}>
-                    <Text style={styles.deliveryTypeEmoji}>⚡</Text>
+                  <View style={[styles.fastToggleCard, styles.chip3dIdle, styles.fastElectricClip]}>
+                    <Animated.View
+                      pointerEvents="none"
+                      style={[
+                        styles.fastElectricGlow,
+                        { opacity: fastPulse.interpolate({ inputRange: [0, 1], outputRange: [0.1, 0.45] }) },
+                      ]}
+                    />
+                    <Animated.View
+                      pointerEvents="none"
+                      style={[
+                        styles.fastShimmerStripe,
+                        {
+                          opacity: fastShimmer.interpolate({ inputRange: [0, 0.05, 0.95, 1], outputRange: [0, 0.7, 0.7, 0] }),
+                          transform: [
+                            { translateX: fastShimmer.interpolate({ inputRange: [0, 1], outputRange: [-160, 360] }) },
+                            { rotate: '18deg' },
+                          ],
+                        },
+                      ]}
+                    >
+                      <LinearGradient
+                        colors={['rgba(125,249,255,0)', 'rgba(125,249,255,0.45)', 'rgba(125,249,255,0)']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.fastShimmerFill}
+                      />
+                    </Animated.View>
+                    <Animated.Text
+                      style={[
+                        styles.deliveryTypeEmoji,
+                        {
+                          opacity: fastBolt,
+                          transform: [{ scale: fastPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }],
+                        },
+                      ]}
+                    >
+                      ⚡
+                    </Animated.Text>
                     <View style={styles.fastToggleTextBlock}>
                       <Text numberOfLines={1} style={styles.deliveryTypeTitle}>Add Fast Delivery</Text>
                       <Text numberOfLines={1} style={styles.deliveryTypeTime}>
@@ -2828,6 +2945,36 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
+  },
+  // Clip the shimmer sweep to the card's rounded corners.
+  fastElectricClip: {
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  // Pulsing electric-cyan halo hugging the card edge.
+  fastElectricGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: radius.xl,
+    borderWidth: 2,
+    borderColor: '#7DF9FF',
+    shadowColor: '#7DF9FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
+  },
+  // Diagonal light-sweep stripe that travels across the card.
+  fastShimmerStripe: {
+    position: 'absolute',
+    top: -12,
+    bottom: -12,
+    width: 46,
+  },
+  fastShimmerFill: {
+    flex: 1,
   },
   fastToggleTextBlock: {
     flex: 1,
