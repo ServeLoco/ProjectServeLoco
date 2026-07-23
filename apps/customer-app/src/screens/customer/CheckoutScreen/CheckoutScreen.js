@@ -57,8 +57,11 @@ const WIN_H = Dimensions.get('window').height;
 // Default drawer height (collapsed). Raise this fraction to start the sheet higher.
 // Pull up further to expand payment / summary.
 const SHEET_COLLAPSED = Math.round(WIN_H * 0.45);
-const SHEET_EXPANDED = Math.round(WIN_H * 0.74);
-const SHEET_MID = (SHEET_COLLAPSED + SHEET_EXPANDED) / 2;
+// Fallback expanded height before the root container reports its real
+// measured height via onLayout (see expandedHeightRef below) — Dimensions
+// 'window' height is only an estimate and can leave a gap or overshoot the
+// status bar depending on device/edge-to-edge behavior.
+const SHEET_EXPANDED_FALLBACK = WIN_H;
 
 /** Rider-order-style gradient action button for the checkout sheet. */
 function SheetActionBtn({ label, icon, onPress, busy, disabled, variant = 'saffron' }) {
@@ -385,6 +388,15 @@ export default function CheckoutScreen() {
   const sheetHeightAnim = useRef(new Animated.Value(SHEET_COLLAPSED)).current;
   const sheetHeightNum = useRef(SHEET_COLLAPSED);
   const sheetDragStart = useRef(SHEET_COLLAPSED);
+  // Real measured height of the sheet's container — set via onLayout so the
+  // fully-expanded sheet lands pixel-exact at the top, no map sliver and no
+  // overshoot into the status bar.
+  const expandedHeightRef = useRef(SHEET_EXPANDED_FALLBACK);
+  // Collapsed (pre-address) sheet hugs its real content — drag handle/header
+  // plus the Confirm/Enter-manually buttons — instead of a fixed screen
+  // fraction, so there's no dead white space below the buttons.
+  const collapsedHeaderHeightRef = useRef(0);
+  const collapsedContentHeightRef = useRef(0);
   const scrollYRef = useRef(0);
   const [sheetReserve, setSheetReserve] = useState(SHEET_COLLAPSED);
   const [paymentMethod, setPaymentMethod] = useState(null); // UPI | Cash
@@ -445,11 +457,9 @@ export default function CheckoutScreen() {
   const locationWarnPulse = useRef(new Animated.Value(0)).current;
   const gpsIconScale = useRef(new Animated.Value(1)).current;
   const manualIconScale = useRef(new Animated.Value(1)).current;
-  // Fast Delivery "electrified" loops: pulsing glow, light-sweep shimmer, and
-  // a flickering ⚡ bolt. All native-driver (opacity/transform only).
-  const fastPulse = useRef(new Animated.Value(0)).current;
-  const fastShimmer = useRef(new Animated.Value(0)).current;
-  const fastBolt = useRef(new Animated.Value(1)).current;
+  // Fast Delivery energetic pulse: a small glowing ⚡ bolt bounce.
+  // Single native-driver value (opacity/transform only) — minimal by design.
+  const fastEnergy = useRef(new Animated.Value(0)).current;
   const addressTouchedRef = useRef(false);
   // 0 -> 1 selected-state progress per delivery-mode row, driving the badge
   // fill, row border/background, and radio-dot animations together.
@@ -669,42 +679,21 @@ export default function CheckoutScreen() {
     };
   }, [arrowAnim]);
 
-  // Electrified Fast Delivery button: runs while the fast option is available.
+  // Energetic Fast Delivery bolt: quick bounce-pulse, runs while fast option available.
   useEffect(() => {
     if (!bill?.fastDeliveryEnabled) return undefined;
-    const glow = Animated.loop(
+    const pulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(fastPulse, { toValue: 1, duration: 820, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(fastPulse, { toValue: 0, duration: 820, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(fastEnergy, { toValue: 1, duration: 380, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.timing(fastEnergy, { toValue: 0, duration: 420, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+        Animated.delay(260),
       ])
     );
-    const sweep = Animated.loop(
-      Animated.sequence([
-        Animated.timing(fastShimmer, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.delay(650),
-        Animated.timing(fastShimmer, { toValue: 0, duration: 0, useNativeDriver: true }),
-      ])
-    );
-    // Irregular flicker — mimics an electric arc rather than a steady blink.
-    const bolt = Animated.loop(
-      Animated.sequence([
-        Animated.timing(fastBolt, { toValue: 0.45, duration: 70, useNativeDriver: true }),
-        Animated.timing(fastBolt, { toValue: 1, duration: 70, useNativeDriver: true }),
-        Animated.delay(130),
-        Animated.timing(fastBolt, { toValue: 0.7, duration: 55, useNativeDriver: true }),
-        Animated.timing(fastBolt, { toValue: 1, duration: 55, useNativeDriver: true }),
-        Animated.delay(820),
-      ])
-    );
-    glow.start();
-    sweep.start();
-    bolt.start();
+    pulse.start();
     return () => {
-      glow.stop();
-      sweep.stop();
-      bolt.stop();
+      pulse.stop();
     };
-  }, [bill?.fastDeliveryEnabled, fastPulse, fastShimmer, fastBolt]);
+  }, [bill?.fastDeliveryEnabled, fastEnergy]);
 
   // Pulsing warning loop for the top-of-map "location off" chip.
   useEffect(() => {
@@ -857,8 +846,26 @@ export default function CheckoutScreen() {
     setGpsStatus((prev) => (prev === 'error' ? prev : 'idle'));
   }, []);
 
+  // Collapsed height hugs the real drag-handle/header + button content
+  // (measured via onLayout/onContentSizeChange below) instead of a fixed
+  // screen fraction, falling back to SHEET_COLLAPSED until first measured.
+  const getCollapsedHeight = useCallback(() => {
+    const header = collapsedHeaderHeightRef.current;
+    const content = collapsedContentHeightRef.current;
+    if (!header || !content) return SHEET_COLLAPSED;
+    return Math.ceil(header + content + insets.bottom + spacing.md);
+  }, [insets.bottom]);
+
+  const applyMeasuredCollapsedHeight = useCallback(() => {
+    if (!mapMode || sheetExpandedRef.current) return;
+    const h = getCollapsedHeight();
+    sheetHeightNum.current = h;
+    setSheetReserve(h);
+    sheetHeightAnim.setValue(h);
+  }, [mapMode, getCollapsedHeight, sheetHeightAnim]);
+
   const snapSheet = useCallback((expanded) => {
-    const h = expanded ? SHEET_EXPANDED : SHEET_COLLAPSED;
+    const h = expanded ? expandedHeightRef.current : getCollapsedHeight();
     sheetHeightNum.current = h;
     sheetExpandedRef.current = expanded;
     setSheetExpanded(expanded);
@@ -873,7 +880,7 @@ export default function CheckoutScreen() {
       tension: 80,
       useNativeDriver: false,
     }).start();
-  }, [sheetHeightAnim]);
+  }, [sheetHeightAnim, getCollapsedHeight]);
 
   // Only the payment section has an inline validation error now — Fast
   // Delivery is an optional add-on with nothing to require.
@@ -900,7 +907,7 @@ export default function CheckoutScreen() {
       if (Math.abs(g.dy) < Math.abs(g.dx) * 1.1) return false;
       // Collapsed / mid: drag sheet up or down from any point on the drawer.
       if (!sheetExpandedRef.current) return true;
-      if (sheetHeightNum.current < SHEET_EXPANDED - 4) return true;
+      if (sheetHeightNum.current < expandedHeightRef.current - 4) return true;
       // Fully expanded: only claim when at top of list and pulling down to collapse.
       if (scrollYRef.current <= 2 && g.dy > 4) return true;
       return false;
@@ -909,7 +916,7 @@ export default function CheckoutScreen() {
       if (Math.abs(g.dy) < 6) return false;
       if (Math.abs(g.dy) < Math.abs(g.dx) * 1.1) return false;
       if (!sheetExpandedRef.current) return true;
-      if (sheetHeightNum.current < SHEET_EXPANDED - 4) return true;
+      if (sheetHeightNum.current < expandedHeightRef.current - 4) return true;
       if (scrollYRef.current <= 2 && g.dy > 4) return true;
       return false;
     },
@@ -919,26 +926,28 @@ export default function CheckoutScreen() {
     },
     onPanResponderMove: (_, g) => {
       // Finger up (dy < 0) → taller sheet; finger down → shorter sheet.
+      const floor = getCollapsedHeight();
       const next = Math.min(
-        SHEET_EXPANDED,
-        Math.max(SHEET_COLLAPSED, sheetDragStart.current - g.dy),
+        expandedHeightRef.current,
+        Math.max(floor, sheetDragStart.current - g.dy),
       );
       sheetHeightAnim.setValue(next);
       sheetHeightNum.current = next;
-      sheetExpandedRef.current = next >= SHEET_MID;
+      sheetExpandedRef.current = next >= (floor + expandedHeightRef.current) / 2;
     },
     onPanResponderRelease: (_, g) => {
       const current = sheetHeightNum.current;
+      const mid = (getCollapsedHeight() + expandedHeightRef.current) / 2;
       const flingUp = g.vy < -0.55;
       const flingDown = g.vy > 0.55;
       if (flingUp) snapSheet(true);
       else if (flingDown) snapSheet(false);
-      else snapSheet(current >= SHEET_MID);
+      else snapSheet(current >= mid);
     },
     onPanResponderTerminate: () => {
-      snapSheet(sheetHeightNum.current >= SHEET_MID);
+      snapSheet(sheetHeightNum.current >= (getCollapsedHeight() + expandedHeightRef.current) / 2);
     },
-  }), [sheetHeightAnim, snapSheet]);
+  }), [sheetHeightAnim, snapSheet, getCollapsedHeight]);
 
   // Warm permission prompt when Checkout opens (does not fetch GPS).
   useEffect(() => {
@@ -1333,16 +1342,13 @@ export default function CheckoutScreen() {
     : 'Place Order';
   const mapMode = locationMode !== 'manual';
 
-  // Status under "Checkout" tracks sheet phase: pin buttons → options → place order.
-  const sheetStatusText = useMemo(() => {
-    if (!mapMode) return 'Enter delivery address';
-    if (!sheetExpanded) return 'Drag map to set pin · Confirm when ready';
-    if (!paymentMethod) return 'Choose payment method';
-    return 'Review & place your order';
-  }, [mapMode, sheetExpanded, paymentMethod]);
-
   return (
-    <View style={styles.immersiveRoot}>
+    <View
+      style={styles.immersiveRoot}
+      onLayout={(e) => {
+        expandedHeightRef.current = e.nativeEvent.layout.height;
+      }}
+    >
       {/* Full-screen map behind the sheet (rider delivery style). */}
       {mapMode ? (
         <View style={styles.mapLayer} pointerEvents="box-none">
@@ -1458,15 +1464,21 @@ export default function CheckoutScreen() {
       >
         <SafeAreaView
           style={styles.sheetSafe}
-          // Top inset only in full-screen manual mode; footer handles bottom inset.
-          edges={mapMode ? [] : ['top']}
+          // Top inset whenever the sheet reaches the status bar — full-screen
+          // manual mode, or the map sheet pulled up to its expanded height.
+          edges={(!mapMode || sheetExpanded) ? ['top'] : []}
         >
-          <View style={styles.sheetDragZone}>
+          <View
+            style={styles.sheetDragZone}
+            onLayout={(e) => {
+              collapsedHeaderHeightRef.current = e.nativeEvent.layout.height;
+              applyMeasuredCollapsedHeight();
+            }}
+          >
             {mapMode ? <View style={styles.sheetHandle} /> : null}
             <View style={[styles.sheetHeader, !mapMode && styles.sheetHeaderManual]}>
               <View style={styles.sheetHeaderText}>
                 <Text style={styles.sheetTitle}>Checkout</Text>
-                <Text style={styles.sheetStatusLine}>{sheetStatusText}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
@@ -1498,6 +1510,11 @@ export default function CheckoutScreen() {
               }}
               scrollEventThrottle={16}
               bounces={sheetExpanded || !mapMode}
+              onContentSizeChange={(_w, h) => {
+                if (!mapMode || sheetExpanded) return;
+                collapsedContentHeightRef.current = h;
+                applyMeasuredCollapsedHeight();
+              }}
             >
               {mapMode && !sheetExpanded ? (
                 <View style={styles.sheetActions}>
@@ -1613,9 +1630,8 @@ export default function CheckoutScreen() {
               </View>
             </View>
 
-            {/* Standard Delivery — default selection (active unless Fast is chosen) */}
+            {/* Standard Delivery — fixed baseline, always applies; informational only. */}
             {(() => {
-              const standardSelected = deliveryType !== 'fast';
               const standardIsFree = Boolean(bill.isFreeDeliveryApplied) || !Number(bill.deliveryCharge);
               const renderStandardPrice = (priceStyle) => (
                 standardIsFree ? (
@@ -1632,47 +1648,21 @@ export default function CheckoutScreen() {
                 )
               );
               return (
-                <PressableScale
-                  style={styles.fastTogglePressable}
-                  onPress={() => pickDeliveryType('standard')}
-                  scaleTo={0.98}
-                  accessibilityRole="switch"
-                  accessibilityLabel="Standard Delivery"
-                  accessibilityState={{ checked: standardSelected }}
-                >
-                  {standardSelected ? (
-                    <LinearGradient
-                      colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={[styles.fastToggleCard, styles.chip3dSelected]}
-                    >
-                      <Text style={styles.deliveryTypeEmojiOn}>🛵</Text>
-                      <View style={styles.fastToggleTextBlock}>
-                        <Text numberOfLines={1} style={styles.deliveryTypeTitleOn}>Standard Delivery</Text>
-                        <Text numberOfLines={1} style={styles.deliveryTypeTimeOn}>
-                          Arrives in {formatEtaMinutes(bill.standardDeliveryMinutes) || '—'}
-                        </Text>
-                      </View>
-                      {renderStandardPrice(styles.deliveryTypePriceOn)}
-                      <View style={styles.fastToggleCheck}>
-                        <AppIcon name="check" size={14} color={colors.btnHighlightEnd} />
-                      </View>
-                    </LinearGradient>
-                  ) : (
-                    <View style={[styles.fastToggleCard, styles.chip3dIdle]}>
-                      <Text style={styles.deliveryTypeEmoji}>🛵</Text>
-                      <View style={styles.fastToggleTextBlock}>
-                        <Text numberOfLines={1} style={styles.deliveryTypeTitle}>Standard Delivery</Text>
-                        <Text numberOfLines={1} style={styles.deliveryTypeTime}>
-                          Arrives in {formatEtaMinutes(bill.standardDeliveryMinutes) || '—'}
-                        </Text>
-                      </View>
-                      {renderStandardPrice(styles.deliveryTypePrice)}
-                      <View style={styles.fastToggleCheckOff} />
-                    </View>
-                  )}
-                </PressableScale>
+                <View style={styles.standardDeliveryRow} accessibilityRole="text" accessibilityLabel="Standard Delivery, included">
+                  <View style={styles.standardDeliveryIconBadge}>
+                    <Text style={styles.standardDeliveryIcon}>🛵</Text>
+                  </View>
+                  <View style={styles.standardDeliveryTextBlock}>
+                    <Text numberOfLines={1} style={styles.standardDeliveryTitle}>Standard Delivery</Text>
+                    <Text numberOfLines={1} style={styles.standardDeliveryMeta}>
+                      Arrives in {formatEtaMinutes(bill.standardDeliveryMinutes) || '—'}
+                    </Text>
+                  </View>
+                  <View style={styles.standardDeliveryRight}>
+                    {renderStandardPrice(styles.standardDeliveryPrice)}
+                    <Text style={styles.standardDeliveryIncludedTag}>APPLIED</Text>
+                  </View>
+                </View>
               );
             })()}
 
@@ -1691,41 +1681,14 @@ export default function CheckoutScreen() {
                     colors={[colors.btnHighlightStart, colors.btnHighlightEnd]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={[styles.fastToggleCard, styles.chip3dSelected, styles.fastElectricClip]}
+                    style={[styles.fastToggleCard, styles.chip3dSelected]}
                   >
-                    <Animated.View
-                      pointerEvents="none"
-                      style={[
-                        styles.fastElectricGlow,
-                        { opacity: fastPulse.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) },
-                      ]}
-                    />
-                    <Animated.View
-                      pointerEvents="none"
-                      style={[
-                        styles.fastShimmerStripe,
-                        {
-                          opacity: fastShimmer.interpolate({ inputRange: [0, 0.05, 0.95, 1], outputRange: [0, 1, 1, 0] }),
-                          transform: [
-                            { translateX: fastShimmer.interpolate({ inputRange: [0, 1], outputRange: [-160, 360] }) },
-                            { rotate: '18deg' },
-                          ],
-                        },
-                      ]}
-                    >
-                      <LinearGradient
-                        colors={['rgba(255,238,88,0)', 'rgba(255,238,88,0.95)', 'rgba(255,255,255,0.95)', 'rgba(255,238,88,0)']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.fastShimmerFill}
-                      />
-                    </Animated.View>
                     <Animated.Text
                       style={[
                         styles.deliveryTypeEmojiOn,
                         {
-                          opacity: fastBolt,
-                          transform: [{ scale: fastPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.16] }) }],
+                          opacity: fastEnergy.interpolate({ inputRange: [0, 1], outputRange: [0.75, 1] }),
+                          transform: [{ scale: fastEnergy.interpolate({ inputRange: [0, 1], outputRange: [1, 1.28] }) }],
                         },
                       ]}
                     >
@@ -1745,40 +1708,13 @@ export default function CheckoutScreen() {
                     </View>
                   </LinearGradient>
                 ) : (
-                  <View style={[styles.fastToggleCard, styles.chip3dIdle, styles.fastElectricClip]}>
-                    <Animated.View
-                      pointerEvents="none"
-                      style={[
-                        styles.fastElectricGlow,
-                        { opacity: fastPulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.7] }) },
-                      ]}
-                    />
-                    <Animated.View
-                      pointerEvents="none"
-                      style={[
-                        styles.fastShimmerStripe,
-                        {
-                          opacity: fastShimmer.interpolate({ inputRange: [0, 0.05, 0.95, 1], outputRange: [0, 0.7, 0.7, 0] }),
-                          transform: [
-                            { translateX: fastShimmer.interpolate({ inputRange: [0, 1], outputRange: [-160, 360] }) },
-                            { rotate: '18deg' },
-                          ],
-                        },
-                      ]}
-                    >
-                      <LinearGradient
-                        colors={['rgba(176,38,255,0)', 'rgba(176,38,255,0.8)', 'rgba(0,245,255,0.8)', 'rgba(176,38,255,0)']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.fastShimmerFill}
-                      />
-                    </Animated.View>
+                  <View style={[styles.fastToggleCard, styles.chip3dIdle]}>
                     <Animated.Text
                       style={[
                         styles.deliveryTypeEmoji,
                         {
-                          opacity: fastBolt,
-                          transform: [{ scale: fastPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }],
+                          opacity: fastEnergy.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }),
+                          transform: [{ scale: fastEnergy.interpolate({ inputRange: [0, 1], outputRange: [1, 1.22] }) }],
                         },
                       ]}
                     >
@@ -2235,41 +2171,45 @@ export default function CheckoutScreen() {
 
           </ScrollView>
 
-            {/* Sheet footer — Place Order always visible */}
-            <View
-              style={[
-                styles.sheetFooter,
-                // Keep CTA above the system gesture / nav bar (Android edge-to-edge).
-                { paddingBottom: Math.max(insets.bottom, spacing.sm) },
-              ]}
-              collapsable={false}
-            >
-              {shopStatus === 'closed' ? (
-                <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
-                  <Text style={styles.placeOrderBtnTextDisabled}>Shop is Closed</Text>
-                </View>
-              ) : !deliveryAvailable ? (
-                <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
-                  <Text style={styles.placeOrderBtnTextDisabled}>Delivery Unavailable</Text>
-                </View>
-              ) : (
-                <SheetActionBtn
-                  label={placeOrderLabel}
-                  icon={isSubmitting || isCalculating ? null : 'check'}
-                  variant="success"
-                  busy={isSubmitting || isCalculating}
-                  disabled={isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable}
-                  onPress={handlePlaceOrder}
-                />
-              )}
-              <TouchableOpacity
-                style={styles.backToCartBtn}
-                onPress={() => navigation.goBack()}
-                disabled={isSubmitting}
+            {/* Sheet footer — Place Order / Back to Cart, only once the full
+                form is showing (address confirmed). The map-pick step shows
+                just Confirm location / Enter manually instead. */}
+            {(!mapMode || sheetExpanded) && (
+              <View
+                style={[
+                  styles.sheetFooter,
+                  // Keep CTA above the system gesture / nav bar (Android edge-to-edge).
+                  { paddingBottom: Math.max(insets.bottom, spacing.sm) },
+                ]}
+                collapsable={false}
               >
-                <Text style={styles.backToCartText}>Back to Cart</Text>
-              </TouchableOpacity>
-            </View>
+                {shopStatus === 'closed' ? (
+                  <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
+                    <Text style={styles.placeOrderBtnTextDisabled}>Shop is Closed</Text>
+                  </View>
+                ) : !deliveryAvailable ? (
+                  <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
+                    <Text style={styles.placeOrderBtnTextDisabled}>Delivery Unavailable</Text>
+                  </View>
+                ) : (
+                  <SheetActionBtn
+                    label={placeOrderLabel}
+                    icon={isSubmitting || isCalculating ? null : 'check'}
+                    variant="success"
+                    busy={isSubmitting || isCalculating}
+                    disabled={isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable}
+                    onPress={handlePlaceOrder}
+                  />
+                )}
+                <TouchableOpacity
+                  style={styles.backToCartBtn}
+                  onPress={() => navigation.goBack()}
+                  disabled={isSubmitting}
+                >
+                  <Text style={styles.backToCartText}>Back to Cart</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Animated.View>
@@ -2371,12 +2311,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     textAlign: 'left',
   },
-  sheetStatusLine: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '700',
-    textAlign: 'left',
-  },
   sheetAddress: {
     ...typography.body,
     color: colors.textPrimary,
@@ -2385,7 +2319,7 @@ const styles = StyleSheet.create({
   },
   sheetActions: {
     gap: spacing.sm,
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
   },
   sheetPrimaryBtn: {
     minHeight: 50,
@@ -2859,10 +2793,10 @@ const styles = StyleSheet.create({
   },
   paymentChip: {
     width: '100%',
-    height: 112,
+    height: 84,
     borderRadius: radius.xl,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
     paddingHorizontal: spacing.sm,
     alignItems: 'center',
   },
@@ -2873,34 +2807,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   paymentChipIconSlot: {
-    height: 28,
+    height: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   paymentChipCheck: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: colors.bgSurface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   paymentChipTitle: {
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 12,
+    lineHeight: 14,
     fontWeight: '700',
     textAlign: 'center',
     color: colors.textPrimary,
-    minHeight: 32,
+    minHeight: 28,
   },
   paymentChipTitleOn: {
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 12,
+    lineHeight: 14,
     fontWeight: '800',
     textAlign: 'center',
     color: colors.textInverse,
-    minHeight: 32,
+    minHeight: 28,
   },
   paymentCardTitleDisabled: {
     color: colors.textDisabled,
@@ -2928,6 +2862,58 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: spacing.sm,
   },
+  standardDeliveryRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.sm,
+    borderRadius: radius.lg,
+    backgroundColor: colors.successLight,
+  },
+  standardDeliveryIconBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.bgSurface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  standardDeliveryIcon: {
+    fontSize: 17,
+  },
+  standardDeliveryTextBlock: {
+    flex: 1,
+    gap: 1,
+  },
+  standardDeliveryTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  standardDeliveryMeta: {
+    ...typography.caption,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  standardDeliveryRight: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  standardDeliveryPrice: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  standardDeliveryIncludedTag: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    color: colors.successDark,
+  },
   deliveryFreePriceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2945,37 +2931,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
-  },
-  // Clip the shimmer sweep to the card's rounded corners.
-  fastElectricClip: {
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  // Pulsing bold neon halo hugging the card edge.
-  fastElectricGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: radius.xl,
-    borderWidth: 3,
-    borderColor: '#00F5FF',
-    shadowColor: '#B026FF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 14,
-    elevation: 12,
-  },
-  // Diagonal light-sweep stripe that travels across the card.
-  fastShimmerStripe: {
-    position: 'absolute',
-    top: -12,
-    bottom: -12,
-    width: 46,
-  },
-  fastShimmerFill: {
-    flex: 1,
   },
   fastToggleTextBlock: {
     flex: 1,
@@ -3192,8 +3147,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    minHeight: 36,
-    paddingVertical: 8,
+    minHeight: 26,
+    paddingVertical: 3,
   },
   summaryRowFirst: {
     paddingTop: 0,
