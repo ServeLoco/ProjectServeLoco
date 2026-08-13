@@ -8,6 +8,12 @@ const { pool } = require('../db/mysql');
 let io = null;
 let presenceTracker = null;
 
+// A connection that closes sooner than this is logged with its disconnect
+// reason (see the 'disconnect' handler). 30s sits well above a real session
+// and well below socket.io's own 5s reconnect ceiling, so a client stuck in a
+// reconnect loop lands every time while ordinary traffic stays silent.
+const SHORT_SESSION_LOG_MS = 30_000;
+
 const parseAllowedOrigins = () => {
   const origins = String(config.CORS_ORIGIN || '*')
     .split(',')
@@ -112,6 +118,7 @@ const initRealtime = (server) => {
 
   io.on('connection', (socket) => {
     joinRoleRoom(socket);
+    const connectedAtMs = Date.now();
 
     // Analytics presence — customers only (admin sockets are never counted).
     const auth = socket.data.auth;
@@ -133,7 +140,30 @@ const initRealtime = (server) => {
       }
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (reason) => {
+      // Diagnostic for the reconnect storm: one device has been reconnecting on
+      // socket.io's 5s backoff ceiling for a month (5151 sessions, 10 minutes of
+      // total connected time), and nothing recorded *why* its sockets closed.
+      // The handshake succeeds every time — these connections die after
+      // 'connection' fires — so the reason code is the only thing that
+      // separates the candidates: 'transport close' (network dropped),
+      // 'ping timeout' (process frozen/killed mid-session), 'transport error'
+      // (proxy or TLS), 'client namespace disconnect' (the app called
+      // disconnect() itself). Only short-lived connections are logged: a normal
+      // session ending carries no information and would bury the signal.
+      const livedMs = Date.now() - connectedAtMs;
+      if (livedMs < SHORT_SESSION_LOG_MS) {
+        console.warn('[socket] short-lived connection ' + JSON.stringify({
+          userId: socket.data.auth?.id ?? null,
+          role: socket.data.auth?.role ?? null,
+          reason,
+          livedMs,
+          transport: socket.conn?.transport?.name ?? null,
+          platform: socket.handshake.auth?.platform ?? null,
+          appVersion: socket.handshake.auth?.appVersion ?? null,
+        }));
+      }
+
       if (presenceTracker) {
         presenceTracker.removePresence(socket.id).catch(() => {});
       }
