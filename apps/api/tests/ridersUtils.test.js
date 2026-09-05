@@ -6,6 +6,7 @@
  */
 
 const { pool } = require('../src/db/mysql');
+const config = require('../src/config/env');
 const {
   getRiderForUser,
   listEligibleRiders,
@@ -171,9 +172,13 @@ describe('listEligibleRiders', () => {
     await listEligibleRiders({ excludeIds: [3, 5], areaId: 1 });
     const [sql, params] = pool.query.mock.calls[0];
     expect(sql).toMatch(/r\.id NOT IN/);
-    // Location-freshness seconds, then areaId, then the active-orders cap,
-    // then the exclude list.
-    expect(params).toEqual([RIDER_LOCATION_MAX_AGE_SEC, 1, RIDER_MAX_ACTIVE_ORDERS, 3, 5]);
+    // Location-freshness seconds, then areaId, then the active-orders
+    // lookback + cap, then the exclude list.
+    expect(params).toEqual([
+      RIDER_LOCATION_MAX_AGE_SEC, 1,
+      config.RIDER_CAPACITY_LOOKBACK_MIN, RIDER_MAX_ACTIVE_ORDERS,
+      3, 5,
+    ]);
   });
 
   it('excludes riders already carrying RIDER_MAX_ACTIVE_ORDERS undelivered orders', async () => {
@@ -182,6 +187,10 @@ describe('listEligibleRiders', () => {
     const [sql] = pool.query.mock.calls[0];
     expect(sql).toMatch(/status NOT IN \('Delivered', 'Cancelled'\)/);
     expect(sql).toMatch(/\)\s*<\s*\?/);
+    // Bounded by the same lookback window the checkout capacity gate uses —
+    // an order that is never delivered or cancelled must not exclude a rider
+    // from every future offer forever.
+    expect(sql).toMatch(/o\.created_at > NOW\(\) - INTERVAL \? MINUTE/);
   });
 
   it('marks a stale GPS ping as not fresh', async () => {

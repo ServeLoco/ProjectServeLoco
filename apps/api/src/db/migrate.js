@@ -99,6 +99,27 @@ const migrate = async () => {
       }
     };
 
+    // Several seed/cleanup blocks below run on EVERY boot but predate the
+    // multi-area work at the bottom of this file, which makes `area_id` NOT
+    // NULL (no default) on the tables they write. Those blocks sit ABOVE the
+    // block that adds the column, so on a fresh database it genuinely isn't
+    // there yet, while on any already-migrated database it is and is
+    // mandatory. Probe per table rather than assuming either shape: without
+    // it a plain INSERT throws ER_NO_DEFAULT_FOR_FIELD and takes the whole
+    // migrate step (and, via "migrate.js && node src/server.js", the boot)
+    // down, and an INSERT IGNORE silently writes nothing at all.
+    const areaIdColumnCache = new Map();
+    const hasAreaIdColumn = async (tableName) => {
+      if (areaIdColumnCache.has(tableName)) return areaIdColumnCache.get(tableName);
+      const [rows] = await connection.query(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = 'area_id'
+      `, [config.MYSQL_DATABASE, tableName]);
+      const present = rows.length > 0;
+      areaIdColumnCache.set(tableName, present);
+      return present;
+    };
+
     const ensureUniqueIndex = async (tableName, indexName, columns) => {
       const [rows] = await connection.query(
         `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
@@ -560,10 +581,19 @@ const migrate = async () => {
     `);
     console.log('Combo items table ready.');
 
-    // Data Migration for Combos
+    // Data Migration for Combos. Runs on every boot (INSERT IGNORE makes it a
+    // no-op once every is_combo product has its combos row) — but `combos`
+    // gains a NOT NULL area_id further down this file, and without carrying it
+    // here INSERT IGNORE would swallow the failure and silently migrate
+    // nothing on any already-migrated database.
+    const combosHaveAreaId = await hasAreaIdColumn('combos');
+    const comboAreaCol = combosHaveAreaId ? ', area_id' : '';
+    const comboAreaSelect = combosHaveAreaId
+      ? ((await hasAreaIdColumn('products')) ? ', area_id' : ', 1')
+      : '';
     await connection.query(`
-      INSERT IGNORE INTO combos (id, name, description, price, original_price, unit, image_id, available, featured, display_order, discount_label, deleted, created_at, updated_at)
-      SELECT id, name, description, price, original_price, unit, image_id, available, featured, display_order, discount_label, deleted, created_at, updated_at
+      INSERT IGNORE INTO combos (id, name, description, price, original_price, unit, image_id, available, featured, display_order, discount_label, deleted, created_at, updated_at${comboAreaCol})
+      SELECT id, name, description, price, original_price, unit, image_id, available, featured, display_order, discount_label, deleted, created_at, updated_at${comboAreaSelect}
       FROM products
       WHERE is_combo = 1
     `);
@@ -816,6 +846,33 @@ const migrate = async () => {
       }
     };
     await backfillProductLibrary();
+
+    // Repair pass for library rows promoted before promoteToLibrary learned to
+    // resolve products.unit into units.id. Those rows carry unit_id NULL, and
+    // propagateLibraryEdit used to push that NULL back out as
+    // `products.unit = NULL` on the first library edit of any kind — wiping a
+    // real, customer-visible value ("500ml", "1kg") in every area at once.
+    // propagateLibraryEdit no longer writes `unit` at all when unit_id is
+    // NULL, so nothing is being lost any more; this restores the link so the
+    // unit actually propagates the way it should. Cheap no-op once caught up
+    // (the WHERE only matches unrepaired rows), and it never overwrites a
+    // unit_id an admin has already set.
+    const [unitRepairResult] = await connection.query(`
+      UPDATE product_library pl
+      JOIN (
+        SELECT p.library_product_id AS lib_id, MIN(u.id) AS unit_id
+        FROM products p
+        JOIN units u ON u.name = TRIM(p.unit)
+        WHERE p.library_product_id IS NOT NULL AND p.deleted = 0
+          AND p.unit IS NOT NULL AND TRIM(p.unit) != ''
+        GROUP BY p.library_product_id
+      ) src ON src.lib_id = pl.id
+      SET pl.unit_id = src.unit_id
+      WHERE pl.unit_id IS NULL
+    `);
+    if (unitRepairResult.affectedRows > 0) {
+      console.log(`[migrate] product_library unit_id backfill: ${unitRepairResult.affectedRows} row(s) relinked.`);
+    }
 
     // ---- TASK 24 — platform_flags singleton + areas_sweep_complete gate --
     // Same singleton-row-by-convention shape as admin_auth_state (id=1).
@@ -1360,9 +1417,11 @@ const migrate = async () => {
     // Seed Settings
     const [settingsRows] = await connection.query('SELECT * FROM settings LIMIT 1');
     if (settingsRows.length === 0) {
+      const settingsAreaCol = (await hasAreaIdColumn('settings')) ? ', area_id' : '';
+      const settingsAreaVal = settingsAreaCol ? ', 1' : '';
       await connection.query(`
-        INSERT INTO settings (night_charge_start, night_charge_end, delivery_charge)
-        VALUES ('21:00:00', '07:00:00', 20.00)
+        INSERT INTO settings (night_charge_start, night_charge_end, delivery_charge${settingsAreaCol})
+        VALUES ('21:00:00', '07:00:00', 20.00${settingsAreaVal})
       `);
       console.log('Seeded default settings.');
     }
@@ -1382,11 +1441,7 @@ const migrate = async () => {
     // INSERT IGNORE means this fails safe (skips the row) rather than
     // crashing, but silently becomes permanently-inert dead code instead of
     // actually seeding a missing default category on a fresh/rehearsal DB.
-    const [categoriesAreaCol] = await connection.query(`
-      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'categories' AND COLUMN_NAME = 'area_id'
-    `, [config.MYSQL_DATABASE]);
-    const categoriesHasAreaId = categoriesAreaCol.length > 0;
+    const categoriesHasAreaId = await hasAreaIdColumn('categories');
 
     for (const cat of categories) {
       if (categoriesHasAreaId) {
@@ -1425,11 +1480,7 @@ const migrate = async () => {
     // throw ER_NO_DEFAULT_FOR_FIELD and crash the whole migrate step (and,
     // via "migrate.js && node src/server.js", the boot). Area 1 is the same
     // default every other legacy-row backfill in this file uses.
-    const [productsAreaCol] = await connection.query(`
-      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'products' AND COLUMN_NAME = 'area_id'
-    `, [config.MYSQL_DATABASE]);
-    const productsHasAreaId = productsAreaCol.length > 0;
+    const productsHasAreaId = await hasAreaIdColumn('products');
 
     for (const prod of sampleProducts) {
       if (prod.category_id) {
@@ -1459,9 +1510,11 @@ const migrate = async () => {
       );
       if (existing.length > 0) return { id: existing[0].id, isNew: false };
 
+      const areaCol = (await hasAreaIdColumn('dashboard_sections')) ? ', area_id' : '';
+      const areaVal = areaCol ? ', 1' : '';
       const [result] = await connection.query(`
-        INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon)
-        VALUES (?, ?, ?, 'all', ?, ?, ?, 0, NULL)
+        INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon${areaCol})
+        VALUES (?, ?, ?, 'all', ?, ?, ?, 0, NULL${areaVal})
       `, [title, slug, sectionType, displayOrder, maxVisibleItems, showSeeAll]);
       return { id: result.insertId, isNew: true };
     };
@@ -1469,6 +1522,22 @@ const migrate = async () => {
     // Item seeding below only runs the first time a default section is created,
     // so admins retain full control over what appears once the layout exists —
     // newly created categories/combos are never auto-injected on later restarts.
+
+    // One seeder for all three item types: same insert-if-absent shape, and
+    // one place that has to remember area_id (NOT NULL once the multi-area
+    // block below has run on a previous boot).
+    const seedDashboardSectionItem = async (sectionId, itemType, itemId, displayOrder) => {
+      const areaCol = (await hasAreaIdColumn('dashboard_section_items')) ? ', area_id' : '';
+      const areaVal = areaCol ? ', 1' : '';
+      await connection.query(`
+        INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order${areaCol})
+        SELECT ?, ?, ?, ?${areaVal} FROM DUAL
+        WHERE NOT EXISTS (
+          SELECT 1 FROM dashboard_section_items
+          WHERE section_id = ? AND item_type = ? AND item_id = ?
+        )
+      `, [sectionId, itemType, itemId, displayOrder, sectionId, itemType, itemId]);
+    };
 
     const { id: offerSectionId, isNew: offerSectionIsNew } = await ensureDashboardSection({
       title: 'Special Offers',
@@ -1482,14 +1551,7 @@ const migrate = async () => {
     if (offerSectionIsNew) {
       const [activeOffers] = await connection.query('SELECT id FROM offers WHERE active = 1 AND deleted = 0 LIMIT 1');
       if (activeOffers.length > 0) {
-        await connection.query(`
-          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
-          SELECT ?, 'offer', ?, 0 FROM DUAL
-          WHERE NOT EXISTS (
-            SELECT 1 FROM dashboard_section_items
-            WHERE section_id = ? AND item_type = 'offer' AND item_id = ?
-          )
-        `, [offerSectionId, activeOffers[0].id, offerSectionId, activeOffers[0].id]);
+        await seedDashboardSectionItem(offerSectionId, 'offer', activeOffers[0].id, 0);
       }
     }
 
@@ -1505,14 +1567,7 @@ const migrate = async () => {
     if (catSectionIsNew) {
       const [activeCats] = await connection.query('SELECT id, display_order FROM categories WHERE active = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
       for (const cat of activeCats) {
-        await connection.query(`
-          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
-          SELECT ?, 'category', ?, ? FROM DUAL
-          WHERE NOT EXISTS (
-            SELECT 1 FROM dashboard_section_items
-            WHERE section_id = ? AND item_type = 'category' AND item_id = ?
-          )
-        `, [catSectionId, cat.id, cat.display_order, catSectionId, cat.id]);
+        await seedDashboardSectionItem(catSectionId, 'category', cat.id, cat.display_order);
       }
     }
 
@@ -1529,14 +1584,7 @@ const migrate = async () => {
       const [activeCombos] = await connection.query('SELECT id FROM combos WHERE available = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
       let comboOrder = 0;
       for (const combo of activeCombos) {
-        await connection.query(`
-          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
-          SELECT ?, 'combo', ?, ? FROM DUAL
-          WHERE NOT EXISTS (
-            SELECT 1 FROM dashboard_section_items
-            WHERE section_id = ? AND item_type = 'combo' AND item_id = ?
-          )
-        `, [comboSectionId, combo.id, comboOrder++, comboSectionId, combo.id]);
+        await seedDashboardSectionItem(comboSectionId, 'combo', combo.id, comboOrder++);
       }
     }
     console.log('Default dashboard sections and items ready.');
@@ -1591,23 +1639,39 @@ const migrate = async () => {
     await ensureIndex('notifications', 'idx_notifications_user_unread', 'user_id, read_at, deleted_at');
     console.log('Notifications table ready.');
 
-    // Cleanup: Convert 'all' offer banner sections to 'packed' and 'fast_food'
+    // Cleanup: Convert 'all' offer banner sections to 'packed' and 'fast_food'.
+    // Unlike the seed block above, this runs on EVERY boot regardless of
+    // SKIP_SEED_DEFAULTS, and its inserts are plain (not INSERT IGNORE) — so a
+    // missing area_id here is a hard ER_NO_DEFAULT_FOR_FIELD that fails the
+    // migration and the boot with it. Carry the source section's own area_id
+    // (dashboardController.ensureModeSpecificOfferBannerSections is the
+    // runtime counterpart and already does exactly this).
     const [allOfferSections] = await connection.query(`SELECT * FROM dashboard_sections WHERE section_type = 'offer_banner' AND store_type = 'all' AND deleted_at IS NULL`);
-    
+    const sectionsHaveAreaId = await hasAreaIdColumn('dashboard_sections');
+    const sectionItemsHaveAreaId = await hasAreaIdColumn('dashboard_section_items');
+    const sectionAreaCol = sectionsHaveAreaId ? ', area_id' : '';
+    const sectionAreaPlaceholder = sectionsHaveAreaId ? ', ?' : '';
+    const sectionItemAreaCol = sectionItemsHaveAreaId ? ', area_id' : '';
+    const sectionItemAreaPlaceholder = sectionItemsHaveAreaId ? ', ?' : '';
+    // Rows that predate the column can only be Area 1's, the same default
+    // every other legacy backfill in this file uses.
+    const secAreaParams = (sec) => (sectionsHaveAreaId ? [sec.area_id ?? 1] : []);
+    const secItemAreaParams = (sec) => (sectionItemsHaveAreaId ? [sec.area_id ?? 1] : []);
+
     for (const sec of allOfferSections) {
       // 1. Create packed section
       const [packedResult] = await connection.query(
-        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at)
-         VALUES (?, ?, ?, 'packed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [sec.title, sec.slug + '-packed', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.show_hot_badge, sec.section_icon, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at]
+        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at${sectionAreaCol})
+         VALUES (?, ?, ?, 'packed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${sectionAreaPlaceholder})`,
+        [sec.title, sec.slug + '-packed', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.show_hot_badge, sec.section_icon, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at, ...secAreaParams(sec)]
       );
       const packedId = packedResult.insertId;
 
       // 2. Create fast_food section
       const [fastFoodResult] = await connection.query(
-        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at)
-         VALUES (?, ?, ?, 'fast_food', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [sec.title, sec.slug + '-fast-food', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.show_hot_badge, sec.section_icon, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at]
+        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at${sectionAreaCol})
+         VALUES (?, ?, ?, 'fast_food', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${sectionAreaPlaceholder})`,
+        [sec.title, sec.slug + '-fast-food', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.show_hot_badge, sec.section_icon, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at, ...secAreaParams(sec)]
       );
       const fastFoodId = fastFoodResult.insertId;
 
@@ -1621,19 +1685,14 @@ const migrate = async () => {
       );
 
       for (const item of items) {
-        if (item.offer_store_type === 'packed') {
-          await connection.query(
-            `INSERT INTO dashboard_section_items (section_id, item_type, item_id, active, display_order, created_at, updated_at)
-             VALUES (?, 'offer', ?, ?, ?, ?, ?)`,
-            [packedId, item.item_id, item.active, item.display_order, item.created_at, item.updated_at]
-          );
-        } else if (item.offer_store_type === 'fast_food') {
-          await connection.query(
-            `INSERT INTO dashboard_section_items (section_id, item_type, item_id, active, display_order, created_at, updated_at)
-             VALUES (?, 'offer', ?, ?, ?, ?, ?)`,
-            [fastFoodId, item.item_id, item.active, item.display_order, item.created_at, item.updated_at]
-          );
-        }
+        const targetSectionId = item.offer_store_type === 'packed' ? packedId
+          : (item.offer_store_type === 'fast_food' ? fastFoodId : null);
+        if (targetSectionId === null) continue;
+        await connection.query(
+          `INSERT INTO dashboard_section_items (section_id, item_type, item_id, active, display_order, created_at, updated_at${sectionItemAreaCol})
+           VALUES (?, 'offer', ?, ?, ?, ?, ?${sectionItemAreaPlaceholder})`,
+          [targetSectionId, item.item_id, item.active, item.display_order, item.created_at, item.updated_at, ...secItemAreaParams(sec)]
+        );
       }
 
       // 4. Mark old section as deleted

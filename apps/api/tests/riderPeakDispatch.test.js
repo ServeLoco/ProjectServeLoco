@@ -90,10 +90,16 @@ const resetDb = () => {
   };
 };
 
-const activeOrdersOf = (riderId) => db.orders.filter(
-  (o) => Number(o.rider_id) === Number(riderId)
-    && o.status !== 'Delivered' && o.status !== 'Cancelled'
-).length;
+// lookbackMin mirrors the real query's `created_at > NOW() - INTERVAL ? MINUTE`
+// bound: an order that is never delivered or cancelled must eventually stop
+// counting against its rider's capacity. Fixture rows without a created_at are
+// treated as brand new (the common case in these scenarios).
+const activeOrdersOf = (riderId, lookbackMin = null) => db.orders.filter((o) => {
+  if (Number(o.rider_id) !== Number(riderId)) return false;
+  if (o.status === 'Delivered' || o.status === 'Cancelled') return false;
+  if (lookbackMin == null || o.created_at == null) return true;
+  return new Date(o.created_at).getTime() > Date.now() - lookbackMin * 60 * 1000;
+}).length;
 
 // The fake treats every Delivered row as delivered today — the real query's
 // CONVERT_TZ day-boundary logic is not what these scenarios exercise.
@@ -217,13 +223,14 @@ function runQuery(sql, params = []) {
   if (/FROM riders r/.test(q) && /NOT EXISTS/.test(q)) {
     const maxAgeSec = Number(p[0]);
     const areaId = Number(p[1]);
-    const maxActive = Number(p[2]);
-    const exclude = p.slice(3).map(Number);
+    const lookbackMin = Number(p[2]);
+    const maxActive = Number(p[3]);
+    const exclude = p.slice(4).map(Number);
     const rows = db.riders.filter((r) => r.active === 1
       && r.is_online === 1
       && Number(r.area_id) === areaId
       && !hasPendingOffer(r.id)
-      && activeOrdersOf(r.id) < maxActive
+      && activeOrdersOf(r.id, lookbackMin) < maxActive
       && !exclude.includes(Number(r.id)));
     return [rows.map((r) => ({
       id: r.id,

@@ -69,13 +69,22 @@ const getBootstrap = async (req, res) => {
     zone = matched || null;
   }
 
+  // rider_capacity_multiplier is a rider-assignment tuning knob with no
+  // customer-facing meaning, and GET /api/settings already strips it from its
+  // public payload — this endpoint serves the same customers the same block,
+  // so it strips it too. Copy first: getSettingsForArea hands back its cached
+  // object, and mutating it would strip the field from the admin read as well
+  // (same reasoning as settingsController.getSettings).
+  const publicSettings = settings ? { ...settings } : settings;
+  if (publicSettings) delete publicSettings.rider_capacity_multiplier;
+
   res.status(200).json({
     deliverable: true,
     area: shapeAreaForCustomer(area),
     zone,
     // 27.5 — the resolved area's own UPI/support contact, never a global
     // default. Getting this wrong routes real money to the wrong account.
-    settings,
+    settings: publicSettings,
     storeModes,
     zoneGeometry,
     catalogVersion: area.catalog_version,

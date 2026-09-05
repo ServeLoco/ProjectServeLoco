@@ -14,6 +14,12 @@ const RIDER_LOCATION_MAX_AGE_SEC = config.RIDER_LOCATION_MAX_AGE_SEC || 600;
 // new offers until one is Delivered/Cancelled — enforced inside
 // listEligibleRiders so both the initial assignment and every
 // continueAssignment re-scan see it, with zero caching to go stale.
+//
+// Counted over RIDER_CAPACITY_LOOKBACK_MIN only, for exactly the reason the
+// checkout capacity gate is (orderController.js): an order that is never
+// delivered or cancelled stays non-terminal forever, and an unbounded count
+// let two such rows silently exclude a rider from every future offer with
+// nothing anywhere reporting why.
 const RIDER_MAX_ACTIVE_ORDERS = config.RIDER_MAX_ACTIVE_ORDERS || 2;
 
 const riderShape = (r) => {
@@ -132,9 +138,12 @@ const getCapacityStatus = async (areaId) => {
  */
 const listEligibleRiders = async ({ excludeIds = [], areaId } = {}) => {
   const exclude = (excludeIds || []).map(Number).filter((n) => Number.isFinite(n) && n > 0);
-  // Freshness param, then areaId, then the active-orders cap, then the
-  // exclude list — keep this order in sync with the placeholders below.
-  const params = [RIDER_LOCATION_MAX_AGE_SEC, areaId, RIDER_MAX_ACTIVE_ORDERS];
+  // Freshness param, then areaId, then the active-orders lookback + cap, then
+  // the exclude list — keep this order in sync with the placeholders below.
+  const params = [
+    RIDER_LOCATION_MAX_AGE_SEC, areaId,
+    config.RIDER_CAPACITY_LOOKBACK_MIN, RIDER_MAX_ACTIVE_ORDERS,
+  ];
   let excludeClause = '';
   if (exclude.length > 0) {
     excludeClause = `AND r.id NOT IN (${exclude.map(() => '?').join(',')})`;
@@ -159,6 +168,7 @@ const listEligibleRiders = async ({ excludeIds = [], areaId } = {}) => {
        AND (
          SELECT COUNT(*) FROM orders o
          WHERE o.rider_id = r.id AND o.status NOT IN ('Delivered', 'Cancelled')
+           AND o.created_at > NOW() - INTERVAL ? MINUTE
        ) < ?
        ${excludeClause}
      ORDER BY r.id ASC`,

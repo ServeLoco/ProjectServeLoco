@@ -75,6 +75,34 @@ describe('GET /bootstrap (TASK 27.3-27.6)', () => {
     expect(res.body.settings).toMatchObject({ upi_id: 'area1@upi', support_phone: '9990001111' });
   });
 
+  it('strips rider_capacity_multiplier from the customer-facing settings block', async () => {
+    pool.query
+      .mockResolvedValueOnce([[AREA_1]])
+      .mockResolvedValueOnce([[{
+        id: 900, area_id: 1, name: 'Zone A', boundary: JSON.stringify([
+          { lat: 10, lng: 10 }, { lat: 10, lng: 11 }, { lat: 11, lng: 11 }, { lat: 11, lng: 10 },
+        ]), parent_zone_id: null, active: 1,
+      }]])
+      .mockResolvedValueOnce([[{ id: 900, name: 'Zone A', boundary: JSON.stringify([
+        { lat: 10, lng: 10 }, { lat: 10, lng: 11 }, { lat: 11, lng: 11 }, { lat: 11, lng: 10 },
+      ]), parent_zone_id: null }]])
+      .mockResolvedValueOnce([[{
+        area_id: 1, shop_open: 1, upi_id: 'area1@upi', upi_qr_image_id: null,
+        support_phone: '9990001111', whatsapp_number: '9990001111',
+        rider_capacity_multiplier: '3.00',
+      }]])
+      .mockResolvedValueOnce([[]]); // store modes
+
+    const res = await request(app).get('/api/bootstrap?latitude=10.5&longitude=10.5');
+
+    expect(res.statusCode).toEqual(200);
+    // Same rule GET /api/settings already applies: a rider-assignment tuning
+    // knob has no customer-facing meaning and must not ship in a public
+    // payload just because this endpoint bundles the settings block.
+    expect(res.body.settings).not.toHaveProperty('rider_capacity_multiplier');
+    expect(res.body.settings).toMatchObject({ upi_id: 'area1@upi' });
+  });
+
   it('a pin outside every zone returns the "we don\'t deliver here yet" shape, never the default area', async () => {
     pool.query
       .mockResolvedValueOnce([[AREA_1]]) // bbox candidates — this point IS inside area 1's bbox

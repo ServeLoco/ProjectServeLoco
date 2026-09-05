@@ -233,6 +233,50 @@ describe('Library controller — add-to-area / add-to-areas / promote (route-lev
     expect(linkBackCall[0]).toContain('UPDATE products SET library_product_id');
   });
 
+  it('promote-to-library carries the product\'s unit into product_library.unit_id', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ // source product, WITH a unit
+        id: 501, name: 'Amul Milk', description: 'Fresh', image_id: '77',
+        unit: ' 500ml ', variant_prompt: null, price: 40, library_product_id: null,
+      }]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]) // INSERT IGNORE INTO units
+      .mockResolvedValueOnce([[{ id: 7 }]]) // SELECT id FROM units
+      .mockResolvedValueOnce([{ insertId: 20 }]) // INSERT product_library
+      .mockResolvedValueOnce([[]]) // no variants
+      .mockResolvedValueOnce([{ affectedRows: 1 }]) // UPDATE products.library_product_id
+      .mockResolvedValueOnce([[{ id: 20, name: 'Amul Milk', archived: 0 }]]); // re-select
+
+    const res = await request(app).post('/api/admin/products/501/promote-to-library');
+    expect(res.statusCode).toBe(201);
+
+    // The free-text unit is trimmed and resolved (creating the units row if
+    // needed) rather than dropped. Leaving unit_id NULL here is what let
+    // propagateLibraryEdit later push `products.unit = NULL` to every area.
+    expect(pool.query.mock.calls[1][0]).toContain('INSERT IGNORE INTO units');
+    expect(pool.query.mock.calls[1][1]).toEqual(['500ml']);
+    const [libInsertSql, libInsertParams] = pool.query.mock.calls[3];
+    expect(libInsertSql).toContain('INSERT INTO product_library');
+    expect(libInsertSql).toContain('unit_id');
+    expect(libInsertParams).toEqual(['Amul Milk', 'Fresh', '77', 7, null, 40]);
+  });
+
+  it('promote-to-library leaves unit_id NULL for a product with no unit, without touching units', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{
+        id: 501, name: 'Amul Milk', description: null, image_id: null,
+        unit: '   ', variant_prompt: null, price: 40, library_product_id: null,
+      }]])
+      .mockResolvedValueOnce([{ insertId: 20 }]) // INSERT product_library
+      .mockResolvedValueOnce([[]]) // no variants
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([[{ id: 20, name: 'Amul Milk', archived: 0 }]]);
+
+    const res = await request(app).post('/api/admin/products/501/promote-to-library');
+    expect(res.statusCode).toBe(201);
+    expect(pool.query.mock.calls.every(([sql]) => !/units/.test(sql))).toBe(true);
+    expect(pool.query.mock.calls[1][1]).toEqual(['Amul Milk', null, null, null, null, 40]);
+  });
+
   it('promote-to-library rejects a product already linked to the library', async () => {
     pool.query.mockResolvedValueOnce([[{ id: 501, library_product_id: 20 }]]);
     const res = await request(app).post('/api/admin/products/501/promote-to-library');

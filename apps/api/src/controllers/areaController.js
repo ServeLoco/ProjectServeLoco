@@ -84,13 +84,15 @@ const createArea = async (req, res) => {
     });
   }
 
+  // beginTransaction lives INSIDE the try, and release() in a finally: opened
+  // before the try, a throwing beginTransaction leaks the connection, and a
+  // throwing rollback in the catch skipped the release that followed it.
   const connection = await pool.getConnection();
-  await connection.beginTransaction();
   try {
+    await connection.beginTransaction();
     const [existing] = await connection.query('SELECT id FROM areas WHERE code = ?', [finalCode]);
     if (existing.length > 0) {
       await connection.rollback();
-      connection.release();
       return res.status(409).json({ code: 'CONFLICT', message: `Area code "${finalCode}" is already in use` });
     }
 
@@ -115,7 +117,6 @@ const createArea = async (req, res) => {
     await seedSystemStoreModes(areaId, connection);
 
     await connection.commit();
-    connection.release();
     invalidateAreasCache();
     // Bug fix (multi-area audit finding #15): joinAreaRoom's super_admin
     // branch only runs at connect time — an already-connected super_admin
@@ -127,9 +128,10 @@ const createArea = async (req, res) => {
     const area = await getAreaById(areaId);
     res.status(201).json({ message: 'Area created', data: shapeArea(area) });
   } catch (error) {
-    await connection.rollback();
-    connection.release();
+    try { await connection.rollback(); } catch (_) { /* connection already unusable */ }
     throw error;
+  } finally {
+    connection.release();
   }
 };
 
@@ -234,14 +236,15 @@ const cloneArea = async (req, res) => {
   }
   const applyMultiplier = (price) => Math.round(Number(price) * priceMultiplier * 100) / 100;
 
+  // Same connection-lifecycle shape as createArea above: beginTransaction
+  // inside the try, exactly one release() in a finally.
   const connection = await pool.getConnection();
-  await connection.beginTransaction();
   try {
+    await connection.beginTransaction();
     const [[existingCategory]] = await connection.query('SELECT COUNT(*) AS cnt FROM categories WHERE area_id = ?', [targetAreaId]);
     const [[existingProduct]] = await connection.query('SELECT COUNT(*) AS cnt FROM products WHERE area_id = ?', [targetAreaId]);
     if (Number(existingCategory.cnt) > 0 || Number(existingProduct.cnt) > 0) {
       await connection.rollback();
-      connection.release();
       return res.status(409).json({
         code: 'CONFLICT',
         message: 'Target area already has categories or products. Clone refuses to run against a non-empty catalog.',
@@ -391,15 +394,18 @@ const cloneArea = async (req, res) => {
         const newItemId = map ? map.get(item.item_id) : null;
         if (!newItemId) continue;
         await connection.query(
-          `INSERT IGNORE INTO dashboard_section_items (section_id, item_type, item_id, display_order, active)
-           VALUES (?, ?, ?, ?, ?)`,
-          [newSectionId, item.item_type, newItemId, item.display_order, item.active]
+          // area_id is NOT NULL with an FK on this table — omitting it makes
+          // INSERT IGNORE swallow the failure and clone every section with
+          // ZERO items, silently. Same bug fixed in dashboardController's two
+          // other insert sites; this third one was missed.
+          `INSERT IGNORE INTO dashboard_section_items (section_id, item_type, item_id, display_order, active, area_id)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [newSectionId, item.item_type, newItemId, item.display_order, item.active, targetAreaId]
         );
       }
     }
 
     await connection.commit();
-    connection.release();
 
     const { bustAreaCaches } = require('../utils/areaScope');
     await bustAreaCaches(targetAreaId);
@@ -413,9 +419,10 @@ const cloneArea = async (req, res) => {
       dashboardSectionsCloned: sectionIdMap.size,
     });
   } catch (error) {
-    await connection.rollback();
-    connection.release();
+    try { await connection.rollback(); } catch (_) { /* connection already unusable */ }
     throw error;
+  } finally {
+    connection.release();
   }
 };
 

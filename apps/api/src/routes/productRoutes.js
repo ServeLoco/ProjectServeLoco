@@ -19,10 +19,20 @@ router.use(getLimiter);
 // type/etc. all narrow the response body without changing catalog_version —
 // applying the same ETag to those would 304 a genuinely different result
 // set. Skip straight to the real handler whenever any of those are present.
+//
+// limit/offset and includeClosedShops belong in this list for exactly the
+// same reason and were missing: page 2 of the catalog carries the identical
+// <areaId>-<catalogVersion> ETag as page 1, so any client (or intermediary
+// cache) doing a conditional GET gets a 304 and renders page 1's body for
+// page 2. Keep this list in sync with every query param getProducts reads.
+const ETAG_BUSTING_PARAMS = [
+  'categoryId', 'category_id', 'search', 'type', 'storeType', 'store_type',
+  'isCombo', 'is_combo', 'featured', 'offerId', 'offer_id',
+  'limit', 'offset', 'includeClosedShops', 'include_closed_shops',
+];
+
 const productsCatalogETag = (req, res, next) => {
-  const { categoryId, category_id, search, type, storeType, store_type, isCombo, is_combo, featured, offerId, offer_id } = req.query;
-  if (categoryId || category_id || search || type || storeType || store_type ||
-      isCombo !== undefined || is_combo !== undefined || featured !== undefined || offerId || offer_id) {
+  if (ETAG_BUSTING_PARAMS.some((key) => req.query[key] !== undefined)) {
     return next();
   }
   return catalogETag(req, res, next);

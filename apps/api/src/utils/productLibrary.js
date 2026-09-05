@@ -14,6 +14,23 @@ class LibraryError extends Error {
 }
 
 /**
+ * Free-text unit string -> units.id, creating the row when it's a unit no
+ * product has used yet (INSERT IGNORE against units.name's UNIQUE key, so
+ * two concurrent promotes can't duplicate it). Returns null for a blank/
+ * missing unit — the library row then genuinely has no unit opinion.
+ * @param {import('mysql2/promise').PoolConnection} conn
+ * @param {string|null|undefined} unitText
+ * @returns {Promise<number|null>}
+ */
+const resolveUnitId = async (conn, unitText) => {
+  const trimmed = typeof unitText === 'string' ? unitText.trim() : '';
+  if (!trimmed) return null;
+  await conn.query('INSERT IGNORE INTO units (name) VALUES (?)', [trimmed]);
+  const [rows] = await conn.query('SELECT id FROM units WHERE name = ? LIMIT 1', [trimmed]);
+  return rows[0]?.id ?? null;
+};
+
+/**
  * Materialize a library product into one area's catalog. Idempotent: calling
  * this again for an (libraryProductId, areaId) pair that already has a
  * linked, non-deleted product returns that product instead of creating a
@@ -176,14 +193,28 @@ const propagateLibraryEdit = async (conn, libraryProductId) => {
   // spread of the request body — one stray column would overwrite every
   // area's pricing in a single UPDATE). unit_id resolves to the same
   // free-text products.unit column materializeToArea writes (22.6).
-  let unitText = null;
+  //
+  // `unit` is included ONLY when the library row actually carries a unit_id.
+  // A library item with unit_id NULL means "this library row has no unit
+  // opinion", not "clear the unit everywhere": rows promoted before
+  // promoteToLibrary learned to resolve products.unit (below) all have
+  // unit_id NULL, so an unconditional `unit = NULL` here wiped a real,
+  // customer-visible value ("500ml", "1kg") in every area on the first
+  // library edit of any kind — including a name-only one.
+  let unitSet = '';
+  const identityParams = [lib.name, lib.description, lib.image_id];
   if (lib.unit_id != null) {
     const [unitRows] = await conn.query('SELECT name FROM units WHERE id = ?', [lib.unit_id]);
-    unitText = unitRows[0]?.name || null;
+    const unitText = unitRows[0]?.name || null;
+    if (unitText != null) {
+      unitSet = ', unit = ?';
+      identityParams.push(unitText);
+    }
   }
+  identityParams.push(libraryProductId);
   await conn.query(
-    'UPDATE products SET name = ?, description = ?, image_id = ?, unit = ? WHERE library_product_id = ? AND deleted = 0',
-    [lib.name, lib.description, lib.image_id, unitText, libraryProductId]
+    `UPDATE products SET name = ?, description = ?, image_id = ?${unitSet} WHERE library_product_id = ? AND deleted = 0`,
+    identityParams
   );
 
   // 2. Variant labels — one JOIN-based UPDATE covers every area's variants
@@ -453,10 +484,17 @@ const promoteToLibrary = async (conn, productId) => {
     throw new LibraryError('ALREADY_LINKED', 'This product is already linked to a library item');
   }
 
+  // products.unit is free text; product_library keys off `units.id`. Resolve
+  // (creating the units row if this is a unit nobody has used before) so the
+  // promoted library item carries the product's real unit instead of NULL —
+  // otherwise propagateLibraryEdit has no unit to propagate and the value is
+  // lost the first time anyone edits the library item.
+  const unitId = await resolveUnitId(conn, product.unit);
+
   const [libResult] = await conn.query(
-    `INSERT INTO product_library (name, description, image_id, variant_prompt, suggested_price, status)
-     VALUES (?, ?, ?, ?, ?, 'published')`,
-    [product.name, product.description, product.image_id, product.variant_prompt, product.price]
+    `INSERT INTO product_library (name, description, image_id, unit_id, variant_prompt, suggested_price, status)
+     VALUES (?, ?, ?, ?, ?, ?, 'published')`,
+    [product.name, product.description, product.image_id, unitId, product.variant_prompt, product.price]
   );
   const libraryProductId = libResult.insertId;
 

@@ -363,9 +363,13 @@ describe('30.11 — a library product rename reaches both areas and changes neit
 
     expect(areaIds.sort()).toEqual([1, 2]);
     const [identitySql, identityParams] = conn.query.mock.calls[1];
-    expect(identitySql).toMatch(/UPDATE products SET name = \?, description = \?, image_id = \?, unit = \?/);
+    expect(identitySql).toMatch(/UPDATE products SET name = \?, description = \?, image_id = \?/);
     expect(identitySql).not.toMatch(/\bprice\b/i);
-    expect(identityParams).toEqual(['Whole Milk 1L', 'Fresh milk', 7, null, 50]);
+    // unit_id is NULL on this library row, so `unit` is omitted from the SET
+    // rather than written as NULL — writing it would wipe each area's real
+    // unit string ("1L") instead of propagating anything.
+    expect(identitySql).not.toMatch(/\bunit\b/i);
+    expect(identityParams).toEqual(['Whole Milk 1L', 'Fresh milk', 7, 50]);
   });
 });
 

@@ -378,9 +378,12 @@ describe('Area + admin management (TASK 24)', () => {
         expect.stringContaining('INSERT IGNORE INTO offer_products'),
         [150, 130, 0, 1]
       );
+      // area_id is in the column list and carries the TARGET area — the table
+      // is NOT NULL + FK on it, so omitting it made INSERT IGNORE swallow the
+      // failure and clone every section with zero items.
       expect(conn.query).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT IGNORE INTO dashboard_section_items'),
-        [170, 'product', 130, 0, 1]
+        expect.stringContaining('INSERT IGNORE INTO dashboard_section_items (section_id, item_type, item_id, display_order, active, area_id)'),
+        [170, 'product', 130, 0, 1, 2]
       );
     });
 

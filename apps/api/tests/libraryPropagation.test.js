@@ -34,16 +34,61 @@ describe('propagateLibraryEdit', () => {
     const result = await propagateLibraryEdit(fakeConn, 20);
 
     const identitySql = pool.query.mock.calls[1][0];
-    expect(identitySql).toContain('UPDATE products SET name = ?, description = ?, image_id = ?, unit = ?');
+    expect(identitySql).toContain('UPDATE products SET name = ?, description = ?, image_id = ?');
     expect(identitySql).toContain('WHERE library_product_id = ?');
     // Never touches price, availability, category_id, shop_id, display_order.
     expect(identitySql).not.toMatch(/\bprice\b/);
     expect(identitySql).not.toMatch(/\bavailable\b/);
     expect(identitySql).not.toMatch(/\bcategory_id\b/);
     expect(identitySql).not.toMatch(/\bdisplay_order\b/);
-    expect(pool.query.mock.calls[1][1]).toEqual(['Maggi', 'Noodles', '55', null, 20]);
+    // unit_id is NULL on this library row, so `unit` is left out of the SET
+    // entirely — see the dedicated test below.
+    expect(identitySql).not.toMatch(/\bunit\b/);
+    expect(pool.query.mock.calls[1][1]).toEqual(['Maggi', 'Noodles', '55', 20]);
 
     expect(result.areaIds).toEqual([1, 2]);
+  });
+
+  it('never clears products.unit when the library row has no unit_id', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 20, name: 'Maggi', description: null, image_id: null, unit_id: null, suggested_price: null }]])
+      .mockResolvedValueOnce([{ affectedRows: 3 }])
+      .mockResolvedValueOnce([{ affectedRows: 0 }])
+      .mockResolvedValueOnce([{ affectedRows: 0 }])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]]);
+
+    await propagateLibraryEdit(fakeConn, 20);
+
+    // A NULL unit_id means "this library row has no unit opinion", NOT "clear
+    // the unit in every area". Every product promoted before promoteToLibrary
+    // resolved products.unit has unit_id NULL, so writing `unit = NULL` here
+    // wiped a real, customer-visible value ("500ml") platform-wide on the
+    // first library edit of any kind.
+    const [identitySql, identityParams] = pool.query.mock.calls[1];
+    expect(identitySql).not.toMatch(/\bunit\b/);
+    expect(identityParams).toEqual(['Maggi', null, null, 20]);
+    // No units lookup happens at all when there is nothing to resolve.
+    expect(pool.query.mock.calls.every(([sql]) => !/FROM units/.test(sql))).toBe(true);
+  });
+
+  it('propagates products.unit when the library row does carry a unit_id', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 20, name: 'Maggi', description: null, image_id: null, unit_id: 7, suggested_price: null }]])
+      .mockResolvedValueOnce([[{ name: '500ml' }]]) // units lookup
+      .mockResolvedValueOnce([{ affectedRows: 3 }]) // identity UPDATE
+      .mockResolvedValueOnce([{ affectedRows: 0 }])
+      .mockResolvedValueOnce([{ affectedRows: 0 }])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]]);
+
+    await propagateLibraryEdit(fakeConn, 20);
+
+    const [identitySql, identityParams] = pool.query.mock.calls[2];
+    expect(identitySql).toContain('unit = ?');
+    expect(identityParams).toEqual(['Maggi', null, null, '500ml', 20]);
   });
 
   it('20.3 — variant labels propagate via one JOIN-based UPDATE', async () => {
