@@ -201,17 +201,25 @@ const deleteImage = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Cannot delete image in use by: ${usages}` });
   }
 
-  await deleteImageDocAndFile(id);
+  const deleted = await deleteImageDocAndFile(id);
+  if (!deleted) {
+    // Previously this replied "Image deleted successfully" for an id that was
+    // never there, so the admin Images page could not tell a real delete from
+    // a stale row someone else had already removed.
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Image not found' });
+  }
   res.status(200).json({ message: 'Image deleted successfully' });
 };
 
-// Internal: removes the MySQL row + underlying S3/disk object for a single image.
+// Internal: removes the MySQL row + underlying S3/disk object for a single
+// image. Returns true when a row was actually removed, false when there was
+// nothing to remove — cleanupOrphanedImage ignores it, deleteImage 404s on it.
 const deleteImageDocAndFile = async (id) => {
-  if (!isValidImageId(id)) return;
+  if (!isValidImageId(id)) return false;
 
   const [rows] = await pool.query('SELECT * FROM images WHERE id = ?', [id]);
   const image = rows[0];
-  if (!image) return;
+  if (!image) return false;
 
   try {
     await deleteStored(image.storage_type, image.filename);
@@ -226,7 +234,8 @@ const deleteImageDocAndFile = async (id) => {
     }
   }
 
-  await pool.query('DELETE FROM images WHERE id = ?', [id]);
+  const [result] = await pool.query('DELETE FROM images WHERE id = ?', [id]);
+  return result.affectedRows > 0;
 };
 
 const cleanupOrphanedImage = async (imageId) => {

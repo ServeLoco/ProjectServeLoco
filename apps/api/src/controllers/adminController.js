@@ -2437,6 +2437,18 @@ const markInboxRead = async (req, res) => {
   }
   const areaClause = areaId === 'all' ? '' : ' AND area_id = ?';
   const areaParams = areaId === 'all' ? [] : [areaId];
+  // Existence is checked separately rather than from the UPDATE's
+  // affectedRows: the UPDATE carries `AND read_at IS NULL`, so a row that is
+  // simply ALREADY read also reports 0 rows — indistinguishable from one that
+  // does not exist or belongs to another area. Marking an already-read item
+  // read is a success; marking a nonexistent one is a 404.
+  const [existing] = await pool.query(
+    `SELECT id FROM admin_notifications WHERE id = ?${areaClause} LIMIT 1`,
+    [id, ...areaParams]
+  );
+  if (existing.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Notification not found' });
+  }
   await pool.query(
     `UPDATE admin_notifications SET read_at = NOW() WHERE id = ? AND read_at IS NULL${areaClause}`,
     [id, ...areaParams]
@@ -2464,7 +2476,12 @@ const dismissInbox = async (req, res) => {
   }
   const areaClause = areaId === 'all' ? '' : ' AND area_id = ?';
   const areaParams = areaId === 'all' ? [] : [areaId];
-  await pool.query(`DELETE FROM admin_notifications WHERE id = ?${areaClause}`, [id, ...areaParams]);
+  const [result] = await pool.query(`DELETE FROM admin_notifications WHERE id = ?${areaClause}`, [id, ...areaParams]);
+  // Zero rows here is unambiguous (no read_at condition in the WHERE): the
+  // notification does not exist, or belongs to another area.
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Notification not found' });
+  }
   adminInbox.broadcastUnreadCount(areaId);
   res.status(200).json({ message: 'Dismissed' });
 };

@@ -15,9 +15,16 @@ app.use('/api/admin/images', imageRoutes);
 
 const token = jwt.sign({ id: 'admin', role: 'admin' }, process.env.JWT_SECRET || 'secret');
 
+// A row that already exists in `images`, for tests that delete without
+// uploading first. `null` here means "no such image".
+const EXISTING_IMAGE = {
+  id: 42, filename: 'existing.jpg', original_name: 'existing.jpg', mime_type: 'image/jpeg',
+  size: 123, storage_type: 'local', url: '/uploads/existing.jpg', thumb_url: null, alt_text: null,
+};
+
 // Threads the row inserted by uploadImage through to the SELECT that
 // follows it, and lets each test control the "used by" queries independently.
-const mockImagesTable = ({ usedByProducts = [] } = {}) => {
+const mockImagesTable = ({ usedByProducts = [], existingRow = EXISTING_IMAGE } = {}) => {
   let lastInsertedRow = null;
   pool.query.mockImplementation((sql, params = []) => {
     if (sql.startsWith('INSERT INTO images')) {
@@ -29,7 +36,10 @@ const mockImagesTable = ({ usedByProducts = [] } = {}) => {
       return Promise.resolve([{ insertId: 1 }]);
     }
     if (sql.startsWith('SELECT * FROM images WHERE id')) {
-      return Promise.resolve([[lastInsertedRow]]);
+      // Falls back to a stored row so a delete-only test still models an image
+      // that actually EXISTS. Previously this returned [null] for those tests,
+      // and deleteImage happily reported success for a row that was not there.
+      return Promise.resolve([[lastInsertedRow || existingRow]]);
     }
     if (sql.includes('SELECT DISTINCT image_id FROM products')) {
       return Promise.resolve([usedByProducts]);
@@ -79,5 +89,17 @@ describe('Image Metadata Tests', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.statusCode).toEqual(200);
+  });
+
+  it('404s deleting an image that does not exist, instead of reporting success', async () => {
+    mockImagesTable({ existingRow: null });
+    pool.query.mockImplementationOnce(() => Promise.resolve([[]])); // products (unused)
+
+    const res = await request(app)
+      .delete('/api/admin/images/999999')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toEqual(404);
+    expect(res.body.code).toBe('NOT_FOUND');
   });
 });

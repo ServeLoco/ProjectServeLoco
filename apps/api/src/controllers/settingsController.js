@@ -752,11 +752,17 @@ const removeOfferProduct = async (req, res) => {
   if (areaId === null) return;
 
   const { id, productId } = req.params;
-  await pool.query(
+  const [result] = await pool.query(
     `DELETE FROM offer_products WHERE offer_id = ? AND product_id = ?
      AND EXISTS (SELECT 1 FROM offers WHERE offers.id = offer_products.offer_id AND offers.area_id = ?)`,
     [id, productId, areaId]
   );
+  // Zero rows means the product was never on this offer, the offer does not
+  // exist, or it belongs to another area. Replying "removed" to all three hid
+  // stale admin UI state behind an apparent success.
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product is not on this offer' });
+  }
   await bustAreaCaches(areaId);
   res.status(200).json({ message: 'Product removed from offer' });
 };
