@@ -17,6 +17,7 @@ jest.mock('../src/utils/areaScope', () => ({
 }));
 
 const { pool } = require('../src/db/mysql');
+const { bustUserState } = require('../src/utils/userState');
 const { getDefaultArea, listAreas, getAreaById } = require('../src/utils/areaScope');
 const { resolveAreaIdForSocketUser, joinAreaRoom, rejoinAreaRoom } = require('../src/realtime/socket');
 
@@ -25,6 +26,9 @@ const fakeSocket = (auth) => ({ data: { auth }, join: jest.fn() });
 describe('resolveAreaIdForSocketUser', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // users.last_area_id is read through a 30s per-user cache
+    // (utils/userState.js) — clear it so one case's row can't answer the next.
+    bustUserState();
   });
 
   it("returns the user's last_area_id when set", async () => {
@@ -76,6 +80,9 @@ describe('joinAreaRoom', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // users.last_area_id is read through a 30s per-user cache
+    // (utils/userState.js) — clear it so one case's row can't answer the next.
+    bustUserState();
   });
 
   afterEach(() => {
@@ -145,6 +152,9 @@ describe('joinAreaRoom', () => {
 describe('rejoinAreaRoom', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // users.last_area_id is read through a 30s per-user cache
+    // (utils/userState.js) — clear it so one case's row can't answer the next.
+    bustUserState();
   });
 
   const fakeSocketWithLeave = (auth, currentAreaId) => ({

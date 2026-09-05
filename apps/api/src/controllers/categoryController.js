@@ -4,7 +4,12 @@ const microCache = require('../utils/microCache');
 const { cleanupOrphanedImage } = require('./imageController');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
 
-const CATEGORIES_TTL_MS = 30_000;
+// Same reasoning as dashboardController's DASHBOARD_TTL_MS: every category
+// mutation calls bustAreaCaches (which clears the 'categories' namespace for
+// that area), so this TTL is a backstop against a missed bust, not the
+// freshness mechanism. 30s made a low-traffic area re-query on nearly every
+// request.
+const CATEGORIES_TTL_MS = 120_000;
 
 function slugify(value) {
   return String(value || '')

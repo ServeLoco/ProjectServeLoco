@@ -3,8 +3,14 @@ const { normalizeStoreType, getActiveStoreModeSlugs, isSystemModeSlug } = requir
 const config = require('../config/env');
 const { attachVariants } = require('./productController');
 const microCache = require('../utils/microCache');
+const { reorderDisplayOrder } = require('../utils/reorder');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
-const DASHBOARD_TTL_MS = 30_000;
+// 30s meant a low-traffic area re-ran the whole multi-query dashboard build on
+// almost every request. Every mutation that can change this payload already
+// calls bustAreaCaches (which clears the 'dashboard' namespace for that area),
+// so the TTL is a backstop against a missed bust, not the freshness mechanism
+// — 2 minutes is safe and turns the common case into a pure cache hit.
+const DASHBOARD_TTL_MS = 120_000;
 
 // Admin write/single-item endpoints reject null (super_admin, no
 // X-Area-Id) and 'all' — dashboard management always targets exactly one
@@ -542,9 +548,11 @@ const getDashboard = async (req, res) => {
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
           [section.id, areaId]
         );
-        await resolveImageUrls(rows);
-        await attachComboItems(rows);
-        await attachVariants(rows);
+        // Independent batched reads against different tables off the same
+        // rows — no ordering dependency between them, and each is a
+        // cross-region round trip. Running them in series made every
+        // product_block section 3 hops deep for no reason.
+        await Promise.all([resolveImageUrls(rows), attachComboItems(rows), attachVariants(rows)]);
 
         let filteredRows = rows;
         if (expectedStoreType && expectedStoreType !== 'all') {
@@ -567,8 +575,7 @@ const getDashboard = async (req, res) => {
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
           itemParams
         );
-        await resolveImageUrls(rows);
-        await attachComboItems(rows);
+        await Promise.all([resolveImageUrls(rows), attachComboItems(rows)]);
 
         let filteredRows = rows;
         items = mapProductRows(filteredRows);
@@ -727,9 +734,8 @@ const getSectionItems = async (req, res) => {
          LIMIT ? OFFSET ?`,
         params
       );
-      await resolveImageUrls(rows);
-      await attachComboItems(rows);
-      await attachVariants(rows);
+      // Same reasoning as getDashboard's product_block above.
+      await Promise.all([resolveImageUrls(rows), attachComboItems(rows), attachVariants(rows)]);
 
       items = rows.map(r => ({
         id: r.id,
@@ -775,8 +781,7 @@ const getSectionItems = async (req, res) => {
          LIMIT ? OFFSET ?`,
         params
       );
-      await resolveImageUrls(rows);
-      await attachComboItems(rows);
+      await Promise.all([resolveImageUrls(rows), attachComboItems(rows)]);
 
       const filteredRows = rows.filter(r => (r.combo_items || []).length > 0);
 
@@ -1353,26 +1358,19 @@ const reorderAdminSections = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'sectionIds array is required' });
   }
 
-  const connection = await pool.getConnection();
-  await connection.beginTransaction();
-
   try {
-    for (let i = 0; i < sectionIds.length; i++) {
-      const sectionId = sectionIds[i];
-      // area_id in the WHERE: without it, a section id belonging to another
-      // area could have its display_order silently rewritten.
-      await connection.query(
-        'UPDATE dashboard_sections SET display_order = ? WHERE id = ? AND deleted_at IS NULL AND area_id = ?',
-        [i, sectionId, areaId]
-      );
-    }
-    await connection.commit();
-    connection.release();
+    // One statement, so no transaction to wrap it (and no BEGIN/COMMIT round
+    // trips). area_id in the WHERE: without it, a section id belonging to
+    // another area could have its display_order silently rewritten.
+    await reorderDisplayOrder(pool, {
+      table: 'dashboard_sections',
+      ids: sectionIds,
+      where: ' AND deleted_at IS NULL AND area_id = ?',
+      whereParams: [areaId],
+    });
     await bustAreaCaches(areaId);
     res.status(200).json({ message: 'Sections reordered successfully' });
   } catch (error) {
-    await connection.rollback();
-    connection.release();
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
   }
 };
@@ -1401,24 +1399,16 @@ const reorderAdminSectionItems = async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Section not found' });
   }
 
-  const connection = await pool.getConnection();
-  await connection.beginTransaction();
-
   try {
-    for (let i = 0; i < itemIds.length; i++) {
-      const itemId = itemIds[i];
-      await connection.query(
-        'UPDATE dashboard_section_items SET display_order = ? WHERE id = ? AND section_id = ? AND deleted_at IS NULL',
-        [i, itemId, id]
-      );
-    }
-    await connection.commit();
-    connection.release();
+    await reorderDisplayOrder(pool, {
+      table: 'dashboard_section_items',
+      ids: itemIds,
+      where: ' AND section_id = ? AND deleted_at IS NULL',
+      whereParams: [id],
+    });
     await bustAreaCaches(areaId);
     res.status(200).json({ message: 'Section items reordered successfully' });
   } catch (error) {
-    await connection.rollback();
-    connection.release();
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
   }
 };

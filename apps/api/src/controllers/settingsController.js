@@ -5,6 +5,7 @@ const config = require('../config/env');
 const { cleanupOrphanedImage } = require('./imageController');
 const { syncAreaShopOpenState } = require('../utils/shops');
 const { requestAreaId, getDefaultArea, bustAreaCaches } = require('../utils/areaScope');
+const { reorderDisplayOrder } = require('../utils/reorder');
 
 // Settings is a singleton (1 row) today, read by every app open and every
 // public endpoint. 15-second cache eliminates most SELECTs while keeping
@@ -778,9 +779,15 @@ const reorderOfferProducts = async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
   }
 
-  for (let i = 0; i < productIds.length; i++) {
-    await pool.query('UPDATE offer_products SET display_order = ? WHERE offer_id = ? AND product_id = ?', [i, id, productIds[i]]);
-  }
+  // One CASE-based UPDATE instead of one per product — a 20-product reorder
+  // was 20 sequential cross-region round trips (~1.9s).
+  await reorderDisplayOrder(pool, {
+    table: 'offer_products',
+    ids: productIds,
+    idColumn: 'product_id',
+    where: ' AND offer_id = ?',
+    whereParams: [id],
+  });
 
   await bustAreaCaches(areaId);
   res.status(200).json({ message: 'Products reordered' });

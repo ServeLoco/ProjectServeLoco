@@ -1,5 +1,6 @@
 const { verifyToken } = require('../utils/auth');
 const { pool } = require('../db/mysql');
+const { getUserState } = require('../utils/userState');
 const { resolveAdminArea } = require('./areaMiddleware');
 
 const extractToken = (req) => {
@@ -54,24 +55,37 @@ const requireCustomer = async (req, res, next) => {
   // not proof the token is bad — surfacing it as 401 would bounce the user
   // to the login screen on transient infra hiccups. Let the global error
   // handler turn it into a 500 instead.
+  //
+  // getUserState reads `blocked` and `last_area_id` together, 30s-cached
+  // (utils/userState.js). It used to be an uncached `SELECT blocked` here
+  // plus a second uncached `SELECT last_area_id` in resolveCustomerArea
+  // moments later — two sequential cross-region round trips (~190ms) against
+  // the same row, on every authenticated request. lastAreaId rides along on
+  // req.user so the area middleware can skip its own query entirely.
+  let userState;
   if (process.env.NODE_ENV !== 'test') {
-    let rows;
     try {
-      [rows] = await pool.query('SELECT blocked FROM users WHERE id = ?', [userId]);
+      userState = await getUserState(userId);
     } catch (error) {
       // Hand off to the global error handler and stop — returning a 401 here
       // too would be a second response on the same request.
       return next(error);
     }
-    if (rows.length === 0) {
+    if (!userState) {
       return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Session is no longer valid. Please log in again.' });
     }
-    if (rows[0].blocked) {
+    if (userState.blocked) {
       return res.status(403).json({ code: 'FORBIDDEN', message: 'Your account is blocked' });
     }
   }
 
-  req.user = { id: userId, role: payload.role };
+  req.user = {
+    id: userId,
+    role: payload.role,
+    // A real number or null once loaded; `undefined` means "never looked up"
+    // (the test-env branch above), which downstream treats as "go query it".
+    lastAreaId: userState ? userState.lastAreaId : undefined,
+  };
   next();
 };
 

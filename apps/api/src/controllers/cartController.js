@@ -15,8 +15,11 @@ const { validateCoupon, validateCouponById, pickBestAutoApply, findApplicableCou
 // default — never platform-wide.
 const resolveNoPinAreaId = async (userId) => {
   if (userId) {
-    const [rows] = await pool.query('SELECT last_area_id FROM users WHERE id = ?', [userId]);
-    if (rows[0]?.last_area_id) return rows[0].last_area_id;
+    // Same 30s-cached read requireCustomer already did for this request —
+    // not a third uncached cross-region round trip against the same row.
+    const { getUserState } = require('../utils/userState');
+    const state = await getUserState(userId);
+    if (state?.lastAreaId) return state.lastAreaId;
   }
   const defaultArea = await getDefaultArea();
   return defaultArea ? defaultArea.id : null;

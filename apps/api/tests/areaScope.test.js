@@ -5,6 +5,7 @@ jest.mock('../src/db/mysql', () => ({
 }));
 
 const areaScope = require('../src/utils/areaScope');
+const { bustUserState } = require('../src/utils/userState');
 const { resolveAdminArea, resolveCustomerArea } = require('../src/middleware/areaMiddleware');
 
 const {
@@ -49,6 +50,10 @@ const POINT_OUTSIDE_EVERYTHING = { lat: 10, lng: 10 };
 beforeEach(() => {
   jest.clearAllMocks();
   _resetCachesForTests();
+  // resolveCustomerArea's no-pin fallback reads users.last_area_id through a
+  // 30s per-user cache (utils/userState.js). Several cases below reuse the
+  // same user id, so without this one test's row answers the next one's.
+  bustUserState();
 });
 
 describe('resolveAreaForPoint', () => {
@@ -331,6 +336,17 @@ describe('areaMiddleware.resolveCustomerArea', () => {
     await resolveCustomerArea(req, {}, next);
     expect(req.areaId).toBe(3);
     expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('last_area_id'), [42]);
+  });
+
+  it('uses req.user.lastAreaId when requireCustomer already loaded it, with no query at all', async () => {
+    // The hot path: requireCustomer read {blocked, last_area_id} in one cached
+    // query and parked it on req.user, so this middleware costs zero round
+    // trips instead of re-reading the row it just read.
+    const req = { body: {}, query: {}, user: { id: 42, lastAreaId: 7 } };
+    const next = jest.fn();
+    await resolveCustomerArea(req, {}, next);
+    expect(req.areaId).toBe(7);
+    expect(pool.query).not.toHaveBeenCalled();
   });
 
   it('no pin and no usable last_area_id falls back to the default area', async () => {

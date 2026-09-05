@@ -11,6 +11,7 @@ const { resolveDeliveryPricing, loadActiveZones, loadActiveExclusionZones } = re
 const { resolveAreaIdForPricing, getAreaById } = require('../utils/areaScope');
 const { validateCoupon, validateCouponById, pickBestAutoApply } = require('../utils/coupons');
 const { ACTIVE_ORDER_STATUSES } = require('../utils/riders');
+const { bustUserState } = require('../utils/userState');
 const config = require('../config/env');
 
 // Expected business failures → 400. clientCode lets specific failures carry a
@@ -644,6 +645,12 @@ const createOrder = async (req, res) => {
     // order was in before this deploy, forever, even after they've since
     // ordered from a different area.
     await connection.query('UPDATE users SET last_area_id = ? WHERE id = ?', [deliveryAreaId, userId]);
+    // The no-pin area fallback reads this column through a 30s cache
+    // (utils/userState.js). Without busting it, a customer whose first order
+    // in a NEW area just committed would keep resolving to their OLD area on
+    // every pin-less request until the TTL expired — the exact cross-area
+    // contamination §2.4 exists to prevent.
+    bustUserState(userId);
 
     await connection.commit();
     releaseConnection();

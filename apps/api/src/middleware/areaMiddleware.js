@@ -6,8 +6,8 @@
  * Phase C). Built now so its own behavior — especially the area_admin
  * cross-area 403 — is unit-tested independent of the Phase C sweep.
  */
-const { pool } = require('../db/mysql');
 const { resolveAreaForPoint, getDefaultArea } = require('../utils/areaScope');
+const { getUserState } = require('../utils/userState');
 
 const extractPin = (source) => {
   if (!source) return { lat: undefined, lng: undefined };
@@ -94,9 +94,17 @@ const resolveCustomerArea = async (req, res, next) => {
     }
 
     if (req.user && req.user.id) {
-      const [rows] = await pool.query('SELECT last_area_id FROM users WHERE id = ?', [req.user.id]);
-      if (rows[0] && rows[0].last_area_id) {
-        req.areaId = rows[0].last_area_id;
+      // requireCustomer already loaded this row (blocked + last_area_id in one
+      // cached read) and parked the value on req.user, so the common case
+      // costs zero queries here. `undefined` means it was never looked up —
+      // the test-env branch in requireCustomer, or a route that mounts this
+      // middleware without it — so fall back to the same cached loader rather
+      // than a second raw query against the row we just read.
+      const lastAreaId = req.user.lastAreaId !== undefined
+        ? req.user.lastAreaId
+        : (await getUserState(req.user.id))?.lastAreaId ?? null;
+      if (lastAreaId) {
+        req.areaId = lastAreaId;
         req.zoneId = null;
         return next();
       }

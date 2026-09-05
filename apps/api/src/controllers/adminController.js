@@ -17,6 +17,7 @@ const { emitToCustomer, emitToAdmins } = require('../realtime/socket');
 const orderAutoAccept = require('../realtime/orderAutoAccept');
 const adminInbox = require('../utils/adminNotifications');
 const { requestAreaId, getDefaultArea, listAreas, resolveAreaIdForPricing } = require('../utils/areaScope');
+const { bustUserState } = require('../utils/userState');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { calculateCart } = require('./cartController');
@@ -366,6 +367,11 @@ const setBlockStatus = async (req, res) => {
   const { id, blocked } = req.validatedData;
 
   const [result] = await pool.query('UPDATE users SET blocked = ? WHERE id = ?', [blocked ? 1 : 0, id]);
+  // requireCustomer reads `blocked` through a 30s cache (utils/userState.js) —
+  // drop this user's entry so a block takes effect on the next request rather
+  // than up to a TTL later. See that module's staleness contract for what this
+  // does and does not guarantee across multiple API instances.
+  bustUserState(id);
   if (result.affectedRows === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Customer not found' });
   }

@@ -4,6 +4,7 @@ const cartRoutes = require('../src/routes/cartRoutes');
 const { pool } = require('../src/db/mysql');
 const jwt = require('jsonwebtoken');
 const areaScope = require('../src/utils/areaScope');
+const { bustUserState } = require('../src/utils/userState');
 
 jest.mock('../src/db/mysql', () => ({
   pool: { query: jest.fn(), getConnection: jest.fn() }
@@ -82,6 +83,9 @@ const ZONE_SETTINGS = {
 describe('POST /api/cart/validate-coupon — zone is derived server-side', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // users.last_area_id is read through a 30s per-user cache
+    // (utils/userState.js) — clear it so one case's row can't answer the next.
+    bustUserState();
     areaScope._resetCachesForTests();
   });
 
@@ -172,6 +176,9 @@ describe('POST /api/cart/validate-coupon — zone is derived server-side', () =>
 describe('GET /api/cart/available-coupons — zone is derived server-side', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // users.last_area_id is read through a 30s per-user cache
+    // (utils/userState.js) — clear it so one case's row can't answer the next.
+    bustUserState();
     areaScope._resetCachesForTests();
   });
 

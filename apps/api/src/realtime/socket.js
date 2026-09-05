@@ -111,8 +111,9 @@ const authenticateSocket = async (socket, next) => {
 // as any other per-request user lookup elsewhere in this codebase.
 const resolveAreaIdForSocketUser = async (userId) => {
   try {
-    const [rows] = await pool.query('SELECT last_area_id FROM users WHERE id = ?', [userId]);
-    if (rows[0]?.last_area_id) return rows[0].last_area_id;
+    const { getUserState } = require('../utils/userState');
+    const state = await getUserState(userId);
+    if (state?.lastAreaId) return state.lastAreaId;
   } catch (_) {
     // fall through to default area
   }

@@ -78,7 +78,9 @@ describe('Rider offers & assignments API', () => {
         id: 9, order_id: 10, status: 'pending', expires_at: expires,
         order_number: 'ORD-1', address: 'Street 1', phone: '111', customer_name: 'C',
       }]])
-      .mockResolvedValueOnce([[{ id: 1, name: 'Shop A' }]])
+      // Both reads are now batched across the whole offer queue and carry
+      // order_id so the rows can be grouped back per offer.
+      .mockResolvedValueOnce([[{ order_id: 10, id: 1, name: 'Shop A' }]])
       .mockResolvedValueOnce([[{
         id: 5, order_id: 10, product_name: 'Milk', quantity: 2, variant_label: '1L', shop_id: 1,
       }]]);
@@ -93,6 +95,12 @@ describe('Rider offers & assignments API', () => {
     expect(res.body.offer.shops).toEqual([{ id: 1, name: 'Shop A' }]);
     expect(res.body.offer.items).toHaveLength(1);
     expect(res.body.offer.items[0].productName).toBe('Milk');
+    // Exactly two reads for the whole queue (plus the rider lookup and the
+    // offers query), never two per offer.
+    const orderScopedCalls = pool.query.mock.calls.filter(
+      ([sql]) => typeof sql === 'string' && /order_id IN \(\?\)/.test(sql)
+    );
+    expect(orderScopedCalls).toHaveLength(2);
   });
 
   it('POST accept delegates to engine', async () => {

@@ -377,26 +377,46 @@ const getActiveOffer = async (req, res) => {
     return res.status(200).json({ offer: null, offers: [] });
   }
 
-  const offers = [];
-  for (const row of rows) {
-    const offer = shapeOffer(row);
-    const [shops] = await pool.query(
-      `SELECT DISTINCT s.id, s.name
+  // Two batched reads for the whole queue, run together, instead of two
+  // sequential queries PER offer. This endpoint is polled by every online
+  // rider, and MySQL is a cross-region hop (~94ms), so the old 2N+1 shape
+  // cost ~470ms for a 2-offer queue where this costs ~190ms for any queue.
+  const orderIds = rows.map((row) => row.order_id);
+  const [[shopRows], [itemRows]] = await Promise.all([
+    pool.query(
+      `SELECT DISTINCT oi.order_id, s.id, s.name
        FROM order_items oi
        JOIN shops s ON s.id = oi.shop_id
-       WHERE oi.order_id = ? AND oi.shop_id IS NOT NULL`,
-      [row.order_id]
-    );
-    offer.shops = shops;
-    const shopNameById = new Map(shops.map((s) => [s.id, s.name]));
-    const [items] = await pool.query(
-      `SELECT id, product_name, quantity, variant_label, shop_id, unit_price, line_total
-       FROM order_items WHERE order_id = ?`,
-      [row.order_id]
-    );
-    offer.items = items.map((it) => shapeItemRow(it, shopNameById.get(it.shop_id) || null));
-    offers.push(offer);
+       WHERE oi.order_id IN (?) AND oi.shop_id IS NOT NULL`,
+      [orderIds]
+    ),
+    pool.query(
+      `SELECT order_id, id, product_name, quantity, variant_label, shop_id, unit_price, line_total
+       FROM order_items WHERE order_id IN (?)`,
+      [orderIds]
+    ),
+  ]);
+
+  const shopsByOrder = new Map();
+  for (const row of shopRows) {
+    if (!shopsByOrder.has(row.order_id)) shopsByOrder.set(row.order_id, []);
+    shopsByOrder.get(row.order_id).push({ id: row.id, name: row.name });
   }
+  const itemsByOrder = new Map();
+  for (const row of itemRows) {
+    if (!itemsByOrder.has(row.order_id)) itemsByOrder.set(row.order_id, []);
+    itemsByOrder.get(row.order_id).push(row);
+  }
+
+  const offers = rows.map((row) => {
+    const offer = shapeOffer(row);
+    const shops = shopsByOrder.get(row.order_id) || [];
+    offer.shops = shops;
+    const shopNameById = new Map(shops.map((sh) => [sh.id, sh.name]));
+    offer.items = (itemsByOrder.get(row.order_id) || [])
+      .map((it) => shapeItemRow(it, shopNameById.get(it.shop_id) || null));
+    return offer;
+  });
 
   res.status(200).json({
     offer: offers[0] || null,
