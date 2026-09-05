@@ -170,7 +170,15 @@ describe('computeDailyStats', () => {
     expect(update.$set.areaId).toBe(1);
     expect(update.$set.date).toBe('2026-07-08');
     expect(update.$set.createdAt).toBeInstanceOf(Date);
-    expect(update.$setOnInsert).toBeDefined();
+    // MUST NOT also name areaId/date in a second operator. $set already
+    // carries both (TASK 17 moved them into stats when the doc became
+    // per-area), and a real MongoDB rejects the whole update with
+    // "Updating the path 'areaId' would create a conflict at 'areaId'" —
+    // which meant the daily rollup silently wrote nothing on every run,
+    // at boot and at 00:05. The mocked collection here never rejected it,
+    // so this assertion used to enshrine the bug instead of catching it.
+    expect(update.$setOnInsert).toBeUndefined();
+    expect(update.$set.areaId).toBeDefined();
   });
 
   it('handles empty day gracefully (all zeros)', async () => {

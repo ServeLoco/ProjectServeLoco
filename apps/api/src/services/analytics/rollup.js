@@ -146,12 +146,16 @@ const computeDailyStats = async (dateStr, db) => {
       ...computeStatsForDocs(sessionsByArea.get(areaId) || [], eventsByArea.get(areaId) || []),
     };
 
+    // No $setOnInsert here: `stats` already carries areaId and date, so naming
+    // them again in a second operator makes MongoDB reject the whole update
+    // ("Updating the path 'areaId' would create a conflict at 'areaId'") and
+    // the daily rollup silently wrote nothing, ever. On main this was safe
+    // because stats held neither field; TASK 17 moved them into stats when it
+    // made the doc per-area. $set on an upsert already populates both on
+    // insert, and the filter guarantees they match.
     await dailyCol.updateOne(
       { areaId, date: dateStr },
-      {
-        $set: { ...stats, createdAt: new Date() },
-        $setOnInsert: { areaId, date: dateStr },
-      },
+      { $set: { ...stats, createdAt: new Date() } },
       { upsert: true }
     );
 
