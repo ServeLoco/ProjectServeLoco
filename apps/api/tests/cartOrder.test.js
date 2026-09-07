@@ -914,3 +914,48 @@ describe('calculateCart exposes the resolved delivery area', () => {
     expect(res.body.data.areaId).toEqual(res.body.areaId);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Regression: an area with no settings row (should be unreachable through
+// the API — createArea seeds one in the same transaction — but reachable via
+// a manually inserted area) used to crash createOrder with an opaque
+// "Cannot read properties of undefined (reading 'shop_open')" TypeError.
+// It must now surface as a clean 500 (server-error, not a 400 dressed up as
+// a customer mistake), and must still roll back the transaction.
+// ─────────────────────────────────────────────────────────────────────────
+describe('createOrder with no settings row for the resolved area', () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+  const noSettingsToken = jwt.sign({ id: 998, role: 'customer' }, process.env.JWT_SECRET || 'secret');
+
+  it('500s instead of throwing an unhandled TypeError, and rolls back', async () => {
+    const mockConnection = {
+      beginTransaction: jest.fn(),
+      query: jest.fn()
+        .mockResolvedValueOnce([[{ id: 998, name: 'Test', phone: '9999999999', blocked: 0 }]])
+        .mockResolvedValueOnce([[]]), // settings query returns zero rows
+      commit: jest.fn(),
+      rollback: jest.fn(),
+      release: jest.fn()
+    };
+    pool.getConnection.mockReset();
+    pool.getConnection.mockResolvedValue(mockConnection);
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${noSettingsToken}`)
+      .send({
+        address: '123 Test St',
+        paymentMethod: 'Cash',
+        items: [{ productId: 1, quantity: 1 }]
+      });
+
+    // No errorHandler is mounted on this test app (matches the existing
+    // pattern in areaController.test.js), so a rethrown non-OrderError
+    // surfaces via Express's default error handler as a plain 500 — the
+    // point being it is NOT a 400 (which would mean it got treated as an
+    // OrderError / customer mistake).
+    expect(res.statusCode).toEqual(500);
+    expect(mockConnection.rollback).toHaveBeenCalledTimes(1);
+    expect(mockConnection.commit).not.toHaveBeenCalled();
+  });
+});

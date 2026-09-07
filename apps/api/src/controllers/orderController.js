@@ -257,6 +257,19 @@ const createOrder = async (req, res) => {
       ]
     );
     const settings = settingRows[0];
+    // A real area always has exactly one settings row, created in the same
+    // transaction as the area itself (areaController.js's createArea +
+    // settingsController.js's createSettingsForArea) — this should be
+    // unreachable through the API. It IS reachable through a manually
+    // inserted area (seed script, direct SQL against a fresh install that
+    // skipped seeding) and previously crashed here with an opaque
+    // "Cannot read properties of undefined (reading 'shop_open')" TypeError.
+    // A plain Error (not OrderError) surfaces this as a 500 through the
+    // global error handler — a data-integrity gap, not a customer mistake,
+    // so it must not be dressed up as a 400 like the checks below.
+    if (!settings) {
+      throw new Error(`createOrder: no settings row found for area ${deliveryAreaId}`);
+    }
 
     if (settings.shop_open === 0 || settings.shop_open === false) throw new OrderError('Shop is currently closed');
     if (settings.delivery_available === 0 || settings.delivery_available === false) throw new OrderError('Delivery is currently unavailable');
