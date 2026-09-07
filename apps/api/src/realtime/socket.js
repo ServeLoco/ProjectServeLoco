@@ -233,11 +233,20 @@ const initRealtime = (server) => {
     // Defaults (25s/20s) mean a dead socket can sit "connected" for ~45s
     // before the server notices and the client's own reconnect kicks in —
     // during that window an emit into it (e.g. a shop-order alarm) is
-    // silently dropped. 15s/15s halves that to ~30s worst case without going
-    // so tight that a genuinely slow-but-alive mobile connection (the exact
-    // weak-network case this exists for) starts flapping disconnect/reconnect.
-    pingInterval: 15000,
-    pingTimeout: 15000,
+    // silently dropped. 20s/20s cuts that to ~40s worst case.
+    //
+    // NOT 15s/15s (an earlier tuning of this same value): a pingTimeout that
+    // tight starts firing on the exact weak-network conditions documented
+    // elsewhere in this branch with production evidence — useNetworkStatus's
+    // own health-check timeout was raised from 4s to 10s because "a phone
+    // whose cellular radio has gone idle... pays a radio wake plus a fresh
+    // TLS handshake before the first byte moves" and can pass 4s alone on a
+    // congested evening link. A pong reply pays the same radio-wake/TLS cost
+    // as that health check, so 15s risked disconnecting live sockets under
+    // the very conditions this tuning is meant to survive, trading a false
+    // "dead socket" detection for a marginally faster real one.
+    pingInterval: 20000,
+    pingTimeout: 20000,
   });
 
   io.use(authenticateSocket);

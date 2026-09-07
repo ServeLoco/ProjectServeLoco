@@ -299,6 +299,17 @@ describe('Realtime socket server', () => {
     }
   });
 
+  // Regression: pingTimeout was briefly tuned to 15000, tight enough to
+  // false-positive-disconnect on the exact weak-network conditions (radio
+  // wake + fresh TLS handshake before the first byte) documented elsewhere
+  // in this branch with production evidence. Locks the value in so a future
+  // "tighten it further" edit gets caught here instead of in the field.
+  it('configures pingInterval/pingTimeout at 20000ms, not the tighter 15000ms that risked false-positive disconnects on a slow link', () => {
+    const io = initRealtime(server);
+    expect(io.engine.opts.pingInterval).toBe(20000);
+    expect(io.engine.opts.pingTimeout).toBe(20000);
+  });
+
   it('initRealtime is idempotent - returns same io instance', async () => {
     const server2 = http.createServer((_req, res) => {
       res.writeHead(404);
