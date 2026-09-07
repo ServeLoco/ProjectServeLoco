@@ -5,6 +5,7 @@ const config = require('../src/config/env');
 const {
   closeRealtime,
   emitToAdmins,
+  emitToAllCustomers,
   emitToCustomer,
   getRealtimeStatus,
   initRealtime,
@@ -279,6 +280,23 @@ describe('Realtime socket server', () => {
     await closeRealtime();
     const result = emitToAdmins(1, 'test.event', { data: 1 });
     expect(result).toBe(false);
+  });
+
+  // Regression: a call site selecting a row without area_id must not
+  // silently vanish into io.to('admin:undefined') / io.to('customers:null')
+  // — that's always a bug at the call site, so it must be caught (and
+  // logged) here rather than swallowed identically to a healthy no-op.
+  it('returns false from emitToAdmins/emitToAllCustomers when areaId is missing, without touching io', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(emitToAdmins(null, 'test.event', {})).toBe(false);
+      expect(emitToAdmins(undefined, 'test.event', {})).toBe(false);
+      expect(emitToAllCustomers(null, 'test.event', {})).toBe(false);
+      expect(emitToAllCustomers(undefined, 'test.event', {})).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(4);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 
   it('initRealtime is idempotent - returns same io instance', async () => {

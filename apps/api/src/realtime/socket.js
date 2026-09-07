@@ -390,9 +390,29 @@ const emitToCustomer = (customerId, eventName, payload) => {
 // areaId is required (§3.5/23.2) — every call site resolves one from the
 // order/shop/rider/req context that triggered the event. Event names and
 // payload fields are unchanged (23.6); only the target room changes.
-const emitToAdmins = (areaId, eventName, payload) => emitToRoom(`admin:${areaId}`, eventName, payload);
+//
+// A missing areaId (a future call site selecting a row without area_id, or
+// passing the wrong field) must not silently vanish into
+// `io.to('admin:undefined')` — unlike emitToCustomer's "no id, nothing to
+// notify" case, this is always a bug at the call site, so it's logged
+// rather than swallowed. Still returns false rather than throwing: every
+// caller of these two is on a fire-and-forget realtime path, same as
+// emitToRoom's own try/catch below.
+const emitToAdmins = (areaId, eventName, payload) => {
+  if (areaId === undefined || areaId === null) {
+    console.error(`emitToAdmins: missing areaId for event "${eventName}" — event dropped`);
+    return false;
+  }
+  return emitToRoom(`admin:${areaId}`, eventName, payload);
+};
 
-const emitToAllCustomers = (areaId, eventName, payload) => emitToRoom(`customers:${areaId}`, eventName, payload);
+const emitToAllCustomers = (areaId, eventName, payload) => {
+  if (areaId === undefined || areaId === null) {
+    console.error(`emitToAllCustomers: missing areaId for event "${eventName}" — event dropped`);
+    return false;
+  }
+  return emitToRoom(`customers:${areaId}`, eventName, payload);
+};
 
 const getRealtimeStatus = () => ({
   enabled: Boolean(io),
