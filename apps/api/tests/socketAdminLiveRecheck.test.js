@@ -22,6 +22,7 @@ jest.mock('../src/db/mysql', () => ({
 }));
 
 const { pool } = require('../src/db/mysql');
+const { _resetCachesForTests } = require('../src/utils/adminAuthState');
 const { authenticateSocket } = require('../src/realtime/socket');
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -38,6 +39,10 @@ describe('authenticateSocket — live re-check against admins table', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    // Each `it()` below reuses the same admin id (4) with a different mocked
+    // DB result — without this, the 10s-cached row from a prior test would
+    // still be fresh and this test would never call pool.query at all.
+    _resetCachesForTests();
   });
 
   it('rejects the connection for a deactivated admin even with a still-valid JWT', async () => {

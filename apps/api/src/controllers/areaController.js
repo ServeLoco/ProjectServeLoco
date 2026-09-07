@@ -10,6 +10,7 @@ const {
   seedSystemStoreModes,
 } = require('../utils/areaScope');
 const { materializeToArea } = require('../utils/productLibrary');
+const { bustLiveAdminRow } = require('../utils/adminAuthState');
 
 const shapeArea = (row) => ({
   id: row.id,
@@ -585,6 +586,11 @@ const updateAdmin = async (req, res) => {
       [adminId]
     );
     await connection.commit();
+    // Bust the 10s-cached live row (utils/adminAuthState.js) — without this,
+    // a just-deactivated or just-reassigned admin's OLD role/area/active
+    // could still be served to requireAdmin/authenticateSocket for up to the
+    // TTL, on requests that land on this same process.
+    bustLiveAdminRow(adminId);
     res.status(200).json({ message: 'Admin updated', data: shapeAdmin(rows[0]) });
   } catch (error) {
     await connection.rollback();

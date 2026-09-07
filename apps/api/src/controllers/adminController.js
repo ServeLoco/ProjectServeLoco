@@ -18,6 +18,7 @@ const orderAutoAccept = require('../realtime/orderAutoAccept');
 const adminInbox = require('../utils/adminNotifications');
 const { requestAreaId, getDefaultArea, listAreas, resolveAreaIdForPricing } = require('../utils/areaScope');
 const { bustUserState } = require('../utils/userState');
+const { bustRevokedBefore } = require('../utils/adminAuthState');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { calculateCart } = require('./cartController');
@@ -282,6 +283,10 @@ const revokeSessions = async (req, res) => {
   await pool.query(
     'UPDATE admin_auth_state SET revoked_before = NOW() WHERE id = 1'
   );
+  // Bust the 10s-cached read (utils/adminAuthState.js) — without this, this
+  // very process could keep honoring an already-revoked token for up to the
+  // TTL, defeating the "kill switch" property this endpoint exists for.
+  bustRevokedBefore();
   res.status(200).json({ message: 'All admin sessions revoked. Log in again to continue.' });
 };
 

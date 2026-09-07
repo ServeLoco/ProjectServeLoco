@@ -1,6 +1,6 @@
 const { verifyToken } = require('../utils/auth');
-const { pool } = require('../db/mysql');
 const { getUserState } = require('../utils/userState');
+const { getRevokedBefore, getLiveAdminRow } = require('../utils/adminAuthState');
 const { resolveAdminArea } = require('./areaMiddleware');
 
 const extractToken = (req) => {
@@ -26,8 +26,10 @@ const getLiveAdminState = async (payload) => {
   const adminIdRaw = payload.sub || payload.id;
   if (!/^\d+$/.test(String(adminIdRaw))) return null;
 
-  const [adminRows] = await pool.query('SELECT role, area_id, active FROM admins WHERE id = ?', [Number(adminIdRaw)]);
-  const adminRow = adminRows[0];
+  // 10s-cached (utils/adminAuthState.js) — this used to be an uncached query
+  // on every single admin request; see that module's docblock for the full
+  // latency/staleness rationale.
+  const adminRow = await getLiveAdminRow(Number(adminIdRaw));
   if (!adminRow || !adminRow.active) return 'revoked';
   return adminRow;
 };
@@ -117,14 +119,17 @@ const requireAdmin = async (req, res, next) => {
   // A real per-admin revocation store is a schema change beyond this
   // task's scope; today's shared kill-switch still does its job (any token
   // issued before a revoke stops working) for every admin, super or area.
+  //
+  // 10s-cached (utils/adminAuthState.js) — this was an uncached query on
+  // every single admin request; see that module's docblock for the full
+  // latency/staleness rationale.
   if (process.env.NODE_ENV !== 'test') {
-    let rows;
+    let revokedBefore;
     try {
-      [rows] = await pool.query('SELECT revoked_before FROM admin_auth_state WHERE id = 1');
+      revokedBefore = await getRevokedBefore();
     } catch (error) {
       return next(error);
     }
-    const revokedBefore = rows[0]?.revoked_before;
     if (revokedBefore && payload.iat && payload.iat * 1000 < new Date(revokedBefore).getTime()) {
       return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Session is no longer valid. Please log in again.' });
     }

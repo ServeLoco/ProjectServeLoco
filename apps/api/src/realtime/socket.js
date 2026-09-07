@@ -2,9 +2,9 @@ const { Server } = require('socket.io');
 const config = require('../config/env');
 const { verifyToken } = require('../utils/auth');
 const { getLiveAdminState } = require('../middleware/authMiddleware');
+const { getRevokedBefore } = require('../utils/adminAuthState');
 const { createPresenceTracker } = require('./presence');
 const sessionStore = require('../services/analytics/sessionStore');
-const { pool } = require('../db/mysql');
 const { getDefaultArea, listAreas, getAreaById } = require('../utils/areaScope');
 
 let io = null;
@@ -61,11 +61,12 @@ const authenticateSocket = async (socket, next) => {
 
   // Mirror requireAdmin's revocation check (authMiddleware.js) — an admin
   // hitting "revoke sessions" for a leaked token must also cut that
-  // token's realtime access, not just its REST access.
+  // token's realtime access, not just its REST access. Shares the same
+  // 10s-cached read as the HTTP path (utils/adminAuthState.js), so a revoke
+  // becomes visible to both surfaces from the same cache bust.
   if (role === 'admin' && process.env.NODE_ENV !== 'test') {
     try {
-      const [rows] = await pool.query('SELECT revoked_before FROM admin_auth_state WHERE id = 1');
-      const revokedBefore = rows[0]?.revoked_before;
+      const revokedBefore = await getRevokedBefore();
       if (revokedBefore && payload.iat && payload.iat * 1000 < new Date(revokedBefore).getTime()) {
         return next(new Error('AUTH_TOKEN_INVALID'));
       }
