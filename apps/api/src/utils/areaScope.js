@@ -344,6 +344,15 @@ const catalogETag = async (req, res, next) => {
     if (!area) return next();
 
     const etag = `"${areaId}-${area.catalog_version}"`;
+    // An ETag with no explicit Cache-Control is heuristically cacheable per
+    // RFC 9111 §4.2.2 — iOS's shared URLCache does exactly that for GETs,
+    // which would let the phone serve a stale catalog (an item going out of
+    // stock, delivery_available flipping off) without ever sending
+    // If-None-Match to find out it changed. `no-cache` forces revalidation
+    // on every request (the 304 below still keeps that cheap); `private`
+    // marks the response as not shared-cache material, since it varies by
+    // the customer's own resolved area.
+    res.set('Cache-Control', 'private, no-cache');
     res.set('ETag', etag);
     if (req.headers['if-none-match'] === etag) {
       return res.status(304).end();

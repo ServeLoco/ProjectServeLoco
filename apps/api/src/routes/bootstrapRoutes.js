@@ -30,6 +30,11 @@ const bootstrapCatalogETag = async (req, res, next) => {
     if (!area) return next();
 
     const etag = `"${areaId}-${req.zoneId ?? 'none'}-${area.catalog_version}"`;
+    // See areaScope.js's catalogETag for why this is required, not optional:
+    // an ETag with no Cache-Control is heuristically cacheable (RFC 9111
+    // §4.2.2), which on iOS means the shared URLCache can serve a stale
+    // bootstrap without ever sending If-None-Match.
+    res.set('Cache-Control', 'private, no-cache');
     res.set('ETag', etag);
     if (req.headers['if-none-match'] === etag) {
       return res.status(304).end();

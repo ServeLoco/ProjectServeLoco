@@ -392,6 +392,10 @@ describe('catalogETag (TASK 27.2, §3.10)', () => {
     await catalogETag(req, res, next);
 
     expect(res._headers.ETag).toBe('"1-7"');
+    // Regression: an ETag with no Cache-Control is heuristically cacheable
+    // (RFC 9111 §4.2.2) — iOS's shared URLCache would serve it stale
+    // forever without ever sending If-None-Match to find out it changed.
+    expect(res._headers['Cache-Control']).toBe('private, no-cache');
     expect(next).toHaveBeenCalled();
     expect(res.statusCode).toBeNull();
   });

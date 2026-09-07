@@ -132,6 +132,23 @@ describe('GET /bootstrap (TASK 27.3-27.6)', () => {
     expect(res.statusCode).toEqual(304);
   });
 
+  it('sends Cache-Control: private, no-cache so a shared HTTP cache (e.g. iOS URLCache) always revalidates', async () => {
+    pool.query
+      .mockResolvedValueOnce([[AREA_1]])
+      .mockResolvedValueOnce([[{ id: 900, area_id: 1, name: 'Zone A', boundary: JSON.stringify([
+        { lat: 10, lng: 10 }, { lat: 10, lng: 11 }, { lat: 11, lng: 11 }, { lat: 11, lng: 10 },
+      ]), parent_zone_id: null, active: 1 }]])
+      .mockResolvedValueOnce([[{ id: 900, name: 'Zone A', boundary: JSON.stringify([
+        { lat: 10, lng: 10 }, { lat: 10, lng: 11 }, { lat: 11, lng: 11 }, { lat: 11, lng: 10 },
+      ]), parent_zone_id: null }]])
+      .mockResolvedValueOnce([[{ area_id: 1, shop_open: 1 }]])
+      .mockResolvedValueOnce([[]]);
+
+    const res = await request(app).get('/api/bootstrap?latitude=10.5&longitude=10.5');
+
+    expect(res.headers['cache-control']).toEqual('private, no-cache');
+  });
+
   it('does NOT 304 a pin that resolved into a different zone in the same area, even with the same catalogVersion', async () => {
     pool.query
       .mockResolvedValueOnce([[AREA_1]]) // bbox candidates
