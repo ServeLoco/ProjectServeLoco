@@ -48,6 +48,58 @@ const shapeAdmin = (row) => ({
 
 // ── Areas ────────────────────────────────────────────────────────────────
 
+// Intl.DateTimeFormat resolves IANA aliases the same way the runtime's own
+// timezone-aware code (nightDelivery.js, orderController.js's IST date) does
+// — NOT Intl.supportedValuesOf('timeZone'), whose canonical-name list is
+// missing this app's own default ('Asia/Kolkata' resolves fine here but is
+// absent from that list on this Node/ICU build, which lists the older
+// 'Asia/Calcutta' alias instead). Using the canonical-list check would
+// reject the one timezone every existing area already uses.
+const isValidTimezone = (tz) => {
+  try {
+    Intl.DateTimeFormat('en-US', { timeZone: tz });
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
+
+// Shared by createArea/updateArea — fields whose columns can overflow
+// (ER_DATA_TOO_LONG, a 500 mid-transaction/mid-request) or store malformed
+// data if a caller sends something unexpected. `undefined` means "this
+// field isn't being set" and is not validated — createArea's own code/name
+// requiredness is handled by its caller before this runs.
+// @returns {string|null} an error message, or null when everything supplied
+//   is valid.
+const validateAreaFields = ({ name, timezone, brandColor, features }) => {
+  if (name !== undefined) {
+    const trimmed = typeof name === 'string' ? name.trim() : '';
+    if (trimmed.length > 255) return 'name must be 255 characters or fewer';
+  }
+  if (timezone !== undefined) {
+    // areas.timezone is VARCHAR(64); also guards the overflow case before
+    // it ever reaches isValidTimezone (a very long garbage string is
+    // already invalid, no need to hand it to Intl first).
+    if (typeof timezone !== 'string' || timezone.length > 64 || !isValidTimezone(timezone)) {
+      return 'timezone must be a valid IANA time zone name (e.g. "Asia/Kolkata")';
+    }
+  }
+  if (brandColor !== undefined && brandColor !== null) {
+    // areas.brand_color is VARCHAR(9) — "#RRGGBBAA" (9 chars) is the
+    // longest valid CSS hex form, so the regex already bounds the length;
+    // this only rejects a non-hex string before it reaches the DB.
+    if (typeof brandColor !== 'string' || !/^#[0-9A-Fa-f]{3,8}$/.test(brandColor)) {
+      return 'brandColor must be a CSS hex color (e.g. "#FF5500")';
+    }
+  }
+  if (features !== undefined && features !== null) {
+    if (typeof features !== 'object' || Array.isArray(features)) {
+      return 'features must be a JSON object';
+    }
+  }
+  return null;
+};
+
 const getAdminAreas = async (req, res) => {
   const areas = await listAreasFromScope();
   res.status(200).json({ data: areas.map(shapeArea) });
@@ -84,6 +136,11 @@ const createArea = async (req, res) => {
       message: 'code must be 1-16 uppercase letters/digits only',
     });
   }
+  const finalBrandColor = brandColor !== undefined ? brandColor : brandColorSnake;
+  const fieldsError = validateAreaFields({ name: finalName, timezone, brandColor: finalBrandColor, features });
+  if (fieldsError) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: fieldsError });
+  }
 
   // beginTransaction lives INSIDE the try, and release() in a finally: opened
   // before the try, a throwing beginTransaction leaks the connection, and a
@@ -104,7 +161,7 @@ const createArea = async (req, res) => {
         finalCode,
         finalName,
         timezone || 'Asia/Kolkata',
-        brandColor || brandColorSnake || null,
+        finalBrandColor || null,
         features ? JSON.stringify(features) : null,
       ]
     );
@@ -147,6 +204,12 @@ const updateArea = async (req, res) => {
   }
 
   const { name, active, timezone, brandColor, brand_color: brandColorSnake, logoImageId, logo_image_id: logoImageIdSnake, features } = req.body || {};
+  const finalBrandColor = brandColor !== undefined ? brandColor : brandColorSnake;
+
+  const fieldsError = validateAreaFields({ name, timezone, brandColor: finalBrandColor, features });
+  if (fieldsError) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: fieldsError });
+  }
 
   // Bug fix (multi-area audit finding #9): deactivating the default area
   // leaves getDefaultArea() returning null (it filters activeOnly) —
@@ -170,7 +233,6 @@ const updateArea = async (req, res) => {
   if (name !== undefined) { sets.push('name = ?'); values.push(String(name).trim()); }
   if (active !== undefined) { sets.push('active = ?'); values.push(active ? 1 : 0); }
   if (timezone !== undefined) { sets.push('timezone = ?'); values.push(timezone); }
-  const finalBrandColor = brandColor !== undefined ? brandColor : brandColorSnake;
   if (finalBrandColor !== undefined) { sets.push('brand_color = ?'); values.push(finalBrandColor); }
   const finalLogoImageId = logoImageId !== undefined ? logoImageId : logoImageIdSnake;
   if (finalLogoImageId !== undefined) { sets.push('logo_image_id = ?'); values.push(finalLogoImageId); }
@@ -464,6 +526,19 @@ const createAdmin = async (req, res) => {
       message: 'username and a password of at least 8 characters are required',
     });
   }
+  // admins.username is VARCHAR(64) — an overlong value would otherwise
+  // overflow the column (ER_DATA_TOO_LONG) after the uniqueness check and
+  // password hash already ran, inside the transaction below.
+  if (finalUsername.length > 64) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'username must be 64 characters or fewer' });
+  }
+  // bcrypt silently truncates its input at 72 BYTES — anything past that is
+  // simply ignored when hashing, so two different passwords that share the
+  // same first 72 bytes would hash identically with no error or warning to
+  // either the operator or the admin who set it.
+  if (Buffer.byteLength(password, 'utf8') > 72) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'password must be 72 bytes or fewer' });
+  }
 
   const invariantError = await validateRoleAreaInvariant(role, areaId);
   if (invariantError) {
@@ -568,6 +643,12 @@ const updateAdmin = async (req, res) => {
       if (typeof password !== 'string' || password.length < 8) {
         await connection.rollback();
         return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'password must be at least 8 characters' });
+      }
+      // See createAdmin's identical check — bcrypt silently truncates past
+      // 72 bytes, so anything longer is not the error it should be.
+      if (Buffer.byteLength(password, 'utf8') > 72) {
+        await connection.rollback();
+        return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'password must be 72 bytes or fewer' });
       }
       sets.push('password_hash = ?');
       values.push(await bcrypt.hash(password, 10));

@@ -147,6 +147,63 @@ describe('Area + admin management (TASK 24)', () => {
       expect(res.statusCode).toEqual(400);
     });
 
+    // Bug fix: name/timezone/brandColor/features reached the INSERT with no
+    // validation at all — an overlong name or a garbage timezone/brandColor
+    // would 500 mid-transaction (ER_DATA_TOO_LONG) instead of a clean 400.
+    it('400s a name longer than 255 characters, without ever writing to the DB', async () => {
+      pool.query.mockResolvedValueOnce([[{ areas_sweep_complete: 1 }]]);
+      const res = await request(app)
+        .post('/api/admin/areas')
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ code: 'A2', name: 'A'.repeat(256) });
+      expect(res.statusCode).toEqual(400);
+      expect(pool.query).toHaveBeenCalledTimes(1); // only the sweep-flag check
+    });
+
+    it('400s an invalid timezone', async () => {
+      pool.query.mockResolvedValueOnce([[{ areas_sweep_complete: 1 }]]);
+      const res = await request(app)
+        .post('/api/admin/areas')
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ code: 'A2', name: 'Area 2', timezone: 'Not/AZone' });
+      expect(res.statusCode).toEqual(400);
+    });
+
+    it('accepts the app-wide default timezone (Asia/Kolkata)', async () => {
+      pool.query.mockResolvedValueOnce([[{ areas_sweep_complete: 1 }]]);
+      const conn = makeConn([
+        [[]], // duplicate-code check -> none
+        [{ insertId: 2 }], // INSERT INTO areas
+      ]);
+      pool.getConnection.mockResolvedValueOnce(conn);
+      areaScope.getAreaById.mockResolvedValueOnce(AREA_2);
+
+      const res = await request(app)
+        .post('/api/admin/areas')
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ code: 'a2', name: 'Area 2', timezone: 'Asia/Kolkata' });
+
+      expect(res.statusCode).toEqual(201);
+    });
+
+    it('400s a malformed brandColor', async () => {
+      pool.query.mockResolvedValueOnce([[{ areas_sweep_complete: 1 }]]);
+      const res = await request(app)
+        .post('/api/admin/areas')
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ code: 'A2', name: 'Area 2', brandColor: 'not-a-color' });
+      expect(res.statusCode).toEqual(400);
+    });
+
+    it('400s when features is an array instead of an object', async () => {
+      pool.query.mockResolvedValueOnce([[{ areas_sweep_complete: 1 }]]);
+      const res = await request(app)
+        .post('/api/admin/areas')
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ code: 'A2', name: 'Area 2', features: ['not', 'an', 'object'] });
+      expect(res.statusCode).toEqual(400);
+    });
+
     it('409s on a duplicate area code', async () => {
       pool.query.mockResolvedValueOnce([[{ areas_sweep_complete: 1 }]]);
       const conn = makeConn([
@@ -223,6 +280,29 @@ describe('Area + admin management (TASK 24)', () => {
       expect(res.body.data.name).toEqual('Renamed');
       expect(res.body.data.active).toBe(false);
       expect(areaScope.invalidateAreasCache).toHaveBeenCalled();
+    });
+
+    // Bug fix: updateArea had zero validation on name/timezone/brandColor/
+    // features — the same overflow-or-garbage-data gap createArea had,
+    // just reached through PATCH instead of POST.
+    it('400s an invalid timezone on PATCH, without ever writing to the DB', async () => {
+      areaScope.getAreaById.mockResolvedValueOnce(AREA_2);
+      const res = await request(app)
+        .patch('/api/admin/areas/2')
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ timezone: 'Not/AZone' });
+      expect(res.statusCode).toEqual(400);
+      expect(pool.query).not.toHaveBeenCalled();
+    });
+
+    it('400s a malformed brandColor on PATCH, without ever writing to the DB', async () => {
+      areaScope.getAreaById.mockResolvedValueOnce(AREA_2);
+      const res = await request(app)
+        .patch('/api/admin/areas/2')
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ brandColor: 'not-a-color' });
+      expect(res.statusCode).toEqual(400);
+      expect(pool.query).not.toHaveBeenCalled();
     });
 
     // Bug fix (multi-area audit finding #9): deactivating the default area
@@ -476,6 +556,31 @@ describe('Area + admin management (TASK 24)', () => {
         .set('Authorization', `Bearer ${superToken}`)
         .send({ username: 'short', password: 'short', role: 'super_admin' });
       expect(res.statusCode).toEqual(400);
+    });
+
+    // Bug fix: admins.username is VARCHAR(64) with no length check on the
+    // way in — an overlong username used to reach the FOR UPDATE lookup and
+    // INSERT unchecked, overflowing the column inside the transaction.
+    it('400s a username longer than 64 characters, without ever writing to the DB', async () => {
+      const res = await request(app)
+        .post('/api/admin/admins')
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ username: 'u'.repeat(65), password: 'longenough1', role: 'super_admin' });
+      expect(res.statusCode).toEqual(400);
+      expect(pool.getConnection).not.toHaveBeenCalled();
+    });
+
+    // Bug fix: bcrypt silently truncates its input at 72 bytes — a longer
+    // password used to hash fine with no error, so two different passwords
+    // sharing the same first 72 bytes would authenticate identically with
+    // neither the operator nor the admin ever finding out.
+    it('400s a password longer than 72 bytes, without ever writing to the DB', async () => {
+      const res = await request(app)
+        .post('/api/admin/admins')
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ username: 'longpw', password: 'p'.repeat(73), role: 'super_admin' });
+      expect(res.statusCode).toEqual(400);
+      expect(pool.getConnection).not.toHaveBeenCalled();
     });
 
     it('409s on a duplicate username', async () => {
