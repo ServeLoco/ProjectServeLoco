@@ -294,7 +294,17 @@ function connectCustomerRealtime(token) {
   socket = io(getRealtimeBaseUrl(), {
     auth: { token, platform: Platform.OS, appVersion },
     reconnection: true,
-    transports: ['websocket', 'polling'],
+    // Polling-first-then-upgrade (socket.io's own default order) rather than
+    // websocket-first: a websocket upgrade attempt can stall silently behind
+    // a captive portal, a proxy that doesn't support Upgrade, or plain
+    // carrier-grade NAT weirdness on some mobile networks — exactly the
+    // weak-network conditions the rest of this branch's tuning (HTTP
+    // timeout, health-check timeout, socket pingTimeout) is built around.
+    // Polling connects everywhere first, then upgrades to websocket once
+    // it's confirmed to work, trading a few hundred ms of connect latency
+    // on a healthy network for never getting stuck behind a stalled upgrade
+    // on a bad one.
+    transports: ['polling', 'websocket'],
   });
 
   bindSocketEvents(socket);
