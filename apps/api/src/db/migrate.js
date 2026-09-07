@@ -610,7 +610,7 @@ const migrate = async () => {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        order_number VARCHAR(20) NOT NULL UNIQUE,
+        order_number VARCHAR(40) NOT NULL UNIQUE,
         customer_id INT NOT NULL,
         customer_name VARCHAR(255) NOT NULL,
         phone VARCHAR(20) NOT NULL,
@@ -2436,6 +2436,27 @@ const migrate = async () => {
       await connection.query('ALTER TABLE daily_order_counters DROP PRIMARY KEY, ADD PRIMARY KEY (area_id, counter_date)');
     }
     console.log('[migrate] daily_order_counters PK is now (area_id, counter_date).');
+
+    // order_number needs headroom for the per-area format this same task
+    // introduces (OD-<date>-<AREACODE>-<seq>, orderController.js's
+    // generateOrderNumber): AREACODE can be up to 16 chars (areas.code's own
+    // max — see areaController.js's createArea validation), and seq can grow
+    // past its usual 4-digit pad on an extreme-volume day (padStart pads, it
+    // never truncates). VARCHAR(20) only ever fit the pre-area format
+    // (OD-<date>-<seq>, ~17 chars) — any area whose code is 4+ chars long
+    // (a realistic first guess like "NORTH" or "WEST1") overflows it and
+    // ER_DATA_TOO_LONG's every checkout in that area, permanently, until the
+    // code is renamed. Widened to 40: 3 ("OD-") + 8 (date) + 1 + 16 (max
+    // code) + 1 + up to 8 digits of seq, with margin to spare. Guarded on
+    // current length so a re-run doesn't pay an ALTER on every migrate.
+    const [orderNumberCol] = await connection.query(`
+      SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'order_number'
+    `, [config.MYSQL_DATABASE]);
+    if (orderNumberCol[0] && Number(orderNumberCol[0].CHARACTER_MAXIMUM_LENGTH) < 40) {
+      await connection.query('ALTER TABLE orders MODIFY COLUMN order_number VARCHAR(40) NOT NULL');
+    }
+    console.log('[migrate] orders.order_number widened to VARCHAR(40).');
 
     // users.last_area_id — a cold-start cache (§2.2), NOT an authorization
     // input, and deliberately NO foreign key (a stale/wrong cached area is
