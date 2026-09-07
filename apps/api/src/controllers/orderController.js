@@ -243,14 +243,17 @@ const createOrder = async (req, res) => {
     // second — a pool-wide deadlock once concurrent checkouts reach
     // MYSQL_POOL_SIZE (waitForConnections with queueLimit 0 waits forever).
     const [settingRows] = await connection.query(
-      `SELECT shop_open, delivery_available, delivery_charge, night_charge, night_charge_start, night_charge_end, rain_charge_enabled, rain_charge, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, shop_latitude, shop_longitude, radius_pricing_active, rider_capacity_multiplier,
+      `SELECT shop_open, delivery_available, delivery_charge, night_charge, night_charge_start, night_charge_end, rain_charge_enabled, rain_charge, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, shop_latitude, shop_longitude, radius_pricing_active,
               (SELECT COUNT(*) FROM riders r
                 WHERE r.active = 1 AND r.is_online = 1 AND r.area_id = ?) AS online_riders,
+              (SELECT COALESCE(SUM(r.max_active_orders), 0) FROM riders r
+                WHERE r.active = 1 AND r.is_online = 1 AND r.area_id = ?) AS rider_capacity,
               (SELECT COUNT(*) FROM orders o
                 WHERE o.area_id = ? AND o.status IN (?)
                   AND o.created_at > NOW() - INTERVAL ? MINUTE) AS active_orders
        FROM settings WHERE area_id = ? LIMIT 1`,
       [
+        deliveryAreaId,
         deliveryAreaId,
         deliveryAreaId, ACTIVE_ORDER_STATUSES, config.RIDER_CAPACITY_LOOKBACK_MIN,
         deliveryAreaId,
@@ -274,22 +277,19 @@ const createOrder = async (req, res) => {
     if (settings.shop_open === 0 || settings.shop_open === false) throw new OrderError('Shop is currently closed');
     if (settings.delivery_available === 0 || settings.delivery_available === false) throw new OrderError('Delivery is currently unavailable');
 
-    // Capacity gate: with each rider capped at RIDER_MAX_ACTIVE_ORDERS
-    // concurrent deliveries, letting in-flight orders grow unbounded just
-    // strands new orders in the search queue with nobody free to take them.
-    // Reject up front instead, once the area's active order count reaches
-    // onlineRiders * the area's rider_capacity_multiplier, so the customer
-    // sees this before paying rather than after (delivery is still marked
-    // available — riders are online, just fully booked). Per-area, not a
-    // single global number — rider density and delivery distances vary by
-    // area, and areas without their own row yet (predating this column)
-    // fall back to config.RIDER_CAPACITY_MULTIPLIER. Zero online riders is
-    // already covered by the delivery_available gate above, so skip it here.
+    // Capacity gate: each online rider can only carry their own
+    // riders.max_active_orders concurrent deliveries (admin-set per rider,
+    // Riders page — one rider might handle 1 at a time, another 2+). Letting
+    // in-flight orders grow past the SUM of those caps just strands new
+    // orders in the search queue with nobody free to take them, so reject up
+    // front instead, before the customer pays (delivery is still marked
+    // available — riders are online, just fully booked). Zero online riders
+    // is already covered by the delivery_available gate above, so skip it here.
     const onlineRiders = Number(settings.online_riders) || 0;
     if (onlineRiders > 0) {
       const activeOrders = Number(settings.active_orders) || 0;
-      const capacityMultiplier = Number(settings.rider_capacity_multiplier) || config.RIDER_CAPACITY_MULTIPLIER;
-      if (activeOrders >= onlineRiders * capacityMultiplier) {
+      const riderCapacity = Number(settings.rider_capacity) || 0;
+      if (activeOrders >= riderCapacity) {
         throw new OrderError(
           `All our riders are busy right now. Please try again in about ${config.RIDER_CAPACITY_COOLDOWN_MIN} minutes.`,
           'RIDERS_AT_CAPACITY'

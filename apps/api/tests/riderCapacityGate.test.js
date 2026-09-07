@@ -1,18 +1,19 @@
 /**
  * Rider assignment capacity controls:
- *   1. A rider carrying RIDER_MAX_ACTIVE_ORDERS (2) undelivered orders is
- *      excluded from new offers (listEligibleRiders) until one is
+ *   1. A rider carrying their own riders.max_active_orders undelivered
+ *      orders is excluded from new offers (listEligibleRiders) until one is
  *      Delivered/Cancelled.
  *   2. POST /api/orders rejects new checkouts once an area's non-terminal
- *      order count reaches onlineRiders * RIDER_CAPACITY_MULTIPLIER (3),
- *      surfacing a "riders are busy, try again in ~29 minutes" message.
+ *      order count reaches the SUM of every online rider's own
+ *      max_active_orders, surfacing a "riders are busy, try again in ~29
+ *      minutes" message.
  */
 
 const request = require('supertest');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../src/db/mysql');
-const { listEligibleRiders, RIDER_MAX_ACTIVE_ORDERS, ACTIVE_ORDER_STATUSES } = require('../src/utils/riders');
+const { listEligibleRiders, ACTIVE_ORDER_STATUSES } = require('../src/utils/riders');
 const config = require('../src/config/env');
 
 jest.mock('../src/db/mysql', () => ({
@@ -97,9 +98,9 @@ describe('POST /api/orders — rider capacity gate', () => {
     .set('Authorization', `Bearer ${token}`)
     .send(orderBody);
 
-  it('rejects with RIDERS_AT_CAPACITY once active orders hit onlineRiders * multiplier', async () => {
-    // 2 online riders * multiplier 3 = capacity 6; 6 active orders in flight.
-    pool.getConnection.mockResolvedValue(mockConnectionFor({ online_riders: 2, active_orders: 6 }));
+  it('rejects with RIDERS_AT_CAPACITY once active orders hit the sum of online riders\' own caps', async () => {
+    // Two online riders, one capped at 4 and one at 2 -> capacity 6; 6 active orders in flight.
+    pool.getConnection.mockResolvedValue(mockConnectionFor({ online_riders: 2, rider_capacity: 6, active_orders: 6 }));
 
     const res = await placeOrder();
 
@@ -109,7 +110,7 @@ describe('POST /api/orders — rider capacity gate', () => {
   });
 
   it('allows the order through when one under capacity', async () => {
-    pool.getConnection.mockResolvedValue(mockConnectionFor({ online_riders: 2, active_orders: 5 }));
+    pool.getConnection.mockResolvedValue(mockConnectionFor({ online_riders: 2, rider_capacity: 6, active_orders: 5 }));
 
     const res = await placeOrder();
 
@@ -117,7 +118,16 @@ describe('POST /api/orders — rider capacity gate', () => {
   });
 
   it('skips the gate when zero riders are online (delivery_available already covers that case)', async () => {
-    pool.getConnection.mockResolvedValue(mockConnectionFor({ online_riders: 0, active_orders: 99 }));
+    pool.getConnection.mockResolvedValue(mockConnectionFor({ online_riders: 0, rider_capacity: 0, active_orders: 99 }));
+
+    const res = await placeOrder();
+
+    expect(res.statusCode).toBe(201);
+  });
+
+  it('respects per-rider caps, not a flat headcount — one heavy-capacity rider can carry the whole area', async () => {
+    // 1 online rider whose own max_active_orders is 10 -> capacity 10.
+    pool.getConnection.mockResolvedValue(mockConnectionFor({ online_riders: 1, rider_capacity: 10, active_orders: 9 }));
 
     const res = await placeOrder();
 
@@ -168,17 +178,12 @@ describe('POST /api/orders — rider capacity gate', () => {
 describe('listEligibleRiders — per-rider active-order cap', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('SQL excludes riders at or over RIDER_MAX_ACTIVE_ORDERS via a correlated subquery', async () => {
+  it('SQL excludes riders at or over their own max_active_orders via a correlated subquery', async () => {
     pool.query.mockResolvedValueOnce([[]]);
     await listEligibleRiders({ areaId: 1 });
-    const [sql, params] = pool.query.mock.calls[0];
+    const [sql] = pool.query.mock.calls[0];
     expect(sql).toMatch(/SELECT COUNT\(\*\) FROM orders o/);
     expect(sql).toMatch(/status NOT IN \('Delivered', 'Cancelled'\)/);
-    expect(sql).toMatch(/\) < \?/);
-    expect(params).toContain(RIDER_MAX_ACTIVE_ORDERS);
-  });
-
-  it('default cap is 2 unless overridden by config', () => {
-    expect(RIDER_MAX_ACTIVE_ORDERS).toBe(config.RIDER_MAX_ACTIVE_ORDERS);
+    expect(sql).toMatch(/\) < r\.max_active_orders/);
   });
 });

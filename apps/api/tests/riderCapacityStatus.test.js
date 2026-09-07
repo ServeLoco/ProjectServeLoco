@@ -3,9 +3,8 @@
  * while checkout is focused, so the Place Order button can re-enable itself
  * once an area's rider capacity frees up, without waiting for a rejected
  * checkout attempt. Mirrors the exact at-capacity formula the createOrder
- * gate uses (riderCapacityGate.test.js): onlineRiders * the area's own
- * rider_capacity_multiplier, falling back to config.RIDER_CAPACITY_MULTIPLIER
- * when a settings row predates that column.
+ * gate uses (riderCapacityGate.test.js): active orders vs. the SUM of every
+ * online rider's own max_active_orders (admin-set per rider, Riders page).
  *
  * The route is public and takes an arbitrary pin, so it must expose the
  * verdict ONLY — never the rider/order counts behind it.
@@ -47,8 +46,8 @@ const ZONE_900 = {
 
 // The capacity read is a single row of three subquery counts (one round trip
 // — see getCapacityStatus), so a scenario is just that one row.
-const capacityRow = ({ riders, orders, multiplier = 3 }) => [[{
-  online_riders: riders, active_orders: orders, capacity_multiplier: multiplier,
+const capacityRow = ({ riders, orders, capacity }) => [[{
+  online_riders: riders, active_orders: orders, rider_capacity: capacity,
 }]];
 
 const resolvedPin = (capacity) => {
@@ -64,8 +63,8 @@ describe('GET /api/rider-capacity', () => {
     areaScope._resetCachesForTests();
   });
 
-  it('reports atCapacity: true once active orders reach onlineRiders * the area multiplier', async () => {
-    resolvedPin(capacityRow({ riders: 2, orders: 6, multiplier: 3 })); // 2 * 3 = 6
+  it('reports atCapacity: true once active orders reach the sum of online riders\' own caps', async () => {
+    resolvedPin(capacityRow({ riders: 2, orders: 6, capacity: 6 })); // caps of 4 + 2
 
     const res = await request(app).get('/api/rider-capacity?latitude=10.5&longitude=10.5');
 
@@ -81,7 +80,7 @@ describe('GET /api/rider-capacity', () => {
   // This route is public and takes any pin, so echoing the counts would hand
   // anyone live rider headcount and order volume for any area on a 45s poll.
   it('never exposes the rider / order counts behind the verdict', async () => {
-    resolvedPin(capacityRow({ riders: 7, orders: 21 }));
+    resolvedPin(capacityRow({ riders: 7, orders: 21, capacity: 21 }));
 
     const res = await request(app).get('/api/rider-capacity?latitude=10.5&longitude=10.5');
 
@@ -92,28 +91,27 @@ describe('GET /api/rider-capacity', () => {
     expect(JSON.stringify(res.body)).not.toMatch(/7|21/);
   });
 
-  it('uses a lower per-area multiplier when the admin has tuned this area down', async () => {
-    // Area multiplier 2, so 2 riders * 2 = 4 trips it — the same order count
-    // the config default of 3 would NOT trip.
-    resolvedPin(capacityRow({ riders: 2, orders: 4, multiplier: 2 }));
+  it('a rider with a higher personal cap raises the area capacity beyond a flat per-head guess', async () => {
+    // 2 riders, one capped at 1 and one at 5 -> capacity 6, so 5 active orders is still under.
+    resolvedPin(capacityRow({ riders: 2, orders: 5, capacity: 6 }));
 
     const res = await request(app).get('/api/rider-capacity?latitude=10.5&longitude=10.5');
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.atCapacity).toBe(true);
+    expect(res.body.atCapacity).toBe(false);
   });
 
-  it('falls back to config.RIDER_CAPACITY_MULTIPLIER when the area has no settings row yet', async () => {
-    resolvedPin(capacityRow({ riders: 2, orders: 6, multiplier: null })); // 2 * config default 3
+  it('treats a missing rider_capacity as zero rather than blocking on a NULL sum', async () => {
+    resolvedPin(capacityRow({ riders: 2, orders: 0, capacity: null }));
 
     const res = await request(app).get('/api/rider-capacity?latitude=10.5&longitude=10.5');
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.atCapacity).toBe(true);
+    expect(res.body.atCapacity).toBe(true); // 0 active orders >= 0 capacity
   });
 
   it('reports atCapacity: false when one order under capacity', async () => {
-    resolvedPin(capacityRow({ riders: 2, orders: 5, multiplier: 3 })); // one under 6
+    resolvedPin(capacityRow({ riders: 2, orders: 5, capacity: 6 })); // one under 6
 
     const res = await request(app).get('/api/rider-capacity?latitude=10.5&longitude=10.5');
 
@@ -122,7 +120,7 @@ describe('GET /api/rider-capacity', () => {
   });
 
   it('is never at capacity with zero online riders, regardless of active orders', async () => {
-    resolvedPin(capacityRow({ riders: 0, orders: 999, multiplier: 3 }));
+    resolvedPin(capacityRow({ riders: 0, orders: 999, capacity: 0 }));
 
     const res = await request(app).get('/api/rider-capacity?latitude=10.5&longitude=10.5');
 
@@ -151,7 +149,7 @@ describe('GET /api/rider-capacity', () => {
   it('no pin at all resolves through the default area, same as bootstrap', async () => {
     pool.query
       .mockResolvedValueOnce([[AREA_1]]) // listAreas() for getDefaultArea
-      .mockResolvedValueOnce(capacityRow({ riders: 1, orders: 0 }));
+      .mockResolvedValueOnce(capacityRow({ riders: 1, orders: 0, capacity: 2 }));
 
     const res = await request(app).get('/api/rider-capacity');
 
@@ -162,8 +160,8 @@ describe('GET /api/rider-capacity', () => {
 
   // Polled every 45s by every customer sitting on checkout, against a
   // cross-region MySQL — three sequential awaits would cost ~3x one.
-  it('reads riders, orders and the multiplier in a single area-scoped round trip', async () => {
-    resolvedPin(capacityRow({ riders: 1, orders: 0 }));
+  it('reads riders, orders and rider_capacity in a single area-scoped round trip', async () => {
+    resolvedPin(capacityRow({ riders: 1, orders: 0, capacity: 2 }));
 
     await request(app).get('/api/rider-capacity?latitude=10.5&longitude=10.5');
 
@@ -173,11 +171,10 @@ describe('GET /api/rider-capacity', () => {
     const [sql, params] = pool.query.mock.calls[2];
     expect(sql).toMatch(/AS online_riders/);
     expect(sql).toMatch(/AS active_orders/);
-    expect(sql).toMatch(/AS capacity_multiplier/);
+    expect(sql).toMatch(/AS rider_capacity/);
     expect(sql).toMatch(/r\.area_id = \?/);
     expect(sql).toMatch(/o\.area_id = \?/);
-    expect(sql).toMatch(/s\.area_id = \?/);
     expect(sql).toMatch(/created_at > NOW\(\) - INTERVAL \? MINUTE/);
-    expect(params).toEqual([1, 1, ACTIVE_ORDER_STATUSES, config.RIDER_CAPACITY_LOOKBACK_MIN, 1]);
+    expect(params).toEqual([1, 1, 1, ACTIVE_ORDER_STATUSES, config.RIDER_CAPACITY_LOOKBACK_MIN]);
   });
 });

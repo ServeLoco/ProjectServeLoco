@@ -235,6 +235,14 @@ const migrate = async () => {
     await ensureColumn('riders', 'last_lat', 'last_lat DECIMAL(10,7) NULL AFTER last_heartbeat_at');
     await ensureColumn('riders', 'last_lng', 'last_lng DECIMAL(10,7) NULL AFTER last_lat');
     await ensureColumn('riders', 'last_location_at', 'last_location_at TIMESTAMP NULL DEFAULT NULL AFTER last_lng');
+    // Per-rider concurrent-delivery cap, admin-editable (Riders page). Replaces
+    // the old area-wide onlineRiders*rider_capacity_multiplier estimate for
+    // the checkout capacity gate — some riders can only manage 1 at a time,
+    // others 2+, so the area's true capacity is the SUM of these, not a guess
+    // multiplied off a headcount. Also the per-rider ceiling listEligibleRiders
+    // enforces before offering a new order (previously a single global
+    // RIDER_MAX_ACTIVE_ORDERS constant for every rider).
+    await ensureColumn('riders', 'max_active_orders', 'max_active_orders INT NOT NULL DEFAULT 2 AFTER is_online');
 
     // Mobile Admins — phones the owner grants Admin Mode to in the phone app.
     // Same Firebase OTP login as customers; user_id backfills on first login

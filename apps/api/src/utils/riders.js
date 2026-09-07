@@ -10,10 +10,12 @@ const RIDER_SEARCH_RADIUS_TIERS_KM = (config.RIDER_SEARCH_RADIUS_TIERS_KM || [])
   ? config.RIDER_SEARCH_RADIUS_TIERS_KM
   : [1, 2, 3];
 const RIDER_LOCATION_MAX_AGE_SEC = config.RIDER_LOCATION_MAX_AGE_SEC || 600;
-// A rider already carrying this many non-terminal orders is excluded from
-// new offers until one is Delivered/Cancelled — enforced inside
-// listEligibleRiders so both the initial assignment and every
-// continueAssignment re-scan see it, with zero caching to go stale.
+// Default riders.max_active_orders for a newly created rider (admin can raise
+// or lower it per rider afterward, Riders page) — a rider already carrying
+// that many non-terminal orders is excluded from new offers until one is
+// Delivered/Cancelled, enforced inside listEligibleRiders so both the initial
+// assignment and every continueAssignment re-scan see it, with zero caching
+// to go stale.
 //
 // Counted over RIDER_CAPACITY_LOOKBACK_MIN only, for exactly the reason the
 // checkout capacity gate is (orderController.js): an order that is never
@@ -21,6 +23,10 @@ const RIDER_LOCATION_MAX_AGE_SEC = config.RIDER_LOCATION_MAX_AGE_SEC || 600;
 // let two such rows silently exclude a rider from every future offer with
 // nothing anywhere reporting why.
 const RIDER_MAX_ACTIVE_ORDERS = config.RIDER_MAX_ACTIVE_ORDERS || 2;
+// Upper bound on the admin-set per-rider value — guards against a fat-finger
+// (e.g. "20000") silently letting the assignment engine stack unlimited
+// orders onto one rider.
+const RIDER_MAX_ACTIVE_ORDERS_CAP = config.RIDER_MAX_ACTIVE_ORDERS_CAP || 20;
 
 const riderShape = (r) => {
   if (!r) return null;
@@ -100,28 +106,29 @@ const getCapacityStatus = async (areaId) => {
   // every customer sitting on checkout, and MySQL is a cross-region hop
   // (~94ms each way), so three sequential awaits cost ~3x what one does.
   // Same reasoning — and the same at-capacity formula — as the createOrder
-  // checkout gate in orderController.js. Areas whose settings row predates
-  // rider_capacity_multiplier fall back to config.RIDER_CAPACITY_MULTIPLIER.
+  // checkout gate in orderController.js. riderCapacity is the SUM of each
+  // online rider's own max_active_orders (admin-set per rider, Riders page),
+  // not a headcount times an area-wide guess.
   const [rows] = await pool.query(
     `SELECT
        (SELECT COUNT(*) FROM riders r
          WHERE r.active = 1 AND r.is_online = 1 AND r.area_id = ?) AS online_riders,
+       (SELECT COALESCE(SUM(r.max_active_orders), 0) FROM riders r
+         WHERE r.active = 1 AND r.is_online = 1 AND r.area_id = ?) AS rider_capacity,
        (SELECT COUNT(*) FROM orders o
          WHERE o.area_id = ? AND o.status IN (?)
-           AND o.created_at > NOW() - INTERVAL ? MINUTE) AS active_orders,
-       (SELECT s.rider_capacity_multiplier FROM settings s
-         WHERE s.area_id = ? LIMIT 1) AS capacity_multiplier`,
+           AND o.created_at > NOW() - INTERVAL ? MINUTE) AS active_orders`,
     [
       areaId,
-      areaId, ACTIVE_ORDER_STATUSES, config.RIDER_CAPACITY_LOOKBACK_MIN,
       areaId,
+      areaId, ACTIVE_ORDER_STATUSES, config.RIDER_CAPACITY_LOOKBACK_MIN,
     ]
   );
   const row = rows[0] || {};
   const onlineRiders = Number(row.online_riders) || 0;
   const activeOrders = Number(row.active_orders) || 0;
-  const multiplier = Number(row.capacity_multiplier) || config.RIDER_CAPACITY_MULTIPLIER;
-  const atCapacity = onlineRiders > 0 && activeOrders >= onlineRiders * multiplier;
+  const riderCapacity = Number(row.rider_capacity) || 0;
+  const atCapacity = onlineRiders > 0 && activeOrders >= riderCapacity;
   return { onlineRiders, activeOrders, atCapacity };
 };
 
@@ -138,11 +145,12 @@ const getCapacityStatus = async (areaId) => {
  */
 const listEligibleRiders = async ({ excludeIds = [], areaId } = {}) => {
   const exclude = (excludeIds || []).map(Number).filter((n) => Number.isFinite(n) && n > 0);
-  // Freshness param, then areaId, then the active-orders lookback + cap, then
+  // Freshness param, then areaId, then the active-orders lookback, then
   // the exclude list — keep this order in sync with the placeholders below.
+  // The per-rider cap itself is r.max_active_orders, not a bound param.
   const params = [
     RIDER_LOCATION_MAX_AGE_SEC, areaId,
-    config.RIDER_CAPACITY_LOOKBACK_MIN, RIDER_MAX_ACTIVE_ORDERS,
+    config.RIDER_CAPACITY_LOOKBACK_MIN,
   ];
   let excludeClause = '';
   if (exclude.length > 0) {
@@ -169,7 +177,7 @@ const listEligibleRiders = async ({ excludeIds = [], areaId } = {}) => {
          SELECT COUNT(*) FROM orders o
          WHERE o.rider_id = r.id AND o.status NOT IN ('Delivered', 'Cancelled')
            AND o.created_at > NOW() - INTERVAL ? MINUTE
-       ) < ?
+       ) < r.max_active_orders
        ${excludeClause}
      ORDER BY r.id ASC`,
     params
@@ -458,6 +466,7 @@ module.exports = {
   RIDER_SEARCH_RADIUS_TIERS_KM,
   RIDER_LOCATION_MAX_AGE_SEC,
   RIDER_MAX_ACTIVE_ORDERS,
+  RIDER_MAX_ACTIVE_ORDERS_CAP,
   ACTIVE_ORDER_STATUSES,
   getCapacityStatus,
   distanceToNearestPickupKm,

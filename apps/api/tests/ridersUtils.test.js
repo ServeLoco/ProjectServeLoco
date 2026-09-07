@@ -19,7 +19,6 @@ const {
   countActiveRiders,
   syncDeliveryAvailabilityFromRiders,
   RIDER_LOCATION_MAX_AGE_SEC,
-  RIDER_MAX_ACTIVE_ORDERS,
   ACTIVE_ORDER_STATUSES,
 } = require('../src/utils/riders');
 
@@ -173,20 +172,21 @@ describe('listEligibleRiders', () => {
     const [sql, params] = pool.query.mock.calls[0];
     expect(sql).toMatch(/r\.id NOT IN/);
     // Location-freshness seconds, then areaId, then the active-orders
-    // lookback + cap, then the exclude list.
+    // lookback, then the exclude list. The per-rider cap itself is
+    // r.max_active_orders — not a bound param.
     expect(params).toEqual([
       RIDER_LOCATION_MAX_AGE_SEC, 1,
-      config.RIDER_CAPACITY_LOOKBACK_MIN, RIDER_MAX_ACTIVE_ORDERS,
+      config.RIDER_CAPACITY_LOOKBACK_MIN,
       3, 5,
     ]);
   });
 
-  it('excludes riders already carrying RIDER_MAX_ACTIVE_ORDERS undelivered orders', async () => {
+  it('excludes riders already carrying their own max_active_orders undelivered orders', async () => {
     pool.query.mockResolvedValueOnce([[]]);
     await listEligibleRiders({ areaId: 1 });
     const [sql] = pool.query.mock.calls[0];
     expect(sql).toMatch(/status NOT IN \('Delivered', 'Cancelled'\)/);
-    expect(sql).toMatch(/\)\s*<\s*\?/);
+    expect(sql).toMatch(/\)\s*<\s*r\.max_active_orders/);
     // Bounded by the same lookback window the checkout capacity gate uses —
     // an order that is never delivered or cancelled must not exclude a rider
     // from every future offer forever.

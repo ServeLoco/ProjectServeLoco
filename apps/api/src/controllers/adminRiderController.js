@@ -1,5 +1,9 @@
 const { pool } = require('../db/mysql');
-const { syncDeliveryAvailabilityFromRiders } = require('../utils/riders');
+const {
+  syncDeliveryAvailabilityFromRiders,
+  RIDER_MAX_ACTIVE_ORDERS,
+  RIDER_MAX_ACTIVE_ORDERS_CAP,
+} = require('../utils/riders');
 const { isActiveMobileAdminPhone } = require('../utils/mobileAdmins');
 const assignment = require('../services/riderAssignment');
 const notificationService = require('../utils/notificationService');
@@ -38,6 +42,8 @@ const mapRiderRow = (row) => {
     active: Boolean(row.active),
     isOnline,
     is_online: isOnline,
+    maxActiveOrders: Number(row.max_active_orders) || RIDER_MAX_ACTIVE_ORDERS,
+    max_active_orders: Number(row.max_active_orders) || RIDER_MAX_ACTIVE_ORDERS,
     createdAt: row.created_at,
     created_at: row.created_at,
   };
@@ -47,6 +53,23 @@ const numOrNull = (v) => {
   if (v === undefined || v === null || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+};
+
+// Shared by createRider/updateRider — one rider's own delivery-capacity
+// ceiling (Riders page), replacing the old area-wide multiplier estimate.
+// Returns { value } on success or { error: {status, code, message} }.
+const validateMaxActiveOrders = (raw) => {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1 || n > RIDER_MAX_ACTIVE_ORDERS_CAP) {
+    return {
+      error: {
+        status: 400,
+        code: 'VALIDATION_ERROR',
+        message: `maxActiveOrders must be a whole number between 1 and ${RIDER_MAX_ACTIVE_ORDERS_CAP}`,
+      },
+    };
+  }
+  return { value: n };
 };
 
 const shapeOrderSummary = (o) => {
@@ -223,9 +246,17 @@ const listRiders = async (req, res) => {
 const createRider = async (req, res) => {
   const areaId = requireOneArea(req, res);
   if (areaId === null) return;
-  const { phone, userId, displayName, display_name } = req.body || {};
+  const { phone, userId, displayName, display_name, maxActiveOrders, max_active_orders } = req.body || {};
   let uid = userId != null ? Number(userId) : null;
   let userRow = null;
+
+  const rawMaxActiveOrders = maxActiveOrders ?? max_active_orders;
+  let maxActiveOrdersValue = RIDER_MAX_ACTIVE_ORDERS;
+  if (rawMaxActiveOrders !== undefined) {
+    const { value, error } = validateMaxActiveOrders(rawMaxActiveOrders);
+    if (error) return res.status(error.status).json({ code: error.code, message: error.message });
+    maxActiveOrdersValue = value;
+  }
 
   if (uid) {
     const [rows] = await pool.query('SELECT id, name, phone FROM users WHERE id = ?', [uid]);
@@ -283,9 +314,9 @@ const createRider = async (req, res) => {
   let result;
   try {
     [result] = await pool.query(
-      `INSERT INTO riders (area_id, user_id, display_name, phone, active, is_online)
-       VALUES (?, ?, ?, ?, 1, 0)`,
-      [areaId, uid, name, userRow.phone || null]
+      `INSERT INTO riders (area_id, user_id, display_name, phone, active, is_online, max_active_orders)
+       VALUES (?, ?, ?, ?, 1, 0, ?)`,
+      [areaId, uid, name, userRow.phone || null, maxActiveOrdersValue]
     );
   } catch (e) {
     if (e && e.code === 'ER_DUP_ENTRY') {
@@ -307,7 +338,7 @@ const updateRider = async (req, res) => {
   const areaId = requireOneArea(req, res);
   if (areaId === null) return;
   const { id } = req.params;
-  const { active, displayName, display_name } = req.body || {};
+  const { active, displayName, display_name, maxActiveOrders, max_active_orders } = req.body || {};
 
   const [existing] = await pool.query('SELECT * FROM riders WHERE id = ? AND area_id = ?', [id, areaId]);
   if (existing.length === 0) {
@@ -331,6 +362,13 @@ const updateRider = async (req, res) => {
       // Force offline when deactivated
       sets.push('is_online = 0');
     }
+  }
+  const rawMaxActiveOrders = maxActiveOrders ?? max_active_orders;
+  if (rawMaxActiveOrders !== undefined) {
+    const { value, error } = validateMaxActiveOrders(rawMaxActiveOrders);
+    if (error) return res.status(error.status).json({ code: error.code, message: error.message });
+    sets.push('max_active_orders = ?');
+    values.push(value);
   }
 
   if (sets.length > 0) {

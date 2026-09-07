@@ -224,13 +224,12 @@ function runQuery(sql, params = []) {
     const maxAgeSec = Number(p[0]);
     const areaId = Number(p[1]);
     const lookbackMin = Number(p[2]);
-    const maxActive = Number(p[3]);
-    const exclude = p.slice(4).map(Number);
+    const exclude = p.slice(3).map(Number);
     const rows = db.riders.filter((r) => r.active === 1
       && r.is_online === 1
       && Number(r.area_id) === areaId
       && !hasPendingOffer(r.id)
-      && activeOrdersOf(r.id, lookbackMin) < maxActive
+      && activeOrdersOf(r.id, lookbackMin) < (r.max_active_orders ?? RIDER_MAX_ACTIVE_ORDERS)
       && !exclude.includes(Number(r.id)));
     return [rows.map((r) => ({
       id: r.id,

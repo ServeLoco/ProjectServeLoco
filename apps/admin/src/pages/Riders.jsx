@@ -47,10 +47,13 @@ export default function Riders() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [phone, setPhone] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [maxActiveOrders, setMaxActiveOrders] = useState('2');
   const [saving, setSaving] = useState(false);
   const [liveHint, setLiveHint] = useState('');
   const [dispatchRider, setDispatchRider] = useState(null);
   const [onlineBusyId, setOnlineBusyId] = useState(null);
+  const [capacityBusyId, setCapacityBusyId] = useState(null);
+  const [capacityDrafts, setCapacityDrafts] = useState({});
 
   const fetchRiders = useCallback(async ({ silent = false } = {}) => {
     try {
@@ -107,6 +110,7 @@ export default function Riders() {
   const openCreate = () => {
     setPhone('');
     setDisplayName('');
+    setMaxActiveOrders('2');
     setDrawerOpen(true);
   };
 
@@ -118,6 +122,7 @@ export default function Riders() {
       await RidersApi.create({
         phone: phone.trim(),
         displayName: displayName.trim() || undefined,
+        maxActiveOrders: Number(maxActiveOrders) || 2,
       });
       setDrawerOpen(false);
       fetchRiders();
@@ -126,6 +131,31 @@ export default function Riders() {
       setError(err.message || GENERIC_ERROR);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveMaxActiveOrders = async (rider) => {
+    const draft = capacityDrafts[rider.id];
+    const value = Number(draft);
+    if (!Number.isInteger(value) || value < 1) {
+      setError('Max orders must be a whole number of 1 or more');
+      return;
+    }
+    setCapacityBusyId(rider.id);
+    setError(null);
+    try {
+      await RidersApi.update(rider.id, { maxActiveOrders: value });
+      setRiders((prev) => mergeRiderUpdate(prev, { id: rider.id, maxActiveOrders: value, max_active_orders: value }));
+      setCapacityDrafts((prev) => {
+        const next = { ...prev };
+        delete next[rider.id];
+        return next;
+      });
+    } catch (err) {
+      console.error(err);
+      setError(err.message || GENERIC_ERROR);
+    } finally {
+      setCapacityBusyId(null);
     }
   };
 
@@ -231,19 +261,20 @@ export default function Riders() {
               <th>Phone</th>
               <th>Online</th>
               <th>Active</th>
+              <th>Max Orders</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading && riders.length === 0 ? (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>
                   Loading riders...
                 </td>
               </tr>
             ) : riders.length === 0 ? (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>
                   No riders yet. Create one with a customer phone number.
                 </td>
               </tr>
@@ -292,6 +323,31 @@ export default function Riders() {
                       >
                         {r.active ? 'Active' : 'Inactive'}
                       </button>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <input
+                          type="number"
+                          min="1"
+                          max="20"
+                          step="1"
+                          className="form-input"
+                          style={{ width: 60, padding: '4px 6px' }}
+                          value={capacityDrafts[r.id] ?? (r.maxActiveOrders ?? r.max_active_orders ?? 2)}
+                          onChange={(e) => setCapacityDrafts((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                        />
+                        {capacityDrafts[r.id] !== undefined
+                          && Number(capacityDrafts[r.id]) !== Number(r.maxActiveOrders ?? r.max_active_orders ?? 2) && (
+                          <button
+                            type="button"
+                            className="action-link"
+                            disabled={capacityBusyId === r.id}
+                            onClick={() => saveMaxActiveOrders(r)}
+                          >
+                            {capacityBusyId === r.id ? '…' : 'Save'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="shop-actions-cell">
                       <button
@@ -352,6 +408,18 @@ export default function Riders() {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Optional — defaults to user name"
+                />
+              </label>
+              <label className="form-label">
+                Max concurrent orders
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  step="1"
+                  className="form-input"
+                  value={maxActiveOrders}
+                  onChange={(e) => setMaxActiveOrders(e.target.value)}
                 />
               </label>
               <button className="btn-primary" type="submit" disabled={saving}>
