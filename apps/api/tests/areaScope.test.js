@@ -129,6 +129,65 @@ describe('resolveAreaForPoint', () => {
   });
 });
 
+// areas.min_lat is only refreshed by recomputeAreaBbox on a zone WRITE, so an
+// area whose zones arrived by seed, import or a hand-edited row carries a box
+// that does not describe them. Treating that box as the verdict refused a
+// customer standing inside a drawn, active zone — the map shaded the zone
+// green while the cart said "we don't deliver here yet".
+describe('a stale area bbox cannot make a real zone unreachable', () => {
+  // The box covers Hisar; the area's own zone is 20km east, in Gorakhpur.
+  const AREA_1_STALE_BBOX = {
+    ...AREA_1, min_lat: 29.5, max_lat: 29.7, min_lng: 75.35, max_lng: 75.55,
+  };
+
+  /** Routes on SQL text — the fallback issues extra queries a call-order mock would misfeed. */
+  function mockDb({ zones = [PARENT_ZONE, CHILD_ZONE], areas = [AREA_1_STALE_BBOX] } = {}) {
+    pool.query.mockImplementation(async (sql) => {
+      const q = String(sql);
+      if (q.includes('UPDATE areas')) return [{ affectedRows: 1 }];
+      if (q.includes('FROM areas')) return [areas];
+      if (q.includes('FROM delivery_zones')) return [zones];
+      return [[]];
+    });
+  }
+
+  it('CONTROL: a point the stale box DOES contain still resolves on the fast path', async () => {
+    // Same zone geometry, a point inside both box and zone: nothing changes.
+    mockDb({ areas: [{ ...AREA_1, min_lat: 29.40, max_lat: 29.50, min_lng: 75.60, max_lng: 75.72 }] });
+
+    const result = await resolveAreaForPoint(POINT_IN_CHILD.lat, POINT_IN_CHILD.lng);
+
+    expect(result).toMatchObject({ areaId: 1, zoneId: 11 });
+    // Fast path only: no bbox repair, because the box was never wrong.
+    expect(pool.query.mock.calls.some(([sql]) => String(sql).includes('UPDATE areas'))).toBe(false);
+  });
+
+  it('resolves a point its own zone contains even though the bbox excludes it', async () => {
+    mockDb();
+
+    const result = await resolveAreaForPoint(POINT_IN_CHILD.lat, POINT_IN_CHILD.lng);
+
+    expect(result).toMatchObject({ areaId: 1, zoneId: 11 });
+  });
+
+  it('repairs the bbox so the rescue is paid once, not on every request', async () => {
+    mockDb();
+
+    await resolveAreaForPoint(POINT_IN_CHILD.lat, POINT_IN_CHILD.lng);
+
+    const update = pool.query.mock.calls.find(([sql]) => String(sql).includes('UPDATE areas SET min_lat'));
+    expect(update).toBeDefined();
+    // Recomputed from the union of the area's own zone vertices.
+    expect(update[1]).toEqual([29.40, 29.50, 75.60, 75.72, 1]);
+  });
+
+  it('REGRESSION: a point outside every zone is still refused, box or no box', async () => {
+    mockDb();
+
+    expect(await resolveAreaForPoint(POINT_OUTSIDE_EVERYTHING.lat, POINT_OUTSIDE_EVERYTHING.lng)).toBeNull();
+  });
+});
+
 describe('getAreaById / listAreas / getDefaultArea (60s cache)', () => {
   it('caches the areas list across repeated calls', async () => {
     pool.query.mockResolvedValueOnce([[AREA_1, AREA_2_BBOXED]]);

@@ -82,6 +82,18 @@ async function bboxCandidateAreas(lat, lng) {
   });
 }
 
+/** First of `areas` (in order) with an active zone containing the point. */
+async function matchAreaByZone(lat, lng, areas) {
+  for (const area of areas) {
+    const zones = await loadZonesForArea(area.id);
+    const zone = matchZone(lat, lng, zones);
+    if (zone) {
+      return { areaId: area.id, zoneId: zone.id, zone };
+    }
+  }
+  return null;
+}
+
 /**
  * The resolution chain, in one function (§2.4): pin -> delivery zone
  * (nested child wins, via the existing matchZone) -> area. Exclusion
@@ -91,7 +103,7 @@ async function bboxCandidateAreas(lat, lng) {
  *
  * @returns {Promise<{areaId: number, zoneId: number, zone: object}|null>}
  *   null when the point is missing/invalid, or falls inside no active
- *   zone in any candidate area — callers must treat that as "we don't
+ *   zone in ANY active area — callers must treat that as "we don't
  *   deliver here yet", never fall back to the default area (§2.4).
  */
 async function resolveAreaForPoint(lat, lng) {
@@ -100,14 +112,33 @@ async function resolveAreaForPoint(lat, lng) {
   if (!Number.isFinite(numLat) || !Number.isFinite(numLng)) return null;
 
   const candidates = await bboxCandidateAreas(numLat, numLng);
-  for (const area of candidates) {
-    const zones = await loadZonesForArea(area.id);
-    const zone = matchZone(numLat, numLng, zones);
-    if (zone) {
-      return { areaId: area.id, zoneId: zone.id, zone };
-    }
-  }
-  return null;
+  const matched = await matchAreaByZone(numLat, numLng, candidates);
+  if (matched) return matched;
+
+  // The bbox is a PREFILTER, never the verdict. areas.min_lat is only
+  // refreshed by recomputeAreaBbox on a zone write, so any area whose zones
+  // arrived by seed, import or a direct DB edit carries a box that does not
+  // describe its zones. A box that excludes a point its own zones actually
+  // contain used to end here as null — "we don't deliver here yet" for a
+  // customer standing well inside a drawn zone, with the map still shading
+  // that zone green. Re-checking the areas the box ruled out costs one
+  // (15s-cached) zone load each and only ever runs on a miss, which is
+  // already the slow, we're-about-to-refuse path.
+  const active = await listAreas({ activeOnly: true });
+  const skipped = active.filter((a) => !candidates.includes(a));
+  if (skipped.length === 0) return null;
+
+  const rescued = await matchAreaByZone(numLat, numLng, skipped);
+  if (!rescued) return null;
+
+  // Self-heal the box that was wrong, so this area goes back on the fast
+  // path instead of paying the full scan on every request forever. Failure
+  // here is not the caller's problem — the answer above is already correct.
+  try {
+    await recomputeAreaBbox(rescued.areaId);
+  } catch (_) { /* best effort — a stale bbox costs speed, not correctness */ }
+
+  return rescued;
 }
 
 /**
