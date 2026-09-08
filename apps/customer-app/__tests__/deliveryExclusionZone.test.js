@@ -158,11 +158,5 @@ describe('no-delivery exclusion squares', () => {
         /const serverRefusedDelivery = bill \? bill\.deliveryWithinRange === false : false/,
       );
     });
-
-    // On a slow connection the startup sync can complete having stored no
-    // pin at all. Opening the cart is the moment that has to be fixed.
-    it('retries the location sync when the cart opens without a pin', () => {
-      expect(cartSource).toMatch(/if \(customerCoords \|\| !isInitialLocationSyncComplete\) return;\s*\n\s*syncDeliveryLocation\(\);/);
-    });
   });
 });

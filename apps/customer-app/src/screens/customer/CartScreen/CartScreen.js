@@ -76,6 +76,15 @@ export default function CartScreen() {
       setBill(null);
       setCalcError(null);
       setFocusTick((n) => n + 1);
+      // Opening the cart with no pin, after the startup sync already gave up,
+      // is the one moment the location actually has to be known — retry here
+      // rather than leaving the customer to wait out a foreground cycle. Read
+      // imperatively so this stays tied to the focus event (exactly one
+      // attempt per visit) instead of re-firing as the store settles;
+      // syncDeliveryLocation dedupes anyway. On success the store update
+      // re-runs the bill effect below with real coordinates.
+      const { coords, isInitialSyncComplete } = useDeliveryLocationStore.getState();
+      if (!coords && isInitialSyncComplete) syncDeliveryLocation();
     }, []),
   );
 
@@ -95,18 +104,6 @@ export default function CartScreen() {
   // in the response, so a customer standing well inside a zone was told
   // "Outside delivery area" purely because their GPS/zone-check hadn't landed.
   const isInitialLocationSyncComplete = useDeliveryLocationStore(state => state.isInitialSyncComplete);
-
-  // Opening the cart with no pin, after the startup sync already gave up, is
-  // the one moment where the location actually has to be known — so retry it
-  // here rather than leaving the customer to wait out a foreground cycle.
-  // Fires at most once per cart visit (neither dep changes while it runs), and
-  // syncDeliveryLocation dedupes concurrent runs, so a slow network can't stack
-  // attempts. On success the store update re-runs the bill effect below with
-  // real coordinates.
-  useEffect(() => {
-    if (customerCoords || !isInitialLocationSyncComplete) return;
-    syncDeliveryLocation();
-  }, [focusTick, customerCoords, isInitialLocationSyncComplete]);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
