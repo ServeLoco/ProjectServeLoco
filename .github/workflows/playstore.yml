@@ -21,12 +21,7 @@ permissions:
 env:
   APP_DIR: apps/customer-app
   EAS_PROJECT_ID: 1df5a9bf-de34-48ea-96f4-68f598d7d318
-  GRADLE_OPTS: "-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8"
   EAS_BUILD_NO_EXPO_GO_WARNING: "true"
-  # Move EAS local build temp out of small tmpfs (/tmp = 7.4GB) to home (402GB free)
-  TMPDIR: /home/linux-server/Documents/builds/.tmp
-  EAS_LOCAL_BUILD_WORKINGDIR: /home/linux-server/Documents/builds/.tmp/eas-build
-  EAS_LOCAL_BUILD_ARTIFACT_PATH: /home/linux-server/Documents/builds/.tmp/eas-build-artifact
 
 jobs:
   # ── 1. CI gate: lint + tests must pass before we build or update. ───────────
@@ -148,7 +143,7 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-  # ── 3. Build + Submit + Update on the user's Linux PC. ─────────────────────
+  # ── 3. Build (EAS cloud) + Submit + Update. ─────────────────────────────────
   build-submit-update:
     name: Build / Submit / Update
     runs-on: [self-hosted, linux, x64, villkro-android]
@@ -161,29 +156,6 @@ jobs:
           node-version: "22"
           # Self-hosted: never download GitHub remote npm cache (was multi-GB / 10–20+ min).
           package-manager-cache: false
-
-      - name: Setup build directory in Documents (no /tmp usage)
-        run: |
-          set -euo pipefail
-          # All build artifacts go to Documents/builds/.tmp — zero /tmp usage
-          mkdir -p /home/linux-server/Documents/builds/.tmp
-          # Symlinks: EAS CLI hardcodes /tmp paths, redirect them to Documents
-          ln -sf /home/linux-server/Documents/builds/.tmp/villkro.aab /tmp/villkro.aab
-          ln -sf /home/linux-server/Documents/builds/.tmp/play-store-key.json /tmp/play-store-key.json
-          # Clean any leftover from previous runs
-          rm -f /home/linux-server/Documents/builds/.tmp/villkro.aab
-          rm -f /home/linux-server/Documents/builds/.tmp/play-store-key.json
-          # Metro's transform cache is keyed by file content hash, not by env
-          # var values — this dir persists across runs on this self-hosted
-          # box, so a file whose content never changes (e.g. utils/mapbox.js)
-          # keeps serving a stale transform (baked with whatever
-          # EXPO_PUBLIC_* values were set the first time it was ever built)
-          # forever, even after the secret is fixed. Wipe it every run.
-          rm -rf /home/linux-server/Documents/builds/.tmp/metro-cache
-          rm -rf /tmp/metro-cache
-          echo "✓ Build dir: /home/linux-server/Documents/builds/.tmp/"
-          ls -la /home/linux-server/Documents/builds/.tmp/
-          ls -la /tmp/villkro.aab /tmp/play-store-key.json
 
       - name: Install app deps
         working-directory: ${{ env.APP_DIR }}
@@ -201,8 +173,8 @@ jobs:
             echo "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is empty" >&2
             exit 1
           fi
-          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > /home/linux-server/Documents/builds/.tmp/play-store-key.json
-          ls -la /home/linux-server/Documents/builds/.tmp/play-store-key.json
+          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > /tmp/play-store-key.json
+          ls -la /tmp/play-store-key.json
 
       - name: Verify EAS authentication
         env:
@@ -225,49 +197,28 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name  "github-actions[bot]"
 
-      # ─── MAJOR PATH: full .aab build + Play Store submit + OTA ────────────
-      - name: Build Android .aab locally
+      # ─── MAJOR PATH: EAS cloud build + Play Store submit + OTA ─────────────
+      # Mirrors appstore.yml: build runs on EAS's own infra, this runner only
+      # orchestrates. EXPO_PUBLIC_* vars must be set as EAS environment
+      # variables/secrets on the project — job-level env below does NOT reach
+      # a cloud build (it only ever reached the old `--local` build).
+      - name: Build Android .aab on EAS cloud
         if: needs.detect-bump.outputs.bump == 'major'
         working-directory: ${{ env.APP_DIR }}
         env:
-          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
-          EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           set -euo pipefail
-          echo "=== Build step diagnostics ==="
-          echo "PWD=$(pwd)"
-          echo "eas: $(which eas 2>&1 || echo NOT FOUND)"
-          echo "node: $(which node)"
-          echo "=== Starting build ==="
-          # Write to Documents/builds/.tmp/villkro.aab (via symlink) — zero /tmp usage
-          eas build --platform android --local --non-interactive --profile production --output /home/linux-server/Documents/builds/.tmp/villkro.aab 2>&1 | tee /home/linux-server/Documents/builds/.tmp/eas-build.log
-          echo "=== Build complete, output: ==="
-          ls -la /home/linux-server/Documents/builds/.tmp/villkro.aab 2>&1 || echo "NO .aab file produced"
+          eas build --platform android --profile production --non-interactive --wait
 
       - name: Submit .aab to Google Play (Production track)
         if: needs.detect-bump.outputs.bump == 'major'
         working-directory: ${{ env.APP_DIR }}
         env:
-          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           set -euo pipefail
-          # Find the .aab in Documents (zero /tmp usage)
-          AAB_PATH=""
-          for candidate in \
-            /home/linux-server/Documents/builds/.tmp/villkro.aab \
-            /home/linux-server/Documents/builds/.tmp/eas-build/build/apps/customer-app/android/app/build/outputs/bundle/release/app-release.aab; do
-            if [ -f "$candidate" ]; then
-              AAB_PATH="$candidate"
-              break
-            fi
-          done
-          if [ -z "$AAB_PATH" ]; then
-            echo "❌ FAIL TO SUBMIT: no .aab found in Documents/builds/.tmp/"
-            exit 1
-          fi
-          echo "Submitting .aab at: $AAB_PATH"
-          # Single attempt only — no retries. Fails fast and loud if EAS flakes.
-          eas submit --platform android --path "$AAB_PATH" --non-interactive
+          eas submit --platform android --latest --non-interactive
           echo "✓ Submit succeeded"
 
       # ─── MINOR PATH: skip the build, just publish the OTA ──────────────────
@@ -283,39 +234,5 @@ jobs:
 
       - name: Clean up service account key
         if: always()
-        run: rm -f /home/linux-server/Documents/builds/.tmp/play-store-key.json
-
-      # ─── ARCHIVE BUILD ARTIFACT ────────────────────────────────────────────────
-      # Always run after build (success or failure) to preserve the latest .aab.
-      # Uses `test -f` instead of `hashFiles` because hashFiles is evaluated at
-      # JOB START before the .aab is created — would always be empty.
-      # Zero /tmp usage — everything stays in Documents/builds/
-      - name: Archive .aab to Documents/builds
-        if: always()
-        run: |
-          set -euo pipefail
-          VERSION=$(node -p "require('./${{ env.APP_DIR }}/app.json').expo.version" 2>/dev/null || echo "1.0.0")
-          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          ARCHIVE="/home/linux-server/Documents/builds/villkro-${VERSION}-${TIMESTAMP}.aab"
-
-          # Find the .aab in Documents (never in /tmp)
-          AAB=""
-          for candidate in \
-            /home/linux-server/Documents/builds/.tmp/villkro.aab \
-            /home/linux-server/Documents/builds/.tmp/eas-build/build/apps/customer-app/android/app/build/outputs/bundle/release/app-release.aab; do
-            if [ -f "$candidate" ]; then
-              AAB="$candidate"
-              break
-            fi
-          done
-
-          if [ -z "$AAB" ]; then
-            echo "WARNING: no .aab found to archive (build may have failed)"
-            exit 0
-          fi
-
-          cp "$AAB" "$ARCHIVE"
-          echo "✓ Archived build to: $ARCHIVE"
-          ls -lh "$ARCHIVE"
-
+        run: rm -f /tmp/play-store-key.json
 

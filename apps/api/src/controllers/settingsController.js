@@ -1,16 +1,40 @@
 const { pool } = require('../db/mysql');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { createTtlCache } = require('../utils/ttlCache');
-const microCache = require('../utils/microCache');
 const config = require('../config/env');
 const { cleanupOrphanedImage } = require('./imageController');
-const { syncGlobalShopOpenState } = require('../utils/shops');
+const { syncAreaShopOpenState } = require('../utils/shops');
+const { requestAreaId, getDefaultArea, bustAreaCaches } = require('../utils/areaScope');
+const { reorderDisplayOrder } = require('../utils/reorder');
 
-// Settings is a singleton (1 row), read by every app open and every public
-// endpoint. 15-second cache eliminates most SELECTs while keeping settings fresh.
-// Invalidated on PATCH.
+// Settings is a singleton (1 row) today, read by every app open and every
+// public endpoint. 15-second cache eliminates most SELECTs while keeping
+// settings fresh. Invalidated on PATCH.
+//
+// Key is already area-shaped (`settings:<areaId>`) even though `settings`
 const settingsCache = createTtlCache({ ttlMs: 15_000 });
-const SETTINGS_KEY = 'settings';
+const settingsKey = (areaId) => `settings:${areaId}`;
+
+// Upper bound for settings.rider_capacity_multiplier. Not a hard technical
+// limit (the column is DECIMAL(5,2)) — a sanity ceiling so a fat-fingered
+// 30/300 can't quietly switch the checkout capacity gate off for an area.
+// Kept in sync with the `max` on the admin Settings input.
+const RIDER_CAPACITY_MULTIPLIER_MAX = 20;
+
+// Offer admin write/single-item endpoints reject null (super_admin, no
+// X-Area-Id) and 'all' — offer management always targets exactly one area.
+const requireOneArea = (req, res) => {
+  const areaId = requestAreaId(req);
+  if (areaId === null) {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'X-Area-Id is required to manage offers' });
+    return null;
+  }
+  if (areaId === 'all') {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Offers cannot be managed for "all" areas at once — pick one area' });
+    return null;
+  }
+  return areaId;
+};
 
 const hasValue = (value) => value !== undefined && value !== null && value !== '';
 const getStoredImageUrl = (image) => image?.url ||
@@ -114,9 +138,12 @@ const attachOfferProductImageUrls = async (products) => {
   return products;
 };
 
-const getSettings = async (req, res) => {
-  const settings = await settingsCache.wrap(SETTINGS_KEY, async () => {
-    const [rows] = await pool.query('SELECT * FROM settings LIMIT 1');
+// Shared by getSettings below and bootstrapController.js (TASK 27.3) — the
+// same 15s-cached fetch-and-shape logic, so /bootstrap's settings block can
+// never drift from what GET /api/settings itself returns.
+const getSettingsForArea = async (areaId) => {
+  return settingsCache.wrap(settingsKey(areaId), async () => {
+    const [rows] = await pool.query('SELECT * FROM settings WHERE area_id = ? LIMIT 1', [areaId]);
     const s = rows[0] || {
       shop_open: 1,
       minimum_order_amount: 50,
@@ -136,25 +163,91 @@ const getSettings = async (req, res) => {
       upi_qr_image_id: null,
       minimum_version: null,
       current_version: null,
+      rider_capacity_multiplier: 3,
     };
     return attachSettingsImageUrls(s);
   });
+};
 
+const getSettings = async (req, res) => {
+  // resolveCustomerArea (mounted on this route) resolves req.areaId: a real
+  // area id when the pin matched a zone (or there was no pin, falling back
+  // to the customer's last area / the platform default), or null when a
+  // supplied pin fell outside every zone. Settings is lightweight, mostly
+  // non-delivery info (app version gate, support contact) — falling back to
+  // the default area here rather than erroring is deliberately more lenient
+  // than the catalog/dashboard endpoints, which must show "we don't deliver
+  // here" for that same null (§2.4). getSettings never does.
+  let areaId = requestAreaId(req);
+  if (typeof areaId !== 'number') {
+    const defaultArea = await getDefaultArea();
+    areaId = defaultArea ? defaultArea.id : 1;
+  }
+
+  const settings = await getSettingsForArea(areaId);
+  // rider_capacity_multiplier is a rider-assignment tuning knob (the
+  // createOrder capacity gate + /api/rider-capacity) with no customer-facing
+  // meaning, so it does not belong in a public payload. Stripped here rather
+  // than by switching getSettingsForArea to an allowlist: the admin read
+  // shares that helper and legitimately needs the whole row, and the other
+  // fields customers do receive (upi_id, support_phone) are intentional.
+  // Copy before deleting — getSettingsForArea hands back the cached object,
+  // and mutating it would strip the field from the admin read too.
+  const publicSettings = { ...settings };
+  delete publicSettings.rider_capacity_multiplier;
+  res.status(200).json({ data: publicSettings });
+};
+
+/**
+ * GET /api/admin/settings — the ADMIN read, deliberately NOT getSettings.
+ *
+ * getSettings above is lenient by design for the PUBLIC route (§2.4: a
+ * customer whose pin resolves nowhere still gets support contact / version
+ * gate rather than an error). Reusing it for the admin route inherited that
+ * leniency where it is wrong: a super_admin on "All areas" (or with no area
+ * picked) silently got the DEFAULT area's settings — including its `upi_id`
+ * and support numbers — with nothing in the response saying which area they
+ * belonged to, while PATCH /admin/settings on the same screen correctly
+ * refuses 'all' (§2.10). Reading Area 1's payment target while believing it
+ * to be global is exactly the money-routing confusion §9.4 item 4 calls out.
+ * Mirrors updateSettings' own gate instead.
+ */
+const getAdminSettings = async (req, res) => {
+  const areaId = requestAreaId(req);
+  if (areaId === null) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'X-Area-Id is required to view settings' });
+  }
+  if (areaId === 'all') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Settings cannot be shown for "all" areas at once — pick one area' });
+  }
+
+  const settings = await getSettingsForArea(areaId);
   res.status(200).json({ data: settings });
 };
 
+// Public endpoint. Also mounted under /api/admin/offers/active with
+// requireAdmin (req.areaId already resolved there) — same handler either
+// way since requestAreaId() reads whichever middleware ran.
 const getActiveOffer = async (req, res) => {
+  // Catalog/promo data (§2.4): a pin outside every zone (null areaId) gets
+  // no offer, same rule as getProducts/getDashboard — never another area's
+  // banner.
+  const areaId = requestAreaId(req);
+  if (areaId === null || areaId === 'all') {
+    return res.status(200).json({ data: null });
+  }
+
   const { store_type, storeType } = req.query;
   const finalStoreType = store_type || storeType || 'packed';
-  let query = 'SELECT * FROM offers WHERE active = 1 AND deleted = 0';
-  const params = [];
+  let query = 'SELECT * FROM offers WHERE active = 1 AND deleted = 0 AND area_id = ?';
+  const params = [areaId];
 
   if (finalStoreType) {
     // A client can hold a stale/deactivated mode slug — fall back to 'all'
     // instead of erroring the public active-offer endpoint.
     let normalizedStoreType = 'all';
     try {
-      normalizedStoreType = await normalizeStoreType(finalStoreType, { allowAll: true });
+      normalizedStoreType = await normalizeStoreType(finalStoreType, { allowAll: true, areaId });
     } catch {
       normalizedStoreType = 'all';
     }
@@ -166,7 +259,7 @@ const getActiveOffer = async (req, res) => {
 
   query += ' ORDER BY id DESC LIMIT 1';
   const [rows] = await pool.query(query, params);
-  
+
   if (rows.length === 0) {
     return res.status(200).json({ data: null });
   }
@@ -176,6 +269,20 @@ const getActiveOffer = async (req, res) => {
 };
 
 const updateSettings = async (req, res) => {
+  // req.areaId is set by resolveAdminArea, chained inside requireAdmin
+  // (TASK 8): a real number for an area_admin (always their own area) or a
+  // super_admin who picked one via X-Area-Id. This is a write targeting
+  // exactly one area's settings, so — unlike getSettings — null (no header)
+  // and 'all' are both rejected outright rather than guessed at (§2.10:
+  // Settings is one of the endpoints that must refuse 'all').
+  const areaId = requestAreaId(req);
+  if (areaId === null) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'X-Area-Id is required to update settings' });
+  }
+  if (areaId === 'all') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Settings cannot be updated for "all" areas at once — pick one area' });
+  }
+
   const fields = [
     'shop_open', 'delivery_available', 'minimum_order_amount', 'delivery_charge',
     'night_charge', 'night_charge_start', 'night_charge_end',
@@ -188,6 +295,7 @@ const updateSettings = async (req, res) => {
     'current_version',
     // Radius-zone pricing: master switch + center pin (revived for zone mode)
     'radius_pricing_active', 'shop_latitude', 'shop_longitude',
+    'rider_capacity_multiplier',
     // DEPRECATED (no longer used): free_delivery_above,
     // delivery_radius_km, delivery_cost_per_km
   ];
@@ -253,6 +361,23 @@ const updateSettings = async (req, res) => {
     }
   }
 
+  // Bounded on BOTH ends. Below 1 the checkout capacity gate
+  // (orderController.js) trips with one active order per online rider —
+  // closing the area to new checkouts the moment a single order comes in.
+  // Above RIDER_CAPACITY_MULTIPLIER_MAX a typo (30 for 3, or 300 for 3.00)
+  // silently disables the gate for that area instead, which fails the other
+  // way: orders pile up with nobody free to take them and the only symptom
+  // is riders never getting offers.
+  if (hasValue(body.rider_capacity_multiplier)) {
+    const multiplier = Number(body.rider_capacity_multiplier);
+    if (!Number.isFinite(multiplier) || multiplier < 1 || multiplier > RIDER_CAPACITY_MULTIPLIER_MAX) {
+      return res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: `Rider capacity multiplier must be between 1 and ${RIDER_CAPACITY_MULTIPLIER_MAX}`,
+      });
+    }
+  }
+
   // Turning zone pricing ON requires at least one active zone — each zone is
   // now its own self-contained polygon, so there's no shared center pin to
   // require. This guard is load-bearing, not cosmetic: the resolver fails
@@ -262,7 +387,10 @@ const updateSettings = async (req, res) => {
     const wantsRadiusPricing = body.radius_pricing_active === true || body.radius_pricing_active === 'true'
       || body.radius_pricing_active === 1 || body.radius_pricing_active === '1';
     if (wantsRadiusPricing) {
-      const [zoneRows] = await pool.query('SELECT COUNT(*) AS count FROM delivery_zones WHERE active = 1');
+      // area_id here matters for real: without it, area 1's admin could
+      // enable radius pricing believing zones exist, when the count was
+      // actually coming from a DIFFERENT area's zones.
+      const [zoneRows] = await pool.query('SELECT COUNT(*) AS count FROM delivery_zones WHERE active = 1 AND area_id = ?', [areaId]);
       if (Number(zoneRows[0]?.count) === 0) {
         return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Add at least one active delivery zone before enabling radius pricing' });
       }
@@ -280,7 +408,7 @@ const updateSettings = async (req, res) => {
   // Master gate: delivery_available off means the business isn't
   // delivering, full stop — shop_open can't be open alongside it. (The
   // auto-open/auto-close side of this rule, triggered by individual shops
-  // opening/closing, lives in syncGlobalShopOpenState.)
+  // opening/closing, lives in syncAreaShopOpenState.)
   if (hasValue(body.shop_open)) {
     const wantsOpen = body.shop_open === true || body.shop_open === 'true' || body.shop_open === 1 || body.shop_open === '1';
     if (wantsOpen) {
@@ -297,7 +425,7 @@ const updateSettings = async (req, res) => {
       } else {
         // shop_open-only request (the Dashboard's standalone toggle) — an
         // explicit attempt to open while delivery is off gets a clear error.
-        const [currentRows] = await pool.query('SELECT delivery_available FROM settings LIMIT 1');
+        const [currentRows] = await pool.query('SELECT delivery_available FROM settings WHERE area_id = ? LIMIT 1', [areaId]);
         const deliveryAvailable = currentRows.length > 0 ? Boolean(currentRows[0].delivery_available) : true;
         if (!deliveryAvailable) {
           return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot open Shop Status while delivery is turned off.' });
@@ -322,7 +450,8 @@ const updateSettings = async (req, res) => {
         'rain_charge',
         'below_threshold_delivery_charge',
         'shop_latitude',
-        'shop_longitude'
+        'shop_longitude',
+        'rider_capacity_multiplier',
         // DEPRECATED: free_delivery_above,
         // delivery_radius_km, delivery_cost_per_km — no longer stored
       ].includes(field)) {
@@ -336,22 +465,28 @@ const updateSettings = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No valid fields provided' });
   }
 
-  const [rows] = await pool.query('SELECT id, upi_qr_image_id FROM settings LIMIT 1');
+  const [rows] = await pool.query('SELECT id, upi_qr_image_id FROM settings WHERE area_id = ? LIMIT 1', [areaId]);
   let settingsId = rows[0]?.id;
   const previousImageId = rows[0]?.upi_qr_image_id;
   if (rows.length === 0) {
-    const [insertResult] = await pool.query('INSERT INTO settings (shop_open) VALUES (1)');
+    // Should be unreachable once TASK 24's area-creation endpoint calls
+    // createSettingsForArea (below) for every new area — kept as a safety
+    // net, not the primary path.
+    const [insertResult] = await pool.query('INSERT INTO settings (area_id, shop_open) VALUES (?, 1)', [areaId]);
     settingsId = insertResult?.insertId;
   }
 
-  await pool.query(`UPDATE settings SET ${updates.join(', ')} WHERE id = ?`, [...params, settingsId]);
-  settingsCache.del(SETTINGS_KEY);
+  // area_id in the WHERE is redundant with id (already a unique per-row
+  // key) — kept anyway as a defense-in-depth guard against settingsId ever
+  // resolving to the wrong area's row.
+  await pool.query(`UPDATE settings SET ${updates.join(', ')} WHERE id = ? AND area_id = ?`, [...params, settingsId, areaId]);
+  settingsCache.del(settingsKey(areaId));
   // delivery_available just changed — re-derive shop_open from it (forces
   // closed if delivery just went off, or auto-opens if it just came back on
   // and some shop is open).
   if (body.delivery_available !== undefined) {
-    await syncGlobalShopOpenState();
-    settingsCache.del(SETTINGS_KEY);
+    await syncAreaShopOpenState(areaId);
+    settingsCache.del(settingsKey(areaId));
   }
   if (
     body.upi_qr_image_id !== undefined &&
@@ -360,7 +495,7 @@ const updateSettings = async (req, res) => {
   ) {
     await cleanupOrphanedImage(previousImageId);
   }
-  const [updatedRows] = await pool.query('SELECT * FROM settings LIMIT 1');
+  const [updatedRows] = await pool.query('SELECT * FROM settings WHERE area_id = ? LIMIT 1', [areaId]);
   const updatedSettings = await attachSettingsImageUrls(updatedRows[0]);
 
   // Manual admin flip of the global banner (or a delivery_available change
@@ -369,17 +504,28 @@ const updateSettings = async (req, res) => {
   if (body.shop_open !== undefined || body.delivery_available !== undefined) {
     const { emitToAllCustomers } = require('../realtime/socket');
     const finalOpen = Boolean(updatedSettings?.shop_open);
-    emitToAllCustomers('settings.shop_open.updated', { shopOpen: finalOpen, shop_open: finalOpen });
+    emitToAllCustomers(areaId, 'settings.shop_open.updated', { shopOpen: finalOpen, shop_open: finalOpen });
   }
 
-  microCache.bust('dashboard');
+  // Re-tuning the multiplier can flip this area's at-capacity verdict on the
+  // spot, in either direction — push it rather than making every customer on
+  // checkout wait out their next poll. Fire-and-forget; never throws.
+  if (body.rider_capacity_multiplier !== undefined) {
+    const { broadcastCapacityIfChanged } = require('../realtime/riderCapacityBroadcast');
+    broadcastCapacityIfChanged(areaId);
+  }
+
+  await bustAreaCaches(areaId);
   res.status(200).json({ message: 'Settings updated successfully', data: updatedSettings });
 };
 
 const createOffer = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { title, description, active, image_id, imageId, store_type, storeType, is_clickable, isClickable } = req.body;
   const finalImageId = image_id || imageId || null;
-  const finalStoreType = await normalizeStoreType(store_type || storeType);
+  const finalStoreType = await normalizeStoreType(store_type || storeType, { areaId });
   const clickableInput = is_clickable !== undefined ? is_clickable : isClickable;
   const finalIsClickable = (clickableInput === true || clickableInput === 'true' || clickableInput === 1 || clickableInput === '1') ? 1 : 0;
 
@@ -393,19 +539,25 @@ const createOffer = async (req, res) => {
   }
 
   const [result] = await pool.query(
-    'INSERT INTO offers (title, description, active, image_id, store_type, is_clickable) VALUES (?, ?, ?, ?, ?, ?)',
-    [title, description || '', isActive, finalImageId, finalStoreType, finalIsClickable]
+    'INSERT INTO offers (area_id, title, description, active, image_id, store_type, is_clickable) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [areaId, title, description || '', isActive, finalImageId, finalStoreType, finalIsClickable]
   );
 
-  microCache.bust('dashboard');
+  await bustAreaCaches(areaId);
   res.status(201).json({ message: 'Offer created', id: result.insertId });
 };
 
 const updateOffer = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id } = req.params;
   const { title, description, active, image_id, imageId, is_clickable, isClickable } = req.body;
 
-  const [existingRows] = await pool.query('SELECT * FROM offers WHERE id = ? AND deleted = 0', [id]);
+  // area_id in the WHERE, not just id: without this, an area_admin could
+  // PATCH another area's offer by guessing its (globally sequential)
+  // numeric id.
+  const [existingRows] = await pool.query('SELECT * FROM offers WHERE id = ? AND deleted = 0 AND area_id = ?', [id, areaId]);
   if (existingRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
   }
@@ -453,7 +605,7 @@ const updateOffer = async (req, res) => {
 
   const finalStoreTypeInput = req.body.store_type || req.body.storeType;
   const targetStoreType = finalStoreTypeInput !== undefined
-    ? await normalizeStoreType(finalStoreTypeInput)
+    ? await normalizeStoreType(finalStoreTypeInput, { areaId })
     : existingOffer.store_type;
   if (finalStoreTypeInput !== undefined) {
     updates.push('store_type = ?');
@@ -464,25 +616,28 @@ const updateOffer = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No valid fields provided' });
   }
 
-  params.push(id);
-  await pool.query(`UPDATE offers SET ${updates.join(', ')} WHERE id = ?`, params);
+  params.push(id, areaId);
+  await pool.query(`UPDATE offers SET ${updates.join(', ')} WHERE id = ? AND area_id = ?`, params);
 
   if (previousImageId && finalImageId !== undefined && String(previousImageId) !== String(finalImageId)) {
     await cleanupOrphanedImage(previousImageId);
   }
 
-  microCache.bust('dashboard');
+  await bustAreaCaches(areaId);
   res.status(200).json({ message: 'Offer updated' });
 };
 
 const getAdminOffers = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { store_type, storeType } = req.query;
   const finalStoreType = store_type || storeType;
-  let query = 'SELECT * FROM offers WHERE deleted = 0';
-  const params = [];
+  let query = 'SELECT * FROM offers WHERE deleted = 0 AND area_id = ?';
+  const params = [areaId];
 
   if (finalStoreType) {
-    const normalizedStoreType = await normalizeStoreType(finalStoreType, { allowAll: true });
+    const normalizedStoreType = await normalizeStoreType(finalStoreType, { allowAll: true, areaId });
     if (normalizedStoreType !== 'all') {
       query += ' AND store_type = ?';
       params.push(normalizedStoreType);
@@ -496,29 +651,36 @@ const getAdminOffers = async (req, res) => {
 };
 
 const deleteOffer = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id } = req.params;
-  const [rows] = await pool.query('SELECT id, image_id FROM offers WHERE id = ? AND deleted = 0', [id]);
+  const [rows] = await pool.query('SELECT id, image_id FROM offers WHERE id = ? AND deleted = 0 AND area_id = ?', [id, areaId]);
   if (rows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
   }
-  await pool.query('UPDATE offers SET deleted = 1 WHERE id = ? AND deleted = 0', [id]);
+  await pool.query('UPDATE offers SET deleted = 1 WHERE id = ? AND deleted = 0 AND area_id = ?', [id, areaId]);
   await cleanupOrphanedImage(rows[0].image_id);
-  microCache.bust('dashboard');
+  await bustAreaCaches(areaId);
   res.status(200).json({ message: 'Offer soft deleted' });
 };
 
 
 const getOfferProducts = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id } = req.params;
   const [rows] = await pool.query(`
     SELECT op.id as offer_product_id, op.offer_id, op.product_id, op.display_order as op_display_order, op.active as op_active,
            p.*, c.name as category_name, c.type as category_type
     FROM offer_products op
     JOIN products p ON op.product_id = p.id
+    JOIN offers o ON o.id = op.offer_id
     LEFT JOIN categories c ON p.category_id = c.id
-    WHERE op.offer_id = ?
+    WHERE op.offer_id = ? AND o.area_id = ?
     ORDER BY op.display_order ASC, p.display_order ASC, p.id ASC
-  `, [id]);
+  `, [id, areaId]);
 
   await attachOfferProductImageUrls(rows);
 
@@ -526,6 +688,9 @@ const getOfferProducts = async (req, res) => {
 };
 
 const addOfferProduct = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id } = req.params;
   const { product_id, productId, display_order } = req.body;
   const finalProductId = product_id || productId;
@@ -534,17 +699,19 @@ const addOfferProduct = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'product_id is required' });
   }
 
-  const [offerRows] = await pool.query('SELECT store_type, deleted FROM offers WHERE id = ?', [id]);
+  // area_id in the WHERE, not just id: without this, an area_admin could
+  // attach a product to another area's offer by guessing its numeric id.
+  const [offerRows] = await pool.query('SELECT store_type, deleted FROM offers WHERE id = ? AND area_id = ?', [id, areaId]);
   if (offerRows.length === 0 || offerRows[0].deleted) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found or deleted' });
   }
 
   const [productRows] = await pool.query(`
-    SELECT p.id, p.deleted, p.available, p.is_combo, c.type as category_type 
-    FROM products p 
-    LEFT JOIN categories c ON p.category_id = c.id 
-    WHERE p.id = ?`, [finalProductId]);
-  
+    SELECT p.id, p.deleted, p.available, p.is_combo, c.type as category_type
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE p.id = ? AND p.area_id = ?`, [finalProductId, areaId]);
+
   if (productRows.length === 0 || productRows[0].deleted) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found or deleted' });
   }
@@ -565,11 +732,11 @@ const addOfferProduct = async (req, res) => {
       'INSERT INTO offer_products (offer_id, product_id, display_order) VALUES (?, ?, ?)',
       [id, finalProductId, display_order || 0]
     );
-    microCache.bust('dashboard');
+    await bustAreaCaches(areaId);
     res.status(201).json({ message: 'Product added to offer' });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
-      microCache.bust('dashboard');
+      await bustAreaCaches(areaId);
       res.status(200).json({ message: 'Product already attached' });
     } else {
       throw err;
@@ -577,31 +744,74 @@ const addOfferProduct = async (req, res) => {
   }
 };
 
+// offer_products has no area_id of its own (a child of offers) — the
+// EXISTS guard is the cross-tenant check: without it, an area_admin could
+// detach a product from another area's offer by guessing its id.
 const removeOfferProduct = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id, productId } = req.params;
-  await pool.query('DELETE FROM offer_products WHERE offer_id = ? AND product_id = ?', [id, productId]);
-  microCache.bust('dashboard');
+  const [result] = await pool.query(
+    `DELETE FROM offer_products WHERE offer_id = ? AND product_id = ?
+     AND EXISTS (SELECT 1 FROM offers WHERE offers.id = offer_products.offer_id AND offers.area_id = ?)`,
+    [id, productId, areaId]
+  );
+  // Zero rows means the product was never on this offer, the offer does not
+  // exist, or it belongs to another area. Replying "removed" to all three hid
+  // stale admin UI state behind an apparent success.
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product is not on this offer' });
+  }
+  await bustAreaCaches(areaId);
   res.status(200).json({ message: 'Product removed from offer' });
 };
 
 const reorderOfferProducts = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id } = req.params;
   const { productIds } = req.body;
-  
+
   if (!Array.isArray(productIds)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'productIds array is required' });
   }
 
-  for (let i = 0; i < productIds.length; i++) {
-    await pool.query('UPDATE offer_products SET display_order = ? WHERE offer_id = ? AND product_id = ?', [i, id, productIds[i]]);
+  // Verify the offer belongs to the caller's area once, up front, so the
+  // reorder loop below can't be used to touch another area's offer_products.
+  const [offerRows] = await pool.query('SELECT id FROM offers WHERE id = ? AND area_id = ? LIMIT 1', [id, areaId]);
+  if (offerRows.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
   }
 
-  microCache.bust('dashboard');
+  // One CASE-based UPDATE instead of one per product — a 20-product reorder
+  // was 20 sequential cross-region round trips (~1.9s).
+  await reorderDisplayOrder(pool, {
+    table: 'offer_products',
+    ids: productIds,
+    idColumn: 'product_id',
+    where: ' AND offer_id = ?',
+    whereParams: [id],
+  });
+
+  await bustAreaCaches(areaId);
   res.status(200).json({ message: 'Products reordered' });
+};
+
+// Every area needs exactly one settings row (§9.3) — called by TASK 24's
+// POST /admin/areas inside the same transaction that creates the area
+// itself. Not called from anywhere yet; updateSettings's own INSERT above
+// is the safety net until TASK 24 lands. Accepts an optional connection so
+// the caller can run it inside its own transaction instead of a separate
+// pool.query.
+const createSettingsForArea = async (areaId, connection = pool) => {
+  await connection.query('INSERT IGNORE INTO settings (area_id, shop_open) VALUES (?, 1)', [areaId]);
 };
 
 module.exports = {
   getSettings,
+  getAdminSettings,
   getActiveOffer,
   updateSettings,
   createOffer,
@@ -612,8 +822,10 @@ module.exports = {
   addOfferProduct,
   removeOfferProduct,
   reorderOfferProducts,
+  createSettingsForArea,
+  getSettingsForArea,
   // For code that writes settings outside this controller (e.g.
-  // syncGlobalShopOpenState flipping shop_open) — without this, public
+  // syncAreaShopOpenState flipping shop_open) — without this, public
   // /api/settings keeps serving the stale cached value for up to 15s.
-  bustSettingsCache: () => settingsCache.del(SETTINGS_KEY),
+  bustSettingsCache: (areaId) => settingsCache.del(settingsKey(areaId)),
 };

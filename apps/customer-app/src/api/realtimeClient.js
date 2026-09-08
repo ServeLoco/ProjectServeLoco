@@ -10,6 +10,7 @@ const ORDER_EVENTS = [
   'order.status.updated',
   'order.payment.updated',
   'order.updated',
+  'order.item.replaced',
   'shop.order.assigned',
   'shop.order.cancelled',
   // Admin (or another device) confirmed / ready / rejected — shop dashboard refetches.
@@ -37,6 +38,15 @@ const NOTIFICATION_EVENTS = [
 const SHOP_EVENTS = [
   'shop.status.updated',
   'settings.shop_open.updated',
+];
+
+// Area riders became fully booked (or freed up) — checkout enables/disables
+// Place Order. Deliberately NOT in SHOP_EVENTS: those bust the product and
+// category SWR caches on every hit, and capacity has nothing to do with the
+// catalog. Checkout also polls /rider-capacity as the reconciler, since an
+// order simply ageing out of the lookback window fires no event.
+const RIDER_CAPACITY_EVENTS = [
+  'settings.rider_capacity.updated',
 ];
 
 // Shop/admin toggles product available (OOS) — customers drop cart lines + UI.
@@ -153,6 +163,14 @@ function subscribeProductAvailabilityEvents(handler) {
   return () => unsubscribers.forEach(unsubscribe => unsubscribe());
 }
 
+function subscribeRiderCapacityEvents(handler) {
+  const unsubscribers = RIDER_CAPACITY_EVENTS.map(eventName =>
+    subscribeRealtime(eventName, payload => handler({ eventName, payload }))
+  );
+
+  return () => unsubscribers.forEach(unsubscribe => unsubscribe());
+}
+
 function subscribeAuthRoleEvents(handler) {
   const unsubscribers = AUTH_ROLE_EVENTS.map(eventName =>
     subscribeRealtime(eventName, payload => handler({ eventName, payload }))
@@ -218,6 +236,10 @@ function bindSocketEvents(nextSocket) {
     nextSocket.on(eventName, payload => emitLocal(eventName, payload));
   });
 
+  RIDER_CAPACITY_EVENTS.forEach(eventName => {
+    nextSocket.on(eventName, payload => emitLocal(eventName, payload));
+  });
+
   PRODUCT_AVAILABILITY_EVENTS.forEach(eventName => {
     nextSocket.on(eventName, payload => emitLocal(eventName, payload));
   });
@@ -272,7 +294,17 @@ function connectCustomerRealtime(token) {
   socket = io(getRealtimeBaseUrl(), {
     auth: { token, platform: Platform.OS, appVersion },
     reconnection: true,
-    transports: ['websocket', 'polling'],
+    // Polling-first-then-upgrade (socket.io's own default order) rather than
+    // websocket-first: a websocket upgrade attempt can stall silently behind
+    // a captive portal, a proxy that doesn't support Upgrade, or plain
+    // carrier-grade NAT weirdness on some mobile networks — exactly the
+    // weak-network conditions the rest of this branch's tuning (HTTP
+    // timeout, health-check timeout, socket pingTimeout) is built around.
+    // Polling connects everywhere first, then upgrades to websocket once
+    // it's confirmed to work, trading a few hundred ms of connect latency
+    // on a healthy network for never getting stuck behind a stalled upgrade
+    // on a bad one.
+    transports: ['polling', 'websocket'],
   });
 
   bindSocketEvents(socket);
@@ -314,10 +346,29 @@ function emitAnalyticsScreen(screen) {
   }
 }
 
+// TASK 29.2 — the server resolves this socket's room from
+// users.last_area_id only on the initial connect (apps/api/src/realtime/
+// socket.js's joinAreaRoom); a pin that moves to a different area mid-
+// session needs an explicit push so admin broadcasts (order updates,
+// shop-closed, etc.) reach the room for the area the customer is actually
+// in now. Server-side handler already exists: socket.js's
+// `on('area:changed', ...)` calls rejoinAreaRoom. Silently no-ops if the
+// socket isn't connected — the next real connect already joins the
+// current area via users.last_area_id anyway.
+function emitAreaChanged(areaId) {
+  if (!socket || !socket.connected || areaId == null) return;
+  try {
+    socket.emit('area:changed', { areaId });
+  } catch (_) {
+    // best-effort — see comment above
+  }
+}
+
 export {
   connectCustomerRealtime,
   disconnectCustomerRealtime,
   emitAnalyticsScreen,
+  emitAreaChanged,
   emitRealtimeForeground,
   getRealtimeConnectionState,
   subscribeAuthRoleEvents,
@@ -326,6 +377,7 @@ export {
   subscribeOrderEvents,
   subscribeRealtime,
   subscribeRealtimeLifecycle,
+  subscribeRiderCapacityEvents,
   subscribeRiderLocation,
   subscribeShopEvents,
   subscribeProductAvailabilityEvents,

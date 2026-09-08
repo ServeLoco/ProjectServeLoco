@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ProductsApi, CategoriesApi, ImagesApi, ShopsApi } from '../api';
+import { ProductsApi, CategoriesApi, ImagesApi, ShopsApi, LibraryApi } from '../api';
 import { readList } from '../utils/apiResponse';
 import { getUploadedImage, normalizeImageUrl, FALLBACK_IMAGE, handleImageError } from '../utils/imageUrl';
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
@@ -11,10 +11,14 @@ import { useStoreModes } from '../hooks/useStoreModes';
 import ImageCropper from '../components/ImageCropper/ImageCropper';
 import MessageBanner from '../components/MessageBanner';
 import { GENERIC_ERROR } from '../utils/constants';
+import PickAreaNotice from '../components/PickAreaNotice';
+import { useAreaStore } from '../stores/useAreaStore';
 import './Products.css';
 
 export default function Products() {
   const navigate = useNavigate();
+  const { areaId } = useAreaStore() || {};
+  const isAllAreas = areaId === 'all';
   const { modes } = useStoreModes();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -43,17 +47,26 @@ export default function Products() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
 
-  useEffect(() => { fetchCategories(); fetchShops(); }, []);
+  // 25.4 — Products can't be listed/managed for "all" areas at once (the
+  // API 400s); skip the doomed fetches and render the inline notice instead
+  // of a generic "something went wrong" error.
+  useEffect(() => {
+    if (isAllAreas) return;
+    fetchCategories();
+    fetchShops();
+  }, [isAllAreas]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const paginationRef = useRef({ page: 1 });
   useEffect(() => { paginationRef.current = pagination; }, [pagination]);
-  useAdminRefresh(() => fetchProducts(paginationRef.current.page));
+  useAdminRefresh(() => { if (!isAllAreas) fetchProducts(paginationRef.current.page); });
 
   useEffect(() => {
+    if (isAllAreas) return;
     const timer = setTimeout(() => fetchProducts(1), 500);
     return () => clearTimeout(timer);
-  }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filters, isAllAreas]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchCategories = async () => {
     try {
@@ -294,12 +307,17 @@ export default function Products() {
   // Categories filtered by current mode tab for the move-to-category dropdown
   const filteredCategoriesForBulk = categories.filter(c => c.type === filters.type && !c.deleted);
 
+  if (isAllAreas) {
+    return <div className="products-container"><PickAreaNotice label="Products" /></div>;
+  }
+
   return (
     <div className="products-container">
       <header className="products-header">
         <h1 className="products-title">Products Management</h1>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button className="btn-secondary" onClick={() => navigate('/bulk-import')}>📦 Bulk Import</button>
+          <button className="btn-secondary" onClick={() => setLibraryPickerOpen(true)}>📚 Add from Library</button>
           <button className="btn-primary" onClick={openCreateDrawer}>+ New Product</button>
         </div>
       </header>
@@ -568,6 +586,161 @@ export default function Products() {
           onSave={() => { closeDrawer(); fetchProducts(pagination.page); }}
         />
       )}
+
+      {libraryPickerOpen && (
+        <LibraryPickerModal
+          categories={categories}
+          currentMode={filters.type}
+          onClose={() => setLibraryPickerOpen(false)}
+          onAdded={() => { setLibraryPickerOpen(false); fetchProducts(pagination.page); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// 26.6 — "+ Add from Library": search the shared product library and
+// materialize one into the currently selected area (same X-Area-Id the rest
+// of this page already operates under — §4.4, no page ever picks its own area).
+function LibraryPickerModal({ categories, currentMode, onClose, onAdded }) {
+  const { modes } = useStoreModes();
+  const [search, setSearch] = useState('');
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [pickedRow, setPickedRow] = useState(null);
+  const [mode, setMode] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [price, setPrice] = useState('');
+  const [saving, setSaving] = useState(false);
+  const requestIdRef = useRef(0);
+  const categoriesForMode = categories.filter((c) => c.type === mode);
+
+  useEffect(() => {
+    let alive = true;
+    // Advance the generation as soon as the query changes. Otherwise an old
+    // request can finish during the debounce window and overwrite new input.
+    const requestId = ++requestIdRef.current;
+    const timer = setTimeout(() => {
+      setLoading(true);
+      LibraryApi.list({ search, archived: 'false' })
+        .then((res) => { if (alive && requestId === requestIdRef.current) setRows(readList(res)); })
+        .catch((err) => { if (alive && requestId === requestIdRef.current) setError(err.message || GENERIC_ERROR); })
+        .finally(() => { if (alive && requestId === requestIdRef.current) setLoading(false); });
+    }, 250);
+    return () => { alive = false; clearTimeout(timer); };
+  }, [search]);
+
+  const pick = (row) => {
+    setPickedRow(row);
+    setMode((modes.some((m) => m.slug === currentMode) ? currentMode : modes[0]?.slug) || '');
+    setCategoryId('');
+    setPrice(row.suggestedPrice ?? row.suggested_price ?? '');
+    setError(null);
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!Number.isInteger(Number(categoryId)) || Number(categoryId) <= 0) {
+      setError('Pick a category');
+      return;
+    }
+    try {
+      setSaving(true);
+      setError(null);
+      await LibraryApi.addToArea(pickedRow.id, { categoryId: Number(categoryId), price: price !== '' ? Number(price) : undefined });
+      onAdded();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || GENERIC_ERROR);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="drawer-overlay" onClick={onClose}>
+      <div className="drawer-content" onClick={(e) => e.stopPropagation()}>
+        <div className="drawer-header">
+          <h3 className="drawer-title">Add from Library</h3>
+          <button type="button" className="drawer-close" onClick={onClose}>&times;</button>
+        </div>
+        <div className="drawer-body">
+          {error && <MessageBanner type="error" message={error} onDismiss={() => setError(null)} />}
+          {!pickedRow ? (
+            <>
+              <input
+                className="form-input"
+                placeholder="Search the library…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ marginBottom: '1rem' }}
+              />
+              {loading ? (
+                <p>Loading…</p>
+              ) : rows.length === 0 ? (
+                <p>No library products match.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {rows.map((row) => (
+                    <button
+                      key={row.id}
+                      type="button"
+                      className="btn-secondary"
+                      style={{ textAlign: 'left' }}
+                      onClick={() => pick(row)}
+                    >
+                      {row.name} {row.suggestedPrice != null ? `— ₹${row.suggestedPrice}` : ''}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <form onSubmit={submit}>
+              <p>Adding <strong>{pickedRow.name}</strong> to this area.</p>
+              <div className="form-group">
+                <label className="form-label">Shop mode *</label>
+                <select
+                  className="form-select"
+                  value={mode}
+                  onChange={(e) => { setMode(e.target.value); setCategoryId(''); }}
+                  required
+                >
+                  <option value="" disabled>Select a shop mode</option>
+                  {modes.map((m) => (
+                    <option key={m.slug} value={m.slug}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Category *</label>
+                <select className="form-select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required disabled={!mode}>
+                  <option value="" disabled>{mode ? 'Select a category' : 'Pick a shop mode first'}</option>
+                  {categoriesForMode.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                {mode && categoriesForMode.length === 0 && (
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    No categories in this area for {modes.find((m) => m.slug === mode)?.label || mode} yet — create one on the Categories page first.
+                  </span>
+                )}
+              </div>
+              <div className="form-group">
+                <label className="form-label">Price (₹)</label>
+                <input type="number" className="form-input" value={price} onChange={(e) => setPrice(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button type="button" className="btn-secondary" onClick={() => setPickedRow(null)}>Back</button>
+                <button type="submit" className="btn-primary" disabled={saving}>
+                  {saving ? 'Adding…' : 'Add to area'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -597,6 +770,11 @@ const normalizeVariants = (raw) => {
 function ProductFormDrawer({ product, categories, shops, currentMode, onClose, onSave }) {
   const { modes } = useStoreModes();
   const isEdit = !!product;
+  // §2.5/26.7 — identity fields (name, image, description, unit, variant
+  // labels) are owned by the library once a product is linked; editing them
+  // here would be silently overwritten by the next propagateLibraryEdit, so
+  // they're read-only with a link to the one place they're actually editable.
+  const isLibraryManaged = Boolean(product?.libraryProductId || product?.library_product_id);
   const initialMode = product?.category_type || categories.find(c => String(c.id) === String(product?.category_id))?.type || currentMode || 'packed';
   const [productMode, setProductMode] = useState(initialMode);
   const [formData, setFormData] = useState(() => {
@@ -944,9 +1122,21 @@ function ProductFormDrawer({ product, categories, shops, currentMode, onClose, o
           </div>
           <div className="drawer-body">
             <MessageBanner type="error" message={formError} onDismiss={() => setFormError(null)} />
+            {isLibraryManaged && (
+              <div
+                style={{
+                  background: 'var(--warning-bg, #fef3c7)', color: 'var(--warning-text, #92400e)',
+                  padding: '0.6rem 0.9rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.85rem',
+                }}
+              >
+                📚 Name, image, description, unit and variant labels are managed in the Library.{' '}
+                <a href="/library" style={{ fontWeight: 700, textDecoration: 'underline' }}>Edit there</a> —
+                price, availability, category and shop stay editable here.
+              </div>
+            )}
             <div className="form-group">
               <label className="form-label">Product Name</label>
-              <input required type="text" name="name" className="form-input" value={formData.name} onChange={handleChange} />
+              <input required type="text" name="name" className="form-input" value={formData.name} onChange={handleChange} readOnly={isLibraryManaged} />
             </div>
             <div className="form-row">
               <div className="form-group">
@@ -1026,6 +1216,7 @@ function ProductFormDrawer({ product, categories, shops, currentMode, onClose, o
                         required
                         onChange={(e) => handleVariantChange(i, 'label', e.target.value)}
                         aria-invalid={Boolean(fieldErrors[`variant_${i}_label`])}
+                        readOnly={isLibraryManaged}
                       />
                       <label className="variant-default-radio" title="Default variant">
                         <input
@@ -1156,20 +1347,20 @@ function ProductFormDrawer({ product, categories, shops, currentMode, onClose, o
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Unit (e.g., 1 Plate)</label>
-                <input type="text" name="unit" className="form-input" value={formData.unit || ''} onChange={handleChange} />
+                <input type="text" name="unit" className="form-input" value={formData.unit || ''} onChange={handleChange} readOnly={isLibraryManaged} />
               </div>
             </div>
             <div className="form-group">
               <label className="form-label">Description</label>
-              <textarea name="description" className="form-textarea" value={formData.description || ''} onChange={handleChange} />
+              <textarea name="description" className="form-textarea" value={formData.description || ''} onChange={handleChange} readOnly={isLibraryManaged} />
             </div>
             <div className="form-group">
               <label className="form-label">Product Image</label>
               <p className="image-dimension-hint">{IMAGE_GUIDANCE.product.label}</p>
               {(formData.image_url || formData.imageUrl) && <img src={normalizeImageUrl(formData.image_url || formData.imageUrl)} alt="Preview" className="image-preview" />}
-              <div className="image-upload-zone" onClick={() => fileInputRef.current?.click()}>
-                <input type="file" hidden ref={fileInputRef} {...fileInputProps} accept="image/*" />
-                {uploadingImage ? 'Uploading...' : 'Click to Upload Image'}
+              <div className="image-upload-zone" onClick={() => { if (!isLibraryManaged) fileInputRef.current?.click(); }} style={isLibraryManaged ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}>
+                <input type="file" hidden ref={fileInputRef} {...fileInputProps} accept="image/*" disabled={isLibraryManaged} />
+                {isLibraryManaged ? 'Managed in Library' : uploadingImage ? 'Uploading...' : 'Click to Upload Image'}
               </div>
               {uploadMessage && <p className={`upload-message ${uploadMessage.type}`}>{uploadMessage.text}</p>}
             </div>
@@ -1221,7 +1412,7 @@ function ProductFormDrawer({ product, categories, shops, currentMode, onClose, o
                   </strong>
                   <div style={{ marginTop: 2, opacity: 0.85 }}>
                     Window: {formatTimeWindow(formData.available_from_time, formData.available_until_time)}
-                    {' · '}Server time: {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                    {' · '}Server time: {new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false })}
                   </div>
                 </div>
               )}

@@ -36,7 +36,12 @@ const createPresenceTracker = (deps, opts = {}) => {
 
   // socketId → entry
   const presence = new Map();
+  // Global peak (areaId omitted) is kept separately from per-area peaks
+  // (areaId → high-water mark) — since emitLiveSnapshot now calls
+  // getLiveSnapshot(areaId) once per real area (23), each area's own room
+  // needs its own peak, not one shared global number.
   let peakToday = 0;
+  const peakByArea = new Map();
   let peakDate = now().toDateString();
 
   const resetPeakIfNewDay = () => {
@@ -44,6 +49,7 @@ const createPresenceTracker = (deps, opts = {}) => {
     if (today !== peakDate) {
       peakDate = today;
       peakToday = 0;
+      peakByArea.clear();
     }
   };
 
@@ -63,6 +69,11 @@ const createPresenceTracker = (deps, opts = {}) => {
     const entry = {
       userId: meta.userId,
       role: meta.role,
+      // Resolved by the caller (socket.js) at connect time — no pin exists
+      // at the socket layer (H7), so this is users.last_area_id → default
+      // area, same as the session doc opened below. May be null if even that
+      // fallback chain came up empty.
+      areaId: meta.areaId ?? null,
       platform: meta.platform || null,
       appVersion: meta.appVersion || null,
       screen: null,
@@ -79,6 +90,7 @@ const createPresenceTracker = (deps, opts = {}) => {
         userId: meta.userId,
         platform: meta.platform,
         appVersion: meta.appVersion,
+        areaId: meta.areaId,
       });
     } catch (_) {
       // fire-and-forget — sessionStore already swallows, but double-guard
@@ -133,15 +145,23 @@ const createPresenceTracker = (deps, opts = {}) => {
     }
   };
 
-  const getLiveSnapshot = () => {
+  /**
+   * areaId filters to one area's online customers; omitted returns every
+   * area combined (used by tests and any caller wanting the old global
+   * view). emitLiveSnapshot (below) calls this once per real area so each
+   * admin:<areaId> room gets its own scoped snapshot.
+   */
+  const getLiveSnapshot = (areaId) => {
     resetPeakIfNewDay();
     const users = [];
     const byScreen = {};
     const byPlatform = { android: 0, ios: 0 };
+    const byArea = {};
 
     let online = 0;
     for (const entry of presence.values()) {
       if (entry.role !== 'customer') continue;
+      if (areaId !== undefined && entry.areaId !== areaId) continue;
       online += 1;
 
       if (entry.platform) {
@@ -153,31 +173,64 @@ const createPresenceTracker = (deps, opts = {}) => {
         byScreen[entry.screen] = (byScreen[entry.screen] || 0) + 1;
       }
 
+      const areaKey = entry.areaId == null ? 'unknown' : String(entry.areaId);
+      byArea[areaKey] = (byArea[areaKey] || 0) + 1;
+
       const connectedMin = Math.max(0, Math.round((now() - entry.connectedAt) / 60000));
       users.push({
         userId: entry.userId,
+        areaId: entry.areaId,
         screen: entry.screen,
         platform: entry.platform,
         connectedMin,
       });
     }
 
-    if (online > peakToday) peakToday = online;
+    let scopedPeak;
+    if (areaId === undefined) {
+      if (online > peakToday) peakToday = online;
+      scopedPeak = peakToday;
+    } else {
+      scopedPeak = peakByArea.get(areaId) || 0;
+      if (online > scopedPeak) {
+        scopedPeak = online;
+        peakByArea.set(areaId, scopedPeak);
+      }
+    }
 
     return {
       online,
-      peakToday,
+      peakToday: scopedPeak,
       byScreen,
       byPlatform,
+      byArea,
       users,
     };
   };
 
-  const emitLiveSnapshot = () => {
+  // One snapshot per area (§3.5/23) — a super admin's socket already joined
+  // every admin:<areaId> room (socket.js's joinAreaRoom), so they still see
+  // every area; an area_admin now only sees their own. Areas with zero
+  // online customers right now still need their own zeroed snapshot pushed
+  // (via listAreas), or their dashboard just goes stale instead of showing
+  // online: 0. Lazy-required + NODE_ENV guarded like every other DB touch on
+  // this socket-layer timer path (mirrors socket.js's own guard) so presence
+  // unit tests stay DB-free.
+  const emitLiveSnapshot = async () => {
     reapDeadSockets();
-    const snap = getLiveSnapshot();
     try {
-      emitToAdmins('analytics.live', snap);
+      const areaIds = new Set();
+      for (const entry of presence.values()) {
+        if (entry.role === 'customer' && entry.areaId != null) areaIds.add(entry.areaId);
+      }
+      if (process.env.NODE_ENV !== 'test') {
+        const { listAreas } = require('../utils/areaScope');
+        const areas = await listAreas();
+        areas.forEach((area) => areaIds.add(area.id));
+      }
+      areaIds.forEach((areaId) => {
+        emitToAdmins(areaId, 'analytics.live', getLiveSnapshot(areaId));
+      });
     } catch (_) {
       // never throw from the timer
     }

@@ -57,38 +57,73 @@ const emitOrderToCustomer = (order, eventName) => {
   return payload;
 };
 
+// An order entering or leaving the active set moves this area's rider
+// capacity, which gates checkout for every other customer in it. Routed
+// through the three emitters below rather than each controller so no future
+// status path can forget it. Fire-and-forget by design — it never throws, and
+// the order event itself must not wait on a capacity query.
+const { broadcastCapacityIfChanged } = require('./riderCapacityBroadcast');
+
 const emitOrderCreated = (order) => {
   const payload = emitOrderToCustomer(order, 'order.created');
-  emitToAdmins('admin.order.created', payload);
+  emitToAdmins(order.area_id || order.areaId, 'admin.order.created', payload);
+  // A new order can be the one that tips the area over.
+  broadcastCapacityIfChanged(order.area_id || order.areaId);
   return payload;
 };
 
 const emitOrderCancelled = (order) => {
   const payload = emitOrderToCustomer(order, 'order.cancelled');
   emitToCustomer(payload.customerId, 'order.status.updated', payload);
-  emitToAdmins('admin.order.updated', payload);
+  emitToAdmins(order.area_id || order.areaId, 'admin.order.updated', payload);
+  // Cancelling always frees a slot.
+  broadcastCapacityIfChanged(order.area_id || order.areaId);
   return payload;
 };
 
 const emitOrderStatusUpdated = (order) => {
   const payload = emitOrderToCustomer(order, 'order.status.updated');
-  emitToAdmins('admin.order.updated', payload);
+  emitToAdmins(order.area_id || order.areaId, 'admin.order.updated', payload);
+  // Only terminal transitions change the active-order count — Accepted ->
+  // Preparing -> Out for Delivery all stay inside ACTIVE_ORDER_STATUSES, so
+  // checking on those would just be a query per status tap for no change.
+  const status = order.status || order.orderStatus;
+  if (status === 'Delivered' || status === 'Cancelled') {
+    broadcastCapacityIfChanged(order.area_id || order.areaId);
+  }
   return payload;
 };
 
 const emitOrderPaymentUpdated = (order) => {
   const payload = emitOrderToCustomer(order, 'order.payment.updated');
-  emitToAdmins('admin.order.updated', payload);
+  emitToAdmins(order.area_id || order.areaId, 'admin.order.updated', payload);
+  return payload;
+};
+
+const emitOrderItemReplaced = (order, itemId, oldProduct, newProduct) => {
+  const payload = {
+    orderId: order.id,
+    itemId,
+    oldProduct,
+    newProduct,
+    subtotal: order.subtotal,
+    total: order.total,
+    updatedAt: order.updated_at || order.updatedAt || new Date().toISOString(),
+  };
+  emitToCustomer(order.customer_id, 'order.item.replaced', payload);
+  emitToCustomer(order.customer_id, 'order.updated', payload);
+  emitToAdmins(order.area_id || order.areaId, 'admin.order.item_replaced', payload);
   return payload;
 };
 
 const emitOrderAutoAccepted = (order) => {
   const payload = toOrderEventPayload(order);
+  const areaId = order.area_id || order.areaId;
   // Notify the customer so the tracking screen updates without a manual refresh.
   emitToCustomer(payload.customerId, 'order.status.updated', payload);
   emitToCustomer(payload.customerId, 'order.updated', payload);
-  emitToAdmins('admin.order.updated', payload);
-  emitToAdmins('admin.order.auto_accepted', payload);
+  emitToAdmins(areaId, 'admin.order.updated', payload);
+  emitToAdmins(areaId, 'admin.order.auto_accepted', payload);
   return payload;
 };
 
@@ -138,6 +173,7 @@ module.exports = {
   emitOrderCreated,
   emitOrderPaymentUpdated,
   emitOrderStatusUpdated,
+  emitOrderItemReplaced,
   emitOrderAutoAccepted,
   toOrderEventPayload,
 };

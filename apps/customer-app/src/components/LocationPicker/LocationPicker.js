@@ -35,6 +35,10 @@ import AppIcon from '../AppIcon';
 import PressableScale from '../PressableScale';
 
 const GPS_TIMEOUT_MS = 8000;
+// How stale a cached fix may be and still beat failing outright, when the
+// live fix above blows past GPS_TIMEOUT_MS. The pin stays draggable, so a
+// few-minute-old position is a fine starting point.
+const LAST_KNOWN_MAX_AGE_MS = 5 * 60 * 1000;
 // Delivery pin colors (not live GPS — live is the blue recenter FAB only).
 const CUSTOMER_COLOR = '#FF7A3A';
 const CUSTOMER_DARK = '#E05A1A';
@@ -68,13 +72,28 @@ const ZONE_COLOR_PALETTE = [
 ];
 
 // GPS can hang indefinitely on some devices; cap it so buttons never spin forever.
-function getPositionWithTimeout() {
-  return Promise.race([
-    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('GPS_TIMEOUT')), GPS_TIMEOUT_MS),
-    ),
-  ]);
+async function getPositionWithTimeout() {
+  try {
+    return await Promise.race([
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('GPS_TIMEOUT')), GPS_TIMEOUT_MS),
+      ),
+    ]);
+  } catch (err) {
+    // iOS keeps refining until it actually reaches Accuracy.High (~10 m) and
+    // regularly blows past the cap on a cold indoor fix, where Android's
+    // fused provider would have handed back a cached one immediately. That
+    // made this reject on iPhone only, which the checkout then reported as a
+    // permission problem the user could never fix by granting permission.
+    // A slightly stale fix is a far better starting pin than a hard failure —
+    // the pin stays draggable either way.
+    const lastKnown = await Location
+      .getLastKnownPositionAsync({ maxAge: LAST_KNOWN_MAX_AGE_MS })
+      .catch(() => null);
+    if (lastKnown?.coords) return lastKnown;
+    throw err;
+  }
 }
 
 // Standard ray-casting point-in-polygon test against a zone's boundary
@@ -173,6 +192,11 @@ export default function LocationPicker({
   const mapLayoutRef = useRef({ width: 0, height: 0 });
   // Last camera center from onMapIdle / pan (must stay in sync with native map).
   const lastMapCenterRef = useRef(null);
+  // Last center actually reported to the parent via onLiveCenterChange —
+  // separate from lastMapCenterRef (which readPinCoordinate/confirm need to
+  // always reflect the freshest native value) because this one gates whether
+  // we report again at all. See the epsilon check in handleMapIdle.
+  const lastReportedCenterRef = useRef(null);
   // True after user pans — blocks live-GPS fly retries from yanking the map back.
   const userMovedMapRef = useRef(false);
   // Freeze pin screen offset after Confirm so sheet expand doesn't slide the tip.
@@ -239,8 +263,10 @@ export default function LocationPicker({
   });
 
   // Active delivery zone boundaries, shaded on the map so the customer can
-  // see where to drop the pin instead of guessing. Geometry-only, fetched
-  // once — zone shape edits are rare enough not to need realtime sync here.
+  // see where to drop the pin instead of guessing. Every active zone across
+  // every area — the customer can be physically anywhere, independent of
+  // the area they last ordered from — fetched once since zone shape edits
+  // are rare enough not to need realtime sync here.
   const [deliveryZones, setDeliveryZones] = useState([]);
   // Zones load async and can still be empty right when live GPS resolves
   // (both kick off near mount) — the out-of-zone check reads this ref at
@@ -492,7 +518,7 @@ export default function LocationPicker({
             ? 'Location blocked. Open Settings → Location → Allow (Precise).'
             : 'Allow precise location to use live GPS, or pan the map instead.',
         );
-        onLocateStatusRef.current?.('error');
+        onLocateStatusRef.current?.('error', perm.needsSettings ? 'settings' : 'permission');
         // User tapped recenter and OS won't show the dialog again → open Settings.
         if (fromUser && perm.needsSettings) {
           openAppLocationSettings();
@@ -535,8 +561,11 @@ export default function LocationPicker({
       onLocateStatusRef.current?.('ready');
       return true;
     } catch (_) {
+      // Permission was already verified above, so this is a fix failure, not
+      // an access problem — say so, or the user is sent to grant a permission
+      // they have already granted.
       setGpsError('Could not get live location. Pan the map to pin it instead.');
-      onLocateStatusRef.current?.('error');
+      onLocateStatusRef.current?.('error', 'unavailable');
       dropPin();
       return false;
     } finally {
@@ -829,7 +858,28 @@ export default function LocationPicker({
       const lat = Number(c[1]);
       if (Number.isFinite(lat) && Number.isFinite(lng)) {
         lastMapCenterRef.current = { latitude: lat, longitude: lng };
-        onLiveCenterChangeRef.current?.(lat, lng);
+
+        // Report to the parent only when the center actually moved. Without
+        // this, a repeat/no-op idle event (e.g. the native camera settling
+        // again after the controlled centerCoordinate write just below —
+        // Android Mapbox's reported center can carry enough float round-trip
+        // error to keep missing an exact match) creates a brand-new
+        // {lat,lng} object every single time. CheckoutScreen keys its cart-
+        // pricing debounce off that object's reference, so a fast-enough
+        // repeat loop cancels the pending fetch before it ever fires —
+        // "Please wait, checking delivery…" spins forever with zero network
+        // traffic, reproduced live on iPhone/Android after dragging the pin
+        // to a new spot. 1e-6 degrees (~11cm at the equator) comfortably
+        // absorbs that float noise while catching every real drag.
+        const prevReported = lastReportedCenterRef.current;
+        const moved = !prevReported
+          || Math.abs(prevReported.lat - lat) >= 1e-6
+          || Math.abs(prevReported.lng - lng) >= 1e-6;
+        if (moved) {
+          lastReportedCenterRef.current = { lat, lng };
+          onLiveCenterChangeRef.current?.(lat, lng);
+        }
+
         // Keep controlled Camera props in sync so sheet re-renders don't snap
         // back to the old live-GPS centerCoordinate.
         setCameraTarget((prev) => {

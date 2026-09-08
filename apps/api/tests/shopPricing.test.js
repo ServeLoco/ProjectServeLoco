@@ -17,6 +17,7 @@ const adminRoutes = require('../src/routes/adminRoutes');
 const orderRoutes = require('../src/routes/orderRoutes');
 const shopRoutes = require('../src/routes/shopRoutes');
 const { pool } = require('../src/db/mysql');
+const areaScope = require('../src/utils/areaScope');
 
 jest.mock('../src/db/mysql', () => ({
   pool: { query: jest.fn(), getConnection: jest.fn() },
@@ -44,10 +45,23 @@ const shopApp = express();
 shopApp.use(express.json());
 shopApp.use('/api/shop', shopRoutes);
 
-const adminToken = jwt.sign({ id: 'admin', role: 'admin' }, process.env.JWT_SECRET || 'secret');
+const adminToken = jwt.sign({ id: 'admin', role: 'admin', adminRole: 'area_admin', areaId: 1 }, process.env.JWT_SECRET || 'secret');
 const customerToken = (id) => jwt.sign({ id, role: 'customer' }, process.env.JWT_SECRET || 'test_jwt_secret_that_is_long_enough');
 
-beforeEach(() => { jest.clearAllMocks(); });
+beforeEach(() => {
+  jest.clearAllMocks();
+  areaScope._resetCachesForTests();
+});
+
+// TASK 10: order creation resolves which area the (validator-normalized,
+// here effectively 0,0) pin belongs to via the outer pool — 2 queries
+// (areas list, then a zone-match check that finds nothing) — before the
+// rest of the transaction runs on mockConnection.
+const queueAreaResolution = () => {
+  pool.query
+    .mockResolvedValueOnce([[{ id: 1, active: 1, is_default: 1, min_lat: null, max_lat: null, min_lng: null, max_lng: null }]])
+    .mockResolvedValueOnce([[]]);
+};
 
 // ─────────────────────────────────────────────────────────────────────────
 // PATCH /api/admin/products/pricing
@@ -121,7 +135,7 @@ describe('PATCH /api/admin/products/pricing', () => {
 
     const variantUpdateCall = mockConn.query.mock.calls[0];
     expect(variantUpdateCall[0]).toContain('WHERE id = ? AND product_id = ? AND deleted = 0');
-    expect(variantUpdateCall[1]).toEqual([50, 99, 1]);
+    expect(variantUpdateCall[1]).toEqual([50, 99, 1, 1]);
   });
 
   it('re-syncs products.price/shop_price from the default variant after a variant edit', async () => {
@@ -170,8 +184,8 @@ describe('PATCH /api/admin/products/pricing', () => {
 
     expect(res.statusCode).toEqual(200);
     const updateCall = mockConn.query.mock.calls[0];
-    expect(updateCall[0]).toBe('UPDATE products SET shop_price = ? WHERE id = ? AND deleted = 0');
-    expect(updateCall[1]).toEqual([null, 5]);
+    expect(updateCall[0]).toBe('UPDATE products SET shop_price = ? WHERE id = ? AND deleted = 0 AND area_id = ?');
+    expect(updateCall[1]).toEqual([null, 5, 1]);
   });
 });
 
@@ -196,6 +210,7 @@ describe('Order creation snapshots shop pricing', () => {
       rollback: jest.fn(),
       release: jest.fn(),
     };
+    queueAreaResolution();
     pool.getConnection.mockResolvedValue(mockConnection);
 
     const res = await request(orderApp)
@@ -217,10 +232,10 @@ describe('Order creation snapshots shop pricing', () => {
     // order_id, product_id, variant_id, variant_label, shop_id, item_type,
     // product_name, quantity, unit_price, line_total, shop_unit_price, shop_line_total
     const values = insertCall[1];
-    expect(values[8]).toBe(100); // unit_price
-    expect(values[9]).toBe(300); // line_total
-    expect(values[10]).toBe(70); // shop_unit_price
-    expect(values[11]).toBe(210); // shop_line_total = 70 * 3
+    expect(values[9]).toBe(100); // unit_price
+    expect(values[10]).toBe(300); // line_total
+    expect(values[11]).toBe(70); // shop_unit_price
+    expect(values[12]).toBe(210); // shop_line_total = 70 * 3
   });
 
   it('leaves shop_unit_price/shop_line_total null when the product has no shop_price configured', async () => {
@@ -237,6 +252,7 @@ describe('Order creation snapshots shop pricing', () => {
       rollback: jest.fn(),
       release: jest.fn(),
     };
+    queueAreaResolution();
     pool.getConnection.mockResolvedValue(mockConnection);
 
     const res = await request(orderApp)
@@ -253,8 +269,8 @@ describe('Order creation snapshots shop pricing', () => {
       c => typeof c[0] === 'string' && c[0].includes('INSERT INTO order_items')
     );
     const values = insertCall[1];
-    expect(values[10]).toBeNull(); // shop_unit_price
-    expect(values[11]).toBeNull(); // shop_line_total
+    expect(values[11]).toBeNull(); // shop_unit_price
+    expect(values[12]).toBeNull(); // shop_line_total
   });
 
   it('snapshots the variant shop_price, not the product-level one', async () => {
@@ -272,6 +288,7 @@ describe('Order creation snapshots shop pricing', () => {
       rollback: jest.fn(),
       release: jest.fn(),
     };
+    queueAreaResolution();
     pool.getConnection.mockResolvedValue(mockConnection);
 
     const res = await request(orderApp)
@@ -288,9 +305,9 @@ describe('Order creation snapshots shop pricing', () => {
       c => typeof c[0] === 'string' && c[0].includes('INSERT INTO order_items')
     );
     const values = insertCall[1];
-    expect(values[8]).toBe(349); // unit_price = variant price, not product price
-    expect(values[10]).toBe(260); // shop_unit_price = variant shop_price
-    expect(values[11]).toBe(520); // shop_line_total = 260 * 2
+    expect(values[9]).toBe(349); // unit_price = variant price, not product price
+    expect(values[11]).toBe(260); // shop_unit_price = variant shop_price
+    expect(values[12]).toBe(520); // shop_line_total = 260 * 2
   });
 
   it('never snapshots a shop price for a combo line', async () => {
@@ -307,6 +324,7 @@ describe('Order creation snapshots shop pricing', () => {
       rollback: jest.fn(),
       release: jest.fn(),
     };
+    queueAreaResolution();
     pool.getConnection.mockResolvedValue(mockConnection);
 
     const res = await request(orderApp)
@@ -323,8 +341,8 @@ describe('Order creation snapshots shop pricing', () => {
       c => typeof c[0] === 'string' && c[0].includes('INSERT INTO order_items')
     );
     const values = insertCall[1];
-    expect(values[10]).toBeNull();
     expect(values[11]).toBeNull();
+    expect(values[12]).toBeNull();
   });
 });
 

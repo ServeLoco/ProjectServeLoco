@@ -1,9 +1,29 @@
 const { pool } = require('../db/mysql');
 const { isId, isPositiveInteger, validateCoordinates } = require('../validators');
 const { resolveDeliveryPricing, loadActiveZones, loadActiveExclusionZones, parseBoundary, polygonAreaKm2 } = require('../utils/deliveryPricing');
+const { resolveAreaIdForPricing, getDefaultArea } = require('../utils/areaScope');
 const { roundMoney, toMoney } = require('../utils/money');
 const { calculateRainCharge } = require('../utils/rainCharge');
 const { validateCoupon, validateCouponById, pickBestAutoApply, findApplicableCoupons, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon } = require('../utils/coupons');
+
+// Bug fix (multi-area audit finding #12): validateCouponHandler and
+// getAvailableCoupons used to leave deliveryAreaId as null for a
+// coordinate-less request, and coupons.js treats areaId === null as "run
+// unscoped" — a customer with no pin on hand could list or redeem another
+// area's coupon code. Mirrors resolveCustomerArea's own no-pin fallback
+// chain (§4.2): the customer's last resolved area, then the platform
+// default — never platform-wide.
+const resolveNoPinAreaId = async (userId) => {
+  if (userId) {
+    // Same 30s-cached read requireCustomer already did for this request —
+    // not a third uncached cross-region round trip against the same row.
+    const { getUserState } = require('../utils/userState');
+    const state = await getUserState(userId);
+    if (state?.lastAreaId) return state.lastAreaId;
+  }
+  const defaultArea = await getDefaultArea();
+  return defaultArea ? defaultArea.id : null;
+};
 
 const calculateCart = async (req, res) => {
   const { items, delivery_type: rawDeliveryType } = req.body;
@@ -15,8 +35,56 @@ const calculateCart = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Too many items in one order (max 100).' });
   }
 
+  const { latitude, longitude, lat, lng } = req.body;
+  const customerLat = latitude !== undefined ? latitude : lat;
+  const customerLng = longitude !== undefined ? longitude : lng;
+
+  if (customerLat !== undefined && customerLng !== undefined &&
+      customerLat !== null && customerLng !== null &&
+      customerLat !== '' && customerLng !== '') {
+    if (!validateCoordinates(customerLat, customerLng)) {
+      return res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid GPS coordinates provided'
+      });
+    }
+  }
+
+  // Resolved from the SAME pin used for pricing below — resolveDeliveryPricing
+  // already has its own "nothing matched" -> flat-pricing fallback, so this
+  // only needs a best-effort area id to scope the zone queries (and now
+  // settings) with, not the stricter null-means-"no delivery" distinction
+  // resolveAreaForPoint makes (that's a checkout-gating concern, TASK 27's job).
+  //
+  // req.adminAreaOverride is set only by adminController.js's
+  // assertOrderAreaMatchesPin, and only on the branch where the admin
+  // submitted no usable pin — never by a real customer request (it is a
+  // server-set property on req, not a body field, so a client cannot inject
+  // it). Without it, a pinless admin order would resolve here via
+  // resolveAreaIdForPricing's own "no pin" fallback, which is the platform
+  // DEFAULT area, not the area_admin's own scoped area — silently
+  // misrouting the order (or, since that gate checks this same resolution,
+  // just 403ing a legitimate pinless order).
+  //
+  // Trust the flag outright rather than re-deriving "was there a pin" here:
+  // the two predicates drifting apart is exactly how a pin sent under the
+  // lat/lng aliases slipped the area gate before.
+  const resolvedPricingAreaId = req.adminAreaOverride
+    || await resolveAreaIdForPricing(customerLat, customerLng);
+  // A valid pin that matches no zone in any area resolves to null (see
+  // resolveAreaIdForPricing) rather than defaulting — this preview still
+  // needs a concrete area id to scope its (purely informational) catalog/
+  // settings queries with, but must never report the cart as deliverable.
+  // pinMatchedNoZone forces deliveryWithinRange = false below regardless of
+  // what pricing mode the fallback area happens to use.
+  const pinMatchedNoZone = resolvedPricingAreaId === null;
+  const deliveryAreaId = pinMatchedNoZone
+    ? (await getDefaultArea())?.id || 1
+    : resolvedPricingAreaId;
+
   const [settingRows] = await pool.query(
-    'SELECT shop_open, delivery_charge, night_charge, night_charge_start, night_charge_end, rain_charge_enabled, rain_charge, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, delivery_radius_km, shop_latitude, shop_longitude, radius_pricing_active FROM settings LIMIT 1'
+    'SELECT shop_open, delivery_charge, night_charge, night_charge_start, night_charge_end, rain_charge_enabled, rain_charge, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, delivery_radius_km, shop_latitude, shop_longitude, radius_pricing_active FROM settings WHERE area_id = ? LIMIT 1',
+    [deliveryAreaId]
   );
   const settings = settingRows[0] || {
     shop_open: 1, delivery_charge: 0, night_charge: 0,
@@ -49,27 +117,29 @@ const calculateCart = async (req, res) => {
   const productMap = {};
   if (productIds.length > 0) {
     const [prodRows] = await pool.query(
-      'SELECT id, name, price FROM products WHERE id IN (?) AND available = 1 AND deleted = 0 AND (shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = products.shop_id AND s.is_open = 1 AND s.active = 1)) AND (group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = products.group_id AND g.active = 1))',
-      [productIds]
+      'SELECT id, name, price FROM products WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ? AND (shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = products.shop_id AND s.is_open = 1 AND s.active = 1)) AND (group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = products.group_id AND g.active = 1 AND g.area_id = products.area_id))',
+      [productIds, deliveryAreaId]
     );
     prodRows.forEach(p => { productMap[p.id] = p; });
   }
 
   // A product missing from productMap is ambiguous: OOS/deleted (soft-droppable),
   // shop-closed/group-inactive (must still hard-block checkout), and a
-  // never-existed/hard-deleted id (stale or tampered client cart, also
-  // soft-droppable) all land here, since the query above filters on all four
-  // at once. Disambiguate with a second, narrower existence check on only the
-  // missing ids — fetch every matching row regardless of status so a
-  // genuinely-nonexistent id (no row at all) can be told apart from one that
-  // exists but is excluded only by the shop/group gate.
+  // never-existed/hard-deleted/another-area's id (stale or tampered client
+  // cart, also soft-droppable) all land here, since the query above filters
+  // on all five at once. Disambiguate with a second, narrower existence
+  // check on only the missing ids — fetch every matching row IN THIS AREA
+  // regardless of status, so a genuinely-nonexistent id (no row at all in
+  // this area — including one that only exists in another area) can be
+  // told apart from one that exists but is excluded only by the shop/group
+  // gate.
   const missingProductIds = productIds.filter((id) => !productMap[id]);
   const existingProductIds = new Set();
   const genuinelyUnavailableProductIds = new Set();
   if (missingProductIds.length > 0) {
     const [unavailRows] = await pool.query(
-      'SELECT id, deleted, available FROM products WHERE id IN (?)',
-      [missingProductIds]
+      'SELECT id, deleted, available FROM products WHERE id IN (?) AND area_id = ?',
+      [missingProductIds, deliveryAreaId]
     );
     unavailRows.forEach((r) => {
       existingProductIds.add(r.id);
@@ -80,8 +150,8 @@ const calculateCart = async (req, res) => {
   const comboMap = {};
   if (comboIds.length > 0) {
     const [comboRows] = await pool.query(
-      'SELECT id, name, price FROM combos WHERE id IN (?) AND available = 1 AND deleted = 0',
-      [comboIds]
+      'SELECT id, name, price FROM combos WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ?',
+      [comboIds, deliveryAreaId]
     );
     comboRows.forEach(c => { comboMap[c.id] = c; });
   }
@@ -190,21 +260,6 @@ const calculateCart = async (req, res) => {
   // Free-delivery / coupon thresholds use remaining (available) lines only.
   const totalItemCount = processedItems.reduce((sum, i) => sum + i.quantity, 0);
 
-  const { latitude, longitude, lat, lng } = req.body;
-  const customerLat = latitude !== undefined ? latitude : lat;
-  const customerLng = longitude !== undefined ? longitude : lng;
-
-  if (customerLat !== undefined && customerLng !== undefined &&
-      customerLat !== null && customerLng !== null &&
-      customerLat !== '' && customerLng !== '') {
-    if (!validateCoordinates(customerLat, customerLng)) {
-      return res.status(400).json({
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid GPS coordinates provided'
-      });
-    }
-  }
-
   let deliveryDistanceKm = null;
   let deliveryWithinRange = true;
   let requiresLocation = false;
@@ -215,11 +270,11 @@ const calculateCart = async (req, res) => {
   // Any missing precondition falls back to the legacy flat pricing inside the
   // resolver, so the rest of this function (incl. the coupon block) is
   // agnostic to which mode priced the cart.
-  const zones = settings.radius_pricing_active ? await loadActiveZones(pool) : [];
+  const zones = settings.radius_pricing_active ? await loadActiveZones(pool, deliveryAreaId) : [];
   // Exclusion squares block delivery regardless of zone/flat pricing mode,
   // so they're always loaded (small table) — not gated by radius_pricing_active.
-  const exclusionZones = await loadActiveExclusionZones(pool);
-  const pricing = resolveDeliveryPricing({
+  const exclusionZones = await loadActiveExclusionZones(pool, deliveryAreaId);
+  let pricing = resolveDeliveryPricing({
     customerLat,
     customerLng,
     deliveryType: deliveryTypeInput,
@@ -227,6 +282,34 @@ const calculateCart = async (req, res) => {
     zones,
     exclusionZones,
   });
+
+  // A valid pin that matched no zone in any area is not deliverable, and the
+  // charge for it must not exist. resolveDeliveryPricing cannot see this on
+  // its own: the catalog fallback above hands it the DEFAULT area's settings,
+  // and if that area runs flat pricing the resolver has no geography check at
+  // all — it returns outOfRange: false plus a full settings.delivery_charge
+  // quote for a pin nothing matched. Correcting the verdict here, at the one
+  // place pricing is produced, keeps every downstream consumer consistent:
+  // the charges, the coupon engine's free-delivery maths, and the outOfRange
+  // /codAllowed flags the customer app gates on all come from this object.
+  // Setting only deliveryWithinRange further down (as this used to) left a
+  // priced, apparently-fine bill in front of the customer.
+  if (pinMatchedNoZone) {
+    pricing = {
+      ...pricing,
+      outOfRange: true,
+      zone: null,
+      zoneExtentKm: null,
+      deliveryCharge: 0,
+      standardDeliveryCharge: 0,
+      fastDeliveryCharge: 0,
+      standardDeliveryMinutes: null,
+      fastDeliveryMinutes: null,
+      etaMinutes: null,
+      nightCharge: 0,
+      codAllowed: false,
+    };
+  }
 
   // Fast delivery is an ADD-ON, not a replacement: the standard delivery
   // charge always stays on the bill — with its coupon/free-delivery rules
@@ -271,6 +354,13 @@ const calculateCart = async (req, res) => {
   } else if (pricing.excluded) {
     deliveryWithinRange = false;
     deliveryMessage = pricing.exclusionMessage;
+  }
+  // Overrides whatever the block above decided: a pin that matched no zone
+  // anywhere is never deliverable, even in flat-pricing mode where
+  // resolveDeliveryPricing has no geography check of its own to catch it.
+  if (pinMatchedNoZone) {
+    deliveryWithinRange = false;
+    if (!requiresLocation) deliveryMessage = 'Delivery is not available at this location.';
   }
 
   let nightCharge = pricing.nightCharge > 0 ? toMoney(pricing.nightCharge) : 0;
@@ -390,6 +480,7 @@ const calculateCart = async (req, res) => {
       userId,
       zoneId,
       itemCount: totalItemCount,
+      areaId: deliveryAreaId,
     });
     if (result.ok) {
       discount = roundMoney(result.discount);
@@ -409,6 +500,7 @@ const calculateCart = async (req, res) => {
       userId,
       zoneId,
       itemCount: totalItemCount,
+      areaId: deliveryAreaId,
     });
     if (result.ok) {
       discount = roundMoney(result.discount);
@@ -427,6 +519,7 @@ const calculateCart = async (req, res) => {
       userId,
       zoneId,
       itemCount: totalItemCount,
+      areaId: deliveryAreaId,
     });
     if (best) {
       discount = roundMoney(best.discount);
@@ -447,6 +540,7 @@ const calculateCart = async (req, res) => {
       userId,
       zoneId,
       itemCount: totalItemCount,
+      areaId: deliveryAreaId,
     });
     if (best) {
       discount = roundMoney(best.discount);
@@ -466,6 +560,7 @@ const calculateCart = async (req, res) => {
       userId,
       zoneId,
       itemCount: totalItemCount,
+      areaId: deliveryAreaId,
     });
   } catch (_) {
     // Non-fatal: empty list on error.
@@ -487,7 +582,7 @@ const calculateCart = async (req, res) => {
   let freeDeliveryProgress = null;
   if (!isFreeDeliveryApplied) {
     try {
-      freeDeliveryProgress = await getNextFreeDeliveryThreshold({ subtotal, storeType: cartStoreType, userId, zoneId, itemCount: totalItemCount });
+      freeDeliveryProgress = await getNextFreeDeliveryThreshold({ subtotal, storeType: cartStoreType, userId, zoneId, itemCount: totalItemCount, areaId: deliveryAreaId });
     } catch (err) {
       // Non-fatal: no progress hint on error, but log so a broken hint
       // (e.g. missing migration column) doesn't fail silently in prod.
@@ -508,6 +603,7 @@ const calculateCart = async (req, res) => {
       zoneId,
       excludeCouponId: appliedCoupon?.id || null,
       itemCount: totalItemCount,
+      areaId: deliveryAreaId,
     });
   } catch (err) {
     console.error('[cart] getNearestUnlockableCoupon failed:', err.message);
@@ -532,6 +628,11 @@ const calculateCart = async (req, res) => {
   }
 
   const calculation = {
+    // Which area this pin priced against. Products are area-scoped, so the
+    // client needs this to tell "you crossed into another area's catalog"
+    // (cart legitimately cleared) apart from "this item went out of stock".
+    areaId: deliveryAreaId,
+    area_id: deliveryAreaId,
     subtotal,
     deliveryCharge: standardDeliveryCharge,
     nightCharge,
@@ -654,22 +755,41 @@ const validateCouponHandler = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid GPS coordinates provided' });
   }
 
+  // A pin resolves BOTH the zone (for the zone-restricted coupon check
+  // below) and the area. No pin still needs an area — resolveNoPinAreaId's
+  // fallback chain (bug fix, multi-area audit finding #12) — but has no
+  // pin to zone-match against, so zoneId stays null in that case exactly
+  // as before.
+  let deliveryAreaId = null;
   let zoneId = null;
   if (hasCoords) {
-    const [settingRows] = await pool.query(
-      'SELECT delivery_charge, night_charge, night_charge_start, night_charge_end, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, shop_latitude, shop_longitude, radius_pricing_active FROM settings LIMIT 1'
-    );
-    const zoneSettings = settingRows[0] || {};
-    if (zoneSettings.radius_pricing_active) {
-      const pricing = resolveDeliveryPricing({
-        customerLat,
-        customerLng,
-        deliveryType: 'standard',
-        settings: zoneSettings,
-        zones: await loadActiveZones(pool),
-      });
-      zoneId = pricing.zone ? pricing.zone.id : null;
+    // resolveAreaIdForPricing returns null when the pin is valid but matches
+    // no zone in any area — fall back to the same no-pin area resolution
+    // used below rather than let deliveryAreaId stay null, which coupons.js
+    // treats as "run unscoped" (the exact leak this file's finding #12 fix
+    // was written to close, just reached via a different path).
+    deliveryAreaId = await resolveAreaIdForPricing(customerLat, customerLng);
+    if (deliveryAreaId === null) {
+      deliveryAreaId = await resolveNoPinAreaId(userId);
+    } else {
+      const [settingRows] = await pool.query(
+        'SELECT delivery_charge, night_charge, night_charge_start, night_charge_end, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, shop_latitude, shop_longitude, radius_pricing_active FROM settings WHERE area_id = ? LIMIT 1',
+        [deliveryAreaId]
+      );
+      const zoneSettings = settingRows[0] || {};
+      if (zoneSettings.radius_pricing_active) {
+        const pricing = resolveDeliveryPricing({
+          customerLat,
+          customerLng,
+          deliveryType: 'standard',
+          settings: zoneSettings,
+          zones: await loadActiveZones(pool, deliveryAreaId),
+        });
+        zoneId = pricing.zone ? pricing.zone.id : null;
+      }
     }
+  } else {
+    deliveryAreaId = await resolveNoPinAreaId(userId);
   }
 
   // Determine store type from items (same logic as calculateCart).
@@ -684,19 +804,23 @@ const validateCouponHandler = async (req, res) => {
     const comboIdsForStoreType = normalizedItems.filter(i => i.isCombo).map(i => i.productId);
     const storeTypes = new Set();
 
+    // Without a pin there's no area to scope this lookup to (see above) —
+    // stays a global lookup, same as before TASK 13, in that case only.
     if (productIdsForStoreType.length > 0) {
+      const areaClause = deliveryAreaId !== null ? ' AND p.area_id = ?' : '';
       const [rows] = await pool.query(
         `SELECT DISTINCT c.type FROM products p
          LEFT JOIN categories c ON p.category_id = c.id
-         WHERE p.id IN (?)`,
-        [productIdsForStoreType]
+         WHERE p.id IN (?)${areaClause}`,
+        deliveryAreaId !== null ? [productIdsForStoreType, deliveryAreaId] : [productIdsForStoreType]
       );
       rows.forEach(r => { if (r.type) storeTypes.add(r.type); });
     }
     if (comboIdsForStoreType.length > 0) {
+      const areaClause = deliveryAreaId !== null ? ' AND area_id = ?' : '';
       const [rows] = await pool.query(
-        'SELECT DISTINCT store_type FROM combos WHERE id IN (?)',
-        [comboIdsForStoreType]
+        `SELECT DISTINCT store_type FROM combos WHERE id IN (?)${areaClause}`,
+        deliveryAreaId !== null ? [comboIdsForStoreType, deliveryAreaId] : [comboIdsForStoreType]
       );
       rows.forEach(r => { if (r.store_type) storeTypes.add(r.store_type); });
     }
@@ -721,6 +845,7 @@ const validateCouponHandler = async (req, res) => {
     storeType: cartStoreType,
     userId,
     zoneId,
+    areaId: deliveryAreaId,
   });
 
   if (result.ok) {
@@ -761,29 +886,48 @@ const getAvailableCoupons = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid GPS coordinates provided' });
   }
 
+  // A pin resolves BOTH the zone (for the zone-restricted coupon check
+  // below) and the area. No pin still needs an area — resolveNoPinAreaId's
+  // fallback chain (bug fix, multi-area audit finding #12) — but has no
+  // pin to zone-match against, so zoneId stays null in that case exactly
+  // as before.
+  let deliveryAreaId = null;
   let zoneId = null;
   if (hasCoords) {
-    const [settingRows] = await pool.query(
-      'SELECT delivery_charge, night_charge, night_charge_start, night_charge_end, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, shop_latitude, shop_longitude, radius_pricing_active FROM settings LIMIT 1'
-    );
-    const zoneSettings = settingRows[0] || {};
-    if (zoneSettings.radius_pricing_active) {
-      const pricing = resolveDeliveryPricing({
-        customerLat,
-        customerLng,
-        deliveryType: 'standard',
-        settings: zoneSettings,
-        zones: await loadActiveZones(pool),
-      });
-      zoneId = pricing.zone ? pricing.zone.id : null;
+    // Same null-means-"matched no zone" fallback as validateCouponHandler
+    // above — must not leave deliveryAreaId null (coupons.js runs unscoped
+    // for null).
+    deliveryAreaId = await resolveAreaIdForPricing(customerLat, customerLng);
+    if (deliveryAreaId === null) {
+      deliveryAreaId = await resolveNoPinAreaId(userId);
+    } else {
+      const [settingRows] = await pool.query(
+        'SELECT delivery_charge, night_charge, night_charge_start, night_charge_end, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, shop_latitude, shop_longitude, radius_pricing_active FROM settings WHERE area_id = ? LIMIT 1',
+        [deliveryAreaId]
+      );
+      const zoneSettings = settingRows[0] || {};
+      if (zoneSettings.radius_pricing_active) {
+        const pricing = resolveDeliveryPricing({
+          customerLat,
+          customerLng,
+          deliveryType: 'standard',
+          settings: zoneSettings,
+          zones: await loadActiveZones(pool, deliveryAreaId),
+        });
+        zoneId = pricing.zone ? pricing.zone.id : null;
+      }
     }
+  } else {
+    deliveryAreaId = await resolveNoPinAreaId(userId);
   }
 
   let cartStoreType = store_type || storeType || null;
   if (cartStoreType && cartStoreType !== 'mixed') {
     try {
       const { normalizeStoreType } = require('../utils/storeMode');
-      cartStoreType = await normalizeStoreType(cartStoreType, { allowAll: true });
+      cartStoreType = deliveryAreaId !== null
+        ? await normalizeStoreType(cartStoreType, { allowAll: true, areaId: deliveryAreaId })
+        : await normalizeStoreType(cartStoreType, { allowAll: true });
     } catch (_) {
       // Keep as-is if normalization fails.
     }
@@ -798,6 +942,7 @@ const getAvailableCoupons = async (req, res) => {
     storeType: cartStoreType,
     userId,
     zoneId,
+    areaId: deliveryAreaId,
   });
 
   res.status(200).json({ data: coupons });

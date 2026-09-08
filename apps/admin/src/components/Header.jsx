@@ -3,6 +3,7 @@ import { useAuth } from './AuthProvider';
 import { useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import AdminNotificationsBell from './AdminNotificationsBell';
+import AreaSwitcher from './AreaSwitcher';
 import './Header.css';
 
 const PAGE_META = {
@@ -21,6 +22,9 @@ const PAGE_META = {
   '/health': { title: 'System Health', subtitle: 'Backend diagnostics' },
   '/analytics': { title: 'Analytics', subtitle: 'Live presence & behavior' },
   '/bulk-import': { title: 'Bulk Import', subtitle: 'CSV + ZIP product import' },
+  '/areas': { title: 'Areas', subtitle: 'Multi-area configuration' },
+  '/admins': { title: 'Admins', subtitle: 'Admin accounts and roles' },
+  '/library': { title: 'Library', subtitle: 'Shared products, categories and store modes' },
 };
 
 // Isolated component so its 1Hz tick doesn't re-render the whole Header tree.
@@ -30,8 +34,8 @@ function LiveClock() {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-  const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-  const dateStr = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+  const timeStr = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+  const dateStr = now.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short' });
   return (
     <div className="header-clock">
       <span className="header-clock-time">{timeStr}</span>
@@ -69,6 +73,9 @@ export default function Header() {
       </div>
 
       <div className="header-actions">
+        {/* Area switcher — renders nothing for an area_admin (§2.10/25.5) */}
+        <AreaSwitcher />
+
         {/* Live clock (isolated to avoid re-rendering the whole Header) */}
         <LiveClock />
 

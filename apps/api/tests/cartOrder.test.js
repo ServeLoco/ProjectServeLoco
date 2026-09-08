@@ -21,6 +21,7 @@ jest.mock('../src/utils/coupons', () => ({
 }));
 
 const { pickBestAutoApply, validateCouponById, getNextFreeDeliveryThreshold, getNearestUnlockableCoupon } = require('../src/utils/coupons');
+const areaScope = require('../src/utils/areaScope');
 
 const app = express();
 app.use(express.json());
@@ -30,6 +31,21 @@ app.use('/api/orders', orderRoutes);
 const token = jwt.sign({ id: 1, role: 'customer' }, process.env.JWT_SECRET || 'secret');
 
 describe('Cart and Order Tests', () => {
+  // None of these tests configure a real delivery-zone polygon, so
+  // resolveAreaIdForPricing (TASK 13) always falls through to
+  // getDefaultArea() for the AREA itself — but a request that DOES send a
+  // pin still makes resolveAreaForPoint try a zone match first, hitting
+  // loadActiveZones' own (separate, 15s-TTL) cache. Prime both caches ONCE,
+  // up front, so neither ever consumes a query slot meant for a test's own
+  // settings/product mocks. (Not reset per-test on purpose: resetting would
+  // reintroduce exactly that mock-slot collision on every test in this file.)
+  beforeAll(async () => {
+    pool.query.mockResolvedValueOnce([[{ id: 1, code: 'A1', name: 'Area 1', active: 1, is_default: 1 }]]);
+    await areaScope.getDefaultArea();
+    pool.query.mockResolvedValueOnce([[]]);
+    await areaScope.resolveAreaForPoint(12.9716, 77.6046);
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -870,8 +886,76 @@ describe('combo items ignore a forged variantId', () => {
       c => typeof c[0] === 'string' && c[0].includes('INSERT INTO order_items')
     );
     expect(insertCall).toBeDefined();
-    // values array layout: (order_id, product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total)
-    expect(insertCall[1][2]).toBeNull(); // variant_id must be null, not 999999
-    expect(insertCall[1][3]).toBeNull(); // variant_label
+    // values array layout: (area_id, order_id, product_id, variant_id, variant_label, item_type, product_name, quantity, unit_price, line_total)
+    expect(insertCall[1][3]).toBeNull(); // variant_id must be null, not 999999
+    expect(insertCall[1][4]).toBeNull(); // variant_label
+  });
+});
+
+// The customer app uses this field to tell "you crossed into another delivery
+// area" (products are area-scoped, so the cart legitimately clears) apart from
+// "this item just went out of stock". Without it on the response the client
+// silently shows the wrong reason, so the contract is pinned here.
+describe('calculateCart exposes the resolved delivery area', () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  it('returns areaId / area_id alongside the bill', async () => {
+    pool.query.mockResolvedValueOnce([[{ shop_open: 1, delivery_charge: 10, night_charge: 0 }]]);
+    pool.query.mockResolvedValueOnce([[{ id: 1, name: 'Pizza', price: 100, available: 1 }]]);
+
+    const res = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ productId: 1, quantity: 1 }] });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.areaId).toBeDefined();
+    expect(res.body.area_id).toEqual(res.body.areaId);
+    expect(res.body.data.areaId).toEqual(res.body.areaId);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Regression: an area with no settings row (should be unreachable through
+// the API — createArea seeds one in the same transaction — but reachable via
+// a manually inserted area) used to crash createOrder with an opaque
+// "Cannot read properties of undefined (reading 'shop_open')" TypeError.
+// It must now surface as a clean 500 (server-error, not a 400 dressed up as
+// a customer mistake), and must still roll back the transaction.
+// ─────────────────────────────────────────────────────────────────────────
+describe('createOrder with no settings row for the resolved area', () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+  const noSettingsToken = jwt.sign({ id: 998, role: 'customer' }, process.env.JWT_SECRET || 'secret');
+
+  it('500s instead of throwing an unhandled TypeError, and rolls back', async () => {
+    const mockConnection = {
+      beginTransaction: jest.fn(),
+      query: jest.fn()
+        .mockResolvedValueOnce([[{ id: 998, name: 'Test', phone: '9999999999', blocked: 0 }]])
+        .mockResolvedValueOnce([[]]), // settings query returns zero rows
+      commit: jest.fn(),
+      rollback: jest.fn(),
+      release: jest.fn()
+    };
+    pool.getConnection.mockReset();
+    pool.getConnection.mockResolvedValue(mockConnection);
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${noSettingsToken}`)
+      .send({
+        address: '123 Test St',
+        paymentMethod: 'Cash',
+        items: [{ productId: 1, quantity: 1 }]
+      });
+
+    // No errorHandler is mounted on this test app (matches the existing
+    // pattern in areaController.test.js), so a rethrown non-OrderError
+    // surfaces via Express's default error handler as a plain 500 — the
+    // point being it is NOT a 400 (which would mean it got treated as an
+    // OrderError / customer mistake).
+    expect(res.statusCode).toEqual(500);
+    expect(mockConnection.rollback).toHaveBeenCalledTimes(1);
+    expect(mockConnection.commit).not.toHaveBeenCalled();
   });
 });

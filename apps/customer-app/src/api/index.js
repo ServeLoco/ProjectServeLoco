@@ -5,12 +5,14 @@ export { getRealtimeBaseUrl } from './realtimeConfig';
 export {
   connectCustomerRealtime,
   disconnectCustomerRealtime,
+  emitAreaChanged,
   emitRealtimeForeground,
   getRealtimeConnectionState,
   subscribeNotificationEvents,
   subscribeOrderEvents,
   subscribeRealtime,
   subscribeRealtimeLifecycle,
+  subscribeRiderCapacityEvents,
   subscribeRiderLocation,
   subscribeShopEvents,
 } from './realtimeClient';
@@ -42,5 +44,7 @@ export { offersApi } from './offersApi';
 export { dashboardApi } from './dashboardApi';
 export { storeModesApi } from './storeModesApi';
 export { deliveryZonesApi } from './deliveryZonesApi';
+export { bootstrapApi } from './bootstrapApi';
+export { riderCapacityApi } from './riderCapacityApi';
 export * as notificationsApi from './notificationsApi';
 export { trackScreen, trackEvent, initAnalytics, stopAnalytics } from './analyticsClient';

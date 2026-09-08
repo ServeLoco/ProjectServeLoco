@@ -37,7 +37,7 @@ jest.mock('../src/utils/shops', () => ({
   notifyShopsOrderCancelled: jest.fn(),
   notifyShopsRiderAssigned: jest.fn(),
   notifyShopsRiderAssignmentFailed: jest.fn(),
-  syncGlobalShopOpenState: jest.fn().mockResolvedValue(undefined),
+  syncAreaShopOpenState: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('../src/controllers/settingsController', () => ({
   bustSettingsCache: jest.fn(),
@@ -52,7 +52,7 @@ const adminInbox = require('../src/utils/adminNotifications');
 const notificationService = require('../src/utils/notificationService');
 const { emitToAllCustomers } = require('../src/realtime/socket');
 const { bustSettingsCache } = require('../src/controllers/settingsController');
-const { syncGlobalShopOpenState } = require('../src/utils/shops');
+const { syncAreaShopOpenState } = require('../src/utils/shops');
 
 function makeConn(responses) {
   const conn = {
@@ -93,15 +93,16 @@ describe('UAT 14.1 / 14.10 — delivery_available follows rider online count', (
       .mockResolvedValueOnce([[{ delivery_available: 1 }]])
       .mockResolvedValueOnce([{ affectedRows: 1 }]);
 
-    const r = await syncDeliveryAvailabilityFromRiders();
+    const r = await syncDeliveryAvailabilityFromRiders(1);
     expect(r.deliveryAvailable).toBe(false);
     expect(r.changed).toBe(true);
-    expect(bustSettingsCache).toHaveBeenCalled();
+    expect(bustSettingsCache).toHaveBeenCalledWith(1);
     expect(emitToAllCustomers).toHaveBeenCalledWith(
+      1,
       'settings.delivery_available.updated',
       expect.objectContaining({ deliveryAvailable: false })
     );
-    expect(syncGlobalShopOpenState).toHaveBeenCalled();
+    expect(syncAreaShopOpenState).toHaveBeenCalledWith(1);
   });
 
   it('turns delivery ON when any rider is active (14.10)', async () => {
@@ -110,7 +111,7 @@ describe('UAT 14.1 / 14.10 — delivery_available follows rider online count', (
       .mockResolvedValueOnce([[{ delivery_available: 0 }]])
       .mockResolvedValueOnce([{ affectedRows: 1 }]);
 
-    const r = await syncDeliveryAvailabilityFromRiders();
+    const r = await syncDeliveryAvailabilityFromRiders(1);
     expect(r.deliveryAvailable).toBe(true);
     expect(r.changed).toBe(true);
   });
@@ -278,14 +279,38 @@ describe('UAT 14.7 — post-accept cancel disabled (admin-only cancel)', () => {
 describe('UAT 14.8 — never two pending offers / no double accept', () => {
   beforeEach(reset);
 
-  it('createOffer skips when pending already exists', async () => {
+  // "One pending offer per order" is now a DB rule (uq_offer_pending_order),
+  // not an app-level SELECT ... FOR UPDATE — that pre-check gap-locked the
+  // supremum of uq_offer_order_rider and deadlocked concurrent dispatches.
+  it('createOffer reports a conflict when the order already has a pending offer', async () => {
+    const dup = new Error("Duplicate entry '10' for key 'rider_order_offers.uq_offer_pending_order'");
+    dup.code = 'ER_DUP_ENTRY';
     const conn = makeConn([
-      [[{ id: 99 }]], // existing pending FOR UPDATE
+      [[{ id: 10, status: 'Accepted', rider_id: null, area_id: 1, order_number: 'O' }]], // order FOR UPDATE
+      [[{ e: new Date(Date.now() + 300000) }]], // expires_at
     ]);
+    conn.query.mockRejectedValueOnce(dup); // the INSERT
     pool.getConnection.mockResolvedValue(conn);
-    const offer = await assignment.createOffer(10, { id: 3, userId: 7, user_id: 7 });
-    expect(offer).toBeNull();
+
+    const result = await assignment.createOffer(10, { id: 3, userId: 7, user_id: 7 });
+    expect(result.offer).toBeNull();
+    expect(result.conflict).toBe('order_has_pending_offer');
     expect(conn.rollback).toHaveBeenCalled();
+  });
+
+  it('createOffer reports a rider conflict when that rider already holds a pending offer', async () => {
+    const dup = new Error("Duplicate entry '3' for key 'rider_order_offers.uq_offer_pending_rider'");
+    dup.code = 'ER_DUP_ENTRY';
+    const conn = makeConn([
+      [[{ id: 10, status: 'Accepted', rider_id: null, area_id: 1, order_number: 'O' }]],
+      [[{ e: new Date(Date.now() + 300000) }]],
+    ]);
+    conn.query.mockRejectedValueOnce(dup);
+    pool.getConnection.mockResolvedValue(conn);
+
+    const result = await assignment.createOffer(10, { id: 3, userId: 7, user_id: 7 });
+    expect(result.offer).toBeNull();
+    expect(result.conflict).toBe('rider_has_pending_offer');
   });
 
   it('acceptOffer 409 when already not pending', async () => {

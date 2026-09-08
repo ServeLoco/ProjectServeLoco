@@ -10,6 +10,23 @@ const RIDER_SEARCH_RADIUS_TIERS_KM = (config.RIDER_SEARCH_RADIUS_TIERS_KM || [])
   ? config.RIDER_SEARCH_RADIUS_TIERS_KM
   : [1, 2, 3];
 const RIDER_LOCATION_MAX_AGE_SEC = config.RIDER_LOCATION_MAX_AGE_SEC || 600;
+// Default riders.max_active_orders for a newly created rider (admin can raise
+// or lower it per rider afterward, Riders page) — a rider already carrying
+// that many non-terminal orders is excluded from new offers until one is
+// Delivered/Cancelled, enforced inside listEligibleRiders so both the initial
+// assignment and every continueAssignment re-scan see it, with zero caching
+// to go stale.
+//
+// Counted over RIDER_CAPACITY_LOOKBACK_MIN only, for exactly the reason the
+// checkout capacity gate is (orderController.js): an order that is never
+// delivered or cancelled stays non-terminal forever, and an unbounded count
+// let two such rows silently exclude a rider from every future offer with
+// nothing anywhere reporting why.
+const RIDER_MAX_ACTIVE_ORDERS = config.RIDER_MAX_ACTIVE_ORDERS || 2;
+// Upper bound on the admin-set per-rider value — guards against a fat-finger
+// (e.g. "20000") silently letting the assignment engine stack unlimited
+// orders onto one rider.
+const RIDER_MAX_ACTIVE_ORDERS_CAP = config.RIDER_MAX_ACTIVE_ORDERS_CAP || 20;
 
 const riderShape = (r) => {
   if (!r) return null;
@@ -52,17 +69,67 @@ const getRiderForUser = async (userId) => {
 };
 
 /**
- * Count riders who are admin-active and toggled online.
- * Busy-ness is ignored (plan §12 — delivery gate follows online state only).
+ * Count riders who are admin-active and toggled online, scoped to one area —
+ * a rider in area 2 must never count toward area 1's delivery gate.
  */
-const countActiveRiders = async () => {
+const countActiveRiders = async (areaId) => {
   const [rows] = await pool.query(
     `SELECT COUNT(*) AS cnt
      FROM riders r
      WHERE r.active = 1
-       AND r.is_online = 1`
+       AND r.is_online = 1
+       AND r.area_id = ?`,
+    [areaId]
   );
   return Number(rows[0]?.cnt) || 0;
+};
+
+/**
+ * Order statuses that still occupy rider capacity. Spelled as an inclusion
+ * list rather than NOT IN ('Delivered','Cancelled') so the checkout capacity
+ * gate's COUNT can range-scan idx_orders_area_status_created instead of
+ * walking every order the area has ever taken.
+ */
+const ACTIVE_ORDER_STATUSES = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery'];
+
+/**
+ * Same at-capacity formula as the createOrder checkout gate
+ * (orderController.js), exposed standalone for the capacity-status polling
+ * endpoint. Not called from createOrder itself — that gate reads these same
+ * two counts as subqueries on its own transaction connection to avoid a
+ * second pool checkout mid-transaction (see the comment there); this
+ * version is for read-only, non-transactional callers.
+ */
+const getCapacityStatus = async (areaId) => {
+  // All three reads ride in ONE round trip as subqueries, deliberately not
+  // reusing countActiveRiders/settingsCache: this is polled every 45s by
+  // every customer sitting on checkout, and MySQL is a cross-region hop
+  // (~94ms each way), so three sequential awaits cost ~3x what one does.
+  // Same reasoning — and the same at-capacity formula — as the createOrder
+  // checkout gate in orderController.js. riderCapacity is the SUM of each
+  // online rider's own max_active_orders (admin-set per rider, Riders page),
+  // not a headcount times an area-wide guess.
+  const [rows] = await pool.query(
+    `SELECT
+       (SELECT COUNT(*) FROM riders r
+         WHERE r.active = 1 AND r.is_online = 1 AND r.area_id = ?) AS online_riders,
+       (SELECT COALESCE(SUM(r.max_active_orders), 0) FROM riders r
+         WHERE r.active = 1 AND r.is_online = 1 AND r.area_id = ?) AS rider_capacity,
+       (SELECT COUNT(*) FROM orders o
+         WHERE o.area_id = ? AND o.status IN (?)
+           AND o.created_at > NOW() - INTERVAL ? MINUTE) AS active_orders`,
+    [
+      areaId,
+      areaId,
+      areaId, ACTIVE_ORDER_STATUSES, config.RIDER_CAPACITY_LOOKBACK_MIN,
+    ]
+  );
+  const row = rows[0] || {};
+  const onlineRiders = Number(row.online_riders) || 0;
+  const activeOrders = Number(row.active_orders) || 0;
+  const riderCapacity = Number(row.rider_capacity) || 0;
+  const atCapacity = onlineRiders > 0 && activeOrders >= riderCapacity;
+  return { onlineRiders, activeOrders, atCapacity };
 };
 
 /**
@@ -73,12 +140,18 @@ const countActiveRiders = async () => {
  * used by the radius rings in selectEligibleRider. These extra fields are
  * internal to the assignment engine — riderShape (what clients see) is left
  * alone so rider coordinates never leak into an API response by accident.
+ *
+ * areaId is required — an area 2 order must never offer to an area 1 rider.
  */
-const listEligibleRiders = async ({ excludeIds = [] } = {}) => {
+const listEligibleRiders = async ({ excludeIds = [], areaId } = {}) => {
   const exclude = (excludeIds || []).map(Number).filter((n) => Number.isFinite(n) && n > 0);
-  // Freshness param is bound before the exclude list — keep this order in sync
-  // with the placeholders below.
-  const params = [RIDER_LOCATION_MAX_AGE_SEC];
+  // Freshness param, then areaId, then the active-orders lookback, then
+  // the exclude list — keep this order in sync with the placeholders below.
+  // The per-rider cap itself is r.max_active_orders, not a bound param.
+  const params = [
+    RIDER_LOCATION_MAX_AGE_SEC, areaId,
+    config.RIDER_CAPACITY_LOOKBACK_MIN,
+  ];
   let excludeClause = '';
   if (exclude.length > 0) {
     excludeClause = `AND r.id NOT IN (${exclude.map(() => '?').join(',')})`;
@@ -95,10 +168,16 @@ const listEligibleRiders = async ({ excludeIds = [] } = {}) => {
      FROM riders r
      WHERE r.active = 1
        AND r.is_online = 1
+       AND r.area_id = ?
        AND NOT EXISTS (
          SELECT 1 FROM rider_order_offers ro
          WHERE ro.rider_id = r.id AND ro.status = 'pending'
        )
+       AND (
+         SELECT COUNT(*) FROM orders o
+         WHERE o.rider_id = r.id AND o.status NOT IN ('Delivered', 'Cancelled')
+           AND o.created_at > NOW() - INTERVAL ? MINUTE
+       ) < r.max_active_orders
        ${excludeClause}
      ORDER BY r.id ASC`,
     params
@@ -299,16 +378,17 @@ const selectEligibleRider = async (riders, opts = {}) => {
 };
 
 /**
- * Auto-manage settings.delivery_available from online rider count (D12).
- * 0 active online riders → OFF; ≥1 → ON. Then re-sync shop_open via shops util.
+ * Auto-manage settings.delivery_available from online rider count (D12),
+ * scoped to one area — a rider coming online in area 2 must never flip
+ * area 1's delivery gate. Then re-sync shop_open via shops util, same area.
  * Never throws.
  */
-const syncDeliveryAvailabilityFromRiders = async () => {
+const syncDeliveryAvailabilityFromRiders = async (areaId) => {
   try {
-    const activeCount = await countActiveRiders();
+    const activeCount = await countActiveRiders(areaId);
     const desired = activeCount > 0 ? 1 : 0;
 
-    const [settingsRows] = await pool.query('SELECT delivery_available FROM settings LIMIT 1');
+    const [settingsRows] = await pool.query('SELECT delivery_available FROM settings WHERE area_id = ? LIMIT 1', [areaId]);
     if (settingsRows.length === 0) return { changed: false, activeCount, deliveryAvailable: Boolean(desired) };
 
     const current = settingsRows[0].delivery_available ? 1 : 0;
@@ -316,8 +396,8 @@ const syncDeliveryAvailabilityFromRiders = async () => {
 
     if (current !== desired) {
       const [result] = await pool.query(
-        'UPDATE settings SET delivery_available = ? WHERE delivery_available != ?',
-        [desired, desired]
+        'UPDATE settings SET delivery_available = ? WHERE delivery_available != ? AND area_id = ?',
+        [desired, desired, areaId]
       );
       changed = result.affectedRows > 0;
     }
@@ -325,14 +405,26 @@ const syncDeliveryAvailabilityFromRiders = async () => {
     if (changed) {
       try {
         const { bustSettingsCache } = require('../controllers/settingsController');
-        bustSettingsCache();
+        bustSettingsCache(areaId);
+      } catch (_) {
+        // best-effort
+      }
+
+      // bumpCatalogVersion too (bug fix, multi-area audit finding #8) —
+      // without it, a client holding the public /api/settings ETag
+      // (catalogETag, keyed on <areaId>-<catalog_version>) kept getting a
+      // bare 304 with the stale delivery_available baked into its cached
+      // body, since nothing here ever changed catalog_version.
+      try {
+        const { bumpCatalogVersion } = require('./areaScope');
+        await bumpCatalogVersion(areaId);
       } catch (_) {
         // best-effort
       }
 
       try {
         const { emitToAllCustomers } = require('../realtime/socket');
-        emitToAllCustomers('settings.delivery_available.updated', {
+        emitToAllCustomers(areaId, 'settings.delivery_available.updated', {
           deliveryAvailable: Boolean(desired),
           delivery_available: Boolean(desired),
         });
@@ -341,9 +433,26 @@ const syncDeliveryAvailabilityFromRiders = async () => {
       }
 
       // Existing master-gate side effect: delivery off forces shop_open closed, etc.
-      const { syncGlobalShopOpenState } = require('./shops');
-      await syncGlobalShopOpenState();
+      const { syncAreaShopOpenState } = require('./shops');
+      await syncAreaShopOpenState(areaId);
     }
+
+    // Outside the `changed` branch on purpose: capacity is onlineRiders *
+    // multiplier, so a rider going on/offline moves it even when the
+    // delivery_available gate itself doesn't flip (which it only does at the
+    // 0 <-> 1 boundary).
+    //
+    // Deferred a tick rather than called inline: this runs mid-way through
+    // the caller's own work (adminRiderController is still finishing its
+    // rider UPDATE and re-read), and the capacity query must see that
+    // finished state, not race it — an inline call can read the rider row as
+    // it was BEFORE the toggle and broadcast a verdict that's already wrong.
+    // Fire-and-forget either way; the helper never throws.
+    // Resolve the module NOW and defer only the call: a require() inside the
+    // deferred callback can land after Jest has torn the environment down,
+    // which is a hard worker crash rather than a catchable error.
+    const { broadcastCapacityIfChanged } = require('../realtime/riderCapacityBroadcast');
+    setImmediate(() => broadcastCapacityIfChanged(areaId));
 
     return { changed, activeCount, deliveryAvailable: Boolean(desired) };
   } catch (e) {
@@ -356,6 +465,10 @@ module.exports = {
   RIDER_TODAY_TZ,
   RIDER_SEARCH_RADIUS_TIERS_KM,
   RIDER_LOCATION_MAX_AGE_SEC,
+  RIDER_MAX_ACTIVE_ORDERS,
+  RIDER_MAX_ACTIVE_ORDERS_CAP,
+  ACTIVE_ORDER_STATUSES,
+  getCapacityStatus,
   distanceToNearestPickupKm,
   selectRiderByRadiusTiers,
   riderShape,

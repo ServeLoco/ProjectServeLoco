@@ -83,6 +83,23 @@ const config = {
   // frequent enough that a rider can't miss it, less relentless than every 15s.
   RIDER_OFFER_REMIND_SEC: Number(process.env.RIDER_OFFER_REMIND_SEC) || 30,
   RIDER_TODAY_TZ: process.env.RIDER_TODAY_TZ || '+05:30',
+  // A rider carrying this many undelivered orders is excluded from new offers
+  // until one of them is Delivered/Cancelled.
+  RIDER_MAX_ACTIVE_ORDERS: Number(process.env.RIDER_MAX_ACTIVE_ORDERS) || 2,
+  // Order-creation capacity gate: once an area's in-flight (non-terminal)
+  // order count reaches onlineRiders * this multiplier, new checkouts are
+  // rejected with a "riders are busy" message instead of accepted and left
+  // to starve in the search queue.
+  RIDER_CAPACITY_MULTIPLIER: Number(process.env.RIDER_CAPACITY_MULTIPLIER) || 3,
+  // Cooldown minutes surfaced to the customer in the at-capacity message.
+  RIDER_CAPACITY_COOLDOWN_MIN: Number(process.env.RIDER_CAPACITY_COOLDOWN_MIN) || 29,
+  // Only orders created inside this window count toward capacity. Without a
+  // bound, an order stuck non-terminal forever (failAssignment deliberately
+  // does NOT auto-cancel — it waits for an admin) would consume a rider slot
+  // permanently, and enough of them would block an area's checkout for good.
+  // 180 min is well past a realistic worst case (10 min shop confirm + 30 min
+  // rider search + pickup + delivery).
+  RIDER_CAPACITY_LOOKBACK_MIN: Number(process.env.RIDER_CAPACITY_LOOKBACK_MIN) || 180,
 
   // Shop auto-open/auto-close schedule sweeper.
   // Wall-clock zone the admin enters open_time/close_time in. The API
@@ -91,9 +108,36 @@ const config = {
   // because this is a wall-clock comparison, same as nightDelivery.js.
   SHOP_SCHEDULE_TZ: process.env.SHOP_SCHEDULE_TZ || 'Asia/Kolkata',
   SHOP_SCHEDULE_SWEEP_MS: Number(process.env.SHOP_SCHEDULE_SWEEP_MS) || 30000,
+
+  // Shop-owner alert reliability (weak-network retries + no-response timeout).
+  // Tick cadence for the sweeper that re-pushes unanswered shop alerts and
+  // auto-rejects ones stuck past the response window.
+  SHOP_ALERT_SWEEP_MS: Number(process.env.SHOP_ALERT_SWEEP_MS) || 5000,
+  // Re-push (socket + FCM/Expo alarm) an unconfirmed shop order this often
+  // until the shop confirms, rejects, or the response window elapses.
+  SHOP_ALERT_REMIND_MS: Number(process.env.SHOP_ALERT_REMIND_MS) || 25000,
+  // Once the shop app has ack'd that the alarm actually displayed
+  // (POST /shop/orders/:id/alert-ack — proof the push reached the device),
+  // ease off to this slower cadence instead of SHOP_ALERT_REMIND_MS — the
+  // owner is aware, no need to keep blasting as if the device were still dark.
+  SHOP_ALERT_REMIND_ACKED_MS: Number(process.env.SHOP_ALERT_REMIND_ACKED_MS) || 60000,
+  // If a shop neither confirms nor rejects within this long of the order
+  // being Accepted, auto-reject that shop's items on its behalf (same
+  // effect as the owner pressing Reject) so the order stops stalling.
+  SHOP_RESPONSE_TIMEOUT_MS: Number(process.env.SHOP_RESPONSE_TIMEOUT_MS) || 600000,
 };
 
 // Validation
+//
+// ADMIN_PASSWORD / ADMIN_PASSWORD_HASH are deliberately NOT in this list.
+// Admin auth is DB-backed (the `admins` table) once a real admin row
+// exists — seeded by migrate.js on first run, or created via the admin
+// API — and a legitimate production deploy past that point has neither
+// env var set at all. This module runs before any DB connection exists,
+// so it structurally cannot know whether `admins` is populated; the only
+// place that can decide "is a bootstrap admin actually needed" is
+// adminController.js's login handler at request time. See
+// plans/multi-area.md H10.
 const requiredKeys = [
   'JWT_SECRET',
   'MYSQL_HOST',
@@ -104,18 +148,12 @@ const requiredKeys = [
   'MONGODB_URI',
   'MONGODB_DATABASE',
   'ADMIN_OWNER_ID',
-  'ADMIN_PASSWORD'
 ];
 
 const missing = requiredKeys.filter((key) => {
   if (key === 'MYSQL_PASSWORD' && !isProd) return config[key] === undefined;
   return !config[key];
 });
-// Allow either ADMIN_PASSWORD (plain) or ADMIN_PASSWORD_HASH (bcrypt) to be set
-const hasAdminAuth = config.ADMIN_PASSWORD || config.ADMIN_PASSWORD_HASH;
-if (missing.includes('ADMIN_PASSWORD') && hasAdminAuth) {
-  missing.splice(missing.indexOf('ADMIN_PASSWORD'), 1);
-}
 if (missing.length > 0) {
   throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
 }
@@ -136,8 +174,12 @@ if (isProd) {
   if (!config.CORS_ORIGIN || config.CORS_ORIGIN === '*' || config.CORS_ORIGIN.includes('*')) {
     throw new Error('CORS_ORIGIN must be explicitly defined in production (no wildcards).');
   }
-  // Admin login: ADMIN_PASSWORD_HASH (bcrypt) is preferred; plaintext
-  // ADMIN_PASSWORD is accepted as long as it isn't a known-weak default.
+  // Admin login is DB-backed (the `admins` table) once a real admin row
+  // exists, so neither env var is required here anymore (H10) — but IF an
+  // operator has kept one set (e.g. as the fresh-install bootstrap
+  // credential), it's still validated for strength. ADMIN_PASSWORD_HASH
+  // (bcrypt) is preferred; plaintext ADMIN_PASSWORD is accepted as long as
+  // it isn't a known-weak default.
   if (config.ADMIN_PASSWORD_HASH) {
     if (!config.ADMIN_PASSWORD_HASH.startsWith('$2b$') && !config.ADMIN_PASSWORD_HASH.startsWith('$2a$')) {
       throw new Error('ADMIN_PASSWORD_HASH must be a valid bcrypt hash in production.');
@@ -146,8 +188,6 @@ if (isProd) {
     if (config.ADMIN_PASSWORD === 'admin143' || config.ADMIN_PASSWORD === 'test_pass' || config.ADMIN_PASSWORD.length < 8) {
       throw new Error('ADMIN_PASSWORD is too weak for production. Use a longer password or ADMIN_PASSWORD_HASH.');
     }
-  } else {
-    throw new Error('Either ADMIN_PASSWORD_HASH or ADMIN_PASSWORD must be set.');
   }
   if (process.env.DEBUG === 'true') throw new Error('DEBUG must not be enabled in production.');
 }

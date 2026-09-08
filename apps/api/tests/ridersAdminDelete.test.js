@@ -36,7 +36,7 @@ app.use(express.json());
 app.use('/api/admin', adminRoutes);
 
 const adminToken = jwt.sign(
-  { id: 'admin', role: 'admin' },
+  { id: 'admin', role: 'admin', adminRole: 'area_admin', areaId: 1 },
   process.env.JWT_SECRET || 'test_jwt_secret_that_is_long_enough'
 );
 
@@ -74,6 +74,7 @@ describe('DELETE /api/admin/riders/:id', () => {
       expect.objectContaining({ rider: null, reason: 'rider_deleted' })
     );
     expect(emitToAdmins).toHaveBeenCalledWith(
+      1,
       'admin.rider.updated',
       expect.objectContaining({ id: 3, reason: 'deleted' })
     );

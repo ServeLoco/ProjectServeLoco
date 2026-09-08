@@ -35,7 +35,7 @@ async function notifyShopOwnerOrderUpdated(shopId, orderId, action) {
 /** List Accepted/Preparing orders that include items for this shop. */
 async function listShopActiveOrders(shopId) {
   const [orders] = await pool.query(
-    `SELECT DISTINCT o.id, o.order_number, o.status, o.note, o.created_at, o.delivery_type
+    `SELECT DISTINCT o.id, o.order_number, o.status, o.note, o.created_at, o.delivery_type, o.area_id
      FROM orders o JOIN order_items oi ON oi.order_id = o.id
      WHERE oi.shop_id = ? AND o.status IN ('Accepted','Preparing')
      ORDER BY o.created_at ASC`,
@@ -46,8 +46,14 @@ async function listShopActiveOrders(shopId) {
     return [];
   }
 
+  // Shops aren't area-scoped themselves yet (TASK 15), so there's no
+  // "this shop's area" to read directly — but its orders now carry a real
+  // area_id, and a given shop only ever has orders in one area in
+  // practice, so the first row's area_id is what settings (expectedMinutes
+  // display only) should read.
   const [settingsRows] = await pool.query(
-    'SELECT standard_delivery_minutes, fast_delivery_minutes FROM settings LIMIT 1'
+    'SELECT standard_delivery_minutes, fast_delivery_minutes FROM settings WHERE area_id = ? LIMIT 1',
+    [orders[0].area_id]
   );
   const settings = settingsRows[0] || {};
 
@@ -117,7 +123,7 @@ async function listShopActiveOrders(shopId) {
  */
 async function confirmShopOrder(shopId, orderId, { shopName } = {}) {
   const [countRows] = await pool.query(
-    `SELECT COUNT(*) as cnt, MAX(o.status) as order_status FROM order_items oi
+    `SELECT COUNT(*) as cnt, MAX(o.status) as order_status, MAX(o.area_id) as area_id FROM order_items oi
      JOIN orders o ON o.id = oi.order_id
      WHERE oi.order_id = ? AND oi.shop_id = ? AND o.status IN ('Accepted', 'Preparing')`,
     [orderId, shopId]
@@ -136,7 +142,7 @@ async function confirmShopOrder(shopId, orderId, { shopName } = {}) {
     [orderId, shopId]
   );
 
-  emitToAdmins('admin.order.shop_confirmed', {
+  emitToAdmins(countRows[0].area_id, 'admin.order.shop_confirmed', {
     orderId: Number(orderId),
     shopId: Number(shopId),
     shopName: shopName || null,
@@ -174,10 +180,13 @@ async function confirmShopOrder(shopId, orderId, { shopName } = {}) {
 
 /**
  * Reject / cancel this shop's items (informational; may auto-cancel order).
+ * @param {{shopName?: string, source?: 'owner'|'timeout'}} [opts] - source
+ *   distinguishes an owner-pressed Reject from shopAlertSweeper's auto-reject
+ *   after SHOP_RESPONSE_TIMEOUT_MS of silence, for admin-notification copy only.
  */
-async function rejectShopOrder(shopId, orderId, { shopName } = {}) {
+async function rejectShopOrder(shopId, orderId, { shopName, source = 'owner' } = {}) {
   const [countRows] = await pool.query(
-    `SELECT COUNT(*) as cnt FROM order_items oi
+    `SELECT COUNT(*) as cnt, MAX(o.area_id) as area_id FROM order_items oi
      JOIN orders o ON o.id = oi.order_id
      WHERE oi.order_id = ? AND oi.shop_id = ? AND o.status IN ('Accepted', 'Preparing')`,
     [orderId, shopId]
@@ -196,7 +205,7 @@ async function rejectShopOrder(shopId, orderId, { shopName } = {}) {
     [orderId, shopId]
   );
 
-  emitToAdmins('admin.order.updated', {
+  emitToAdmins(countRows[0].area_id, 'admin.order.updated', {
     orderId: Number(orderId),
     shopId: Number(shopId),
     shopName: shopName || null,
@@ -204,19 +213,81 @@ async function rejectShopOrder(shopId, orderId, { shopName } = {}) {
     rejected: true,
   });
 
+  const isTimeout = source === 'timeout';
   const adminInbox = require('../utils/adminNotifications');
   await adminInbox.createAdminNotification({
     type: adminInbox.TYPES.SHOP_REJECTED,
-    title: `${shopName || 'Shop'} can't fulfill order #${orderId}`,
-    body: `${shopName || 'A shop'} rejected their items on order #${orderId}. Review and take action (cancel, reassign, contact customer).`,
+    title: isTimeout
+      ? `${shopName || 'Shop'} did not respond to order #${orderId}`
+      : `${shopName || 'Shop'} can't fulfill order #${orderId}`,
+    body: isTimeout
+      ? `${shopName || 'A shop'} did not confirm or reject order #${orderId} in time, so it was auto-rejected on their behalf. Review and take action (cancel, reassign, contact customer).`
+      : `${shopName || 'A shop'} rejected their items on order #${orderId}. Review and take action (cancel, reassign, contact customer).`,
     relatedUrl: `/orders?id=${orderId}`,
     relatedId: String(orderId),
+    areaId: countRows[0].area_id,
   });
 
   await maybeAutoCancelOrderWhenAllShopsRejected(orderId);
+
+  // A reject can be the LAST decision on a multi-shop order whose other
+  // shops already confirmed. Without this the order stalls forever:
+  // auto-cancel above only fires when every shop rejected, and
+  // recoverStuckAssignments only re-drives orders already in
+  // 'searching'/'offered' — one left at 'none' is never picked up again.
+  // maybeStartRiderAssignment no-ops when the order just got cancelled,
+  // when shops are still undecided, or when nobody confirmed anything.
+  const { maybeStartRiderAssignment } = require('./riderAssignment');
+  maybeStartRiderAssignment(Number(orderId)).catch((e) =>
+    console.error('[rider-assign] maybeStart after shop reject failed:', e.message)
+  );
+
   await notifyShopOwnerOrderUpdated(shopId, orderId, 'rejected');
 
   return { ok: true, message: 'Order rejected' };
+}
+
+/**
+ * Clear this shop's rejection so its items reappear in their Accept/Reject
+ * queue — e.g. after an admin swaps a rejected item for one the shop
+ * actually stocks. Only while the order is still Accepted/Preparing: a
+ * single-shop order auto-cancels the moment its one shop rejects (see
+ * maybeAutoCancelOrderWhenAllShopsRejected above), and resend deliberately
+ * does not revive a cancelled order — that's a bigger, riskier operation
+ * (coupon redemption, rider assignment, payment state) out of scope here.
+ */
+async function resendShopOrder(shopId, orderId, { shopName } = {}) {
+  const [countRows] = await pool.query(
+    `SELECT COUNT(*) as cnt, MAX(o.area_id) as area_id FROM order_items oi
+     JOIN orders o ON o.id = oi.order_id
+     WHERE oi.order_id = ? AND oi.shop_id = ? AND oi.shop_rejected_at IS NOT NULL
+       AND o.status IN ('Accepted', 'Preparing')`,
+    [orderId, shopId]
+  );
+  if (countRows[0].cnt === 0) {
+    return {
+      ok: false,
+      status: 404,
+      code: 'NOT_FOUND',
+      message: 'No rejected items for this shop on this order',
+    };
+  }
+
+  await pool.query(
+    'UPDATE order_items SET shop_rejected_at = NULL WHERE order_id = ? AND shop_id = ? AND shop_rejected_at IS NOT NULL',
+    [orderId, shopId]
+  );
+
+  emitToAdmins(countRows[0].area_id, 'admin.order.updated', {
+    orderId: Number(orderId),
+    shopId: Number(shopId),
+    shopName: shopName || null,
+    action: 'resent',
+  });
+
+  await notifyShopOwnerOrderUpdated(shopId, orderId, 'resent');
+
+  return { ok: true, message: 'Order resent to shop' };
 }
 
 /**
@@ -224,7 +295,7 @@ async function rejectShopOrder(shopId, orderId, { shopName } = {}) {
  */
 async function readyShopOrder(shopId, orderId, { shopName } = {}) {
   const [countRows] = await pool.query(
-    `SELECT COUNT(*) as cnt FROM order_items oi
+    `SELECT COUNT(*) as cnt, MAX(o.area_id) as area_id FROM order_items oi
      JOIN orders o ON o.id = oi.order_id
      WHERE oi.order_id = ? AND oi.shop_id = ? AND o.status IN ('Accepted', 'Preparing') AND oi.shop_confirmed_at IS NOT NULL`,
     [orderId, shopId]
@@ -243,7 +314,7 @@ async function readyShopOrder(shopId, orderId, { shopName } = {}) {
     [orderId, shopId]
   );
 
-  emitToAdmins('admin.order.shop_ready', {
+  emitToAdmins(countRows[0].area_id, 'admin.order.shop_ready', {
     orderId: Number(orderId),
     shopId: Number(shopId),
     shopName: shopName || null,
@@ -256,11 +327,31 @@ async function readyShopOrder(shopId, orderId, { shopName } = {}) {
   return { ok: true, message: 'Order marked ready' };
 }
 
+/**
+ * Record that this shop's device actually displayed the new-order alarm —
+ * called by the shop app right after notifee successfully rings it (killed-
+ * app FCM path) or when the popup appears in-app. Proof-of-delivery, not a
+ * state transition: never fails the request if there's nothing to ack
+ * (already confirmed/rejected, or no items for this shop on this order).
+ * shopAlertSweeper eases off reminder frequency once acked.
+ */
+async function ackShopOrderAlert(shopId, orderId) {
+  const [result] = await pool.query(
+    `UPDATE order_items SET shop_alert_acked_at = NOW()
+     WHERE order_id = ? AND shop_id = ? AND shop_alert_acked_at IS NULL
+       AND shop_confirmed_at IS NULL AND shop_rejected_at IS NULL`,
+    [orderId, shopId]
+  );
+  return { ok: true, acked: result.affectedRows > 0 };
+}
+
 module.exports = {
   ACTIVE_ORDER_STATUSES,
   listShopActiveOrders,
   confirmShopOrder,
   rejectShopOrder,
   readyShopOrder,
+  resendShopOrder,
+  ackShopOrderAlert,
   notifyShopOwnerOrderUpdated,
 };

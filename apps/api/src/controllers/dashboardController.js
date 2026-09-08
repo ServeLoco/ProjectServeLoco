@@ -3,7 +3,30 @@ const { normalizeStoreType, getActiveStoreModeSlugs, isSystemModeSlug } = requir
 const config = require('../config/env');
 const { attachVariants } = require('./productController');
 const microCache = require('../utils/microCache');
-const DASHBOARD_TTL_MS = 30_000;
+const { reorderDisplayOrder } = require('../utils/reorder');
+const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
+// 30s meant a low-traffic area re-ran the whole multi-query dashboard build on
+// almost every request. Every mutation that can change this payload already
+// calls bustAreaCaches (which clears the 'dashboard' namespace for that area),
+// so the TTL is a backstop against a missed bust, not the freshness mechanism
+// — 2 minutes is safe and turns the common case into a pure cache hit.
+const DASHBOARD_TTL_MS = 120_000;
+
+// Admin write/single-item endpoints reject null (super_admin, no
+// X-Area-Id) and 'all' — dashboard management always targets exactly one
+// area.
+const requireOneArea = (req, res) => {
+  const areaId = requestAreaId(req);
+  if (areaId === null) {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'X-Area-Id is required to manage the dashboard' });
+    return null;
+  }
+  if (areaId === 'all') {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Dashboard sections cannot be managed for "all" areas at once — pick one area' });
+    return null;
+  }
+  return areaId;
+};
 
 const SECTION_TYPES = ['offer_banner', 'category_grid', 'product_block', 'combo_block'];
 const SECTION_ITEM_TYPES = {
@@ -15,13 +38,13 @@ const SECTION_ITEM_TYPES = {
 // Slug suffix must be URL-hyphenated; mode slugs use underscores (e.g. fast_food).
 const offerBannerSlugSuffix = (storeType) => storeType.replace(/_/g, '-');
 
-const getExpectedStoreType = async (storeType) => {
+const getExpectedStoreType = async (storeType, areaId) => {
   if (!storeType) return 'all';
   // A client can hold a stale/deactivated mode slug (e.g. web's
   // localStorage-persisted storeType) after an admin deactivates a custom
   // mode — fall back to 'all' instead of erroring the whole dashboard fetch.
   try {
-    return await normalizeStoreType(storeType, { fallback: 'all', allowAll: true });
+    return await normalizeStoreType(storeType, { fallback: 'all', allowAll: true, areaId });
   } catch {
     return 'all';
   }
@@ -56,7 +79,7 @@ const asNonNegativeInteger = (value, fallback = 0) => {
   return Number.isInteger(numeric) && numeric >= 0 ? numeric : null;
 };
 
-const validateSectionPayload = async ({ title, slug, section_type, store_type, display_order, max_visible_items, starts_at, ends_at }, { partial = false } = {}) => {
+const validateSectionPayload = async ({ title, slug, section_type, store_type, display_order, max_visible_items, starts_at, ends_at }, { partial = false, areaId } = {}) => {
   if (!partial && (!slug || !section_type)) {
     return 'Slug and section type are required';
   }
@@ -70,7 +93,11 @@ const validateSectionPayload = async ({ title, slug, section_type, store_type, d
     return 'Invalid dashboard section type';
   }
   if (store_type !== undefined && store_type !== 'all' && !isSystemModeSlug(store_type)) {
-    const activeSlugs = await getActiveStoreModeSlugs();
+    // areaId threaded from the caller (requireOneArea) — every other
+    // getActiveStoreModeSlugs call site in this file already does this;
+    // this one defaulted to STORE_MODE_AREA_ID_STOPGAP (area 1) and
+    // rejected/silently passed the wrong area's custom store modes.
+    const activeSlugs = await getActiveStoreModeSlugs(areaId);
     if (!activeSlugs.includes(store_type)) {
       return 'Invalid store visibility';
     }
@@ -87,14 +114,14 @@ const validateSectionPayload = async ({ title, slug, section_type, store_type, d
   return validateVisibilityWindow(starts_at, ends_at);
 };
 
-const getLinkedItemInfo = async (itemType, itemId) => {
+const getLinkedItemInfo = async (itemType, itemId, areaId) => {
   if (itemType === 'product') {
     const [rows] = await pool.query(
       `SELECT p.id, p.is_combo, p.available, c.type as store_type
        FROM products p
        LEFT JOIN categories c ON p.category_id = c.id
-       WHERE p.id = ? AND p.deleted = 0`,
-      [itemId]
+       WHERE p.id = ? AND p.deleted = 0 AND p.area_id = ?`,
+      [itemId, areaId]
     );
     if (rows.length === 0) return { error: 'Product does not exist' };
     if (rows[0].is_combo) return { error: 'Combos cannot be added to a standard product block.' };
@@ -103,7 +130,7 @@ const getLinkedItemInfo = async (itemType, itemId) => {
   }
 
   if (itemType === 'category') {
-    const [rows] = await pool.query('SELECT id, type as store_type, active FROM categories WHERE id = ? AND deleted = 0', [itemId]);
+    const [rows] = await pool.query('SELECT id, type as store_type, active FROM categories WHERE id = ? AND deleted = 0 AND area_id = ?', [itemId, areaId]);
     if (rows.length === 0) return { error: 'Category does not exist' };
     if (rows[0].active !== undefined && !rows[0].active) return { error: 'Only active categories can be added to the dashboard.' };
     return { storeType: rows[0].store_type };
@@ -116,8 +143,8 @@ const getLinkedItemInfo = async (itemType, itemId) => {
          JOIN products child ON child.id = ci.product_id
          WHERE ci.combo_id = p.id AND child.deleted = 0 AND child.available = 1) as child_count
        FROM combos p
-       WHERE p.id = ? AND p.deleted = 0`,
-      [itemId]
+       WHERE p.id = ? AND p.deleted = 0 AND p.area_id = ?`,
+      [itemId, areaId]
     );
     if (rows.length === 0) return { error: 'Combo product does not exist' };
     if (rows[0].available !== undefined && !rows[0].available) return { error: 'Only available combos can be added to dashboard blocks.' };
@@ -126,7 +153,7 @@ const getLinkedItemInfo = async (itemType, itemId) => {
   }
 
   if (itemType === 'offer') {
-    const [rows] = await pool.query('SELECT id, active, store_type FROM offers WHERE id = ? AND deleted = 0', [itemId]);
+    const [rows] = await pool.query('SELECT id, active, store_type FROM offers WHERE id = ? AND deleted = 0 AND area_id = ?', [itemId, areaId]);
     if (rows.length === 0) return { error: 'Offer does not exist' };
     if (rows[0].active !== undefined && !rows[0].active) return { error: 'Only active offers can be added to dashboard banners.' };
     return { storeType: rows[0].store_type };
@@ -135,14 +162,14 @@ const getLinkedItemInfo = async (itemType, itemId) => {
   return { error: 'Invalid item type' };
 };
 
-const ensureUniqueSectionSlug = async (baseSlug, storeType, sourceSectionId) => {
+const ensureUniqueSectionSlug = async (baseSlug, storeType, sourceSectionId, areaId) => {
   let slug = baseSlug;
   let counter = 2;
 
   for (;;) {
     const [existing] = await pool.query(
-      'SELECT id FROM dashboard_sections WHERE slug = ? AND store_type = ? AND deleted_at IS NULL AND id != ? LIMIT 1',
-      [slug, storeType, sourceSectionId]
+      'SELECT id FROM dashboard_sections WHERE slug = ? AND store_type = ? AND deleted_at IS NULL AND id != ? AND area_id = ? LIMIT 1',
+      [slug, storeType, sourceSectionId, areaId]
     );
     if (existing.length === 0) return slug;
     slug = `${baseSlug}-${counter}`;
@@ -150,18 +177,20 @@ const ensureUniqueSectionSlug = async (baseSlug, storeType, sourceSectionId) => 
   }
 };
 
-const ensureModeSpecificOfferBannerSections = async () => {
+const ensureModeSpecificOfferBannerSections = async (areaId) => {
   const [sharedSections] = await pool.query(
     `SELECT *
      FROM dashboard_sections
      WHERE section_type = 'offer_banner'
        AND store_type = 'all'
-       AND deleted_at IS NULL`
+       AND deleted_at IS NULL
+       AND area_id = ?`,
+    [areaId]
   );
 
   if (sharedSections.length === 0) return;
 
-  const storeSpecificTypes = await getActiveStoreModeSlugs();
+  const storeSpecificTypes = await getActiveStoreModeSlugs(areaId);
 
   for (const section of sharedSections) {
     const targetSectionIds = {};
@@ -175,9 +204,10 @@ const ensureModeSpecificOfferBannerSections = async () => {
            AND store_type = ?
            AND deleted_at IS NULL
            AND slug = ?
+           AND area_id = ?
          ORDER BY id ASC
          LIMIT 1`,
-        [storeType, baseSlug]
+        [storeType, baseSlug, areaId]
       );
 
       if (existingTargets.length > 0) {
@@ -185,14 +215,15 @@ const ensureModeSpecificOfferBannerSections = async () => {
         continue;
       }
 
-      const slug = await ensureUniqueSectionSlug(baseSlug, storeType, section.id);
+      const slug = await ensureUniqueSectionSlug(baseSlug, storeType, section.id, areaId);
       const [insertResult] = await pool.query(
         `INSERT INTO dashboard_sections (
-          title, slug, section_type, store_type, active, display_order,
+          area_id, title, slug, section_type, store_type, active, display_order,
           max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id,
           starts_at, ends_at, version
-        ) VALUES (?, ?, 'offer_banner', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        ) VALUES (?, ?, ?, 'offer_banner', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
         [
+          areaId,
           section.title,
           slug,
           storeType,
@@ -217,8 +248,9 @@ const ensureModeSpecificOfferBannerSections = async () => {
        JOIN offers o ON o.id = dsi.item_id
        WHERE dsi.section_id = ?
          AND dsi.item_type = 'offer'
-         AND dsi.deleted_at IS NULL`,
-      [section.id]
+         AND dsi.deleted_at IS NULL
+         AND o.area_id = ?`,
+      [section.id, areaId]
     );
 
     for (const item of items) {
@@ -239,8 +271,8 @@ const ensureModeSpecificOfferBannerSections = async () => {
 
       await pool.query(
         `INSERT INTO dashboard_section_items (
-          section_id, item_type, item_id, display_order, active, starts_at, ends_at
-        ) VALUES (?, 'offer', ?, ?, ?, ?, ?)`,
+          section_id, item_type, item_id, display_order, active, starts_at, ends_at, area_id
+        ) VALUES (?, 'offer', ?, ?, ?, ?, ?, ?)`,
         [
           targetSectionId,
           item.item_id,
@@ -248,6 +280,7 @@ const ensureModeSpecificOfferBannerSections = async () => {
           item.active,
           item.starts_at,
           item.ends_at,
+          areaId,
         ]
       );
     }
@@ -410,13 +443,21 @@ const mapOfferRows = (rows) => rows
  * Loads active sections & their items based on storeType.
  */
 const getDashboard = async (req, res) => {
+  // Catalog data (§2.4): a pin outside every zone (null areaId) gets an
+  // empty dashboard, same rule as getProducts/getCategories — never
+  // another area's sections.
+  const areaId = requestAreaId(req);
+  if (areaId === null || areaId === 'all') {
+    return res.status(200).json({ data: { sections: [] } });
+  }
+
   // Dashboard category grid is derived from categories.
   const { storeType = 'packed' } = req.query;
   const includeClosedShops = ['1', 'true'].includes(
     String(req.query.includeClosedShops ?? req.query.include_closed_shops ?? '').toLowerCase()
   );
-  const expectedStoreType = await getExpectedStoreType(storeType);
-  const cacheKey = `dashboard:${expectedStoreType}:closed=${includeClosedShops ? 1 : 0}`;
+  const expectedStoreType = await getExpectedStoreType(storeType, areaId);
+  const cacheKey = `dashboard:${areaId}:${expectedStoreType}:closed=${includeClosedShops ? 1 : 0}`;
   const cached = microCache.get(cacheKey);
   if (cached) {
     return res.status(200).json(cached);
@@ -436,11 +477,11 @@ const getDashboard = async (req, res) => {
     let query = `
       SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at
       FROM dashboard_sections
-      WHERE active = 1 AND deleted_at IS NULL
+      WHERE active = 1 AND deleted_at IS NULL AND area_id = ?
         AND (starts_at IS NULL OR starts_at <= NOW())
         AND (ends_at IS NULL OR ends_at >= NOW())
     `;
-    const params = [];
+    const params = [areaId];
 
     if (expectedStoreType && expectedStoreType !== 'all') {
       query += ' AND store_type = ?';
@@ -457,13 +498,13 @@ const getDashboard = async (req, res) => {
 
       if (section.section_type === 'offer_banner') {
         const offerStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND o.store_type = ?' : '';
-        const itemParams = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType] : [section.id];
+        const itemParams = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType] : [section.id, areaId];
         const [rows] = await pool.query(
-          `SELECT dsi.id as section_item_id, dsi.display_order, o.* 
+          `SELECT dsi.id as section_item_id, dsi.display_order, o.*
            FROM dashboard_section_items dsi
            JOIN offers o ON o.id = dsi.item_id
            WHERE dsi.section_id = ? AND dsi.item_type = 'offer' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-             AND o.active = 1 AND o.deleted = 0
+             AND o.active = 1 AND o.deleted = 0 AND o.area_id = ?
              ${offerStoreFilter}
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
@@ -478,20 +519,20 @@ const getDashboard = async (req, res) => {
            FROM dashboard_section_items dsi
            JOIN categories c ON c.id = dsi.item_id
            WHERE dsi.section_id = ? AND dsi.item_type = 'category' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-             AND c.active = 1 AND c.deleted = 0
+             AND c.active = 1 AND c.deleted = 0 AND c.area_id = ?
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC
            LIMIT ?`,
-          [section.id, section.max_visible_items || 8]
+          [section.id, areaId, section.max_visible_items || 8]
         );
         await resolveImageUrls(rows);
-        
+
         let filteredRows = rows;
         if (expectedStoreType && expectedStoreType !== 'all') {
           filteredRows = rows.filter(r => r.type === expectedStoreType);
         }
-        
+
         items = mapCategoryRows(filteredRows);
       } else if (section.section_type === 'product_block') {
         const [rows] = await pool.query(
@@ -501,15 +542,17 @@ const getDashboard = async (req, res) => {
            LEFT JOIN categories cat ON p.category_id = cat.id
            ${shopJoin}
            WHERE dsi.section_id = ? AND dsi.item_type = 'product' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-             AND ${availableWhere} AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenWhere} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
+             AND ${availableWhere} AND p.deleted = 0 AND p.is_combo = 0 AND p.area_id = ? AND ${shopOpenWhere} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1 AND g.area_id = p.area_id))
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
-          [section.id]
+          [section.id, areaId]
         );
-        await resolveImageUrls(rows);
-        await attachComboItems(rows);
-        await attachVariants(rows);
+        // Independent batched reads against different tables off the same
+        // rows — no ordering dependency between them, and each is a
+        // cross-region round trip. Running them in series made every
+        // product_block section 3 hops deep for no reason.
+        await Promise.all([resolveImageUrls(rows), attachComboItems(rows), attachVariants(rows)]);
 
         let filteredRows = rows;
         if (expectedStoreType && expectedStoreType !== 'all') {
@@ -519,21 +562,20 @@ const getDashboard = async (req, res) => {
         items = mapProductRows(filteredRows);
       } else if (section.section_type === 'combo_block') {
         const comboStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND p.store_type = ?' : '';
-        const itemParams = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType] : [section.id];
+        const itemParams = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType] : [section.id, areaId];
         const [rows] = await pool.query(
           `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, p.store_type as category_type
            FROM dashboard_section_items dsi
            JOIN combos p ON p.id = dsi.item_id
            WHERE dsi.section_id = ? AND dsi.item_type = 'combo' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-             AND p.available = 1 AND p.deleted = 0
+             AND p.available = 1 AND p.deleted = 0 AND p.area_id = ?
              ${comboStoreFilter}
              AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
              AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
            ORDER BY dsi.display_order ASC, dsi.id ASC`,
           itemParams
         );
-        await resolveImageUrls(rows);
-        await attachComboItems(rows);
+        await Promise.all([resolveImageUrls(rows), attachComboItems(rows)]);
 
         let filteredRows = rows;
         items = mapProductRows(filteredRows);
@@ -587,12 +629,18 @@ const getDashboard = async (req, res) => {
  * Loads full items list for a specific section (useful for See All flow).
  */
 const getSectionItems = async (req, res) => {
+  // Same §2.4 catalog rule as getDashboard — null areaId means no service.
+  const areaId = requestAreaId(req);
+  if (areaId === null || areaId === 'all') {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Dashboard section not found' });
+  }
+
   const { slug } = req.params;
   const { storeType = 'packed', page = 1, limit = 50 } = req.query;
   const includeClosedShops = ['1', 'true'].includes(
     String(req.query.includeClosedShops ?? req.query.include_closed_shops ?? '').toLowerCase()
   );
-  const expectedStoreType = await getExpectedStoreType(storeType);
+  const expectedStoreType = await getExpectedStoreType(storeType, areaId);
 
   const shopOpenWhere = includeClosedShops
     ? '(p.shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.active = 1))'
@@ -609,11 +657,11 @@ const getSectionItems = async (req, res) => {
     let sectionQuery = `
       SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at
       FROM dashboard_sections
-      WHERE slug = ? AND active = 1 AND deleted_at IS NULL
+      WHERE slug = ? AND active = 1 AND deleted_at IS NULL AND area_id = ?
         AND (starts_at IS NULL OR starts_at <= NOW())
         AND (ends_at IS NULL OR ends_at >= NOW())
     `;
-    const sectionParams = [slug];
+    const sectionParams = [slug, areaId];
     if (expectedStoreType && expectedStoreType !== 'all') {
       sectionQuery += ' AND store_type = ?';
       sectionParams.push(expectedStoreType);
@@ -631,13 +679,13 @@ const getSectionItems = async (req, res) => {
 
     if (section.section_type === 'offer_banner') {
       const offerStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND o.store_type = ?' : '';
-      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
+      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
       const [rows] = await pool.query(
-        `SELECT dsi.id as section_item_id, dsi.display_order, o.* 
+        `SELECT dsi.id as section_item_id, dsi.display_order, o.*
          FROM dashboard_section_items dsi
          JOIN offers o ON o.id = dsi.item_id
          WHERE dsi.section_id = ? AND dsi.item_type = 'offer' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-           AND o.active = 1 AND o.deleted = 0
+           AND o.active = 1 AND o.deleted = 0 AND o.area_id = ?
            ${offerStoreFilter}
            AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
            AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
@@ -653,24 +701,24 @@ const getSectionItems = async (req, res) => {
          FROM dashboard_section_items dsi
          JOIN categories c ON c.id = dsi.item_id
          WHERE dsi.section_id = ? AND dsi.item_type = 'category' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-           AND c.active = 1 AND c.deleted = 0
+           AND c.active = 1 AND c.deleted = 0 AND c.area_id = ?
            AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
            AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
          ORDER BY dsi.display_order ASC, dsi.id ASC
          LIMIT ? OFFSET ?`,
-        [section.id, limitNumber, offset]
+        [section.id, areaId, limitNumber, offset]
       );
       await resolveImageUrls(rows);
-      
+
       let filteredRows = rows;
       if (expectedStoreType && expectedStoreType !== 'all') {
         filteredRows = rows.filter(r => r.type === expectedStoreType);
       }
-      
+
       items = mapCategoryRows(filteredRows);
     } else if (section.section_type === 'product_block') {
       const productStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND cat.type = ?' : '';
-      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
+      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, p.*, cat.name as category_name, cat.type as category_type, ${shopIsOpenSelect}
          FROM dashboard_section_items dsi
@@ -678,7 +726,7 @@ const getSectionItems = async (req, res) => {
          LEFT JOIN categories cat ON p.category_id = cat.id
          ${shopJoin}
          WHERE dsi.section_id = ? AND dsi.item_type = 'product' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-           AND ${availableWhere} AND p.deleted = 0 AND p.is_combo = 0 AND ${shopOpenWhere} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1))
+           AND ${availableWhere} AND p.deleted = 0 AND p.is_combo = 0 AND p.area_id = ? AND ${shopOpenWhere} AND (p.group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = p.group_id AND g.active = 1 AND g.area_id = p.area_id))
            ${productStoreFilter}
            AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
            AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
@@ -686,9 +734,8 @@ const getSectionItems = async (req, res) => {
          LIMIT ? OFFSET ?`,
         params
       );
-      await resolveImageUrls(rows);
-      await attachComboItems(rows);
-      await attachVariants(rows);
+      // Same reasoning as getDashboard's product_block above.
+      await Promise.all([resolveImageUrls(rows), attachComboItems(rows), attachVariants(rows)]);
 
       items = rows.map(r => ({
         id: r.id,
@@ -720,13 +767,13 @@ const getSectionItems = async (req, res) => {
       }));
     } else if (section.section_type === 'combo_block') {
       const comboStoreFilter = (expectedStoreType && expectedStoreType !== 'all') ? 'AND p.store_type = ?' : '';
-      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, expectedStoreType, limitNumber, offset] : [section.id, limitNumber, offset];
+      const params = (expectedStoreType && expectedStoreType !== 'all') ? [section.id, areaId, expectedStoreType, limitNumber, offset] : [section.id, areaId, limitNumber, offset];
       const [rows] = await pool.query(
         `SELECT dsi.id as section_item_id, dsi.display_order, p.*, 1 as is_combo, p.store_type as category_type
          FROM dashboard_section_items dsi
          JOIN combos p ON p.id = dsi.item_id
          WHERE dsi.section_id = ? AND dsi.item_type = 'combo' AND dsi.active = 1 AND dsi.deleted_at IS NULL
-           AND p.available = 1 AND p.deleted = 0
+           AND p.available = 1 AND p.deleted = 0 AND p.area_id = ?
            ${comboStoreFilter}
            AND (dsi.starts_at IS NULL OR dsi.starts_at <= NOW())
            AND (dsi.ends_at IS NULL OR dsi.ends_at >= NOW())
@@ -734,8 +781,7 @@ const getSectionItems = async (req, res) => {
          LIMIT ? OFFSET ?`,
         params
       );
-      await resolveImageUrls(rows);
-      await attachComboItems(rows);
+      await Promise.all([resolveImageUrls(rows), attachComboItems(rows)]);
 
       const filteredRows = rows.filter(r => (r.combo_items || []).length > 0);
 
@@ -783,14 +829,17 @@ const getSectionItems = async (req, res) => {
  * Admin: GET /api/admin/dashboard-sections
  */
 const getAdminSections = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { store_type } = req.query;
   try {
     if (store_type && store_type !== 'all') {
-      await ensureModeSpecificOfferBannerSections();
+      await ensureModeSpecificOfferBannerSections(areaId);
     }
 
-    let query = 'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE deleted_at IS NULL';
-    const params = [];
+    let query = 'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE deleted_at IS NULL AND area_id = ?';
+    const params = [areaId];
     if (store_type) {
       query += ' AND (store_type = ? OR (store_type = "all" AND section_type != "offer_banner"))';
       params.push(store_type);
@@ -807,32 +856,32 @@ const getAdminSections = async (req, res) => {
 // getAdminSectionById (hydrates a whole section's items in parallel) and
 // addAdminSectionItem (hydrates just the one item it created), so adding an
 // item doesn't have to pay for a full section refetch to show it.
-const hydrateSectionItem = async (item) => {
+const hydrateSectionItem = async (item, areaId) => {
   let details = null;
   if (item.item_type === 'product') {
     const [prods] = await pool.query(
-      'SELECT p.*, s.name AS shop_name FROM products p LEFT JOIN shops s ON s.id = p.shop_id WHERE p.id = ?',
-      [item.item_id]
+      'SELECT p.*, s.name AS shop_name FROM products p LEFT JOIN shops s ON s.id = p.shop_id WHERE p.id = ? AND p.area_id = ?',
+      [item.item_id, areaId]
     );
     if (prods.length > 0) {
       details = prods[0];
       await resolveImageUrls([details]);
     }
   } else if (item.item_type === 'category') {
-    const [cats] = await pool.query('SELECT * FROM categories WHERE id = ?', [item.item_id]);
+    const [cats] = await pool.query('SELECT * FROM categories WHERE id = ? AND area_id = ?', [item.item_id, areaId]);
     if (cats.length > 0) {
       details = cats[0];
       await resolveImageUrls([details]);
     }
   } else if (item.item_type === 'combo') {
-    const [combos] = await pool.query('SELECT *, 1 as is_combo FROM combos WHERE id = ?', [item.item_id]);
+    const [combos] = await pool.query('SELECT *, 1 as is_combo FROM combos WHERE id = ? AND area_id = ?', [item.item_id, areaId]);
     if (combos.length > 0) {
       details = combos[0];
       await resolveImageUrls([details]);
       await attachComboItems([details]);
     }
   } else if (item.item_type === 'offer') {
-    const [offers] = await pool.query('SELECT * FROM offers WHERE id = ?', [item.item_id]);
+    const [offers] = await pool.query('SELECT * FROM offers WHERE id = ? AND area_id = ?', [item.item_id, areaId]);
     if (offers.length > 0) {
       details = offers[0];
       await resolveImageUrls([details]);
@@ -845,11 +894,17 @@ const hydrateSectionItem = async (item) => {
  * Admin: GET /api/admin/dashboard-sections/:id
  */
 const getAdminSectionById = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id } = req.params;
   try {
+    // area_id in the WHERE, not just id: without this, an area_admin could
+    // read another area's section by guessing its (globally sequential)
+    // numeric id.
     const [sections] = await pool.query(
-      'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL',
-      [id]
+      'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL AND area_id = ?',
+      [id, areaId]
     );
     if (sections.length === 0) {
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Section not found' });
@@ -866,7 +921,7 @@ const getAdminSectionById = async (req, res) => {
     // 10+ awaited queries back-to-back, which is what made opening a section
     // feel like a multi-second freeze, worse still on a production DB where
     // each round-trip carries real network latency instead of localhost's ~0.
-    const hydratedItems = await Promise.all(items.map(hydrateSectionItem));
+    const hydratedItems = await Promise.all(items.map((item) => hydrateSectionItem(item, areaId)));
 
     res.status(200).json({ data: { ...section, items: hydratedItems } });
   } catch (error) {
@@ -878,13 +933,16 @@ const getAdminSectionById = async (req, res) => {
  * Admin: POST /api/admin/dashboard-sections
  */
 const createAdminSection = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at } = req.body;
 
   if (store_type === 'all' || !store_type) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be an explicit store mode slug for new sections. "all" is not allowed.' });
   }
 
-  const validationError = await validateSectionPayload(req.body);
+  const validationError = await validateSectionPayload(req.body, { areaId });
   if (validationError) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: validationError });
   }
@@ -893,8 +951,8 @@ const createAdminSection = async (req, res) => {
   try {
     const targetStoreType = store_type || 'all';
     const [existing] = await pool.query(
-      'SELECT id FROM dashboard_sections WHERE slug = ? AND store_type = ? AND deleted_at IS NULL LIMIT 1',
-      [slug, targetStoreType]
+      'SELECT id FROM dashboard_sections WHERE slug = ? AND store_type = ? AND deleted_at IS NULL AND area_id = ? LIMIT 1',
+      [slug, targetStoreType, areaId]
     );
     if (existing.length > 0) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Section slug "${slug}" already exists for this store mode.` });
@@ -903,8 +961,8 @@ const createAdminSection = async (req, res) => {
     const finalDisplayOrder = asNonNegativeInteger(display_order, 0);
     if (finalDisplayOrder > 0) {
       const [orderExisting] = await pool.query(
-        'SELECT title FROM dashboard_sections WHERE store_type = ? AND display_order = ? AND deleted_at IS NULL LIMIT 1',
-        [store_type, finalDisplayOrder]
+        'SELECT title FROM dashboard_sections WHERE store_type = ? AND display_order = ? AND deleted_at IS NULL AND area_id = ? LIMIT 1',
+        [store_type, finalDisplayOrder, areaId]
       );
       if (orderExisting.length > 0) {
         return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by "${orderExisting[0].title}".` });
@@ -913,12 +971,12 @@ const createAdminSection = async (req, res) => {
 
     const [result] = await pool.query(
       `INSERT INTO dashboard_sections (
-        title, slug, section_type, store_type, active, display_order,
+        area_id, title, slug, section_type, store_type, active, display_order,
         max_visible_items, show_see_all, show_hot_badge, section_icon,
         linked_category_id, linked_offer_id, starts_at, ends_at, version
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
       [
-        title, slug, section_type, store_type,
+        areaId, title, slug, section_type, store_type,
         active !== undefined ? active : 1,
         finalDisplayOrder,
         maxVisibleItems,
@@ -932,7 +990,7 @@ const createAdminSection = async (req, res) => {
       ]
     );
 
-    microCache.bust('dashboard');
+    await bustAreaCaches(areaId);
     res.status(201).json({ message: 'Dashboard section created', id: result.insertId });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
@@ -943,6 +1001,9 @@ const createAdminSection = async (req, res) => {
  * Admin: PATCH /api/admin/dashboard-sections/:id
  */
 const updateAdminSection = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id } = req.params;
   const { title, slug, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version } = req.body;
 
@@ -950,15 +1011,17 @@ const updateAdminSection = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Store type must be an explicit store mode slug. "all" is no longer allowed.' });
   }
 
-  const validationError = await validateSectionPayload(req.body, { partial: true });
+  const validationError = await validateSectionPayload(req.body, { partial: true, areaId });
   if (validationError) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: validationError });
   }
 
   try {
+    // area_id in the WHERE, not just id: without this, an area_admin could
+    // PATCH another area's section by guessing its numeric id.
     const [sections] = await pool.query(
-      'SELECT * FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL',
-      [id]
+      'SELECT * FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL AND area_id = ?',
+      [id, areaId]
     );
     if (sections.length === 0) {
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Section not found' });
@@ -975,8 +1038,8 @@ const updateAdminSection = async (req, res) => {
     const targetStoreType = store_type !== undefined ? store_type : existingSection.store_type;
     if (slug && (slug !== existingSection.slug || targetStoreType !== existingSection.store_type)) {
       const [existingSlug] = await pool.query(
-        'SELECT id FROM dashboard_sections WHERE slug = ? AND store_type = ? AND deleted_at IS NULL AND id != ? LIMIT 1',
-        [slug, targetStoreType, id]
+        'SELECT id FROM dashboard_sections WHERE slug = ? AND store_type = ? AND deleted_at IS NULL AND id != ? AND area_id = ? LIMIT 1',
+        [slug, targetStoreType, id, areaId]
       );
       if (existingSlug.length > 0) {
         return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Section slug "${slug}" already exists for this store mode.` });
@@ -987,8 +1050,8 @@ const updateAdminSection = async (req, res) => {
     if (finalDisplayOrder > 0) {
       const targetStoreType = store_type !== undefined ? store_type : existingSection.store_type;
       const [orderExisting] = await pool.query(
-        'SELECT title FROM dashboard_sections WHERE store_type = ? AND display_order = ? AND id != ? AND deleted_at IS NULL LIMIT 1',
-        [targetStoreType, finalDisplayOrder, id]
+        'SELECT title FROM dashboard_sections WHERE store_type = ? AND display_order = ? AND id != ? AND deleted_at IS NULL AND area_id = ? LIMIT 1',
+        [targetStoreType, finalDisplayOrder, id, areaId]
       );
       if (orderExisting.length > 0) {
         return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Display order ${finalDisplayOrder} is already used by "${orderExisting[0].title}".` });
@@ -1003,7 +1066,7 @@ const updateAdminSection = async (req, res) => {
         max_visible_items = ?, show_see_all = ?, show_hot_badge = ?, section_icon = ?,
         linked_category_id = ?, linked_offer_id = ?,
         starts_at = ?, ends_at = ?, version = ?
-       WHERE id = ?`,
+       WHERE id = ? AND area_id = ?`,
       [
         title !== undefined ? title : existingSection.title,
         slug !== undefined ? slug : existingSection.slug,
@@ -1019,11 +1082,11 @@ const updateAdminSection = async (req, res) => {
         starts_at !== undefined ? starts_at : existingSection.starts_at,
         ends_at !== undefined ? ends_at : existingSection.ends_at,
         nextVersion,
-        id
+        id, areaId
       ]
     );
 
-    microCache.bust('dashboard');
+    await bustAreaCaches(areaId);
     res.status(200).json({ message: 'Dashboard section updated', version: nextVersion });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
@@ -1034,11 +1097,14 @@ const updateAdminSection = async (req, res) => {
  * Admin: DELETE /api/admin/dashboard-sections/:id
  */
 const deleteAdminSection = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id } = req.params;
   try {
     const [existing] = await pool.query(
-      'SELECT id FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL LIMIT 1',
-      [id]
+      'SELECT id FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL AND area_id = ? LIMIT 1',
+      [id, areaId]
     );
     if (existing.length === 0) {
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Section not found' });
@@ -1048,15 +1114,15 @@ const deleteAdminSection = async (req, res) => {
     // so the category/product/offer they reference is no longer considered
     // "assigned to the mobile dashboard".
     await pool.query(
-      'UPDATE dashboard_sections SET deleted_at = NOW() WHERE id = ?',
-      [id]
+      'UPDATE dashboard_sections SET deleted_at = NOW() WHERE id = ? AND area_id = ?',
+      [id, areaId]
     );
     await pool.query(
       'UPDATE dashboard_section_items SET deleted_at = NOW() WHERE section_id = ? AND deleted_at IS NULL',
       [id]
     );
 
-    microCache.bust('dashboard');
+    await bustAreaCaches(areaId);
     res.status(200).json({ message: 'Dashboard section deleted' });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
@@ -1067,6 +1133,9 @@ const deleteAdminSection = async (req, res) => {
  * Admin: POST /api/admin/dashboard-sections/:id/items
  */
 const addAdminSectionItem = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id } = req.params;
   const { item_type, item_id, display_order, active, starts_at, ends_at } = req.body;
 
@@ -1086,8 +1155,8 @@ const addAdminSectionItem = async (req, res) => {
 
   try {
     const [sections] = await pool.query(
-      'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL',
-      [id]
+      'SELECT id, title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL AND area_id = ?',
+      [id, areaId]
     );
     if (sections.length === 0) {
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Section not found' });
@@ -1101,7 +1170,7 @@ const addAdminSectionItem = async (req, res) => {
       });
     }
 
-    const itemInfo = await getLinkedItemInfo(item_type, item_id);
+    const itemInfo = await getLinkedItemInfo(item_type, item_id, areaId);
     if (itemInfo.error) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: itemInfo.error });
     }
@@ -1133,18 +1202,19 @@ const addAdminSectionItem = async (req, res) => {
 
     const [result] = await pool.query(
       `INSERT INTO dashboard_section_items (
-        section_id, item_type, item_id, display_order, active, starts_at, ends_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        section_id, item_type, item_id, display_order, active, starts_at, ends_at, area_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, item_type, item_id,
         finalDisplayOrder,
         active !== undefined ? active : 1,
         starts_at || null,
-        ends_at || null
+        ends_at || null,
+        areaId
       ]
     );
 
-    microCache.bust('dashboard');
+    await bustAreaCaches(areaId);
 
     // Return the new item already hydrated with its product/category/combo/offer
     // details so the admin UI can append it locally instead of re-fetching (and
@@ -1164,7 +1234,7 @@ const addAdminSectionItem = async (req, res) => {
         active: active !== undefined ? active : 1,
         starts_at: starts_at || null,
         ends_at: ends_at || null
-      });
+      }, areaId);
     } catch (hydrateError) {
       console.error('[dashboard] hydrate after add failed for item', result.insertId, hydrateError.message);
     }
@@ -1179,6 +1249,9 @@ const addAdminSectionItem = async (req, res) => {
  * Admin: PATCH /api/admin/dashboard-sections/:id/items/:itemId
  */
 const updateAdminSectionItem = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id, itemId } = req.params;
   const { display_order, active, starts_at, ends_at } = req.body;
 
@@ -1193,9 +1266,16 @@ const updateAdminSectionItem = async (req, res) => {
   }
 
   try {
+    // dashboard_section_items has no area_id of its own (a child of
+    // dashboard_sections) — the JOIN's ds.area_id is the cross-tenant
+    // guard: without it, an area_admin could PATCH another area's section
+    // item by guessing its (globally sequential) numeric id + section id.
     const [items] = await pool.query(
-      'SELECT id, section_id, item_type, item_id, display_order, active, starts_at, ends_at, created_at, updated_at FROM dashboard_section_items WHERE id = ? AND section_id = ? AND deleted_at IS NULL',
-      [itemId, id]
+      `SELECT dsi.id, dsi.section_id, dsi.item_type, dsi.item_id, dsi.display_order, dsi.active, dsi.starts_at, dsi.ends_at, dsi.created_at, dsi.updated_at
+       FROM dashboard_section_items dsi
+       JOIN dashboard_sections ds ON ds.id = dsi.section_id
+       WHERE dsi.id = ? AND dsi.section_id = ? AND dsi.deleted_at IS NULL AND ds.area_id = ?`,
+      [itemId, id, areaId]
     );
     if (items.length === 0) {
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Section item not found' });
@@ -1227,7 +1307,7 @@ const updateAdminSectionItem = async (req, res) => {
       ]
     );
 
-    microCache.bust('dashboard');
+    await bustAreaCaches(areaId);
     res.status(200).json({ message: 'Section item updated' });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
@@ -1238,11 +1318,18 @@ const updateAdminSectionItem = async (req, res) => {
  * Admin: DELETE /api/admin/dashboard-sections/:id/items/:itemId
  */
 const deleteAdminSectionItem = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id, itemId } = req.params;
   try {
     const [items] = await pool.query(
-      'SELECT id FROM dashboard_section_items WHERE id = ? AND section_id = ? AND deleted_at IS NULL LIMIT 1',
-      [itemId, id]
+      `SELECT dsi.id
+       FROM dashboard_section_items dsi
+       JOIN dashboard_sections ds ON ds.id = dsi.section_id
+       WHERE dsi.id = ? AND dsi.section_id = ? AND dsi.deleted_at IS NULL AND ds.area_id = ?
+       LIMIT 1`,
+      [itemId, id, areaId]
     );
     if (items.length === 0) {
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Section item not found' });
@@ -1252,7 +1339,7 @@ const deleteAdminSectionItem = async (req, res) => {
       'UPDATE dashboard_section_items SET deleted_at = NOW() WHERE id = ?',
       [itemId]
     );
-    microCache.bust('dashboard');
+    await bustAreaCaches(areaId);
     res.status(200).json({ message: 'Section item removed' });
   } catch (error) {
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
@@ -1263,29 +1350,27 @@ const deleteAdminSectionItem = async (req, res) => {
  * Admin: PATCH /api/admin/dashboard-sections/reorder
  */
 const reorderAdminSections = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { sectionIds } = req.body;
   if (!Array.isArray(sectionIds)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'sectionIds array is required' });
   }
 
-  const connection = await pool.getConnection();
-  await connection.beginTransaction();
-
   try {
-    for (let i = 0; i < sectionIds.length; i++) {
-      const sectionId = sectionIds[i];
-      await connection.query(
-        'UPDATE dashboard_sections SET display_order = ? WHERE id = ? AND deleted_at IS NULL',
-        [i, sectionId]
-      );
-    }
-    await connection.commit();
-    connection.release();
-    microCache.bust('dashboard');
+    // One statement, so no transaction to wrap it (and no BEGIN/COMMIT round
+    // trips). area_id in the WHERE: without it, a section id belonging to
+    // another area could have its display_order silently rewritten.
+    await reorderDisplayOrder(pool, {
+      table: 'dashboard_sections',
+      ids: sectionIds,
+      where: ' AND deleted_at IS NULL AND area_id = ?',
+      whereParams: [areaId],
+    });
+    await bustAreaCaches(areaId);
     res.status(200).json({ message: 'Sections reordered successfully' });
   } catch (error) {
-    await connection.rollback();
-    connection.release();
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
   }
 };
@@ -1294,30 +1379,36 @@ const reorderAdminSections = async (req, res) => {
  * Admin: PATCH /api/admin/dashboard-sections/:id/items/reorder
  */
 const reorderAdminSectionItems = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id } = req.params;
   const { itemIds } = req.body;
   if (!Array.isArray(itemIds)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'itemIds array is required' });
   }
 
-  const connection = await pool.getConnection();
-  await connection.beginTransaction();
+  // dashboard_section_items has no area_id of its own — verify the parent
+  // section belongs to the caller's area once, up front, so an area_admin
+  // can't reorder another area's section's items by guessing its id.
+  const [sections] = await pool.query(
+    'SELECT id FROM dashboard_sections WHERE id = ? AND deleted_at IS NULL AND area_id = ? LIMIT 1',
+    [id, areaId]
+  );
+  if (sections.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Section not found' });
+  }
 
   try {
-    for (let i = 0; i < itemIds.length; i++) {
-      const itemId = itemIds[i];
-      await connection.query(
-        'UPDATE dashboard_section_items SET display_order = ? WHERE id = ? AND section_id = ? AND deleted_at IS NULL',
-        [i, itemId, id]
-      );
-    }
-    await connection.commit();
-    connection.release();
-    microCache.bust('dashboard');
+    await reorderDisplayOrder(pool, {
+      table: 'dashboard_section_items',
+      ids: itemIds,
+      where: ' AND section_id = ? AND deleted_at IS NULL',
+      whereParams: [id],
+    });
+    await bustAreaCaches(areaId);
     res.status(200).json({ message: 'Section items reordered successfully' });
   } catch (error) {
-    await connection.rollback();
-    connection.release();
     res.status(500).json({ code: 'SERVER_ERROR', message: error.message });
   }
 };

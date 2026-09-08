@@ -74,6 +74,10 @@ const shapeItemRow = (it, shopName = it.shop_name || null) => ({
   unit_price: it.unit_price,
   lineTotal: it.line_total,
   line_total: it.line_total,
+  // A shop's reject/confirm is all-or-nothing per shop (shopOrderActions),
+  // so these mirror straight off this item's own timestamps.
+  accepted: Boolean(it.shop_confirmed_at),
+  rejected: Boolean(it.shop_rejected_at),
 });
 
 /**
@@ -93,7 +97,8 @@ const loadAssignmentExtrasBatch = async (orderRows) => {
     [orderIds]
   );
   const [itemRows] = await pool.query(
-    `SELECT id, order_id, product_name, quantity, variant_label, shop_id, unit_price, line_total
+    `SELECT id, order_id, product_name, quantity, variant_label, shop_id, unit_price, line_total,
+            shop_confirmed_at, shop_rejected_at
      FROM order_items WHERE order_id IN (?)`,
     [orderIds]
   );
@@ -106,14 +111,51 @@ const loadAssignmentExtrasBatch = async (orderRows) => {
     shopNameById.set(row.id, row.name);
   }
   const itemsByOrder = new Map();
+  // Per order, per shop: the shaped items plus the raw decision timestamps
+  // needed to roll a shop-level accepted/rejected/pending status up from
+  // its (all-or-nothing) items — mirrors adminController's shopConfirmations
+  // logic, but scoped to what the rider view needs (status + item list).
+  const shopEntriesByOrder = new Map();
   for (const row of itemRows) {
     if (!itemsByOrder.has(row.order_id)) itemsByOrder.set(row.order_id, []);
-    itemsByOrder.get(row.order_id).push(shapeItemRow(row, shopNameById.get(row.shop_id) || null));
+    const shapedItem = shapeItemRow(row, shopNameById.get(row.shop_id) || null);
+    itemsByOrder.get(row.order_id).push(shapedItem);
+
+    if (row.shop_id != null) {
+      if (!shopEntriesByOrder.has(row.order_id)) shopEntriesByOrder.set(row.order_id, new Map());
+      const byShop = shopEntriesByOrder.get(row.order_id);
+      if (!byShop.has(row.shop_id)) byShop.set(row.shop_id, []);
+      byShop.get(row.shop_id).push({
+        item: shapedItem,
+        confirmed: row.shop_confirmed_at != null,
+        rejected: row.shop_rejected_at != null,
+      });
+    }
   }
 
   return orderRows.map((orderRow) => {
     const order = shapeOrderSummary(orderRow);
-    order.shops = shopsByOrder.get(orderRow.id) || [];
+    const shopPins = shopsByOrder.get(orderRow.id) || [];
+    const byShop = shopEntriesByOrder.get(orderRow.id) || new Map();
+    // Shop pins carry a status ('accepted' | 'rejected' | 'pending') and
+    // their own item list, so the rider app can render "Shop A accepted: 2
+    // items, Shop B rejected: 1 item" without a second lookup — this is the
+    // breakdown a rider sees once shops make mixed decisions on a
+    // multi-shop order (maybeStartRiderAssignment now offers the order as
+    // soon as at least one shop confirms, instead of requiring all of them).
+    order.shops = shopPins.map((shop) => {
+      const entries = byShop.get(shop.id) || [];
+      const accepted = entries.length > 0 && entries.every((e) => e.confirmed);
+      const rejected = entries.length > 0 && entries.every((e) => e.rejected);
+      const status = rejected ? 'rejected' : (accepted ? 'accepted' : 'pending');
+      return {
+        ...shop,
+        status,
+        accepted,
+        rejected,
+        items: entries.map((e) => e.item),
+      };
+    });
     order.items = itemsByOrder.get(orderRow.id) || [];
     return order;
   });
@@ -237,21 +279,21 @@ const setOnline = async (req, res) => {
   }
 
   const [rows] = await pool.query(
-    `SELECT id, user_id, display_name, phone, active, is_online
+    `SELECT id, user_id, area_id, display_name, phone, active, is_online
      FROM riders WHERE id = ?`,
     [req.rider.id]
   );
   req.rider = rows[0];
 
   // Fire-and-await so the response reflects the new delivery gate; never throws.
-  await syncDeliveryAvailabilityFromRiders();
+  await syncDeliveryAvailabilityFromRiders(req.rider.area_id);
 
   const rider = riderShape(req.rider);
 
   // Realtime fan-out so admin Riders page updates without refresh.
   try {
     const { emitToAdmins } = require('../realtime/socket');
-    emitToAdmins('admin.rider.updated', {
+    emitToAdmins(req.rider.area_id, 'admin.rider.updated', {
       ...rider,
       reason: raw ? 'online' : 'offline',
     });
@@ -335,26 +377,46 @@ const getActiveOffer = async (req, res) => {
     return res.status(200).json({ offer: null, offers: [] });
   }
 
-  const offers = [];
-  for (const row of rows) {
-    const offer = shapeOffer(row);
-    const [shops] = await pool.query(
-      `SELECT DISTINCT s.id, s.name
+  // Two batched reads for the whole queue, run together, instead of two
+  // sequential queries PER offer. This endpoint is polled by every online
+  // rider, and MySQL is a cross-region hop (~94ms), so the old 2N+1 shape
+  // cost ~470ms for a 2-offer queue where this costs ~190ms for any queue.
+  const orderIds = rows.map((row) => row.order_id);
+  const [[shopRows], [itemRows]] = await Promise.all([
+    pool.query(
+      `SELECT DISTINCT oi.order_id, s.id, s.name
        FROM order_items oi
        JOIN shops s ON s.id = oi.shop_id
-       WHERE oi.order_id = ? AND oi.shop_id IS NOT NULL`,
-      [row.order_id]
-    );
-    offer.shops = shops;
-    const shopNameById = new Map(shops.map((s) => [s.id, s.name]));
-    const [items] = await pool.query(
-      `SELECT id, product_name, quantity, variant_label, shop_id, unit_price, line_total
-       FROM order_items WHERE order_id = ?`,
-      [row.order_id]
-    );
-    offer.items = items.map((it) => shapeItemRow(it, shopNameById.get(it.shop_id) || null));
-    offers.push(offer);
+       WHERE oi.order_id IN (?) AND oi.shop_id IS NOT NULL`,
+      [orderIds]
+    ),
+    pool.query(
+      `SELECT order_id, id, product_name, quantity, variant_label, shop_id, unit_price, line_total
+       FROM order_items WHERE order_id IN (?)`,
+      [orderIds]
+    ),
+  ]);
+
+  const shopsByOrder = new Map();
+  for (const row of shopRows) {
+    if (!shopsByOrder.has(row.order_id)) shopsByOrder.set(row.order_id, []);
+    shopsByOrder.get(row.order_id).push({ id: row.id, name: row.name });
   }
+  const itemsByOrder = new Map();
+  for (const row of itemRows) {
+    if (!itemsByOrder.has(row.order_id)) itemsByOrder.set(row.order_id, []);
+    itemsByOrder.get(row.order_id).push(row);
+  }
+
+  const offers = rows.map((row) => {
+    const offer = shapeOffer(row);
+    const shops = shopsByOrder.get(row.order_id) || [];
+    offer.shops = shops;
+    const shopNameById = new Map(shops.map((sh) => [sh.id, sh.name]));
+    offer.items = (itemsByOrder.get(row.order_id) || [])
+      .map((it) => shapeItemRow(it, shopNameById.get(it.shop_id) || null));
+    return offer;
+  });
 
   res.status(200).json({
     offer: offers[0] || null,
@@ -531,7 +593,7 @@ const markPickedUp = async (req, res) => {
         orderId, status: 'picked_up', riderId: req.rider.id, order: summary,
       });
     }
-    emitToAdmins('admin.order.rider_updated', {
+    emitToAdmins(updated.area_id, 'admin.order.rider_updated', {
       orderId, status: 'picked_up', riderId: req.rider.id,
     });
   } catch (_) { /* best-effort */ }
@@ -639,7 +701,7 @@ const updateAssignmentStatus = async (req, res) => {
         orderId, status, riderId: req.rider.id, order: summary,
       });
     }
-    emitToAdmins('admin.order.rider_updated', {
+    emitToAdmins(updated.area_id, 'admin.order.rider_updated', {
       orderId, status, riderId: req.rider.id,
     });
   } catch (_) { /* best-effort */ }
@@ -706,7 +768,7 @@ const markPaid = async (req, res) => {
         orderId, status: updated.status, riderId: req.rider.id, order: summary,
       });
     }
-    emitToAdmins('admin.order.rider_updated', {
+    emitToAdmins(updated.area_id, 'admin.order.rider_updated', {
       orderId, status: updated.status, riderId: req.rider.id,
     });
   } catch (_) { /* best-effort */ }

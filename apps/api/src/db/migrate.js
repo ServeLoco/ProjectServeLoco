@@ -1,4 +1,5 @@
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcrypt');
 const config = require('../config/env');
 const { getMysqlSslOptions } = require('./mysqlSsl');
 
@@ -95,6 +96,38 @@ const migrate = async () => {
 
       if (columns.length === 0) {
         await connection.query(`ALTER TABLE ${tableName} ADD COLUMN ${columnDefinition}`);
+      }
+    };
+
+    // Several seed/cleanup blocks below run on EVERY boot but predate the
+    // multi-area work at the bottom of this file, which makes `area_id` NOT
+    // NULL (no default) on the tables they write. Those blocks sit ABOVE the
+    // block that adds the column, so on a fresh database it genuinely isn't
+    // there yet, while on any already-migrated database it is and is
+    // mandatory. Probe per table rather than assuming either shape: without
+    // it a plain INSERT throws ER_NO_DEFAULT_FOR_FIELD and takes the whole
+    // migrate step (and, via "migrate.js && node src/server.js", the boot)
+    // down, and an INSERT IGNORE silently writes nothing at all.
+    const areaIdColumnCache = new Map();
+    const hasAreaIdColumn = async (tableName) => {
+      if (areaIdColumnCache.has(tableName)) return areaIdColumnCache.get(tableName);
+      const [rows] = await connection.query(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = 'area_id'
+      `, [config.MYSQL_DATABASE, tableName]);
+      const present = rows.length > 0;
+      areaIdColumnCache.set(tableName, present);
+      return present;
+    };
+
+    const ensureUniqueIndex = async (tableName, indexName, columns) => {
+      const [rows] = await connection.query(
+        `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ? LIMIT 1`,
+        [config.MYSQL_DATABASE, tableName, indexName]
+      );
+      if (rows.length === 0) {
+        await connection.query(`ALTER TABLE ${tableName} ADD UNIQUE INDEX ${indexName} (${columns})`);
       }
     };
 
@@ -202,6 +235,14 @@ const migrate = async () => {
     await ensureColumn('riders', 'last_lat', 'last_lat DECIMAL(10,7) NULL AFTER last_heartbeat_at');
     await ensureColumn('riders', 'last_lng', 'last_lng DECIMAL(10,7) NULL AFTER last_lat');
     await ensureColumn('riders', 'last_location_at', 'last_location_at TIMESTAMP NULL DEFAULT NULL AFTER last_lng');
+    // Per-rider concurrent-delivery cap, admin-editable (Riders page). Replaces
+    // the old area-wide onlineRiders*rider_capacity_multiplier estimate for
+    // the checkout capacity gate — some riders can only manage 1 at a time,
+    // others 2+, so the area's true capacity is the SUM of these, not a guess
+    // multiplied off a headcount. Also the per-rider ceiling listEligibleRiders
+    // enforces before offering a new order (previously a single global
+    // RIDER_MAX_ACTIVE_ORDERS constant for every rider).
+    await ensureColumn('riders', 'max_active_orders', 'max_active_orders INT NOT NULL DEFAULT 2 AFTER is_online');
 
     // Mobile Admins — phones the owner grants Admin Mode to in the phone app.
     // Same Firebase OTP login as customers; user_id backfills on first login
@@ -288,6 +329,10 @@ const migrate = async () => {
       await connection.query('ALTER TABLE categories ADD COLUMN display_order INT NOT NULL DEFAULT 0 AFTER active');
     }
     await ensureColumn('categories', 'deleted', 'deleted BOOLEAN DEFAULT FALSE AFTER display_order');
+    // Library linkage (TASK 21, §2.7) — NULL means "local-only category",
+    // fully editable, exactly as today. No FK, same rationale as
+    // products.library_product_id.
+    await ensureColumn('categories', 'library_category_id', 'library_category_id INT NULL');
     console.log('Categories table ready.');
 
     // Store Modes Table — admin-configurable list of store "modes" (formerly
@@ -319,7 +364,44 @@ const migrate = async () => {
     // Which mode the customer app opens into on cold start. Only one row may
     // be TRUE at a time — enforced in the controller, not a DB constraint.
     await ensureColumn('store_modes', 'is_default', 'is_default BOOLEAN NOT NULL DEFAULT FALSE AFTER icon_image_id');
+    // Library linkage (TASK 21, §2.7) — NULL means "local-only store mode",
+    // exactly as today. No FK, same rationale as products.library_product_id.
+    await ensureColumn('store_modes', 'library_store_mode_id', 'library_store_mode_id INT NULL');
     console.log('Store modes table ready.');
+
+    // Category library (TASK 21, §2.7) — same identity-vs-placement split as
+    // the product library (§2.5): name/slug/type/icon are authored once and
+    // shared; active/display_order/which products land in it stay per-area.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS category_library (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) NOT NULL UNIQUE,
+        type VARCHAR(50) NOT NULL,
+        image_id VARCHAR(255) NULL,
+        archived BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Category library table ready.');
+
+    // Store mode library (TASK 21, §2.7) — packed/fast_food today are
+    // already is_system rows seeded per area (TASK 11); this is the global
+    // identity they (and any future custom mode) can optionally link back to.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS store_mode_library (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        slug VARCHAR(50) NOT NULL UNIQUE,
+        label VARCHAR(100) NOT NULL,
+        icon_image_id INT NULL,
+        is_system BOOLEAN NOT NULL DEFAULT FALSE,
+        archived BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Store mode library table ready.');
 
     // Products Table
     await connection.query(`
@@ -366,6 +448,11 @@ const migrate = async () => {
     // as "—" in admin), deliberately distinct from 0.00 which means the shop
     // supplies the item free. Commission = price - shop_price, always derived.
     await ensureColumn('products', 'shop_price', 'shop_price DECIMAL(10, 2) NULL AFTER price');
+    // Library linkage (TASK 18, §2.5) — NULL means "local-only product",
+    // exactly as today. No FK: product_library is a brand new, still-empty
+    // table at migration time, and every other cross-domain FK-less column
+    // on this table (shop_id, group_id) already sets that precedent.
+    await ensureColumn('products', 'library_product_id', 'library_product_id INT NULL');
     console.log('Products table ready.');
 
     // Product Variants Table — purchasable child rows (sizes/types) of a
@@ -394,7 +481,53 @@ const migrate = async () => {
     // products.shop_price, which mirrors the DEFAULT variant's value (see
     // syncProductVariants) exactly like products.price already does.
     await ensureColumn('product_variants', 'shop_price', 'shop_price DECIMAL(10, 2) NULL AFTER price');
+    // Library linkage (TASK 18, §2.5) — NULL means this variant belongs to a
+    // local-only product, or was added directly in an area and never synced
+    // to a library variant. No FK, same reasoning as products.library_product_id.
+    await ensureColumn('product_variants', 'library_variant_id', 'library_variant_id INT NULL');
     console.log('Product variants table ready.');
+
+    // Product library (TASK 18, §2.5) — global identity (name/description/
+    // image/unit/variant labels) shared across every area; price/availability/
+    // category/shop placement stay per-area on `products`/`product_variants`
+    // (materializeToArea, TASK 19). No auto-promotion of existing products —
+    // this table starts empty (18.8).
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_library (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        image_id VARCHAR(255) NULL,
+        unit_id INT NULL,
+        variant_prompt VARCHAR(100) NULL,
+        default_store_type VARCHAR(50) NULL,
+        default_category_slug VARCHAR(100) NULL,
+        suggested_price DECIMAL(10, 2) NULL,
+        status ENUM('draft', 'published') NOT NULL DEFAULT 'draft',
+        archived BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Product library table ready.');
+
+    // Library variant labels (e.g. "500g" / "1kg") — global, mirrored into a
+    // real product_variants row per area on materialization, same identity-
+    // vs-commerce split as the parent table.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS library_variants (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        library_product_id INT NOT NULL,
+        label VARCHAR(100) NOT NULL,
+        display_order INT NOT NULL DEFAULT 0,
+        is_default BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (library_product_id) REFERENCES product_library(id) ON DELETE CASCADE,
+        INDEX idx_library_variant_product (library_product_id)
+      );
+    `);
+    console.log('Library variants table ready.');
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS product_combo_items (
@@ -456,10 +589,19 @@ const migrate = async () => {
     `);
     console.log('Combo items table ready.');
 
-    // Data Migration for Combos
+    // Data Migration for Combos. Runs on every boot (INSERT IGNORE makes it a
+    // no-op once every is_combo product has its combos row) — but `combos`
+    // gains a NOT NULL area_id further down this file, and without carrying it
+    // here INSERT IGNORE would swallow the failure and silently migrate
+    // nothing on any already-migrated database.
+    const combosHaveAreaId = await hasAreaIdColumn('combos');
+    const comboAreaCol = combosHaveAreaId ? ', area_id' : '';
+    const comboAreaSelect = combosHaveAreaId
+      ? ((await hasAreaIdColumn('products')) ? ', area_id' : ', 1')
+      : '';
     await connection.query(`
-      INSERT IGNORE INTO combos (id, name, description, price, original_price, unit, image_id, available, featured, display_order, discount_label, deleted, created_at, updated_at)
-      SELECT id, name, description, price, original_price, unit, image_id, available, featured, display_order, discount_label, deleted, created_at, updated_at
+      INSERT IGNORE INTO combos (id, name, description, price, original_price, unit, image_id, available, featured, display_order, discount_label, deleted, created_at, updated_at${comboAreaCol})
+      SELECT id, name, description, price, original_price, unit, image_id, available, featured, display_order, discount_label, deleted, created_at, updated_at${comboAreaSelect}
       FROM products
       WHERE is_combo = 1
     `);
@@ -476,7 +618,7 @@ const migrate = async () => {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        order_number VARCHAR(20) NOT NULL UNIQUE,
+        order_number VARCHAR(40) NOT NULL UNIQUE,
         customer_id INT NOT NULL,
         customer_name VARCHAR(255) NOT NULL,
         phone VARCHAR(20) NOT NULL,
@@ -553,6 +695,16 @@ const migrate = async () => {
     // zone rows (zones are hard-deleted).
     await ensureColumn('orders', 'delivery_zone_id', 'delivery_zone_id INT NULL AFTER free_delivery_offer_snapshot');
     await ensureColumn('orders', 'delivery_eta_minutes_snapshot', 'delivery_eta_minutes_snapshot INT NULL AFTER delivery_zone_id');
+    // Stamped exactly when status first leaves Pending (auto-accept or admin
+    // accept). Clock start for the shop-owner response window (shopAlertSweeper)
+    // — created_at is too early, it includes the up-to-2-minute auto-accept
+    // wait itself, which would eat into the shop's response budget.
+    await ensureColumn('orders', 'accepted_at', 'accepted_at TIMESTAMP NULL DEFAULT NULL AFTER rider_search_started_at');
+    // Backfill for rows that left Pending before this column existed — every
+    // run, cheap no-op once caught up (WHERE only matches unbackfilled rows).
+    await connection.query(
+      "UPDATE orders SET accepted_at = created_at WHERE accepted_at IS NULL AND status != 'Pending'"
+    );
 
     // Performance indexes for common order filter queries
     const ensureIndex = async (tableName, indexName, columns) => {
@@ -598,8 +750,162 @@ const migrate = async () => {
     await ensureIndex('products', 'idx_products_deleted_available_category', 'deleted, available, category_id');
     await ensureIndex('products', 'idx_products_shop', 'shop_id');
     await ensureIndex('products', 'idx_products_group', 'group_id');
-    // Dashboard section item lookups by section + type + active.
-    await ensureIndex('dashboard_section_items', 'idx_dsi_section_type_active', 'section_id, item_type, active');
+    // Library propagation fan-out (TASK 18/19, §3.3): materializeToArea and
+    // library edits both look up "every products row for this library item".
+    await ensureIndex('products', 'idx_products_library_product', 'library_product_id');
+    await ensureIndex('product_variants', 'idx_product_variants_library_variant', 'library_variant_id');
+    // Category + store-mode library propagation fan-out (TASK 21, §2.7) —
+    // same shape as the product library indexes just above.
+    await ensureIndex('categories', 'idx_categories_library_category', 'library_category_id');
+    await ensureIndex('store_modes', 'idx_store_modes_library_store_mode', 'library_store_mode_id');
+
+    // Search must stop being a full table scan (TASK 22, §3.11) — a leading
+    // '%term%' LIKE cannot use any index. FULLTEXT on both the per-area
+    // products table (customer/admin search, area-scoped) and the global
+    // library (admin "find a product to add" search, one index instead of
+    // N per-area copies).
+    const ensureFulltextIndex = async (tableName, indexName, columns) => {
+      const [rows] = await connection.query(
+        `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ? LIMIT 1`,
+        [config.MYSQL_DATABASE, tableName, indexName]
+      );
+      if (rows.length === 0) {
+        // ALGORITHM=INPLACE, LOCK=SHARED explicit (multi-area audit finding
+        // #17). LOCK=SHARED — not LOCK=NONE — is deliberate and is the
+        // strictest MySQL actually permits here: InnoDB refuses fulltext
+        // index creation with LOCK=NONE outright ("Fulltext index creation
+        // requires a lock", ER_ALTER_OPERATION_NOT_SUPPORTED_REASON), so
+        // asking for NONE fails the whole migration rather than degrading.
+        // SHARED keeps the table READABLE for the duration (customers keep
+        // browsing) and blocks only writes, where the COPY fallback would
+        // block both. Naming both explicitly makes the migration fail loudly
+        // if a server can't honor them, instead of silently falling back to
+        // a fully-blocking COPY rebuild.
+        await connection.query(`ALTER TABLE ${tableName} ADD FULLTEXT INDEX ${indexName} (${columns}), ALGORITHM=INPLACE, LOCK=SHARED`);
+      }
+    };
+    await ensureFulltextIndex('products', 'ft_products_name', 'name');
+    await ensureFulltextIndex('product_library', 'ft_product_library_name', 'name');
+
+    // Units lookup (TASK 22.5, §2.7) — product_library.unit_id points at
+    // this; products.unit keeps its own free-text column and value
+    // unchanged (22.6, no response shape change) — this table is additive,
+    // not a rewrite of the existing per-product column. No FK from
+    // product_library.unit_id, same rationale as every other library
+    // linkage column in this codebase (shop_id, group_id,
+    // library_product_id, ...) — deletion policy stays in application code.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS units (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(50) NOT NULL UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    // Small, one-shot backfill: distinct existing products.unit strings, not
+    // a per-row migration — realistically tens of values, not thousands.
+    await connection.query(`
+      INSERT IGNORE INTO units (name)
+      SELECT DISTINCT TRIM(unit) FROM products WHERE unit IS NOT NULL AND TRIM(unit) != ''
+    `);
+    console.log('Units table ready.');
+
+    // Auto-sync existing products into the library — runs on every boot so a
+    // fresh deploy/environment never needs scripts/backfillProductLibrary.js
+    // run by hand; that script stays for one-off manual runs, this is the
+    // automatic counterpart. Combos excluded (bundles, not library items).
+    // Idempotent and safe to re-run: only ever touches
+    // products.library_product_id IS NULL, and promoteToLibrary itself
+    // rejects an already-linked product. Same batched-cursor shape as
+    // backfillImageHashes above — a product that fails to promote (bad data)
+    // is skipped via the id > ? cursor rather than looping on it forever.
+    const backfillProductLibrary = async () => {
+      const { promoteToLibrary } = require('../utils/productLibrary');
+      const BATCH_SIZE = 25;
+      let done = 0;
+      let failed = 0;
+      let afterId = 0;
+      for (;;) {
+        const [rows] = await connection.query(
+          `SELECT id FROM products
+           WHERE deleted = 0 AND is_combo = 0 AND library_product_id IS NULL AND id > ?
+           ORDER BY id ASC
+           LIMIT ${BATCH_SIZE}`,
+          [afterId]
+        );
+        if (rows.length === 0) break;
+
+        for (const row of rows) {
+          try {
+            await connection.beginTransaction();
+            await promoteToLibrary(connection, row.id);
+            await connection.commit();
+            done += 1;
+          } catch (e) {
+            await connection.rollback();
+            failed += 1;
+            console.error(`[migrate] could not promote product id=${row.id} to library:`, e.message);
+          }
+          afterId = row.id;
+        }
+      }
+      if (done > 0 || failed > 0) {
+        console.log(`[migrate] product library backfill: ${done} promoted, ${failed} failed`);
+      }
+    };
+    await backfillProductLibrary();
+
+    // Repair pass for library rows promoted before promoteToLibrary learned to
+    // resolve products.unit into units.id. Those rows carry unit_id NULL, and
+    // propagateLibraryEdit used to push that NULL back out as
+    // `products.unit = NULL` on the first library edit of any kind — wiping a
+    // real, customer-visible value ("500ml", "1kg") in every area at once.
+    // propagateLibraryEdit no longer writes `unit` at all when unit_id is
+    // NULL, so nothing is being lost any more; this restores the link so the
+    // unit actually propagates the way it should. Cheap no-op once caught up
+    // (the WHERE only matches unrepaired rows), and it never overwrites a
+    // unit_id an admin has already set.
+    const [unitRepairResult] = await connection.query(`
+      UPDATE product_library pl
+      JOIN (
+        SELECT p.library_product_id AS lib_id, MIN(u.id) AS unit_id
+        FROM products p
+        JOIN units u ON u.name = TRIM(p.unit)
+        WHERE p.library_product_id IS NOT NULL AND p.deleted = 0
+          AND p.unit IS NOT NULL AND TRIM(p.unit) != ''
+        GROUP BY p.library_product_id
+      ) src ON src.lib_id = pl.id
+      SET pl.unit_id = src.unit_id
+      WHERE pl.unit_id IS NULL
+    `);
+    if (unitRepairResult.affectedRows > 0) {
+      console.log(`[migrate] product_library unit_id backfill: ${unitRepairResult.affectedRows} row(s) relinked.`);
+    }
+
+    // ---- TASK 24 — platform_flags singleton + areas_sweep_complete gate --
+    // Same singleton-row-by-convention shape as admin_auth_state (id=1).
+    // areas_sweep_complete blocks POST /admin/areas with 409 until TASK 30's
+    // cross-area isolation E2E passes and explicitly flips it (§6.6) — this
+    // task only reads it, nothing here ever sets it to 1.
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS platform_flags (
+        id INT PRIMARY KEY DEFAULT 1,
+        areas_sweep_complete TINYINT(1) NOT NULL DEFAULT 0
+      );
+    `);
+    await connection.query(`
+      INSERT IGNORE INTO platform_flags (id, areas_sweep_complete) VALUES (1, 0)
+    `);
+    console.log('Platform flags table ready.');
+
+    // NOTE: dashboard_section_items' own index is NOT here — that table is
+    // created much further down this file, so indexing it at this point
+    // fails outright on a fresh database (ER_NO_SUCH_TABLE). It now lives
+    // immediately after its CREATE TABLE instead. Pre-existing bug, not
+    // introduced by the multi-area work: it only ever reproduced on a brand
+    // new database (a first-time local setup or a fresh environment), since
+    // any already-migrated database — including production — already had the
+    // table by the time this line ran.
     await ensureIndex('orders', 'idx_orders_rider', 'rider_id, status');
     // Rider-sweeper recover scan (every ~5s): orders stuck 'searching'/'offered'
     // with no rider. Leading on rider_assignment_status because those two values
@@ -657,6 +963,17 @@ const migrate = async () => {
     // shop owner pressed Ready. Only valid after shop_confirmed_at is set.
     // Informational for the admin — does NOT gate order status.
     await ensureColumn('order_items', 'shop_ready_at', 'shop_ready_at TIMESTAMP NULL DEFAULT NULL AFTER shop_rejected_at');
+    // Weak-network alert reliability (shopAlertSweeper): when this shop's
+    // items were last (re)pushed to the owner, and how many attempts so far.
+    // NULL last_notified_at = never pushed since notifyShopsForOrder's initial
+    // fan-out landed a write here too, so the sweeper's throttle sees it.
+    await ensureColumn('order_items', 'shop_last_notified_at', 'shop_last_notified_at TIMESTAMP NULL DEFAULT NULL AFTER shop_ready_at');
+    await ensureColumn('order_items', 'shop_notify_count', 'shop_notify_count INT NOT NULL DEFAULT 0 AFTER shop_last_notified_at');
+    // Set when the shop app confirms it actually displayed the alarm
+    // (POST /shop/orders/:id/alert-ack) — proof the push reached the device,
+    // as opposed to the owner just being slow to act on it. Lets the sweeper
+    // ease off reminder frequency once it knows the phone is aware.
+    await ensureColumn('order_items', 'shop_alert_acked_at', 'shop_alert_acked_at TIMESTAMP NULL DEFAULT NULL AFTER shop_notify_count');
     const [orderItemProductFks] = await connection.query(`
       SELECT CONSTRAINT_NAME
       FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
@@ -698,6 +1015,71 @@ const migrate = async () => {
       );
     `);
     console.log('Rider order offers table ready.');
+
+    // --- One pending offer per order AND per rider, enforced by the DB ------
+    //
+    // createOffer used to guarantee "one pending offer per order" in app code
+    // with a `SELECT id FROM rider_order_offers WHERE order_id = ? AND
+    // status = 'pending' FOR UPDATE`. That SELECT matches no rows on a fresh
+    // order, so InnoDB takes an X gap lock on the SUPREMUM record of
+    // uq_offer_order_rider — and since a new order_id always sorts past the
+    // current max, every concurrent dispatch locks that same gap and then
+    // needs an insert-intention lock inside it for its own INSERT. That is a
+    // deadlock cycle: a 40-order / 12-rider burst lost 38 of 40 dispatches to
+    // ER_LOCK_DEADLOCK (scripts/riderDispatchLoadTest.js).
+    //
+    // These generated columns are NULL for every non-pending row (and MySQL
+    // unique keys ignore NULLs), so the two rules become plain unique keys
+    // the INSERT itself enforces. VIRTUAL, not STORED: a stored generated
+    // column forces an ALGORITHM=COPY table rebuild, which both fails with
+    // ER_CANNOT_ADD_FOREIGN (1215) on this FK-carrying table and would lock
+    // the live Area 1 offers table for the length of the copy. Virtual
+    // columns add INPLACE and the unique index materialises the value. The gap-locking pre-SELECT is gone, and the
+    // rider rule also closes the double-book race: listEligibleRiders' "no
+    // pending offer" filter was read outside any lock, so two dispatches in
+    // the same tick could both offer the same rider.
+    //
+    // Existing rows must satisfy the new keys before they can be added: keep
+    // the newest pending offer in each group and cancel the rest. Orders left
+    // without a pending offer are picked back up by recoverStuckAssignments
+    // on the next sweeper tick, so nothing is stranded.
+    await connection.query(`
+      UPDATE rider_order_offers o
+      JOIN (
+        SELECT order_id, MAX(id) AS keep_id
+        FROM rider_order_offers
+        WHERE status = 'pending'
+        GROUP BY order_id
+      ) k ON k.order_id = o.order_id AND o.id <> k.keep_id
+      SET o.status = 'cancelled', o.responded_at = NOW(), o.reject_reason = 'dedupe'
+      WHERE o.status = 'pending'
+    `);
+    await connection.query(`
+      UPDATE rider_order_offers o
+      JOIN (
+        SELECT rider_id, MAX(id) AS keep_id
+        FROM rider_order_offers
+        WHERE status = 'pending'
+        GROUP BY rider_id
+      ) k ON k.rider_id = o.rider_id AND o.id <> k.keep_id
+      SET o.status = 'cancelled', o.responded_at = NOW(), o.reject_reason = 'dedupe'
+      WHERE o.status = 'pending'
+    `);
+
+    await ensureColumn(
+      'rider_order_offers',
+      'pending_order_id',
+      "pending_order_id INT GENERATED ALWAYS AS (IF(status = 'pending', order_id, NULL)) VIRTUAL"
+    );
+    await ensureColumn(
+      'rider_order_offers',
+      'pending_rider_id',
+      "pending_rider_id INT GENERATED ALWAYS AS (IF(status = 'pending', rider_id, NULL)) VIRTUAL"
+    );
+
+    await ensureUniqueIndex('rider_order_offers', 'uq_offer_pending_order', 'pending_order_id');
+    await ensureUniqueIndex('rider_order_offers', 'uq_offer_pending_rider', 'pending_rider_id');
+    console.log('[migrate] rider_order_offers pending-offer unique keys in place.');
 
     // Settings Table
     await connection.query(`
@@ -754,6 +1136,14 @@ const migrate = async () => {
     // this is on AND shop_latitude/shop_longitude are set AND at least one
     // active delivery_zones row exists — otherwise flat pricing is used.
     await ensureColumn('settings', 'radius_pricing_active', 'radius_pricing_active BOOLEAN DEFAULT FALSE AFTER rain_charge');
+
+    // Rider capacity multiplier: per-area tuning knob for the checkout
+    // capacity gate (orderController.js) and the rider-capacity polling
+    // endpoint (riderCapacityController.js) — areas differ in rider density
+    // and delivery distances, so one global RIDER_CAPACITY_MULTIPLIER was
+    // too blunt. Admin-editable via Settings; falls back to
+    // config.RIDER_CAPACITY_MULTIPLIER wherever a row predates this column.
+    await ensureColumn('settings', 'rider_capacity_multiplier', 'rider_capacity_multiplier DECIMAL(5, 2) DEFAULT 3.00 AFTER radius_pricing_active');
 
     // Drop free_delivery_above column if it exists (Task 1.1)
     try {
@@ -815,8 +1205,16 @@ const migrate = async () => {
       // swallowed — without this constraint, deleting a parent zone leaves
       // children pointing at a row that no longer exists, and the delete
       // handler's "children fall back to ON DELETE SET NULL" promise is a lie.
+      // MariaDB (unlike real MySQL) reports this exact redundant re-add —
+      // the CREATE TABLE above already declares this FK inline, so on a
+      // fresh install this ALTER is always a genuine duplicate from the
+      // start — as ER_CANT_CREATE_TABLE/1005 wrapping InnoDB errno 121,
+      // not the 1061/1826 codes real MySQL uses for "already exists".
+      // Narrow to that specific wrapped-121 shape so a genuine table-create
+      // failure for any other reason still throws.
       const alreadyExists = e.code === 'ER_DUP_KEYNAME' || e.code === 'ER_FK_DUP_NAME'
-        || e.errno === 1061 || e.errno === 1826;
+        || e.errno === 1061 || e.errno === 1826
+        || (e.errno === 1005 && /errno:\s*121\b/.test(e.sqlMessage || ''));
       if (!alreadyExists) throw e;
     }
 
@@ -1009,6 +1407,11 @@ const migrate = async () => {
     await ensureColumn('dashboard_section_items', 'starts_at', 'starts_at TIMESTAMP NULL DEFAULT NULL AFTER active');
     await ensureColumn('dashboard_section_items', 'ends_at', 'ends_at TIMESTAMP NULL DEFAULT NULL AFTER starts_at');
     await ensureColumn('dashboard_section_items', 'deleted_at', 'deleted_at TIMESTAMP NULL DEFAULT NULL AFTER ends_at');
+    // Dashboard section item lookups by section + type + active. Lives here,
+    // immediately after the table exists — NOT up in the main index block,
+    // which runs long before this CREATE TABLE and so failed outright on a
+    // fresh database (ER_NO_SUCH_TABLE).
+    await ensureIndex('dashboard_section_items', 'idx_dsi_section_type_active', 'section_id, item_type, active');
     console.log('Dashboard section items table ready.');
 
     // ---------------------------------------------------------
@@ -1022,9 +1425,11 @@ const migrate = async () => {
     // Seed Settings
     const [settingsRows] = await connection.query('SELECT * FROM settings LIMIT 1');
     if (settingsRows.length === 0) {
+      const settingsAreaCol = (await hasAreaIdColumn('settings')) ? ', area_id' : '';
+      const settingsAreaVal = settingsAreaCol ? ', 1' : '';
       await connection.query(`
-        INSERT INTO settings (night_charge_start, night_charge_end, delivery_charge)
-        VALUES ('21:00:00', '07:00:00', 20.00)
+        INSERT INTO settings (night_charge_start, night_charge_end, delivery_charge${settingsAreaCol})
+        VALUES ('21:00:00', '07:00:00', 20.00${settingsAreaVal})
       `);
       console.log('Seeded default settings.');
     }
@@ -1039,10 +1444,23 @@ const migrate = async () => {
       { name: 'Daily Essentials', slug: 'daily-essentials', type: 'packed', display_order: 6 }
     ];
 
+    // Same area_id gap as the sample-products seed below: categories.area_id
+    // is NOT NULL with no DEFAULT once the area-scoping section has run.
+    // INSERT IGNORE means this fails safe (skips the row) rather than
+    // crashing, but silently becomes permanently-inert dead code instead of
+    // actually seeding a missing default category on a fresh/rehearsal DB.
+    const categoriesHasAreaId = await hasAreaIdColumn('categories');
+
     for (const cat of categories) {
-      await connection.query(`
-        INSERT IGNORE INTO categories (name, slug, type, display_order) VALUES (?, ?, ?, ?)
-      `, [cat.name, cat.slug, cat.type, cat.display_order]);
+      if (categoriesHasAreaId) {
+        await connection.query(`
+          INSERT IGNORE INTO categories (name, slug, type, display_order, area_id) VALUES (?, ?, ?, ?, 1)
+        `, [cat.name, cat.slug, cat.type, cat.display_order]);
+      } else {
+        await connection.query(`
+          INSERT IGNORE INTO categories (name, slug, type, display_order) VALUES (?, ?, ?, ?)
+        `, [cat.name, cat.slug, cat.type, cat.display_order]);
+      }
       await connection.query(`
         UPDATE categories SET display_order = ? WHERE slug = ? AND display_order = 0
       `, [cat.display_order, cat.slug]);
@@ -1062,13 +1480,31 @@ const migrate = async () => {
       { name: 'Amul Milk', price: 33.00, category_id: catMap['daily-essentials'], unit: '500ml' }
     ];
 
+    // products.area_id is NOT NULL with no DEFAULT once the area-scoping
+    // section below has run once (any restart after that point re-enters
+    // this seed block on the same connection). This plain, non-IGNORE INSERT
+    // predates that column and was never updated for it — on a rerun where
+    // any of the 6 hardcoded names is missing from the catalog, it would
+    // throw ER_NO_DEFAULT_FOR_FIELD and crash the whole migrate step (and,
+    // via "migrate.js && node src/server.js", the boot). Area 1 is the same
+    // default every other legacy-row backfill in this file uses.
+    const productsHasAreaId = await hasAreaIdColumn('products');
+
     for (const prod of sampleProducts) {
       if (prod.category_id) {
-        await connection.query(`
-          INSERT INTO products (name, price, category_id, unit) 
-          SELECT ?, ?, ?, ? FROM DUAL
-          WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = ?)
-        `, [prod.name, prod.price, prod.category_id, prod.unit, prod.name]);
+        if (productsHasAreaId) {
+          await connection.query(`
+            INSERT INTO products (name, price, category_id, unit, area_id)
+            SELECT ?, ?, ?, ?, 1 FROM DUAL
+            WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = ?)
+          `, [prod.name, prod.price, prod.category_id, prod.unit, prod.name]);
+        } else {
+          await connection.query(`
+            INSERT INTO products (name, price, category_id, unit)
+            SELECT ?, ?, ?, ? FROM DUAL
+            WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = ?)
+          `, [prod.name, prod.price, prod.category_id, prod.unit, prod.name]);
+        }
       }
     }
     console.log('Seeded sample products.');
@@ -1082,9 +1518,11 @@ const migrate = async () => {
       );
       if (existing.length > 0) return { id: existing[0].id, isNew: false };
 
+      const areaCol = (await hasAreaIdColumn('dashboard_sections')) ? ', area_id' : '';
+      const areaVal = areaCol ? ', 1' : '';
       const [result] = await connection.query(`
-        INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon)
-        VALUES (?, ?, ?, 'all', ?, ?, ?, 0, NULL)
+        INSERT INTO dashboard_sections (title, slug, section_type, store_type, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon${areaCol})
+        VALUES (?, ?, ?, 'all', ?, ?, ?, 0, NULL${areaVal})
       `, [title, slug, sectionType, displayOrder, maxVisibleItems, showSeeAll]);
       return { id: result.insertId, isNew: true };
     };
@@ -1092,6 +1530,22 @@ const migrate = async () => {
     // Item seeding below only runs the first time a default section is created,
     // so admins retain full control over what appears once the layout exists —
     // newly created categories/combos are never auto-injected on later restarts.
+
+    // One seeder for all three item types: same insert-if-absent shape, and
+    // one place that has to remember area_id (NOT NULL once the multi-area
+    // block below has run on a previous boot).
+    const seedDashboardSectionItem = async (sectionId, itemType, itemId, displayOrder) => {
+      const areaCol = (await hasAreaIdColumn('dashboard_section_items')) ? ', area_id' : '';
+      const areaVal = areaCol ? ', 1' : '';
+      await connection.query(`
+        INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order${areaCol})
+        SELECT ?, ?, ?, ?${areaVal} FROM DUAL
+        WHERE NOT EXISTS (
+          SELECT 1 FROM dashboard_section_items
+          WHERE section_id = ? AND item_type = ? AND item_id = ?
+        )
+      `, [sectionId, itemType, itemId, displayOrder, sectionId, itemType, itemId]);
+    };
 
     const { id: offerSectionId, isNew: offerSectionIsNew } = await ensureDashboardSection({
       title: 'Special Offers',
@@ -1105,14 +1559,7 @@ const migrate = async () => {
     if (offerSectionIsNew) {
       const [activeOffers] = await connection.query('SELECT id FROM offers WHERE active = 1 AND deleted = 0 LIMIT 1');
       if (activeOffers.length > 0) {
-        await connection.query(`
-          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
-          SELECT ?, 'offer', ?, 0 FROM DUAL
-          WHERE NOT EXISTS (
-            SELECT 1 FROM dashboard_section_items
-            WHERE section_id = ? AND item_type = 'offer' AND item_id = ?
-          )
-        `, [offerSectionId, activeOffers[0].id, offerSectionId, activeOffers[0].id]);
+        await seedDashboardSectionItem(offerSectionId, 'offer', activeOffers[0].id, 0);
       }
     }
 
@@ -1128,14 +1575,7 @@ const migrate = async () => {
     if (catSectionIsNew) {
       const [activeCats] = await connection.query('SELECT id, display_order FROM categories WHERE active = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
       for (const cat of activeCats) {
-        await connection.query(`
-          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
-          SELECT ?, 'category', ?, ? FROM DUAL
-          WHERE NOT EXISTS (
-            SELECT 1 FROM dashboard_section_items
-            WHERE section_id = ? AND item_type = 'category' AND item_id = ?
-          )
-        `, [catSectionId, cat.id, cat.display_order, catSectionId, cat.id]);
+        await seedDashboardSectionItem(catSectionId, 'category', cat.id, cat.display_order);
       }
     }
 
@@ -1152,14 +1592,7 @@ const migrate = async () => {
       const [activeCombos] = await connection.query('SELECT id FROM combos WHERE available = 1 AND deleted = 0 ORDER BY display_order ASC, id ASC');
       let comboOrder = 0;
       for (const combo of activeCombos) {
-        await connection.query(`
-          INSERT INTO dashboard_section_items (section_id, item_type, item_id, display_order)
-          SELECT ?, 'combo', ?, ? FROM DUAL
-          WHERE NOT EXISTS (
-            SELECT 1 FROM dashboard_section_items
-            WHERE section_id = ? AND item_type = 'combo' AND item_id = ?
-          )
-        `, [comboSectionId, combo.id, comboOrder++, comboSectionId, combo.id]);
+        await seedDashboardSectionItem(comboSectionId, 'combo', combo.id, comboOrder++);
       }
     }
     console.log('Default dashboard sections and items ready.');
@@ -1214,23 +1647,39 @@ const migrate = async () => {
     await ensureIndex('notifications', 'idx_notifications_user_unread', 'user_id, read_at, deleted_at');
     console.log('Notifications table ready.');
 
-    // Cleanup: Convert 'all' offer banner sections to 'packed' and 'fast_food'
+    // Cleanup: Convert 'all' offer banner sections to 'packed' and 'fast_food'.
+    // Unlike the seed block above, this runs on EVERY boot regardless of
+    // SKIP_SEED_DEFAULTS, and its inserts are plain (not INSERT IGNORE) — so a
+    // missing area_id here is a hard ER_NO_DEFAULT_FOR_FIELD that fails the
+    // migration and the boot with it. Carry the source section's own area_id
+    // (dashboardController.ensureModeSpecificOfferBannerSections is the
+    // runtime counterpart and already does exactly this).
     const [allOfferSections] = await connection.query(`SELECT * FROM dashboard_sections WHERE section_type = 'offer_banner' AND store_type = 'all' AND deleted_at IS NULL`);
-    
+    const sectionsHaveAreaId = await hasAreaIdColumn('dashboard_sections');
+    const sectionItemsHaveAreaId = await hasAreaIdColumn('dashboard_section_items');
+    const sectionAreaCol = sectionsHaveAreaId ? ', area_id' : '';
+    const sectionAreaPlaceholder = sectionsHaveAreaId ? ', ?' : '';
+    const sectionItemAreaCol = sectionItemsHaveAreaId ? ', area_id' : '';
+    const sectionItemAreaPlaceholder = sectionItemsHaveAreaId ? ', ?' : '';
+    // Rows that predate the column can only be Area 1's, the same default
+    // every other legacy backfill in this file uses.
+    const secAreaParams = (sec) => (sectionsHaveAreaId ? [sec.area_id ?? 1] : []);
+    const secItemAreaParams = (sec) => (sectionItemsHaveAreaId ? [sec.area_id ?? 1] : []);
+
     for (const sec of allOfferSections) {
       // 1. Create packed section
       const [packedResult] = await connection.query(
-        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at)
-         VALUES (?, ?, ?, 'packed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [sec.title, sec.slug + '-packed', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.show_hot_badge, sec.section_icon, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at]
+        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at${sectionAreaCol})
+         VALUES (?, ?, ?, 'packed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${sectionAreaPlaceholder})`,
+        [sec.title, sec.slug + '-packed', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.show_hot_badge, sec.section_icon, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at, ...secAreaParams(sec)]
       );
       const packedId = packedResult.insertId;
 
       // 2. Create fast_food section
       const [fastFoodResult] = await connection.query(
-        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at)
-         VALUES (?, ?, ?, 'fast_food', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [sec.title, sec.slug + '-fast-food', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.show_hot_badge, sec.section_icon, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at]
+        `INSERT INTO dashboard_sections (title, slug, section_type, store_type, active, display_order, max_visible_items, show_see_all, show_hot_badge, section_icon, linked_category_id, linked_offer_id, starts_at, ends_at, version, created_at, updated_at${sectionAreaCol})
+         VALUES (?, ?, ?, 'fast_food', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${sectionAreaPlaceholder})`,
+        [sec.title, sec.slug + '-fast-food', sec.section_type, sec.active, sec.display_order, sec.max_visible_items, sec.show_see_all, sec.show_hot_badge, sec.section_icon, sec.linked_category_id, sec.linked_offer_id, sec.starts_at, sec.ends_at, sec.version, sec.created_at, sec.updated_at, ...secAreaParams(sec)]
       );
       const fastFoodId = fastFoodResult.insertId;
 
@@ -1244,19 +1693,14 @@ const migrate = async () => {
       );
 
       for (const item of items) {
-        if (item.offer_store_type === 'packed') {
-          await connection.query(
-            `INSERT INTO dashboard_section_items (section_id, item_type, item_id, active, display_order, created_at, updated_at)
-             VALUES (?, 'offer', ?, ?, ?, ?, ?)`,
-            [packedId, item.item_id, item.active, item.display_order, item.created_at, item.updated_at]
-          );
-        } else if (item.offer_store_type === 'fast_food') {
-          await connection.query(
-            `INSERT INTO dashboard_section_items (section_id, item_type, item_id, active, display_order, created_at, updated_at)
-             VALUES (?, 'offer', ?, ?, ?, ?, ?)`,
-            [fastFoodId, item.item_id, item.active, item.display_order, item.created_at, item.updated_at]
-          );
-        }
+        const targetSectionId = item.offer_store_type === 'packed' ? packedId
+          : (item.offer_store_type === 'fast_food' ? fastFoodId : null);
+        if (targetSectionId === null) continue;
+        await connection.query(
+          `INSERT INTO dashboard_section_items (section_id, item_type, item_id, active, display_order, created_at, updated_at${sectionItemAreaCol})
+           VALUES (?, 'offer', ?, ?, ?, ?, ?${sectionItemAreaPlaceholder})`,
+          [targetSectionId, item.item_id, item.active, item.display_order, item.created_at, item.updated_at, ...secItemAreaParams(sec)]
+        );
       }
 
       // 4. Mark old section as deleted
@@ -1577,7 +2021,68 @@ const migrate = async () => {
     `);
     // Optional 320px WebP thumbnail URL (nullable for legacy images until backfill).
     await ensureColumn('images', 'thumb_url', 'thumb_url TEXT NULL AFTER url');
+    // Content hash for upload-time dedupe (TASK 18, §2.6). NON-unique on
+    // purpose — production already holds duplicate uploads, and a UNIQUE
+    // index would fail this migration outright. Historical duplicates are
+    // reported (admin Images page), never auto-merged.
+    await ensureColumn('images', 'sha256', 'sha256 CHAR(64) NULL');
+    await ensureIndex('images', 'idx_images_sha256', 'sha256');
     console.log('Images table ready.');
+
+    // Batched backfill: hash every existing image row that predates sha256
+    // (18.6). Populates the column ONLY — never deletes, never merges rows,
+    // even when two rows land on the identical hash. A single unreadable file
+    // (moved/deleted from disk or S3 out from under us) is logged and
+    // skipped, not fatal to the whole migration — this column is dedupe
+    // metadata, not something existing functionality depends on.
+    const backfillImageHashes = async () => {
+      const crypto = require('crypto');
+      const { getStoredBuffer } = require('../utils/imageStorage');
+      const BATCH_SIZE = 200;
+      let totalHashed = 0;
+      let totalSkipped = 0;
+      for (;;) {
+        const [rows] = await connection.query(
+          `SELECT id, filename, storage_type FROM images
+           WHERE sha256 IS NULL
+           ORDER BY id
+           LIMIT ${BATCH_SIZE}`
+        );
+        if (rows.length === 0) break;
+
+        // Bug fix (multi-area audit finding #16): fetch + hash every row in
+        // this batch CONCURRENTLY. The S3/disk round trip — not the CPU
+        // hash — is what made this serial loop slow enough to noticeably
+        // delay every deploy's boot; getStoredBuffer never touches
+        // `connection`, so there is nothing connection-specific to
+        // serialize here. Only the UPDATE writes below stay sequential
+        // against the single migration connection (mysql2 connections
+        // don't support concurrent queries on one connection).
+        const results = await Promise.all(rows.map(async (row) => {
+          try {
+            const buffer = await getStoredBuffer(row.storage_type, row.filename);
+            const hash = crypto.createHash('sha256').update(buffer).digest('hex');
+            return { id: row.id, hash };
+          } catch (e) {
+            console.error(`[migrate] could not hash image id=${row.id} (${row.filename}):`, e.message);
+            return { id: row.id, hash: '' };
+          }
+        }));
+
+        for (const { id, hash } of results) {
+          // Empty string (not null) so the outer WHERE sha256 IS NULL loop
+          // terminates instead of retrying the same unreadable row forever;
+          // a real dedupe miss on one broken row is fine, an infinite
+          // migration loop is not.
+          await connection.query('UPDATE images SET sha256 = ? WHERE id = ?', [hash, id]);
+          if (hash) totalHashed += 1; else totalSkipped += 1;
+        }
+      }
+      if (totalHashed > 0 || totalSkipped > 0) {
+        console.log(`[migrate] image sha256 backfill: ${totalHashed} hashed, ${totalSkipped} skipped (unreadable)`);
+      }
+    };
+    await backfillImageHashes();
 
     // Admin session revocation + brute-force lockout — single row (there is
     // one shared owner admin account, not a users table).
@@ -1637,6 +2142,352 @@ const migrate = async () => {
     await convertImageIdColumnToInt('offers', 'image_id');
     await convertImageIdColumnToInt('settings', 'upi_qr_image_id');
     console.log('Image reference columns ready.');
+
+    // ============================================================
+    // MULTI-AREA EXPANSION — see plans/multi-area.md for the full design.
+    // Area 1 is the existing single-tenant install; nothing below changes
+    // its behavior until later tasks (TASK 7+) start reading area_id.
+    // ============================================================
+
+    // ---- TASK 1 — areas table + seed Area 1 --------------------------
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS areas (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(16) NOT NULL UNIQUE,
+        name VARCHAR(255) NOT NULL,
+        active TINYINT(1) NOT NULL DEFAULT 1,
+        is_default TINYINT(1) NOT NULL DEFAULT 0,
+        timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Kolkata',
+        min_lat DECIMAL(10,7) NULL,
+        max_lat DECIMAL(10,7) NULL,
+        min_lng DECIMAL(10,7) NULL,
+        max_lng DECIMAL(10,7) NULL,
+        catalog_version BIGINT NOT NULL DEFAULT 1,
+        brand_color VARCHAR(9) NULL,
+        logo_image_id INT NULL,
+        features JSON NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_areas_active_bbox (active, min_lat, max_lat)
+      );
+    `);
+    await connection.query(`
+      INSERT IGNORE INTO areas (id, code, name, is_default) VALUES (1, 'A1', 'Area 1', 1)
+    `);
+    console.log('Areas table ready.');
+
+    // ---- TASK 2 — admins table + per-admin session state -------------
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS admins (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(64) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        role ENUM('super_admin', 'area_admin') NOT NULL,
+        area_id INT NULL,
+        display_name VARCHAR(255) NULL,
+        active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE RESTRICT,
+        INDEX idx_admins_active_area (active, area_id)
+      );
+    `);
+    console.log('Admins table ready.');
+
+    await ensureColumn('admin_auth_state', 'admin_id', 'admin_id INT NULL DEFAULT NULL');
+
+    // Bootstrap: seed one super_admin from the legacy env password so the
+    // existing login keeps working immediately after this deploy. Fires
+    // only while `admins` is empty — adminController.js's login (TASK 7)
+    // falls back to the env password under the same condition, and logs a
+    // warning when it does. Once any admin row exists (this seed, or one
+    // created via the admin API), the env-password path stops being used.
+    const [adminCountRows] = await connection.query('SELECT COUNT(*) AS cnt FROM admins');
+    if (Number(adminCountRows[0].cnt) === 0) {
+      const bootstrapHash = config.ADMIN_PASSWORD_HASH
+        || (config.ADMIN_PASSWORD ? await bcrypt.hash(config.ADMIN_PASSWORD, 10) : null);
+      if (bootstrapHash) {
+        await connection.query(
+          `INSERT INTO admins (username, password_hash, role, area_id, display_name)
+           VALUES (?, ?, 'super_admin', NULL, 'Super Admin')`,
+          [config.ADMIN_OWNER_ID || 'admin', bootstrapHash]
+        );
+        console.log('[migrate] Seeded initial super_admin from ADMIN_PASSWORD_HASH/ADMIN_PASSWORD env.');
+      } else {
+        console.warn('[migrate] No admins exist and no ADMIN_PASSWORD_HASH/ADMIN_PASSWORD set — admin login will fail until an admin is seeded.');
+      }
+    }
+
+    // ---- TASK 3 — area_id columns, backfill, indexes, unique keys ----
+    //
+    // Order matters throughout this block (plans/multi-area.md §6.2):
+    //   nullable column -> batched backfill -> verify zero orphans ->
+    //   NOT NULL -> foreign key -> composite indexes -> unique key rewrites
+    // Skipping the orphan check, or adding NOT NULL before backfill
+    // completes, silently produces area_id = 0 rows with no matching area.
+
+    // MySQL 8 only grants ALGORITHM=INSTANT to a column add when it has no
+    // AFTER clause (appended at the end of the row). ensureColumn (above)
+    // always accepts an AFTER-qualified definition for other migrations —
+    // area_id must never use one, or adding it to a large table like
+    // `orders` becomes a multi-minute rebuild on deploy. See §3.6.
+    const ensureColumnAtEnd = async (tableName, columnName, columnDefinition) => {
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?
+      `, [config.MYSQL_DATABASE, tableName, columnName]);
+      if (columns.length === 0) {
+        await connection.query(`ALTER TABLE ${tableName} ADD COLUMN ${columnDefinition}`);
+      }
+    };
+
+    // Batched + resumable: WHERE area_id IS NULL means a re-run after a
+    // crash mid-backfill picks up exactly where it left off and never
+    // re-touches already-set rows.
+    const AREA_BACKFILL_BATCH_SIZE = 5000;
+    const backfillAreaIdToDefault = async (tableName, pkColumn = 'id') => {
+      for (;;) {
+        const [result] = await connection.query(
+          `UPDATE ${tableName} SET area_id = 1
+           WHERE area_id IS NULL
+           ORDER BY ${pkColumn}
+           LIMIT ${AREA_BACKFILL_BATCH_SIZE}`
+        );
+        if (result.affectedRows === 0) break;
+      }
+    };
+
+    // Hard gate: refuse to proceed to NOT NULL/FK if any row still has no
+    // area_id, or points at an area that doesn't exist. An orphan here
+    // becomes a customer seeing "no delivery" or an admin silently losing
+    // a row from every scoped query — discovered only in production.
+    const assertNoAreaOrphans = async (tableName) => {
+      const [rows] = await connection.query(
+        `SELECT COUNT(*) AS cnt FROM ${tableName}
+         WHERE area_id IS NULL OR area_id NOT IN (SELECT id FROM areas)`
+      );
+      const cnt = Number(rows[0].cnt);
+      if (cnt > 0) {
+        throw new Error(`[migrate] ${tableName} has ${cnt} row(s) with an invalid area_id after backfill — aborting before NOT NULL/FK.`);
+      }
+    };
+
+    const ensureForeignKey = async (tableName, fkName, ddl) => {
+      try {
+        await connection.query(`ALTER TABLE ${tableName} ADD CONSTRAINT ${fkName} ${ddl}`);
+      } catch (e) {
+        // ER_DUP_KEYNAME / ER_FK_DUP_NAME / errno 1061 (dup index) / 1826
+        // (dup FK) just mean a previous run already added it. Anything
+        // else must not be silently swallowed — see the delivery_zones
+        // parent FK above for the same reasoning, including the MariaDB
+        // wrapped-121 case documented there.
+        const alreadyExists = e.code === 'ER_DUP_KEYNAME' || e.code === 'ER_FK_DUP_NAME'
+          || e.errno === 1061 || e.errno === 1826
+          || (e.errno === 1005 && /errno:\s*121\b/.test(e.sqlMessage || ''));
+        if (!alreadyExists) throw e;
+      }
+    };
+
+    const dropIndexIfExists = async (tableName, indexName) => {
+      const [rows] = await connection.query(
+        `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ? LIMIT 1`,
+        [config.MYSQL_DATABASE, tableName, indexName]
+      );
+      if (rows.length > 0) {
+        await connection.query(`ALTER TABLE ${tableName} DROP INDEX ${indexName}`);
+      }
+    };
+
+    // Every table §1.1/§3.3 scopes to an area. `users` is deliberately
+    // absent — customers are global (§2.2). `daily_order_counters`'
+    // PRIMARY KEY change is deliberately deferred to TASK 13, where it
+    // lands in the same commit as the order-number generator query it
+    // must stay in lockstep with (§6.3) — do not add it here.
+    const AREA_SCOPED_TABLES = [
+      'shops', 'riders', 'mobile_admins', 'delivery_zones', 'delivery_exclusion_zones',
+      'settings', 'orders', 'order_items', 'coupons', 'offers',
+      'dashboard_sections', 'dashboard_section_items', 'categories', 'products', 'combos',
+      'product_groups', 'store_modes', 'admin_notifications', 'notification_batches',
+    ];
+
+    for (const tableName of AREA_SCOPED_TABLES) {
+      await ensureColumnAtEnd(tableName, 'area_id', 'area_id INT NULL');
+    }
+    console.log('[migrate] area_id column present (nullable) on all scoped tables.');
+
+    for (const tableName of AREA_SCOPED_TABLES) {
+      await backfillAreaIdToDefault(tableName, 'id');
+    }
+    console.log('[migrate] area_id backfilled to Area 1 on all scoped tables.');
+
+    for (const tableName of AREA_SCOPED_TABLES) {
+      await assertNoAreaOrphans(tableName);
+    }
+    console.log('[migrate] area_id orphan check passed on all scoped tables.');
+
+    for (const tableName of AREA_SCOPED_TABLES) {
+      const [col] = await connection.query(`
+        SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = 'area_id'
+      `, [config.MYSQL_DATABASE, tableName]);
+      if (col[0] && col[0].IS_NULLABLE === 'YES') {
+        await connection.query(`ALTER TABLE ${tableName} MODIFY COLUMN area_id INT NOT NULL`);
+      }
+    }
+    console.log('[migrate] area_id set NOT NULL on all scoped tables.');
+
+    for (const tableName of AREA_SCOPED_TABLES) {
+      await ensureForeignKey(tableName, `fk_${tableName}_area`, 'FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE RESTRICT');
+    }
+    console.log('[migrate] area_id foreign keys added on all scoped tables.');
+
+    // Composite indexes leading with area_id (§3.3). The single-column
+    // orders.idx_status / idx_created_at these partially supersede are
+    // deliberately NOT dropped here — that is a separate, later deploy
+    // (§6.2 rule 5), so production never runs a window unindexed.
+    await ensureIndex('orders', 'idx_orders_area_status_created', 'area_id, status, created_at');
+    await ensureIndex('orders', 'idx_orders_area_created', 'area_id, created_at');
+    await ensureIndex('orders', 'idx_orders_area_customer_created', 'area_id, customer_id, created_at');
+    await ensureIndex('products', 'idx_products_area_category_available_order', 'area_id, category_id, available, display_order');
+    await ensureIndex('products', 'idx_products_area_deleted_available', 'area_id, deleted, available');
+    await ensureIndex('categories', 'idx_categories_area_active_order', 'area_id, active, display_order');
+    await ensureIndex('dashboard_sections', 'idx_dashboard_sections_area_store_active_order', 'area_id, store_type, active, display_order');
+    await ensureIndex('delivery_zones', 'idx_delivery_zones_area_active', 'area_id, active');
+    await ensureIndex('shops', 'idx_shops_area_active_open', 'area_id, active, is_open');
+    await ensureIndex('riders', 'idx_riders_area_active_online', 'area_id, active, is_online');
+    await ensureIndex('coupons', 'idx_coupons_area_deleted_active', 'area_id, deleted, active');
+    await ensureIndex('offers', 'idx_offers_area_active_deleted', 'area_id, active, deleted');
+    console.log('[migrate] area_id composite indexes added.');
+
+    // Per-area UNIQUE key rewrites (§1.3). The OLD global key is dropped
+    // BEFORE the new composite is added (§6.2 rule 4) — if it survived,
+    // a later per-area INSERT IGNORE (e.g. TASK 11 seeding packed/
+    // fast_food store_modes into a new area) would silently insert
+    // nothing, because the stale global key still considers the slug taken.
+    await dropIndexIfExists('categories', 'slug');
+    await ensureUniqueIndex('categories', 'uniq_categories_area_slug', 'area_id, slug');
+
+    await dropIndexIfExists('store_modes', 'slug');
+    await ensureUniqueIndex('store_modes', 'uniq_store_modes_area_slug', 'area_id, slug');
+
+    await dropIndexIfExists('coupons', 'uniq_live_coupon_code');
+    await ensureUniqueIndex('coupons', 'uniq_coupons_area_code_deleted', 'area_id, code, deleted');
+
+    await dropIndexIfExists('dashboard_sections', 'idx_section_store_slug');
+    await ensureUniqueIndex('dashboard_sections', 'idx_section_area_store_slug', 'area_id, store_type, slug, deleted_at');
+
+    await dropIndexIfExists('admin_notifications', 'uniq_admin_inbox_event');
+    await ensureUniqueIndex('admin_notifications', 'uniq_admin_inbox_area_event', 'area_id, type, related_id');
+    console.log('[migrate] per-area unique keys in place.');
+
+    // ---- TASK 11 — store_modes seeded per area, not just area 1 ---------
+    // The original seed (above, table-creation time) only ever ran once
+    // and only covers whichever area existed when the table was first
+    // created (area 1). Any area created after that point starts with
+    // zero store_modes rows unless seeded here — INSERT IGNORE against
+    // uniq_store_modes_area_slug makes this idempotent across reruns.
+    {
+      const [areaRows] = await connection.query('SELECT id FROM areas');
+      for (const { id: areaIdToSeed } of areaRows) {
+        await connection.query(
+          `INSERT IGNORE INTO store_modes (area_id, slug, label, display_order, active, is_system)
+           VALUES (?, 'packed', 'Packed Items', 1, TRUE, TRUE), (?, 'fast_food', 'Fast Food', 2, TRUE, TRUE)`,
+          [areaIdToSeed, areaIdToSeed]
+        );
+      }
+    }
+    console.log('[migrate] store_modes is_system rows seeded per area.');
+
+    // ---- TASK 9 — settings becomes genuinely one row per area ----------
+    // `settings` was never a UNIQUE-key-enforced singleton — every query
+    // just relied on there only ever being one row and used LIMIT 1. Now
+    // that it's one row PER AREA (settingsController.js), the same "just
+    // one row" assumption needs a real constraint, or a duplicate INSERT
+    // (e.g. two concurrent requests both finding zero rows for a brand new
+    // area) creates a second row that LIMIT-1-style reads pick between
+    // unpredictably. Safe to add now — exactly one settings row exists
+    // (area 1's) at this point in the rollout.
+    await ensureUniqueIndex('settings', 'uniq_settings_area', 'area_id');
+    console.log('[migrate] settings.area_id unique key in place.');
+
+    // ---- TASK 13 — daily_order_counters PK becomes (area_id, counter_date) ----
+    // Deliberately NOT in AREA_SCOPED_TABLES above: its PK is `counter_date`
+    // alone (no surrogate `id`), so the generic add-column/backfill/NOT-NULL/FK
+    // loop doesn't fit, AND — per §6.3 — this PK change must land in the exact
+    // same commit as orderController.js's generateOrderNumber query change.
+    // Backfilling area_id BEFORE the PK change (not after) matters: every
+    // existing row is Area 1's history, so the composite PK still uniquely
+    // identifies each row the instant it's created — no window where two
+    // "different" counters could collide under the old single-column PK.
+    await ensureColumnAtEnd('daily_order_counters', 'area_id', 'area_id INT NULL');
+    await connection.query('UPDATE daily_order_counters SET area_id = 1 WHERE area_id IS NULL');
+    await assertNoAreaOrphans('daily_order_counters');
+    const [counterAreaCol] = await connection.query(`
+      SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'daily_order_counters' AND COLUMN_NAME = 'area_id'
+    `, [config.MYSQL_DATABASE]);
+    if (counterAreaCol[0] && counterAreaCol[0].IS_NULLABLE === 'YES') {
+      await connection.query('ALTER TABLE daily_order_counters MODIFY COLUMN area_id INT NOT NULL');
+    }
+    await ensureForeignKey('daily_order_counters', 'fk_daily_order_counters_area', 'FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE RESTRICT');
+    // PK swap is not idempotent-safe to blindly re-run (DROP PRIMARY KEY on a
+    // table that's already been swapped would fail) — check first.
+    const [counterPkCols] = await connection.query(`
+      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'daily_order_counters' AND CONSTRAINT_NAME = 'PRIMARY'
+      ORDER BY ORDINAL_POSITION
+    `, [config.MYSQL_DATABASE]);
+    const currentPk = counterPkCols.map((r) => r.COLUMN_NAME).join(',');
+    if (currentPk !== 'area_id,counter_date') {
+      await connection.query('ALTER TABLE daily_order_counters DROP PRIMARY KEY, ADD PRIMARY KEY (area_id, counter_date)');
+    }
+    console.log('[migrate] daily_order_counters PK is now (area_id, counter_date).');
+
+    // order_number needs headroom for the per-area format this same task
+    // introduces (OD-<date>-<AREACODE>-<seq>, orderController.js's
+    // generateOrderNumber): AREACODE can be up to 16 chars (areas.code's own
+    // max — see areaController.js's createArea validation), and seq can grow
+    // past its usual 4-digit pad on an extreme-volume day (padStart pads, it
+    // never truncates). VARCHAR(20) only ever fit the pre-area format
+    // (OD-<date>-<seq>, ~17 chars) — any area whose code is 4+ chars long
+    // (a realistic first guess like "NORTH" or "WEST1") overflows it and
+    // ER_DATA_TOO_LONG's every checkout in that area, permanently, until the
+    // code is renamed. Widened to 40: 3 ("OD-") + 8 (date) + 1 + 16 (max
+    // code) + 1 + up to 8 digits of seq, with margin to spare. Guarded on
+    // current length so a re-run doesn't pay an ALTER on every migrate.
+    const [orderNumberCol] = await connection.query(`
+      SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'order_number'
+    `, [config.MYSQL_DATABASE]);
+    if (orderNumberCol[0] && Number(orderNumberCol[0].CHARACTER_MAXIMUM_LENGTH) < 40) {
+      await connection.query('ALTER TABLE orders MODIFY COLUMN order_number VARCHAR(40) NOT NULL');
+    }
+    console.log('[migrate] orders.order_number widened to VARCHAR(40).');
+
+    // users.last_area_id — a cold-start cache (§2.2), NOT an authorization
+    // input, and deliberately NO foreign key (a stale/wrong cached area is
+    // harmless; areas are deactivate-only per §6.8 so it could never
+    // dangle anyway). Backfilled from order history: a user who has
+    // ordered before transacted within Area 1, the only area that can
+    // exist at this point in the rollout — the §6.6 gate blocks a second
+    // area from being created before TASK 30's isolation sweep passes.
+    // Real per-request point-in-zone resolution (areaScope.js, TASK 6)
+    // takes over going forward; this backfill only seeds history.
+    await ensureColumnAtEnd('users', 'last_area_id', 'last_area_id INT NULL DEFAULT NULL');
+    for (;;) {
+      const [result] = await connection.query(`
+        UPDATE users u
+        SET last_area_id = 1
+        WHERE u.last_area_id IS NULL
+          AND EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = u.id)
+        ORDER BY u.id
+        LIMIT ${AREA_BACKFILL_BATCH_SIZE}
+      `);
+      if (result.affectedRows === 0) break;
+    }
+    console.log('[migrate] users.last_area_id backfilled from order history.');
 
     console.log('Migration and seeding completed successfully!');
   } catch (error) {

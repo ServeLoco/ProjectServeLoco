@@ -8,7 +8,11 @@ const { roundMoney, toMoney } = require('../utils/money');
 const { isCodBlockedDuringNight } = require('../utils/nightDelivery');
 const { calculateRainCharge } = require('../utils/rainCharge');
 const { resolveDeliveryPricing, loadActiveZones, loadActiveExclusionZones } = require('../utils/deliveryPricing');
+const { resolveAreaIdForPricing, getAreaById } = require('../utils/areaScope');
 const { validateCoupon, validateCouponById, pickBestAutoApply } = require('../utils/coupons');
+const { ACTIVE_ORDER_STATUSES } = require('../utils/riders');
+const { bustUserState } = require('../utils/userState');
+const config = require('../config/env');
 
 // Expected business failures → 400. clientCode lets specific failures carry a
 // distinct machine-readable code (e.g. OUT_OF_DELIVERY_RANGE) while everything
@@ -20,23 +24,29 @@ class OrderError extends Error {
   }
 }
 
-const generateOrderNumber = async (connection) => {
+// areaCode is the area's `areas.code` (e.g. "A1") — the extra segment in
+// OD-<date>-<AREACODE>-<seq> makes collision with a legacy pre-multi-area
+// OD-<date>-<seq> number structurally impossible (§6.3).
+const generateOrderNumber = async (connection, areaId, areaCode) => {
   const date = new Date();
   const istDate = date.toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0];
   const dateStr = istDate.replace(/-/g, '');
-  const prefix = `OD-${dateStr}-`;
+  const prefix = `OD-${dateStr}-${areaCode}-`;
 
   if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
     return `${prefix}TEST`;
   }
 
-  // Atomically reserve the next sequence for this date. LAST_INSERT_ID is
-  // per-connection, so two concurrent checkouts on separate connections can
+  // Atomically reserve the next sequence for this (area, date). LAST_INSERT_ID
+  // is per-connection, so two concurrent checkouts on separate connections can
   // never collide — the INSERT ... ON DUPLICATE KEY UPDATE serializes on the
-  // PRIMARY KEY, and SELECT LAST_INSERT_ID() returns the new seq value.
+  // (area_id, counter_date) PRIMARY KEY, and SELECT LAST_INSERT_ID() returns
+  // the new seq value. This statement and the PK it depends on must never be
+  // changed in separate commits (§6.3) — a PK/query mismatch here silently
+  // breaks order-number uniqueness in production.
   await connection.query(
-    `INSERT INTO daily_order_counters (counter_date, seq) VALUES (?, LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE seq = LAST_INSERT_ID(seq + 1)`,
-    [istDate]
+    `INSERT INTO daily_order_counters (area_id, counter_date, seq) VALUES (?, ?, LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE seq = LAST_INSERT_ID(seq + 1)`,
+    [areaId, istDate]
   );
   const [rows] = await connection.query(`SELECT LAST_INSERT_ID() AS seq`);
   const nextSeq = (rows[0].seq).toString().padStart(4, '0');
@@ -201,11 +211,91 @@ const createOrder = async (req, res) => {
       return res.status(403).json({ code: 'FORBIDDEN', message: 'Your account is blocked' });
     }
 
-    const [settingRows] = await connection.query('SELECT shop_open, delivery_available, delivery_charge, night_charge, night_charge_start, night_charge_end, rain_charge_enabled, rain_charge, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, shop_latitude, shop_longitude, radius_pricing_active FROM settings LIMIT 1');
+    // Which AREA this order belongs to is resolved from the pin up front —
+    // everything below (settings, zones, exclusion zones, the order row
+    // itself, its items, and the order-number sequence) uses this same
+    // area_id, resolved once through the outer pool + its short TTL cache
+    // (area membership is a coarse, rarely-changing routing fact, unlike the
+    // zone PRICING data below, which still reads through `connection`
+    // uncached for transactional consistency).
+    //
+    // req.adminAreaOverride — see cartController.js's calculateCart for the
+    // full rationale; same admin-no-pin gap, same fix, mirrored here since
+    // adminCreateOrder proxies into this function too.
+    const deliveryAreaId = req.adminAreaOverride
+      || await resolveAreaIdForPricing(latitude, longitude);
+    // resolveAreaIdForPricing returns null (rather than defaulting) when the
+    // pin is valid but matches no zone in any area — flat-pricing mode has no
+    // other geography check, so this must hard-reject here rather than let a
+    // wrongly-defaulted area's catalog/shops/riders fulfill the order.
+    if (deliveryAreaId === null) {
+      throw new OrderError(
+        'Delivery is not available at this location. Please choose a closer address.',
+        'OUT_OF_DELIVERY_RANGE'
+      );
+    }
+    const deliveryArea = await getAreaById(deliveryAreaId);
+
+    // The two capacity counters ride along as subqueries on the settings read
+    // rather than as separate calls: createOrder is holding a transaction
+    // connection here, so going back to the outer pool for them would make
+    // every in-flight checkout hold one connection while waiting for a
+    // second — a pool-wide deadlock once concurrent checkouts reach
+    // MYSQL_POOL_SIZE (waitForConnections with queueLimit 0 waits forever).
+    const [settingRows] = await connection.query(
+      `SELECT shop_open, delivery_available, delivery_charge, night_charge, night_charge_start, night_charge_end, rain_charge_enabled, rain_charge, fast_delivery_enabled, fast_delivery_charge, standard_delivery_minutes, fast_delivery_minutes, shop_latitude, shop_longitude, radius_pricing_active,
+              (SELECT COUNT(*) FROM riders r
+                WHERE r.active = 1 AND r.is_online = 1 AND r.area_id = ?) AS online_riders,
+              (SELECT COALESCE(SUM(r.max_active_orders), 0) FROM riders r
+                WHERE r.active = 1 AND r.is_online = 1 AND r.area_id = ?) AS rider_capacity,
+              (SELECT COUNT(*) FROM orders o
+                WHERE o.area_id = ? AND o.status IN (?)
+                  AND o.created_at > NOW() - INTERVAL ? MINUTE) AS active_orders
+       FROM settings WHERE area_id = ? LIMIT 1`,
+      [
+        deliveryAreaId,
+        deliveryAreaId,
+        deliveryAreaId, ACTIVE_ORDER_STATUSES, config.RIDER_CAPACITY_LOOKBACK_MIN,
+        deliveryAreaId,
+      ]
+    );
     const settings = settingRows[0];
+    // A real area always has exactly one settings row, created in the same
+    // transaction as the area itself (areaController.js's createArea +
+    // settingsController.js's createSettingsForArea) — this should be
+    // unreachable through the API. It IS reachable through a manually
+    // inserted area (seed script, direct SQL against a fresh install that
+    // skipped seeding) and previously crashed here with an opaque
+    // "Cannot read properties of undefined (reading 'shop_open')" TypeError.
+    // A plain Error (not OrderError) surfaces this as a 500 through the
+    // global error handler — a data-integrity gap, not a customer mistake,
+    // so it must not be dressed up as a 400 like the checks below.
+    if (!settings) {
+      throw new Error(`createOrder: no settings row found for area ${deliveryAreaId}`);
+    }
 
     if (settings.shop_open === 0 || settings.shop_open === false) throw new OrderError('Shop is currently closed');
     if (settings.delivery_available === 0 || settings.delivery_available === false) throw new OrderError('Delivery is currently unavailable');
+
+    // Capacity gate: each online rider can only carry their own
+    // riders.max_active_orders concurrent deliveries (admin-set per rider,
+    // Riders page — one rider might handle 1 at a time, another 2+). Letting
+    // in-flight orders grow past the SUM of those caps just strands new
+    // orders in the search queue with nobody free to take them, so reject up
+    // front instead, before the customer pays (delivery is still marked
+    // available — riders are online, just fully booked). Zero online riders
+    // is already covered by the delivery_available gate above, so skip it here.
+    const onlineRiders = Number(settings.online_riders) || 0;
+    if (onlineRiders > 0) {
+      const activeOrders = Number(settings.active_orders) || 0;
+      const riderCapacity = Number(settings.rider_capacity) || 0;
+      if (activeOrders >= riderCapacity) {
+        throw new OrderError(
+          `All our riders are busy right now. Please try again in about ${config.RIDER_CAPACITY_COOLDOWN_MIN} minutes.`,
+          'RIDERS_AT_CAPACITY'
+        );
+      }
+    }
 
     if (isCodBlockedDuringNight(settings) && payment_method === 'Cash') {
       throw new OrderError('Cash on Delivery is not available during night delivery hours. Please choose UPI.');
@@ -230,9 +320,13 @@ const createOrder = async (req, res) => {
 
     if (productEntries.length > 0) {
       const productIds = productEntries.map(e => e.productId);
+      // area_id = ? so a stale/forged cart line referencing another area's
+      // product id can't be checked out here — same OrderError below as
+      // "does not exist" (§2.4: a customer in area 1 must never see area
+      // 2's products, including via a crafted product id).
       const [prodRows] = await connection.query(
-        'SELECT id, name, price, shop_price, shop_id FROM products WHERE id IN (?) AND available = 1 AND deleted = 0 AND (shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = products.shop_id AND s.is_open = 1 AND s.active = 1)) AND (group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = products.group_id AND g.active = 1))',
-        [productIds]
+        'SELECT id, name, price, shop_price, shop_id FROM products WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ? AND (shop_id IS NULL OR EXISTS (SELECT 1 FROM shops s WHERE s.id = products.shop_id AND s.is_open = 1 AND s.active = 1)) AND (group_id IS NULL OR EXISTS (SELECT 1 FROM product_groups g WHERE g.id = products.group_id AND g.active = 1 AND g.area_id = products.area_id))',
+        [productIds, deliveryAreaId]
       );
       for (const row of prodRows) productById.set(Number(row.id), row);
     }
@@ -240,8 +334,8 @@ const createOrder = async (req, res) => {
     if (comboEntries.length > 0) {
       const comboIds = comboEntries.map(e => e.productId);
       const [comboRows] = await connection.query(
-        'SELECT id, name, price FROM combos WHERE id IN (?) AND available = 1 AND deleted = 0',
-        [comboIds]
+        'SELECT id, name, price FROM combos WHERE id IN (?) AND available = 1 AND deleted = 0 AND area_id = ?',
+        [comboIds, deliveryAreaId]
       );
       for (const row of comboRows) comboById.set(Number(row.id), row);
     }
@@ -329,9 +423,9 @@ const createOrder = async (req, res) => {
     // client saw). Read + pure compute inside the existing transaction; the
     // resolver falls back to legacy flat pricing when zone mode isn't fully
     // configured or the order has no coordinates ("Enter Manually").
-    const zones = settings.radius_pricing_active ? await loadActiveZones(connection) : [];
+    const zones = settings.radius_pricing_active ? await loadActiveZones(connection, deliveryAreaId) : [];
     // Exclusion squares block delivery regardless of zone/flat pricing mode.
-    const exclusionZones = await loadActiveExclusionZones(connection);
+    const exclusionZones = await loadActiveExclusionZones(connection, deliveryAreaId);
     const pricing = resolveDeliveryPricing({
       customerLat: latitude,
       customerLng: longitude,
@@ -414,8 +508,8 @@ const createOrder = async (req, res) => {
 
     if (couponCode || couponId) {
       const result = couponCode
-        ? await validateCoupon({ code: couponCode, subtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection })
-        : await validateCouponById({ couponId, subtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection });
+        ? await validateCoupon({ code: couponCode, subtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection, areaId: deliveryAreaId })
+        : await validateCouponById({ couponId, subtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection, areaId: deliveryAreaId });
       let failReason = result.ok ? null : (result.reason || 'Coupon is not valid');
       if (!failReason) {
         await connection.query('SELECT id FROM coupons WHERE id = ? FOR UPDATE', [result.coupon.id]);
@@ -434,7 +528,7 @@ const createOrder = async (req, res) => {
         appliedCoupon = result.coupon;
       }
     } else if (!noAutoApply) {
-      let best = await pickBestAutoApply({ subtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection });
+      let best = await pickBestAutoApply({ subtotal, deliveryCharge, standardDeliveryCharge, userId, zoneId, connection, areaId: deliveryAreaId });
       if (best) {
         await connection.query('SELECT id FROM coupons WHERE id = ? FOR UPDATE', [best.coupon.id]);
         const failReason = await recheckUsageUnderLock(connection, best.coupon, userId);
@@ -452,7 +546,7 @@ const createOrder = async (req, res) => {
     }
 
     const total = roundMoney(Math.max(0, subtotal + standardDeliveryCharge + fastDeliveryFee + nightCharge + rainCharge - discount));
-    const orderNumber = await generateOrderNumber(connection);
+    const orderNumber = await generateOrderNumber(connection, deliveryAreaId, deliveryArea ? deliveryArea.code : 'A1');
 
     const finalAddress = address || user.address;
     if (!finalAddress) throw new OrderError('Address is required');
@@ -461,16 +555,16 @@ const createOrder = async (req, res) => {
     try {
       const [orderResult] = await connection.query(
         `INSERT INTO orders (
-          order_number, customer_id, customer_name, phone, whatsapp_number, address,
+          area_id, order_number, customer_id, customer_name, phone, whatsapp_number, address,
           latitude, longitude, map_url, subtotal, delivery_charge, night_charge, rain_charge, fast_delivery_charge, total,
           payment_method, payment_status, status, note,
           delivery_distance_km, delivery_radius_km_snapshot, delivery_cost_per_km_snapshot,
           free_delivery_offer_snapshot, delivery_zone_id, delivery_eta_minutes_snapshot, delivery_type,
           idempotency_key, idempotency_key_created_at,
           coupon_id, coupon_code, coupon_title, discount_amount, free_delivery_waiver_amount
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          orderNumber, userId, user.name, user.phone, user.whatsapp_number, finalAddress,
+          deliveryAreaId, orderNumber, userId, user.name, user.phone, user.whatsapp_number, finalAddress,
           latitude || null, longitude || null, map_url || null,
           subtotal, standardDeliveryCharge, nightCharge, rainCharge, fastDeliveryFee, total,
           payment_method, note || null,
@@ -534,17 +628,17 @@ const createOrder = async (req, res) => {
     }
 
     if (orderItems.length > 0) {
-      const placeholders = orderItems.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const placeholders = orderItems.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
       const values = [];
       for (const oi of orderItems) {
         values.push(
-          orderId, oi.product_id, oi.variant_id || null, oi.variant_label || null, oi.shop_id || null,
+          deliveryAreaId, orderId, oi.product_id, oi.variant_id || null, oi.variant_label || null, oi.shop_id || null,
           oi.item_type || 'product', oi.product_name, oi.quantity, oi.unit_price, oi.line_total,
           oi.shop_unit_price ?? null, oi.shop_line_total ?? null
         );
       }
       await connection.query(
-        `INSERT INTO order_items (order_id, product_id, variant_id, variant_label, shop_id, item_type, product_name, quantity, unit_price, line_total, shop_unit_price, shop_line_total) VALUES ${placeholders}`,
+        `INSERT INTO order_items (area_id, order_id, product_id, variant_id, variant_label, shop_id, item_type, product_name, quantity, unit_price, line_total, shop_unit_price, shop_line_total) VALUES ${placeholders}`,
         values
       );
     }
@@ -556,12 +650,29 @@ const createOrder = async (req, res) => {
       );
     }
 
+    // The one real writer of users.last_area_id (bug fix, multi-area audit
+    // finding #3) — migrate.js only ever backfilled it once, from history
+    // that existed before area 2 could. Without this, every no-pin fallback
+    // that reads it (resolveCustomerArea, socket.js's room join, the admin
+    // broadcast-push targeting) keeps reading whatever area a user's LAST
+    // order was in before this deploy, forever, even after they've since
+    // ordered from a different area.
+    await connection.query('UPDATE users SET last_area_id = ? WHERE id = ?', [deliveryAreaId, userId]);
+    // The no-pin area fallback reads this column through a 30s cache
+    // (utils/userState.js). Without busting it, a customer whose first order
+    // in a NEW area just committed would keep resolving to their OLD area on
+    // every pin-less request until the TTL expired — the exact cross-area
+    // contamination §2.4 exists to prevent.
+    bustUserState(userId);
+
     await connection.commit();
     releaseConnection();
 
     const order = {
       id: orderId,
       orderId,
+      areaId: deliveryAreaId,
+      area_id: deliveryAreaId,
       customerId: userId,
       customerName: user.name,
       customer_name: user.name,
@@ -632,6 +743,7 @@ const createOrder = async (req, res) => {
       body: `${order.customer_name || 'Customer'} placed an order — ₹${Number(order.total).toFixed(0)}`,
       relatedUrl: `/orders?id=${orderId}`,
       relatedId: String(orderId),
+      areaId: deliveryAreaId,
     });
 
     orderAutoAccept.schedule(orderId, orderNumber);

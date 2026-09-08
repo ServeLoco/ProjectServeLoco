@@ -3,6 +3,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const orderRoutes = require('../src/routes/orderRoutes');
 const { pool } = require('../src/db/mysql');
+const { bustUserState } = require('../src/utils/userState');
 
 jest.mock('../src/db/mysql', () => ({
   pool: { query: jest.fn(), getConnection: jest.fn() }
@@ -13,10 +14,10 @@ app.use(express.json());
 app.use('/api/orders', orderRoutes);
 
 // A valid-signature token for a user id that no longer exists. requireCustomer
-// runs the `SELECT blocked FROM users WHERE id = ?` lookup only when NODE_ENV
-// !== 'test' (the test-env shortcut skips it). To exercise the deleted-user
-// branch we run this suite under NODE_ENV='development' (same pattern as
-// orderNumber.test.js) so the real auth query path executes.
+// runs the `SELECT blocked, last_area_id FROM users WHERE id = ?` lookup only
+// when NODE_ENV !== 'test' (the test-env shortcut skips it). To exercise the
+// deleted-user branch we run this suite under NODE_ENV='development' (same
+// pattern as orderNumber.test.js) so the real auth query path executes.
 const deletedUserToken = jwt.sign({ id: 99999, role: 'customer' }, process.env.JWT_SECRET || 'secret');
 
 describe('TASK 8 — reject tokens for deleted users', () => {
@@ -26,6 +27,10 @@ describe('TASK 8 — reject tokens for deleted users', () => {
     savedNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'development';
     jest.clearAllMocks();
+    // That lookup is 30s-cached per user id (utils/userState.js). Both cases
+    // below use the SAME id, so without clearing it the second one would be
+    // answered from the first one's cached row instead of its own mock.
+    bustUserState();
   });
 
   afterEach(() => {
@@ -46,7 +51,7 @@ describe('TASK 8 — reject tokens for deleted users', () => {
 
     // The auth lookup must be the blocked-check query, keyed on the user id.
     const authCall = pool.query.mock.calls.find(
-      ([sql]) => typeof sql === 'string' && /SELECT blocked FROM users WHERE id = \?/i.test(sql)
+      ([sql]) => typeof sql === 'string' && /SELECT blocked, last_area_id FROM users WHERE id = \?/i.test(sql)
     );
     expect(authCall).toBeTruthy();
     expect(authCall[1]).toEqual([99999]);

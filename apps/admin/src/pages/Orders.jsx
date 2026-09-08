@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { OrdersApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } from '../api';
+import { OrdersApi, ShopsApi, RidersApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } from '../api';
 import MessageBanner from '../components/MessageBanner';
 import LiveOrderMap from '../components/LiveOrderMap';
 import CreateOrderModal from '../components/CreateOrderModal';
+import ReplaceItemModal from '../components/ReplaceItemModal';
 import { GENERIC_ERROR } from '../utils/constants';
 import { readList } from '../utils/apiResponse';
 import { useAdminRefresh } from '../hooks/useAdminRefresh';
+import { useAreaStore } from '../stores/useAreaStore';
 import {
   getRealtimeOrderId,
   getRealtimeOrderKey,
@@ -23,11 +25,18 @@ const ORDER_STATUS_OPTIONS = [
   { value: 'Delivered', label: 'Delivered' },
   { value: 'Cancelled', label: 'Cancelled' },
 ];
+const REASSIGN_BLOCKED_STATUSES = ['Out for Delivery', 'Delivered', 'Cancelled'];
 const ORDER_STATUS_LABELS = ORDER_STATUS_OPTIONS.reduce((acc, item) => {
   acc[item.value] = item.label;
   return acc;
 }, {});
 const getOrderStatusLabel = (status) => ORDER_STATUS_LABELS[status] || status || 'Unknown';
+// 'Paid' and 'Success' are the same state (money received) written by two
+// different code paths — auto-flip on delivery vs rider marking COD
+// collected. Collapsed to one option here; the server accepts the 'Paid'
+// filter/write for both (see adminController.getAdminOrders).
+const PAID_LIKE_STATUSES = ['Paid', 'Success'];
+const displayPaymentStatus = (status) => (PAID_LIKE_STATUSES.includes(status) ? 'Paid' : status);
 const formatMoney = (value) => {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric.toFixed(2) : '0.00';
@@ -58,6 +67,7 @@ const formatDateTime = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -66,15 +76,10 @@ const formatDateTime = (value) => {
   });
 };
 const statusClassName = (status) => String(status || 'unknown').toLowerCase().replace(/\s+/g, '-');
-// Local YYYY-MM-DD (not toISOString, which shifts to UTC and can land on the
-// wrong day near midnight for IST users).
-const todayStr = () => {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
 
 export default function Orders() {
+  const { areaId } = useAreaStore() || {};
+  const isAllAreas = areaId === 'all';
   const [orders, setOrders] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, totalPages: 1 });
   const [loading, setLoading] = useState(false);
@@ -91,6 +96,11 @@ export default function Orders() {
   const [remarkSaving, setRemarkSaving] = useState(false);
   const [pageMessage, setPageMessage] = useState(null);
   const [showCreateOrder, setShowCreateOrder] = useState(false);
+  const [replacingItem, setReplacingItem] = useState(null);
+  const [resendingShopId, setResendingShopId] = useState(null);
+  const [areaRiders, setAreaRiders] = useState([]);
+  const [reassignRiderId, setReassignRiderId] = useState('');
+  const [reassigning, setReassigning] = useState(false);
   const filtersRef = useRef(filters);
   const historyModeRef = useRef(historyMode);
   const paginationRef = useRef(pagination);
@@ -122,9 +132,10 @@ export default function Orders() {
       
       const params = { page, limit: 20, ...filtersRef.current };
       if (!historyModeRef.current) {
-        // Default view: today only, regardless of any stale date filter state.
-        params.dateFrom = todayStr();
-        params.dateTo = todayStr();
+        // Default view: today only. Let the server decide "today" (it knows
+        // the admin TZ); sending a browser-computed date here can disagree
+        // with the server's day boundary and silently hide recent orders.
+        params.today = '1';
       }
       Object.keys(params).forEach(k => !params[k] && delete params[k]);
 
@@ -194,7 +205,23 @@ export default function Orders() {
   // (or closes) so a half-typed note doesn't leak onto the next order.
   useEffect(() => {
     setRemarkDraft(selectedOrder?.admin_remark || '');
+    setReassignRiderId('');
   }, [selectedOrder?.id]);
+
+  // Rider picker for the reassign control — only worth fetching once the
+  // drawer is open on an order that's actually still reassignable.
+  useEffect(() => {
+    if (!selectedOrder || isAllAreas || REASSIGN_BLOCKED_STATUSES.includes(selectedOrder.status)) {
+      return;
+    }
+    let cancelled = false;
+    RidersApi.list()
+      .then((res) => {
+        if (!cancelled) setAreaRiders(readList(res, ['riders']));
+      })
+      .catch(() => { /* picker just stays empty */ });
+    return () => { cancelled = true; };
+  }, [selectedOrder?.id, selectedOrder?.status, isAllAreas]);
 
   useEffect(() => {
     const unsubscribeOrders = subscribeAdminOrderEvents(({ eventName, payload }) => {
@@ -229,6 +256,12 @@ export default function Orders() {
         // status transitions (Out for Delivery/Delivered/etc.) are already
         // emitted separately as 'admin.order.updated' before this event, so
         // ignoring it here avoids clobbering the list/drawer status chip.
+        // Still worth a drawer refetch when it's the open order — the rider
+        // name/assigned-at in the Delivery panel only lives in GET /orders/:id.
+        const eventOrderId = getRealtimeOrderId(payload);
+        if (eventOrderId && selectedOrderRef.current && String(selectedOrderRef.current.id) === eventOrderId) {
+          queueSelectedRefresh(selectedOrderRef.current.id);
+        }
         return;
       }
 
@@ -478,6 +511,55 @@ export default function Orders() {
     }
   };
 
+  const handleResendToShop = async (shopId) => {
+    if (!selectedOrder) return;
+    setResendingShopId(shopId);
+    try {
+      await ShopsApi.resendOrder(shopId, selectedOrder.id);
+      const patchConfirmations = (confirmations) => (confirmations || []).map((sc) => (
+        Number(sc.shopId ?? sc.shop_id) === Number(shopId)
+          ? { ...sc, rejected: false, confirmed: false, ready: false }
+          : sc
+      ));
+      setSelectedOrder((prev) => (
+        prev ? { ...prev, shopConfirmations: patchConfirmations(prev.shopConfirmations) } : prev
+      ));
+      setOrders((prev) => prev.map((o) => (
+        o.id === selectedOrder.id
+          ? { ...o, shopConfirmations: patchConfirmations(o.shopConfirmations) }
+          : o
+      )));
+      setPageMessage({ type: 'success', text: 'Order resent to the shop.' });
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || GENERIC_ERROR);
+    } finally {
+      setResendingShopId(null);
+    }
+  };
+
+  const handleReassignRider = async () => {
+    if (!selectedOrder || !reassignRiderId) return;
+    const rider = areaRiders.find((r) => String(r.id) === String(reassignRiderId));
+    const riderLabel = rider?.displayName || rider?.display_name || `#${reassignRiderId}`;
+    if (!window.confirm(`Reassign this order to ${riderLabel}? The current rider (if any) is removed and ${riderLabel} gets an accept/reject request.`)) {
+      return;
+    }
+    setReassigning(true);
+    try {
+      const res = await RidersApi.reassign(reassignRiderId, selectedOrder.id);
+      const serverOrder = res?.order;
+      if (serverOrder) {
+        setSelectedOrder((prev) => (prev ? { ...prev, ...serverOrder } : prev));
+      }
+      setReassignRiderId('');
+      setPageMessage({ type: 'success', text: `Reassign offer sent to ${riderLabel}.` });
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || GENERIC_ERROR);
+    } finally {
+      setReassigning(false);
+    }
+  };
+
   const handleExportCSV = async () => {
     try {
       setLoading(true);
@@ -513,7 +595,7 @@ export default function Orders() {
 
       const rows = allFilteredOrders.map(o => [
         `#${o.order_number}`,
-        new Date(o.created_at).toLocaleString(),
+        formatDateTime(o.created_at),
         o.customer_name || '',
         o.phone || '',
         o.whatsapp_number || '',
@@ -589,7 +671,7 @@ export default function Orders() {
           <div style="text-align: right;">
              <div style="font-weight: bold; font-size: 18px;">INVOICE</div>
              <div>Order #${escapeHtml(selectedOrder.order_number)}</div>
-             <div>Date: ${new Date(selectedOrder.created_at).toLocaleString()}</div>
+             <div>Date: ${escapeHtml(formatDateTime(selectedOrder.created_at))}</div>
           </div>
         </div>
         <div class="details">
@@ -715,6 +797,29 @@ export default function Orders() {
         />
       )}
 
+      {replacingItem && (
+        <ReplaceItemModal
+          order={replacingItem.order}
+          item={replacingItem.item}
+          onClose={() => setReplacingItem(null)}
+          onReplaced={(updatedOrder, updatedItem) => {
+            setSelectedOrder((prev) => {
+              if (!prev || prev.id !== updatedOrder.id) return prev;
+              return {
+                ...prev,
+                subtotal: updatedOrder.subtotal,
+                total: updatedOrder.total,
+                items: (prev.items || []).map((it) => (it.id === updatedItem.id ? { ...it, ...updatedItem } : it)),
+              };
+            });
+            setOrders((prev) => prev.map((o) => (
+              o.id === updatedOrder.id ? { ...o, subtotal: updatedOrder.subtotal, total: updatedOrder.total } : o
+            )));
+            setPageMessage({ type: 'success', text: 'Item changed and bill updated.' });
+          }}
+        />
+      )}
+
       <MessageBanner
         type={pageMessage?.type || 'info'}
         message={pageMessage?.text}
@@ -760,7 +865,6 @@ export default function Orders() {
             <option value="">All Payment Status</option>
             <option value="Pending">Pending</option>
             <option value="Paid">Paid</option>
-            <option value="Success">Success</option>
             <option value="Failed">Failed</option>
             <option value="Refunded">Refunded</option>
           </select>
@@ -865,7 +969,7 @@ export default function Orders() {
                     </span>
                   </td>
                   <td>
-                    <span className={`payment-pill ${statusClassName(order.payment_status)}`}>{order.payment_status}</span>
+                    <span className={`payment-pill ${statusClassName(order.payment_status)}`}>{displayPaymentStatus(order.payment_status)}</span>
                     <span className="payment-method">{order.payment_method}</span>
                   </td>
                 </tr>
@@ -999,31 +1103,77 @@ export default function Orders() {
                 </div>
               )}
 
+              {!REASSIGN_BLOCKED_STATUSES.includes(selectedOrder.status) && (
+                <div className="detail-section">
+                  <h4>Reassign Rider</h4>
+                  {isAllAreas ? (
+                    <p className="admin-remark-caption">Pick one area to reassign a rider.</p>
+                  ) : (
+                    <>
+                      <p className="admin-remark-caption">
+                        Removes the current rider (if any) and sends this order as a new accept/reject request to the rider you pick.
+                      </p>
+                      <div className="status-update-row">
+                        <select
+                          value={reassignRiderId}
+                          onChange={(e) => setReassignRiderId(e.target.value)}
+                          disabled={reassigning}
+                        >
+                          <option value="">Select a rider…</option>
+                          {areaRiders
+                            .filter((r) => r.active && Number(r.id) !== Number(selectedOrder.riderId || selectedOrder.rider_id))
+                            .map((r) => (
+                              <option key={r.id} value={r.id}>
+                                {(r.displayName || r.display_name)}{(r.isOnline ?? r.is_online) ? ' • online' : ' • offline'}
+                              </option>
+                            ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={handleReassignRider}
+                          disabled={reassigning || !reassignRiderId}
+                        >
+                          {reassigning ? 'Reassigning…' : 'Reassign'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               <div className="detail-section">
                 <h4>Order Status Management</h4>
                 <div className="status-update-row">
                   <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Fulfillment Status</label>
-                  <select 
-                    value={selectedOrder.status} 
+                  <select
+                    value={selectedOrder.status}
                     onChange={handleStatusChange}
-                    disabled={updating || isTerminalState(selectedOrder.status)}
+                    disabled={updating || selectedOrder.status === 'Delivered'}
                   >
-                    {ORDER_STATUS_OPTIONS.map(status => (
-                      <option key={status.value} value={status.value}>{status.label}</option>
-                    ))}
+                    {selectedOrder.status === 'Cancelled' ? (
+                      // A cancelled order can only be reopened back to Pending
+                      // (server enforces this too) — narrow the picker to match.
+                      <>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Pending">Reopen — Order Placed</option>
+                      </>
+                    ) : (
+                      ORDER_STATUS_OPTIONS.map(status => (
+                        <option key={status.value} value={status.value}>{status.label}</option>
+                      ))
+                    )}
                   </select>
                 </div>
 
                 <div className="status-update-row">
                   <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Payment Status</label>
-                  <select 
-                    value={selectedOrder.payment_status} 
+                  <select
+                    value={displayPaymentStatus(selectedOrder.payment_status)}
                     onChange={handlePaymentChange}
                     disabled={updating || isTerminalState(selectedOrder.status)}
                   >
                     <option value="Pending">Pending</option>
                     <option value="Paid">Paid</option>
-                    <option value="Success">Success</option>
                     <option value="Failed">Failed</option>
                     <option value="Refunded">Refunded</option>
                   </select>
@@ -1073,24 +1223,57 @@ export default function Orders() {
                         : sc.confirmed ? 'rgba(34, 197, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)';
                       const color = (orderCancelled || sc.rejected) ? '#b91c1c' : sc.ready ? '#1d4ed8' : sc.confirmed ? '#15803d' : '#b45309';
                       return (
-                        <span key={sc.shopId} style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
-                          padding: '4px 10px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 600,
-                          background, color,
-                        }}>
-                          {sc.shopName} {label}
-                          {(sc.shopTotal ?? sc.shop_total) > 0 ? ` · ₹${sc.shopTotal ?? sc.shop_total} owed` : ''}
+                        <span key={sc.shopId} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                            padding: '4px 10px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 600,
+                            background, color,
+                          }}>
+                            {sc.shopName} {label}
+                            {(sc.shopTotal ?? sc.shop_total) > 0 ? ` · ₹${sc.shopTotal ?? sc.shop_total} owed` : ''}
+                          </span>
+                          {sc.rejected && !orderCancelled && (
+                            <button
+                              type="button"
+                              className="item-replace-btn"
+                              title="Clear the rejection so this shop sees the order again"
+                              disabled={resendingShopId !== null}
+                              onClick={() => handleResendToShop(sc.shopId)}
+                            >
+                              {resendingShopId === sc.shopId ? 'Resending…' : '↻ Resend'}
+                            </button>
+                          )}
                         </span>
                       );
                     })}
                   </div>
                 )}
-                {(selectedOrder.items || []).map((item, idx) => (
-                  <div key={idx} className="item-row">
-                    <span>{item.quantity}x {item.product_name}</span>
-                    <strong>₹{formatMoney(item.line_total)}</strong>
-                  </div>
-                ))}
+                {(selectedOrder.items || []).map((item, idx) => {
+                  const canReplace = item.item_type !== 'combo'
+                    && ['Pending', 'Accepted', 'Preparing'].includes(selectedOrder.status);
+                  const outOfStock = item.product_available === 0 || item.product_available === false;
+                  return (
+                    <div key={idx} className="item-row">
+                      <span>
+                        {item.quantity}x {item.product_name}
+                        {outOfStock && <span className="item-oos-flag" title="Current product is marked unavailable">Out of stock</span>}
+                      </span>
+                      <span className="item-row-actions">
+                        <strong>₹{formatMoney(item.line_total)}</strong>
+                        {canReplace && (
+                          <button
+                            type="button"
+                            className="item-replace-btn"
+                            title="Change this item"
+                            onClick={() => setReplacingItem({ order: selectedOrder, item })}
+                          >
+                            ⇄ Change
+                          </button>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
                 
                 <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
                   <div className="detail-row"><span>Subtotal:</span> <strong>₹{formatMoney(selectedOrder.subtotal)}</strong></div>

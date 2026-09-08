@@ -3,6 +3,8 @@ const express = require('express');
 const cartRoutes = require('../src/routes/cartRoutes');
 const { pool } = require('../src/db/mysql');
 const jwt = require('jsonwebtoken');
+const areaScope = require('../src/utils/areaScope');
+const { bustUserState } = require('../src/utils/userState');
 
 jest.mock('../src/db/mysql', () => ({
   pool: { query: jest.fn(), getConnection: jest.fn() }
@@ -51,6 +53,17 @@ const ZONE_ROW = {
   cod_enabled: 1, active: 1,
 };
 
+const AREA_ROW = { id: 1, code: 'A1', name: 'Area 1', active: 1, is_default: 1, min_lat: null, max_lat: null, min_lng: null, max_lng: null };
+
+// TASK 10: a request carrying a pin now resolves which area it belongs to
+// (via the outer pool, 2 queries: the areas list, then a zone-match check)
+// before loading that area's pricing zones.
+const queueAreaResolution = () => {
+  pool.query
+    .mockResolvedValueOnce([[AREA_ROW]])
+    .mockResolvedValueOnce([[ZONE_ROW]]);
+};
+
 const ZONE_SETTINGS = {
   delivery_charge: '20.00',
   night_charge: 0,
@@ -70,12 +83,19 @@ const ZONE_SETTINGS = {
 describe('POST /api/cart/validate-coupon — zone is derived server-side', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // users.last_area_id is read through a 30s per-user cache
+    // (utils/userState.js) — clear it so one case's row can't answer the next.
+    bustUserState();
+    areaScope._resetCachesForTests();
   });
 
   it('ignores a delivery_zone_id supplied in the request body', async () => {
-    pool.query
-      .mockResolvedValueOnce([[ZONE_SETTINGS]]) // settings
-      .mockResolvedValueOnce([[ZONE_ROW]]);     // active zones
+    // TASK 13: area is resolved BEFORE settings now (settings itself is
+    // area-scoped), so the order here is areas/zone-match, then settings,
+    // then active zones.
+    queueAreaResolution();
+    pool.query.mockResolvedValueOnce([[ZONE_SETTINGS]]); // settings
+    pool.query.mockResolvedValueOnce([[ZONE_ROW]]);     // active zones
 
     const res = await request(app)
       .post('/api/cart/validate-coupon')
@@ -95,9 +115,15 @@ describe('POST /api/cart/validate-coupon — zone is derived server-side', () =>
   });
 
   it('resolves no zone when the pin is outside every zone', async () => {
-    pool.query
-      .mockResolvedValueOnce([[ZONE_SETTINGS]])
-      .mockResolvedValueOnce([[ZONE_ROW]]);
+    // A pin that matches no zone anywhere now falls back through
+    // resolveNoPinAreaId (bug fix — a matched-no-zone pin must not silently
+    // default to the wrong area's catalog; see areaScope.resolveAreaIdForPricing).
+    // Its getDefaultArea() call hits the 60s areas cache queueAreaResolution
+    // already warmed above (loadAllAreas), so only the user lookup makes a
+    // real query here — same real DB round trip count as before this fix,
+    // just a different function reaching it.
+    queueAreaResolution();
+    pool.query.mockResolvedValueOnce([[{ last_area_id: null }]]); // resolveNoPinAreaId: user lookup
 
     const far = offsetPoint(CENTER.lat, CENTER.lng, 0, 50);
     const res = await request(app)
@@ -107,11 +133,19 @@ describe('POST /api/cart/validate-coupon — zone is derived server-side', () =>
 
     expect(res.statusCode).toEqual(200);
     expect(validateCoupon).toHaveBeenCalledWith(
-      expect.objectContaining({ zoneId: null })
+      expect.objectContaining({ zoneId: null, areaId: 1 })
     );
   });
 
   it('skips the zone lookup entirely when no coordinates are sent', async () => {
+    // No pin still resolves an area now (bug fix, multi-area audit finding
+    // #12 — a coordinate-less request used to leave areaId null, and
+    // coupons.js treats that as "run unscoped" across every area). This
+    // customer has no last_area_id yet, so it falls to the platform default.
+    pool.query
+      .mockResolvedValueOnce([[{ last_area_id: null }]]) // resolveNoPinAreaId: user lookup
+      .mockResolvedValueOnce([[{ id: 1, code: 'A1', is_default: 1, active: 1 }]]); // getDefaultArea's areas lookup
+
     const res = await request(app)
       .post('/api/cart/validate-coupon')
       .set('Authorization', `Bearer ${token}`)
@@ -119,11 +153,10 @@ describe('POST /api/cart/validate-coupon — zone is derived server-side', () =>
 
     expect(res.statusCode).toEqual(200);
     expect(validateCoupon).toHaveBeenCalledWith(
-      expect.objectContaining({ zoneId: null })
+      expect.objectContaining({ zoneId: null, areaId: 1 })
     );
-    // No settings/zone queries at all — only the store-type lookup is skipped
-    // too because no items were sent.
-    expect(pool.query).not.toHaveBeenCalled();
+    // Still no settings/zone queries — only the fallback area resolution.
+    expect(pool.query).toHaveBeenCalledTimes(2);
   });
 
   it('rejects malformed coordinates instead of silently ignoring them', async () => {
@@ -143,12 +176,19 @@ describe('POST /api/cart/validate-coupon — zone is derived server-side', () =>
 describe('GET /api/cart/available-coupons — zone is derived server-side', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // users.last_area_id is read through a 30s per-user cache
+    // (utils/userState.js) — clear it so one case's row can't answer the next.
+    bustUserState();
+    areaScope._resetCachesForTests();
   });
 
   it('ignores a delivery_zone_id supplied as a query param', async () => {
-    pool.query
-      .mockResolvedValueOnce([[ZONE_SETTINGS]]) // settings
-      .mockResolvedValueOnce([[ZONE_ROW]]);     // active zones
+    // TASK 13: area is resolved BEFORE settings now (settings itself is
+    // area-scoped), so the order here is areas/zone-match, then settings,
+    // then active zones.
+    queueAreaResolution();
+    pool.query.mockResolvedValueOnce([[ZONE_SETTINGS]]); // settings
+    pool.query.mockResolvedValueOnce([[ZONE_ROW]]);     // active zones
 
     const res = await request(app)
       .get('/api/cart/available-coupons')
@@ -167,9 +207,9 @@ describe('GET /api/cart/available-coupons — zone is derived server-side', () =
   });
 
   it('resolves no zone when the pin is outside every zone', async () => {
-    pool.query
-      .mockResolvedValueOnce([[ZONE_SETTINGS]])
-      .mockResolvedValueOnce([[ZONE_ROW]]);
+    // Same fallback as the validate-coupon test above — see its comment.
+    queueAreaResolution();
+    pool.query.mockResolvedValueOnce([[{ last_area_id: null }]]); // resolveNoPinAreaId: user lookup
 
     const far = offsetPoint(CENTER.lat, CENTER.lng, 0, 50);
     const res = await request(app)
@@ -179,11 +219,17 @@ describe('GET /api/cart/available-coupons — zone is derived server-side', () =
 
     expect(res.statusCode).toEqual(200);
     expect(findApplicableCoupons).toHaveBeenCalledWith(
-      expect.objectContaining({ zoneId: null })
+      expect.objectContaining({ zoneId: null, areaId: 1 })
     );
   });
 
   it('skips the zone lookup entirely when no coordinates are sent', async () => {
+    // No pin still resolves an area now (bug fix, multi-area audit finding
+    // #12 — see the identical case on validate-coupon above).
+    pool.query
+      .mockResolvedValueOnce([[{ last_area_id: null }]]) // resolveNoPinAreaId: user lookup
+      .mockResolvedValueOnce([[{ id: 1, code: 'A1', is_default: 1, active: 1 }]]); // getDefaultArea's areas lookup
+
     const res = await request(app)
       .get('/api/cart/available-coupons')
       .set('Authorization', `Bearer ${token}`)
@@ -191,9 +237,9 @@ describe('GET /api/cart/available-coupons — zone is derived server-side', () =
 
     expect(res.statusCode).toEqual(200);
     expect(findApplicableCoupons).toHaveBeenCalledWith(
-      expect.objectContaining({ zoneId: null })
+      expect.objectContaining({ zoneId: null, areaId: 1 })
     );
-    expect(pool.query).not.toHaveBeenCalled();
+    expect(pool.query).toHaveBeenCalledTimes(2);
   });
 
   it('rejects malformed coordinates instead of silently ignoring them', async () => {

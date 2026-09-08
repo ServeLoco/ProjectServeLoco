@@ -1,0 +1,2300 @@
+# Multi-Area — Execution Checklist
+
+Companion to [`multi-area.md`](./multi-area.md). That file is the **contract** (why, locked
+decisions, performance/DRY/data-safety rules). This file is the **do-list**.
+
+Branch: `feat/multi-area-super-admin` · 31 tasks (0–30) · Status: **NOT STARTED**
+
+## Rules
+
+1. Read `multi-area.md` §2 (locked decisions), §3 (performance), §4 (DRY), §6 (data safety) and
+   §9 (hurdles) **before TASK 0**. Every `§x.y` below points there.
+2. Tasks run **in order**. Later tasks assume earlier ones landed.
+3. One commit per task, format `feat: AREA TASK <n> — <short title>`.
+4. After every backend task: `npm test` in `apps/api`, then `npx eslint` on each file touched.
+   A task is not done if either fails.
+5. Tick each subtask as you go; tick the task heading with a one-line note when the whole task lands.
+6. **Do not invent scope.** If a subtask seems to require touching something in the spec's
+   DO-NOT-TOUCH list, stop and ask.
+7. Response shapes stay byte-identical for a single-area install until TASK 27. Where a response
+   already duplicates camelCase + snake_case, keep duplicating.
+
+**Legend:** `[api]` `apps/api` · `[adm]` `apps/admin` · `[app]` `apps/customer-app` · `[ci]` workflows
+
+---
+
+## Phase 0 — Safety gate
+
+### [~] TASK 0 — Production snapshot + migration rehearsal
+**Spec:** §6.1, §6.2, §9 · **Files:** `[ci] .github/workflows/ci.yml`, staging only
+**Status note (2026-08-01):** 0.1–0.6, 0.8–0.9 need real production/staging access this session
+doesn't have — deferred to whoever runs the actual prod deploy. Only 0.7 (CI step) done here.
+Instead rehearsed TASK 1–3 twice against the **local dev DB** (`serveloco`, not synthetic-empty:
+9 products / 79 orders / 6 users / 1 shop) and took a `mysqldump` snapshot first. Row counts
+verified unchanged after both runs. This is not a substitute for 0.1–0.6 against production.
+
+- [ ] 0.1 Full MySQL dump of production + full Mongo dump. Verify each **restores** on a scratch
+      instance — an unverified dump is not a backup.
+- [ ] 0.2 Record baseline row counts for every table in §1.1 and
+      `SELECT COUNT(*) FROM orders` + `information_schema.TABLES` data length for `orders` (H12).
+      Write the numbers into this file under 0.9.
+- [ ] 0.3 Restore the snapshot to a staging MySQL. Point a staging API at it.
+- [ ] 0.4 Write TASK 1–3's migration code locally, run it against staging. Not against an empty dev
+      DB — production's real edge cases (NULL `shop_latitude`, legacy `products.image_id`, duplicate
+      images) are the point.
+- [ ] 0.5 Re-run row counts. Every table must match 0.2 exactly. Any delta = stop.
+- [ ] 0.6 Run the migration a **second time** against the now-migrated staging DB. Must complete
+      clean — this proves the `IF NOT EXISTS` / `ensureColumn` idempotence that production boot
+      depends on (§6.1).
+- [x] 0.7 `[ci]` Added to `.github/workflows/ci.yml`, after "Install dependencies" and before
+      "Run Tests": two `npm run db:migrate` steps (first pass + idempotence pass) against the
+      MySQL service container, with the env vars `config/env.js` requires (`JWT_SECRET`,
+      `ADMIN_OWNER_ID`, `ADMIN_PASSWORD`) added since migrate.js now seeds a super_admin.
+- [ ] 0.8 Time the staging migration. If it exceeds the acceptable deploy window, plan a maintenance
+      slot before TASK 3 rather than discovering it on boot.
+- [ ] 0.9 Record here: `orders` rows = ____, data length = ____, migration duration = ____.
+
+**Done when:** two consecutive clean migration runs on a production-shaped DB, zero row-count drift,
+CI runs migrate twice and is green.
+**Commit:** `feat: AREA TASK 0 — migration rehearsal + CI migrate step`
+
+---
+
+## Phase A — Foundations (no behaviour change)
+
+### [x] TASK 1 — `areas` table + seed Area 1
+**Spec:** §2.1, §2.12 · **Files:** `[api] src/db/migrate.js`
+
+- [x] 1.1 `CREATE TABLE IF NOT EXISTS areas` — `id`, `code VARCHAR(16) UNIQUE`, `name`,
+      `active TINYINT DEFAULT 1`, `is_default TINYINT DEFAULT 0`,
+      `timezone VARCHAR(64) DEFAULT 'Asia/Kolkata'`, `min_lat/max_lat/min_lng/max_lng DECIMAL(10,7)
+      NULL`, `catalog_version BIGINT NOT NULL DEFAULT 1`, `brand_color VARCHAR(9) NULL`,
+      `logo_image_id INT NULL`, `features JSON NULL`, `created_at`, `updated_at`.
+- [x] 1.2 Index `(active, min_lat, max_lat)` for the bbox prefilter (§3.2).
+- [x] 1.3 `INSERT IGNORE` seed row: `id=1, code='A1', name='Area 1', is_default=1`.
+- [x] 1.4 Confirmed nothing reads the table yet — purely additive.
+
+**Done when:** migrate runs twice clean, `SELECT * FROM areas` returns exactly one row, `npm test`
+green. **Verified locally** 2026-08-01 against `serveloco` dev DB — both true.
+**Commit:** `feat: AREA TASK 1 — areas table + seed Area 1`
+
+### [x] TASK 2 — `admins` table + per-admin session state
+**Spec:** §2.9 · **Files:** `[api] src/db/migrate.js`
+
+- [x] 2.1 `CREATE TABLE IF NOT EXISTS admins` — `id`, `username VARCHAR(64) UNIQUE`,
+      `password_hash VARCHAR(255) NOT NULL`, `role ENUM('super_admin','area_admin') NOT NULL`,
+      `area_id INT NULL`, `display_name`, `active TINYINT DEFAULT 1`, timestamps.
+- [x] 2.2 FK `area_id → areas(id)`; index `(active, area_id)`.
+- [x] 2.3 `ensureColumn('admin_auth_state', 'admin_id', 'admin_id INT NULL')`. Row `id=1` keeps
+      working as the legacy global revoke.
+- [x] 2.4 Seed one `super_admin` row from `ADMIN_PASSWORD_HASH` (or bcrypt-hashed `ADMIN_PASSWORD`,
+      whichever is set) **only when `admins` is empty**. Verified locally: seeded on first run,
+      silently skipped on second run.
+- [x] 2.5 Application-level invariant documented as a comment above the `admins` seed insert
+      (`area_id: NULL` for the seeded `super_admin`); enforcement at the endpoint is TASK 24 — not
+      yet built, so nothing stops a hand-written INSERT from violating it today. Flagging this as a
+      real gap until TASK 24 lands, not just a checklist formality.
+
+**Done when:** migrate idempotent, one seeded super admin exists, existing admin login unaffected.
+**Verified locally** 2026-08-01 — `admins` has exactly one `super_admin` row (`area_id NULL`) after
+two runs; `adminController.js` login not yet touched (TASK 7) so existing login is provably
+unaffected — it doesn't read this table yet.
+**Commit:** `feat: AREA TASK 2 — admins table + per-admin session state`
+
+### [x] TASK 3 — `area_id` columns, backfill, indexes, UNIQUE key rewrites
+**Spec:** §3.3, §3.6, §6.2, H1, H11 · **Files:** `[api] src/db/migrate.js`, `src/db/seed_demo.js`
+
+> The riskiest task in the project. Follow the order literally — each step exists because
+> reordering it loses data (§6.2).
+
+- [x] 3.1 Added `ensureColumnAtEnd(table, name, definition)` — same existence check as
+      `ensureColumn` but **no `AFTER` clause**. `ensureColumn` itself untouched.
+- [x] 3.2 Added nullable `area_id INT` **at end of row** to all 19 tables via a shared
+      `AREA_SCOPED_TABLES` list (single source of truth reused by every step below — avoids the
+      table list drifting between the column/backfill/NOT-NULL/FK loops).
+- [x] 3.3 Backfilled each to `1` in **5,000-row batches**, `ORDER BY id LIMIT 5000`,
+      `WHERE area_id IS NULL`, looped until `affectedRows === 0`. Outside any transaction.
+- [x] 3.4 Orphan check (`assertNoAreaOrphans`) run per table before NOT NULL — throws and aborts
+      the whole migration on any violation. Verified locally: 0 orphans on every scoped table.
+- [x] 3.5 `MODIFY area_id INT NOT NULL` only after the orphan check passes (checked
+      `IS_NULLABLE` first so re-running after it's already NOT NULL is a no-op, not an error).
+- [x] 3.6 FK `area_id → areas(id) ON DELETE RESTRICT` on all 19, via `ensureForeignKey` (same
+      rethrow-unless-duplicate pattern as the existing `delivery_zones` parent FK). Verified: 19
+      `fk_*_area` constraints present in `information_schema`.
+- [x] 3.7 Old global UNIQUE keys dropped **before** the new composite on all 5: `categories.slug`,
+      `store_modes.slug`, `coupons.uniq_live_coupon_code`, `dashboard_sections.idx_section_store_slug`,
+      `admin_notifications.uniq_admin_inbox_event`. Verified via `SHOW INDEX` — none of the old
+      global keys remain, all 5 new per-area composites present.
+- [x] 3.8 All 12 composite indexes from §3.3 added (`ensureIndex`, reused from the existing helper
+      already in scope in this function). Verified present via `SHOW INDEX`.
+- [x] 3.9 Confirmed `orders.idx_status` / `idx_created_at` **not** touched — grepped the diff.
+- [x] 3.10 Added `users.last_area_id INT NULL` via `ensureColumnAtEnd` — no FK (§2.2: cache only,
+      areas are deactivate-only per §6.8 so it can never dangle).
+- [x] 3.11 **Deviated from the literal wording, documented in a code comment why:** backfilled
+      `last_area_id = 1` for every user with ≥1 order, rather than actually running each user's
+      most recent order's lat/lng through a zone matcher. Reason: the polygon matcher
+      (`matchZone`/`areaScope.js`) doesn't exist until TASK 6, and — more fundamentally — the §6.6
+      gate means **only Area 1 can exist** at the point this backfill ever runs for real, so
+      "match against zones" and "= 1" produce an identical result. Real per-request resolution
+      takes over from TASK 6 onward; this is a one-time historical seed, not the resolution path.
+      Verified locally: 4/6 users (those with orders) got `last_area_id = 1`, 2 stayed `NULL`.
+- [x] 3.12 `seed_demo.js` — all 10 INSERT statements (`settings`, `offers`, `categories`×2,
+      `products`×3, `orders`, `order_items`×2, `coupons`) updated to stamp `area_id = 1`.
+- [x] 3.13 Confirmed `daily_order_counters` untouched in this task.
+- [x] 3.14 Row-count comparison re-run against the **local dev DB** (not production/staging — see
+      TASK 0 status note): `products=9, orders=79, users=6, shops=1` before and after, unchanged.
+
+**Done when:** migrate runs twice clean, zero NULL `area_id` anywhere, row counts unchanged,
+`npm test` green. **All true, verified locally** 2026-08-01. `npm test`: 85 suites / 919 tests
+passed (mocked DB, so this proves application code is unaffected, not migration correctness —
+that's what the two live runs above proved). `npx eslint` clean on both touched files.
+**Commit:** `feat: AREA TASK 3 — area_id columns, backfill, indexes, unique key rewrites`
+
+### [x] TASK 4 — Area-aware caches
+**Spec:** §3.4 · **Files:** `[api] src/utils/microCache.js`, `src/utils/storeMode.js`,
+`src/controllers/settingsController.js`, all current cache callers, `tests/microCache.test.js`
+
+- [x] 4.1 `microCache.js`: `set()` validates `<namespace>:<areaId>:<rest>` (or bare
+      `<namespace>:<areaId>`) via regex, throws outside `NODE_ENV=production`. `get()` deliberately
+      stays lenient — a malformed/missing read key just misses the cache rather than crashing a
+      request; only writes are validated, since that's where a bad key actually gets baked in.
+- [x] 4.2 `bust(namespace, areaId)` matches the exact `namespace:areaId` key plus everything under
+      `namespace:areaId:`, with a trailing-colon guard so area 1 can't accidentally sweep area 10's
+      keys via a naive substring prefix. `bust(namespace)` with no areaId kept as the original
+      plain-`startsWith` global fallback.
+- [x] 4.3 `MAX_ENTRIES` 100 → 600, exported.
+- [x] 4.4 `settingsController`: internal `settingsKey(areaId)` helper, hardcoded to area 1 via a
+      named `SETTINGS_AREA_ID_STOPGAP` constant at all 3 internal read/write sites.
+      `bustSettingsCache` stays zero-arg (its 2 external callers — `shops.js`, `riders.js` — aren't
+      touched in this task; that's real DB scoping, deferred to TASK 15).
+- [x] 4.5 `storeMode.js`: internal `cacheKeyForArea(areaId)` helper, same stopgap pattern.
+      `normalizeStoreType`/`invalidateStoreModeCache`/`getActiveStoreModeSlugs` keep their existing
+      zero-arg signatures — their 9 external callers across the codebase are untouched; the
+      underlying query itself isn't area-scoped yet (that's TASK 11, H4).
+- [x] 4.6 Every `microCache` caller updated to pass `1` explicitly — found via
+      `grep -rln "microCache" src/`, not by only checking the files the checklist named. That grep
+      caught 2 files the plan missed (`shopAdminController.js`, `shopOwnerController.js`), which is
+      exactly why the grep-first approach matters more than trusting a file list. Final verification:
+      `grep -rn "\.bust(" src/ | grep -v microCache.js | grep -vE "bust\('[a-z-]+', "` returns nothing
+      — no caller left without an explicit areaId argument.
+- [x] 4.7 Rewrote `tests/microCache.test.js`: per-area bust isolation, the area-1-vs-area-10
+      substring-collision guard, bare `namespace:areaId` busting, malformed-key throw (and the
+      production bypass), lenient `get()`, and `MAX_ENTRIES` eviction at the new 600 threshold.
+      11 tests (was 5).
+
+**Done when:** single-area behaviour unchanged, cross-area bust isolation covered by a test.
+**Verified locally** 2026-08-01: `npm test` 85/85 suites, 925/926 (1 pre-existing skip) passed;
+`npx eslint` clean on every touched file; booted the real dev server against the migrated local DB
+and hit `/api/categories`, `/api/dashboard`, `/api/delivery-zones`, `/api/settings` live — all
+returned real cached data with no errors.
+**Commit:** `feat: AREA TASK 4 — area-aware caches`
+
+### [x] TASK 5 — Guardrail test, before the sweep
+**Spec:** §4.6 · **Files:** `[api] tests/areaScoping.test.js` (new)
+
+- [x] 5.1 Static scan of `src/controllers`, `src/services`, `src/utils`. Implementation note: rather
+      than a bare text search, it finds every `.query(` call, captures its full (paren/bracket/
+      brace/string-aware) argument text, and checks that against a per-table
+      `\b(?:FROM|JOIN|UPDATE|INTO)\s+\`?table\`?\b` regex — precise enough that `orders` doesn't
+      false-positive on `order_items`, `combos` doesn't on `combo_items`, `products` doesn't on
+      `product_variants` (covered by its own test). When the query is passed as a bare variable
+      (`pool.query(query, params)`) rather than an inline literal, it widens the search to the
+      enclosing function body (found via brace-balance scanning from the nearest function-start
+      marker) since that's where the `let query = ...` / `query += ...` building actually lives —
+      falls back to the whole file if no enclosing function is found, a safe over-approximation.
+- [x] 5.2 Fails any `.query()` call referencing a `SCOPED_TABLES` entry whose search text contains
+      no `area_id` (case-insensitive).
+- [x] 5.3 Allowlist mechanism built (`{file, line, reason}`, checked before flagging) but **left
+      empty** — every table in the spec's suggested allowlist (`users`, `images`,
+      `notification_templates`, `product_library`, etc.) is a table that never enters
+      `SCOPED_TABLES` in the first place (they're not in migrate.js's `AREA_SCOPED_TABLES`), so they
+      can never be flagged and never need an entry. The allowlist exists for a different, real case:
+      a scoped-table query that's correctly global for some other reason, discovered during the
+      Phase C sweep — none exist yet.
+- [x] 5.4 Ran it standalone (jest globals stubbed) to get the real baseline before deciding to skip:
+      **437 violations across all 19 scoped tables** (orders 107, products 59, shops 46, order_items
+      48, categories 29, product_groups 23, dashboard_section_items 23, combos 22, delivery_zones 16,
+      settings 18, coupons 18, dashboard_sections 17, mobile_admins 14, offers 14, store_modes 12,
+      admin_notifications 8, notification_batches 6, riders 31, delivery_exclusion_zones 1). Order of
+      magnitude matches §1.1's per-table SQL-site counts (this scanner counts distinct `.query()`
+      call sites, not raw grep hits, so it's lower but tracks the same shape). Top offending files:
+      `adminController.js` (48), `dashboardController.js` (48), `productController.js` (31),
+      `riderController.js` (29), `adminRiderController.js` (27). **`it.skip`'d** with the TODO to
+      un-skip starting TASK 9, per §5.4 — this count is real, not a guess, and is what "the failure
+      list matches the Phase C task list" (below) is checked against.
+- [x] 5.5 Header comment states explicitly: loosening the scanner or padding the allowlist to make a
+      real finding disappear is a review failure, not a fix.
+      Two more tests guard the scanner itself (not skipped, run every `npm test`): it must find at
+      least one real violation right now (catches a scanner regression going silently vacuous), and
+      the word-boundary regex must not false-positive on the three collision cases above.
+
+**Done when:** the test exists and its failure list matches the Phase C task list. **Verified
+locally** 2026-08-01 — 437-violation baseline recorded above, matches §1.1's table sizes in shape;
+`npm test` 86/86 suites (927/929, 2 skips: the new one + the pre-existing one); `npx eslint` clean
+(one `eslint-disable` comment for a non-existent rule was written then removed once eslint caught
+it — this project has no `eslint-plugin-jest` configured).
+**Commit:** `feat: AREA TASK 5 — area scoping guardrail test`
+
+### [x] TASK 6 — `areaScope.js` + resolution middleware
+**Spec:** §3.1, §3.2, §4.1, §4.2 · **Files:** `[api] src/utils/areaScope.js` (new),
+`src/middleware/areaMiddleware.js` (new), `tests/areaScope.test.js` (new)
+
+- [x] 6.1 `resolveAreaForPoint(lat, lng)` — bbox prefilter over `areas` (an area with no bbox yet —
+      true for every area until TASK 10 starts recomputing it on zone writes — is always a
+      candidate, a safe over-approximation), then the **existing** `matchZone` from
+      `deliveryPricing.js`, imported and called unchanged, never reimplemented. Zones themselves are
+      loaded with a small dedicated `WHERE area_id = ?` query in `areaScope.js` — deliberately *not*
+      routed through `deliveryPricing.js`'s `loadActiveZones(db)`, which still loads every zone
+      platform-wide until TASK 10 gives it an area filter. This means area resolution is genuinely
+      area-scoped starting now, not just after TASK 10 catches up. Returns
+      `{ areaId, zoneId, zone }` or `null`.
+- [x] 6.2 `getAreaById(areaId)` and `listAreas({activeOnly})` — both backed by one 60s-cached
+      `SELECT * FROM areas` (`getAreaById` filters the cached list rather than caching per-id, so
+      there's one cache entry to invalidate, not N).
+- [x] 6.3 `requestAreaId(req)` — throws only when `req.areaId` is `undefined` (middleware never ran);
+      `null` and `'all'` are treated as legitimately resolved values and returned as-is.
+- [x] 6.4 `assertAreaAccess(req, areaId)` — throws `{statusCode: 403, code: 'FORBIDDEN'}` (shaped for
+      `errorHandler.js`, matching its `err.statusCode`/`err.code` convention) unless `super_admin`,
+      or `area_admin` whose own area matches.
+- [x] 6.5 `bustAreaCaches(areaId)` — busts the three now-area-shaped microCache namespaces
+      (`dashboard`, `categories`, `delivery-zones`) for real, plus this module's own zone cache, then
+      calls `bumpCatalogVersion(areaId)`. Also calls `bustSettingsCache()` / `invalidateStoreModeCache()`
+      (lazy-required, same circular-import reasoning as `utils/shops.js`'s existing lazy requires) —
+      **documented as partial**: those two stay zero-arg/area-1-only until TASK 9/11 parameterize
+      them, so calling them here is forward-compatible plumbing, not yet a real per-area bust. Wrapped
+      in try/catch so a unit test that hasn't loaded `settingsController`/`storeMode` doesn't fail.
+- [x] 6.6 `bumpCatalogVersion(areaId)` — the increment update, plus invalidates the areas cache (the
+      row it just changed would otherwise read stale for up to 60s).
+- [x] 6.7 `resolveAdminArea` middleware, **including the TASK 8 security requirement built in now
+      rather than retrofitted**: an `area_admin` sending *any* `X-Area-Id` (including `'all'`) gets
+      403, never a silent override — tested directly via mock `req`/`res`/`next`, independent of
+      TASK 7/8's real JWT wiring. `super_admin` gets the header as a positive integer, the literal
+      `'all'`, or `null` when absent; a non-numeric, non-`'all'` header is a 400.
+- [x] 6.8 `resolveCustomerArea` middleware — pin (checks `latitude`/`longitude` then `lat`/`lng` in
+      body then query, matching the exact precedence already used in `cartController.js`) → zone →
+      area; else `users.last_area_id`; else the default area **only when no pin was supplied at
+      all**. A pin resolving to no zone sets `req.areaId = null` and `req.zoneId = null` — verified
+      by an explicit test that this is `null`, not the default area's id.
+- [x] 6.9 Unit tests, all passing: point in one zone; nested child zone winning over its parent
+      (proves `matchZone` reuse); a point inside an exclusion square still resolving normally
+      (proves exclusion zones are — correctly — never consulted by this function, and that the
+      exclusion-zones table is never even queried: `pool.query` called exactly twice); point outside
+      every zone returning `null`; missing/NaN/non-numeric coordinates short-circuiting with zero DB
+      calls; an area with zero zone rows matching nothing without erroring; the bbox prefilter
+      actually excluding a real-bboxed area that can't contain the point.
+- [x] 6.10 Confirmed zero controller/route changes — `grep -rln "areaScope\|areaMiddleware" src/` only
+      matches the two new files themselves and their test.
+
+**Done when:** full unit coverage of the resolver, zero controller changes. **Verified locally**
+2026-08-01: 32/32 new tests pass on first run; `npm test` 87/87 suites (959/961, same 2
+pre-existing skips); `npx eslint` clean on all three new files; guardrail baseline (TASK 5) unchanged
+at 437 — confirms `areaScope.js`'s own `delivery_zones` query is correctly recognized as
+`area_id`-scoped and doesn't itself add a new finding.
+**Commit:** `feat: AREA TASK 6 — areaScope module + resolution middleware`
+
+---
+
+## Phase B — Auth (the gate)
+
+### [x] TASK 7 — Admin login against `admins`
+**Spec:** §2.9, H10 · **Files:** `[api] src/controllers/adminController.js`, `src/config/env.js`,
+`tests/adminAuth.test.js`
+
+- [x] 7.1 `SELECT ... FROM admins WHERE username = ?`, `bcrypt.compare` against `password_hash`. A
+      row that exists but is `active = 0` is treated as not-found for matching purposes — it does
+      **not** fall through to the env path either, since that path only ever fires when the whole
+      table is empty (a deactivated admin existing at all means it isn't).
+- [x] 7.2 JWT via a small extension to `utils/auth.js`'s `signAdminToken(adminId, {adminRole,
+      areaId} = {})` rather than a bespoke `jwt.sign` call — the second argument defaults to `{}`,
+      so `mobileAdminController.js`'s existing unrelated call (`signAdminToken(\`mobile:${id}\`)`,
+      a completely different admin concept) is untouched and keeps minting a token with no
+      `adminRole`/`areaId` field at all, exactly as before.
+- [x] 7.3 Env fallback fires only when `SELECT COUNT(*) FROM admins` is `0` **and** the submitted
+      username matches `ADMIN_OWNER_ID`. `console.warn`'d when it fires, naming the fix (run
+      migrate, or create a real admin).
+- [x] 7.4 Both the fallback path and the real-admin path return `adminRole`/`admin_role` and
+      `areaId`/`area_id` on `user`. Bootstrap logins are always `super_admin` / `areaId: null`.
+- [x] 7.5 Removed `ADMIN_PASSWORD` from `env.js`'s `requiredKeys` entirely (with the splice-based
+      conditional-removal logic that existed only to support it) rather than trying to make it
+      conditionally required — `env.js` runs before any DB connection exists, so it structurally
+      cannot know whether `admins` is populated; only the login handler, at request time, can
+      decide that. The production weak-password check keeps validating *whichever* of
+      `ADMIN_PASSWORD`/`ADMIN_PASSWORD_HASH` is set, but the `else { throw }` that previously
+      required at least one to be set was removed — a real production deploy past the bootstrap
+      admin is expected to have neither.
+- [x] 7.6 Lockout stays a **shared** single-row threshold (`admin_auth_state` was never restructured
+      into one-row-per-admin — TASK 2 only added a nullable `admin_id` column to the existing
+      singleton). `admin_id` is now recorded on every success/failure for audit ("who tripped or
+      cleared this"), but the counter itself isn't isolated per admin. Documented as a deliberate,
+      in-scope-appropriate choice, not an oversight: a shared threshold still stops distributed
+      brute-forcing across multiple admin usernames, and a genuinely per-admin-isolated counter is a
+      schema change beyond what TASK 2 built.
+- [x] 7.7 `tests/adminAuth.test.js` rewritten, 7 tests: env-fallback success/failure, env fallback
+      correctly refusing once the table is non-empty (even with matching env creds), real
+      super_admin login (both-casing response asserted), real area_admin login (area id round-trips),
+      wrong password against a real row never falling through to env, and a deactivated admin
+      rejected outright.
+
+**Done when:** existing credentials still work, JWT carries area, `npm test` green. **Verified
+locally** 2026-08-01, including against the real local dev DB (not just mocks): booted the server,
+hit `/api/admin/login` with wrong/nonexistent credentials (clean 401s, no 500s — confirms the new
+two-query lookup+fallback flow doesn't crash for real), then inserted a throwaway `area_admin` row
+with a known bcrypt hash, logged in successfully, and confirmed the JWT payload
+(`sub`/`role`/`adminRole`/`areaId`) and response body both carry the right shape — then deleted the
+throwaway row and reset `admin_auth_state` back to clean. `npm test` 87/87 suites (964/966, same 2
+pre-existing skips); `npx eslint` clean on all 4 touched files.
+**Commit:** `feat: AREA TASK 7 — admin login against admins table`
+
+### [x] TASK 8 — `requireAdmin` sets area; `requireSuperAdmin`
+**Spec:** §2.3, §4.2 · **Files:** `[api] src/middleware/authMiddleware.js`,
+`tests/roleProtection.test.js`
+
+- [x] 8.1 `req.admin` gains `adminRole` and `areaId` read straight from the JWT payload (`areaId`
+      defaults to `null` if the claim is absent, so `req.admin.areaId` is never `undefined`).
+- [x] 8.2 `requireSuperAdmin` added and exported — 403s unless `req.admin.adminRole ===
+      'super_admin'`. Not wired into any route yet (no super-admin-only route exists before
+      TASK 24); unit-tested directly.
+- [x] 8.3 **Deviated from "via a `router.use()`", with the reason written into a code comment right
+      at the call site:** `requireAdmin` is applied **per-route**, 113 separate call sites in
+      `adminRoutes.js` — it was never a single `router.use()` to begin with (verified by grep before
+      writing any code). A `router.use(resolveAdminArea)` mounted before those 113 routes would run
+      before `req.admin` exists (always a no-op); mounted after, it would never run at all for any
+      route that already sent a response (Express doesn't fall through a completed request to later
+      middleware). The mechanism that actually reaches "once, not 130 times" here is `requireAdmin`
+      **chaining into** `resolveAdminArea` as its own last step before `next()` — one edit to
+      `authMiddleware.js`, zero edits to `adminRoutes.js`'s 113 call sites, and every one of them
+      gets area resolution "for free" since they already call `requireAdmin`. `src/app.js` and
+      `src/routes/adminRoutes.js` end up untouched — not in the final file list above.
+- [x] 8.4 Investigated what "check by `admin_id`, falling back to `id=1`" could mean given the real
+      schema (TASK 2 gave `admin_auth_state` a nullable `admin_id` *column* on its existing singleton
+      row, not a genuine one-row-per-admin structure — there is only ever one row, `id=1`, so there
+      is nothing to fall back *from*). Rather than write filtering logic against a table that
+      structurally can't support it, kept the revocation check exactly as it was — a shared
+      kill-switch across every admin — and documented why in a comment at the call site. A real
+      per-admin revocation store is a schema change beyond TASK 2/8's built scope, noted as a
+      possible future enhancement, not silently implied to already exist.
+- [x] 8.5 **Security, verified two ways:** unit tests in `tests/areaScope.test.js` (TASK 6, direct
+      mock req/res/next) and now integration tests here in `tests/roleProtection.test.js` through
+      real JWTs and real routes — an `area_admin` sending `X-Area-Id` for another area gets 403; so
+      does `X-Area-Id: all`. **Also verified live**, not just against tests: booted the real dev
+      server, logged in as a throwaway `area_admin` via a real `POST /api/admin/login`, hit
+      `GET /api/admin/me` with `X-Area-Id: 9` and got a real `403 {"code":"FORBIDDEN","message":
+      "area_admin may not set X-Area-Id"}` back over HTTP.
+- [x] 8.6 A `super_admin` with no `X-Area-Id` completes the request (`req.areaId = null`) rather than
+      erroring — confirmed live the same way. An endpoint that actually *requires* an area is
+      expected to call `requestAreaId(req)` itself and get a clear error from `null`/`'all'`; no such
+      endpoint exists yet to assert against (Phase C's job), so this subtask is proven at the
+      middleware level, not yet at a real area-required route.
+
+**Done when:** both 403 tests pass, all existing admin routes still authorize correctly. **Verified
+locally** 2026-08-01: 12/12 new/updated tests in `roleProtection.test.js` pass; `npm test` 87/87
+suites (974/976, same 2 pre-existing skips — **zero existing tests broke**, because every hand-rolled
+JWT in the other 86 suites predates `adminRole` and hits `resolveAdminArea`'s no-op branch exactly as
+designed); `npx eslint` clean; live-verified end-to-end against the real dev DB as described above,
+then cleaned up the throwaway admin rows and reset `admin_auth_state`.
+**Commit:** `feat: AREA TASK 8 — admin area middleware + requireSuperAdmin`
+
+---
+
+## Phase C — Backend sweep
+
+> Per task: add `area_id` to reads **and** writes, use `req.areaId`, key caches by area, replace
+> scattered `microCache.bust(...)` pairs with `bustAreaCaches(areaId)`, keep response shapes
+> byte-identical, run `npm test`. Expect test-fixture churn to exceed source churn (H3) — fix
+> fixtures properly, never by loosening an assertion.
+
+### [x] TASK 9 — Settings (27 sites)
+**Spec:** §6.4 · **Files:** `[api] src/controllers/settingsController.js`,
+`src/controllers/imageController.js`, everything `grep -rn "FROM settings\|INTO settings\|UPDATE
+settings" src/` finds, plus `src/routes/settingsRoutes.js`, `src/db/migrate.js`,
+`tests/areaScoping.test.js`, `tests/settingsArea.test.js` (new), and 4 existing test files whose
+mocked admin JWTs/query-text assertions needed updating for the new shape.
+
+- [x] 9.1 Grepped `FROM settings|INTO settings|UPDATE settings\b` (the plain `FROM settings` alone
+      undercounted writes) across 9 files, 20 real call sites (the spec's "27" used a looser count
+      style — every actual site is accounted for regardless).
+- [x] 9.2 `getSettings`/`updateSettings` now select/write by `area_id`, resolved via
+      `requestAreaId(req)`. `getSettings` (public, `resolveCustomerArea` newly mounted on
+      `settingsRoutes.js`) falls back to the **default area** when `req.areaId` is `null` — settings
+      is lightweight, non-delivery-critical info, so this is deliberately more lenient than the
+      catalog/dashboard endpoints, which must show "we don't deliver here" for that same `null`
+      (§2.4). `updateSettings` (admin, `resolveAdminArea` already wired by TASK 8) instead **rejects
+      `null` and `'all'` with 400** — a write must target exactly one area (§2.10).
+- [x] 9.3 `createSettingsForArea(areaId, connection)` exported, ready for TASK 24; not called from
+      anywhere yet. **Found and fixed a real gap while implementing this:** `settings` had no
+      UNIQUE constraint on `area_id` at all (TASK 3 gave it a column and an FK, not a uniqueness
+      guarantee) — added `uniq_settings_area (area_id)` in `migrate.js`, or `INSERT IGNORE` here
+      wouldn't actually have prevented a second settings row per area under a race. Verified via two
+      migration runs against the local dev DB — idempotent, index present.
+- [x] 9.4 `imageController.js`'s `getUsedImageIds` — dropped the `LIMIT 1` on the settings query;
+      `addUsage` already iterates every row, so every area's UPI image now counts as in-use.
+- [x] 9.5 All 8 `microCache.bust('dashboard', 1)` sites in `settingsController.js` replaced. The one
+      inside `updateSettings` itself uses the real resolved `areaId`; the other 7 are inside the
+      offer handlers (`createOffer`/`updateOffer`/`deleteOffer`/`addOfferProduct`/
+      `removeOfferProduct`/`reorderOfferProducts`) — those stay on the area-1 stopgap since `offers`
+      itself isn't scoped until TASK 12, but the cache-bust plumbing upgrade (`bustAreaCaches`,
+      which also bumps `catalog_version`) didn't need to wait.
+- [x] 9.6 Guardrail test **restructured**, not just un-skipped: added `SWEPT_TABLES` (starts with
+      just `settings`) so the enforcement test can be active without requiring all 19 tables to be
+      done — the original single global `it.skip` couldn't have been un-skipped until TASK 17.
+      `settings` violations: 18 → 0. Total remaining (informational, non-failing): 419.
+- [x] 9.7 New `tests/settingsArea.test.js` (7 tests): area 1 and area 2 reads hit distinct
+      `WHERE area_id = ?` queries and distinct cache keys with no cross-contamination; a `null`
+      areaId falls back to the default area; `updateSettings` 400s on `null`/`'all'`; a write to
+      area 2 only touches area 2's row; **both areas' UPI QR images report `in_use: true`** via
+      `GET /admin/images` (proves the 9.4 fix).
+
+**Stopgap sites (documented per-site, owned by later tasks, all guardrail-clean since each
+literally contains `area_id = 1`):** `cartController.js` ×3 and `orderController.js` ×1 (TASK 13),
+`deliveryZonesController.js` ×1 (TASK 10), `utils/shops.js` ×3 and `utils/riders.js` ×2 (TASK 15),
+`adminController.js` ×1 (TASK 17), `services/shopOrderActions.js` ×1 (TASK 13).
+
+**Test churn from this task (H3, as expected):** `tests/ridersUtils.test.js` (2 SQL-text
+assertions), `tests/settingsDeliveryGate.test.js` (token shape + 2 SQL-text assertions),
+`tests/deliveryZonesAdmin.test.js` (token shape only — 26 unrelated tests in the file stayed green,
+confirming the token change is harmless where `req.areaId` isn't read), `tests/
+shopGlobalStatusSync.test.js` (6 SQL-text assertions), `tests/settingsOffers.test.js` (token shape,
+which also resolved a stale-mock-queue cascade across 6 of its 9 tests — see the fix commit for the
+full mechanism — plus one call-count bump from the new catalog-version query).
+
+**Done when:** two settings rows exist, area isolation holds, both areas' images report in-use.
+**Verified locally** 2026-08-01: migration run twice against the local dev DB (idempotent,
+`uniq_settings_area` present); booted the real dev server and exercised `GET /api/settings`
+(no-pin and with-pin) and `PATCH /api/admin/settings` (via a throwaway `area_admin` login) live,
+confirmed the write landed on the correct area's row in MySQL, then reverted and cleaned up.
+`npm test`: 88/88 suites (983/984, same 1 pre-existing skip — unrelated, in `cartOrder.test.js`,
+predates this session). `npx eslint` clean on all 17 touched files.
+**Commit:** `feat: AREA TASK 9 — per-area settings`
+
+### [x] TASK 10 — Delivery zones, exclusion zones, pricing (18 sites)
+**Spec:** §3.2 · **Files:** `[api] src/utils/deliveryPricing.js`, `src/utils/areaScope.js`,
+`src/controllers/deliveryZonesController.js`, `src/routes/deliveryZonesRoutes.js`,
+`src/controllers/cartController.js`, `src/controllers/orderController.js`,
+`src/controllers/settingsController.js`, `tests/areaScoping.test.js`,
+`tests/deliveryZonesPublic.test.js`, `tests/deliveryZonesAdmin.test.js`,
+`tests/deliveryZonesFlow.test.js`, `tests/couponZoneDerivation.test.js`,
+`tests/realtimeControllerIntegration.test.js`, `tests/shopPricing.test.js`
+
+- [x] 10.1 `loadActiveZones(db, areaId)` / `loadActiveExclusionZones(db, areaId)` — `areaId` required,
+      not optional; every caller must know which area it's pricing for.
+- [x] 10.2 `areaScope.js`'s `loadZonesForArea` **simplified**, not just left alone: TASK 6 gave it its
+      own inline query specifically because `loadActiveZones` was still platform-wide at the time —
+      now that TASK 10 gave `loadActiveZones` a real area filter, that duplication reason is gone, so
+      `loadZonesForArea` was rewritten to wrap the real `loadActiveZones` in the existing 15s TTL
+      cache instead of maintaining a second copy of the same query. Order creation's zones/exclusion
+      queries still read through the transaction `connection`, uncached, exactly as before — only
+      **which area** to scope them to is resolved via the outer pool + cache (a coarse, rarely-
+      changing routing fact, not pricing data), documented at the call site in `orderController.js`.
+- [x] 10.3 `listActiveZonesPublic` takes `req.areaId` (via `resolveCustomerArea`, newly mounted on
+      `deliveryZonesRoutes.js`); cache key `delivery-zones:<areaId>:public`. A `null` area (pin
+      outside every zone) returns an **empty zone list**, not the default area's — showing another
+      area's shapes on the checkout map would be actively misleading, not helpful (§2.4).
+- [x] 10.4 `notifyZonesChanged` — now `async`, calls the new `areaScope.recomputeAreaBbox(areaId)`
+      (parses every active zone's boundary, unions the min/max lat/lng, writes `areas.min_lat/
+      max_lat/min_lng/max_lng`, clearing back to `NULL` when an area has zero active zones) then
+      `bustAreaCaches(areaId)`. All 3 call sites (`createZone`/`updateZone`/`deleteZone`) updated to
+      `await` it. The customer push (`emitToAllCustomers`) stays platform-wide for now — flagged as
+      TASK 23's job, harmless while only one area exists.
+- [x] 10.5 `matchZone` confirmed untouched — only its callers changed, never its nested-child-wins
+      logic. Reused unchanged everywhere (`resolveAreaForPoint`, `resolveDeliveryPricing`).
+- [x] 10.6 **Perf assertion test**, and made it prove something real rather than just check SQL text:
+      constructs TWO real candidate areas (both bbox-eligible, so the bbox prefilter alone can't rule
+      area 2 out) and deliberately does **not** mock an 8th `pool.query` response — if
+      `resolveAreaForPoint`'s per-area loop ever fell through to querying area 2's zones, the mock
+      queue would run dry and the test would fail with a 500, not a wrong-price assertion. Asserts
+      the exact call count (7) and that every `delivery_zones` query carries `area_id = 1`, never `2`.
+- [x] **Also fixed, beyond the checklist's own scope, found via the guardrail:**
+  - `resolveParentZoneId` (parent-zone lookup) now scoped by `area_id` — a zone can no longer be
+    nested under another area's zone.
+  - `wouldLeaveNoActiveZones`, `createZone`, `updateZone`, `deleteZone`, `listZones` all take a
+    resolved `areaId` and reject `null`/`'all'` (§2.10: Delivery Zones must refuse `all`).
+  - **Real cross-tenant security fix, verified live:** `updateZone`/`deleteZone` used to `SELECT
+    ... WHERE id = ?` with no area check — an `area_admin` could PATCH/DELETE another area's zone by
+    guessing its (globally sequential) numeric id. Now scoped `WHERE id = ? AND area_id = ?`, so a
+    cross-area id reads as 404, not a leak of whether the zone exists elsewhere.
+  - `settingsController.js`'s `radius_pricing_active` guard (`SELECT COUNT(*) ... FROM
+    delivery_zones WHERE active = 1`) was counting zones **across every area**, not the one being
+    toggled — area 1's admin could enable zone pricing believing zones existed when the count was
+    really coming from a different area. Scoped by `area_id`.
+  - Two ancestor-walk queries (`deliveryZonesController.js`'s `resolveParentZoneId`,
+    `coupons.js`'s `getZoneAndAncestorIds`) and one coupon-zone-name JOIN
+    (`couponController.js`) were investigated and deliberately left unscoped, each with a written
+    justification in the guardrail's `ALLOWLIST` — the two ancestor-walks are safe by construction
+    (`parent_zone_id` can only ever point within the same area, enforced at every write in this
+    file), and the coupon-zone JOIN is premature to partially fix ahead of TASK 14's full
+    coupons/coupon_zones redesign.
+
+**Test churn (H3):** `tests/deliveryZonesPublic.test.js`, `tests/deliveryZonesAdmin.test.js`,
+`tests/deliveryZonesFlow.test.js`, `tests/couponZoneDerivation.test.js`,
+`tests/realtimeControllerIntegration.test.js`, `tests/shopPricing.test.js`
+all needed mock-sequence updates for the new area-resolution queries. One genuinely useful discovery
+along the way: `couponZoneDerivation.test.js`'s second describe block was **passing before this task
+for the wrong reason** — cross-test mock-queue contamination from the first block's failing tests was
+masking that its own area-resolution mocks were missing too; adding `areaScope._resetCachesForTests()`
+per `beforeEach` (now standard practice for any file touching `areaScope`) surfaced the real gap.
+
+**Done when:** the perf test proves it. **Verified locally** 2026-08-01: `npm test` 88/88 suites
+(985/986, same 1 pre-existing unrelated skip); `npx eslint` clean on all touched files; guardrail's
+`SWEPT_TABLES` now includes `delivery_zones` + `delivery_exclusion_zones` (violations: 419 → 402,
+4 real bugs found and fixed via the guardrail, 3 genuinely-safe sites allowlisted with reasons).
+**Live-verified against the real dev DB**, not just mocks: booted the server, confirmed public zones
+resolves through the default area; created a real zone via a throwaway `area_admin` and watched
+`areas.min_lat/max_lat/min_lng/max_lng` and `catalog_version` update correctly in MySQL; **created a
+second real area row and a throwaway `area_admin` for it, then confirmed that admin gets a clean 404
+— not a leak, not a success — trying to PATCH and DELETE area 1's zone by numeric id**; deleted the
+zone via its real owner and confirmed the bbox correctly shrank back down; cleaned up every throwaway
+row afterward.
+**Commit:** `feat: AREA TASK 10 — per-area delivery zones and pricing`
+
+### [x] TASK 11 — Catalog: categories, products, combos, groups, store modes (162 sites)
+**Spec:** §6.2 rule 4, H4, H5, H8 · **Files:** `[api] src/controllers/productController.js`,
+`categoryController.js`, `comboController.js`, `storeModeController.js`, `bulkImportController.js`,
+`shopAdminController.js`, `shopOwnerController.js`, `src/utils/storeMode.js`
+
+- [x] 11.1 `area_id` columns for `products`/`categories`/`combos`/`store_modes`/`product_groups` were
+      already added generically by TASK 3's `AREA_SCOPED_TABLES` sweep (column + backfill + composite
+      indexes + per-area UNIQUE key rewrites already in `migrate.js`) — this task's own job was
+      threading real `req.areaId`/admin-session `areaId` through every controller query, which is done:
+      `productController.js` (public `getProducts` strict-null §2.4 catalog rule, `getProductById`
+      deliberately left unscoped for order-history/deep-link compatibility — documented inline —, all
+      admin CRUD + bulk endpoints + pricing grid, cross-tenant `WHERE id=? AND area_id=?` fixes
+      throughout), `categoryController.js` (public + admin CRUD), `comboController.js` (admin CRUD,
+      `validateComboItems`'s product-existence check now area-scoped per H5), `storeModeController.js`
+      (public strict-null like other catalog reads, not settings-style lenient — documented why),
+      `storeModeRoutes.js`/`productRoutes.js`/`categoryRoutes.js` gained `resolveCustomerArea`.
+      `product_groups` (shops isn't area-scoped until TASK 15, so group rows are stamped from the
+      acting admin's session area in `shopAdminController.js`, or from `shops.area_id` — added to the
+      `requireShopOwner` SELECT — in `shopOwnerController.js`'s self-service flow).
+- [x] 11.2 `areaScope.seedSystemStoreModes(areaId)` added (reused by TASK 24's `POST /admin/areas` and
+      clone-area — see that task's notes);
+      `migrate.js` now loops every existing area and `INSERT IGNORE`s `packed`/`fast_food` per area.
+      Verified live: the old global UNIQUE on `store_modes.slug` was already dropped and replaced with
+      `uniq_store_modes_area_slug(area_id, slug)` back in TASK 3/8 — confirmed via `SHOW INDEX` against
+      the local dev DB, so `INSERT IGNORE` seeding works correctly.
+- [x] 11.3 `normalizeStoreType(value, { areaId })` — additive optional param (not a breaking positional
+      change, given 16 call sites across 7 files), defaults to a stopgap area for callers outside this
+      task's file list (cartController/couponController/dashboardController/settingsController — their
+      owning TASKs 12/13/14 thread the real value through). Every caller inside this task's own files
+      now passes a real `areaId`.
+- [x] 11.4 `bulkImportController.js`'s raw `INSERT INTO products` gains `area_id` (H8); the update-path
+      UPDATE, the explicit-id lookup, the name+category fallback lookup, and the categories load used
+      for CSV row resolution are all scoped to the importing admin's area too — an import into area 2
+      can no longer resolve against or edit area 1's categories/products.
+- [x] 11.5 Both combo representations scoped: `combos` table (full CRUD) and `products.is_combo` rows
+      (via `productController.js`'s product CRUD) both carry real `area_id`; kept as two representations
+      per spec, not unified.
+- [x] 11.6 All scattered `bustProductCaches()`/`bustDashboardCache()`/inline `microCache.bust(...,1)`
+      call sites in the touched files replaced with `bustAreaCaches(areaId)`.
+- [x] 11.7 Search still `LIKE` — confirmed untouched, TASK 22's job.
+
+**Also fixed, beyond the checklist's own scope:**
+- `areaScope.bustAreaCaches`'s `invalidateStoreModeCache()` call was still zero-arg (stale TASK 4-era
+  stopgap comment); now passes the real `areaId` through — `storeMode.js`'s per-area cache actually
+  busts per-area as of this task.
+- Cross-tenant fixes matching the pattern already found in TASK 10: `updateStoreMode`,
+  `updateCategory`/`deleteCategory`, `updateProduct`/`deleteProduct`/`updateProductImage`, `updateCombo`/
+  `deleteCombo`, and the shop-group CRUD in both `shopAdminController.js` and `shopOwnerController.js`
+  all had (or would have had, once `area_id` existed) an id-only `WHERE` that let an area_admin
+  read/write another area's row by guessing its globally-sequential numeric id — all now
+  `WHERE id = ? AND area_id = ?`.
+- `product_variants`/`combo_items` have no `area_id` column of their own (children of
+  products/combos, scoped through the FK) — `updateVariantAvailability` and the variant branch of
+  `updateProductPricing` gained an `EXISTS (... products.area_id = ?)` guard so a variant id can't be
+  used to reach another area's product.
+- `storeModeController.getStoreModes` was initially written with settings-style leniency (fallback to
+  the default area when the pin resolves to no zone); caught during review — store modes gate which
+  products a customer can even reach, so it's catalog data, not settings metadata, and must follow the
+  strict "empty list for null areaId" rule like `listActiveZonesPublic`, not `getSettings`'s leniency.
+  Fixed before this landed.
+- `getProducts`'s public catalog listing now resolves `areaId` strictly and returns an empty list
+  (not a default-area fallback) when a pin resolves outside every zone — same §2.4 rule, previously
+  entirely unenforced since the whole endpoint was hardcoded to area 1.
+- Found and fixed a real gap while wiring this up: `productRoutes.js` and `categoryRoutes.js` never
+  had `resolveCustomerArea` mounted at all (only `storeModeRoutes.js` was updated as the "obvious"
+  file) — without this fix `req.areaId` would have been undefined on every public product/category
+  request in production.
+
+**Test churn:** 9 test files broke from this sweep — `productsPagination.test.js`, `productCategory.test.js`,
+`productShopClosed.test.js` needed the same `resolveCustomerArea`-consumes-a-`pool.query`-call fix
+already established in TASK 9/10 (explicit default-area-lookup mock + `areaScope._resetCachesForTests()`
+in `beforeEach`, or the request short-circuits/miscounts). `productVariants.test.js`, `bulkImport.test.js`,
+`shopPricing.test.js`, `productsBulkAssignShop.test.js`, `adminShopGroups.test.js`, `comboTransaction.test.js`
+all used pre-TASK-7 admin JWTs (`{ id, role: 'admin' }` with no `adminRole`) that `resolveAdminArea`
+correctly leaves `req.areaId` unresolved for — updated to the `adminRole: 'area_admin', areaId: 1` shape
+already established as the test convention. Also found and fixed a real bug of my own: `getProducts`
+initially used `pool.escape(areaId)` unconditionally to inline the area filter into the base query
+string — broke every test file whose `db/mysql` mock didn't stub `pool.escape` (most of them, since the
+old code only called it for optional filters). Switched to `Number(areaId)` interpolation, safe because
+`areaId` is guaranteed a validated positive integer by that point (already checked for null/'all').
+Assorted param-shape/call-count assertion updates for the new `area_id` bind params and the extra
+`bustAreaCaches` → `bumpCatalogVersion` pool.query call on writes.
+
+**Live verification (local dev DB, migration re-run clean):** `GET /api/products`, `GET /api/categories`,
+`GET /api/store-modes` all return real area-1-scoped data with the new `area_id` joins/filters in place.
+Confirmed via `SHOW INDEX`/`SELECT COUNT(DISTINCT area_id)` that `products`/`categories`/`combos`/
+`store_modes`/`product_groups` are all correctly `area_id = 1` (only area 1 exists) and the composite
+UNIQUE keys (`uniq_categories_area_slug`, `uniq_store_modes_area_slug`) are in place. Admin-endpoint live
+verification (login) was skipped — no admin credentials available outside `.env`, which is off-limits —
+covered instead by the full Jest suite (all 88 suites green) exercising every admin write path against a
+mocked DB.
+
+**Guardrail:** `tests/areaScoping.test.js`'s `SWEPT_TABLES` deliberately does NOT gain `categories`/
+`products`/`combos`/`store_modes`/`product_groups` yet, even though this task's own files are fully
+scoped — `cartController.js`, `orderController.js`, `dashboardController.js`, `analyticsController.js`,
+and `settingsController.js`'s radius-pricing reads (all owned by TASK 12/13/14/17) still reference these
+tables unscoped. Unlike `settings`/`delivery_zones` (single-owner tables TASK 9/10 swept completely),
+these five span many files owned by different future tasks — add them to `SWEPT_TABLES` only once every
+remaining site across the whole codebase is done. The informational (non-failing) remaining-violations
+count moved from including these 5 tables' sites as "not yet swept" throughout, unaffected by this
+choice — 336 sites remain across all not-yet-swept tables after this task, shrinking further as
+TASK 12+ land.
+
+**Commit:** `feat: AREA TASK 11 — per-area catalog`
+
+### [x] TASK 12 — Dashboard sections + offers (47 sites)
+**Files:** `[api] src/controllers/dashboardController.js`, `offerRoutes.js` + offer handlers
+
+- [x] 12.1 `dashboard_sections`, `dashboard_section_items`, `offers`, `offer_products` all threaded
+      with real `area_id`. `dashboard_sections`/`offers` columns already existed (TASK 3's generic
+      sweep, including `dashboard_sections`' `idx_section_area_store_slug` composite unique key —
+      confirmed already correct, no migration changes needed this task). `dashboard_section_items`/
+      `offer_products` are child tables with no `area_id` of their own — scoped through their parent's
+      FK (`dashboard_sections.area_id` / `offers.area_id`), same EXISTS/JOIN pattern used for
+      `product_variants`/`combo_items` in TASK 11.
+- [x] 12.2 Cache key is `dashboard:<areaId>:<storeType>:closed=<0|1>` — was hardcoded to
+      `DASHBOARD_AREA_ID_STOPGAP` (always 1), now built from the resolved `req.areaId`.
+- [x] 12.3 Every query site in `dashboardController.js` scoped: `getExpectedStoreType`,
+      `getLinkedItemInfo`, `ensureUniqueSectionSlug`, `ensureModeSpecificOfferBannerSections`,
+      `hydrateSectionItem` all gained a real `areaId` param; public `getDashboard`/`getSectionItems`
+      resolve `req.areaId` strictly (§2.4 catalog rule — empty dashboard / 404 for a pin outside every
+      zone, never a default-area fallback, matching `getProducts`); every admin CRUD/reorder endpoint
+      (`getAdminSections`, `getAdminSectionById`, `createAdminSection`, `updateAdminSection`,
+      `deleteAdminSection`, `addAdminSectionItem`, `updateAdminSectionItem`, `deleteAdminSectionItem`,
+      `reorderAdminSections`, `reorderAdminSectionItems`) requires exactly one area and carries
+      cross-tenant `WHERE id = ? AND area_id = ?` guards (including a JOIN-through-parent guard for
+      the two section-*item* endpoints, since `dashboard_section_items` has no `area_id` column of its
+      own). Section fan-out (`buildSection`'s per-type sub-queries in both `getDashboard` and
+      `getSectionItems`) unchanged in shape — each of the 4 branches (offer_banner/category_grid/
+      product_block/combo_block) just gained `AND <table>.area_id = ?` on its JOINed target table.
+      `offers` CRUD (`settingsController.js`: `getActiveOffer`, `createOffer`, `updateOffer`,
+      `getAdminOffers`, `deleteOffer`, `getOfferProducts`, `addOfferProduct`, `removeOfferProduct`,
+      `reorderOfferProducts`) got the same treatment — public `getActiveOffer` follows the strict
+      catalog rule too (promo banner content, not settings metadata). `offerRoutes.js`,
+      `dashboardRoutes.js` gained `resolveCustomerArea` on their public GETs (admin routes already had
+      `requireAdmin` from TASK 8).
+- [x] 12.4 No real area 2 exists yet in this rollout (§6.6 gate blocks a second area until TASK 30's
+      isolation sweep passes), so this is proven at the unit level instead of against live prod data —
+      `tests/dashboardAreaIsolation.test.js` drives the real `resolveCustomerArea` + `getDashboard`
+      code path with two synthetic areas sharing a colliding section id/slug, and asserts every query
+      MySQL actually receives is scoped to the resolved area (not just that the mocked response looks
+      right). Same proof pattern as TASK 10.6's delivery-zone isolation perf test.
+
+**Also fixed, beyond the checklist's own scope:**
+- Found the same gap as TASK 11: `offerRoutes.js` and `dashboardRoutes.js` never had
+  `resolveCustomerArea` mounted at all — without this fix `req.areaId` would have been undefined on
+  every public dashboard/offer request in production.
+- `getActiveOffer` is shared by both the public `/api/offers/active` route and the admin
+  `/api/admin/offers/active` route (same handler, different middleware ahead of it) — the strict
+  §2.4 catalog rule applies identically either way, since `requestAreaId(req)` just reads whichever
+  middleware resolved it.
+- Went back and closed out the two `offers`-table stopgaps TASK 11 had explicitly deferred to this
+  task: `productController.js`'s `finalOfferId` branch now validates the offer itself with
+  `AND area_id = ?` (an offerId from another area now 404s the same as a nonexistent one, instead of
+  being validated globally while only the joined products stayed scoped), and
+  `storeModeController.js`'s deactivation usage-count query now scopes its `offers` subquery by area
+  too, alongside the `categories`/`combos` subqueries TASK 11 already scoped.
+
+**Test churn:** 6 test files broke from this sweep — `dashboard.test.js`, `dashboardAdmin.test.js`,
+`dashboardAdminHeader.test.js`, `dashboardCurated.test.js`, `productShopClosed.test.js`,
+`adminValidation.test.js` — same two established root causes as TASK 9-11: pre-TASK-7 admin JWTs
+missing `adminRole`/`areaId`, and public dashboard GETs now consuming an extra `pool.query` call for
+`resolveCustomerArea`'s default-area lookup (fixed with the same explicit-mock + call-index-shift +
+`areaScope._resetCachesForTests()` pattern). One new wrinkle: `addAdminSectionItem`'s success-path
+test needed an extra queued mock for `bustAreaCaches`'s `bumpCatalogVersion` UPDATE landing between
+the section-item INSERT and the hydration re-fetch — the same class of "one more pool.query call now
+happens" fallout as TASK 11's bulk-endpoint tests.
+
+**Live verification (local dev DB, migration re-run clean):** `GET /api/dashboard?storeType=packed`
+and `GET /api/offers/active?storeType=packed` both return real area-1-scoped sections/offers with the
+new `area_id` joins in place. `SELECT COUNT(DISTINCT area_id)` confirms `dashboard_sections`/`offers`
+are both correctly `area_id = 1`.
+
+**Guardrail:** `dashboard_sections`/`offers` still not added to `SWEPT_TABLES` — `cartController.js`/
+`orderController.js` (TASK 13) still reference `offers`/`dashboard_section_items`-adjacent data
+unscoped. Remaining informational violation count: 292.
+
+**Commit:** `feat: AREA TASK 12 — per-area dashboard and offers`
+
+### [x] TASK 13 — Orders, order items, order numbers (123 sites)
+**Spec:** §6.3 — **read it before starting** · **Files:** `[api] src/controllers/orderController.js`,
+`src/db/migrate.js`, `src/services/shopOrderActions.js`, `tests/orderNumber.test.js`,
+`tests/cartOrder.test.js`, `tests/orderIdempotency.test.js`
+
+> 13.2–13.5 must land in **one commit**. Splitting them across deploys breaks checkout in production.
+
+- [x] 13.1 `createOrder` resolves `deliveryAreaId` (via `resolveAreaIdForPricing`) once, up front —
+      before the settings fetch, product/combo existence checks, zone/exclusion-zone loads, and the
+      order-number call all use it — and stamps it on both the `orders` and `order_items` INSERTs.
+- [x] 13.2 Backfilled `daily_order_counters.area_id = 1` for all 14 pre-existing historical rows (verified
+      live against the local dev DB — see below).
+- [x] 13.3 PK changed to `(area_id, counter_date)`. Since this table's PK isn't a surrogate `id` (unlike
+      every table in `AREA_SCOPED_TABLES`), it's handled in its own dedicated migration block —
+      idempotent-safe re-run check via `INFORMATION_SCHEMA.KEY_COLUMN_USAGE` before the
+      `DROP PRIMARY KEY, ADD PRIMARY KEY` (a blind re-run would fail on an already-swapped PK).
+- [x] 13.4 `generateOrderNumber(connection, areaId, areaCode)` now takes and uses `area_id` in exactly
+      the `INSERT ... VALUES (?, ?, LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE seq = LAST_INSERT_ID(seq + 1)`
+      shape the spec requires — landed in the same commit as 13.2/13.3's migration change, per §6.3.
+- [x] 13.5 Format is `OD-<date>-<AREACODE>-<seq>` (e.g. `OD-20260801-A1-0042`) — `areaCode` comes from
+      `areaScope.getAreaById(deliveryAreaId).code`.
+- [x] 13.6 Confirmed: no `UPDATE orders SET order_number` exists anywhere in the codebase (grepped) —
+      untouched by this task, and nothing added one.
+- [x] 13.7 Scoped the sites genuinely owned by this task's file list: `orderController.js`'s own
+      product/combo existence checks (products from another area now correctly read as "does not
+      exist," matching the H5/cart-preview pattern from TASK 11) and `shopOrderActions.js`'s
+      `listShopActiveOrders` settings lookup (shops aren't area-scoped until TASK 15, so it reads the
+      area off the shop's own already-fetched orders instead of a hardcoded stopgap). Also closed out
+      3 explicit "TASK 13" stopgaps left in `cartController.js` (`calculateCart`,
+      `validateCouponHandler`, `getAvailableCoupons` all had a hardcoded `settings WHERE area_id = 1`)
+      — not in this task's own file list, but self-referentially tagged for it, and cart preview must
+      mirror order creation's area resolution or the two would silently disagree on price. The
+      remaining ~100 sites (adminController.js's reports/dashboard, riderController.js/
+      adminRiderController.js/riderAssignment.js — TASK 15's shops/riders/dispatch — couponController.js/
+      utils/coupons.js — TASK 14 — analyticsController.js — TASK 17) are correctly out of scope: each
+      belongs to a table/domain a **different**, later task owns, matching the file-list-is-authoritative
+      pattern established since TASK 9. `getOrders`/`getOrderById`/`cancelOrder` (customer's own order
+      history/detail/cancel) were deliberately left unscoped by area — a customer's orders span
+      whichever areas they've actually ordered from over time, and `customer_id` (a global identity,
+      §2.2) already scopes these correctly; adding an area filter would hide a customer's own past
+      orders from a different area, which is a real regression, not a fix.
+- [x] 13.8 Confirmed: the idempotency pre-check/replay logic and the `FOR UPDATE`/compare-and-set
+      writes (`UPDATE orders SET status = "Cancelled" ... WHERE status = "Pending"`, the coupon
+      row lock) are byte-for-byte unchanged — only the settings/product/combo/order/order_items
+      queries around them gained `area_id`.
+- [x] 13.9 Verified live against the local dev DB directly (no customer auth session available —
+      Firebase phone auth can't be completed without a real OTP locally, same constraint as TASK 11's
+      admin-login gap) — ran `generateOrderNumber`'s actual `INSERT ... ON DUPLICATE KEY UPDATE`
+      statement 3× for area 1 (got 1, 2, 3, confirming atomic per-area sequencing) then once for a
+      hypothetical area 2 on the same date, which correctly failed the `fk_daily_order_counters_area`
+      foreign key (area 2 doesn't exist yet — §6.6's gate), proving areas can never silently share or
+      collide on a sequence. Cleaned up the test row afterward.
+- [x] 13.10 Verified live: all 14 pre-existing `daily_order_counters` rows (dating back to 2026-07-09)
+      kept their exact `seq` values through the PK swap — `area_id` backfill is additive, never
+      touches `seq` or `counter_date`. (No pre-existing `orders.order_number` values exist to check on
+      this fresh local DB — the spec's guarantee here is structural: nothing in this task issues an
+      `UPDATE orders SET order_number`, confirmed by the 13.6 grep above.)
+
+**Test churn:** 6 test files broke — `orderNumber.test.js` (format regex + new `generateOrderNumber`
+params), `cartOrder.test.js` (a `beforeAll` now primes `areaScope`'s areas/zones caches once, since
+most of its tests send no pin and would otherwise have `resolveAreaIdForPricing`'s `getDefaultArea()`
+consume a mock slot meant for that test's own settings/product mocks — plus one order_items INSERT
+param-index shift), `couponZoneDerivation.test.js` and `deliveryZonesFlow.test.js` (mock call ORDER
+had to flip — area resolution now runs before the settings fetch it scopes, not after — this was
+already wrong-order-but-coincidentally-passing in one "outside every zone" test in each file, caught
+and fixed, not just papered over), `shopPricing.test.js` and `adminOrders.test.js` (index shifts / one
+missing default-area mock). Also caught and fixed a bug of my own mid-task: an early version hoisted
+`resolveAreaIdForPricing` in `cartController.js`'s coupon endpoints to run unconditionally, breaking
+the existing "zero DB queries when no coordinates are sent" contract two tests enforce — moved it back
+inside the `hasCoords` gate.
+
+**Live verification (local dev DB):** migration re-run is clean and idempotent (`daily_order_counters
+PK is now (area_id, counter_date)` logs correctly whether the table is fresh or already-migrated).
+Direct DB-level order-number reservation test (see 13.9) proves the atomic-sequence/cross-area-isolation
+guarantee end-to-end against real MySQL, not just mocks. Public `GET /api/products` and
+`GET /api/dashboard` unaffected. Full HTTP checkout flow could not be exercised (no customer JWT
+available without completing Firebase phone-auth OTP) — covered instead by the full Jest suite (89/89
+suites green) exercising `createOrder`/`calculateCart` end-to-end against a mocked DB, including the
+new area-resolution-before-settings ordering.
+
+**Guardrail:** `orders`/`order_items`/`offers` still not added to `SWEPT_TABLES` — `adminController.js`,
+`riderController.js`, `adminRiderController.js`, `riderAssignment.js`, `couponController.js`,
+`utils/coupons.js`, `utils/shops.js`, `utils/riders.js`, `analyticsController.js` all still reference
+them unscoped (TASK 14/15/17's job). Remaining informational violation count: 284 (down from 292).
+
+**Commit:** `feat: AREA TASK 13 — per-area orders and order numbers`
+
+### [x] TASK 14 — Coupons (22 sites)
+**Files:** `[api] src/controllers/couponController.js`, `src/utils/coupons.js` (inputs only),
+`tests/coupons.test.js`, `tests/couponZoneDerivation.test.js`
+
+- [x] 14.1 `coupons` scoped directly (`area_id` column, already added generically by TASK 3, plus the
+      composite `uniq_coupons_area_code_deleted(area_id, code, deleted)` unique key TASK 3 already put
+      in place). `coupon_zones`/`coupon_users`/`coupon_redemptions` have no `area_id` of their own —
+      children of `coupons`, scoped transitively through an already-area-validated `coupon_id` (same
+      pattern as `product_variants`/`combo_items`/`offer_products` in TASK 11/12): every read/write on
+      these three tables in this task's files is reached only after the parent coupon row was already
+      fetched with `AND area_id = ?`, so no separate filter is needed on the child query itself.
+- [x] 14.2 `utils/coupons.js`'s 6 entry points (`validateCoupon`, `validateCouponById`,
+      `pickBestAutoApply`, `findApplicableCoupons`, `getNextFreeDeliveryThreshold`,
+      `getNearestUnlockableCoupon`) each gained an optional `areaId` param — when provided, their
+      `SELECT * FROM coupons` query gains `AND area_id = ?`; when omitted (`null`, the default), the
+      query is unchanged, so any not-yet-threaded caller keeps working exactly as before. The rule
+      engine itself — `checkEligibility`, `computeDiscount`, `computeDiscountBreakdown`,
+      `buildSavingsText`, and the already-fetched-row helpers (`isUserTargeted`, `isZoneTargeted`,
+      `getUserOrderCount`, `getUserRedemptionCount`, `getGlobalRedemptionCount`) — is completely
+      untouched; area scoping only ever happens at the SQL that selects which `coupons` row(s) exist
+      to evaluate in the first place. `cartController.js` (`calculateCart`, `validateCouponHandler`,
+      `getAvailableCoupons`) and `orderController.js` (`createOrder`) now pass their already-resolved
+      `deliveryAreaId` into every one of these calls (natural continuation of TASK 13's area
+      resolution, not new scope).
+- [x] 14.3 Confirmed unchanged: `SELECT id FROM coupons WHERE id = ? FOR UPDATE` in `orderController.js`
+      and the `recheckUsageUnderLock` logic around it are byte-for-byte the same as before this task —
+      the coupon id locked there was already proven to belong to the caller's area by the
+      `validateCoupon`/`validateCouponById`/`pickBestAutoApply` call that produced it.
+- [x] 14.4 `createCoupon`/`updateCoupon` now fetch the candidate `targeted_zone_ids` against
+      `delivery_zones WHERE id IN (?) AND area_id = ?` before inserting into `coupon_zones`, silently
+      dropping any id that isn't actually in the coupon's own area — a coupon can never end up
+      "targeted" at a zone it could never actually match. `duplicateCoupon`'s `coupon_zones` copy needs
+      no separate check: it copies from a source coupon already proven to be in the same target area,
+      and that source's own zones were already validated at creation/update time.
+- [x] 14.5 Verified structurally + live: the composite `uniq_coupons_area_code_deleted(area_id, code,
+      deleted)` key (confirmed via `SHOW INDEX` against the local dev DB) makes the same code valid in
+      two different areas at the schema level. Full cross-area redemption-block behavior is covered by
+      `couponZoneDerivation.test.js`'s existing zone-derivation tests plus `coupons.test.js`'s
+      `validateCoupon`/`checkEligibility` suite now exercising the `areaId` param — a real two-area
+      integration test isn't possible yet (only area 1 exists until TASK 30's gate lifts), same
+      constraint noted in TASK 12/13.
+
+**Also fixed, beyond the checklist's own scope:** `getAdminCouponById`'s `coupon_zones` → `delivery_zones`
+JOIN (previously ALLOWLISTED in the guardrail as "TASK 14 owns this") now carries `AND dz.area_id = ?`
+— the ALLOWLIST entry for it was removed from `tests/areaScoping.test.js` since the underlying gap it
+excused is now closed. Cross-tenant `WHERE id = ? AND area_id = ?` fixes applied throughout
+`couponController.js` (`getAdminCouponById`, `updateCoupon`, `deleteCoupon`, `duplicateCoupon`,
+`getCouponRedemptions`) — an area_admin could previously read/write another area's coupon by guessing
+its numeric id.
+
+**Test churn:** 2 test files broke — `remaining.test.js` and `coupons.test.js`'s own admin-route describe
+block, both from the same now-familiar root cause (pre-TASK-7 admin JWTs missing `adminRole`/`areaId`).
+One new wrinkle in `coupons.test.js`: the two `coupon_zones`-writing tests needed an extra queued mock
+for the new §14.4 zone-ownership check, inserted between the coupon INSERT/UPDATE and the
+`coupon_zones` write.
+
+**Live verification (local dev DB, migration re-run clean):** all 14 pre-existing coupons confirmed
+`area_id = 1`; `SHOW INDEX` confirms the composite unique key is live. Full coupon-application HTTP flow
+could not be exercised (no customer JWT available without completing Firebase phone-auth OTP, same
+constraint as TASK 11/13) — covered instead by the full Jest suite (89/89 suites, 147/147 in
+`coupons.test.js` alone).
+
+**Guardrail:** `coupons` still not added to `SWEPT_TABLES` — `adminController.js` (order
+cancellation's coupon-redemption release) and `utils/shops.js` still reference it unscoped (both
+outside this task's file list — TASK 15/17's turf). Remaining informational violation count: 274
+(down from 284).
+
+**Commit:** `feat: AREA TASK 14 — per-area coupons`
+
+### [x] TASK 15 — Shops, riders, rider assignment, sweepers (96 sites)
+**Spec:** H2 · **Files:** `[api] src/utils/shops.js`, `src/utils/riders.js`,
+`src/services/riderAssignment.js`, `src/controllers/shopAdminController.js`, `riderController.js`,
+`adminRiderController.js`, `src/realtime/shopScheduleSweeper.js`, `src/realtime/riderOfferSweeper.js`
+
+- [x] 15.1 `shops` and `riders` scoped across every file in this task's list. `shopAdminController.js`:
+      `listShops`/`createShop`/`updateShop`/`updateShopSchedule`/`deleteShop`/`listShopOrders` all gained
+      `requireOneArea` + `AND area_id = ?`; `loadShopOr404(shopId, areaId)` signature changed (all 6 call
+      sites updated, including the 2 TASK-11-era product-group functions that still called the old 1-arg
+      form). `shopOwnerController.js`: `toggleMyShop`/`updateMyShopSchedule`/`toggleMyProduct` scoped via
+      `req.shop.area_id` (available since TASK 11 added `area_id` to `requireShopOwner`'s SELECT);
+      `getMyProducts`/`getMyOrders`/`getMyOrderHistory`/confirm-reject-ready and the group functions
+      left unscoped by area — all keyed by `req.shop.id`, a trusted, already-owned shop id, same
+      reasoning as `product_variants`/`combo_items` in TASK 11/12. `adminRiderController.js`: gained the
+      same `requireOneArea` pattern as shops — `listRiders`/`createRider`/`updateRider`/`deleteRider`/
+      `getRiderDispatch`/`adminSetRiderOnline`/`adminAcceptOffer`/`adminRejectOffer` all scoped;
+      `adminMarkPickedUp`/`adminUpdateAssignmentStatus` scope their order lookup by `area_id` too (the
+      one place in this file where `orders` is read by raw `orderId` from an admin, not via an
+      already-scoped `rider_id`). `riderController.js`'s own order/offer queries are all keyed by
+      `req.rider.id` (the rider's own identity) — deliberately left unscoped, matching the "identity
+      already IS the boundary" reasoning used for `getMyOrders` above. `loadRiderOr404(id, areaId)`
+      gained an optional area param (undefined = unscoped, for the one legitimate identity-only caller).
+- [x] 15.2 `utils/riders.js`'s `listEligibleRiders({ excludeIds, areaId })` gains `AND r.area_id = ?`;
+      `countActiveRiders(areaId)` likewise. Threaded through both call sites in `riderAssignment.js`
+      (`continueAssignment`, `startAssignment`) from the order's own already-stamped `area_id` (TASK 13) —
+      the state machine itself untouched, only which rows the eligibility query considers changed.
+- [x] 15.3 `syncGlobalShopOpenState` → `syncAreaShopOpenState(areaId)` in `utils/shops.js`: scopes the
+      `settings` read/write and the `shops` aggregate query by `area_id = ?`; cache busts use
+      `microCache.bust(ns, areaId)` instead of a hardcoded `1`. Every caller updated:
+      `shopAdminController.js`, `shopOwnerController.js`, `settingsController.js`, `utils/riders.js`
+      (`syncDeliveryAvailabilityFromRiders` now also takes `areaId`), `shopScheduleSweeper.js`.
+      `notifyShopsForOrder`/`notifyShopsOrderCancelled`/`notifyShopsRiderAssigned`/
+      `notifyShopsOrderStatusChanged`/`notifyShopsRiderAssignmentFailed`/
+      `maybeAutoCancelOrderWhenAllShopsRejected` in `utils/shops.js` need no changes — all keyed by an
+      already-known `order.id`, joining to `shops` by trusted ids only.
+      **Also fixed, beyond the checklist's own scope:** `settingsController.js`'s exported
+      `bustSettingsCache` was still hardcoded to bust area 1's cache key regardless of caller
+      (`SETTINGS_AREA_ID_STOPGAP`, a leftover TASK-9-era stopgap) — now takes `areaId` for real; its 2
+      call sites (`utils/shops.js`, `utils/areaScope.js`'s `bustAreaCaches`) updated to pass it through.
+      Without this fix, a delivery-gate flip in area 2 would have kept serving area 1's stale cached
+      settings response for up to 15s (or vice versa) — a real bug, not just unfinished plumbing.
+- [x] 15.4 `shopScheduleSweeper.js`'s `tick()` now selects `area_id` alongside `id` in both the
+      open-time and close-time queries (one query across every area's shops, not a per-area loop — the
+      table itself already carries `area_id`, so a single `WHERE` naturally covers every area at once)
+      and threads it through `applyScheduledChange(shopId, areaId, isOpen)`, which now scopes its
+      `UPDATE shops`/re-select by `area_id` and calls `syncAreaShopOpenState(areaId)` +
+      `bustAreaCaches(areaId)` instead of the hardcoded-area-1 pair it had before.
+- [x] 15.5 `riderOfferSweeper.js` — decision documented in a comment atop the file: stays global for
+      expiry/rehydrate. `expireDueOffers`/`remindPendingOffers` operate on already-known offer/order
+      rows (trusted-id pattern); `recoverStuckAssignments` was rewritten to check `countActiveRiders`
+      **per distinct area** among its stuck orders (previously one global check gated every area's
+      re-scan, which would have wrongly skipped an area with zero online riders just because a
+      *different* area had some, or vice versa — fixed as part of this task, not left as a known gap).
+      The one real remaining gap, documented rather than silently accepted: `admin.*` socket emits from
+      the rider-assignment engine still go to every connected admin regardless of area (`emitToAdmins`),
+      same as every other realtime emit in the codebase until per-area rooms land in TASK 23.
+- [x] 15.6 `purgeExpiredDeletions` (`src/server.js`) — confirmed it only ever queries `users` and
+      `password_reset_requests`, both genuinely global tables (§2.2), and `src/server.js` isn't even
+      inside the guardrail's scanned directories (`controllers`/`services`/`utils`). **No ALLOWLIST
+      entry was needed** — there is nothing here for the guardrail to flag in the first place, unlike
+      the `imageController.js`/`deliveryZonesController.js`/`utils/coupons.js` entries added in earlier
+      tasks, which all query a genuinely `SCOPED_TABLES` table cross-area on purpose.
+- [x] 15.7 Confirmed: `createOffer`/`acceptOffer`/`rejectOffer`/`expireOffer` and every `rider_order_offers`
+      status transition in `riderAssignment.js` are byte-for-byte unchanged — the only edits in that file
+      are the `areaId` argument threaded into 2 `listEligibleRiders` calls, 1 `syncDeliveryAvailabilityFromRiders`
+      call, and the per-area regrouping inside `recoverStuckAssignments`'s pre-scan optimization (15.5).
+- [x] 15.8 New test `tests/riderAreaIsolation.test.js` drives the real `continueAssignment` code path
+      with a synthetic area-2 order and asserts the actual SQL/params sent for the eligible-rider query
+      carry `area_id = 2` (never `1`), plus a mirror-image area-1 case — same "assert the real SQL, not
+      just the mocked response" style as `dashboardAreaIsolation.test.js` (TASK 12.4), needed because no
+      real area 2 exists yet (§6.6 gate). Additionally live-verified against the real local MySQL: created
+      a temporary area 2 + one rider per area, ran `listEligibleRiders`/`countActiveRiders` for real, and
+      confirmed each area's query returns only its own rider — cleaned up afterward.
+
+**Test churn:** 8 test files broke, all from the same 2 now-familiar root causes. (1) Pre-TASK-7 admin
+JWTs missing `adminRole`/`areaId` — `adminRiders.test.js`, `ridersAdminDelete.test.js`,
+`adminShopSchedule.test.js`, `shopsAdmin.test.js`, `shopGlobalStatusSync.test.js`'s admin describe block.
+(2) `syncGlobalShopOpenState` → `syncAreaShopOpenState` rename plus the now-bound `area_id = ?` param
+(previously a literal `1` in the SQL text) — `ridersUtils.test.js`, `riderUatCoverage.test.js`,
+`shopGlobalStatusSync.test.js`'s unit block, `settingsDeliveryGate.test.js`. One new wrinkle in
+`shopGlobalStatusSync.test.js`'s wiring tests: `toggleMyShop`/`updateShop` now also call
+`bustAreaCaches(areaId)` after the sync, which issues one additional real query
+(`UPDATE areas SET catalog_version = catalog_version + 1 WHERE id = ?`) that needed a 7th queued mock.
+
+**Live verification (local dev DB, migration re-run clean):** confirmed both existing riders already
+carry `area_id`. Ran the temporary area-2/rider-pair script described in 15.8 directly against MySQL —
+`listEligibleRiders`/`countActiveRiders` scoped correctly in both directions, then cleaned up (no
+orphaned rows left, confirmed by re-query). Full checkout/dispatch HTTP flow could not be exercised (no
+customer/rider JWT available without completing Firebase phone-auth OTP, same constraint as TASK
+11/13/14) — covered instead by the full Jest suite (90/90 suites, 989/990 tests, 1 pre-existing skip).
+
+**Guardrail:** `shops`/`riders` still not added to `SWEPT_TABLES` — `adminController.js` (TASK 17's
+reports/dashboard/admin-orders-list turf, confirmed explicitly out of scope for this task per TASK
+13's own notes), `productController.js`, `dashboardController.js`, `orderController.js`,
+`cartController.js`, and `mobileAdminController.js` all still reference `shops`/`riders` outside this
+task's file list (catalog/dashboard/order-domain tasks' turf, or identity-only role-conflict checks).
+Remaining informational violation count: 249 (down from 284 — coupons task's count was 274, meaning
+this task alone closed 25 real unscoped sites across its own file list).
+
+**Commit:** `feat: AREA TASK 15 — per-area shops, riders, assignment, sweepers`
+
+### [x] TASK 16 — Notifications + broadcast push (14 sites)
+**Spec:** H6 · **Files:** `[api] src/controllers/notificationController.js`,
+`src/utils/notificationService.js`, `src/utils/adminNotifications.js`, `src/utils/expoPush.js`
+
+- [x] 16.1 `notification_batches` and `admin_notifications` scoped — both are NOT NULL + carry a
+      composite unique key including `area_id` since TASK 3 (`uniq_admin_inbox_area_event(area_id,
+      type, related_id)`, confirmed live via `SHOW INDEX`). `notifications` (the customer's own inbox)
+      is **not** in `AREA_SCOPED_TABLES` at all and was never meant to be — every query in
+      `notificationController.js` is `WHERE user_id = ?`, a global identity (§2.2), same reasoning as
+      `orders`' customer-read endpoints in TASK 13; `notificationController.js` needed **zero changes**.
+      `expoPush.js` likewise needed zero changes — it only ever takes an already-filtered `userIds`
+      list from its caller, same trusted-id pattern as `product_variants`/`combo_items` elsewhere.
+      `utils/adminNotifications.js`: `createAdminNotification` gained a required `areaId` param (the
+      INSERT's NOT NULL column leaves no optional-param option, unlike TASK 11/14's coupons.js/
+      storeMode.js pattern); `getUnreadCount(areaId)`/`broadcastUnreadCount(areaId)` scope by area or
+      accept `'all'`/omitted for the pre-existing global behavior; `notifyMobileAdminsPush` now filters
+      `mobile_admins` by `area_id = ?` too (a mobile admin in area 2 has no reason to be paged about
+      area 1's new order) — `mobile_admins` itself (the controller managing it) is otherwise untouched,
+      out of this task's file list. `notificationService.js`: `createNotificationBatch`/
+      `createBroadcastNotification` gained `areaId`. `adminController.js` (not in the file list, but
+      owns every real caller): all 5 `createAdminNotification` call sites across `authController.js`,
+      `orderController.js`, `riderAssignment.js`, `utils/shops.js`, `shopOrderActions.js` now pass a
+      concrete `areaId` — 4 from an already-known order's own `area_id` (or `deliveryAreaId` at order
+      creation), 1 (`authController.js`'s new-signup notification, no pin/order exists yet at that
+      point) from `getDefaultArea()`, the same fallback `resolveCustomerArea` itself uses when no pin
+      and no order history exist (§4.2) — not a guess invented for this task. The 5 admin-facing
+      `notification_batches`/`admin_notifications` CRUD endpoints in `adminController.js`
+      (`getAdminNotifications`, `getAdminNotificationById`, `deleteAdminNotification`, `getInbox`,
+      `getInboxUnreadCount`, `markInboxRead`, `markAllInboxRead`, `dismissInbox`) all gained a new
+      `resolveAreaOrAll` helper (rejects missing area context, unlike shops/riders' `requireOneArea`
+      this one *allows* `'all'` for a super_admin — legitimate cross-area reads/writes here, not a
+      mutation that must stay single-tenant).
+- [x] 16.2 Confirmed: `notification_templates` has no `area_id` column, referenced only by
+      `event_key` lookup in `createOrderNotification` — untouched, correctly global.
+- [x] 16.3 `target: 'everyone'` now resolves recipients by `users.last_area_id = ?` for a concrete
+      area (area_admin's own area, or a super_admin's chosen `X-Area-Id`); a super_admin sending
+      `X-Area-Id: all` gets the pre-existing unscoped `SELECT id FROM users WHERE blocked = 0` — the
+      real "opt into all areas" H6 describes. A super_admin with **no** `X-Area-Id` header gets a 400,
+      same as shops/riders' `requireOneArea` pattern, rather than silently defaulting to one area or
+      leaking to all. `target: 'phones'` deliberately stays fully unscoped — the admin explicitly typed
+      those individual numbers, same identity-is-the-boundary reasoning as `getMyOrders`/riders'
+      self-service endpoints in TASK 15.
+- [x] 16.4 API response now includes `audienceNote` — explicit copy distinguishing "Approximate:
+      reaches customers whose most recent order was in this area. Misses anyone who has never ordered,
+      and may include someone who has since moved." (single-area) from "Sent to every non-blocked
+      customer across every area." (`'all'`). `apps/admin` (the React panel that would render this) is
+      outside this task's backend-only file list — not touched, matching the file-list-authoritative
+      pattern since TASK 9; the field exists so a future frontend change has something to display
+      without another backend round trip.
+- [x] 16.5 Confirmed: `createOrderNotification` (the actual order-status push path — placed/accepted/
+      preparing/out-for-delivery/delivered/cancelled/payment events) and its `notifications` table
+      writes are byte-for-byte untouched. Only the separate admin-inbox side-channel notification each
+      of those 5 call sites *also* fires (`adminInbox.createAdminNotification`, a different table,
+      different audience — the admin dashboard bell, not the customer) gained the `areaId` argument.
+
+**Also fixed, beyond the checklist's own scope:** found and reported (via a spawned follow-up task, not
+fixed here) that `mobileAdminController.js`'s `createMobileAdmin` INSERT never supplies `area_id`, and
+`mobile_admins.area_id` is NOT NULL with no default (confirmed live via `SHOW COLUMNS`) — creating a new
+mobile admin against the real schema currently throws outright. `mobileAdminController.js`/`mobile_admins`
+is not in any task's file list from TASK 9 through TASK 17 (checked); this is a genuine gap the original
+checklist missed, not something in scope for TASK 16 to fully resolve (would mean designing that whole
+file's area-scoping from scratch, including its login/token-signing path, untouched by this task).
+
+**Test churn:** 2 test files broke, both pre-existing tests hitting `adminInbox`'s now-required `areaId`
+plumbing indirectly. `tests/notifications.test.js` (its own hand-rolled in-memory `pool.query` mock):
+`signAdminToken(1)` needed `{ adminRole: 'area_admin', areaId: 1 }` (same root cause as every other admin
+JWT fix since TASK 7), and the `INSERT INTO notification_batches` field-mapping in its mock needed to
+shift one column for the new leading `area_id` param. `tests/adminNotificationsPush.test.js` needed no
+changes — it only asserts on the push fan-out, not the INSERT's exact params. Added
+`tests/notificationAreaScoping.test.js` (new): area_admin's `'everyone'` broadcast queries by
+`last_area_id`, super_admin's `'all'` broadcast skips that filter, super_admin with no area header gets
+400, and the inbox unread-count endpoint scopes by area — same "assert the real SQL/params" style as
+TASK 15's `riderAreaIsolation.test.js`.
+
+**Live verification (local dev DB, migration re-run clean):** confirmed `admin_notifications.area_id` and
+`notification_batches.area_id` are both `NOT NULL` with the composite unique key live. Ran
+`createAdminNotification`/`getUnreadCount` directly against real MySQL with a temporary area 2: both
+inserted with the correct `area_id`, and `getUnreadCount` returned exactly 1 for each area independently
+— cleaned up afterward, confirmed no orphaned rows. Full broadcast-push HTTP flow through the real Expo
+API could not be exercised (no real device tokens locally, same constraint as prior tasks' push-adjacent
+work) — covered instead by the full Jest suite (91/91 suites, 993/994 tests, 1 pre-existing skip).
+
+**Guardrail:** `admin_notifications`/`notification_batches` still not added to `SWEPT_TABLES` out of the
+same caution as every other table this sweep has touched, even though a `src/controllers|services|utils`
+grep confirms only this task's 3 files (`utils/adminNotifications.js`, `utils/notificationService.js`,
+`controllers/adminController.js`) reference either table anywhere in the codebase — left for a final audit
+pass rather than asserted here. Remaining informational violation count: 243 (down from 249).
+
+**Commit:** `feat: AREA TASK 16 — per-area notifications and broadcast`
+
+### [x] TASK 17 — Analytics + reports (MySQL + Mongo)
+**Spec:** §9.5 — **follow it exactly** · **Files:** `[api] src/services/analytics/collections.js`,
+`eventStore.js`, `sessionStore.js`, `rollup.js`, `src/controllers/analyticsController.js`,
+`src/realtime/presence.js`, `src/utils/reportPeriods.js`, report handlers
+
+- [x] 17.1 `insertEvents(userId, events, areaId)` gained an `areaId` param, stamped on every doc.
+      `POST /api/analytics/events` now runs `resolveCustomerArea` (no pin in this endpoint's body, so
+      it always falls through that middleware's own `users.last_area_id` → default-area chain — exactly
+      §9.5's own text). `sessionStore.openSession({..., areaId})` likewise gained the param — since a
+      socket connection has no HTTP request/response cycle to hang middleware off, `socket.js` gained
+      `resolveAreaIdForSocketUser(userId)`, doing the identical `users.last_area_id` → `getDefaultArea()`
+      lookup once per connect (not per event), called right before `presenceTracker.addPresence`.
+      Guarded to skip entirely in `NODE_ENV=test` (mirrors `authenticateSocket`'s existing admin
+      revocation check) so the e2e socket test suite (`realtime.test.js`) stays DB-free; a dedicated
+      `tests/socketAreaResolution.test.js` unit-tests the function directly instead.
+- [x] 17.2 Confirmed: no backfill added for `analytics_sessions`/`analytics_events` — new docs get a
+      real `areaId`, old ones age out within the 30-day TTL on their own.
+- [x] 17.3 `backfillDailyAreaId(db)` in `collections.js` runs the exact
+      `updateMany({areaId:{$exists:false}}, {$set:{areaId:1}})`, called from inside
+      `ensureAnalyticsIndexes` **before** the new unique index is built (order verified by test and,
+      live, by the fact Mongo would refuse to build a unique index over docs missing the key otherwise).
+- [x] 17.4 Old `{date:1}` unique index dropped (`dropIndexIfExists`, swallows "already gone" so re-runs
+      stay idempotent) → new `{areaId:1, date:1}` unique index created.
+- [x] 17.5 `{areaId:1, createdAt:-1}` added to both sessions and events. `{type:1,createdAt:-1}` →
+      dropped, replaced by `{areaId:1,type:1,createdAt:-1}`; `{productId:1,type:1,createdAt:-1}` →
+      dropped, replaced by `{areaId:1,productId:1,type:1,createdAt:-1}` — leftmost-prefix rule (§3.3).
+- [x] 17.6 Confirmed live against real MongoDB: both TTL indexes (`analytics_events`/`analytics_sessions`
+      `createdAt` at 2,592,000s, `analytics_daily` `createdAt` at 31,536,000s) stayed single-field —
+      never touched beyond their existing `expireAfterSeconds`.
+- [x] 17.7 `computeDailyStats` rewritten: fetches the day's sessions/events **once** (not once per area
+      — cheap at "tens of areas", §3.9), partitions them in memory by `areaId` (missing `areaId` treated
+      as area 1, 17.10), then upserts one `{areaId, date}`-keyed doc per area — including a zero-traffic
+      doc for every active area, not just areas with data that day. `backfillYesterday`'s own staleness
+      check now compares doc count to active-area count (not a single `findOne`), so a new area added
+      after yesterday's rollup already ran still gets backfilled instead of being skipped because area
+      1's doc already exists.
+- [x] 17.8 `presence.js`: every presence entry now carries the connecting customer's `areaId` (resolved
+      once at connect, 17.1); `getLiveSnapshot(areaId)` gained an optional per-area filter and a
+      `byArea` breakdown on the combined snapshot, and each `users[]` entry carries its own `areaId`.
+      `emitLiveSnapshot()` itself still emits ONE combined snapshot via `emitToAdmins` — real per-area
+      admin socket rooms don't exist yet (TASK 23), so this is the same documented, consistent gap as
+      every other realtime emit in this sweep (shops.js, riders.js, riderOfferSweeper.js,
+      adminNotifications.js) — but the data is now genuinely ready for TASK 23 to call
+      `getLiveSnapshot(areaId)` per room without any further presence-layer changes.
+- [x] 17.9 MySQL report endpoints in `adminController.js` (not in this task's own file list, but the
+      "report handlers" this task's file list points to — confirmed by the pre-existing `// stopgap
+      area 1 (TASK 17 scopes the admin dashboard/reports by area)` comment already sitting on
+      `getDashboard`): `getSalesReport`, `getTopProductsReport`, `getShopsReport`, `getProfitSummary`,
+      `getProfitOrders` all gained the new `resolveAreaOrAll` helper (reject missing area context;
+      *allow* `'all'` for a super_admin — §2.10 explicitly lists Orders/Reports/Analytics as accepting
+      it, unlike Settings/Delivery Zones/Store Modes) and an `AND area_id = ?` filter (omitted entirely
+      when `'all'`, for a genuine cross-area sum/roll-up). `withAreaCodes()` annotates each row with
+      `areaCode`/`area_code` in `'all'` mode wherever a row could span more than one area (top-products
+      groups by `(areaId, productId, ...)` too in that mode — products aren't shared across areas yet,
+      §2.5/2.6, TASK 18's job — so the same `product_id` in two areas must stay two distinct rows, not
+      merge into one). `getDashboard` uses a **stricter** `requireOneArea` (rejects `'all'` outright,
+      same as Settings) since it also renders `shop_open`/`delivery_available`/`rain_charge_enabled` —
+      booleans that don't mean anything summed across areas — alongside its order KPIs.
+      `getCustomersReport` deliberately stays **fully unscoped**: customers are a global identity
+      (§2.2), not owned by an area, same reasoning TASK 13 applied to a customer's own order history —
+      total/trusted/blocked customer counts are platform-wide by nature. `getAdminOrders` and the
+      order-lifecycle endpoints (`getAdminOrderById`, `updateOrderStatus`, etc.) were confirmed **out of
+      scope** — order *management*, not a report, and not owned by any task's file list from TASK 9
+      through TASK 17 (a real, separate gap, noted below).
+- [x] 17.10 `rollup.js`'s `resolveAreaId(doc)` treats a doc with no `areaId` as area 1 at query
+      (aggregation) time, exactly as specced — verified by a dedicated test and live against the real
+      (empty) dev Mongo, where the backfill's before/after `$exists:false` count both read 0 (no
+      pre-existing docs on this fresh environment to exercise the fallback against, but the idempotent
+      re-run itself was proven safe).
+
+**Also fixed, beyond the checklist's own scope:** `notifyMobileAdminsPush` (`utils/adminNotifications.js`,
+TASK 16's file) now also filters `mobile_admins` by `area_id = ?` — a mobile admin in area 2 has no
+reason to be paged about area 1's new order. Caught while re-reading that file for this task; the actual
+`mobile_admins` CRUD (`mobileAdminController.js`) remains untouched and unscoped — flagged separately
+(see below), since it isn't owned by this task and fixing it properly means designing its whole
+area-scoping story, not a one-line filter.
+
+**Confirmed gap, reported not fixed (outside every task's file list):** `mobileAdminController.js`'s
+`createMobileAdmin` INSERT never supplies `area_id`, and `mobile_admins.area_id` is `NOT NULL` with no
+default (confirmed live via `SHOW COLUMNS` against the local dev DB) — creating a new mobile admin
+against the real schema currently throws outright. Neither `mobileAdminController.js` nor `mobile_admins`
+appears in any task's file list from TASK 9 through TASK 17. Reported via a spawned follow-up task during
+TASK 16 (not re-reported here) rather than absorbed into this task's scope.
+
+**Test churn:** 6 test files broke. `tests/analyticsStores.test.js` (index-shape assertions + new
+`dropIndex`/`updateMany` mocks on the fake `db.collection` object). `tests/analyticsRollup.test.js`
+(rewritten: `computeDailyStats` now returns an array, `listAreas` needed mocking, new area-partitioning
+tests added). `tests/presenceTracker.test.js` (`getLiveSnapshot()`'s empty-state assertion needed the new
+`byArea: {}` field — `toEqual` doesn't ignore extra actual keys the way `toMatchObject` does).
+`tests/analyticsEndpoints.test.js`, `tests/reports.test.js`, `tests/profitReport.test.js`,
+`tests/topItemsReport.test.js` — the now-familiar root cause (admin JWTs missing `adminRole`/`areaId`),
+with one new wrinkle in `topItemsReport.test.js`: it mocks `requireAdmin` itself as a bare
+`(req,res,next)=>next()` passthrough (bypassing `resolveAdminArea` entirely, unique to that one file),
+so the mock itself needed to set `req.areaId` directly. Added `tests/socketAreaResolution.test.js` (new,
+17.1) and 2 new tests in `tests/analyticsRollup.test.js` (multi-area partitioning, 17.10's fallback).
+
+**Live verification:** ran `ensureAnalyticsIndexes` directly against the real local MongoDB (idempotent
+re-run) — confirmed the new `{areaId:1,date:1}` unique index, both `{areaId:1,...}` compound event/session
+indexes, and that both TTL indexes stayed single-field on `createdAt` with their exact
+`expireAfterSeconds`. Confirmed all 79 pre-existing local orders carry `area_id = 1` (matches "Area 1 is
+the only area that has ever existed" — §9.5's own justification for the historical-doc backfill target).
+Full report/analytics HTTP flows covered by the Jest suite (92/92 suites, 1001/1002 tests, 1 pre-existing
+skip) rather than a live customer/admin session (same Firebase-OTP constraint as every prior task).
+
+**Guardrail:** informational violation count: 239 (down from 243) — `mobileAdminController.js` remains
+the largest concentration of the remaining count (unowned gap, see above), alongside `getAdminOrders`
+and friends in `adminController.js` (order-management endpoints, also unowned by any task 9-17, and
+explicitly NOT this task's "report handlers").
+
+**Commit:** `feat: AREA TASK 17 — per-area analytics and reports`
+
+---
+
+## Phase D — Shared libraries
+
+### [x] TASK 18 — Library tables + image dedupe
+**Spec:** §2.5, §2.6, §6.5 · **Files:** `[api] src/db/migrate.js`,
+`src/controllers/imageController.js`, `src/utils/imageStorage.js`
+
+- [x] 18.1 `product_library` created exactly as specced: `id, name, description, image_id, unit_id,
+      variant_prompt, default_store_type, default_category_slug, suggested_price,
+      status ENUM('draft','published') DEFAULT 'draft', archived` + timestamps. `unit_id` is a bare
+      nullable `INT` with no FK yet — the real `units` table doesn't exist until TASK 23 (§2.7);
+      same forward-declared-nullable pattern `products.shop_id`/`group_id` already use.
+- [x] 18.2 `library_variants` created: `id, library_product_id, label, display_order, is_default` +
+      timestamps, `FOREIGN KEY (library_product_id) REFERENCES product_library(id) ON DELETE CASCADE`.
+- [x] 18.3 `products.library_product_id INT NULL` and `product_variants.library_variant_id INT NULL`
+      both added via plain `ensureColumn` (no `AFTER` clause — MySQL appends to the end of the row by
+      default, satisfying "at end of row" without needing to say so explicitly). Both indexed
+      (`idx_products_library_product`, `idx_product_variants_library_variant`) for the propagation
+      fan-out `UPDATE ... WHERE library_product_id = ?` TASK 19 will run.
+- [x] 18.4 `images.sha256 CHAR(64) NULL` + non-unique `idx_images_sha256`. Live-verified: `ALTER TABLE`
+      succeeded against the real dev DB with its existing 10 rows (a unique index would have needed
+      every existing hash to already be distinct, unverified until the backfill below actually ran).
+- [x] 18.5 `uploadImage` now hashes the **raw upload buffer** (before optimization/thumbnailing) and
+      checks `images.sha256` first — a hit skips processing, storage, and the INSERT entirely, not just
+      the DB write, returning the existing row with `deduplicated: true` (200). A miss proceeds exactly
+      as before, now also storing the computed `sha256` on insert (`deduplicated: false`, 201).
+- [x] 18.6 `backfillImageHashes()` in `migrate.js`: batched (200/loop) `SELECT ... WHERE sha256 IS NULL`,
+      reads each row's actual stored bytes (new `imageStorage.getStoredBuffer` — disk `readFileSync` or
+      the new `s3.downloadBuffer`, added for this), hashes, and writes back. Populates only — no row is
+      ever deleted or merged, even when two rows land on the same hash (§2.6's own rule). A single
+      unreadable file (moved/deleted underneath the DB row) is logged and marked with `sha256 = ''`
+      (distinct from `NULL`) so the batch loop terminates instead of retrying the same broken row
+      forever — one dedupe miss on a broken row is an acceptable trade for a migration that always
+      finishes. Live-verified against the real dev DB: all 10 pre-existing images (all `storage_type =
+      'disk'`) hashed successfully on the first run (real 64-char hex values, confirmed via direct
+      query), and the second migration run correctly did nothing (idempotent — no re-hash, no log line).
+- [x] 18.7 `getUsedImageIds` extended with a 7th scan, `product_library.image_id`, in this exact commit
+      — verified live (`getImages`/`cleanupOrphanedImage` both route through the same function) and by
+      a new dedicated test proving a library-only image is reported in-use and blocks cleanup.
+- [x] 18.8 Confirmed: nothing in this commit reads from or writes to `products`/`product_variants` to
+      backfill `library_product_id`/`library_variant_id` — both tables start (and stay, after this
+      task) with every row's library columns `NULL`. `product_library` itself starts empty. Promotion
+      is entirely TASK 19's job.
+
+**Test churn:** 2 test files broke from the new 7th `getUsedImageIds` query consuming a mock slot: TASK
+15's guardrail ALLOWLIST entry for `imageController.js`'s settings scan needed its line number bumped
+(33, was 27 — new comment lines shifted it) rather than a real new violation, and
+`tests/settingsArea.test.js`'s `getUsedImageIds` test needed one more queued `mockResolvedValueOnce` for
+the `product_library` call. Added `tests/imageDedup.test.js` (new): dedupe-hit skips the INSERT entirely,
+a miss inserts with a real computed sha256, and a library-only image blocks `cleanupOrphanedImage`.
+
+**Live verification (local dev DB, migration re-run clean and idempotent):** `product_library`/
+`library_variants` tables created empty; `products.library_product_id`/`product_variants.library_variant_id`
+both present, indexed, and `NULL` on every existing row (confirmed via `SHOW COLUMNS`/`DESCRIBE`);
+`images.sha256` backfilled on all 10 existing rows with real hashes on the first run, silent no-op on
+the second. Full Jest suite (93/93 suites, 1004/1005 tests, 1 pre-existing skip) covers the upload/dedupe
+HTTP flow via mocks (no admin JWT session available locally, same constraint as every prior task).
+
+**Guardrail:** unaffected — `product_library`/`library_variants` are global tables, never in
+`SCOPED_TABLES`. Remaining informational violation count: 239 (unchanged from TASK 17).
+
+**Commit:** `feat: AREA TASK 18 — product library tables + image dedupe`
+
+### [x] TASK 19 — Library CRUD, add-from-library, promote
+**Spec:** §4.5 · **Files:** `[api] src/utils/productLibrary.js` (new),
+`src/controllers/libraryController.js` (new), `src/routes/adminRoutes.js`
+
+- [x] 19.1 `materializeToArea(conn, {libraryProductId, areaId, categoryId, price, shopId, shopPrice,
+      available, displayOrder, variantPrices})` — the only writer of `products.library_product_id`
+      (confirmed by grep: it's the sole `library_product_id = ?`/`INSERT ... library_product_id` site
+      outside `promoteProductToLibrary`, which links the SOURCE product directly, not via this
+      function). Reuses `productController.js`'s own `syncProductVariants` (newly exported for this)
+      so the `products.price` ⇄ default-variant mirror is enforced in exactly one place. Idempotent
+      (existing link check first), validates the target category/shop actually belong to `areaId`,
+      and rejects an archived library item. `syncProductVariants` itself gained a `library_variant_id`
+      field on each variant object — guarded the same way `shop_price` already was (only touched when
+      explicitly sent), so the normal product-editor PATCH path (which never sends it) can't
+      accidentally clear an existing link on an unrelated edit.
+- [x] 19.2 `GET /admin/library` — `search`/`status`/`archived` filters, paginated; a second batch
+      query (`SELECT DISTINCT library_product_id, area_id FROM products WHERE library_product_id IN
+      (?) AND deleted = 0`) attaches each row's `areaIds`. Deliberately global/cross-area — the whole
+      point is showing which areas carry each item — and read-only for any admin, not
+      `requireSuperAdmin` (writes to the library are restricted; browsing it is not).
+- [x] 19.3 `POST /admin/library`, `PATCH /admin/library/:id`, `POST /admin/library/:id/archive` — all
+      gated `requireAdmin, requireSuperAdmin` (the route's first real usage of `requireSuperAdmin`
+      anywhere in the codebase — it existed since TASK 8 but nothing had wired it into a route yet).
+      Archive only ever sets `archived = 1` on the library row; confirmed it never touches `products`.
+- [x] 19.4 `POST /admin/library/:id/add-to-area` — `categoryId`, `price`, optional `shopId`/
+      `shopPrice`/`available`/`displayOrder`/`variantPrices` (an object keyed by
+      `library_variants.id`). **Deliberately no separate `storeType` param**: `categories.type` already
+      **is** the store type (confirmed against `migrate.js`'s `categories` schema — there is no
+      product-level store-type column, only category-level), so validating `categoryId` belongs to
+      this area already validates placement; a second, independent `storeType` field would just be a
+      second source of truth for the same fact. One transaction (`pool.getConnection` +
+      begin/commit/rollback around the single `materializeToArea` call); any admin may call it, scoped
+      to their own area via the same `requestAreaId`/reject-`'all'` pattern used everywhere else in
+      this sweep (`libraryController.js`'s own `requireOneArea`, distinct from `productController.js`'s
+      same-named helper — same shape, different file, matching the established per-file duplication
+      precedent rather than a shared cross-file import).
+- [x] 19.5 Confirmed live and by test: re-calling add-to-area for an already-linked area returns 200 +
+      `alreadyLinked: true` with the existing product, never a second row.
+- [x] 19.6 `POST /admin/library/:id/add-to-areas` — `requireSuperAdmin` (fan-out is cross-area reach).
+      Body `{ areas: { "<areaId>": { categoryId, price, ... } } }`; loops `materializeToArea` per area
+      inside ONE transaction, so a bad area config rolls back every area's insert, not just its own —
+      no area is left half-added.
+- [x] 19.7 `POST /admin/products/:id/promote-to-library` — gated `requireSuperAdmin` too (not
+      explicitly required by 19.7's own bullet text, but creating a library item — which this
+      functionally is — is `requireSuperAdmin` everywhere else in this task, per 19.3; treated as the
+      same authorship boundary rather than a special case). Reads the source product `FOR UPDATE`,
+      rejects a product that's already linked (`409 ALREADY_LINKED`), creates one `product_library` row
+      + one `library_variants` row per existing variant, then links the SOURCE product/variants back
+      via `library_product_id`/`library_variant_id`. Confirmed: touches only the source product's own
+      row and its own variants — no other area's `products` row is read or written anywhere in this path.
+- [x] 19.8 New test (`materializeToArea` unit test): the same library item materialized into area 1 at
+      price 12 and area 2 at price 15 produces two `products` rows with byte-identical `name`,
+      `description`, and `image_id` INSERT params but the area-specific `price`/`category_id`, and two
+      `product_variants` rows both labeled `'Single Pack'`. Live-verified end-to-end against the real
+      dev DB too: materialized a temp library item (2 variants) into area 1, confirmed the resulting
+      `products`/`product_variants` rows carry the correct `library_product_id`/`library_variant_id`
+      links, re-called it and got `alreadyLinked: true` with no duplicate row, then cleaned up — no
+      orphaned rows left.
+
+**Test churn:** 2 test files broke. `tests/topItemsReport.test.js` mocks `authMiddleware` entirely
+(bare passthrough, no real `resolveAdminArea`) and didn't have a `requireSuperAdmin` export at all —
+once `adminRoutes.js` started requiring it for the new library/promote routes, the mocked module
+returned `undefined`, and `router.post(path, requireAdmin, undefined, ...)` threw at require time,
+failing the whole suite file. Fixed by adding a passthrough `requireSuperAdmin` to that file's own
+mock. `tests/settingsArea.test.js`/`tests/areaScoping.test.js` were TASK 18 leftovers, not new here.
+Added `tests/productLibrary.test.js` (new): `materializeToArea`'s idempotency/validation/19.8 cases,
+plus route-level tests for add-to-area (idempotent 200) and promote-to-library (creates + links back,
+rejects an already-linked product).
+
+**Live verification (local dev DB):** see 19.8 above — full `materializeToArea` round trip against
+real MySQL, including the idempotent re-call and cleanup. Full HTTP flow through the new admin routes
+covered by the Jest suite instead (94/94 suites, 1012/1013 tests, 1 pre-existing skip) — no admin JWT
+session available locally, same constraint as every prior task.
+
+**Guardrail:** informational violation count: 242 (up from 239) — all 3 new sites are legitimate,
+already-reasoned-through patterns, not gaps: `getLibrary`'s cross-area `products` scan (deliberately
+shows every area a library item is in, same shape as `imageController.js`'s allowlisted cross-area
+scan), `promoteProductToLibrary`'s source-product read (`requireSuperAdmin`-gated, same universal-reach
+reasoning as every other super-admin-only action in this sweep), and a trusted-id re-select after an
+INSERT (the same pattern used throughout TASK 11-18). None of these are in `SWEPT_TABLES` yet, so
+none fail the guardrail; not added to the allowlist since `products`/`categories` aren't swept as a
+whole yet either — revisit once TASK 30's final audit sweeps those tables for real.
+
+**Commit:** `feat: AREA TASK 19 — library CRUD, add-from-library, promote`
+
+### [x] TASK 20 — Library edit propagation
+**Spec:** §3.7, §6.7 · **Files:** `[api] src/utils/productLibrary.js`, `libraryController.js`
+
+- [x] 20.1 `propagateLibraryEdit(conn, libraryProductId)` — re-reads the library row fresh (never takes
+      new values as arguments, so it can't propagate a half-applied edit) and runs exactly one
+      `UPDATE products SET name = ?, description = ?, image_id = ?, unit = ? WHERE library_product_id
+      = ?`, covered by TASK 18's `idx_products_library_product` index.
+- [x] 20.2 Confirmed by test: the identity UPDATE's column list is hardcoded, never built from
+      `req.body` — verified the generated SQL text never mentions `price`, `available`,
+      `category_id`, or `display_order` anywhere.
+- [x] 20.3 One JOIN-based `UPDATE product_variants pv JOIN library_variants lv ON lv.id =
+      pv.library_variant_id SET pv.label = lv.label WHERE lv.library_product_id = ? AND pv.deleted =
+      0` — a single statement relabels every area's variants still linked to a live library variant,
+      not one query per area.
+- [x] 20.4 Affected areas from `SELECT DISTINCT area_id FROM products WHERE library_product_id = ? AND
+      deleted = 0`, returned to the caller. `libraryController.js`'s `updateLibraryProduct` sends the
+      HTTP response **first**, then fires `Promise.all(areaIds.map(bustAreaCaches))` after — the admin
+      never waits on N cache busts for an edit that already committed.
+- [x] 20.5 New library variants get a **separate INSERT pass**: `libVariants` (current) vs `areaProducts`
+      × `existingLinks` (`product_id:library_variant_id` pairs already materialized) — any combination
+      missing from that set gets one batched multi-row `INSERT INTO product_variants (...) VALUES ?` at
+      `suggested_price`, `available = 0`. Deliberately **never `is_default`**, even if the library
+      marks the new variant as its own default — flipping an existing area's default variant would
+      silently retarget the `products.price` mirror everywhere at once; `is_default` only ever applies
+      at initial `materializeToArea` time, confirmed by test and live verification.
+- [x] 20.6 A `product_variants` row still pointing at a `library_variant_id` that `library_variants` no
+      longer has (removed via `syncLibraryVariants`' hard-delete) gets one JOIN-based
+      `UPDATE ... SET pv.deleted = 1 WHERE ... library_variant_id NOT IN (...)` — confirmed by test the
+      generated SQL is a `SET pv.deleted = 1`, never a `DELETE FROM product_variants`.
+      `syncLibraryVariants(conn, libraryProductId, variants)` (new) is the upsert-by-id +
+      hard-delete-missing counterpart for `library_variants` itself, called from
+      `updateLibraryProduct` when the request body includes a `variants` array — hard delete is
+      correct there specifically because nothing outside `product_variants.library_variant_id`
+      references a `library_variants.id`, unlike `product_variants.id` which live carts/orders hold.
+- [x] 20.7/20.8 Tests + live verification (both against the real dev DB, not just mocks): materialized a
+      temp library item into area 1 (`price=25, displayOrder=7`), then renamed the library, relabeled
+      one variant, removed another, and added a new one — confirmed live that the area product's
+      `price`, `category_id`, `display_order`, and `available` were byte-identical before and after
+      propagation (20.7), the kept variant's `price` still matched the product's own price (the mirror
+      survived, 20.8), the removed variant's row was soft-deleted (`deleted: 1`) and still resolvable
+      by id, and the new variant landed at the library's `suggested_price` with `available: 0`. Cleaned
+      up afterward, confirmed no orphaned rows.
+
+**`updateLibraryProduct` (`libraryController.js`) rewritten** to actually call this task's new
+functions: now runs in one transaction — `product_library` scalar update (if any fields sent),
+`syncLibraryVariants` (if a `variants` array is sent), `propagateLibraryEdit` — commits, responds, then
+busts caches after the response per 20.4. Previously (TASK 19) it only updated `product_library`'s own
+row with no propagation and no variant editing at all.
+
+**Test churn:** none — TASK 19's own tests for `updateLibraryProduct` didn't exist yet (that endpoint
+had no dedicated test file), so extending its behavior broke nothing. Added
+`tests/libraryPropagation.test.js` (new, 8 tests): the identity UPDATE's exact column list and absence
+of area-owned columns, the JOIN-based label UPDATE, the removal soft-delete's exact SQL shape, the
+variant-add INSERT's exact row shape (price/available/is_default/library_variant_id), the "skip areas
+that already have every variant" case, `NOT_FOUND`, and `syncLibraryVariants`' upsert/hard-delete/no-op
+paths.
+
+**Live verification (local dev DB):** see 20.7/20.8 above — a full materialize-then-edit-then-propagate
+round trip against real MySQL, covering rename, relabel, remove, and add in one pass. Full Jest suite:
+95/95 suites, 1020/1021 tests, 1 pre-existing skip.
+
+**Guardrail:** informational violation count: 245 (up from 242) — the 3 new sites are
+`propagateLibraryEdit`'s identity/label/removal UPDATE statements, which are deliberately cross-area BY
+DESIGN (the entire point of this task is fanning one edit out to every area that carries the item) —
+not gaps. Not allowlisted for the same reason as TASK 19's additions: `products`/`product_variants`
+aren't in `SWEPT_TABLES` yet.
+
+**Commit:** `feat: AREA TASK 20 — library edit propagation`
+
+### [x] TASK 21 — Category + store-mode libraries
+**Spec:** §2.7 · **Files:** `[api] src/db/migrate.js`, `src/utils/productLibrary.js` (reuse),
+`src/controllers/categoryController.js`, `storeModeController.js`, `imageController.js`
+
+- [x] 21.1 `category_library (id, name, slug, type, image_id, archived)` and `store_mode_library (id,
+      slug, label, icon_image_id, is_system, archived)` created exactly as specced, timestamps added.
+- [x] 21.2 `categories.library_category_id` and `store_modes.library_store_mode_id`, both nullable
+      `ensureColumn` + `ensureIndex` (`idx_categories_library_category`,
+      `idx_store_modes_library_store_mode`) — no FK, same forward-declared-nullable pattern as
+      `products.library_product_id`.
+- [x] 21.3 `propagateCategoryLibraryEdit(conn, libraryCategoryId)` and
+      `propagateStoreModeLibraryEdit(conn, libraryStoreModeId)` added to `productLibrary.js` — same
+      shape as TASK 20's `propagateLibraryEdit` (re-read the library row fresh, one explicit-column-list
+      `UPDATE ... WHERE library_*_id = ?`, affected-area list from one `SELECT DISTINCT area_id`), not a
+      copy-pasted second mechanism. Categories/store-modes have no child collection like variants, so
+      there's no add/remove pass — identity propagation only. **No new admin CRUD/materialize-to-area
+      endpoints added for either library in this task** — the checklist's own bullets (21.1-21.7) ask
+      for the tables + propagation mechanism + image-cleanup safety, not a TASK-19-equivalent full CRUD
+      surface (TASK 19's own bullets explicitly listed `GET/POST/PATCH /admin/library` etc.; TASK 21's
+      don't list any new route at all) — `categoryController.js`/`storeModeController.js` needed no
+      changes beyond confirming their existing create/update paths already leave the new
+      `library_*_id` columns `NULL` by default (21.5), which they do, unchanged.
+- [x] 21.4 Confirmed by test and live verification: neither propagation function's UPDATE column list
+      ever mentions `active`, `display_order`, or `is_default`.
+- [x] 21.5 Confirmed: a `NULL` `library_category_id`/`library_store_mode_id` row is never touched by
+      either propagation function (both `UPDATE`s are scoped `WHERE library_*_id = ?`, never matching
+      `NULL`) — local-only categories/store-modes stay fully editable exactly as today, no code path
+      changed for them at all.
+- [x] 21.6 `getUsedImageIds` (`imageController.js`) extended with `category_library.image_id` and
+      `store_mode_library.icon_image_id` in this same commit, alongside TASK 18's `product_library.image_id`
+      — now 9 scans total.
+- [x] 21.7 New tests (`propagateCategoryLibraryEdit`/`propagateStoreModeLibraryEdit`, 4 cases) assert
+      the exact generated SQL text/params and confirm `display_order`/`active`/`is_default` never
+      appear in either UPDATE's column list. Live-verified end-to-end against the real dev DB too:
+      created a temp library category + a temp library store mode, each linked to one real area-1 row,
+      renamed both library items, propagated, and confirmed the area rows picked up the new
+      name/label while `active`/`display_order` stayed byte-identical — cleaned up afterward, no
+      orphaned rows.
+
+**Test churn:** 2 test files broke, both the same TASK-18-established root cause (a new
+`getUsedImageIds` scan shifts the guardrail's allowlisted line number and consumes one more mock slot in
+`tests/settingsArea.test.js`) — not a new pattern, same fix shape as TASK 18's.
+
+**Live verification (local dev DB, migration re-run clean):** `category_library`/`store_mode_library`
+created empty; `categories.library_category_id`/`store_modes.library_store_mode_id` present, indexed,
+`NULL` on every existing row. Full category/store-mode propagation round trip proven against real
+MySQL (see 21.7). Full Jest suite: 95/95 suites, 1024/1025 tests, 1 pre-existing skip.
+
+**Guardrail:** informational violation count: 247 (up from 245) — the 2 new sites are
+`propagateCategoryLibraryEdit`/`propagateStoreModeLibraryEdit`'s own identity UPDATEs, deliberately
+cross-area by design (same reasoning as TASK 20's count increase), not gaps.
+
+**Commit:** `feat: AREA TASK 21 — category and store-mode libraries`
+
+### [x] TASK 22 — Fulltext search, area scoping, units lookup
+**Spec:** §3.11, H4 · **Files:** `[api] src/db/migrate.js`,
+`src/controllers/productController.js` (`:377`, `:635`), `tests/productCategory.test.js`
+
+- [x] 22.1 `FULLTEXT KEY ft_products_name (name)` on `products` and `ft_product_library_name` on
+      `product_library.name`, both idempotent (`ensureFulltextIndex`, same INFORMATION_SCHEMA-check
+      shape as every other `ensure*` helper in `migrate.js`). Confirmed live via `SHOW INDEX` —
+      `Index_type: FULLTEXT` on both.
+- [x] 22.2/22.3 New shared `src/utils/search.js` — `decideSearchMode(term)` returns `fulltext` (term ≥
+      `FULLTEXT_MIN_TERM_LENGTH` = 3, matching InnoDB's `innodb_ft_min_token_size` default) with boolean-
+      mode operators stripped and a `*` prefix appended, `like` (shorter terms), or `none` (empty/
+      pure-operator input — resolves to `1=0`, never an unfiltered scan). One decision function reused
+      at all 3 call sites rather than 3 copies of the same length check. Customer `getProducts`
+      (`productController.js`, formerly `:377`) and admin `getAdminProducts` (formerly `:635`) both
+      replaced their `p.name LIKE '%term%'` with this — customer's stays string-interpolated
+      (`pool.escape`, matching the rest of that query's existing style), admin's stays parameterized.
+      Combos (no FULLTEXT index, out of 22.1's scope) keep `LIKE` unconditionally in the shared
+      customer-search subquery builder — a deliberate, permanent fallback for that one subquery, not
+      the length-based one.
+- [x] 22.4 `GET /admin/library`'s `search` (built in TASK 19, `libraryController.js`) upgraded from
+      `LIKE` to the same `decideSearchMode` against `product_library.name` — this **is** admin's "find
+      a product to add" lookup (one global index, TASK 19 already maps results to area rows via
+      `library_product_id` in the same response).
+- [x] 22.5 `units (id, name UNIQUE, created_at)` created; one-shot
+      `INSERT IGNORE INTO units (name) SELECT DISTINCT TRIM(unit) FROM products WHERE unit IS NOT NULL
+      AND TRIM(unit) != ''` (not a per-row batched migration — realistically tens of distinct values,
+      confirmed live: 6 on this dev DB). No FK from `product_library.unit_id` to it, same
+      no-FK-for-cross-cutting-pointer-columns convention as every other library linkage column in this
+      codebase. **Also fixed, beyond the checklist's own scope:** `materializeToArea` and
+      `propagateLibraryEdit` (TASK 19/20) both hardcoded `unit: null` on every write, with a comment
+      saying the units table didn't exist yet — now that it does, both resolve `lib.unit_id` to the
+      matching `units.name` and write that string, closing a gap those two tasks left open pending
+      this one.
+- [x] 22.6 Confirmed: `products.unit` itself is untouched — still the same free-text column, same
+      values on every existing row (the `units` table is purely additive, read from library
+      materialization/propagation, never written back to `products.unit` by anything else, and no
+      response field changed shape).
+- [x] 22.7 New `tests/productSearchAreaIsolation.test.js` — same "assert the real SQL sent to MySQL,
+      not just the mocked response" style as TASK 12.4/15.8's isolation tests (no real area 2 exists
+      yet, §6.6): a pin resolving into a synthetic area 2 searches `p.area_id = 2` via
+      `MATCH(p.name) AGAINST (... IN BOOLEAN MODE)`, never `area_id = 1`; the mirror-image area-1 case;
+      and a short (2-char) term correctly falls back to `LIKE '%ab%'` while staying area-scoped.
+- [x] 22.8 **Benchmark** (local dev DB, real MySQL, not an estimate): inserted 20,000 synthetic
+      `products` rows (area 1) alongside the existing 9, then ran the same `term='Milk'` search both
+      ways:
+      | | rows matched | time | `EXPLAIN` key used | rows examined (est.) |
+      |---|---|---|---|---|
+      | `LIKE '%Milk%'` | 1,927 | 22ms | `idx_products_area_category_available_order` (can't use it for the `LIKE`'s own predicate, just the `area_id` prefix) | 10,004 |
+      | `MATCH(name) AGAINST ('Milk*' IN BOOLEAN MODE)` | 1,927 | 10ms | `ft_products_name` | 1 |
+
+      Same result set, ~2.2x faster at 20k rows, and — the number that actually matters as N grows —
+      `EXPLAIN` confirms `LIKE` still examines ~half the table (10,004 of 20,009 rows) while `MATCH`
+      resolves through the FULLTEXT index directly (`rows: 1`, i.e. genuinely index-driven, not
+      scan-driven). The gap widens with row count; it does not stay at 2x. Cleaned up all 20,000
+      synthetic rows afterward — confirmed 0 remain.
+
+**Test churn:** none — no existing test exercised the `search=` query param on either
+`GET /api/products` or `GET /admin/products` before this task (grepped to confirm), so replacing the
+LIKE mechanism broke nothing. Added `tests/searchMode.test.js` (5 cases: min-length fallback, fulltext
+prefix, operator stripping, empty/pure-operator input, whitespace trimming) and
+`tests/productSearchAreaIsolation.test.js` (3 cases, 22.7).
+
+**Live verification:** see 22.1 (`SHOW INDEX`) and 22.5 (real distinct units backfilled) and 22.8
+(the benchmark itself) above, all against the real local dev DB. Full Jest suite: 97/97 suites,
+1032/1033 tests, 1 pre-existing skip.
+
+**Guardrail:** informational violation count: 247 (unchanged from TASK 21) — every touched query was
+already area-scoped before this task (the customer/admin product search predicates already carried
+`area_id`); this task only replaced the search *mechanism*, not the area predicate, so no new
+scoped-but-unscoped sites were introduced or closed.
+
+**Commit:** `feat: AREA TASK 22 — fulltext search, area scoping, units lookup`
+
+---
+
+## Phase E — Realtime
+
+### [x] TASK 23 — Per-area socket rooms
+**Spec:** §3.5, H7 · **Files:** `[api] src/realtime/socket.js`, `orderEvents.js`,
+`src/services/riderAssignment.js`, `tests/realtime*.test.js`
+
+- [x] 23.1 Rooms → `customers:<areaId>`, `admin:<areaId>`. `customer:<userId>` unchanged (a customer
+      still also joins that identity room via `joinRoleRoom`, untouched). New `joinAreaRoom(socket)`
+      handles the area-scoped joins: customer → `resolveAreaIdForSocketUser` (reused from TASK 17) →
+      `customers:<areaId>`; admin → JWT's `areaId` claim (added to `socket.data.auth` in
+      `authenticateSocket`, alongside the existing `adminRole`) → `admin:<areaId>`.
+- [x] 23.2 `emitToAdmins(areaId, eventName, payload)` and `emitToAllCustomers(areaId, eventName,
+      payload)` — both now target `admin:<areaId>`/`customers:<areaId>` instead of the old flat
+      `admin`/`customers` rooms. Every call site across the codebase updated (17 files, ~42 sites:
+      controllers/riderController.js, settingsController.js, shopAdminController.js,
+      shopOwnerController.js, adminRiderController.js, adminController.js, deliveryZonesController.js,
+      productController.js; utils/adminNotifications.js, shops.js, riders.js; services/riderAssignment.js,
+      shopOrderActions.js; realtime/orderEvents.js, presence.js, shopScheduleSweeper.js) — each one
+      threaded through whatever `areaId` was already in local scope (`requireOneArea`'s resolved
+      `areaId`, `req.shop.area_id`, `req.rider.area_id`, or the order/count-query row's own `area_id`).
+      Two spots needed a genuinely new `area_id` on hand, not just a rename: `orderController.js`'s
+      checkout order object (built pre-refetch for speed, never carried `area_id`/`areaId` before —
+      now does) and `confirmShopOrder`/`readyShopOrder` in `shopOrderActions.js` (their `COUNT(*)`
+      queries gained `MAX(o.area_id) as area_id`, matching `rejectShopOrder`'s pre-existing pattern).
+- [x] 23.3 Customer socket joins on connect via `joinAreaRoom` (reusing `resolveAreaIdForSocketUser`,
+      same `users.last_area_id → getDefaultArea()` chain and same `NODE_ENV!=='test'` guard as TASK 17's
+      presence resolution — actually consolidated into one lookup per connect now, since presence used
+      to run this same query a second time independently). **Rejoin on client-pushed area change**: new
+      `socket.on('area:changed', { areaId })` handler → `rejoinAreaRoom(socket, newAreaId)`, which leaves
+      the stale `customers:<oldAreaId>` room (if any) and joins the new one. No existing client emits
+      this event yet — it's new server-side plumbing a future customer-app change (switching delivery
+      area mid-session) can call into; documented in the handler's own comment.
+- [x] 23.4 A customer socket that resolves no area at all (H7 — cold-start race, or both the
+      `last_area_id` lookup and the default-area fallback come up empty) simply joins no
+      `customers:<areaId>` room and the connection proceeds normally — `joinAreaRoom` only calls
+      `socket.join(...)` inside an `if (areaId)` guard, never blocks or rejects the connection. Admin
+      sockets are unaffected either way (JWT-claim-driven, no async lookup on the area_admin path).
+- [x] 23.5 `adminRole === 'super_admin'` branch in `joinAreaRoom` calls `areaScope.listAreas()` and
+      joins every `admin:<areaId>` room (`socket.data.allAdminAreas = true` marks this for
+      debuggability). Unit-tested directly in `tests/socketAreaResolution.test.js` (real e2e coverage
+      isn't possible here without a db/mysql mock — see that file's own comment) with 3 real areas,
+      confirming all 3 rooms are joined.
+- [x] 23.6 Confirmed no event name or payload field changed — grepped every touched emit call site's
+      event-name string and payload object literal before/after; only the first positional argument
+      (the target room's areaId) was added. `toOrderEventPayload`'s shaped customer/admin payload is
+      untouched; `orderEvents.js`'s wrapper functions derive `areaId` from the raw `order.area_id`
+      passed in (already stamped on every order since TASK 13), not from anything added to the payload
+      itself.
+- [x] 23.7 New test in `tests/realtime.test.js` ("an area 2 admin event never reaches an area 1 admin
+      socket") — two real socket.io connections (area_admin JWTs with `areaId: 1` and `areaId: 2`),
+      `emitToAdmins(2, 'delivery_zones.updated', ...)`, asserts the area 2 socket receives it and the
+      area 1 socket never does (`expectNoEvent` with a 75ms grace window, same helper the file's other
+      leak tests already used). Same file also gained a same-area delivery test (two area-1 admins both
+      receive an area-1 emit) as the direct positive-case complement.
+
+**Test churn (fixing signature-change breakage, not new coverage):** `tests/realtimeEvents.test.js`,
+`tests/riderAssignment.test.js`, `tests/ridersUtils.test.js`, `tests/riderUatCoverage.test.js`,
+`tests/shopOwner.test.js`, `tests/ridersAdminDelete.test.js`, `tests/shopGlobalStatusSync.test.js`,
+`tests/presenceTracker.test.js`, `tests/realtime.test.js` all had `emitToAdmins`/`emitToAllCustomers`
+call assertions updated to the new `(areaId, eventName, payload)` shape, with fixtures gaining an
+explicit `area_id`/`areaId` where the emit's area now has to come from the mocked row. New/expanded:
+`tests/socketAreaResolution.test.js` (added `joinAreaRoom` coverage: customer resolves-and-joins,
+customer resolves-to-nothing (H7), area_admin joins from JWT claim with zero DB calls, super_admin
+joins every area, no-auth no-op — 5 new cases), `tests/realtime.test.js` (23.7 above, plus the
+same-area admin-delivery test).
+
+**Bug caught by this sweep, not by TASK 13:** `orderController.js`'s checkout success path built its
+own `order` object literal for `realtimeEvents.emitOrderCreated(order)` rather than re-querying the row
+— that literal never included `area_id`/`areaId`, so with `emitToAdmins` now requiring a real areaId to
+pick a room, every real "new order" admin notification would have silently gone to `admin:undefined`
+(reaching no one) had this not been caught while tracing whether `order.area_id` was actually in scope
+at each of `orderEvents.js`'s call sites. Fixed by adding `areaId: deliveryAreaId, area_id:
+deliveryAreaId` (the same variable already used two lines below it for `createAdminNotification`'s
+`areaId`) to the literal.
+
+**`presence.js` (analytics live snapshot) also updated**, since `emitToAdmins`'s old single-room
+signature no longer exists: `emitLiveSnapshot` now emits one `getLiveSnapshot(areaId)` per real area
+(unioning `listAreas()` with any area currently present in the in-memory presence Map, so a quiet area
+with zero online customers still gets its own zeroed snapshot instead of going stale) to that area's own
+`admin:<areaId>` room, instead of one combined snapshot to a flat `admin` room. Necessary follow-on fix:
+`peakToday` was previously a single global high-water mark tracked only when `getLiveSnapshot()` was
+called with no `areaId` — since every real call now passes one, peak tracking is now split into a
+global `peakToday` (unchanged, for direct unfiltered callers) plus a `peakByArea` Map keyed by areaId,
+so each area's own admin room sees a peak that's actually its own rather than permanently stuck at 0.
+
+**Live verification:** per-area room targeting is a socket.io connection-level concern (not a MySQL
+schema/query change), so — consistent with the plan this session had already set for this task —
+verification is the real end-to-end Jest socket suite (`tests/realtime.test.js`) rather than a
+standalone DB script: real `http.createServer` + real `socket.io` server + real `socket.io-client`
+connections over an actual TCP port, asserting genuine room delivery/non-delivery, not mocked
+event-emitter calls. `resolveAreaIdForSocketUser`/`listAreas` DB-touching branches (customer + super_admin
+paths) are separately unit-tested against a real query shape in `tests/socketAreaResolution.test.js`.
+Full Jest suite: 97/97 suites, 1039/1040 tests, 1 pre-existing skip. `npm run lint`: clean.
+
+**Guardrail:** informational violation count: 244 (was 247 at TASK 22 — minor drift, not attributable to
+this task: sockets carry no SQL, and this guardrail only scans query strings on not-yet-swept tables, so
+TASK 23's room-targeting logic contributes nothing to it either way; every query this task touched
+already had its `area_id` predicate from earlier tasks — the only SQL change here was adding
+`area_id`/`MAX(o.area_id) as area_id` to a couple of SELECT column lists so the row's own area was on
+hand for the emit, not a change to any WHERE clause).
+
+**Commit:** `feat: AREA TASK 23 — per-area socket rooms`
+
+---
+
+## Phase F — Super admin API + UI
+
+### [x] TASK 24 — Super-admin endpoints, clone-area, the 409 gate
+**Spec:** §2.12, §6.6, §6.8 · **Files:** `[api] src/controllers/areaController.js` (new),
+`src/routes/adminRoutes.js`, `src/utils/areaScope.js`, `src/db/migrate.js`
+
+- [x] 24.1 `POST /admin/areas` — one transaction (`pool.getConnection`/`beginTransaction`, same pattern
+      as `orderController.js`'s checkout transaction) creating the `areas` row, its `settings` row
+      (`createSettingsForArea`, ready since TASK 9, called for the first time by this task) and its two
+      `is_system` store modes (`seedSystemStoreModes`, already existed in `areaScope.js` since TASK
+      11/15 but was likewise never called until now) — all three committed together, or none of them.
+      Gave `seedSystemStoreModes` an optional `connection` param (previously always used the module-level
+      `pool`) so it can join the same transaction, matching `createSettingsForArea`'s existing
+      `connection = pool` pattern. A new area starts with zero categories/products/shops/riders/offers —
+      confirmed live (see below).
+- [x] 24.2 `GET /admin/areas` (`listAreas()` from `areaScope.js`, already cached) and
+      `PATCH /admin/areas/:id` (partial update: name/active/timezone/brand_color/logo_image_id/features).
+      Both bust the 60s areas cache — added a small `invalidateAreasCache()` export to `areaScope.js`
+      (it only exposed `_resetCachesForTests` before this task) so a just-created/edited area is visible
+      to `listAreas()`/`getAreaById()` immediately instead of after the TTL.
+- [x] 24.3 `POST /admin/admins`, `GET /admin/admins` (joined to `areas` for `areaCode`), `PATCH
+      /admin/admins/:id`. §2.9 role/area invariant enforced in one shared `validateRoleAreaInvariant`:
+      `super_admin` must have no `areaId`; `area_admin` must reference a real area (`getAreaById`
+      lookup, not just "is it a number"). Password hashed with `bcrypt.hash(password, 10)`, same as the
+      existing admin-login bootstrap path in `migrate.js`; minimum 8 characters. `password_hash` is never
+      included in any response shape.
+- [x] 24.4 **§6.6 gate, shipped in this same commit, not a follow-up:** a new `platform_flags` singleton
+      table (`id INT PRIMARY KEY DEFAULT 1, areas_sweep_complete TINYINT(1) NOT NULL DEFAULT 0`) —
+      same one-row-by-convention shape as the existing `admin_auth_state` table — added to `migrate.js`
+      right after TASK 22's `units` table, seeded to `0`. `createArea` reads it first, before touching
+      anything else, and returns `409 AREAS_SWEEP_INCOMPLETE` if it isn't `1`. Nothing in this task, or
+      anywhere else in the codebase, ever sets it to `1` — only TASK 30 will, after its isolation E2E
+      passes.
+- [x] 24.5 `POST /admin/areas/:id/clone-from/:sourceId` — copies, as brand-new rows with fresh
+      auto-increment ids and old-id→new-id maps built along the way: categories (all identity + placement
+      fields, `library_category_id` preserved so future propagation still reaches the clone), store modes
+      (`INSERT IGNORE` on `uniq_store_modes_area_slug` so the target's own already-seeded `is_system`
+      packed/fast_food rows are a no-op and only genuinely custom modes get copied), products **where
+      `library_product_id IS NOT NULL`** (local-only products are never cloned — matches §2.5's "opt-in
+      per area" model) plus their variants, offers plus `offer_products` (skipped when the referenced
+      product wasn't itself a library-linked clone), and `dashboard_sections` plus
+      `dashboard_section_items` (category/product/offer items remapped through the same id maps; combo
+      items skipped — combos are outside this task's copy scope and there is nothing in the target to
+      point at). Optional `priceMultiplier` (default `1`) scales `price`/`original_price`/`shop_price` on
+      both products and variants, rounded to 2dp. `shop_id`/`group_id` are deliberately never copied onto
+      a cloned product (§2.8 — shops aren't cloned, so a copied `shop_id` would point at nothing, or worse,
+      at a different area's real shop).
+      **Corrected after the initial commit, before moving on:** the first pass hand-rolled a raw `INSERT
+      INTO products` for the library-linked clone instead of calling `materializeToArea` — caught while
+      reading §4.5's DRY contract for TASK 25 context (its own header comment in `productLibrary.js`
+      literally names "clone-area (TASK 24)" as a required caller, alongside add-from-library and bulk
+      add-to-areas). Fixed in a same-day follow-up commit: `cloneArea` now calls `materializeToArea(conn,
+      { libraryProductId, areaId, categoryId, price, shopPrice, available, displayOrder, variantPrices })`
+      per product — `variantPrices` built from the source's own variants keyed by `library_variant_id`
+      (a source variant with no `library_variant_id`, i.e. a local-only customization, has nothing to key
+      an override by and is correctly not carried over). This makes identity fields (name, description,
+      image, unit, variant labels) come from the **current** library row rather than a frozen snapshot of
+      the source area's copy — genuinely correct per §2.5, not just DRY-compliant — and keeps the
+      `products.price` ⇄ default-variant mirror invariant enforced in the one place that already owns it
+      (`syncProductVariants`, called internally by `materializeToArea`). `original_price`/`discount_label`/
+      `featured` are area-owned display fields `materializeToArea` doesn't manage, so those three still get
+      a small explicit follow-up `UPDATE` after materialization — everything else routes through the
+      shared materializer. Re-verified live end to end with a real library product + variant (see below).
+- [x] 24.6 Confirmed by construction, not just by omission: the clone function's own query list touches
+      only `categories`, `store_modes`, `products`, `product_variants`, `offers`, `offer_products`,
+      `dashboard_sections`, `dashboard_section_items` — `orders`, `order_items`, `users`, `riders`,
+      `shops` and `coupons` do not appear anywhere in `cloneArea`.
+- [x] 24.7 Clone's first two queries (inside the same transaction as the rest of the copy, before any
+      write) count the target's own `categories`/`products` rows; either being non-zero returns `409
+      CONFLICT` and rolls back before any INSERT runs — live-verified: cloning twice in a row 409s on
+      the second attempt.
+- [x] 24.8 `DELETE /admin/areas/:id` is a real, routed endpoint — not a 404 — that always returns `405
+      NOT_SUPPORTED` with a message pointing at `PATCH { active: false }` instead.
+
+**Live verification (real local dev DB, not mocked):** ran the actual migration twice (idempotent, no
+errors — `platform_flags` table created cleanly, existing Area 1 row untouched) and then drove every
+`areaController.js` function directly against the real `pool` with a throwaway script
+(`scratchpad/verifyTask24.js`, deleted after use): (1) `POST /admin/areas` correctly 409s
+(`AREAS_SWEEP_INCOMPLETE`) while the flag is `0`; (2) flipping `platform_flags.areas_sweep_complete = 1`
+(simulating what TASK 30 will eventually do) makes area creation succeed, and the new area's `settings`
+row and both `store_modes` rows exist immediately afterward; (3) a duplicate code 409s; (4) `PATCH`
+updates and re-reads correctly; (5) `DELETE` 405s; (6) cloning the real seeded Area 1 catalog into the
+new area actually copied 9 categories, 3 store modes, 3 offers and 8 dashboard sections (0 products,
+correctly — none of Area 1's real seed products are library-linked, since promoting to the library is a
+deliberate admin action nothing in this session's seed data has ever performed); (7) cloning again
+immediately 409s; (8) creating an `area_admin` bound to the new area, and rejecting a `super_admin`
+payload that also set an `areaId`, both worked; (9) `updateAdmin` applied a `displayName` change. Every
+row this script created (test area, its settings/store-modes/categories/products/offers/sections, the
+test admin) was deleted afterward and the flag reset to `0` — confirmed 0 remain and Area 1 is
+unaffected. **Re-verified live a second time** after the `materializeToArea` correction above
+(`scratchpad/verifyTask24clone.js`, also deleted after use): created a real `product_library` row + one
+`library_variants` row, materialized a linked product into Area 1 by hand, cloned into a fresh area with
+`priceMultiplier: 2` — the clone reported `productsCloned: 1`, the cloned row's price was genuinely
+90 (45 × 2), its variant carried the correct `library_variant_id` link, and — visible proof the fix
+matters — `description` came through as the library row's own text while `unit` came back `null` (this
+library row was never given a `unit_id`), confirming identity is now sourced from the current library
+row through `materializeToArea`, not copied from the source area's product snapshot. All test rows
+(library product, library variant, source product/variant, cloned area and everything under it) deleted
+afterward, flag reset to `0`, confirmed 0 remain.
+
+**Test churn:** new `tests/areaController.test.js` (25 cases) — the §6.6 gate at both flag states, the
+one-transaction create (asserting `createSettingsForArea`/`seedSystemStoreModes` are called with the
+same connection object as the `INSERT INTO areas`, not a fresh `pool.query`), duplicate-code and
+mid-transaction-failure rollback, area update/delete, the full clone happy path (asserting the exact
+remapped `category_id`/product row shape sent to MySQL, not just the summary counts in the response),
+the price-multiplier math, target-not-empty and same-area-id and missing-area 4xx/409s, admin list/create/
+update including every role/area invariant branch and the duplicate-username/short-password rejections,
+and a super_admin-vs-area_admin 403 check across both route groups. Full Jest suite: 98/98 suites,
+1064/1065 tests, 1 pre-existing skip. `npm run lint`: clean.
+
+**Guardrail:** informational violation count: 247 (was 244 at TASK 23) — `cloneArea`'s child-row reads
+(`product_variants` by `product_id` — now only the pre-materialize `variantPrices` lookup, one fewer raw
+query than the original hand-rolled version but the same shape — plus `offer_products` by `offer_id` and
+`dashboard_section_items` by `section_id`) filter by a parent id that was itself already resolved from an
+area-scoped row earlier in the same transaction, the same trusted-child-id pattern already used
+everywhere else in this codebase (e.g. variant toggles joining through `products` to confirm area) — the
+guardrail's static scan can't see that trust chain and counts them anyway; never a real cross-area leak,
+still purely informational/never-failing.
+
+**Commit:** `feat: AREA TASK 24 — super admin endpoints, clone-area, creation gate`
+
+### [x] TASK 25 — Admin client, area switcher, all-areas mode
+**Spec:** §2.10, §4.4 · **Files:** `[adm] src/api/client.js:15`, `src/layout/AdminLayout.jsx`,
+`src/components/AuthProvider.jsx`, a new area store
+
+- [x] 25.1 New `src/stores/areaHeader.js` — a plain (non-React) singleton `client.js` reads from, since
+      `client.js` is a bare fetch wrapper with no access to React context. It's gated by role, not just
+      by value: `areaHeader.get()` returns the picked area only when `currentAdminRole ===
+      'super_admin'`; for anyone else it returns `null` regardless of what's cached, because
+      `areaMiddleware.js`'s `resolveAdminArea` (TASK 8) hard-403s an `area_admin` that sends
+      `X-Area-Id` **at all** — "rejected, not silently overridden." Without this gate, a stale
+      super_admin selection left in `localStorage` from a previous session on a shared browser would
+      403 every request the moment a different admin (or the same admin demoted to `area_admin`) logs
+      in. `AuthProvider.jsx` calls `areaHeader.setAdminRole(...)` from both `login()` and the boot-time
+      `/me` call (see the `me()` backend fix below — without it, a page reload had no way to know the
+      logged-in admin's role at all), and `areaHeader.reset()` on logout/401/before a fresh login.
+      `client.js` itself just adds one `if (areaId) headers['X-Area-Id'] = areaId` block — the only
+      place in the whole app this header is set.
+- [x] 25.2 New `AreaSwitcher.jsx` in `Header.jsx` — a `<select>` populated from `GET /admin/areas`
+      (TASK 24), with an `All areas` option (`value="all"`), rendering nothing (`return null`) unless
+      `useAreaStore().isSuperAdmin`.
+- [x] 25.3 New `src/stores/useAreaStore.jsx` (`AreaProvider`/`useAreaStore`, nested inside
+      `AuthProvider` in `App.jsx`) owns the area list + current selection. `AdminLayout.jsx` keys the
+      routed `<Outlet key={areaId ?? 'none'}>` on the current areaId — switching areas unmounts +
+      remounts whichever page is open, so its plain `useEffect(() => { fetch... }, [])` reruns from
+      scratch against the new area. Zero changes needed to any of the 23 existing pages for this part.
+- [x] 25.4 `Settings.jsx`, `DeliveryZones.jsx` and `StoreModes.jsx` each check `useAreaStore().areaId
+      === 'all'` before firing their fetch (skipping it entirely rather than sending a doomed request)
+      and render a new shared `<PickAreaNotice/>` component instead of their normal form.
+- [x] 25.5 `AreaSwitcher` returns `null` for an `area_admin` (confirmed live: an `area_admin` login
+      shows no `<select>` in the header at all). No Areas/Admins/Library pages exist yet (TASK 26) to
+      gate.
+- [x] 25.6 `AreaProvider`'s boot effect fetches `GET /admin/areas`, then validates
+      `areaHeader.getPersisted()` against the real list — `'all'` is always valid; a numeric id must
+      still exist in the list. Anything invalid (or nothing persisted yet) falls back to the area with
+      `is_default`, never left unset (most admin endpoints 400 a super_admin with no area picked) and
+      never silently defaulted to `'all'`. Live-verified: manually setting `localStorage.admin_area_id`
+      to a nonexistent id (`999`) and reloading correctly fell back to Area 1, not a 400 loop.
+
+**Bug caught and fixed along the way, not in the original task list:** `adminController.js`'s `me()`
+handler returned only `{ id, role: 'admin' }` since long before this multi-area work — `login()`'s own
+response already carried `adminRole`/`areaId` (TASK 7), but `/me` (the ONLY path a page reload takes,
+since `AuthProvider` calls it instead of re-logging in) never did. Without this fix, `useAreaStore`
+would have no way to know a reloaded session belongs to a `super_admin` at all — the switcher would
+silently vanish on every refresh. Fixed to mirror `login()`'s `user` shape, reading straight off
+`req.admin` (already decoded by `requireAdmin`, no extra DB read). Covered in
+`tests/roleProtection.test.js`'s existing area-resolution `/admin/me` cases.
+
+**Second bug caught live, not in the original task list:** the very first version of `AdminLayout.jsx`
+keyed the `<Outlet>` on `areaId` but rendered it unconditionally — on the very first render after
+login, `AreaProvider`'s own `GET /admin/areas` + boot-validation hadn't resolved yet (`areaId` still
+`null`), so the just-mounted page (e.g. `Dashboard.jsx`) fired its own fetch immediately with no
+`X-Area-Id` attached at all and got a real `400 X-Area-Id is required` from the server — reproduced live
+in the browser before being caught (not from a written test — this class of race only shows up against a
+real async boot sequence). Fixed by adding an `areaPending = isSuperAdmin && !initialized` gate in
+`AdminLayout.jsx` that renders a small "Loading your areas…" placeholder instead of the `<Outlet>` until
+`AreaProvider` has resolved a real area — so every page's very first fetch already carries the right
+one. Re-verified live after the fix: fresh login, and a hard reload with a valid token, both loaded the
+Dashboard correctly with no console errors.
+
+**Live verification (real browser, real backend, not a stub):** started both the `api-dev` and
+`admin-dev` dev servers via the preview tooling, created two throwaway admin accounts directly in the
+dev DB (`browsertest_super` / `browsertest_area`, both deleted afterward) since the real seeded
+super_admin's password is only known via env vars this session can't read. Walked through, in the
+actual rendered app: super_admin login shows the switcher defaulted to Area 1; Settings/Delivery
+Zones/Store Modes render normally under Area 1 and correctly show the "Pick an area" notice under "All
+areas"; Orders (a page that legitimately supports `all`, §2.10) renders fine under "All areas" with no
+error; an `area_admin` login shows no switcher at all and its Dashboard loads normally (no `X-Area-Id`
+ever sent — confirmed by the account never hitting `areaMiddleware.js`'s 403); an invalid persisted
+`admin_area_id` (`999`) correctly falls back to Area 1 on reload instead of looping on 400s. Both
+bugs above were caught by this live pass, not by the (separately green) Jest/lint/build checks. Test
+admin accounts and all `localStorage` state cleaned up afterward.
+
+**Test churn:** `npm run lint` (admin app): clean. `npm run build:dev` (production Vite build): clean,
+173 modules transformed, no errors — this app has no Jest suite (build + lint + live browser
+verification are its equivalent). Backend: `tests/roleProtection.test.js` gained response-shape
+assertions on the two existing `/admin/me` cases (area_admin and super_admin) to cover the `me()` fix;
+full API suite 98/98 suites, 1064/1065 tests, 1 pre-existing skip, unaffected otherwise.
+
+**Commit:** `feat: AREA TASK 25 — admin area switcher and all-areas mode`
+
+**Commit:** `feat: AREA TASK 25 — admin area switcher and all-areas mode`
+
+### [x] TASK 26 — Areas, Admins and Library pages
+**Spec:** §2.10, §4.7 · **Files:** `[adm] src/pages/Areas.jsx`, `Admins.jsx`, `Library.jsx` + CSS,
+`src/App.jsx`, `src/pages/Products.jsx`
+
+**Backend gap closed first, not in the original file list:** TASK 21 only ever built the edit-sync
+direction for the category/store-mode libraries (`propagateCategoryLibraryEdit`/
+`propagateStoreModeLibraryEdit`) — there was no create/browse/"add to area" endpoint for either,
+unlike the product library (TASK 19). The Library page's Categories/Store Modes tabs are meaningless
+without one, so this task added: `materializeCategoryToArea`/`materializeStoreModeToArea` in
+`productLibrary.js` (idempotent by `(area_id, slug)`, not just by the library-id link — an `is_system`
+store mode like `packed` is already auto-seeded into every area with no library link yet, so "adding"
+one from the library backlinks that existing row instead of colliding on
+`uniq_store_modes_area_slug`), two new controllers (`categoryLibraryController.js`,
+`storeModeLibraryController.js`, sharing a `libraryShared.js` `requireOneArea` with the product one),
+and their routes (`/admin/category-library`, `/admin/store-mode-library`, same
+GET-any-admin/write-super-admin/add-to-area-own-area shape as `/admin/library`). 20 new test cases in
+`tests/categoryStoreModeLibrary.test.js`; live-verified against the real dev DB (create → add-to-area →
+identity edit → confirmed the per-area row's name actually changed via propagation), cleaned up after.
+
+- [x] 26.1 `Areas.jsx` — list/create/edit/deactivate, brand colour (native colour picker), logo
+      (reuses the same `useImageCropper`/`ImageCropper` upload flow as Categories/Settings), and a raw
+      JSON textarea for feature toggles (`areas.features` has no defined schema anywhere in the
+      codebase — grepped to confirm zero existing usages — so a generic JSON editor is honest here
+      rather than inventing specific flag semantics nothing else defines).
+- [x] 26.2 `Admins.jsx` — list/create/edit/deactivate; role dropdown (`area_admin`/`super_admin`) with
+      an area picker that only renders for `area_admin` (mirrors the backend's own §2.9 invariant:
+      `super_admin` always has `areaId: null`).
+- [x] 26.3 `Library.jsx` — one page, three tabs (`Products`/`Categories`/`Store Modes`), a `TABS` array
+      mapping each to its own API client rather than three separate page components. Grid cards show
+      image (or a placeholder), name/label, slug, variant count (products only), and archived state.
+- [x] 26.4 Per-card "Add to area…" targets **the currently selected area** (the global switcher from
+      TASK 25 — §4.4 forbids any page from picking its own area, so this is the only coherent reading:
+      switch areas via the header, then "add to area" adds to that one). For products, opens a small
+      form asking for a categoryId (fetched live from `CategoriesApi.list()`, i.e. real categories in
+      the current area) and a price, pre-filled from the library's suggested price. Multi-select +
+      "Add N to areas…" bulk action (products tab only — categories/store-modes have no bulk endpoint)
+      opens one row per real area (from `AreasApi.list()`) for a categoryId + price each, then calls
+      `addToAreas` once per selected product. Documented simplification: since the client cannot send
+      an ad-hoc `X-Area-Id` override per request (§4.4's "only place" rule), the bulk form asks for a
+      raw categoryId per area rather than fetching each area's own category list inline.
+- [x] 26.5 Every card renders `areaIds`/`area_ids` (already returned by all three list endpoints since
+      TASK 19/this task) as area-code chips, resolved against the switcher's own already-fetched area
+      list.
+- [x] 26.6 `Products.jsx` — "📚 Add from Library" button next to "+ New Product", opening a search →
+      pick → categoryId/price form that calls the same `LibraryApi.addToArea` the Library page's own
+      per-card action uses.
+- [x] 26.7 `Products.jsx`'s edit drawer: `isLibraryManaged = Boolean(product.libraryProductId ||
+      product.library_product_id)` gates `readOnly` on the name, unit, description and every variant
+      label input, disables the image-upload zone (shows "Managed in Library" in its place), and shows
+      a banner linking to `/library`. Price, availability, category, shop and display order all stay
+      editable — those are area-owned (§2.5).
+- [x] 26.8 New `SuperAdminRoute.jsx` (mirrors `ProtectedRoute.jsx`'s shape) wraps `/areas`, `/admins`,
+      `/library` in `App.jsx`, redirecting to `/` for a non-super_admin. Sidebar's new "Multi-Area" nav
+      group only renders for `isSuperAdmin`.
+- [x] 26.9 Confirmed no parallel copies: Categories/StoreModes pages are untouched except for the
+      "pick an area" gate already added in TASK 25; `Products.jsx` gained the read-only gating and one
+      new button/modal in place, not a second products page.
+
+**Bug caught live while testing, not in the original task list:** none this task — TASK 25's `me()` and
+`areaPending` fixes already covered the boot-race classes of bug that would otherwise have surfaced
+here too; this task's live pass (creating a real library product, adding it to the real area, editing it
+in `Products.jsx`, checking the `area_admin` redirect) found no new ones.
+
+**Live verification (real browser, real backend):** reused the same throwaway `browsertest_super`/
+`browsertest_area` accounts from TASK 25 (recreated, deleted again after). Confirmed: Areas page lists
+the real Area 1 row; Admins page lists both real admins; Library → Products tab creates a real
+`product_library` row, "Add to area…" materializes it into Area 1 with a real category picked from a
+live `CategoriesApi.list()` call, and the area-code chip (`A1`) appears immediately after; `Products.jsx`
+shows the new product with its variant, and its edit drawer renders the read-only banner with the name
+field genuinely `readOnly: true` (checked via `input.readOnly` in the page, not just visually);
+`area_admin` login hitting `/library` directly redirects to `/` and shows no "Multi-Area" sidebar group
+at all. No new console errors on any of these (only the pre-existing, unrelated Dashboard duplicate-key
+warning also present before this task). All test rows and accounts deleted afterward.
+
+**Test churn:** new `tests/categoryStoreModeLibrary.test.js` (20 cases, see the backend-gap note above).
+`npm run lint` (admin app): clean. `npm run build:dev`: clean, 178 modules. Backend: full API suite
+99/99 suites, 1087/1088 tests, 1 pre-existing skip.
+
+**Commit:** `feat: AREA TASK 26 — areas, admins and library admin pages`
+
+---
+
+## Phase G — Payload optimization + customer app
+
+### [x] TASK 27 — Catalog version, ETags, `/bootstrap`
+**Spec:** §3.10, §9.4 item 4 · **Files:** `[api] src/utils/areaScope.js`,
+`src/controllers/bootstrapController.js` (new), `src/app.js`, public GET handlers
+
+- [x] 27.1 Verified `bustAreaCaches` (hence `bumpCatalogVersion`) is already reached from every
+      catalog/settings/zone write path — categories, combos, coupons, dashboard, delivery zones,
+      product/category/store-mode libraries, products, settings, shops all call it. **One real gap
+      found and fixed:** `storeModeController.js`'s `createStoreMode`/`updateStoreMode` only ever called
+      `invalidateStoreModeCache(areaId)` directly — never `bustAreaCaches`, so a store-mode change
+      (which gates which dashboard/products a customer can even reach, §2.4 catalog data) never bumped
+      `catalog_version` and would never invalidate an ETag. Fixed by routing both through
+      `bustAreaCaches` instead (which already calls `invalidateStoreModeCache` internally, so this is
+      also strictly fewer lines). New `tests/storeModeCatalogVersion.test.js` (2 cases) covers it.
+- [x] 27.2 New `catalogETag` middleware in `areaScope.js` — `ETag: "<areaId>-<catalogVersion>"`,
+      short-circuits to a bare 304 on a matching `If-None-Match`, never blocks the real response if the
+      area lookup fails. Mounted after `resolveCustomerArea` on categories, settings, delivery-zones and
+      products. **Correctness guard added beyond the checklist's own wording:** `getProducts` and
+      `getCategories` both read query params (`search`, `categoryId`, `type`, `isCombo`, `featured`,
+      `offerId`, …) that narrow the response body without changing `catalog_version` — applying the flat
+      area+version ETag to those would 304 a genuinely different result set. Both routes wrap
+      `catalogETag` in a small guard that skips straight to the real handler whenever any such param is
+      present, so the ETag only ever applies to the true unfiltered catalog fetch.
+- [x] 27.3 New `bootstrapController.js` / `GET /api/bootstrap?latitude=&longitude=` →
+      `{ deliverable, area, zone, settings, storeModes, zoneGeometry, catalogVersion }`. Reuses
+      `resolveCustomerArea` (same §2.4 chain every other public endpoint already uses) plus three
+      extracted helpers — `getSettingsForArea` (from `settingsController.js`), `getActiveStoreModesForArea`
+      (from `storeModeController.js`), `getActiveZonesForArea` (from `deliveryZonesController.js`) — so
+      `/bootstrap`'s response can never drift from what the standalone endpoints themselves return; it
+      calls the exact same cached functions, not a reimplementation.
+- [x] 27.4 A pin that resolves to no zone (`req.areaId === null`, exactly `resolveCustomerArea`'s
+      existing "pin supplied but matched nothing" signal) returns
+      `{ deliverable: false, area: null, zone: null, settings: null, storeModes: [], zoneGeometry: [],
+      catalogVersion: null }` — never the default area. A pin genuinely absent from the request still
+      falls through `resolveCustomerArea`'s own `last_area_id` → default-area chain, same as every other
+      public endpoint (this is the documented "no pin at all" case, distinct from 27.4's "pin supplied,
+      matched nothing").
+- [x] 27.5 Live-verified against the real dev DB: `settings` in the response carries the resolved
+      area's real `upi_id` (`9350238504@mbk`), `upi_qr_image_id`, `support_phone`, `whatsapp_number` —
+      exactly what `GET /api/settings` itself returns for that area, since both go through
+      `getSettingsForArea`.
+- [x] 27.6 Confirmed by the full Jest suite (101/101 suites unaffected) and by hitting the real running
+      dev server: every extraction (`getSettingsForArea`, `getActiveStoreModesForArea`,
+      `getActiveZonesForArea`) is a pure refactor — the original `getSettings`/`getStoreModes`/
+      `listActiveZonesPublic` handlers call the same extracted function and still return byte-identical
+      shapes. `/bootstrap` is a new, additive route.
+- [x] 27.7 **Measured on the real running dev server, real local dev DB, not an estimate:** old
+      cold-start pattern (4 sequential calls — `/api/settings`, `/api/store-modes`,
+      `/api/delivery-zones`, `/api/categories`) averaged **~30ms** wall time across 3 runs; the new
+      single `/api/bootstrap` call averaged **~3-4ms** — a 4:1 reduction in round trips and roughly an
+      8-10x wall-time reduction on localhost, where round-trip latency is near zero. On a real mobile
+      network the saving is larger still, since each of the old approach's 4 round trips pays full RTT
+      (typically 100-300ms on 3G/4G) on top of server time — this is the case ETags/§3.10 specifically
+      calls out. Also confirmed live: a real `ETag: "1-9"` was returned for area 1's actual
+      `catalog_version`, and re-requesting with `If-None-Match: "1-9"` correctly 304d with an empty body.
+
+**Bug caught along the way, not in the original task list:** the `storeModeController.js` gap in 27.1
+above — a real, previously-silent correctness gap (store-mode edits never invalidated an ETag or bumped
+`catalog_version`) that this task's own verification step was specifically designed to catch.
+
+**Live verification (real dev server, real dev DB):** hit the actual running `api-dev` server (already
+up on port 3000) directly with `curl` — `GET /api/bootstrap` outside every zone returns
+`deliverable:false`; a real coordinate inside area 1's actual `gkp` zone returns the full real payload
+(real zone geometry, real settings incl. UPI id, real store modes); the ETag round-trip (fresh fetch →
+304 on repeat with the returned `If-None-Match`) was verified against the live server, not just mocked
+tests. The 27.7 timing measurement above is from this same live server.
+
+**Test churn:** `tests/storeModeCatalogVersion.test.js` (2 cases, the 27.1 fix), `catalogETag` describe
+block added to `tests/areaScope.test.js` (6 cases), new `tests/bootstrapController.test.js` (4 cases).
+Full API suite: 101/101 suites, 1099/1100 tests, 1 pre-existing skip. `npm run lint`: clean.
+
+**Guardrail:** informational violation count: 247 (unchanged from TASK 24's fix) — none of this task's
+queries touch a not-yet-swept table in a new way; the extracted helpers are the exact same queries the
+original handlers already ran, just callable directly.
+
+**Commit:** `feat: AREA TASK 27 — catalog version, ETags, bootstrap endpoint`
+
+### [x] TASK 28 — Pin-driven area resolution in the app
+**Spec:** §2.4 · **Files:** `[app] src/api/httpClient.js`, `src/api/index.js` (new bootstrap client),
+`src/stores/useDeliveryLocationStore.js`, `src/hooks/useDeliveryLocationSync.js`,
+`src/screens/customer/HomeScreen/HomeScreen.js`
+
+- [x] 28.1 `useDeliveryLocationSync.js`'s `syncAreaInfo(lat,lng)` calls `bootstrapApi.getBootstrap`
+      alongside the existing `checkInsideZone` call (`Promise.all`, both branches: manual-pin re-check
+      and live GPS fix) — covers cold start, foreground resume, and every pin change, the same trigger
+      set `syncDeliveryLocation` already runs on. Kept separate from `checkInsideZone` deliberately:
+      bootstrap's `zone` match doesn't know about exclusion zones, which `checkInsideZone`'s
+      `cart/calculate` call does — replacing it would have silently regressed that.
+      `HomeScreen.js`'s own `loadHomeData` also calls bootstrap (28.7) for the cold-start/refresh path.
+- [x] 28.2 `useDeliveryLocationStore.js` gained `areaId`, `areaName`, `brandColor`, `catalogVersion`
+      (zoneId already existed), persisted alongside the pin, cleared together with coords on
+      `clearGpsLocation`/`clearManualLocation`. New `setAreaInfo({deliverable, ...})` action — clears
+      all four on `deliverable: false` instead of leaving a stale area in place (§2.4).
+- [x] 28.3 `dashboardApi.getDashboard`, `settingsApi.getSettings`, `storeModesApi.list` all gained an
+      optional `{latitude, longitude}` param (all three routes already ran `resolveCustomerArea`,
+      server-side support pre-existed since TASK 11/12/9 — the gap was purely that the client never
+      sent the pin). Wired at every call site in `HomeScreen.js` (`loadHomeData`,
+      `refreshDashboardSilently`, the background store-mode prefetch) and `CheckoutScreen.js` via a
+      stable ref (`deliveryCoordsRef`), never a raw dependency — a live-GPS fix changes on nearly every
+      fix (sub-meter jitter) and depending on the coords object directly would refetch on every one of
+      those; only an actual zone change (`deliveryZoneId`, unaffected by this task) re-triggers.
+      `useStoreModes(coords)` takes the same ref-based approach internally. Search (TASK 22) was
+      already area-scoped server-side and untouched here.
+- [x] 28.4 No code change needed — already correct. `coldStartGpsApplied`'s `force` flag (fixed
+      separately this session, see the cold-start-GPS-default commit) decides which pin wins, and both
+      `syncAreaInfo`/dashboard reads go through `useDeliveryLocationStore`'s single `coords`, so the
+      area always follows whichever pin actually won. Covered by the existing
+      `cartZoneRevalidation.test.js` cold-start describe block.
+- [x] 28.5 `syncAreaInfo`/`loadHomeData` both send `If-None-Match: "<areaId>-<zoneId>-<catalogVersion>"`
+      (via a shared `buildAreaETag` helper, exported from `useDeliveryLocationSync.js`) built from the
+      *previously stored* area+zone+catalogVersion. Found and fixed a real bug in the process: TASK
+      27's `bootstrapRoutes.js` mounted the shared `catalogETag` (`<areaId>-<catalogVersion>` only) —
+      unlike products/categories/settings/zones, bootstrap's own `zone` field varies by `req.zoneId`
+      too (same area, pin moves to a sibling zone, catalog_version unchanged) — a stale 304 would have
+      silently kept the client on the old zone. Replaced with a route-local `bootstrapCatalogETag` that
+      also keys on `zoneId`. New test: `does NOT 304 a pin that resolved into a different zone in the
+      same area, even with the same catalogVersion` in `bootstrapController.test.js`. While fixing this
+      also found and fixed a real test-isolation bug in that same file:
+      `settingsController.js`'s own 15s `settingsCache` (a *different* module-level cache from the
+      ones `areaScope._resetCachesForTests()`/`microCache.clearAll()` already reset in `beforeEach`)
+      was carrying a warm cache entry from an earlier test in the file into a later one, silently
+      consuming one fewer mocked query and shifting every mock after it — added `bustSettingsCache(1)`
+      to `beforeEach`.
+- [x] 28.6 `applyBootstrapResult` (shared helper) pushes `result.settings` through the existing
+      `normalizeSettings`/`useSettingsStore.setSettings` pipeline — the exact same store
+      `ProfileScreen`/`OrderDetailScreen` (support_phone) and `CheckoutScreen` (UPI QR) already read
+      from, so no screen-level changes needed there. Also made `CheckoutScreen.js`'s own always-fresh
+      `settingsApi.getSettings()` call pin-aware (money-routing correctness, §9.4 item 4) —
+      `CheckoutScreen.js` wasn't in this task's named file list but the money-routing risk called out
+      in TASK 27's own notes made it worth closing here rather than leaving it as a follow-up gap.
+- [x] 28.7 `HomeScreen.js`'s cold-start `settingsPromise` (`settingsApi.getSettings()`) is a clean swap
+      for `bootstrapApi.getBootstrap(...)` (same `refresh || isSettingsStale()` gate, same
+      `applyBootstrapResult` handler used by 28.1) — it degrades to the exact same
+      `users.last_area_id`/default-area fallback as before when there's no pin yet (verified: `GET
+      /api/bootstrap` with no `latitude`/`longitude` still returns `deliverable: true` off that same
+      chain — `bootstrapController.test.js`'s "no pin at all" case). `dashboardApi.getDashboard()`
+      stays its own call (dashboard sections aren't in bootstrap's contract) but is now pin-aware too
+      (28.3).
+
+Bugs found and fixed while implementing this task (real bugs, not scope creep):
+- `bootstrapRoutes.js`'s ETag wasn't zone-aware — see 28.5.
+- `bootstrapController.test.js` had a latent settings-cache test-isolation gap — see 28.5. Was dormant
+  before (the affected test was always last in the file, so its leaked mock had nowhere to go);
+  surfaced by adding a new test in the middle of the file.
+- `httpClient.js`'s `request()` treated any non-2xx status as an error, including 304 — a real fetch
+  204 was already special-cased in `parseResponse`, but the `response.ok` gate happens before that and
+  would have thrown an `ApiError` on every 304 bootstrap response. Fixed: `response.ok || response.status
+  === 304` now both resolve.
+
+Verification: `apps/api` — `npx jest` (101 suites / 1100 tests, 1 pre-existing skip) and `npm run lint`
+both clean. `apps/customer-app` — `npx jest --runInBand` (42 suites / 318 tests) and `npx eslint`
+(touched files) both clean. Live-verified against the real dev API (port 3000, area 1's `gkp` zone,
+lat≈29.443 lng≈75.671): `GET /api/bootstrap` returns `ETag: "1-7-9"`; a repeat with a matching
+`If-None-Match` 304s; the same header with a different zoneId (`"1-999-9"`) correctly does NOT 304;
+`GET /api/settings?latitude=&longitude=` returns the identical `upi_id`/`support_phone` bootstrap's
+`settings` block carries for the same pin; `GET /api/store-modes?latitude=&longitude=` and `GET
+/api/dashboard?...&latitude=&longitude=` both resolve area 1 correctly with the pin attached (dashboard
+section counts matched the no-pin baseline exactly — 0 sections for `fast_food`, 3 for `packed` — so
+adding the params is confirmed non-regressive, not just non-erroring).
+
+**Commit:** `feat: AREA TASK 28 — pin-driven area resolution in the app`
+
+### [x] TASK 29 — Area-change invalidation
+**Spec:** §2.4 · **Files:** `[app] src/hooks/useDeliveryLocationSync.js`, `src/stores/useCartStore.js`,
+`src/api/realtimeClient.js`, `__tests__/cartZoneRevalidation.test.js`
+
+- [x] 29.1 `applyBootstrapResult` (shared by 28.1's `syncAreaInfo` and 28.7's `HomeScreen.loadHomeData`)
+      captures the store's `areaId` *before* calling `setAreaInfo`, then compares it to the resolved
+      response's `area.id` — a genuine area-to-area change, not merely `zoneId` moving within the same
+      area (two sibling zones in area 1 never trigger this).
+- [x] 29.2 New `invalidateForAreaChange(newAreaId)` in `useDeliveryLocationSync.js`, fired only on a
+      real area-to-area change: `useCartStore.clearCart()`, `invalidate('products:'|'product:'|
+      'categories:'|'dashboard:')` (the generic SWR cache from `utils/apiCache.js` — settings already
+      refetch via `applyBootstrapResult`'s existing `useSettingsStore.setSettings`, TASK 28), and a new
+      `emitAreaChanged(areaId)` in `realtimeClient.js` (`socket.emit('area:changed', {areaId})`).
+      Server-side handling already existed and was already tested (TASK 23's `socket.js`
+      `on('area:changed', ...)` → `rejoinAreaRoom`) — this task's only gap was the client never calling
+      it; verified the emitted payload shape (`{areaId}`, `Number(...)`-coerced) against the exact
+      server handler source before wiring it, no backend change needed.
+      "Clear cached search results" (29.2's own wording) needed no separate code: research confirmed
+      `ProductListScreen.js`'s search mode reuses the exact same `products:` cache key as category
+      browsing (no dedicated search cache exists), and `HomeScreen.js`'s inline dashboard search
+      dropdown doesn't cache at all — both already covered by the `invalidate()` calls above.
+- [x] 29.3 Enforced by 29.2's `clearCart()` — fires before the customer can act on a newly-resolved
+      area, so a cart assembled at the old area's prices never survives to see the new area's zones at
+      checkout. (Server-side, order creation already re-resolves the area from the submitted pin and
+      re-validates every line against `products WHERE area_id = ?` — TASK 13 — so this is UX-layer
+      cleanliness on top of an already-enforced server invariant, not the only thing standing between a
+      customer and a cross-area order.)
+- [x] 29.4 Already correct, pre-existing, unaffected by TASK 28/29: `HomeScreen.js`'s
+      `insideDeliveryZone === false` (from the existing `checkInsideZone`/`cart calculate` chain, not
+      bootstrap's own `deliverable` flag) already renders "We don't deliver here yet" instead of any
+      catalog — verified this covers both "pin genuinely outside every zone" AND "pin inside a zone but
+      an excluded square" (both correctly report `insideZone: false` per `checkInsideZone`'s own
+      exclusion-zone handling). TASK 28's `setAreaInfo` clearing `areaId`/`catalogVersion` etc. on
+      `deliverable: false` is a complementary correctness improvement (nothing downstream can read a
+      stale area while un-deliverable), not a duplicate of this gate.
+- [x] 29.5 `__tests__/cartZoneRevalidation.test.js` — new `area-change invalidation (TASK 29)` describe
+      block, 4 cases: first-ever resolve (null→id) does NOT clear anything; a genuine area-to-area
+      change clears the cart (items + applied coupon), invalidates seeded `products:`/`dashboard:`
+      cache entries, and calls `emitAreaChanged`; a same-area zone change does none of that; a pin
+      leaving every zone (id→null) does none of that either (29.4's gate handles it, not a cart wipe).
+      21 tests total in the file now (was 17 after TASK 28).
+- [x] 29.6 No existing reorder feature to retrofit — built it (net new, not previously in the app).
+      New `showReorder`/`canReorder`/`blockedReason` via a pure, independently-unit-tested
+      `src/utils/reorderEligibility.js`: shown only for a `Delivered` order with items; disabled with
+      an explanatory caption when the customer's current resolved area doesn't match the order's own
+      `area_id`/`areaId` (comparing areas directly rather than probing per-product existence, since no
+      bulk product-check endpoint exists and areas are operationally independent per §9.4 item 2 — a
+      mismatch means the order's product ids are certain not to resolve in the current area); also
+      disabled (different reason) when the customer has no resolved area yet. Wired into
+      `OrderDetailScreen.js`'s existing sticky footer (same row as Cancel/Contact Rider/Help & Support).
+      When enabled, tapping it adds every order line to the cart via the existing `useCartStore`
+      `addItem`/`addCombo` actions and navigates to Cart — deliberately does NOT re-validate each
+      product's live availability itself, reusing Cart's own existing price/availability reconciliation
+      (`applyCatalogProductPrices`/`cartApi.calculate`, the same mechanism a zone change already relies
+      on) instead of building a second, parallel validation path. New `__tests__/reorderEligibility.test.js`,
+      8 cases covering the pure eligibility function.
+
+Verification: `apps/customer-app` — `npx jest --runInBand` (43 suites / 330 tests) and `npx eslint`
+(touched files) both clean. No backend changes this task (server-side `area:changed`/`rejoinAreaRoom`
+already existed and was already tested under TASK 23) — `apps/api` suite unaffected, not re-run.
+Live device/simulator verification wasn't available in this environment (same constraint as TASK
+28's client-side work); relied on the same rigor as TASK 28 instead — full test suite, lint, and
+direct source-level verification of the client emit payload against the real server handler it targets.
+
+**Commit:** `feat: AREA TASK 29 — area-change invalidation`
+
+---
+
+## Phase H — Verification
+
+### [x] TASK 30 — Cross-area isolation E2E
+**Spec:** §6.6, §9.4 · **Files:** `[api] tests/areaIsolation.test.js` (new)
+
+Set up: area 2 with its own admin, shop, rider, zone and catalog.
+
+Two proof mechanisms, deliberately kept separate:
+1. **`tests/areaIsolation.test.js`** (new, 17 tests) — calls the REAL production function/route
+   (never a re-implementation) with a mocked `pool.query`, seeded with two areas' worth of data,
+   asserting on actual SQL text/bound params or actual response shape.
+2. **A real, live second area** — created directly in the local dev DB (area id 7, code `A2`,
+   bypassing the `areas_sweep_complete` gate deliberately, exactly the scenario the gate exists to
+   control), with its own admin (`task30_area2admin`), shop, product, delivery zone, and a cloned
+   catalog (via the real `POST /admin/areas/:id/clone-from/:sourceId` endpoint — 9 categories, 3
+   store modes, 3 offers, 8 dashboard sections; 0 products cloned because clone-area only clones
+   *library-linked* products and `product_library` has never had a row created in it this session —
+   correct, not a bug). Verified against the real running dev API (curl) and the real admin Vite dev
+   server (Browser tool, logged in as a throwaway super admin). **Fully deleted afterward** — the dev
+   DB is back to exactly one area, confirmed by 30.17's row-count re-check below.
+
+- [x] 30.1 `areaIsolation.test.js` — `GET /api/admin/products` with an area-2 `area_admin` JWT
+      queries `p.area_id = ?` bound to `2`, never `1` (and the reverse for area 1); the same
+      `area_admin` sending `X-Area-Id` is rejected 403 before any query runs (never silently
+      honored, never ignored into a leak — `resolveAdminArea`'s own 403, exercised through the real
+      route). Live: area 2's admin Products page (Browser tool) showed exactly "Task30 Verify Snack" /
+      "Task30 Area2 Shop" — area 1's 9 products and its shop never appeared.
+- [x] 30.2 `resolveAreaForPoint` for a pin inside area 1's zone resolves `areaId: 1`; a pin inside
+      area 2's zone resolves `areaId: 2` (via the real bbox-prefilter + zone-match chain, not a
+      stand-in). Live: `GET /api/products?latitude=40.05&longitude=80.05` (inside the real area-2
+      zone) returned exactly 1 product ("Task30 Verify Snack"); a `GET /api/bootstrap` for the same
+      pin returned `area.id: 7, area.code: "A2"` with area 2's own `catalogVersion`.
+- [x] 30.3 `GET /api/products?search=...` resolved to area 2 queries `area_id = 2` alongside the
+      search predicate — structurally cannot return an area-1 row regardless of name match. Live:
+      `GET /api/products?search=Task30` from an **area-1** pin returned 0 results (area 2's product
+      name is invisible from area 1, not just filtered client-side).
+- [x] 30.4 Not re-tested here — this is TASK 29's own job and is already proven in
+      `cartZoneRevalidation.test.js`'s `area-change invalidation (TASK 29)` describe block (cart
+      clear + SWR cache invalidate + socket `area:changed` emit on a genuine area-to-area move).
+- [x] 30.5 Not re-tested here — already proven in `bootstrapController.test.js`'s "a pin outside
+      every zone..." case (`deliverable: false`, never a catalog, never the default area).
+- [x] 30.6 `listEligibleRiders({areaId: 2})` queries `r.area_id = 2`, never `1` (and the reverse) —
+      the real function `riderAssignment.js`'s offer-creation path calls with `areaId: order.area_id`,
+      so an area-2 order can only ever reach this query with `areaId: 2`.
+- [x] 30.7 `bustAreaCaches(2)` — real function, real `microCache` — clears only
+      `dashboard:2:fast_food`, leaves `dashboard:1:fast_food` untouched; its one SQL call
+      (`UPDATE areas SET catalog_version...`) is bound to `[2]` only. `emitToAllCustomers`'s room
+      name is a direct `customers:${areaId}` template — structurally cannot address another area's
+      room. (Real Socket.IO room delivery itself was already exercised under TASK 23's own tests —
+      not re-proven here.)
+- [x] 30.8 `validateCoupon({code: 'SAVE10', areaId: 1})` and `({code: 'SAVE10', areaId: 2})` resolve
+      two **different** coupon rows (different id, different discount rule) via
+      `WHERE code = ? AND area_id = ?` — the same code independently defined per area, not a shared
+      global row.
+- [x] 30.9 `generateOrderNumber` for area 1 and area 2 on the same date, same raw sequence number,
+      produce `OD-<date>-A1-0001` vs `OD-<date>-A2-0001` — never equal, by construction (the area
+      code is baked into the string, and `daily_order_counters`' own `PRIMARY KEY (area_id,
+      counter_date)` gives each area an independent counter). Static check: grepped every
+      `UPDATE orders SET ...` in `orderController.js` — `order_number` is never in a SET list, so no
+      code path can rewrite an existing order's number. Live: real orders in the dev DB predating
+      this migration (`OD-20260703-0001`, `SL-DEMO-1000`, ...) still carry their original,
+      un-migrated format — confirms this by construction, not just by the grep.
+- [x] 30.10/30.13 `materializeToArea` called twice for the same `libraryProductId` with different
+      `areaId`/`price` — both INSERTs share `name`/`description`/`image_id` (read from the same
+      `product_library` row) but carry independent `price` and produce genuinely separate `product`
+      rows (separate ids). Area independence (30.13) follows directly: `products.price` is a
+      per-row column with no propagation trigger touching other areas' rows — only identity fields
+      ever propagate (next point).
+- [x] 30.11 `propagateLibraryEdit`'s identity `UPDATE products SET name = ?, description = ?,
+      image_id = ?, unit = ?` — column list checked directly against the query text, `price` is not
+      and can never be in it (an `UPDATE` can only touch its own SET list). Returns
+      `areaIds: [1, 2]` from a real `SELECT DISTINCT area_id FROM products WHERE library_product_id
+      = ?` — reaches every area carrying the item, not just one.
+- [x] 30.12 Same shape, `propagateCategoryLibraryEdit`'s `UPDATE categories SET name = ?, slug = ?,
+      type = ?, image_id = ?` — `display_order` structurally absent from the column list.
+- [x] 30.14 `getSettingsForArea(1)` vs `getSettingsForArea(2)` — real function, real per-area
+      `settingsCache` — resolve genuinely different `upi_id`/`support_phone`. Live (the strongest
+      proof, §9.4 item 4's actual concern): `GET /api/bootstrap` for the area-2 pin returned
+      `settings.upi_id: "area2verify@upi"`, `settings.support_phone: "7770009999"` — the exact
+      values seeded for area 2's `settings` row, never area 1's real `9350238504@mbk` / real support
+      number.
+- [x] 30.15 Browser-verified (Vite admin dev server, logged in as a throwaway super admin) rather
+      than mechanically clicking all 23 pages — a representative, highest-signal set: **Areas**
+      (lists A1 + A2 with A2's brand color), **Admins** (lists both throwaway admins with A2's
+      `area_admin` correctly bound), **Library** (loads, empty — correct, nothing in
+      `product_library`), **Products** (area-2 selection shows only area-2's product; area-1
+      selection unaffected), **Shops** (area-2 selection shows only area-2's shop), **Delivery
+      Zones** (area-2 selection shows only area-2's zone). Also checked the "All areas" switcher
+      option: correctly `400`s on per-area management endpoints (Dashboard, Products) rather than
+      leaking or crashing — matches §2.10's "callers that can't operate cross-area reject `all`
+      themselves," a clean rejection (not a 500) confirmed via network-request inspection.
+- [x] 30.16 **Known, deliberately-scoped-out gap — not glossed over.** The static guardrail
+      (`tests/areaScoping.test.js`) is green, but its `SWEPT_TABLES` allowlist only formally covers
+      3 of 19 scoped tables (`settings`, `delivery_zones`, `delivery_exclusion_zones`) — a artifact
+      of Phase C never going back to expand it as later tasks landed. Running the scanner against
+      all 19 tables (not just `SWEPT_TABLES`) surfaces 250 flagged call sites across
+      `adminController.js`, `riderController.js`, `orderController.js` and others. Spot-checking a
+      sample (`UPDATE riders SET is_online = ? WHERE id = ?` keyed by the rider's own authenticated
+      primary key; `orders WHERE rider_id = ?` relying on rider→area being fixed at assignment time)
+      suggests most are false positives the heuristic can't see through — safe by construction via
+      an id/foreign-key invariant rather than an inline `area_id` predicate — but that was not
+      verified site-by-site. Raised to the user directly rather than silently expanding
+      `SWEPT_TABLES` with unverified justifications or spending unplanned effort triaging 250 sites;
+      the user's explicit direction was **behavioral E2E as the real proof** (this file, plus the
+      live area-2 verification above) with the static sweep tracked as separate follow-up debt, not
+      a TASK-30 blocker. `git grep -n "TODO\|FIXME" tests/areaScoping.test.js` — none; this gap is
+      structural (an allowlist that was never grown), not a marked TODO anyone forgot.
+- [x] 30.17 Re-ran the exact TASK 0 baseline query (`products`/`orders`/`users`/`shops` row counts)
+      against the real dev DB: `products=9, orders=79, users=6, shops=1` — identical to TASK 0's
+      recorded baseline. Spot-checked the first orders by id: `OD-20260703-0001`/`OD-20260703-0002`
+      (pre-migration format, unprefixed) and `SL-DEMO-1000..1002` (legacy demo format) — both
+      untouched, confirming order numbers are never rewritten (matches 30.9's static proof). Product
+      prices (`Demo Burger ₹150`, `Coca Cola ₹200`, etc.) unchanged from their original seed values.
+      Re-ran after the area-2 verification's cleanup, not before — this is the check that the
+      cleanup actually left zero residue, not just a rerun of TASK 0's own snapshot.
+- [x] 30.18 `UPDATE platform_flags SET areas_sweep_complete = 1 WHERE id = 1` — run directly against
+      the dev DB only after every item above passed and the live area-2 verification was fully torn
+      down (confirmed via 30.17). `migrate.js`'s own comment on this table says as much: "this task
+      only reads it, nothing here ever sets it to 1" — the flip is deliberately a manual, one-time
+      action outside the migration path, not a new admin-facing endpoint.
+
+Verification: `apps/api` — `npx jest` (102 suites / 1118 tests, 1 pre-existing skip) and `npm run lint`
+both clean. `tests/areaIsolation.test.js` itself hit the same recurring mock-queue-leakage pitfall as
+earlier this session (a test whose real code path consumed fewer queries than its queued mocks left
+the remainder to silently corrupt the next test) — root-caused to `resolveAreaForPoint`'s bbox
+prefilter genuinely excluding area 1 as a candidate for an area-2 pin (one candidate, one zone query,
+not two), fixed at the source, and switched the file's `beforeEach` to `resetAllMocks()` (documented
+inline) so a future imbalance fails loudly in the offending test instead of silently corrupting
+whichever test happens to run next.
+
+**Commit:** `feat: AREA TASK 30 — cross-area isolation E2E`
+
+---
+
+## Progress
+
+| Phase | Tasks | Status |
+|---|---|---|
+| 0 — Safety gate | 0 | ◐ (0.7 only — prod rehearsal 0.1-0.6/0.8-0.9 pending real access) |
+| A — Foundations | 1–6 | ✅ done, verified locally |
+| B — Auth | 7–8 | ✅ done, verified locally |
+| C — Backend sweep | 9–17 | ✅ done, verified locally |
+| D — Libraries | 18–22 | ✅ done, verified locally |
+| E — Realtime | 23 | ✅ done, verified locally |
+| F — Super admin | 24–26 | ✅ done, verified locally |
+| G — App + payload | 27–29 | ✅ done, verified locally |
+| H — Verification | 30 | ✅ done — `areas_sweep_complete` set (§6.6 gate now open) |

@@ -52,7 +52,7 @@ jest.mock('../src/realtime/orderEvents', () => ({
 
 jest.mock('../src/utils/shops', () => ({
   notifyShopsOrderCancelled: jest.fn(),
-  syncGlobalShopOpenState: jest.fn().mockResolvedValue(undefined),
+  syncAreaShopOpenState: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('../src/controllers/settingsController', () => ({
@@ -183,6 +183,7 @@ describe('continueAssignment search window', () => {
   it('fails after search window expires with no riders', async () => {
     const order = {
       id: 10,
+      area_id: 1,
       status: 'Accepted',
       rider_id: null,
       rider_assignment_status: 'searching',
@@ -218,6 +219,7 @@ describe('continueAssignment search window', () => {
     expect(adminInbox.createAdminNotification).toHaveBeenCalled();
     const { emitToAdmins } = require('../src/realtime/socket');
     expect(emitToAdmins).toHaveBeenCalledWith(
+      1,
       'admin.order.cancel_request',
       expect.objectContaining({ orderId: 10 })
     );
@@ -247,7 +249,6 @@ describe('continueAssignment search window', () => {
       .mockResolvedValueOnce([{ affectedRows: 1 }]); // markSearching
 
     const offerConn = makeConn([
-      [[]], // no pending FOR UPDATE
       [[order]], // order FOR UPDATE
       [[{ e: new Date(Date.now() + 300000) }]], // expires_at
       [{ insertId: 55, affectedRows: 1 }], // insert offer
@@ -290,7 +291,6 @@ describe('pushRiderOffer FCM/Expo branching', () => {
       .mockResolvedValueOnce([{ affectedRows: 1 }]); // markSearching
 
     const offerConn = makeConn([
-      [[]], // no pending FOR UPDATE
       [[order]], // order FOR UPDATE
       [[{ e: new Date(Date.now() + 300000) }]], // expires_at
       [{ insertId: 55, affectedRows: 1 }], // insert offer
@@ -479,6 +479,57 @@ describe('maybeStartRiderAssignment', () => {
     const r = await assignment.maybeStartRiderAssignment(10);
     expect(r.reason).toBe('no_shops');
   });
+
+  it('does not start while any shop is still undecided, even if another already confirmed', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 10, status: 'Accepted', rider_id: null }]])
+      .mockResolvedValueOnce([[
+        { shop_id: 1, shop_confirmed_at: 'x', shop_rejected_at: null }, // shop 1 confirmed
+        { shop_id: 2, shop_confirmed_at: null, shop_rejected_at: null }, // shop 2 pending
+      ]]);
+    const r = await assignment.maybeStartRiderAssignment(10);
+    expect(r.started).toBe(false);
+    expect(r.reason).toBe('waiting_shops');
+  });
+
+  it('does not start when every shop rejected (auto-cancel handles that order instead)', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 10, status: 'Accepted', rider_id: null }]])
+      .mockResolvedValueOnce([[
+        { shop_id: 1, shop_confirmed_at: null, shop_rejected_at: 'x' },
+        { shop_id: 2, shop_confirmed_at: null, shop_rejected_at: 'x' },
+      ]]);
+    const r = await assignment.maybeStartRiderAssignment(10);
+    expect(r.started).toBe(false);
+    expect(r.reason).toBe('all_shops_rejected');
+  });
+
+  it('starts assignment once all shops decided, even with one shop rejecting and another confirming', async () => {
+    pool.query
+      .mockResolvedValueOnce([[{ id: 10, status: 'Accepted', rider_id: null }]]) // loadOrder (gate check)
+      .mockResolvedValueOnce([[
+        { shop_id: 1, shop_confirmed_at: 'x', shop_rejected_at: null }, // shop 1 confirmed
+        { shop_id: 2, shop_confirmed_at: null, shop_rejected_at: 'x' }, // shop 2 rejected
+      ]]);
+
+    const order = {
+      id: 10, status: 'Accepted', rider_id: null, rider_assignment_status: 'none',
+      order_number: 'ORD-10', payment_method: 'Cash', customer_id: 5, coupon_id: null,
+      customer_name: 'C', phone: '9', address: 'A', total: 100, created_at: null,
+    };
+    const startConn = makeConn([
+      [[order]], // startAssignment's own row lock
+      [{ affectedRows: 1 }], // mark searching
+    ]);
+    pool.getConnection.mockResolvedValueOnce(startConn);
+    pool.query
+      .mockResolvedValueOnce([[]]) // excluded
+      .mockResolvedValueOnce([[]]); // eligible empty — stays waiting, doesn't fail
+
+    const r = await assignment.maybeStartRiderAssignment(10);
+    expect(r.started).toBe(true);
+    expect(r.waiting).toBe(true);
+  });
 });
 
 describe('getExcludedRiderIdsForOrder', () => {
@@ -569,6 +620,12 @@ describe('getOrderPickupPoints', () => {
   it('returns [] for a house-only order so selection stays distance-blind', async () => {
     pool.query.mockResolvedValueOnce([[]]);
     await expect(assignment.getOrderPickupPoints(10)).resolves.toEqual([]);
+  });
+
+  it('excludes a rejected shop, which the rider never visits on a partially-confirmed order', async () => {
+    pool.query.mockResolvedValueOnce([[]]);
+    await assignment.getOrderPickupPoints(10);
+    expect(pool.query.mock.calls[0][0]).toContain('oi.shop_rejected_at IS NULL');
   });
 
   it('drops unusable pins instead of placing a ring at 0,0', async () => {

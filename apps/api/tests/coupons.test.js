@@ -207,14 +207,17 @@ describe('coupons.isWithinActiveTime', () => {
   });
 
   it('allows times inside a normal (non-overnight) window', () => {
-    // Use a fixed Asia/Kolkata time: noon should be inside 09:00–18:00.
-    // Build a Date that yields ~12:00 in IST regardless of the test host TZ.
-    const now = new Date();
-    // 12:00 IST = 06:30 UTC. We can't easily construct that portably
-    // without date-fns-tz, so we test both ends with generous bounds.
+    // Fixed instant, not real wall-clock time — getNowMinutesInZone converts
+    // via the IANA timezone from the Date's absolute instant, so this is
+    // 12:00 IST regardless of host TZ, deterministic regardless of when the
+    // suite runs (a `new Date()` + '00:00'-'23:59' window here previously
+    // flaked once a day: isWithinActiveTime's end bound is exclusive, so the
+    // 23:59:00-23:59:59 IST minute genuinely falls outside a '23:59' end).
+    // 12:00 IST = 06:30 UTC.
+    const now = new Date('2024-01-01T06:30:00Z');
     expect(coupons.isWithinActiveTime({
-      active_time_start: '00:00',
-      active_time_end: '23:59',
+      active_time_start: '09:00',
+      active_time_end: '18:00',
     }, now)).toBe(true);
   });
 
@@ -2250,7 +2253,7 @@ describe('admin coupon routes — ER_DUP_ENTRY race handling', () => {
   adminApp.use(express.json());
   adminApp.use('/api/admin', adminRoutes);
 
-  const adminToken = jwt.sign({ sub: 1, role: 'admin' }, process.env.JWT_SECRET || 'secret');
+  const adminToken = jwt.sign({ sub: 1, role: 'admin', adminRole: 'area_admin', areaId: 1 }, process.env.JWT_SECRET || 'secret');
 
   const dupEntryError = () => {
     const err = new Error("Duplicate entry 'RACE' for key 'uniq_live_coupon_code'");
@@ -2308,6 +2311,7 @@ describe('admin coupon routes — ER_DUP_ENTRY race handling', () => {
     pool.query
       .mockResolvedValueOnce([[]]) // code uniqueness pre-check
       .mockResolvedValueOnce([{ insertId: 55 }]) // INSERT coupons
+      .mockResolvedValueOnce([[{ id: 2 }, { id: 3 }]]) // §14.4: zone-ownership check — both in this area
       .mockResolvedValueOnce([{}]); // INSERT IGNORE coupon_zones
 
     const res = await request(adminApp)
@@ -2322,8 +2326,8 @@ describe('admin coupon routes — ER_DUP_ENTRY race handling', () => {
     expect(res.body.id).toBe(55);
     const insertSql = pool.query.mock.calls[1][0];
     expect(insertSql).toContain('target_zones');
-    const zonesSql = pool.query.mock.calls[2][0];
-    const zonesParams = pool.query.mock.calls[2][1];
+    const zonesSql = pool.query.mock.calls[3][0];
+    const zonesParams = pool.query.mock.calls[3][1];
     expect(zonesSql).toContain('INSERT IGNORE INTO coupon_zones');
     expect(zonesParams[0]).toEqual([[55, 2], [55, 3]]);
   });
@@ -2333,6 +2337,7 @@ describe('admin coupon routes — ER_DUP_ENTRY race handling', () => {
       .mockResolvedValueOnce([[buildCoupon({ id: 1, target_zones: 'selected' })]]) // existing coupon lookup
       .mockResolvedValueOnce([{ affectedRows: 1 }]) // UPDATE coupons (target_zones unchanged, no other fields)
       .mockResolvedValueOnce([{}]) // DELETE FROM coupon_zones
+      .mockResolvedValueOnce([[{ id: 4 }]]) // §14.4: zone-ownership check — zone 4 is in this area
       .mockResolvedValueOnce([{}]); // INSERT IGNORE coupon_zones
 
     const res = await request(adminApp)
@@ -2343,7 +2348,7 @@ describe('admin coupon routes — ER_DUP_ENTRY race handling', () => {
     expect(res.statusCode).toBe(200);
     const deleteSql = pool.query.mock.calls[2][0];
     expect(deleteSql).toContain('DELETE FROM coupon_zones');
-    const insertParams = pool.query.mock.calls[3][1];
+    const insertParams = pool.query.mock.calls[4][1];
     expect(insertParams[0]).toEqual([[1, 4]]);
   });
 });

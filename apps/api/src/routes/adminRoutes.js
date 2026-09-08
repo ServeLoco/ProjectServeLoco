@@ -1,8 +1,8 @@
 const express = require('express');
 const multer = require('multer');
-const { login, me, revokeSessions, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getShopsReport, getProfitSummary, getProfitOrders, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, updateOrderRemark, extendAutoAccept, adminCalculateOrder, adminCreateOrder, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
+const { login, me, revokeSessions, getAdminCustomers, getAdminCustomerById, setBlockStatus, setTrustStatus, getDashboard, getSalesReport, getTopProductsReport, getCustomersReport, getShopsReport, getProfitSummary, getProfitOrders, getAdminOrders, getAdminOrderById, updateOrderStatus, updateOrderPayment, updateOrderRemark, replaceOrderItem, extendAutoAccept, adminCalculateOrder, adminCreateOrder, getAdminNotifications, createAdminNotification, getAdminNotificationById, deleteAdminNotification, getInbox, getInboxUnreadCount, markInboxRead, markAllInboxRead, dismissInbox } = require('../controllers/adminController');
 const { createOrderSchema, expressValidatorChecks: orderExpressValidatorChecks, validateExpress: validateOrderExpress } = require('./orderRoutes');
-const { getSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
+const { getAdminSettings, updateSettings, getActiveOffer, createOffer, updateOffer, getAdminOffers, deleteOffer, getOfferProducts, addOfferProduct, removeOfferProduct, reorderOfferProducts } = require('../controllers/settingsController');
 const { listZones, createZone, updateZone, deleteZone } = require('../controllers/deliveryZonesController');
 const { createCategory, deleteCategory, getAdminCategories, updateCategory } = require('../controllers/categoryController');
 const { getAdminStoreModes, createStoreMode, updateStoreMode } = require('../controllers/storeModeController');
@@ -18,6 +18,7 @@ const {
   adminConfirmShopOrder,
   adminRejectShopOrder,
   adminReadyShopOrder,
+  adminResendShopOrder,
   listShopGroups,
   createShopGroup,
   updateShopGroup,
@@ -35,6 +36,7 @@ const {
   adminRejectOffer,
   adminMarkPickedUp,
   adminUpdateAssignmentStatus,
+  adminReassignRider,
 } = require('../controllers/adminRiderController');
 const { listMobileAdmins, createMobileAdmin, updateMobileAdmin, mintMobileSession } = require('../controllers/mobileAdminController');
 const { getNotificationTemplates, updateNotificationTemplate, resetNotificationTemplate } = require('../controllers/notificationTemplateController');
@@ -60,7 +62,40 @@ const {
   reorderAdminSections,
   reorderAdminSectionItems
 } = require('../controllers/dashboardController');
-const { requireAdmin, requireCustomer } = require('../middleware/authMiddleware');
+const { requireAdmin, requireCustomer, requireSuperAdmin } = require('../middleware/authMiddleware');
+const {
+  getLibrary,
+  createLibraryProduct,
+  updateLibraryProduct,
+  archiveLibraryProduct,
+  addLibraryProductToArea,
+  addLibraryProductToAreas,
+  promoteProductToLibrary,
+} = require('../controllers/libraryController');
+const {
+  getCategoryLibrary,
+  createCategoryLibraryItem,
+  updateCategoryLibraryItem,
+  archiveCategoryLibraryItem,
+  addCategoryLibraryItemToArea,
+} = require('../controllers/categoryLibraryController');
+const {
+  getStoreModeLibrary,
+  createStoreModeLibraryItem,
+  updateStoreModeLibraryItem,
+  archiveStoreModeLibraryItem,
+  addStoreModeLibraryItemToArea,
+} = require('../controllers/storeModeLibraryController');
+const {
+  getAdminAreas,
+  createArea,
+  updateArea,
+  deleteArea,
+  cloneArea,
+  getAdminAdmins,
+  createAdmin,
+  updateAdmin,
+} = require('../controllers/areaController');
 const { validate, isString, isId, isBoolean, isNumericAmount, isPositiveInteger, isNonNegativeInteger, validatePagination, normalizeField } = require('../validators');
 const asyncHandler = require('../utils/asyncHandler');
 const rateLimit = require('express-rate-limit');
@@ -752,6 +787,7 @@ router.get('/shops/:id/orders', requireAdmin, asyncHandler(listShopOrders));
 router.patch('/shops/:id/orders/:orderId/confirm', requireAdmin, asyncHandler(adminConfirmShopOrder));
 router.patch('/shops/:id/orders/:orderId/reject', requireAdmin, asyncHandler(adminRejectShopOrder));
 router.patch('/shops/:id/orders/:orderId/ready', requireAdmin, asyncHandler(adminReadyShopOrder));
+router.patch('/shops/:id/orders/:orderId/resend', requireAdmin, asyncHandler(adminResendShopOrder));
 // Per-shop product groups (same as shop-owner's own group management).
 router.get('/shops/:id/groups', requireAdmin, asyncHandler(listShopGroups));
 router.post('/shops/:id/groups', requireAdmin, asyncHandler(createShopGroup));
@@ -770,6 +806,7 @@ router.post('/riders/:id/offers/:offerId/accept', requireAdmin, asyncHandler(adm
 router.post('/riders/:id/offers/:offerId/reject', requireAdmin, asyncHandler(adminRejectOffer));
 router.post('/riders/:id/assignments/:orderId/picked-up', requireAdmin, asyncHandler(adminMarkPickedUp));
 router.patch('/riders/:id/assignments/:orderId/status', requireAdmin, asyncHandler(adminUpdateAssignmentStatus));
+router.post('/riders/:id/assignments/:orderId/reassign', requireAdmin, asyncHandler(adminReassignRider));
 
 // Mobile Admins — phones granted Admin Mode in the phone app (ADMIN TASK 2).
 router.get('/mobile-admins', requireAdmin, asyncHandler(listMobileAdmins));
@@ -798,6 +835,46 @@ router.delete('/products/:id', requireAdmin, asyncHandler(deleteProduct));
 router.patch('/products/:id/availability', requireAdmin, validate(productAvailabilitySchema), asyncHandler(updateProductAvailability));
 router.patch('/products/:id/variants/:variantId/availability', requireAdmin, validate(variantAvailabilitySchema), asyncHandler(updateVariantAvailability));
 router.patch('/products/:id/image', requireAdmin, validate(productImageSchema), asyncHandler(updateProductImage));
+// requireSuperAdmin: creating a library item (whether via POST /library or
+// by lifting an existing product into one) is a global-authorship action.
+router.post('/products/:id/promote-to-library', requireAdmin, requireSuperAdmin, asyncHandler(promoteProductToLibrary));
+
+// Product library (TASK 19, §4.5) — identity is global, commerce is per-area.
+// GET is any admin (browse-only); writes to the library itself are
+// requireSuperAdmin; add-to-area is any admin for their OWN area only.
+router.get('/library', requireAdmin, asyncHandler(getLibrary));
+router.post('/library', requireAdmin, requireSuperAdmin, asyncHandler(createLibraryProduct));
+router.patch('/library/:id', requireAdmin, requireSuperAdmin, asyncHandler(updateLibraryProduct));
+router.post('/library/:id/archive', requireAdmin, requireSuperAdmin, asyncHandler(archiveLibraryProduct));
+router.post('/library/:id/add-to-area', requireAdmin, asyncHandler(addLibraryProductToArea));
+router.post('/library/:id/add-to-areas', requireAdmin, requireSuperAdmin, asyncHandler(addLibraryProductToAreas));
+
+// Category + store-mode libraries (TASK 26) — same GET-is-any-admin,
+// write-is-super-admin, add-to-area-is-own-area shape as the product library.
+router.get('/category-library', requireAdmin, asyncHandler(getCategoryLibrary));
+router.post('/category-library', requireAdmin, requireSuperAdmin, asyncHandler(createCategoryLibraryItem));
+router.patch('/category-library/:id', requireAdmin, requireSuperAdmin, asyncHandler(updateCategoryLibraryItem));
+router.post('/category-library/:id/archive', requireAdmin, requireSuperAdmin, asyncHandler(archiveCategoryLibraryItem));
+router.post('/category-library/:id/add-to-area', requireAdmin, asyncHandler(addCategoryLibraryItemToArea));
+
+router.get('/store-mode-library', requireAdmin, asyncHandler(getStoreModeLibrary));
+router.post('/store-mode-library', requireAdmin, requireSuperAdmin, asyncHandler(createStoreModeLibraryItem));
+router.patch('/store-mode-library/:id', requireAdmin, requireSuperAdmin, asyncHandler(updateStoreModeLibraryItem));
+router.post('/store-mode-library/:id/archive', requireAdmin, requireSuperAdmin, asyncHandler(archiveStoreModeLibraryItem));
+router.post('/store-mode-library/:id/add-to-area', requireAdmin, asyncHandler(addStoreModeLibraryItemToArea));
+
+// Super-admin only (TASK 24, §2.9/§2.12): area + admin-account management,
+// and clone-area. requireSuperAdmin everywhere here — an area_admin has no
+// reason to create areas, other admins, or clone a catalog.
+router.get('/areas', requireAdmin, requireSuperAdmin, asyncHandler(getAdminAreas));
+router.post('/areas', requireAdmin, requireSuperAdmin, asyncHandler(createArea));
+router.patch('/areas/:id', requireAdmin, requireSuperAdmin, asyncHandler(updateArea));
+router.delete('/areas/:id', requireAdmin, requireSuperAdmin, asyncHandler(deleteArea));
+router.post('/areas/:id/clone-from/:sourceId', requireAdmin, requireSuperAdmin, asyncHandler(cloneArea));
+
+router.get('/admins', requireAdmin, requireSuperAdmin, asyncHandler(getAdminAdmins));
+router.post('/admins', requireAdmin, requireSuperAdmin, asyncHandler(createAdmin));
+router.patch('/admins/:id', requireAdmin, requireSuperAdmin, asyncHandler(updateAdmin));
 // Bulk import: ?preview=true for dry-run, no query param for commit
 router.post('/products/bulk-import', requireAdmin, bulkUpload, asyncHandler(async (req, res) => {
   if (req.query.preview === 'true') {
@@ -841,6 +918,7 @@ router.get('/orders/:id', requireAdmin, asyncHandler(getAdminOrderById));
 router.patch('/orders/:id/status', requireAdmin, asyncHandler(updateOrderStatus));
 router.patch('/orders/:id/payment', requireAdmin, asyncHandler(updateOrderPayment));
 router.patch('/orders/:id/remark', requireAdmin, asyncHandler(updateOrderRemark));
+router.patch('/orders/:id/items/:itemId/replace', requireAdmin, asyncHandler(replaceOrderItem));
 router.post('/orders/:id/extend-auto-accept', requireAdmin, asyncHandler(extendAutoAccept));
 
 // Admin places an order on behalf of an existing customer (e.g. phone order)
@@ -850,7 +928,11 @@ router.post('/orders/calculate', requireAdmin, asyncHandler(adminCalculateOrder)
 router.post('/orders', requireAdmin, ...orderExpressValidatorChecks, validateOrderExpress, validate(createOrderSchema), asyncHandler(adminCreateOrder));
 
 // Settings
-router.get('/settings', requireAdmin, asyncHandler(getSettings));
+// getAdminSettings, not the public getSettings — the public one deliberately
+// falls back to the default area for a pin that resolves nowhere (§2.4),
+// which on this route silently served Area 1's upi_id/support numbers to a
+// super_admin on "All areas". See its docblock in settingsController.js.
+router.get('/settings', requireAdmin, asyncHandler(getAdminSettings));
 router.patch('/settings', requireAdmin, asyncHandler(updateSettings));
 
 // Delivery zones — radius-pricing bands around the settings shop pin.

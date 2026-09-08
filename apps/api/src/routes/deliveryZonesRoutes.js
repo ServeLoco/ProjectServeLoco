@@ -12,6 +12,9 @@ const getLimiter = rateLimit({
 
 router.use(getLimiter);
 
+// Returns every active zone across every area — a customer can be anywhere
+// on the map, not just inside the area they last ordered from. No area
+// resolution needed for a global listing.
 router.get('/', asyncHandler(listActiveZonesPublic));
 
 module.exports = router;

@@ -1,10 +1,30 @@
 const { pool } = require('../db/mysql');
-const { syncDeliveryAvailabilityFromRiders } = require('../utils/riders');
+const {
+  syncDeliveryAvailabilityFromRiders,
+  RIDER_MAX_ACTIVE_ORDERS,
+  RIDER_MAX_ACTIVE_ORDERS_CAP,
+} = require('../utils/riders');
 const { isActiveMobileAdminPhone } = require('../utils/mobileAdmins');
 const assignment = require('../services/riderAssignment');
 const notificationService = require('../utils/notificationService');
 const realtimeEvents = require('../realtime/orderEvents');
 const { emitToCustomer, emitToAdmins } = require('../realtime/socket');
+const { requestAreaId } = require('../utils/areaScope');
+
+// riders carries a real area_id column (TASK 3). Rejects null (super_admin,
+// no X-Area-Id) and 'all' the same way shopAdminController's shops CRUD does.
+const requireOneArea = (req, res) => {
+  const areaId = requestAreaId(req);
+  if (areaId === null) {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'X-Area-Id is required for this action' });
+    return null;
+  }
+  if (areaId === 'all') {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'This action cannot target "all" areas at once — pick one area' });
+    return null;
+  }
+  return areaId;
+};
 
 const mapRiderRow = (row) => {
   const isOnline = Boolean(row.is_online);
@@ -22,6 +42,8 @@ const mapRiderRow = (row) => {
     active: Boolean(row.active),
     isOnline,
     is_online: isOnline,
+    maxActiveOrders: Number(row.max_active_orders) || RIDER_MAX_ACTIVE_ORDERS,
+    max_active_orders: Number(row.max_active_orders) || RIDER_MAX_ACTIVE_ORDERS,
     createdAt: row.created_at,
     created_at: row.created_at,
   };
@@ -31,6 +53,23 @@ const numOrNull = (v) => {
   if (v === undefined || v === null || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+};
+
+// Shared by createRider/updateRider — one rider's own delivery-capacity
+// ceiling (Riders page), replacing the old area-wide multiplier estimate.
+// Returns { value } on success or { error: {status, code, message} }.
+const validateMaxActiveOrders = (raw) => {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1 || n > RIDER_MAX_ACTIVE_ORDERS_CAP) {
+    return {
+      error: {
+        status: 400,
+        code: 'VALIDATION_ERROR',
+        message: `maxActiveOrders must be a whole number between 1 and ${RIDER_MAX_ACTIVE_ORDERS_CAP}`,
+      },
+    };
+  }
+  return { value: n };
 };
 
 const shapeOrderSummary = (o) => {
@@ -92,11 +131,17 @@ const shapeOffer = (row) => {
   };
 };
 
-const loadRiderOr404 = async (id) => {
+const loadRiderOr404 = async (id, areaId) => {
+  const params = [id];
+  let where = 'r.id = ?';
+  if (areaId !== undefined) {
+    where += ' AND r.area_id = ?';
+    params.push(areaId);
+  }
   const [rows] = await pool.query(
     `SELECT r.*, u.name AS user_name, u.phone AS user_phone
-     FROM riders r JOIN users u ON u.id = r.user_id WHERE r.id = ?`,
-    [id]
+     FROM riders r JOIN users u ON u.id = r.user_id WHERE ${where}`,
+    params
   );
   return rows[0] || null;
 };
@@ -184,20 +229,34 @@ const notifyRiderUser = async (riderRow, event, payload) => {
 
 // GET /api/admin/riders
 const listRiders = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
   const [rows] = await pool.query(
     `SELECT r.*, u.name AS user_name, u.phone AS user_phone
      FROM riders r
      JOIN users u ON u.id = r.user_id
-     ORDER BY r.id ASC`
+     WHERE r.area_id = ?
+     ORDER BY r.id ASC`,
+    [areaId]
   );
   res.status(200).json({ riders: rows.map(mapRiderRow) });
 };
 
 // POST /api/admin/riders — body { phone, displayName? } or { userId, displayName? }
 const createRider = async (req, res) => {
-  const { phone, userId, displayName, display_name } = req.body || {};
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+  const { phone, userId, displayName, display_name, maxActiveOrders, max_active_orders } = req.body || {};
   let uid = userId != null ? Number(userId) : null;
   let userRow = null;
+
+  const rawMaxActiveOrders = maxActiveOrders ?? max_active_orders;
+  let maxActiveOrdersValue = RIDER_MAX_ACTIVE_ORDERS;
+  if (rawMaxActiveOrders !== undefined) {
+    const { value, error } = validateMaxActiveOrders(rawMaxActiveOrders);
+    if (error) return res.status(error.status).json({ code: error.code, message: error.message });
+    maxActiveOrdersValue = value;
+  }
 
   if (uid) {
     const [rows] = await pool.query('SELECT id, name, phone FROM users WHERE id = ?', [uid]);
@@ -255,9 +314,9 @@ const createRider = async (req, res) => {
   let result;
   try {
     [result] = await pool.query(
-      `INSERT INTO riders (user_id, display_name, phone, active, is_online)
-       VALUES (?, ?, ?, 1, 0)`,
-      [uid, name, userRow.phone || null]
+      `INSERT INTO riders (area_id, user_id, display_name, phone, active, is_online, max_active_orders)
+       VALUES (?, ?, ?, ?, 1, 0, ?)`,
+      [areaId, uid, name, userRow.phone || null, maxActiveOrdersValue]
     );
   } catch (e) {
     if (e && e.code === 'ER_DUP_ENTRY') {
@@ -276,10 +335,12 @@ const createRider = async (req, res) => {
 
 // PATCH /api/admin/riders/:id — active, displayName
 const updateRider = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
   const { id } = req.params;
-  const { active, displayName, display_name } = req.body || {};
+  const { active, displayName, display_name, maxActiveOrders, max_active_orders } = req.body || {};
 
-  const [existing] = await pool.query('SELECT * FROM riders WHERE id = ?', [id]);
+  const [existing] = await pool.query('SELECT * FROM riders WHERE id = ? AND area_id = ?', [id, areaId]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Rider not found' });
   }
@@ -302,14 +363,21 @@ const updateRider = async (req, res) => {
       sets.push('is_online = 0');
     }
   }
+  const rawMaxActiveOrders = maxActiveOrders ?? max_active_orders;
+  if (rawMaxActiveOrders !== undefined) {
+    const { value, error } = validateMaxActiveOrders(rawMaxActiveOrders);
+    if (error) return res.status(error.status).json({ code: error.code, message: error.message });
+    sets.push('max_active_orders = ?');
+    values.push(value);
+  }
 
   if (sets.length > 0) {
-    values.push(id);
-    await pool.query(`UPDATE riders SET ${sets.join(', ')} WHERE id = ?`, values);
+    values.push(id, areaId);
+    await pool.query(`UPDATE riders SET ${sets.join(', ')} WHERE id = ? AND area_id = ?`, values);
   }
 
   if (active !== undefined) {
-    await syncDeliveryAvailabilityFromRiders();
+    await syncDeliveryAvailabilityFromRiders(areaId);
   }
 
   const [rows] = await pool.query(
@@ -320,7 +388,7 @@ const updateRider = async (req, res) => {
   const rider = mapRiderRow(rows[0]);
 
   try {
-    emitToAdmins('admin.rider.updated', {
+    emitToAdmins(areaId, 'admin.rider.updated', {
       ...rider,
       reason: active !== undefined ? (active ? 'activated' : 'deactivated') : 'updated',
     });
@@ -343,6 +411,8 @@ const updateRider = async (req, res) => {
 // DELETE /api/admin/riders/:id — remove rider role so the phone is a normal customer again.
 // Hard-deletes the riders row (offers cascade). Blocks if they still have active deliveries.
 const deleteRider = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
   const { id } = req.params;
   const riderId = Number(id);
   if (!Number.isFinite(riderId) || riderId <= 0) {
@@ -353,8 +423,8 @@ const deleteRider = async (req, res) => {
     `SELECT r.*, u.phone AS user_phone
      FROM riders r
      LEFT JOIN users u ON u.id = r.user_id
-     WHERE r.id = ?`,
-    [riderId]
+     WHERE r.id = ? AND r.area_id = ?`,
+    [riderId, areaId]
   );
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Rider not found' });
@@ -387,11 +457,11 @@ const deleteRider = async (req, res) => {
     );
   } catch (_) { /* table may be mid-migrate */ }
 
-  await pool.query('DELETE FROM riders WHERE id = ?', [riderId]);
-  await syncDeliveryAvailabilityFromRiders();
+  await pool.query('DELETE FROM riders WHERE id = ? AND area_id = ?', [riderId, areaId]);
+  await syncDeliveryAvailabilityFromRiders(areaId);
 
   try {
-    emitToAdmins('admin.rider.updated', {
+    emitToAdmins(areaId, 'admin.rider.updated', {
       id: riderId,
       userId,
       user_id: userId,
@@ -435,7 +505,9 @@ const deleteRider = async (req, res) => {
 
 // GET /api/admin/riders/:id/dispatch — online state + pending offer + active jobs
 const getRiderDispatch = async (req, res) => {
-  const riderRow = await loadRiderOr404(req.params.id);
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+  const riderRow = await loadRiderOr404(req.params.id, areaId);
   if (!riderRow) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Rider not found' });
   }
@@ -484,6 +556,8 @@ const getRiderDispatch = async (req, res) => {
 // PATCH /api/admin/riders/:id/online — body { isOnline | is_online }
 // Same effect as rider PATCH /me/online.
 const adminSetRiderOnline = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
   const raw = req.body.isOnline !== undefined ? req.body.isOnline : req.body.is_online;
   if (typeof raw !== 'boolean') {
     return res.status(400).json({
@@ -492,7 +566,7 @@ const adminSetRiderOnline = async (req, res) => {
     });
   }
 
-  const riderRow = await loadRiderOr404(req.params.id);
+  const riderRow = await loadRiderOr404(req.params.id, areaId);
   if (!riderRow) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Rider not found' });
   }
@@ -515,13 +589,13 @@ const adminSetRiderOnline = async (req, res) => {
     );
   }
 
-  await syncDeliveryAvailabilityFromRiders();
+  await syncDeliveryAvailabilityFromRiders(areaId);
 
-  const updated = await loadRiderOr404(riderRow.id);
+  const updated = await loadRiderOr404(riderRow.id, areaId);
   const rider = mapRiderRow(updated);
 
   try {
-    emitToAdmins('admin.rider.updated', {
+    emitToAdmins(areaId, 'admin.rider.updated', {
       ...rider,
       reason: raw ? 'online' : 'offline',
       byAdmin: true,
@@ -554,12 +628,14 @@ const adminSetRiderOnline = async (req, res) => {
 
 // POST /api/admin/riders/:id/offers/:offerId/accept
 const adminAcceptOffer = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
   const riderId = Number(req.params.id);
   const offerId = Number(req.params.offerId);
   if (!Number.isFinite(riderId) || !Number.isFinite(offerId)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid id' });
   }
-  const riderRow = await loadRiderOr404(riderId);
+  const riderRow = await loadRiderOr404(riderId, areaId);
   if (!riderRow) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Rider not found' });
   }
@@ -577,12 +653,14 @@ const adminAcceptOffer = async (req, res) => {
 
 // POST /api/admin/riders/:id/offers/:offerId/reject
 const adminRejectOffer = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
   const riderId = Number(req.params.id);
   const offerId = Number(req.params.offerId);
   if (!Number.isFinite(riderId) || !Number.isFinite(offerId)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid id' });
   }
-  const riderRow = await loadRiderOr404(riderId);
+  const riderRow = await loadRiderOr404(riderId, areaId);
   if (!riderRow) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Rider not found' });
   }
@@ -597,13 +675,15 @@ const adminRejectOffer = async (req, res) => {
 
 // POST /api/admin/riders/:id/assignments/:orderId/picked-up
 const adminMarkPickedUp = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
   const riderId = Number(req.params.id);
   const orderId = Number(req.params.orderId);
   if (!Number.isFinite(riderId) || !Number.isFinite(orderId)) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid id' });
   }
 
-  const [rows] = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+  const [rows] = await pool.query('SELECT * FROM orders WHERE id = ? AND area_id = ?', [orderId, areaId]);
   if (rows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
@@ -637,10 +717,10 @@ const adminMarkPickedUp = async (req, res) => {
     emitToCustomer(updated.customer_id, 'rider.assignment.updated', {
       orderId, status: 'picked_up', riderId,
     });
-    emitToAdmins('admin.order.rider_updated', {
+    emitToAdmins(order.area_id, 'admin.order.rider_updated', {
       orderId, status: 'picked_up', riderId,
     });
-    const riderRow = await loadRiderOr404(riderId);
+    const riderRow = await loadRiderOr404(riderId, areaId);
     await notifyRiderUser(riderRow, 'rider.assignment.updated', {
       orderId, status: 'picked_up', riderId,
     });
@@ -654,6 +734,8 @@ const adminMarkPickedUp = async (req, res) => {
 
 // PATCH /api/admin/riders/:id/assignments/:orderId/status — { status: Out for Delivery | Delivered }
 const adminUpdateAssignmentStatus = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
   const riderId = Number(req.params.id);
   const orderId = Number(req.params.orderId);
   let { status } = req.body || {};
@@ -670,7 +752,7 @@ const adminUpdateAssignmentStatus = async (req, res) => {
     });
   }
 
-  const [rows] = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+  const [rows] = await pool.query('SELECT * FROM orders WHERE id = ? AND area_id = ?', [orderId, areaId]);
   if (rows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
@@ -742,10 +824,10 @@ const adminUpdateAssignmentStatus = async (req, res) => {
 
   const summary = shapeOrderSummary(updated);
   try {
-    emitToAdmins('admin.order.rider_updated', {
+    emitToAdmins(updated.area_id, 'admin.order.rider_updated', {
       orderId, status, riderId,
     });
-    const riderRow = await loadRiderOr404(riderId);
+    const riderRow = await loadRiderOr404(riderId, areaId);
     await notifyRiderUser(riderRow, 'rider.assignment.updated', {
       orderId, status, riderId, order: summary,
     });
@@ -754,6 +836,37 @@ const adminUpdateAssignmentStatus = async (req, res) => {
   res.status(200).json({
     message: 'Order status updated',
     order: summary,
+  });
+};
+
+// POST /api/admin/riders/:id/assignments/:orderId/reassign — emergency swap
+// (or manual first-assign after a failed search). :id is the NEW rider.
+const adminReassignRider = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+  const riderId = Number(req.params.id);
+  const orderId = Number(req.params.orderId);
+  if (!Number.isFinite(riderId) || !Number.isFinite(orderId)) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid id' });
+  }
+
+  const riderRow = await loadRiderOr404(riderId, areaId);
+  if (!riderRow) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Rider not found' });
+  }
+  if (!riderRow.active) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Rider is inactive' });
+  }
+
+  const result = await assignment.reassignRider(orderId, riderRow, areaId);
+  if (!result.ok) {
+    const status = result.status || (result.code === 'NOT_FOUND' ? 404 : 400);
+    return res.status(status).json({ code: result.code || 'ERROR', message: result.message || 'Reassign failed' });
+  }
+
+  res.status(200).json({
+    message: 'Rider reassigned — offer sent',
+    order: shapeOrderSummary(result.order),
   });
 };
 
@@ -768,4 +881,5 @@ module.exports = {
   adminRejectOffer,
   adminMarkPickedUp,
   adminUpdateAssignmentStatus,
+  adminReassignRider,
 };

@@ -5,9 +5,11 @@ const config = require('../src/config/env');
 const {
   closeRealtime,
   emitToAdmins,
+  emitToAllCustomers,
   emitToCustomer,
   getRealtimeStatus,
   initRealtime,
+  joinNewAreaForConnectedSuperAdmins,
 } = require('../src/realtime/socket');
 
 const createToken = (payload) => jwt.sign(payload, config.JWT_SECRET);
@@ -128,13 +130,13 @@ describe('Realtime socket server', () => {
     expect(emitted).toBe(true);
   });
 
-  it('accepts admin tokens and emits to the admin room', async () => {
-    const token = createToken({ sub: '9350238504', role: 'admin' });
+  it('accepts admin tokens and emits to the admin:<areaId> room', async () => {
+    const token = createToken({ sub: '9350238504', role: 'admin', adminRole: 'area_admin', areaId: 1 });
     const client = await connectClient(url, token);
     clients.push(client);
 
     const eventPromise = waitForEvent(client, 'admin.order.updated');
-    const emitted = emitToAdmins('admin.order.updated', { orderId: 1002 });
+    const emitted = emitToAdmins(1, 'admin.order.updated', { orderId: 1002 });
 
     await expect(eventPromise).resolves.toEqual({ orderId: 1002 });
     expect(emitted).toBe(true);
@@ -182,9 +184,9 @@ describe('Realtime socket server', () => {
     await expect(notReceived2).resolves.toBeUndefined();
   });
 
-  it('delivers events to all connected admins', async () => {
-    const token1 = createToken({ sub: 'admin_a', role: 'admin' });
-    const token2 = createToken({ sub: 'admin_b', role: 'admin' });
+  it('delivers events to all connected admins in the same area', async () => {
+    const token1 = createToken({ sub: 'admin_a', role: 'admin', adminRole: 'area_admin', areaId: 1 });
+    const token2 = createToken({ sub: 'admin_b', role: 'admin', adminRole: 'area_admin', areaId: 1 });
     const admin1 = await connectClient(url, token1);
     const admin2 = await connectClient(url, token2);
     clients.push(admin1, admin2);
@@ -192,7 +194,7 @@ describe('Realtime socket server', () => {
     const event1 = waitForEvent(admin1, 'admin.order.created');
     const event2 = waitForEvent(admin2, 'admin.order.created');
 
-    emitToAdmins('admin.order.created', { orderId: 4001 });
+    emitToAdmins(1, 'admin.order.created', { orderId: 4001 });
 
     await expect(event1).resolves.toEqual({ orderId: 4001 });
     await expect(event2).resolves.toEqual({ orderId: 4001 });
@@ -200,7 +202,7 @@ describe('Realtime socket server', () => {
 
   it('does not leak admin events to customer rooms', async () => {
     const customerToken = createToken({ sub: 80, role: 'customer' });
-    const adminToken = createToken({ sub: 'admin_c', role: 'admin' });
+    const adminToken = createToken({ sub: 'admin_c', role: 'admin', adminRole: 'area_admin', areaId: 1 });
     const customerClient = await connectClient(url, customerToken);
     const adminClient = await connectClient(url, adminToken);
     clients.push(customerClient, adminClient);
@@ -208,10 +210,63 @@ describe('Realtime socket server', () => {
     const adminReceived = waitForEvent(adminClient, 'admin.order.updated');
     const customerNotReceived = expectNoEvent(customerClient, 'admin.order.updated');
 
-    emitToAdmins('admin.order.updated', { orderId: 5001 });
+    emitToAdmins(1, 'admin.order.updated', { orderId: 5001 });
 
     await expect(adminReceived).resolves.toEqual({ orderId: 5001 });
     await expect(customerNotReceived).resolves.toBeUndefined();
+  });
+
+  it("TASK 23.7 — an area 2 admin event never reaches an area 1 admin socket", async () => {
+    const area1Token = createToken({ sub: 'admin_area1', role: 'admin', adminRole: 'area_admin', areaId: 1 });
+    const area2Token = createToken({ sub: 'admin_area2', role: 'admin', adminRole: 'area_admin', areaId: 2 });
+    const area1Client = await connectClient(url, area1Token);
+    const area2Client = await connectClient(url, area2Token);
+    clients.push(area1Client, area2Client);
+
+    const area2Received = waitForEvent(area2Client, 'delivery_zones.updated');
+    const area1NotReceived = expectNoEvent(area1Client, 'delivery_zones.updated');
+
+    emitToAdmins(2, 'delivery_zones.updated', { reason: 'zone_updated', zoneId: 900 });
+
+    await expect(area2Received).resolves.toEqual({ reason: 'zone_updated', zoneId: 900 });
+    await expect(area1NotReceived).resolves.toBeUndefined();
+  });
+
+  // A super_admin joining every admin:<areaId> room needs areaScope.listAreas()
+  // (a real DB read), which is guarded to skip under NODE_ENV=test the same
+  // way resolveAreaIdForSocketUser is (this file intentionally runs without a
+  // db/mysql mock, exercising real socket.io connections) — that branch is
+  // unit-tested directly instead, see tests/socketAreaResolution.test.js.
+
+  // Bug fix (multi-area audit finding #15): joinAreaRoom's super_admin
+  // branch only ran at connect time — an already-connected super_admin
+  // never picked up a NEW area's admin:<areaId> room until reconnecting.
+  // socket.data.allAdminAreas is set unconditionally in joinAreaRoom
+  // (independent of the NODE_ENV-guarded listAreas() call above), so this
+  // works under NODE_ENV=test without a db/mysql mock, same as every other
+  // test in this file.
+  it('joinNewAreaForConnectedSuperAdmins reaches an already-connected super_admin immediately, without reconnecting', async () => {
+    const superToken = createToken({ sub: 'super_1', role: 'admin', adminRole: 'super_admin' });
+    const superClient = await connectClient(url, superToken);
+    clients.push(superClient);
+
+    const received = waitForEvent(superClient, 'admin.notification.created');
+    joinNewAreaForConnectedSuperAdmins(7);
+    emitToAdmins(7, 'admin.notification.created', { title: 'New area 7 order' });
+
+    await expect(received).resolves.toEqual({ title: 'New area 7 order' });
+  });
+
+  it('does not join a plain area_admin into a newly created area', async () => {
+    const areaAdminToken = createToken({ sub: 'admin_area1', role: 'admin', adminRole: 'area_admin', areaId: 1 });
+    const areaAdminClient = await connectClient(url, areaAdminToken);
+    clients.push(areaAdminClient);
+
+    const notReceived = expectNoEvent(areaAdminClient, 'admin.notification.created');
+    joinNewAreaForConnectedSuperAdmins(7);
+    emitToAdmins(7, 'admin.notification.created', { title: 'New area 7 order' });
+
+    await expect(notReceived).resolves.toBeUndefined();
   });
 
   it('returns false from emitToCustomer when customerId is falsy', async () => {
@@ -223,8 +278,36 @@ describe('Realtime socket server', () => {
 
   it('returns false from emitToRoom when io is null after closeRealtime', async () => {
     await closeRealtime();
-    const result = emitToAdmins('test.event', { data: 1 });
+    const result = emitToAdmins(1, 'test.event', { data: 1 });
     expect(result).toBe(false);
+  });
+
+  // Regression: a call site selecting a row without area_id must not
+  // silently vanish into io.to('admin:undefined') / io.to('customers:null')
+  // — that's always a bug at the call site, so it must be caught (and
+  // logged) here rather than swallowed identically to a healthy no-op.
+  it('returns false from emitToAdmins/emitToAllCustomers when areaId is missing, without touching io', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(emitToAdmins(null, 'test.event', {})).toBe(false);
+      expect(emitToAdmins(undefined, 'test.event', {})).toBe(false);
+      expect(emitToAllCustomers(null, 'test.event', {})).toBe(false);
+      expect(emitToAllCustomers(undefined, 'test.event', {})).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(4);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
+
+  // Regression: pingTimeout was briefly tuned to 15000, tight enough to
+  // false-positive-disconnect on the exact weak-network conditions (radio
+  // wake + fresh TLS handshake before the first byte) documented elsewhere
+  // in this branch with production evidence. Locks the value in so a future
+  // "tighten it further" edit gets caught here instead of in the field.
+  it('configures pingInterval/pingTimeout at 20000ms, not the tighter 15000ms that risked false-positive disconnects on a slow link', () => {
+    const io = initRealtime(server);
+    expect(io.engine.opts.pingInterval).toBe(20000);
+    expect(io.engine.opts.pingTimeout).toBe(20000);
   });
 
   it('initRealtime is idempotent - returns same io instance', async () => {

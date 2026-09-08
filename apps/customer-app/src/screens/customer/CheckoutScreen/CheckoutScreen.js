@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { CommonActions, useNavigation } from '@react-navigation/native';
+import { CommonActions, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AppIcon,
@@ -31,7 +31,7 @@ import {
 } from '../../../components';
 import { colors, typography, spacing, radius, shadows, smallMs, easing } from '../../../theme';
 import { useCartStore, useSettingsStore, useAuthStore, useDeliveryLocationStore, useDeliveryZonesStore } from '../../../stores';
-import { cartApi, ordersApi, imagesApi, settingsApi } from '../../../api';
+import { cartApi, ordersApi, imagesApi, settingsApi, riderCapacityApi, subscribeRiderCapacityEvents } from '../../../api';
 import { trackEvent } from '../../../api/analyticsClient';
 import { asArray, buildProgressHintText, imageRecordToUrl, normalizeCartCalculation, normalizeOrder, normalizeSettings } from '../../../utils';
 import { isCodBlockedDuringNight } from '../../../utils/nightDelivery';
@@ -57,6 +57,10 @@ const isCodZoneBlockError = (error) =>
   error?.code === 'COD_NOT_AVAILABLE'
   || (String(error?.message || '').toLowerCase().includes('cash on delivery')
     && String(error?.message || '').toLowerCase().includes('your location'));
+
+// How often to re-ask whether this area's riders are still at capacity, while
+// the checkout screen is focused and the app is foregrounded.
+const CAPACITY_POLL_MS = 45000;
 
 const GPS_ERROR_TIMEOUT = 'GPS_TIMEOUT';
 const GPS_ERROR_DENIED = 'GPS_DENIED';
@@ -129,7 +133,7 @@ const getGpsErrorCopy = (code) => {
     case GPS_ERROR_TIMEOUT:
       return {
         title: "Couldn't get your location",
-        detail: 'GPS timed out.',
+        detail: 'GPS didn\'t respond in time. Drag the map to pin your address instead.',
       };
     case GPS_ERROR_SETTINGS:
       return {
@@ -201,6 +205,20 @@ export default function CheckoutScreen() {
   const [address, setAddress] = useState(userProfile?.address || '');
   const [coordinates, setCoordinates] = useState(null);
   const coordinatesRef = useRef(null);
+  // Guards the empty-cart bounce-out below from firing more than once —
+  // checkoutItems.length flips to 0 exactly once per empty-out, but the
+  // effect it lives in re-runs on every calculationPayload change.
+  const emptyCartHandledRef = useRef(false);
+  // Last delivery area a successful calculate() resolved to. Products are
+  // area-scoped (not zone-scoped) — moving the pin between zones inside the
+  // SAME area must never drop cart items. It only should when the pin
+  // actually crosses into a different area's catalog, which this ref lets
+  // the effect below tell apart from an item simply going out of stock.
+  const lastAreaIdRef = useRef(null);
+  // Which of the two cases the most recent removeUnavailableItems() call was
+  // — set right before that call, read once by the empty-cart bounce-out
+  // below so its Alert says the right thing, then reset.
+  const removalReasonRef = useRef('unavailable');
   // Live pin position before Confirm — lets the bill (and its delivery charge)
   // preview whichever zone the pin currently sits over as the user drags.
   const [previewCoordinates, setPreviewCoordinates] = useState(null);
@@ -279,6 +297,16 @@ export default function CheckoutScreen() {
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  // Rider capacity — polled every 45s so the Place Order button opens back up
+  // on its own once riders free up, instead of the user only finding out
+  // after a rejected checkout attempt (RIDERS_AT_CAPACITY).
+  const [atCapacity, setAtCapacity] = useState(false);
+  // Area the last capacity read resolved to — the pushed verdict is matched
+  // against it, since the socket room can still be a different area's.
+  const capacityAreaIdRef = useRef(null);
+  // null until the first poll answers — the wait is a server-side config
+  // value, so guessing one here would show a number that may not be true.
+  const [capacityCooldownMin, setCapacityCooldownMin] = useState(null);
   // Inline section error (payment) — not the bottom red banner. Delivery has
   // no equivalent: Fast is an optional add-on, nothing to validate there.
   const [paymentError, setPaymentError] = useState(null);
@@ -333,6 +361,22 @@ export default function CheckoutScreen() {
     coupon_id: !appliedCouponCode && appliedCouponId ? appliedCouponId : undefined,
     no_auto_apply: couponAutoApplyDisabled,
   }), [checkoutItems, coordinates, previewCoordinates, savedDeliveryLocation, deliveryType, appliedCouponCode, appliedCouponId, couponAutoApplyDisabled, deliveryZonesVersion]);
+
+  // The pin this order will actually be PLACED with — the same chain
+  // handlePlaceOrder commits (previewCoordinates deliberately excluded: it
+  // tracks a finger mid-drag, and re-resolving the area on every frame of a
+  // drag would thrash these fetches).
+  //
+  // Everything area-derived that isn't the bill must key off this, NOT off
+  // savedDeliveryLocation. Confirming a pin in checkout updates `coordinates`
+  // only — it never writes the delivery-location store — so anything still
+  // reading savedDeliveryLocation stays pinned to wherever the user was
+  // BEFORE they opened checkout. For settings that means showing the previous
+  // area's UPI id and QR: the customer would pay area A's bank account for an
+  // order priced, gated and delivered in area B (plans/multi-area.md §9.4
+  // item 4 — money routing must always follow the resolved area).
+  const effectivePinLat = coordinates?.lat ?? savedDeliveryLocation?.lat;
+  const effectivePinLng = coordinates?.lng ?? savedDeliveryLocation?.lng;
 
   // Animations
   const deliverySlide = useRef(new Animated.Value(24)).current;
@@ -508,10 +552,13 @@ export default function CheckoutScreen() {
 
   // Always refresh payment settings on checkout — the home screen caches them
   // for up to 5 minutes, so a newly uploaded UPI QR would otherwise stay hidden.
+  // 28.6 — pin-aware too: the UPI target decides which bank account the
+  // payment reaches (§9.4 item 4), so this must resolve the delivery pin's
+  // own area, not fall back to users.last_area_id/default.
   useEffect(() => {
     let isActive = true;
 
-    settingsApi.getSettings()
+    settingsApi.getSettings({ latitude: effectivePinLat, longitude: effectivePinLng })
       .then((response) => {
         if (!isActive) return;
         setSettings(normalizeSettings(response));
@@ -521,7 +568,84 @@ export default function CheckoutScreen() {
     return () => {
       isActive = false;
     };
-  }, [setSettings]);
+  }, [setSettings, effectivePinLat, effectivePinLng]);
+
+  // Rider capacity — same pin the order will be placed with, re-checked every
+  // 45s so the button re-enables on its own as soon as the area frees up.
+  //
+  // Scoped to focus (useFocusEffect, not useEffect) and gated on AppState:
+  // this screen stays mounted when another is pushed over it, so a plain
+  // interval would keep polling from a screen the user left, and keep firing
+  // while the app is backgrounded. That is exactly the shape of the
+  // useNetworkStatus ping-storm that produced "the app is down" reports with
+  // zero 5xx — one stranded timer per visit, never cleaned up.
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const checkCapacity = () => {
+        // Backgrounded: skip the round trip, but leave the interval running
+        // so a resumed app refreshes on its own within one period.
+        if (AppState.currentState !== 'active') return;
+        riderCapacityApi.getCapacityStatus({ latitude: effectivePinLat, longitude: effectivePinLng })
+          .then((response) => {
+            if (!isActive) return;
+            const data = response?.data || response;
+            // Remember which area answered, so the pushed events below can be
+            // matched against it.
+            capacityAreaIdRef.current = data?.areaId ?? data?.area_id ?? null;
+            setAtCapacity(Boolean(data?.atCapacity ?? data?.at_capacity));
+            const cooldown = Number(data?.cooldownMinutes ?? data?.cooldown_minutes);
+            if (Number.isFinite(cooldown) && cooldown > 0) setCapacityCooldownMin(cooldown);
+          })
+          .catch(() => {
+            // Fail OPEN, not stuck: a network blip must never leave a stale
+            // atCapacity=true blocking the button indefinitely (up to the
+            // next successful poll, unbounded on a bad connection) — this is
+            // only a courtesy banner, createOrder's own gate re-validates
+            // capacity live at submit time regardless of what this shows.
+            if (!isActive) return;
+            setAtCapacity(false);
+          });
+      };
+
+      checkCapacity();
+      const intervalId = setInterval(checkCapacity, CAPACITY_POLL_MS);
+
+      // The server pushes the same verdict the moment it flips (an order
+      // delivered, a rider coming online, the admin re-tuning the
+      // multiplier), so the button re-enables immediately instead of at the
+      // next tick. The poll above stays as the reconciler: an order simply
+      // ageing out of the capacity lookback window fires no event at all.
+      const unsubscribe = subscribeRiderCapacityEvents(({ payload }) => {
+        if (!isActive || !payload) return;
+        // The socket room follows the delivery-location store's area, and
+        // confirming a pin here never writes that store — so while the pin
+        // sits in another area, this room is still the OLD area's and its
+        // verdict does not apply to the order being placed. Drop anything
+        // that doesn't match the area the poll above actually resolved; the
+        // poll (which uses the right pin) remains the source of truth.
+        //
+        // Before the first poll has resolved (capacityAreaIdRef still null),
+        // there's nothing to compare against — an event landing in that
+        // window would previously pass through unfiltered and could apply a
+        // different area's verdict. Drop it too; checkCapacity() runs
+        // synchronously on mount so this window is brief, and the poll's own
+        // result lands moments later regardless.
+        const eventAreaId = payload.areaId ?? payload.area_id ?? null;
+        if (capacityAreaIdRef.current == null || eventAreaId !== capacityAreaIdRef.current) return;
+        setAtCapacity(Boolean(payload.atCapacity ?? payload.at_capacity));
+        const cooldown = Number(payload.cooldownMinutes ?? payload.cooldown_minutes);
+        if (Number.isFinite(cooldown) && cooldown > 0) setCapacityCooldownMin(cooldown);
+      });
+
+      return () => {
+        isActive = false;
+        clearInterval(intervalId);
+        unsubscribe();
+      };
+    }, [effectivePinLat, effectivePinLng]),
+  );
 
   useEffect(() => {
     if (upiQrImageUrl || !upiQrImageId) return undefined;
@@ -602,12 +726,40 @@ export default function CheckoutScreen() {
     let isActive = true;
 
     if (checkoutItems.length === 0) {
+      // Reachable mid-checkout, not just on entry: dragging the pin into a
+      // zone that doesn't stock the item currently in cart returns it in
+      // unavailableItems, removeUnavailableItems empties the cart, and this
+      // effect re-fires with checkoutItems.length === 0. isCalculating was
+      // left true by whichever run is currently in flight — without
+      // resetting it here, "Please wait, checking delivery…" spins forever
+      // with nothing left to calculate (reproduced live: dragged the pin,
+      // watched the cart's only item get silently dropped, checked
+      // isCalculating in the debugger — stuck true with zero pending work).
+      setIsCalculating(false);
       setBill(null);
       setCalcError(null);
       setFreeDeliveryProgress(null);
       setFreeDeliveryUnlocked(false);
+      // The screen above this state was just a dead end: no items, no bill,
+      // no error text, Confirm permanently disabled — the user has no way to
+      // tell what happened or how to leave short of finding the header back
+      // button. Bounce out to Cart (whose own empty state already explains
+      // things) instead of leaving them stranded.
+      if (!emptyCartHandledRef.current) {
+        emptyCartHandledRef.current = true;
+        const areaChanged = removalReasonRef.current === 'area_changed';
+        removalReasonRef.current = 'unavailable';
+        Alert.alert(
+          areaChanged ? 'Delivery area changed' : 'Cart is empty',
+          areaChanged
+            ? 'You moved to a different delivery area, so items from your previous area were removed from your cart.'
+            : 'The item(s) in your cart aren’t available at this delivery location, so they were removed.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }],
+        );
+      }
       return undefined;
     }
+    emptyCartHandledRef.current = false;
 
     // Flips the instant the payload changes (new pin, coupon, etc) — not
     // after the debounce below. On a slow connection there's otherwise a gap
@@ -636,8 +788,23 @@ export default function CheckoutScreen() {
             && Number(normalized.appliedCoupon.freeDeliveryWaiver || 0) > 0,
           ));
           syncItemPricesFromServer(normalized.items);
+          // Products are area-scoped, not zone-scoped — moving the pin between
+          // zones inside the same area must never drop cart items. Only flag
+          // "area changed" once we've actually seen a prior area to compare
+          // against (skips the very first calculate() of the session).
+          const areaChanged = normalized.areaId != null
+            && lastAreaIdRef.current != null
+            && normalized.areaId !== lastAreaIdRef.current;
+          if (normalized.areaId != null) lastAreaIdRef.current = normalized.areaId;
           if (normalized.unavailableItems?.length) {
+            removalReasonRef.current = areaChanged ? 'area_changed' : 'unavailable';
             removeUnavailableItems(normalized.unavailableItems);
+          } else {
+            // A removal that did NOT empty the cart leaves the reason set,
+            // because only the empty-cart branch consumes it. Clear it on the
+            // next clean calculate so a later, unrelated empty-out doesn't
+            // inherit a stale "Delivery area changed".
+            removalReasonRef.current = 'unavailable';
           }
         })
         .catch(error => {
@@ -711,7 +878,7 @@ export default function CheckoutScreen() {
   }, []);
 
   // Recenter / auto-locate status only — does not confirm delivery pin.
-  const handleLocateStatus = useCallback((status) => {
+  const handleLocateStatus = useCallback((status, reason) => {
     if (status === 'loading') {
       setGpsError(null);
       showMapToast('locating');
@@ -724,7 +891,15 @@ export default function CheckoutScreen() {
     }
     if (status === 'error') {
       setGpsStatus('error');
-      setGpsError(GPS_ERROR_DENIED);
+      // Only blame permissions when the picker actually reported a permission
+      // problem. Collapsing every failure to DENIED told iPhone users whose
+      // GPS fix merely timed out to grant a permission they already had —
+      // so retrying showed the same error forever.
+      setGpsError(
+        reason === 'permission' ? GPS_ERROR_DENIED
+          : reason === 'settings' ? GPS_ERROR_SETTINGS
+            : GPS_ERROR_TIMEOUT
+      );
       if (mapToastTimerRef.current) {
         clearTimeout(mapToastTimerRef.current);
         mapToastTimerRef.current = null;
@@ -945,6 +1120,28 @@ export default function CheckoutScreen() {
 
 
   const createOrder = async (currentBill) => {
+    // The footer already swaps Place Order for a disabled "riders busy" state,
+    // but not every route here goes through that button: the "total changed"
+    // confirmation below re-enters createOrder directly, and capacity can flip
+    // while that dialog is open. Guard the funnel itself so the customer gets
+    // the same plain message either way, instead of a raw RIDERS_AT_CAPACITY
+    // from the server after the tap.
+    if (atCapacity) {
+      // handlePlaceOrder has no finally — it only clears these in catch — and
+      // it sets isSubmittingRef before calling here. Returning without the
+      // reset would leave the button stuck "Processing..." forever.
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+      Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
+      setSubmitError(
+        capacityCooldownMin
+          ? `All our riders are busy right now. Please try again in about ${capacityCooldownMin} minutes.`
+          : 'All our riders are busy right now. Please try again shortly.'
+      );
+      snapSheet(false);
+      return;
+    }
+
     isSubmittingRef.current = true;
     setIsSubmitting(true);
     Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true }).start();
@@ -1154,7 +1351,12 @@ export default function CheckoutScreen() {
       const verifiedBill = normalizeCartCalculation(await cartApi.calculate(calculationPayload));
       setBill(verifiedBill);
       syncItemPricesFromServer(verifiedBill.items);
+      const verifiedAreaChanged = verifiedBill.areaId != null
+        && lastAreaIdRef.current != null
+        && verifiedBill.areaId !== lastAreaIdRef.current;
+      if (verifiedBill.areaId != null) lastAreaIdRef.current = verifiedBill.areaId;
       if (verifiedBill.unavailableItems?.length) {
+        removalReasonRef.current = verifiedAreaChanged ? 'area_changed' : 'unavailable';
         removeUnavailableItems(verifiedBill.unavailableItems);
       }
 
@@ -2149,13 +2351,21 @@ export default function CheckoutScreen() {
                   <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
                     <Text style={styles.placeOrderBtnTextDisabled}>Delivery Unavailable</Text>
                   </View>
+                ) : atCapacity ? (
+                  <View style={[styles.customPlaceOrderBtn, styles.customPlaceOrderBtnDisabled]}>
+                    <Text style={styles.placeOrderBtnTextDisabled}>
+                      {capacityCooldownMin
+                        ? `All Riders Busy — Try Again in ${capacityCooldownMin} min`
+                        : 'All Riders Busy — Please Try Again Shortly'}
+                    </Text>
+                  </View>
                 ) : (
                   <SheetActionBtn
                     label={placeOrderLabel}
                     icon={isSubmitting || isCalculating ? null : 'check'}
                     variant="success"
                     busy={isSubmitting || isCalculating}
-                    disabled={isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable}
+                    disabled={isPlaceOrderDisabled || shopStatus === 'closed' || !deliveryAvailable || atCapacity}
                     onPress={handlePlaceOrder}
                   />
                 )}

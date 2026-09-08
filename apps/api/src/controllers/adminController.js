@@ -10,11 +10,15 @@ const {
   notifyShopsOrderCancelled,
   notifyShopsOrderStatusChanged,
   notifyShopsOrderRemarkUpdated,
+  notifyShopsOrderItemReplaced,
 } = require('../utils/shops');
 const realtimeEvents = require('../realtime/orderEvents');
 const { emitToCustomer, emitToAdmins } = require('../realtime/socket');
 const orderAutoAccept = require('../realtime/orderAutoAccept');
 const adminInbox = require('../utils/adminNotifications');
+const { requestAreaId, getDefaultArea, listAreas, resolveAreaIdForPricing } = require('../utils/areaScope');
+const { bustUserState } = require('../utils/userState');
+const { bustRevokedBefore } = require('../utils/adminAuthState');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { calculateCart } = require('./cartController');
@@ -32,6 +36,66 @@ const queryRows = async (sql, params) => {
   return Array.isArray(result) ? result[0] || [] : [];
 };
 
+// Dashboard mixes order/sales KPIs (which could aggregate) with the same
+// shop_open/delivery_available/rain_charge_enabled booleans the Settings
+// page shows — those don't mean anything summed across areas, so unlike the
+// 6 report endpoints below (which DO accept 'all', per §2.10), the Dashboard
+// requires one concrete area, same as Settings/Delivery Zones/Store Modes.
+const requireOneArea = (req, res) => {
+  const areaId = requestAreaId(req);
+  if (areaId === null) {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'X-Area-Id is required for this action' });
+    return null;
+  }
+  if (areaId === 'all') {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'This action cannot target "all" areas at once — pick one area' });
+    return null;
+  }
+  return areaId;
+};
+
+// §2.10: Orders, Reports and Analytics accept X-Area-Id: all and return a
+// cross-area roll-up. No silent default: a super_admin with no header gets
+// a 400 (area_admin never sees a choice — resolveAdminArea already pins
+// them to their own area).
+const resolveAreaOrAll = (req, res) => {
+  const areaId = requestAreaId(req);
+  if (areaId === null) {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'X-Area-Id is required for this action (pass a specific area, or "all")' });
+    return undefined;
+  }
+  return areaId;
+};
+
+// Multi-area audit finding (C1) — the order surface was the one admin read/
+// write path never area-scoped, a cross-tenant IDOR: an area_admin could
+// read and mutate any area's orders by guessable sequential id. Every order
+// handler now re-derives the caller's area (never trusting client-supplied
+// order.area_id) and injects it as a parameterized predicate. Super_admin
+// "all" mode may READ the roll-up (§2.10) but must pick one area to WRITE a
+// specific order. Alias variants map to the table alias each query gives
+// `orders` (o, oi, or bare).
+const orderAreaScope = (areaId, alias = '') => {
+  if (areaId === 'all') return { clause: '', params: [] };
+  const col = alias ? `${alias}.area_id` : 'area_id';
+  return { clause: ` AND ${col} = ?`, params: [areaId] };
+};
+// Writes target one specific order, so "all" is never valid there. This is
+// requireOneArea (null + 'all' both rejected) with an order-specific message.
+const requireOrderArea = (req, res) => requireOneArea(req, res);
+
+// Attaches areaCode/area_code to each row of a cross-area ('all') report
+// result — §2.10's "areaCode/area_code column added to each row". Keep the
+// lookup set-based even though listAreas is TTL-cached: cache misses should
+// not turn a report with N rows into N database queries.
+const withAreaCodes = async (rows, areaIdField = 'area_id') => {
+  const areasById = new Map((await listAreas()).map((area) => [Number(area.id), area]));
+  return rows.map((row) => {
+    const area = areasById.get(Number(row[areaIdField]));
+    return { ...row, areaCode: area?.code || null, area_code: area?.code || null };
+  });
+};
+
 // Account-level lockout, independent of the per-IP login rate limiter — a
 // distributed brute force (many source IPs) would otherwise never trip the
 // per-IP bucket. There is one shared owner account, so a single counter row
@@ -40,12 +104,12 @@ const LOCKOUT_THRESHOLD = 10;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 const skipLockoutCheck = () => process.env.NODE_ENV === 'test';
 
-const login = async (req, res) => {
-  const { id, password } = req.validatedData;
+// Fixed dummy bcrypt hash — never a real credential, just a constant-cost
+// target for the timing-side-channel fix below.
+const DUMMY_BCRYPT_HASH = '$2b$10$CwTycUXWue0Thq9StjUM0uJ8Q0mSvdvSVQBjOBUkeoZfmpQyG.jFa';
 
-  const ownerId = process.env.ADMIN_OWNER_ID || config.ADMIN_OWNER_ID;
-  const ownerPasswordHash = process.env.ADMIN_PASSWORD_HASH || config.ADMIN_PASSWORD_HASH;
-  const ownerPassword = process.env.ADMIN_PASSWORD || config.ADMIN_PASSWORD;
+const login = async (req, res) => {
+  const { id: username, password } = req.validatedData;
 
   if (!skipLockoutCheck()) {
     const [[state]] = await pool.query('SELECT locked_until FROM admin_auth_state WHERE id = 1');
@@ -58,27 +122,107 @@ const login = async (req, res) => {
   }
 
   let isMatch = false;
-  if (id === ownerId) {
-    // Prefer ADMIN_PASSWORD_HASH (bcrypt) when set; otherwise fall back to
-    // a constant-time plaintext comparison against ADMIN_PASSWORD.
-    if (ownerPasswordHash) {
-      isMatch = await bcrypt.compare(password, ownerPasswordHash);
-    } else if (ownerPassword) {
-      const a = Buffer.from(String(password));
-      const b = Buffer.from(String(ownerPassword));
-      isMatch = a.length === b.length && crypto.timingSafeEqual(a, b);
+  let matchedAdmin = null;
+  let usedEnvFallback = false;
+  let ranRealCompare = false;
+
+  // Primary path: a real row in `admins` (super_admin | area_admin). This is
+  // the source of truth (TASK 7.1) — the env credential below is a
+  // fresh-install bootstrap only, never an override. A row that exists but is
+  // active = 0 counts as not-found for matching, and still does not reach the
+  // env path: a deactivated admin existing at all means the table isn't empty.
+  const [adminRows] = await pool.query(
+    'SELECT id, username, password_hash, role, area_id, active FROM admins WHERE username = ?',
+    [username]
+  );
+  const adminRow = adminRows[0] && adminRows[0].active ? adminRows[0] : null;
+  if (adminRow) {
+    isMatch = await bcrypt.compare(password, adminRow.password_hash);
+    ranRealCompare = true;
+    if (isMatch) matchedAdmin = adminRow;
+  } else {
+    // Legacy env-password bootstrap — ONLY while `admins` has zero rows at
+    // all (a fresh install before migrate.js's seed has run, or a wiped
+    // table). Once any admin row exists — the seed, or one created via the
+    // admin API — this path can never fire again for that installation.
+    // See plans/multi-area.md H10 and multi-area-tasks.md TASK 7.3.
+    //
+    // Do not hoist this to a `username === ADMIN_OWNER_ID` check that runs
+    // before the table lookup: that lets ADMIN_PASSWORD override a real
+    // admin row's password, and envFallback tokens deliberately skip
+    // authMiddleware's live re-check (utils/auth.js signAdminToken,
+    // getLiveAdminState), so such a session cannot be force-revoked from the
+    // table either.
+    const [[{ cnt: adminCount }]] = await pool.query('SELECT COUNT(*) AS cnt FROM admins');
+    if (Number(adminCount) === 0) {
+      const ownerId = process.env.ADMIN_OWNER_ID || config.ADMIN_OWNER_ID;
+      const ownerPasswordHash = process.env.ADMIN_PASSWORD_HASH || config.ADMIN_PASSWORD_HASH;
+      const ownerPassword = process.env.ADMIN_PASSWORD || config.ADMIN_PASSWORD;
+
+      if (ownerId && username === ownerId) {
+        // Prefer ADMIN_PASSWORD_HASH (bcrypt) when set; otherwise fall back
+        // to a constant-time plaintext comparison against ADMIN_PASSWORD.
+        if (ownerPasswordHash) {
+          isMatch = await bcrypt.compare(password, ownerPasswordHash);
+          ranRealCompare = true;
+        } else if (ownerPassword) {
+          const a = Buffer.from(String(password));
+          const b = Buffer.from(String(ownerPassword));
+          isMatch = a.length === b.length && crypto.timingSafeEqual(a, b);
+        }
+        if (isMatch) {
+          usedEnvFallback = true;
+          matchedAdmin = { id: ownerId, role: 'super_admin', area_id: null };
+        }
+      }
     }
   }
 
-  if (isMatch) {
-    if (!skipLockoutCheck()) {
-      await pool.query('UPDATE admin_auth_state SET failed_attempts = 0, locked_until = NULL WHERE id = 1');
+  // Minor timing side-channel fix: without this, an unknown/inactive
+  // username short-circuited to the final 401 without ever calling
+  // bcrypt.compare, while a known username with a wrong password took the
+  // full ~100ms bcrypt round trip — response time alone told an attacker
+  // whether a given admin username exists. Burn the same cost either way.
+  if (!ranRealCompare) {
+    await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
+  }
+
+  if (isMatch && matchedAdmin) {
+    if (usedEnvFallback) {
+      console.warn(
+        '[adminController] Logged in via the legacy ADMIN_PASSWORD/ADMIN_PASSWORD_HASH env ' +
+        'fallback — the admins table has no rows yet. Run the migration (it seeds one automatically) ' +
+        'or create a real admin via the admin API.'
+      );
     }
-    const token = signAdminToken(id);
+    if (!skipLockoutCheck()) {
+      // admin_id is recorded for audit/debugging ("who last succeeded/
+      // failed here") — the lockout counter itself stays a single shared
+      // threshold (admin_auth_state remains the one row it always was).
+      // A genuinely per-admin-isolated counter would need admin_auth_state
+      // to become a real one-row-per-admin table, which is a schema change
+      // beyond this task's scope; a shared threshold is not a weaker
+      // posture in the meantime — it still stops distributed brute-forcing
+      // across multiple admin usernames.
+      await pool.query(
+        'UPDATE admin_auth_state SET failed_attempts = 0, locked_until = NULL, admin_id = ? WHERE id = 1',
+        [usedEnvFallback ? null : matchedAdmin.id]
+      );
+    }
+    const adminRole = usedEnvFallback ? 'super_admin' : matchedAdmin.role;
+    const areaId = usedEnvFallback ? null : matchedAdmin.area_id;
+    const token = signAdminToken(matchedAdmin.id, { adminRole, areaId, envFallback: usedEnvFallback });
     return res.status(200).json({
       message: 'Admin login successful',
       token,
-      user: { id, role: 'admin' }
+      user: {
+        id: matchedAdmin.id,
+        role: 'admin',
+        adminRole,
+        admin_role: adminRole,
+        areaId,
+        area_id: areaId,
+      }
     });
   }
 
@@ -97,19 +241,34 @@ const login = async (req, res) => {
     await pool.query(
       `UPDATE admin_auth_state
          SET locked_until = CASE WHEN failed_attempts + 1 >= ? THEN ? ELSE locked_until END,
-             failed_attempts = CASE WHEN failed_attempts + 1 >= ? THEN 0 ELSE failed_attempts + 1 END
+             failed_attempts = CASE WHEN failed_attempts + 1 >= ? THEN 0 ELSE failed_attempts + 1 END,
+             admin_id = ?
        WHERE id = 1`,
-      [LOCKOUT_THRESHOLD, new Date(Date.now() + LOCKOUT_DURATION_MS), LOCKOUT_THRESHOLD]
+      [LOCKOUT_THRESHOLD, new Date(Date.now() + LOCKOUT_DURATION_MS), LOCKOUT_THRESHOLD, adminRow ? adminRow.id : null]
     );
   }
 
   return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Invalid admin credentials' });
 };
 
+// TASK 25 fix: this used to return only { id, role: 'admin' } — fine before
+// multi-area, but it left the admin client with no way to know adminRole/
+// areaId after a page reload (login's own response already includes them;
+// this is the only other place `user` gets populated, since AuthProvider
+// calls /me on boot instead of re-logging in). Mirrors login's user shape
+// from req.admin, which requireAdmin already decoded off the JWT — no extra
+// DB read needed.
 const me = (req, res) => {
-  const adminId = req.admin.id;
+  const { id, adminRole, areaId } = req.admin;
   res.status(200).json({
-    user: { id: adminId, role: 'admin' }
+    user: {
+      id,
+      role: 'admin',
+      adminRole,
+      admin_role: adminRole,
+      areaId,
+      area_id: areaId,
+    }
   });
 };
 
@@ -124,6 +283,10 @@ const revokeSessions = async (req, res) => {
   await pool.query(
     'UPDATE admin_auth_state SET revoked_before = NOW() WHERE id = 1'
   );
+  // Bust the 10s-cached read (utils/adminAuthState.js) — without this, this
+  // very process could keep honoring an already-revoked token for up to the
+  // TTL, defeating the "kill switch" property this endpoint exists for.
+  bustRevokedBefore();
   res.status(200).json({ message: 'All admin sessions revoked. Log in again to continue.' });
 };
 
@@ -133,13 +296,27 @@ const getAdminCustomers = async (req, res) => {
   const limitNum = req.validatedData?.limit || parseInt(req.query.limit, 10) || 20;
   const offset = (pageNum - 1) * limitNum;
 
+  // The customer LIST stays global — customers are global (§2.2) and an
+  // admin must be able to find/block one regardless of which area they last
+  // ordered from. Only the order_count leaked cross-area info (multi-area
+  // audit finding #2): an area_admin could see how many orders a customer
+  // placed platform-wide. requestAreaId is used directly (not
+  // resolveAreaOrAll) so a super_admin who hasn't picked an area keeps
+  // today's unrestricted count — an area_admin always resolves to a
+  // concrete area (resolveAdminArea never leaves them null), so this is the
+  // one branch that actually changes for them.
+  const areaId = requestAreaId(req);
+  const orderCountSubquery = (areaId !== null && areaId !== 'all')
+    ? '(SELECT COUNT(*) FROM orders o WHERE o.customer_id = u.id AND o.area_id = ?) as order_count'
+    : '(SELECT COUNT(*) FROM orders o WHERE o.customer_id = u.id) as order_count';
+
   let query = `
     SELECT u.id, u.name, u.phone, u.whatsapp_number, u.address, u.short_address, u.trusted, u.blocked, u.created_at, u.updated_at,
-    (SELECT COUNT(*) FROM orders o WHERE o.customer_id = u.id) as order_count
+    ${orderCountSubquery}
     FROM users u
     WHERE 1=1
   `;
-  const params = [];
+  const params = (areaId !== null && areaId !== 'all') ? [areaId] : [];
 
   if (search) {
     query += ' AND (u.name LIKE ? OR u.phone LIKE ? OR u.whatsapp_number LIKE ?)';
@@ -195,6 +372,11 @@ const setBlockStatus = async (req, res) => {
   const { id, blocked } = req.validatedData;
 
   const [result] = await pool.query('UPDATE users SET blocked = ? WHERE id = ?', [blocked ? 1 : 0, id]);
+  // requireCustomer reads `blocked` through a 30s cache (utils/userState.js) —
+  // drop this user's entry so a block takes effect on the next request rather
+  // than up to a TTL later. See that module's staleness contract for what this
+  // does and does not guarantee across multiple API instances.
+  bustUserState(id);
   if (result.affectedRows === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Customer not found' });
   }
@@ -214,6 +396,9 @@ const setTrustStatus = async (req, res) => {
 };
 
 const getDashboard = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const [metricsRow = {}] = await queryRows(`
     SELECT
       COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) as today_orders,
@@ -224,29 +409,31 @@ const getDashboard = async (req, res) => {
       COALESCE(SUM(CASE WHEN payment_method = 'UPI' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as upi_total,
       COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() AND payment_status = 'Pending' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as pending_payment_total
     FROM orders
-  `);
+    WHERE area_id = ?
+  `, [areaId]);
 
   const latestOrders = await queryRows(`
-    SELECT * FROM orders 
-    ORDER BY (status = 'Pending') DESC, created_at DESC 
+    SELECT * FROM orders
+    WHERE area_id = ?
+    ORDER BY (status = 'Pending') DESC, created_at DESC
     LIMIT 10
-  `);
+  `, [areaId]);
 
   const unavailableProducts = await queryRows(`
-    SELECT id, name, price FROM products WHERE available = 0
-  `);
+    SELECT id, name, price FROM products WHERE available = 0 AND area_id = ?
+  `, [areaId]);
 
   const topProducts = await queryRows(`
     SELECT oi.product_id, oi.item_type, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
-    WHERE o.status != 'Cancelled'
+    WHERE o.status != 'Cancelled' AND o.area_id = ?
     GROUP BY oi.product_id, oi.item_type, oi.product_name
     ORDER BY total_sales DESC
     LIMIT 5
-  `);
+  `, [areaId]);
 
-  const [settingsRow] = await queryRows('SELECT shop_open, delivery_available, rain_charge_enabled FROM settings LIMIT 1');
+  const [settingsRow] = await queryRows('SELECT shop_open, delivery_available, rain_charge_enabled FROM settings WHERE area_id = ? LIMIT 1', [areaId]);
 
   res.status(200).json({
     data: {
@@ -272,6 +459,8 @@ const getDashboard = async (req, res) => {
 };
 
 const getSalesReport = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
   const { period } = req.query;
   const allowedPeriods = ['today', 'week', 'month', 'all'];
   if (period && !allowedPeriods.includes(period)) {
@@ -286,6 +475,15 @@ const getSalesReport = async (req, res) => {
   } else if (period === 'month') {
     dateFilter = 'YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())';
   }
+  // areaId === 'all' (super_admin, §2.10) intentionally leaves this at '1=1'
+  // — every query below sums/groups across every area, a real cross-area
+  // roll-up rather than one row per area (there's nothing per-row here to
+  // attach an areaCode to).
+  const areaParams = [];
+  if (areaId !== 'all') {
+    dateFilter += ' AND area_id = ?';
+    areaParams.push(areaId);
+  }
 
   const [[salesRow]] = await pool.query(`
     SELECT
@@ -294,11 +492,11 @@ const getSalesReport = async (req, res) => {
       COUNT(*) as total_orders
     FROM orders
     WHERE ${dateFilter}
-  `);
+  `, areaParams);
 
-  const [statusRows] = await pool.query(`SELECT status, COUNT(*) as count FROM orders WHERE ${dateFilter} GROUP BY status`);
-  const [paymentBreakdownRows] = await pool.query(`SELECT payment_method, COUNT(*) as count FROM orders WHERE ${dateFilter} GROUP BY payment_method`);
-  const [paymentStatusRows] = await pool.query(`SELECT payment_status, COUNT(*) as count FROM orders WHERE ${dateFilter} GROUP BY payment_status`);
+  const [statusRows] = await pool.query(`SELECT status, COUNT(*) as count FROM orders WHERE ${dateFilter} GROUP BY status`, areaParams);
+  const [paymentBreakdownRows] = await pool.query(`SELECT payment_method, COUNT(*) as count FROM orders WHERE ${dateFilter} GROUP BY payment_method`, areaParams);
+  const [paymentStatusRows] = await pool.query(`SELECT payment_status, COUNT(*) as count FROM orders WHERE ${dateFilter} GROUP BY payment_status`, areaParams);
 
   const status_breakdown = {};
   statusRows.forEach(row => { status_breakdown[row.status.toLowerCase()] = row.count; });
@@ -307,14 +505,16 @@ const getSalesReport = async (req, res) => {
   const payment_status = {};
   paymentStatusRows.forEach(row => { payment_status[(row.payment_status || 'unknown').toLowerCase()] = row.count; });
 
+  const legacyAreaClause = areaId === 'all' ? '' : ' AND area_id = ?';
+  const legacyAreaParams = areaId === 'all' ? [] : [areaId];
   const [[legacySalesRow]] = await pool.query(`
     SELECT
       COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN total ELSE 0 END), 0) as today_sales,
       COALESCE(SUM(CASE WHEN YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1) THEN total ELSE 0 END), 0) as week_sales,
       COALESCE(SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN total ELSE 0 END), 0) as month_sales
     FROM orders
-    WHERE status != 'Cancelled'
-  `);
+    WHERE status != 'Cancelled'${legacyAreaClause}
+  `, legacyAreaParams);
 
   res.status(200).json({
     total_revenue: salesRow.total_revenue,
@@ -331,13 +531,27 @@ const getSalesReport = async (req, res) => {
 const getAdminCustomerById = async (req, res) => {
   const { id } = req.params;
   const [userRows] = await pool.query('SELECT id, name, phone, whatsapp_number, address, short_address, trusted, blocked, created_at, updated_at FROM users WHERE id = ?', [id]);
-  
+
   if (userRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Customer not found' });
   }
 
   const customer = userRows[0];
-  const [orderRows] = await pool.query('SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC', [id]);
+  // Customer identity is global (§2.2), but their order history is not — an
+  // area_admin reading it cross-area was a full-record leak (address,
+  // lat/lng, phone, coupon, payment status) for every OTHER area's orders
+  // too, worse than the id-guessing IDOR the /orders endpoints were already
+  // fixed for (multi-area audit finding #1). Same requestAreaId rule as
+  // getAdminCustomers: a concrete area (always true for an area_admin)
+  // scopes the history; null/'all' (super_admin, no area picked, or
+  // explicit cross-area mode) keeps today's full history.
+  const areaId = requestAreaId(req);
+  // orderAreaScope treats only 'all' as unscoped — null (super_admin, no
+  // area picked) must be treated the same way here, not passed through as
+  // a literal `area_id = NULL` (which would match zero rows and silently
+  // empty every super_admin's default customer-detail view).
+  const scope = (areaId !== null && areaId !== 'all') ? orderAreaScope(areaId, '') : { clause: '', params: [] };
+  const [orderRows] = await pool.query(`SELECT * FROM orders WHERE customer_id = ?${scope.clause} ORDER BY created_at DESC`, [id, ...scope.params]);
 
   const lifetimeSpend = orderRows
     .filter(o => o.status !== 'Cancelled')
@@ -351,6 +565,8 @@ const getAdminCustomerById = async (req, res) => {
 };
 
 const getTopProductsReport = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
   const { period } = req.query;
   const allowedPeriods = ['today', 'week', 'month', 'all'];
   if (period && !allowedPeriods.includes(period)) {
@@ -366,17 +582,34 @@ const getTopProductsReport = async (req, res) => {
     dateFilter = 'YEAR(o.created_at) = YEAR(CURDATE()) AND MONTH(o.created_at) = MONTH(CURDATE())';
   }
 
+  // 'all' mode groups by area too — products aren't shared across areas yet
+  // (§2.5/2.6, TASK 18's job), so the same product_id in two different areas
+  // is two distinct catalog rows, not one to merge together.
+  const areaParams = [];
+  let groupBy = 'oi.product_id, oi.item_type, oi.product_name';
+  if (areaId === 'all') {
+    groupBy = 'oi.area_id, ' + groupBy;
+  } else {
+    dateFilter += ' AND oi.area_id = ?';
+    areaParams.push(areaId);
+  }
+
   const [rows] = await pool.query(`
-    SELECT oi.product_id, oi.item_type, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
+    SELECT ${areaId === 'all' ? 'oi.area_id,' : ''} oi.product_id, oi.item_type, oi.product_name, SUM(oi.quantity) as total_quantity, SUM(oi.line_total) as total_sales
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
     WHERE o.status != 'Cancelled' AND ${dateFilter}
-    GROUP BY oi.product_id, oi.item_type, oi.product_name
+    GROUP BY ${groupBy}
     ORDER BY total_quantity DESC
-  `);
-  res.status(200).json({ data: rows });
+  `, areaParams);
+  const data = areaId === 'all' ? await withAreaCodes(rows) : rows;
+  res.status(200).json({ data });
 };
 
+// Deliberately NOT area-scoped: customers are a global identity (§2.2), not
+// owned by an area — the same reasoning TASK 13 applied to a customer's own
+// order history. total/trusted/blocked customer counts are platform-wide by
+// nature; scoping them would just be wrong, not more precise.
 const getCustomersReport = async (req, res) => {
   const { period } = req.query;
   const allowedPeriods = ['today', 'week', 'month', 'all'];
@@ -406,6 +639,8 @@ const getCustomersReport = async (req, res) => {
 };
 
 const getShopsReport = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
   const { period } = req.query;
   const allowedPeriods = ['today', 'week', 'month', 'all'];
   if (period && !allowedPeriods.includes(period)) {
@@ -420,12 +655,21 @@ const getShopsReport = async (req, res) => {
   } else if (period === 'month') {
     dateFilter = 'YEAR(o.created_at) = YEAR(CURDATE()) AND MONTH(o.created_at) = MONTH(CURDATE())';
   }
+  if (areaId !== 'all') {
+    dateFilter += ' AND o.area_id = ?';
+  }
+  const areaParams = areaId === 'all' ? [] : [areaId];
 
   // Excluding Cancelled here means a cancelled order simply never counts —
   // covers the "handle cancellations" requirement without any separate
   // subtraction logic to keep in sync.
+  // shop_id itself is a global PK (unlike product_id, no cross-area
+  // collision risk), so 'all' mode needs no extra GROUP BY key here — just
+  // an areaCode annotation per row. Reads oi.area_id (not shops.area_id) so
+  // house items (shop_id NULL, no shops row to join) still get a real area
+  // — every order_item carries its own area_id regardless of shop_id (TASK 13).
   const [shopRows] = await pool.query(`
-    SELECT oi.shop_id, s.name AS shop_name,
+    SELECT oi.shop_id, s.name AS shop_name, oi.area_id AS area_id,
       COUNT(DISTINCT oi.order_id) AS order_count,
       COALESCE(SUM(oi.line_total), 0) AS total_amount,
       COALESCE(SUM(oi.quantity), 0) AS total_items_sold
@@ -433,9 +677,9 @@ const getShopsReport = async (req, res) => {
     JOIN orders o ON oi.order_id = o.id
     LEFT JOIN shops s ON s.id = oi.shop_id
     WHERE o.status != 'Cancelled' AND ${dateFilter}
-    GROUP BY oi.shop_id, s.name
+    GROUP BY oi.shop_id, s.name, oi.area_id
     ORDER BY total_amount DESC
-  `);
+  `, areaParams);
 
   const [productRows] = await pool.query(`
     SELECT oi.shop_id, oi.product_id, oi.item_type, oi.product_name,
@@ -446,7 +690,7 @@ const getShopsReport = async (req, res) => {
     WHERE o.status != 'Cancelled' AND ${dateFilter}
     GROUP BY oi.shop_id, oi.product_id, oi.item_type, oi.product_name
     ORDER BY quantity DESC
-  `);
+  `, areaParams);
 
   const productsByShop = new Map();
   for (const row of productRows) {
@@ -455,11 +699,12 @@ const getShopsReport = async (req, res) => {
     productsByShop.get(key).push(row);
   }
 
-  const data = shopRows.map((row) => {
+  let data = shopRows.map((row) => {
     const key = row.shop_id ?? 'house';
     return {
       shop_id: row.shop_id,
       shop_name: row.shop_id ? (row.shop_name || 'Deleted Shop') : 'House (No Shop)',
+      area_id: row.area_id,
       order_count: row.order_count,
       total_amount: row.total_amount,
       total_items_sold: row.total_items_sold,
@@ -467,18 +712,31 @@ const getShopsReport = async (req, res) => {
     };
   });
 
+  if (areaId === 'all') {
+    data = await withAreaCodes(data);
+  }
+
   res.status(200).json({ data });
 };
 
 // Business-day date filter shared by the profit/payout report endpoints.
-// key='all' skips the filter; every other key was already resolved to a
-// concrete [from, to] business-day range by resolvePeriod().
-const buildPeriodDateFilter = (resolved, column = 'o.created_at') => {
-  if (resolved.key === 'all') return { clause: '1=1', params: [] };
-  return {
-    clause: `DATE(CONVERT_TZ(${column}, '+00:00', ?)) BETWEEN ? AND ?`,
-    params: [resolved.timezone, resolved.from, resolved.to],
-  };
+// resolved.key='all' (report PERIOD, e.g. "all time" — unrelated to the
+// areaId 'all' below) skips the date clause; every other period key was
+// already resolved to a concrete [from, to] business-day range by
+// resolvePeriod(). areaId is a separate axis: a number appends an area
+// filter, 'all' (super_admin cross-area roll-up, §2.10) or undefined skips it.
+const buildPeriodDateFilter = (resolved, areaId, column = 'o.created_at') => {
+  const parts = [];
+  const params = [];
+  if (resolved.key !== 'all') {
+    parts.push(`DATE(CONVERT_TZ(${column}, '+00:00', ?)) BETWEEN ? AND ?`);
+    params.push(resolved.timezone, resolved.from, resolved.to);
+  }
+  if (areaId !== undefined && areaId !== 'all') {
+    parts.push('o.area_id = ?');
+    params.push(areaId);
+  }
+  return { clause: parts.length > 0 ? parts.join(' AND ') : '1=1', params };
 };
 
 // Profit & payout report — the daily business ledger. Basis is Delivered
@@ -490,6 +748,8 @@ const buildPeriodDateFilter = (resolved, column = 'o.created_at') => {
 // as zero cost but flagged via warnings.unpricedItemsCount so margin doesn't
 // silently read optimistic).
 const getProfitSummary = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
   let resolved;
   try {
     resolved = resolvePeriod({ period: req.query.period, from: req.query.from, to: req.query.to });
@@ -500,7 +760,7 @@ const getProfitSummary = async (req, res) => {
     throw err;
   }
 
-  const { clause: dateFilter, params: dateParams } = buildPeriodDateFilter(resolved);
+  const { clause: dateFilter, params: dateParams } = buildPeriodDateFilter(resolved, areaId);
 
   const [[deliveredRow]] = await pool.query(`
     SELECT
@@ -542,7 +802,7 @@ const getProfitSummary = async (req, res) => {
   `, dateParams);
 
   const [shopRows] = await pool.query(`
-    SELECT oi.shop_id, s.name AS shop_name,
+    SELECT oi.shop_id, s.name AS shop_name, oi.area_id AS area_id,
       COUNT(DISTINCT oi.order_id) AS delivered_orders,
       COALESCE(SUM(oi.quantity), 0) AS items_sold,
       COALESCE(SUM(oi.line_total), 0) AS app_sales,
@@ -552,7 +812,7 @@ const getProfitSummary = async (req, res) => {
     JOIN orders o ON oi.order_id = o.id
     LEFT JOIN shops s ON s.id = oi.shop_id
     WHERE o.status = 'Delivered' AND ${dateFilter}
-    GROUP BY oi.shop_id, s.name
+    GROUP BY oi.shop_id, s.name, oi.area_id
     ORDER BY shop_cost DESC
   `, dateParams);
 
@@ -604,7 +864,7 @@ const getProfitSummary = async (req, res) => {
     marginPercent, margin_percent: marginPercent,
   };
 
-  const shops = shopRows.map((row) => {
+  let shops = shopRows.map((row) => {
     const rowAppSales = toMoney(row.app_sales);
     const rowShopCost = toMoney(row.shop_cost);
     const rowMargin = roundMoney(rowAppSales - rowShopCost);
@@ -615,6 +875,7 @@ const getProfitSummary = async (req, res) => {
     return {
       shopId: row.shop_id, shop_id: row.shop_id,
       shopName, shop_name: shopName,
+      area_id: row.area_id,
       deliveredOrders: deliveredOrdersForShop, delivered_orders: deliveredOrdersForShop,
       itemsSold, items_sold: itemsSold,
       appSales: rowAppSales, app_sales: rowAppSales,
@@ -623,6 +884,9 @@ const getProfitSummary = async (req, res) => {
       unpricedItems, unpriced_items: unpricedItems,
     };
   });
+  if (areaId === 'all') {
+    shops = await withAreaCodes(shops);
+  }
 
   const paymentSplit = {
     cash: { orders: Number(deliveredRow.cash_orders) || 0, amount: toMoney(deliveredRow.cash_amount) },
@@ -654,6 +918,8 @@ const PROFIT_ORDERS_SORTS = {
 };
 
 const getProfitOrders = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
   let resolved;
   try {
     resolved = resolvePeriod({ period: req.query.period, from: req.query.from, to: req.query.to });
@@ -667,7 +933,7 @@ const getProfitOrders = async (req, res) => {
   const { shopId, sort } = req.query;
   const sortClause = PROFIT_ORDERS_SORTS[sort] || PROFIT_ORDERS_SORTS.time;
   const pagination = validatePagination(req.query.page, req.query.limit);
-  const { clause: dateFilter, params: dateParams } = buildPeriodDateFilter(resolved);
+  const { clause: dateFilter, params: dateParams } = buildPeriodDateFilter(resolved, areaId);
 
   let shopFilterClause = '';
   const shopFilterParams = [];
@@ -688,7 +954,7 @@ const getProfitOrders = async (req, res) => {
   const offset = (pagination.page - 1) * pagination.limit;
 
   const [rows] = await pool.query(`
-    SELECT o.id, o.order_number, o.created_at, o.delivered_at, o.customer_name, o.payment_method, o.status,
+    SELECT o.id, o.order_number, o.area_id, o.created_at, o.delivered_at, o.customer_name, o.payment_method, o.status,
       o.subtotal AS app_items_total, o.delivery_charge, o.night_charge, o.rain_charge, o.fast_delivery_charge,
       o.discount_amount, o.total AS customer_paid,
       COALESCE((SELECT SUM(oi.shop_line_total) FROM order_items oi
@@ -725,7 +991,7 @@ const getProfitOrders = async (req, res) => {
     }
   }
 
-  const data = rows.map((row) => {
+  let data = rows.map((row) => {
     const appItemsTotal = toMoney(row.app_items_total);
     const shopCost = toMoney(row.shop_cost);
     const productMargin = roundMoney(appItemsTotal - shopCost);
@@ -738,6 +1004,7 @@ const getProfitOrders = async (req, res) => {
     return {
       id: row.id,
       orderNumber: row.order_number, order_number: row.order_number,
+      area_id: row.area_id,
       createdAt: row.created_at, created_at: row.created_at,
       deliveredAt: row.delivered_at, delivered_at: row.delivered_at,
       customerName: row.customer_name, customer_name: row.customer_name,
@@ -754,6 +1021,9 @@ const getProfitOrders = async (req, res) => {
       hasUnpricedItems: !!row.has_unpriced_items, has_unpriced_items: !!row.has_unpriced_items,
     };
   });
+  if (areaId === 'all') {
+    data = await withAreaCodes(data);
+  }
 
   res.status(200).json({
     data,
@@ -770,8 +1040,15 @@ const getProfitOrders = async (req, res) => {
 const ADMIN_ORDERS_TZ = config.RIDER_TODAY_TZ || '+05:30';
 
 const getAdminOrders = async (req, res) => {
-  const { status, paymentStatus, payment_status, paymentMethod, payment_method, search, dateFrom, from, dateTo, to, page, limit } = req.query;
+  const { status, paymentStatus, payment_status, paymentMethod, payment_method, search, dateFrom, from, dateTo, to, today, page, limit } = req.query;
   const pagination = validatePagination(page, limit);
+
+  // Multi-area audit finding (C1): the order surface was the one admin read
+  // path never area-scoped — any area_admin could enumerate every area's
+  // orders (customer name/phone/address). Orders accept "all" (§2.10) for a
+  // super_admin cross-area roll-up; an area_admin is pinned to their own.
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
 
   let query = `SELECT o.id, o.order_number, o.customer_id, o.customer_name, o.phone, o.whatsapp_number, o.address,
     o.latitude, o.longitude, o.map_url, o.subtotal, o.delivery_charge, o.night_charge, o.rain_charge, o.fast_delivery_charge, o.total, o.delivery_type,
@@ -785,6 +1062,10 @@ const getAdminOrders = async (req, res) => {
     WHERE 1=1`;
   const params = [];
 
+  const listScope = orderAreaScope(areaId, 'o');
+  query += listScope.clause;
+  params.push(...listScope.params);
+
   const finalStatus = status;
   const finalPaymentStatus = paymentStatus || payment_status;
   const finalPaymentMethod = paymentMethod || payment_method;
@@ -797,8 +1078,17 @@ const getAdminOrders = async (req, res) => {
   }
 
   if (finalPaymentStatus) {
-    query += ' AND o.payment_status = ?';
-    params.push(finalPaymentStatus);
+    // 'Paid' and 'Success' are the same real-world state (money received) —
+    // system auto-flip on delivery writes 'Success', rider COD-collected
+    // writes 'Paid'. Filtering by 'Paid' must catch both or half the paid
+    // orders silently vanish from the list.
+    if (finalPaymentStatus === 'Paid') {
+      query += ' AND o.payment_status IN (?, ?)';
+      params.push('Paid', 'Success');
+    } else {
+      query += ' AND o.payment_status = ?';
+      params.push(finalPaymentStatus);
+    }
   }
 
   if (finalPaymentMethod) {
@@ -812,20 +1102,41 @@ const getAdminOrders = async (req, res) => {
     params.push(searchWildcard, searchWildcard, searchWildcard);
   }
 
-  // Admin's default "today" filter sends browser-local (IST) dates, but the
-  // DB session time_zone isn't guaranteed to be IST — a plain DATE(created_at)
-  // comparison can put late-night/early-morning orders on the wrong day.
-  if (finalDateFrom) {
-    query += " AND DATE(CONVERT_TZ(o.created_at, '+00:00', ?)) >= ?";
-    params.push(ADMIN_ORDERS_TZ, finalDateFrom);
-  }
+  // o.created_at is written by CURRENT_TIMESTAMP and rendered on read in the
+  // MySQL server's session time_zone. Verified against the server: session
+  // time_zone = SYSTEM = IST, so created_at IS an IST wall-clock value and
+  // DATE(o.created_at) is already the IST calendar day — it must NOT be
+  // passed through CONVERT_TZ('+00:00', ...) as if it were UTC, which
+  // double-shifts it forward and pushes evening orders (18:30-23:59 IST)
+  // onto the next calendar day, hiding them from "today". Only
+  // UTC_TIMESTAMP() (a real UTC clock read) needs converting, to find
+  // today's IST boundary.
+  //
+  // NOTE: buildPeriodDateFilter above, riders.js and shopOwnerController.js
+  // still wrap created_at in CONVERT_TZ('+00:00', ...) and are therefore
+  // off by a day for evening orders on this configuration. Left alone
+  // deliberately — they must not be "fixed" without first confirming
+  // production's @@global.time_zone, since the correct form flips if that
+  // server runs UTC. See db/mysql.js's timezone option, which must agree.
+  if (today) {
+    query += ' AND DATE(o.created_at) = DATE(CONVERT_TZ(UTC_TIMESTAMP(), ?, ?))';
+    params.push('+00:00', ADMIN_ORDERS_TZ);
+  } else {
+    if (finalDateFrom) {
+      query += ' AND DATE(o.created_at) >= ?';
+      params.push(finalDateFrom);
+    }
 
-  if (finalDateTo) {
-    query += " AND DATE(CONVERT_TZ(o.created_at, '+00:00', ?)) <= ?";
-    params.push(ADMIN_ORDERS_TZ, finalDateTo);
+    if (finalDateTo) {
+      query += ' AND DATE(o.created_at) <= ?';
+      params.push(finalDateTo);
+    }
   }
 
   // Count total for pagination
+  // COUNT over the same WHERE (params, incl. the leading area one, are
+  // shared identically — the area push above happens before any filter,
+  // so the placeholder order is positionally correct for both queries).
   const countQueryStr = query.replace(
     /SELECT[\s\S]+?FROM orders o/,
     'SELECT COUNT(*) as total FROM orders o'
@@ -840,6 +1151,9 @@ const getAdminOrders = async (req, res) => {
 
   const [rows] = await pool.query(query, params);
 
+  // Items are keyed off the already-area-filtered `rows` (oi.order_id IN
+  // those ids), so the IN-list itself carries the scoping — no separate
+  // area predicate needed here.
   const itemsByOrderId = {};
   if (rows.length > 0) {
     const [itemRows] = await pool.query(
@@ -881,6 +1195,14 @@ const getAdminOrders = async (req, res) => {
 const getAdminOrderById = async (req, res) => {
   const { id } = req.params;
 
+  // Multi-area audit finding (C1): scope by the caller's area so one
+  // area_admin can't read another area's order by guessable sequential id.
+  // 'all' (super_admin) drops the predicate, matching getAdminOrders/§2.10.
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
+  const orderScope = orderAreaScope(areaId, 'o');
+  const itemsScope = orderAreaScope(areaId, 'oi');
+
   const [orderRows] = await pool.query(
     `SELECT o.id, o.order_number, o.customer_id, o.customer_name, o.phone, o.whatsapp_number, o.address,
       o.latitude, o.longitude, o.map_url, o.subtotal, o.delivery_charge, o.night_charge, o.rain_charge, o.fast_delivery_charge, o.total, o.delivery_type,
@@ -891,8 +1213,8 @@ const getAdminOrderById = async (req, res) => {
      FROM orders o
      LEFT JOIN riders r ON r.id = o.rider_id
      LEFT JOIN users u ON u.id = o.customer_id
-     WHERE o.id = ?`,
-    [id]
+     WHERE o.id = ?${orderScope.clause}`,
+    [id, ...orderScope.params]
   );
   if (orderRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
@@ -912,7 +1234,14 @@ const getAdminOrderById = async (req, res) => {
   order.customer_trusted = Boolean(order.customer_trusted);
   order.customerTrusted = order.customer_trusted;
   order.couponApplied = Boolean(order.coupon_id || order.coupon_code);
-  const [itemsRows] = await pool.query('SELECT oi.*, s.name AS shop_name FROM order_items oi LEFT JOIN shops s ON s.id = oi.shop_id WHERE oi.order_id = ?', [id]);
+  const [itemsRows] = await pool.query(
+    `SELECT oi.*, s.name AS shop_name, p.available AS product_available
+     FROM order_items oi
+     LEFT JOIN shops s ON s.id = oi.shop_id
+     LEFT JOIN products p ON p.id = oi.product_id AND p.deleted = 0
+     WHERE oi.order_id = ?${itemsScope.clause}`,
+    [id, ...itemsScope.params]
+  );
 
   order.items = itemsRows;
 
@@ -1034,7 +1363,11 @@ const updateOrderStatus = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Valid status required. One of: ${validStatuses.join(', ')}` });
   }
 
-  const [orderRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+  const areaId = requireOrderArea(req, res);
+  if (areaId === null) return;
+  const scope = orderAreaScope(areaId, '');
+
+  const [orderRows] = await pool.query(`SELECT * FROM orders WHERE id = ?${scope.clause}`, [id, ...scope.params]);
   if (orderRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
@@ -1045,9 +1378,13 @@ const updateOrderStatus = async (req, res) => {
     orderAutoAccept.cancel(parseInt(id, 10));
   }
 
-  // Terminal states cannot be changed
-  if (currentStatus === 'Delivered' || currentStatus === 'Cancelled') {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot change status of a delivered or cancelled order' });
+  // Delivered stays permanently terminal — goods already handed over, nothing
+  // to undo. Cancelled can only be reopened, explicitly, back to Pending.
+  if (currentStatus === 'Delivered') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Cannot change status of a delivered order' });
+  }
+  if (currentStatus === 'Cancelled' && status !== 'Pending') {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'A cancelled order can only be reopened to Pending' });
   }
 
   // Enforce forward-only progression
@@ -1071,8 +1408,8 @@ const updateOrderStatus = async (req, res) => {
     try {
       await connection.beginTransaction();
       const [cancelResult] = await connection.query(
-        'UPDATE orders SET status = ?, payment_status = ?, cancel_reason = ? WHERE id = ? AND status = ?',
-        [status, cancelledPaymentStatus, resolvedCancelReason, id, currentStatus]
+        `UPDATE orders SET status = ?, payment_status = ?, cancel_reason = ? WHERE id = ? AND status = ?${scope.clause}`,
+        [status, cancelledPaymentStatus, resolvedCancelReason, id, currentStatus, ...scope.params]
       );
       if (cancelResult.affectedRows === 0) {
         // The order status changed underneath us — do not overwrite it.
@@ -1094,9 +1431,60 @@ const updateOrderStatus = async (req, res) => {
       connection.release();
     }
     if (conflict) {
-      const [freshRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+      const [freshRows] = await pool.query(`SELECT * FROM orders WHERE id = ?${scope.clause}`, [id, ...scope.params]);
       return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'Order was updated by someone else.', order: freshRows[0] });
     }
+  } else if (currentStatus === 'Cancelled') {
+    // Reopen: undo the cancel side effects symmetrically (payment status,
+    // cancel reason, coupon quota, any stale rider assignment) rather than
+    // just flipping the status column, so the order re-enters the normal
+    // Pending flow clean instead of carrying cancelled-state leftovers.
+    const connection = await pool.getConnection();
+    let conflict = false;
+    try {
+      await connection.beginTransaction();
+      const [reopenResult] = await connection.query(
+        `UPDATE orders
+         SET status = 'Pending', payment_status = 'Pending', cancel_reason = NULL,
+             rider_id = NULL, rider_assigned_at = NULL, rider_assignment_status = 'none',
+             rider_search_started_at = NULL, accepted_at = NULL
+         WHERE id = ? AND status = 'Cancelled'${scope.clause}`,
+        [id, ...scope.params]
+      );
+      if (reopenResult.affectedRows === 0) {
+        await connection.rollback();
+        conflict = true;
+      } else {
+        if (orderRows[0].coupon_id) {
+          await connection.query(
+            "UPDATE coupon_redemptions SET status = 'active' WHERE order_id = ? AND coupon_id = ? AND status = 'cancelled'",
+            [id, orderRows[0].coupon_id]
+          );
+        }
+        // Clear per-shop state too, otherwise a shop that rejected before the
+        // auto-cancel stays flagged rejected forever and never sees the
+        // reopened order again (listShopActiveOrders derives `rejected` from
+        // shop_rejected_at).
+        await connection.query(
+          `UPDATE order_items
+           SET shop_confirmed_at = NULL, shop_rejected_at = NULL, shop_ready_at = NULL,
+               shop_last_notified_at = NULL, shop_notify_count = 0, shop_alert_acked_at = NULL
+           WHERE order_id = ?`,
+          [id]
+        );
+        await connection.commit();
+      }
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+    if (conflict) {
+      const [freshRows] = await pool.query(`SELECT * FROM orders WHERE id = ?${scope.clause}`, [id, ...scope.params]);
+      return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'Order was updated by someone else.', order: freshRows[0] });
+    }
+    await require('../services/riderAssignment').revokeOffersForOrder(id).catch(() => {});
   } else {
     const setDeliveredAt = status === 'Delivered' ? ', delivered_at = NOW()' : '';
     // Delivered orders shouldn't sit at 'Pending' payment forever — flip to
@@ -1105,12 +1493,18 @@ const updateOrderStatus = async (req, res) => {
     const setPaymentSuccess = (status === 'Delivered' && orderRows[0].payment_status === 'Pending')
       ? ', payment_status = "Success"'
       : '';
+    // Clock start for the shop-owner response window (shopAlertSweeper) —
+    // same stamp orderAutoAccept.acceptPendingOrder writes, needed here too
+    // since an admin can accept manually before the auto-accept timer fires.
+    const setAcceptedAt = (currentStatus === 'Pending' && status !== 'Pending')
+      ? ', accepted_at = NOW()'
+      : '';
     const [updateResult] = await pool.query(
-      `UPDATE orders SET status = ?${setDeliveredAt}${setPaymentSuccess} WHERE id = ? AND status = ?`,
-      [status, id, currentStatus]
+      `UPDATE orders SET status = ?${setDeliveredAt}${setPaymentSuccess}${setAcceptedAt} WHERE id = ? AND status = ?${scope.clause}`,
+      [status, id, currentStatus, ...scope.params]
     );
     if (updateResult.affectedRows === 0) {
-      const [freshRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+      const [freshRows] = await pool.query(`SELECT * FROM orders WHERE id = ?${scope.clause}`, [id, ...scope.params]);
       return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'Order was updated by someone else.', order: freshRows[0] });
     }
   }
@@ -1207,7 +1601,11 @@ const extendAutoAccept = async (req, res) => {
   const { id } = req.params;
   const extraMs = 30_000;
 
-  const [orderRows] = await pool.query('SELECT id, status, order_number FROM orders WHERE id = ?', [id]);
+  const areaId = requireOrderArea(req, res);
+  if (areaId === null) return;
+  const scope = orderAreaScope(areaId, '');
+
+  const [orderRows] = await pool.query(`SELECT id, status, order_number, area_id FROM orders WHERE id = ?${scope.clause}`, [id, ...scope.params]);
   if (orderRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
@@ -1221,7 +1619,7 @@ const extendAutoAccept = async (req, res) => {
   }
 
   const payload = { orderId: orderRows[0].id, orderNumber: orderRows[0].order_number, deadline: newDeadline };
-  emitToAdmins('admin.order.snoozed', payload);
+  emitToAdmins(orderRows[0].area_id, 'admin.order.snoozed', payload);
   res.status(200).json({ message: 'Auto-accept window extended', ...payload });
 };
 
@@ -1236,7 +1634,11 @@ const updateOrderPayment = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Valid payment status is required' });
   }
 
-  const [orderRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+  const areaId = requireOrderArea(req, res);
+  if (areaId === null) return;
+  const scope = orderAreaScope(areaId, '');
+
+  const [orderRows] = await pool.query(`SELECT * FROM orders WHERE id = ?${scope.clause}`, [id, ...scope.params]);
   if (orderRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
@@ -1255,12 +1657,12 @@ const updateOrderPayment = async (req, res) => {
     return res.status(200).json({ message: 'Order payment status updated successfully', order: orderRows[0] });
   }
 
-  const [paymentResult] = await pool.query('UPDATE orders SET payment_status = ? WHERE id = ? AND payment_status = ?', [finalStatus, id, currentPaymentStatus]);
+  const [paymentResult] = await pool.query(`UPDATE orders SET payment_status = ? WHERE id = ? AND payment_status = ?${scope.clause}`, [finalStatus, id, currentPaymentStatus, ...scope.params]);
   if (paymentResult.affectedRows === 0) {
-    const [freshRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+    const [freshRows] = await pool.query(`SELECT * FROM orders WHERE id = ?${scope.clause}`, [id, ...scope.params]);
     return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'Order was updated by someone else.', order: freshRows[0] });
   }
-  const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+  const [updatedRows] = await pool.query(`SELECT * FROM orders WHERE id = ?${scope.clause}`, [id, ...scope.params]);
   const updatedOrder = updatedRows[0];
 
   if (currentPaymentStatus !== finalStatus) {
@@ -1305,17 +1707,21 @@ const updateOrderRemark = async (req, res) => {
   }
   const finalRemark = trimmedRemark || null;
 
-  const [orderRows] = await pool.query('SELECT id FROM orders WHERE id = ?', [id]);
+  const areaId = requireOrderArea(req, res);
+  if (areaId === null) return;
+  const scope = orderAreaScope(areaId, '');
+
+  const [orderRows] = await pool.query(`SELECT id FROM orders WHERE id = ?${scope.clause}`, [id, ...scope.params]);
   if (orderRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
 
-  await pool.query('UPDATE orders SET admin_remark = ? WHERE id = ?', [finalRemark, id]);
-  const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
+  await pool.query(`UPDATE orders SET admin_remark = ? WHERE id = ?${scope.clause}`, [finalRemark, id, ...scope.params]);
+  const [updatedRows] = await pool.query(`SELECT * FROM orders WHERE id = ?${scope.clause}`, [id, ...scope.params]);
   const updatedOrder = updatedRows[0];
 
   try {
-    emitToAdmins('admin.order.updated', {
+    emitToAdmins(updatedOrder.area_id, 'admin.order.updated', {
       orderId: updatedOrder.id,
       id: updatedOrder.id,
       admin_remark: updatedOrder.admin_remark,
@@ -1329,16 +1735,256 @@ const updateOrderRemark = async (req, res) => {
   res.status(200).json({ message: 'Order remark updated successfully', order: updatedOrder });
 };
 
+const ITEM_REPLACE_ALLOWED_STATUSES = ['Pending', 'Accepted', 'Preparing'];
+
+// Admin swaps one order_items row for a different product when the
+// original is out of stock — recomputes orders.subtotal/total (formula
+// mirrors orderController.js's createOrder) but never touches
+// discount_amount, which is a frozen checkout-time snapshot everywhere
+// else in this codebase. See plans note in PR: no refund automation, a
+// Paid order whose total shifts is reconciled by ops outside the app.
+const replaceOrderItem = async (req, res) => {
+  const orderId = Number(req.params.id);
+  const itemId = Number(req.params.itemId);
+  if (!Number.isFinite(orderId) || orderId <= 0 || !Number.isFinite(itemId) || itemId <= 0) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid order or item id' });
+  }
+
+  const { expectedProductId, expectedVariantId, expectedUnitPrice, newProductId, newVariantId } = req.body || {};
+  if (!Number.isFinite(Number(expectedProductId)) || !Number.isFinite(Number(expectedUnitPrice)) || !Number.isFinite(Number(newProductId))) {
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'expectedProductId, expectedUnitPrice and newProductId are required' });
+  }
+  const normalizedExpectedVariantId = expectedVariantId === undefined || expectedVariantId === null ? null : Number(expectedVariantId);
+  const normalizedNewVariantId = newVariantId === undefined || newVariantId === null ? null : Number(newVariantId);
+
+  const areaId = requireOrderArea(req, res);
+  if (areaId === null) return;
+  const scope = orderAreaScope(areaId, '');
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [orderRows] = await connection.query(`SELECT * FROM orders WHERE id = ?${scope.clause} FOR UPDATE`, [orderId, ...scope.params]);
+    if (orderRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+    }
+    const order = orderRows[0];
+
+    if (!ITEM_REPLACE_ALLOWED_STATUSES.includes(order.status)) {
+      await connection.rollback();
+      return res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: `Items can only be changed while the order is ${ITEM_REPLACE_ALLOWED_STATUSES.join(', ')}.`,
+      });
+    }
+
+    const [itemRows] = await connection.query(
+      'SELECT * FROM order_items WHERE id = ? AND order_id = ? AND area_id = ? FOR UPDATE',
+      [itemId, orderId, order.area_id]
+    );
+    if (itemRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Order item not found' });
+    }
+    const item = itemRows[0];
+
+    const casMismatch = item.product_id !== Number(expectedProductId)
+      || Number(item.unit_price) !== Number(expectedUnitPrice)
+      || (item.variant_id ?? null) !== normalizedExpectedVariantId;
+    if (casMismatch) {
+      await connection.rollback();
+      const [freshItems] = await pool.query('SELECT * FROM order_items WHERE order_id = ? AND area_id = ?', [orderId, order.area_id]);
+      return res.status(409).json({
+        code: 'CONCURRENCY_CONFLICT',
+        message: 'This item was already changed by someone else.',
+        order,
+        items: freshItems,
+      });
+    }
+
+    if (item.item_type !== 'product') {
+      await connection.rollback();
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Only product line items can be changed' });
+    }
+
+    const [productRows] = await connection.query(
+      'SELECT id, name, price, shop_price, shop_id, area_id, available, deleted FROM products WHERE id = ?',
+      [Number(newProductId)]
+    );
+    const newProduct = productRows[0];
+    if (!newProduct || newProduct.deleted) {
+      await connection.rollback();
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Replacement product not found' });
+    }
+    if (newProduct.area_id !== order.area_id) {
+      await connection.rollback();
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Replacement product must belong to the same area' });
+    }
+    const shopMismatch = item.shop_id !== null
+      ? newProduct.shop_id !== item.shop_id
+      : newProduct.shop_id !== null;
+    if (shopMismatch) {
+      await connection.rollback();
+      return res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: item.shop_id !== null
+          ? 'Replacement must be another product from the same shop'
+          : 'Replacement must be a house product (no shop)',
+      });
+    }
+
+    let newUnitPrice;
+    let newShopUnitPrice;
+    let newVariantLabel = null;
+    if (normalizedNewVariantId !== null) {
+      const [variantRows] = await connection.query(
+        'SELECT id, label, price, shop_price FROM product_variants WHERE id = ? AND product_id = ? AND deleted = 0 AND available = 1',
+        [normalizedNewVariantId, newProduct.id]
+      );
+      const variant = variantRows[0];
+      if (!variant) {
+        await connection.rollback();
+        return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Replacement variant not found or unavailable' });
+      }
+      newUnitPrice = Number(variant.price);
+      newShopUnitPrice = variant.shop_price != null ? Number(variant.shop_price) : null;
+      newVariantLabel = variant.label;
+    } else {
+      if (!newProduct.available) {
+        await connection.rollback();
+        return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Replacement product is unavailable' });
+      }
+      newUnitPrice = Number(newProduct.price);
+      newShopUnitPrice = newProduct.shop_price != null ? Number(newProduct.shop_price) : null;
+    }
+
+    const newProductName = newVariantLabel ? `${newProduct.name} (${newVariantLabel})` : newProduct.name;
+    const newLineTotal = roundMoney(newUnitPrice * item.quantity);
+    const newShopLineTotal = newShopUnitPrice != null ? roundMoney(newShopUnitPrice * item.quantity) : null;
+
+    const [updateItemResult] = await connection.query(
+      `UPDATE order_items
+         SET product_id = ?, variant_id = ?, variant_label = ?, product_name = ?,
+             unit_price = ?, line_total = ?, shop_unit_price = ?, shop_line_total = ?
+       WHERE id = ? AND order_id = ? AND product_id = ? AND unit_price = ?`,
+      [
+        newProduct.id, normalizedNewVariantId, newVariantLabel, newProductName,
+        newUnitPrice, newLineTotal, newShopUnitPrice, newShopLineTotal,
+        itemId, orderId, item.product_id, item.unit_price,
+      ]
+    );
+    if (updateItemResult.affectedRows === 0) {
+      await connection.rollback();
+      const [freshItems] = await pool.query('SELECT * FROM order_items WHERE order_id = ? AND area_id = ?', [orderId, order.area_id]);
+      return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'This item was already changed by someone else.', order, items: freshItems });
+    }
+
+    const [[{ subtotal: recomputedSubtotal }]] = await connection.query(
+      'SELECT SUM(line_total) AS subtotal FROM order_items WHERE order_id = ?',
+      [orderId]
+    );
+    const subtotal = roundMoney(Number(recomputedSubtotal) || 0);
+    const total = roundMoney(Math.max(0, subtotal
+      + Number(order.delivery_charge)
+      + Number(order.fast_delivery_charge)
+      + Number(order.night_charge)
+      + Number(order.rain_charge)
+      - Number(order.discount_amount)));
+
+    // discount_amount stays frozen (see this function's own header comment —
+    // no refund/reconciliation automation), but a swap down to a cheaper
+    // product can drop the new subtotal below the applied coupon's own
+    // min_order_amount, silently shipping an order that violates the terms
+    // it was granted under. Surface it rather than auto-adjusting money on
+    // a payment-sensitive path — same "flag it, ops reconciles" pattern
+    // this function already uses for the total shift itself.
+    let couponWarning = null;
+    if (order.coupon_id && Number(order.discount_amount) > 0) {
+      const [couponRows] = await connection.query(
+        'SELECT min_order_amount FROM coupons WHERE id = ?',
+        [order.coupon_id]
+      );
+      const minOrderAmount = couponRows[0] ? Number(couponRows[0].min_order_amount) : null;
+      if (minOrderAmount !== null && subtotal < minOrderAmount) {
+        couponWarning = `Applied coupon "${order.coupon_code || order.coupon_title || order.coupon_id}" requires a minimum order of ₹${minOrderAmount}; the new subtotal is ₹${subtotal}. The ₹${order.discount_amount} discount was NOT auto-removed — review and adjust manually if needed.`;
+      }
+    }
+
+    const [updateOrderResult] = await connection.query(
+      `UPDATE orders SET subtotal = ?, total = ? WHERE id = ?${scope.clause} AND status = ?`,
+      [subtotal, total, orderId, ...scope.params, order.status]
+    );
+    if (updateOrderResult.affectedRows === 0) {
+      await connection.rollback();
+      const [freshOrderRows] = await pool.query(`SELECT * FROM orders WHERE id = ?${scope.clause}`, [orderId, ...scope.params]);
+      const [freshItems] = await pool.query('SELECT * FROM order_items WHERE order_id = ? AND area_id = ?', [orderId, order.area_id]);
+      return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'Order was updated by someone else.', order: freshOrderRows[0], items: freshItems });
+    }
+
+    await connection.commit();
+
+    const [updatedOrderRows] = await pool.query(`SELECT * FROM orders WHERE id = ?${scope.clause}`, [orderId, ...scope.params]);
+    const [updatedItemRows] = await pool.query('SELECT * FROM order_items WHERE id = ?', [itemId]);
+    const updatedOrder = updatedOrderRows[0];
+    const updatedItem = updatedItemRows[0];
+
+    try {
+      realtimeEvents.emitOrderItemReplaced(
+        updatedOrder,
+        itemId,
+        { productId: item.product_id, productName: item.product_name, unitPrice: item.unit_price, lineTotal: item.line_total },
+        { productId: updatedItem.product_id, productName: updatedItem.product_name, unitPrice: updatedItem.unit_price, lineTotal: updatedItem.line_total }
+      );
+      if (item.shop_id !== null) {
+        notifyShopsOrderItemReplaced(updatedOrder, item.shop_id); // fire-and-forget
+      }
+    } catch (_) {
+      // Realtime is best-effort — the swap is already persisted.
+    }
+
+    if (couponWarning) {
+      adminInbox.createAdminNotification({
+        type: adminInbox.TYPES.COUPON_TERMS_VIOLATED,
+        title: `Order #${orderId} no longer meets its coupon's terms`,
+        body: couponWarning,
+        relatedUrl: `/orders?id=${orderId}`,
+        relatedId: String(orderId),
+        areaId: order.area_id,
+      }).catch(() => {}); // best-effort — the swap is already persisted regardless
+    }
+
+    res.status(200).json({ message: 'Item replaced', order: updatedOrder, item: updatedItem, couponWarning });
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+// admin_notifications / notification_batches use the same resolveAreaOrAll
+// helper defined near the top of this file (§2.10 also covers the
+// operational inbox and broadcast history as legitimate cross-area H6
+// views/audiences, not a single-tenant write).
 const getAdminNotifications = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
   const pagination = validatePagination(req.query.page, req.query.limit);
   const offset = (pagination.page - 1) * pagination.limit;
+  const areaClause = areaId === 'all' ? '' : ' AND area_id = ?';
+  const areaParams = areaId === 'all' ? [] : [areaId];
 
   const [rows] = await pool.query(
-    'SELECT * FROM notification_batches WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?',
-    [pagination.limit, offset]
+    `SELECT * FROM notification_batches WHERE deleted_at IS NULL${areaClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+    [...areaParams, pagination.limit, offset]
   );
 
-  const [countRows] = await pool.query('SELECT COUNT(*) as total FROM notification_batches WHERE deleted_at IS NULL');
+  const [countRows] = await pool.query(
+    `SELECT COUNT(*) as total FROM notification_batches WHERE deleted_at IS NULL${areaClause}`,
+    areaParams
+  );
   const total = countRows[0].total;
 
   res.status(200).json({
@@ -1355,6 +2001,12 @@ const getAdminNotifications = async (req, res) => {
 const createAdminNotification = async (req, res) => {
   const { title, body, type, target, phones } = req.body;
   const adminId = req.admin.id;
+  // H6/16.3: 'everyone' is scoped to one area by default; a super_admin may
+  // explicitly opt into 'all' (X-Area-Id: all) to reach every area at once.
+  // area_admin never sees a choice — resolveAdminArea already pins them to
+  // their own area and 403s if they try to send the header themselves.
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
 
   if (!title || !body || !type || !target) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'title, body, type, and target are required' });
@@ -1393,10 +2045,27 @@ const createAdminNotification = async (req, res) => {
   let targetUserIds = [];
   let resolvedPhones = [];
   let unmatchedPhones = [];
+  let targetLabel = target;
+  // H6: customers are global and carry only last_area_id, a cache — this is
+  // approximate by nature (reaches whoever's last order was in this area,
+  // misses someone who has never ordered, includes someone who has since
+  // moved). audienceNote below surfaces that in the response for whichever
+  // admin UI reads it; not fixable without a precise per-user area signal
+  // this codebase doesn't have (§2.2).
+  let audienceNote = null;
 
   if (target === 'everyone') {
-    const [users] = await pool.query('SELECT id FROM users WHERE blocked = 0');
-    targetUserIds = users.map(u => u.id);
+    if (areaId === 'all') {
+      const [users] = await pool.query('SELECT id FROM users WHERE blocked = 0');
+      targetUserIds = users.map(u => u.id);
+      targetLabel = 'everyone (all areas)';
+      audienceNote = 'Sent to every non-blocked customer across every area.';
+    } else {
+      const [users] = await pool.query('SELECT id FROM users WHERE blocked = 0 AND last_area_id = ?', [areaId]);
+      targetUserIds = users.map(u => u.id);
+      targetLabel = `everyone (area ${areaId})`;
+      audienceNote = 'Approximate: reaches customers whose most recent order was in this area. Misses anyone who has never ordered, and may include someone who has since moved.';
+    }
   } else if (target === 'phones') {
     const sanitized = sanitizePhones(phones);
     if (sanitized.length === 0) {
@@ -1501,13 +2170,20 @@ const createAdminNotification = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No recipients found for target' });
   }
 
+  // notification_batches.area_id is NOT NULL and can't hold "every area" —
+  // an 'all areas' broadcast still records the default area on this audit
+  // row (getDefaultArea(), same fallback used wherever no single area
+  // applies); targetLabel's own text is what actually documents true reach.
+  const batchAreaId = areaId === 'all' ? (await getDefaultArea())?.id : areaId;
+
   const result = await notificationService.createBroadcastNotification({
     title,
     body,
     type,
     createdByAdminId: adminId,
     targetUserIds,
-    targetName: target === 'phones' ? `phones:${resolvedPhones.join(',')}` : target
+    targetName: target === 'phones' ? `phones:${resolvedPhones.join(',')}` : targetLabel,
+    areaId: batchAreaId,
   });
 
   if (!result) {
@@ -1551,6 +2227,7 @@ const createAdminNotification = async (req, res) => {
       batchId: result.batchId,
       recipientCount: result.count,
       pushEligibleCount: result.pushEligibleCount ?? null,
+      audienceNote,
       ...(target === 'phones'
         ? { matchedPhones: resolvedPhones, unmatchedPhones }
         : {}),
@@ -1559,9 +2236,13 @@ const createAdminNotification = async (req, res) => {
 };
 
 const getAdminNotificationById = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
   const { id } = req.params;
-  const [rows] = await pool.query('SELECT * FROM notification_batches WHERE id = ?', [id]);
-  
+  const areaClause = areaId === 'all' ? '' : ' AND area_id = ?';
+  const areaParams = areaId === 'all' ? [] : [areaId];
+  const [rows] = await pool.query(`SELECT * FROM notification_batches WHERE id = ?${areaClause}`, [id, ...areaParams]);
+
   if (rows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Notification batch not found' });
   }
@@ -1570,9 +2251,13 @@ const getAdminNotificationById = async (req, res) => {
 };
 
 const deleteAdminNotification = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
   const { id } = req.params;
-  
-  const [batchRows] = await pool.query('SELECT * FROM notification_batches WHERE id = ?', [id]);
+  const areaClause = areaId === 'all' ? '' : ' AND area_id = ?';
+  const areaParams = areaId === 'all' ? [] : [areaId];
+
+  const [batchRows] = await pool.query(`SELECT * FROM notification_batches WHERE id = ?${areaClause}`, [id, ...areaParams]);
   if (batchRows.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Notification batch not found' });
   }
@@ -1598,6 +2283,7 @@ module.exports = {
   extendAutoAccept,
   updateOrderPayment,
   updateOrderRemark,
+  replaceOrderItem,
   getAdminCustomerById,
   getTopProductsReport,
   getCustomersReport,
@@ -1639,7 +2325,67 @@ const resolveOrderTargetCustomer = async (req, res) => {
   return customer;
 };
 
+// Multi-area audit finding (C1): admin-placed orders resolve their area from
+// the customer PIN inside createOrder/calculateCart, NOT from the admin —
+// so an area_admin could place an order into any area by pointing the pin
+// there. Gate: the order's resolved area must equal the admin's scoped area
+// (an area_admin is pinned to their own; a super_admin must pass an explicit
+// X-Area-Id for the area they're placing into — 'all' and header-absent both
+// reject a specific write).
+const assertOrderAreaMatchesPin = async (req, res) => {
+  const adminAreaId = requireOrderArea(req, res);
+  if (adminAreaId === null) return false;
+  // Accept the lat/lng aliases too, exactly as the downstream resolvers do
+  // (cartController.calculateCart reads req.body.latitude ?? req.body.lat;
+  // orderRoutes' createOrderSchema normalizes the same pair). Reading only
+  // `latitude`/`longitude` here let a caller slip the gate by sending the
+  // pin as `lat`/`lng`: this function saw no coordinates and waved the
+  // request through, then calculateCart/createOrder resolved the aliased
+  // pin into whatever area it actually falls in — placing an order outside
+  // the admin's own area, which is the exact cross-area write this gate
+  // exists to stop.
+  const body = req.body || {};
+  const latitude = body.latitude !== undefined ? body.latitude : body.lat;
+  const longitude = body.longitude !== undefined ? body.longitude : body.lng;
+  // A usable pin means BOTH coordinates present and numeric. A half-pin
+  // (only one sent) or a non-numeric one is not something
+  // resolveAreaIdForPricing can place either — it returns the default area
+  // for those, same as for no pin at all — so they take the no-pin branch
+  // rather than being cross-checked against a resolution that was never
+  // real. Explicit null/''-checks rather than truthiness so latitude 0 still
+  // counts as a provided coordinate.
+  const coordProvided = (v) => v !== undefined && v !== null && v !== '' && Number.isFinite(Number(v));
+  const hasPin = coordProvided(latitude) && coordProvided(longitude);
+  // No pin at all (CreateOrderModal's map picker is optional — a phone order
+  // taken without ever opening it) has nothing to cross-check: without
+  // coordinates, resolveAreaIdForPricing can only fall back to the platform
+  // DEFAULT area, which is neither "the area this order belongs to" nor
+  // necessarily the admin's own scoped area, and would either misroute a
+  // pinless order into the wrong area or 403 a legitimate one. Set the
+  // override so calculateCart/createOrder use the admin's own area instead
+  // of independently re-deriving (and landing on the default).
+  if (!hasPin) {
+    req.adminAreaOverride = Number(adminAreaId);
+    return true;
+  }
+  const orderAreaId = await resolveAreaIdForPricing(latitude, longitude);
+  // orderAreaId is null when the pin is valid but matches no zone in any
+  // area — always rejects below (null !== a real area id), which is correct:
+  // an order that resolves to nowhere can't belong to the admin's area either.
+  if (orderAreaId !== Number(adminAreaId)) {
+    res.status(403).json({
+      code: 'FORBIDDEN',
+      message: orderAreaId === null
+        ? `This pin doesn't fall inside any delivery area. Set a pin inside area ${adminAreaId} (and X-Area-Id) for that area.`
+        : `Order resolves to area ${orderAreaId}; you are scoped to area ${adminAreaId}. Set the pin (and X-Area-Id) for that area.`,
+    });
+    return false;
+  }
+  return true;
+};
+
 const adminCalculateOrder = async (req, res) => {
+  if (!(await assertOrderAreaMatchesPin(req, res))) return;
   const customer = await resolveOrderTargetCustomer(req, res);
   if (!customer) return;
   req.user = { id: customer.id };
@@ -1647,6 +2393,7 @@ const adminCalculateOrder = async (req, res) => {
 };
 
 const adminCreateOrder = async (req, res) => {
+  if (!(await assertOrderAreaMatchesPin(req, res))) return;
   const customer = await resolveOrderTargetCustomer(req, res);
   if (!customer) return;
   req.user = { id: customer.id };
@@ -1659,51 +2406,88 @@ const adminCreateOrder = async (req, res) => {
 // ──────────────────────────────────────────────────────────────────────────
 
 const getInbox = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+  const areaClause = areaId === 'all' ? '' : ' AND area_id = ?';
+  const areaParams = areaId === 'all' ? [] : [areaId];
   const [rows] = await pool.query(
     `SELECT id, type, title, body, related_url, related_id, read_at, created_at
        FROM admin_notifications
+      WHERE 1=1${areaClause}
       ORDER BY created_at DESC, id DESC
       LIMIT ?`,
-    [limit]
+    [...areaParams, limit]
   );
   const [[count]] = await pool.query(
-    'SELECT COUNT(*) AS n FROM admin_notifications WHERE read_at IS NULL'
+    `SELECT COUNT(*) AS n FROM admin_notifications WHERE read_at IS NULL${areaClause}`,
+    areaParams
   );
   res.status(200).json({ data: rows, unread_count: Number(count.n) || 0 });
 };
 
 const getInboxUnreadCount = async (req, res) => {
-  const count = await adminInbox.getUnreadCount();
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
+  const count = await adminInbox.getUnreadCount(areaId);
   res.status(200).json({ count });
 };
 
 const markInboxRead = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
   const id = parseInt(req.params.id, 10);
   if (!Number.isFinite(id) || id <= 0) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid id' });
   }
-  await pool.query(
-    'UPDATE admin_notifications SET read_at = NOW() WHERE id = ? AND read_at IS NULL',
-    [id]
+  const areaClause = areaId === 'all' ? '' : ' AND area_id = ?';
+  const areaParams = areaId === 'all' ? [] : [areaId];
+  // Existence is checked separately rather than from the UPDATE's
+  // affectedRows: the UPDATE carries `AND read_at IS NULL`, so a row that is
+  // simply ALREADY read also reports 0 rows — indistinguishable from one that
+  // does not exist or belongs to another area. Marking an already-read item
+  // read is a success; marking a nonexistent one is a 404.
+  const [existing] = await pool.query(
+    `SELECT id FROM admin_notifications WHERE id = ?${areaClause} LIMIT 1`,
+    [id, ...areaParams]
   );
-  adminInbox.broadcastUnreadCount();
+  if (existing.length === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Notification not found' });
+  }
+  await pool.query(
+    `UPDATE admin_notifications SET read_at = NOW() WHERE id = ? AND read_at IS NULL${areaClause}`,
+    [id, ...areaParams]
+  );
+  adminInbox.broadcastUnreadCount(areaId);
   res.status(200).json({ message: 'Marked as read' });
 };
 
 const markAllInboxRead = async (req, res) => {
-  await pool.query('UPDATE admin_notifications SET read_at = NOW() WHERE read_at IS NULL');
-  adminInbox.broadcastUnreadCount();
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
+  const areaClause = areaId === 'all' ? '' : ' AND area_id = ?';
+  const areaParams = areaId === 'all' ? [] : [areaId];
+  await pool.query(`UPDATE admin_notifications SET read_at = NOW() WHERE read_at IS NULL${areaClause}`, areaParams);
+  adminInbox.broadcastUnreadCount(areaId);
   res.status(200).json({ message: 'All marked as read' });
 };
 
 const dismissInbox = async (req, res) => {
+  const areaId = resolveAreaOrAll(req, res);
+  if (areaId === undefined) return;
   const id = parseInt(req.params.id, 10);
   if (!Number.isFinite(id) || id <= 0) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid id' });
   }
-  await pool.query('DELETE FROM admin_notifications WHERE id = ?', [id]);
-  adminInbox.broadcastUnreadCount();
+  const areaClause = areaId === 'all' ? '' : ' AND area_id = ?';
+  const areaParams = areaId === 'all' ? [] : [areaId];
+  const [result] = await pool.query(`DELETE FROM admin_notifications WHERE id = ?${areaClause}`, [id, ...areaParams]);
+  // Zero rows here is unambiguous (no read_at condition in the WHERE): the
+  // notification does not exist, or belongs to another area.
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Notification not found' });
+  }
+  adminInbox.broadcastUnreadCount(areaId);
   res.status(200).json({ message: 'Dismissed' });
 };
 

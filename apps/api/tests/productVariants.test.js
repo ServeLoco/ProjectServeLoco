@@ -14,6 +14,7 @@ const jwt = require('jsonwebtoken');
 const productRoutes = require('../src/routes/productRoutes');
 const adminRoutes = require('../src/routes/adminRoutes');
 const { pool } = require('../src/db/mysql');
+const areaScope = require('../src/utils/areaScope');
 
 jest.mock('../src/db/mysql', () => ({
   pool: {
@@ -23,7 +24,7 @@ jest.mock('../src/db/mysql', () => ({
 }));
 
 const adminToken = jwt.sign(
-  { id: 'admin', role: 'admin' },
+  { id: 'admin', role: 'admin', adminRole: 'area_admin', areaId: 1 },
   process.env.JWT_SECRET || 'secret'
 );
 
@@ -31,10 +32,21 @@ const readApp = express();
 readApp.use(express.json());
 readApp.use('/api/products', productRoutes);
 
+const DEFAULT_AREA = { id: 1, code: 'A1', name: 'Area 1', active: 1, is_default: 1 };
+// Both GET /api/products and GET /api/products/:id carry resolveCustomerArea
+// (TASK 11 / bug fix multi-area audit finding #4) — an unauthenticated,
+// no-pin request resolves via its default-area fallback, one
+// `SELECT * FROM areas` before the real query.
+const mockDefaultAreaLookup = () => pool.query.mockResolvedValueOnce([[DEFAULT_AREA]]);
+
 describe('Product Variants — read paths', () => {
-  beforeEach(() => { jest.clearAllMocks(); });
+  beforeEach(() => {
+    jest.clearAllMocks();
+    areaScope._resetCachesForTests();
+  });
 
   it('getProducts embeds variants, hasVariants, has_variants, minPrice, min_price', async () => {
+    mockDefaultAreaLookup();
     pool.query.mockResolvedValueOnce([[
       { id: 1, name: 'Pizza', price: 349, is_combo: 0, available: 1, image_id: null, available_from_time: null, available_until_time: null },
       { id: 2, name: 'Burger', price: 99, is_combo: 0, available: 1, image_id: null, available_from_time: null, available_until_time: null },
@@ -69,6 +81,7 @@ describe('Product Variants — read paths', () => {
   });
 
   it('getProductById embeds variants and variantPrompt', async () => {
+    mockDefaultAreaLookup();
     pool.query.mockResolvedValueOnce([[
       { id: 1, name: 'Pizza', price: 349, is_combo: 0, available: 1, image_id: null, category_name: 'Food', category_type: 'fast_food', available_from_time: null, available_until_time: null, variant_prompt: 'Choose size' },
     ]]);
@@ -159,7 +172,13 @@ describe('Product Variants — admin validation', () => {
         .mockResolvedValueOnce([{ affectedRows: 0 }]) // soft-delete missing
         .mockResolvedValueOnce([{ affectedRows: 1 }]) // price sync
         .mockResolvedValueOnce([[{ price: 149, shop_price: null }]]) // re-read default variant
-        .mockResolvedValueOnce([{ affectedRows: 1 }]), // shop_price mirror sync
+        .mockResolvedValueOnce([{ affectedRows: 1 }]) // shop_price mirror sync
+        // auto-promote-to-library (createProduct now links every new
+        // product into the library so other areas can reuse it):
+        .mockResolvedValueOnce([[{ id: 500, name: 'Pizza', description: null, image_id: null, variant_prompt: null, price: 149, library_product_id: null }]]) // SELECT product FOR UPDATE
+        .mockResolvedValueOnce([{ insertId: 900 }]) // INSERT product_library
+        .mockResolvedValueOnce([[]]) // SELECT product_variants (mocked empty — promote's own variant fan-out is covered by tests/productLibrary.test.js)
+        .mockResolvedValueOnce([{ affectedRows: 1 }]), // UPDATE products SET library_product_id
       commit: jest.fn(),
       rollback: jest.fn(),
       release: jest.fn(),
@@ -206,7 +225,13 @@ describe('Product Variants — admin upsert', () => {
         .mockResolvedValueOnce([{ affectedRows: 0 }]) // soft-delete not-in-payload
         .mockResolvedValueOnce([{ affectedRows: 1 }]) // price sync
         .mockResolvedValueOnce([[{ price: 149, shop_price: null }]]) // re-read default variant
-        .mockResolvedValueOnce([{ affectedRows: 1 }]), // shop_price mirror sync
+        .mockResolvedValueOnce([{ affectedRows: 1 }]) // shop_price mirror sync
+        // auto-promote-to-library (createProduct now links every new
+        // product into the library so other areas can reuse it):
+        .mockResolvedValueOnce([[{ id: 500, name: 'Pizza', description: null, image_id: null, variant_prompt: 'Choose size', price: 149, library_product_id: null }]]) // SELECT product FOR UPDATE
+        .mockResolvedValueOnce([{ insertId: 900 }]) // INSERT product_library
+        .mockResolvedValueOnce([[]]) // SELECT product_variants (mocked empty — promote's own variant fan-out is covered by tests/productLibrary.test.js)
+        .mockResolvedValueOnce([{ affectedRows: 1 }]), // UPDATE products SET library_product_id
       commit: jest.fn(),
       rollback: jest.fn(),
       release: jest.fn(),

@@ -8,8 +8,14 @@
  * Usage:
  *   const { get, set, del, wrap } = createTtlCache({ ttlMs: 60_000 });
  *   const value = await wrap('key', () => fetchFromDb());
+ *
+ * `maxEntries` bounds the map for caches keyed by something unbounded (a user
+ * id, say). Entries only expire when they are read, so without a cap a
+ * per-user cache grows for the life of the process — every customer who ever
+ * made one request stays resident. Omit it for the fixed-key caches
+ * (settings, areas) where the key space is inherently small.
  */
-function createTtlCache({ ttlMs } = {}) {
+function createTtlCache({ ttlMs, maxEntries = 0 } = {}) {
   if (!Number.isFinite(ttlMs) || ttlMs <= 0) {
     throw new Error('createTtlCache requires a positive ttlMs');
   }
@@ -26,7 +32,16 @@ function createTtlCache({ ttlMs } = {}) {
   }
 
   function set(key, value) {
+    // Re-insert so Map iteration order is insertion order, which makes the
+    // eviction below FIFO rather than "whichever key happened to be first".
+    if (store.has(key)) store.delete(key);
     store.set(key, { value, at: Date.now() });
+    if (maxEntries > 0) {
+      while (store.size > maxEntries) {
+        const oldest = store.keys().next().value;
+        store.delete(oldest);
+      }
+    }
   }
 
   function del(key) {

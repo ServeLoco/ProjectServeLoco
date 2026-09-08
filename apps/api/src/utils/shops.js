@@ -36,6 +36,13 @@ const notifyShopsForOrder = async (order) => {
         orderId: order.id, orderNumber: order.order_number, shopId: row.shop_id,
       });
     }
+    // Stamp the initial alert time so shopAlertSweeper's reminder throttle
+    // (SHOP_ALERT_REMIND_MS) counts from this push, not from its own first tick.
+    await pool.query(
+      `UPDATE order_items SET shop_last_notified_at = NOW(), shop_notify_count = shop_notify_count + 1
+       WHERE order_id = ? AND shop_id IN (?) AND shop_confirmed_at IS NULL AND shop_rejected_at IS NULL`,
+      [order.id, rows.map((r) => r.shop_id)]
+    );
     // Prefer native FCM data-only (killed-app notifee full-screen). Fallback to
     // Expo title+body tray for owners without an fcm_token yet.
     const ownerIds = rows.map((r) => r.owner_user_id);
@@ -85,7 +92,7 @@ const notifyShopsOrderCancelled = async (order) => {
     for (const row of rows) {
       // Admin Shops panel filters by shopId on shop_* events; include shopId
       // so the open panel for that shop refetches and drops the cancelled order.
-      emitToAdmins('admin.order.updated', {
+      emitToAdmins(order.area_id, 'admin.order.updated', {
         orderId: order.id,
         orderNumber: order.order_number,
         status: 'Cancelled',
@@ -114,6 +121,43 @@ const notifyShopsOrderCancelled = async (order) => {
     }
   } catch (e) {
     console.error('[shops] notifyShopsOrderCancelled failed for order', order?.id, e.message);
+  }
+};
+
+// Re-push the same alarm (socket + FCM/Expo) to ONE shop owner who has not
+// yet confirmed/rejected — used by shopAlertSweeper.remindPendingShopOrders
+// for weak-network retries. Unlike notifyShopsForOrder this never fans out
+// to every shop on the order, only the one still waiting. Caller is
+// responsible for the shop_last_notified_at/shop_notify_count write (the
+// sweeper batches that across all reminded rows in one query).
+const remindShopOrderOwner = async (order, shopId, ownerUserId) => {
+  try {
+    const { emitToCustomer } = require('../realtime/socket');
+    const expoPush = require('./expoPush');
+    const fcmAlarm = require('./fcmAlarmPush');
+    emitToCustomer(ownerUserId, 'shop.order.assigned', {
+      orderId: order.id, orderNumber: order.order_number, shopId,
+    });
+    const alarmData = {
+      type: 'shop_order',
+      alertType: 'new_order_alarm',
+      orderId: order.id,
+      orderNumber: order.order_number,
+    };
+    const needExpo = await fcmAlarm.sendFcmDataOnlyToMany(pool, [ownerUserId], alarmData);
+    if (needExpo.length) {
+      await expoPush.sendPushToMany(pool, needExpo, {
+        title: 'Order still waiting for you',
+        body: `Order ${order.order_number} is still waiting for your shop to confirm. Please open the app.`,
+        channelId: 'serveloco-orders-alarm-v5',
+        sound: 'order_alarm',
+        tag: `shop_order_${order.id}`,
+        collapseId: `shop_order_${order.id}`,
+        data: alarmData,
+      });
+    }
+  } catch (e) {
+    console.error('[shops] remindShopOrderOwner failed for order', order?.id, 'shop', shopId, e.message);
   }
 };
 
@@ -203,6 +247,31 @@ const notifyShopsOrderRemarkUpdated = async (order) => {
   }
 };
 
+// Fire-and-forget notify for a single shop whose order item was just
+// replaced by an admin (out-of-stock swap). Unlike notifyShopsOrderRemarkUpdated
+// this never fans out to every shop on the order — only the one shop that
+// owns the replaced line item needs to know.
+const notifyShopsOrderItemReplaced = async (order, shopId) => {
+  try {
+    if (!order?.id || !shopId) return;
+    const [rows] = await pool.query(
+      'SELECT owner_user_id FROM shops WHERE id = ? AND active = 1',
+      [shopId]
+    );
+    const ownerUserId = rows[0]?.owner_user_id;
+    if (!ownerUserId) return;
+    const { emitToCustomer } = require('../realtime/socket');
+    emitToCustomer(ownerUserId, 'shop.order.updated', {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      shopId,
+      action: 'item_replaced',
+    });
+  } catch (e) {
+    console.error('[shops] notifyShopsOrderItemReplaced failed for order', order?.id, e.message);
+  }
+};
+
 // Notify shops when rider assignment failed and the order was cancelled.
 const notifyShopsRiderAssignmentFailed = async (order) => {
   try {
@@ -230,45 +299,51 @@ const notifyShopsRiderAssignmentFailed = async (order) => {
   }
 };
 
-// If every active multi-vendor shop is now closed, auto-close the global
-// "Shop Status" banner (settings.shop_open) too — so the admin dashboard
-// tracks reality instead of needing a separate manual flip every time a
-// shop opens or closes. delivery_available is the master gate: if it's
-// off, shop_open is forced closed no matter how many shops are open (the
-// business isn't delivering, full stop — products still show in the menu,
-// they just can't be ordered). If delivery_available is on, shop_open
-// tracks whether any active shop is currently open.
-// No-ops in single-vendor deployments (shops table empty/no active rows) —
-// delivery_available is the sole gate there, and settingsController already
-// respects it directly on manual shop_open writes.
-const syncGlobalShopOpenState = async () => {
+// If every active multi-vendor shop in this AREA is now closed, auto-close
+// that area's "Shop Status" banner (settings.shop_open) too — so the admin
+// dashboard tracks reality instead of needing a separate manual flip every
+// time a shop opens or closes. delivery_available is the master gate: if
+// it's off, shop_open is forced closed no matter how many shops are open
+// (the business isn't delivering, full stop — products still show in the
+// menu, they just can't be ordered). If delivery_available is on, shop_open
+// tracks whether any active shop in THIS area is currently open.
+// No-ops when this area has no active shops — delivery_available is the
+// sole gate there, and settingsController already respects it directly on
+// manual shop_open writes.
+//
+// Emits go to this area's own `customers:<areaId>` room only
+// (emitToAllCustomers(areaId, ...) below, TASK 23) — never every connected
+// customer platform-wide.
+const syncAreaShopOpenState = async (areaId) => {
   try {
     let changed = false;
-    let globalOpen = null;
+    let areaOpen = null;
 
-    const [settingsRows] = await pool.query('SELECT delivery_available FROM settings LIMIT 1');
+    const [settingsRows] = await pool.query('SELECT delivery_available FROM settings WHERE area_id = ? LIMIT 1', [areaId]);
     if (settingsRows.length === 0) return;
 
     const deliveryAvailable = Boolean(settingsRows[0].delivery_available);
     if (!deliveryAvailable) {
-      const [result] = await pool.query('UPDATE settings SET shop_open = 0 WHERE shop_open = 1');
+      const [result] = await pool.query('UPDATE settings SET shop_open = 0 WHERE shop_open = 1 AND area_id = ?', [areaId]);
       changed = result.affectedRows > 0;
-      globalOpen = false;
+      areaOpen = false;
     } else {
       const [shopRows] = await pool.query(
         `SELECT
            SUM(active = 1) AS total_active,
            SUM(active = 1 AND is_open = 1) AS total_open
-         FROM shops`
+         FROM shops
+         WHERE area_id = ?`,
+        [areaId]
       );
       const totalActive = Number(shopRows[0]?.total_active) || 0;
       if (totalActive === 0) return;
 
       const totalOpen = Number(shopRows[0]?.total_open) || 0;
       const desiredOpen = totalOpen > 0 ? 1 : 0;
-      const [result] = await pool.query('UPDATE settings SET shop_open = ? WHERE shop_open != ?', [desiredOpen, desiredOpen]);
+      const [result] = await pool.query('UPDATE settings SET shop_open = ? WHERE shop_open != ? AND area_id = ?', [desiredOpen, desiredOpen, areaId]);
       changed = result.affectedRows > 0;
-      globalOpen = Boolean(desiredOpen);
+      areaOpen = Boolean(desiredOpen);
     }
 
     if (changed) {
@@ -278,18 +353,25 @@ const syncGlobalShopOpenState = async () => {
       // Lazy require: settingsController requires this file at load time,
       // so a top-level require here would be a circular import.
       const { bustSettingsCache } = require('../controllers/settingsController');
-      bustSettingsCache();
+      bustSettingsCache(areaId);
       const microCache = require('./microCache');
-      microCache.bust('dashboard');
-      microCache.bust('categories');
+      microCache.bust('dashboard', areaId);
+      microCache.bust('categories', areaId);
+      // bumpCatalogVersion too (bug fix, multi-area audit finding #8) —
+      // without it, a client holding the public /api/settings ETag
+      // (catalogETag, keyed on <areaId>-<catalog_version>) kept getting a
+      // bare 304 with the stale shop_open baked into its cached body, since
+      // nothing here ever changed catalog_version.
+      const { bumpCatalogVersion } = require('./areaScope');
+      await bumpCatalogVersion(areaId);
 
       // Let connected customer apps flip their "shop closed" banner
       // immediately instead of waiting for the next settings poll.
       const { emitToAllCustomers } = require('../realtime/socket');
-      emitToAllCustomers('settings.shop_open.updated', { shopOpen: globalOpen, shop_open: globalOpen });
+      emitToAllCustomers(areaId, 'settings.shop_open.updated', { shopOpen: areaOpen, shop_open: areaOpen });
     }
   } catch (e) {
-    console.error('[shops] syncGlobalShopOpenState failed:', e.message);
+    console.error('[shops] syncAreaShopOpenState failed:', e.message);
   }
 };
 
@@ -374,6 +456,7 @@ const maybeAutoCancelOrderWhenAllShopsRejected = async (orderId) => {
         : 'All shops rejected this order. It was cancelled automatically.',
       relatedUrl: `/orders?id=${orderId}`,
       relatedId: String(orderId),
+      areaId: updatedOrder.area_id,
     });
 
     const notificationService = require('./notificationService');
@@ -405,11 +488,13 @@ const maybeAutoCancelOrderWhenAllShopsRejected = async (orderId) => {
 module.exports = {
   getShopForUser,
   notifyShopsForOrder,
-  syncGlobalShopOpenState,
+  remindShopOrderOwner,
+  syncAreaShopOpenState,
   notifyShopsOrderCancelled,
   notifyShopsRiderAssigned,
   notifyShopsRiderAssignmentFailed,
   notifyShopsOrderStatusChanged,
   notifyShopsOrderRemarkUpdated,
+  notifyShopsOrderItemReplaced,
   maybeAutoCancelOrderWhenAllShopsRejected,
 };

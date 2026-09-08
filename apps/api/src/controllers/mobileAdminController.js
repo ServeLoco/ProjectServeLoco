@@ -1,6 +1,26 @@
 const { pool } = require('../db/mysql');
 const { normalizePhone, mapMobileAdminRow } = require('../utils/mobileAdmins');
 const { signAdminToken } = require('../utils/auth');
+const { requestAreaId } = require('../utils/areaScope');
+
+// mobile_admins carries a real area_id column (like shops/riders, TASK 3),
+// but its own controller was never in any TASK 9-17 file list — a gap
+// flagged during TASK 16/17 (multi-area-tasks.md ~L1039-1045, ~L1152-1157):
+// the INSERT below never supplied area_id even though the column is
+// NOT NULL with no default, so creating a mobile admin threw outright
+// against the real schema. Same requireOneArea pattern as shops/riders.
+const requireOneArea = (req, res) => {
+  const areaId = requestAreaId(req);
+  if (areaId === null) {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'X-Area-Id is required for this action' });
+    return null;
+  }
+  if (areaId === 'all') {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'This action cannot target "all" areas at once — pick one area' });
+    return null;
+  }
+  return areaId;
+};
 
 const fetchMobileAdminRow = async (id) => {
   const [rows] = await pool.query(
@@ -32,19 +52,25 @@ const checkRoleExclusivity = async (userId) => {
   return null;
 };
 
-// GET /api/admin/mobile-admins — every row (including inactive).
+// GET /api/admin/mobile-admins — every row (including inactive) for this area.
 const listMobileAdmins = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
   const [rows] = await pool.query(
     `SELECT ma.*, u.name AS user_name
      FROM mobile_admins ma
      LEFT JOIN users u ON u.id = ma.user_id
-     ORDER BY ma.id ASC`
+     WHERE ma.area_id = ?
+     ORDER BY ma.id ASC`,
+    [areaId]
   );
   res.status(200).json({ mobileAdmins: rows.map(mapMobileAdminRow), mobile_admins: rows.map(mapMobileAdminRow) });
 };
 
 // POST /api/admin/mobile-admins — body { phone, displayName?, active? }
 const createMobileAdmin = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
   const { phone, displayName, display_name, active } = req.body || {};
 
   const normalized = normalizePhone(phone);
@@ -66,9 +92,9 @@ const createMobileAdmin = async (req, res) => {
   let result;
   try {
     [result] = await pool.query(
-      `INSERT INTO mobile_admins (phone, display_name, user_id, active)
-       VALUES (?, ?, ?, ?)`,
-      [normalized, name, userRow?.id ?? null, isActive ? 1 : 0]
+      `INSERT INTO mobile_admins (area_id, phone, display_name, user_id, active)
+       VALUES (?, ?, ?, ?, ?)`,
+      [areaId, normalized, name, userRow?.id ?? null, isActive ? 1 : 0]
     );
   } catch (e) {
     if (e && e.code === 'ER_DUP_ENTRY') {
@@ -83,10 +109,12 @@ const createMobileAdmin = async (req, res) => {
 
 // PATCH /api/admin/mobile-admins/:id — body may contain displayName, active, phone
 const updateMobileAdmin = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
   const { id } = req.params;
   const { displayName, display_name, active, phone } = req.body || {};
 
-  const [existing] = await pool.query('SELECT * FROM mobile_admins WHERE id = ?', [id]);
+  const [existing] = await pool.query('SELECT * FROM mobile_admins WHERE id = ? AND area_id = ?', [id, areaId]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Mobile admin not found' });
   }
@@ -138,8 +166,8 @@ const updateMobileAdmin = async (req, res) => {
   }
 
   if (sets.length > 0) {
-    values.push(id);
-    await pool.query(`UPDATE mobile_admins SET ${sets.join(', ')} WHERE id = ?`, values);
+    values.push(id, areaId);
+    await pool.query(`UPDATE mobile_admins SET ${sets.join(', ')} WHERE id = ? AND area_id = ?`, values);
   }
 
   const mobileAdmin = await fetchMobileAdminRow(id);
@@ -153,7 +181,7 @@ const mintMobileSession = async (req, res) => {
   const userId = req.user.id;
 
   const [rows] = await pool.query(
-    'SELECT id, phone, user_id, active FROM mobile_admins WHERE user_id = ? AND active = 1 LIMIT 1',
+    'SELECT id, phone, user_id, active, area_id FROM mobile_admins WHERE user_id = ? AND active = 1 LIMIT 1',
     [userId]
   );
   let mobileAdmin = rows[0] || null;
@@ -165,7 +193,7 @@ const mintMobileSession = async (req, res) => {
     const phone = userRows[0]?.phone;
     if (phone) {
       const [byPhone] = await pool.query(
-        'SELECT id, phone, user_id, active FROM mobile_admins WHERE phone = ? AND active = 1 LIMIT 1',
+        'SELECT id, phone, user_id, active, area_id FROM mobile_admins WHERE phone = ? AND active = 1 LIMIT 1',
         [phone]
       );
       mobileAdmin = byPhone[0] || null;
@@ -179,10 +207,16 @@ const mintMobileSession = async (req, res) => {
     return res.status(403).json({ code: 'NOT_MOBILE_ADMIN', message: 'This phone is not an active mobile admin.' });
   }
 
-  const token = signAdminToken(`mobile:${mobileAdmin.id}`);
+  // A mobile admin is area-scoped exactly like an area_admin (their own
+  // mobile_admins.area_id, never a choice) — without adminRole/areaId on
+  // this token, resolveAdminArea no-ops and req.areaId stays unresolved, so
+  // every admin-route controller reading requestAreaId(req) throws (bug
+  // fix, multi-area audit finding #1). adminRole here is a session-shape
+  // label only; it grants no admins-table capability.
+  const token = signAdminToken(`mobile:${mobileAdmin.id}`, { adminRole: 'area_admin', areaId: mobileAdmin.area_id });
   res.status(200).json({
     token,
-    user: { id: mobileAdmin.id, role: 'admin', mobileAdminId: mobileAdmin.id },
+    user: { id: mobileAdmin.id, role: 'admin', mobileAdminId: mobileAdmin.id, adminRole: 'area_admin', areaId: mobileAdmin.area_id, area_id: mobileAdmin.area_id },
   });
 };
 

@@ -107,7 +107,9 @@ describe('no-delivery exclusion squares', () => {
     it('derives the same deliveryBlocked gate from the bill', () => {
       expect(cartSource).toMatch(/const outOfRange = Boolean\(bill\?\.outOfRange\)/);
       expect(cartSource).toMatch(/const excluded = Boolean\(bill\?\.excluded\)/);
-      expect(cartSource).toMatch(/const deliveryBlocked = outOfRange \|\| excluded/);
+      expect(cartSource).toMatch(
+        /const deliveryBlocked = requiresLocation \|\| outOfRange \|\| excluded \|\| serverRefusedDelivery/,
+      );
     });
 
     it('disables Proceed to Pay while delivery is blocked', () => {
@@ -122,9 +124,39 @@ describe('no-delivery exclusion squares', () => {
     });
 
     it('explains why instead of silently disabling the button', () => {
-      expect(cartSource).toMatch(/deliveryBlockedMessage = excluded/);
+      expect(cartSource).toMatch(/deliveryBlockedMessage = requiresLocation/);
+      expect(cartSource).toMatch(/: excluded\s*\n\s*\? \(bill\?\.exclusionMessage \|\|/);
       expect(cartSource).toMatch(/styles\.deliveryBlockedRow/);
-      expect(cartSource).toMatch(/checkoutBtnText = deliveryBlocked\s*\n\s*\? 'Delivery not available here'/);
+      expect(cartSource).toMatch(/: deliveryBlocked\s*\n\s*\? 'Delivery not available here'/);
+    });
+
+    // A request that carried no coordinates comes back outOfRange: true,
+    // because zone pricing fails closed — indistinguishable in the response
+    // from a pin that really is outside every zone. Conflating the two told
+    // customers standing well inside a zone that we don't deliver to them,
+    // whenever their first-launch GPS/zone-check hadn't landed yet.
+    it('separates "no location yet" from "outside delivery area"', () => {
+      expect(cartSource).toMatch(/const requiresLocation = Boolean\(bill\?\.requiresLocation\)/);
+      expect(cartSource).toMatch(/deliveryBlockedMessage = requiresLocation\s*\n\s*\? "Couldn't get your location/);
+      expect(cartSource).toMatch(/checkoutBtnText = requiresLocation\s*\n\s*\? 'Set delivery location'/);
+    });
+
+    // The quote used to go out 300ms after focus regardless of whether the
+    // startup location sync had produced a pin, which is what generated the
+    // coordinate-less request in the first place.
+    it('waits for the startup location sync before quoting', () => {
+      expect(cartSource).toMatch(/if \(!customerCoords && !isInitialLocationSyncComplete\)/);
+    });
+
+    // deliveryWithinRange is the server's own verdict and folds in cases the
+    // individual flags don't describe — above all a pin that matched no zone
+    // in any area, where catalog scoping falls back to the default area and,
+    // if that area runs flat pricing, a settings.delivery_charge quote came
+    // back with outOfRange: false attached.
+    it('honours the server verdict, not just the individual flags', () => {
+      expect(cartSource).toMatch(
+        /const serverRefusedDelivery = bill \? bill\.deliveryWithinRange === false : false/,
+      );
     });
   });
 });

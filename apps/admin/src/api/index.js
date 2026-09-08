@@ -43,6 +43,10 @@ export const OrdersApi = {
     method: 'PATCH',
     body: { remark, admin_remark: remark },
   }),
+  replaceItem: (orderId, itemId, data) => apiClient(`/admin/orders/${orderId}/items/${itemId}/replace`, {
+    method: 'PATCH',
+    body: data,
+  }),
   extendAutoAccept: (id) => apiClient(`/admin/orders/${id}/extend-auto-accept`, { method: 'POST' }),
   calculateForCustomer: (data) => apiClient('/admin/orders/calculate', { method: 'POST', body: data }),
   createForCustomer: (data) => apiClient('/admin/orders', { method: 'POST', body: data }),
@@ -118,6 +122,10 @@ export const ShopsApi = {
     `/admin/shops/${shopId}/orders/${orderId}/ready`,
     { method: 'PATCH' }
   ),
+  resendOrder: (shopId, orderId) => apiClient(
+    `/admin/shops/${shopId}/orders/${orderId}/resend`,
+    { method: 'PATCH' }
+  ),
   // Auto open/close schedule — mirrors shop-owner's own PATCH /shop/me/schedule.
   updateSchedule: (id, openTime, closeTime) => apiClient(`/admin/shops/${id}/schedule`, {
     method: 'PATCH',
@@ -163,6 +171,10 @@ export const RidersApi = {
   updateAssignmentStatus: (riderId, orderId, status) => apiClient(
     `/admin/riders/${riderId}/assignments/${orderId}/status`,
     { method: 'PATCH', body: { status } }
+  ),
+  reassign: (riderId, orderId) => apiClient(
+    `/admin/riders/${riderId}/assignments/${orderId}/reassign`,
+    { method: 'POST' }
   ),
 };
 
@@ -272,4 +284,49 @@ export const AnalyticsApi = {
   user: (id, days) => apiClient(withQuery(`/admin/analytics/user/${id}`, { days }), { method: 'GET' }),
   hourly: (days) => apiClient(withQuery('/admin/analytics/hourly', { days }), { method: 'GET' }),
   activeUsers: (minutes, search) => apiClient(withQuery('/admin/analytics/active-users', { minutes, search }), { method: 'GET' }),
+};
+
+// Product library (TASK 19/26) — identity shared, GET is any admin, writes
+// are super_admin only, add-to-area is any admin for their own area.
+export const LibraryApi = {
+  list: (params) => apiClient(withQuery('/admin/library', params), { method: 'GET' }),
+  create: (data) => apiClient('/admin/library', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/library/${id}`, { method: 'PATCH', body: data }),
+  archive: (id) => apiClient(`/admin/library/${id}/archive`, { method: 'POST' }),
+  addToArea: (id, data) => apiClient(`/admin/library/${id}/add-to-area`, { method: 'POST', body: data }),
+  addToAreas: (id, data) => apiClient(`/admin/library/${id}/add-to-areas`, { method: 'POST', body: data }),
+  promote: (productId) => apiClient(`/admin/products/${productId}/promote-to-library`, { method: 'POST' }),
+};
+
+// Category library (TASK 26) — same shape as LibraryApi above.
+export const CategoryLibraryApi = {
+  list: (params) => apiClient(withQuery('/admin/category-library', params), { method: 'GET' }),
+  create: (data) => apiClient('/admin/category-library', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/category-library/${id}`, { method: 'PATCH', body: data }),
+  archive: (id) => apiClient(`/admin/category-library/${id}/archive`, { method: 'POST' }),
+  addToArea: (id, data) => apiClient(`/admin/category-library/${id}/add-to-area`, { method: 'POST', body: data }),
+};
+
+// Store-mode library (TASK 26) — same shape again.
+export const StoreModeLibraryApi = {
+  list: (params) => apiClient(withQuery('/admin/store-mode-library', params), { method: 'GET' }),
+  create: (data) => apiClient('/admin/store-mode-library', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/store-mode-library/${id}`, { method: 'PATCH', body: data }),
+  archive: (id) => apiClient(`/admin/store-mode-library/${id}/archive`, { method: 'POST' }),
+  addToArea: (id, data) => apiClient(`/admin/store-mode-library/${id}/add-to-area`, { method: 'POST', body: data }),
+};
+
+// Super-admin only (TASK 24's areaController.js) — area CRUD, clone-area.
+export const AreasApi = {
+  list: () => apiClient('/admin/areas', { method: 'GET' }),
+  create: (data) => apiClient('/admin/areas', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/areas/${id}`, { method: 'PATCH', body: data }),
+  cloneFrom: (id, sourceId, data) => apiClient(`/admin/areas/${id}/clone-from/${sourceId}`, { method: 'POST', body: data || {} }),
+};
+
+// Super-admin only — admin-account CRUD.
+export const AdminsApi = {
+  list: () => apiClient('/admin/admins', { method: 'GET' }),
+  create: (data) => apiClient('/admin/admins', { method: 'POST', body: data }),
+  update: (id, data) => apiClient(`/admin/admins/${id}`, { method: 'PATCH', body: data }),
 };

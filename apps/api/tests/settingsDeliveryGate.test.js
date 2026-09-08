@@ -23,7 +23,13 @@ const app = express();
 app.use(express.json());
 app.use('/api/admin', adminRoutes);
 
-const adminToken = jwt.sign({ id: 'admin', role: 'admin' }, process.env.JWT_SECRET || 'secret');
+// area_admin for area 1 — updateSettings requires a real req.areaId
+// (resolveAdminArea, chained inside requireAdmin) since PATCH /settings
+// targets exactly one area.
+const adminToken = jwt.sign(
+  { sub: 'admin', role: 'admin', adminRole: 'area_admin', areaId: 1 },
+  process.env.JWT_SECRET || 'secret'
+);
 
 describe('PATCH /api/admin/settings — delivery_available master gate', () => {
   beforeEach(() => {
@@ -91,6 +97,7 @@ describe('PATCH /api/admin/settings — delivery_available master gate', () => {
       .mockResolvedValueOnce([{}])                           // UPDATE delivery_available = 0
       .mockResolvedValueOnce([[{ delivery_available: 0 }]])  // sync: settings lookup
       .mockResolvedValueOnce([{ affectedRows: 1 }])          // sync: UPDATE shop_open = 0
+      .mockResolvedValueOnce([{ affectedRows: 1 }])          // sync: bumpCatalogVersion (bug fix #8)
       .mockResolvedValueOnce([[{ delivery_available: 0, shop_open: 0 }]]); // return updated
 
     const res = await request(app)
@@ -99,7 +106,7 @@ describe('PATCH /api/admin/settings — delivery_available master gate', () => {
       .send({ delivery_available: false });
 
     expect(res.statusCode).toEqual(200);
-    expect(pool.query).toHaveBeenNthCalledWith(4, 'UPDATE settings SET shop_open = 0 WHERE shop_open = 1');
+    expect(pool.query).toHaveBeenNthCalledWith(4, 'UPDATE settings SET shop_open = 0 WHERE shop_open = 1 AND area_id = ?', [1]);
   });
 
   it('turning delivery_available back on re-syncs shop_open per shop states', async () => {
@@ -109,6 +116,7 @@ describe('PATCH /api/admin/settings — delivery_available master gate', () => {
       .mockResolvedValueOnce([[{ delivery_available: 1 }]])            // sync: settings lookup
       .mockResolvedValueOnce([[{ total_active: 2, total_open: 1 }]])   // sync: shops SUM
       .mockResolvedValueOnce([{ affectedRows: 1 }])                    // sync: UPDATE shop_open = 1
+      .mockResolvedValueOnce([{ affectedRows: 1 }])                    // sync: bumpCatalogVersion (bug fix #8)
       .mockResolvedValueOnce([[{ delivery_available: 1, shop_open: 1 }]]); // return updated
 
     const res = await request(app)
@@ -117,7 +125,7 @@ describe('PATCH /api/admin/settings — delivery_available master gate', () => {
       .send({ delivery_available: true });
 
     expect(res.statusCode).toEqual(200);
-    expect(pool.query).toHaveBeenNthCalledWith(5, 'UPDATE settings SET shop_open = ? WHERE shop_open != ?', [1, 1]);
+    expect(pool.query).toHaveBeenNthCalledWith(5, 'UPDATE settings SET shop_open = ? WHERE shop_open != ? AND area_id = ?', [1, 1, 1]);
   });
 
   it('a plain shop_open: false close is never blocked by the gate', async () => {

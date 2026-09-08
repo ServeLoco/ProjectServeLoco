@@ -25,6 +25,9 @@ import {
 import { colors, typography, spacing, radius, shadows, layout, borderWidth, motionConfig, entryDistance, easing, smallMs, staggerMs, screenMs } from '../../../theme';
 import { useCartStore, useSettingsStore, useDeliveryZonesStore, useDeliveryLocationStore } from '../../../stores';
 import { cartApi } from '../../../api';
+// Imported from the module rather than the hooks barrel: the barrel pulls in
+// every realtime/rider hook with it, none of which the cart needs.
+import { syncDeliveryLocation } from '../../../hooks/useDeliveryLocationSync';
 import { showToast } from '../../../components/Toast';
 import { buildProgressHintText, normalizeCartCalculation, useReducedMotion } from '../../../utils';
 
@@ -60,8 +63,23 @@ export default function CartScreen() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [bill, setBill] = useState(null);
   const [calcError, setCalcError] = useState(null);
+  // A bare skeleton past a couple of seconds reads as the app being stuck.
+  // Naming the connection is also the honest explanation for the longest
+  // wait here: the startup location sync has to land before we may quote at
+  // all (see calculateBill's gate), so a slow link stalls the bill twice
+  // over. Same 2500ms threshold and wording as HomeScreen's location notice.
+  const [isBillSlow, setIsBillSlow] = useState(false);
   // Bumped on screen focus so bill + unit prices re-pull even if qty unchanged.
   const [focusTick, setFocusTick] = useState(0);
+
+  useEffect(() => {
+    if (!isCalculating) {
+      setIsBillSlow(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setIsBillSlow(true), 2500);
+    return () => clearTimeout(timer);
+  }, [isCalculating]);
 
   const reducedMotion = useReducedMotion();
 
@@ -73,6 +91,15 @@ export default function CartScreen() {
       setBill(null);
       setCalcError(null);
       setFocusTick((n) => n + 1);
+      // Opening the cart with no pin, after the startup sync already gave up,
+      // is the one moment the location actually has to be known — retry here
+      // rather than leaving the customer to wait out a foreground cycle. Read
+      // imperatively so this stays tied to the focus event (exactly one
+      // attempt per visit) instead of re-firing as the store settles;
+      // syncDeliveryLocation dedupes anyway. On success the store update
+      // re-runs the bill effect below with real coordinates.
+      const { coords, isInitialSyncComplete } = useDeliveryLocationStore.getState();
+      if (!coords && isInitialSyncComplete) syncDeliveryLocation();
     }, []),
   );
 
@@ -84,6 +111,14 @@ export default function CartScreen() {
   // legitimately be null here — the deliveryBlocked gate below is what stops
   // an undeliverable cart, not an upstream guarantee.
   const customerCoords = useDeliveryLocationStore(state => state.coords);
+  // Same startup gate Home/Categories/ProductList already wait on. Cart used
+  // to ignore it and fire its first bill request 300ms after focus regardless,
+  // so on a first launch (nothing persisted yet) the request went out with no
+  // lat/lng at all — which, with zone pricing on, the server answers with
+  // outOfRange: true. That is indistinguishable from a genuine out-of-area pin
+  // in the response, so a customer standing well inside a zone was told
+  // "Outside delivery area" purely because their GPS/zone-check hadn't landed.
+  const isInitialLocationSyncComplete = useDeliveryLocationStore(state => state.isInitialSyncComplete);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -192,6 +227,18 @@ export default function CartScreen() {
       return;
     }
 
+    // No pin yet AND the startup location sync is still running: quoting now
+    // would send a coordinate-less request and get back a "we don't deliver
+    // here" answer about a location nobody has resolved. Hold the skeleton
+    // instead — this effect re-runs on both of these, so the real quote goes
+    // out the moment coords land (or the moment the sync gives up, at which
+    // point requiresLocation below states the actual problem).
+    if (!customerCoords && !isInitialLocationSyncComplete) {
+      setIsCalculating(true);
+      setBill(null);
+      return;
+    }
+
     setIsCalculating(true);
     setCalcError(null);
 
@@ -274,7 +321,7 @@ export default function CartScreen() {
     }, 300);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, appliedCouponCode, appliedCouponId, couponAutoApplyDisabled, focusTick, deliveryZonesVersion, customerCoords]);
+  }, [items, appliedCouponCode, appliedCouponId, couponAutoApplyDisabled, focusTick, deliveryZonesVersion, customerCoords, isInitialLocationSyncComplete]);
 
   const handleRemove = (id, type = 'product', variantId = null) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -308,8 +355,25 @@ export default function CartScreen() {
   // the customer only discovered the refusal one screen later at Checkout.
   const outOfRange = Boolean(bill?.outOfRange);
   const excluded = Boolean(bill?.excluded);
-  const deliveryBlocked = outOfRange || excluded;
-  const deliveryBlockedMessage = excluded
+  // The server sets requiresLocation when the request carried no coordinates
+  // at all, and reports outOfRange alongside it because zone pricing fails
+  // closed. Checked FIRST so the two are never conflated: "we couldn't get
+  // your location" is a retryable client-side problem, while "outside
+  // delivery area" is a verdict about a pin we actually resolved. Telling a
+  // customer inside a zone that we don't deliver to them is the worse of the
+  // two errors, and it was the one being shown.
+  const requiresLocation = Boolean(bill?.requiresLocation);
+  // The server's own verdict, and the authoritative one — it folds in cases
+  // the three flags above don't describe on their own (most importantly a pin
+  // that matched no zone in any area, where the catalog scoping falls back to
+  // the default area). Read explicitly rather than assumed to be implied by
+  // outOfRange: the cart is the last screen before payment, so anything the
+  // server declines to stand behind must not be quoted here.
+  const serverRefusedDelivery = bill ? bill.deliveryWithinRange === false : false;
+  const deliveryBlocked = requiresLocation || outOfRange || excluded || serverRefusedDelivery;
+  const deliveryBlockedMessage = requiresLocation
+    ? "Couldn't get your location. Set your delivery location to see delivery charges."
+    : excluded
     ? (bill?.exclusionMessage || 'Delivery is not available at this location.')
     : bill?.nearestZoneName
     ? `Outside delivery area. Move your pin inside ${bill.nearestZoneName} to order.`
@@ -324,7 +388,9 @@ export default function CartScreen() {
     !bill;
 
   const bottomBarHeight = 78 + insets.bottom;
-  const checkoutBtnText = deliveryBlocked
+  const checkoutBtnText = requiresLocation
+    ? 'Set delivery location'
+    : deliveryBlocked
     ? 'Delivery not available here'
     : bill
     ? `Proceed to Pay  •  ₹${bill.grandTotal}`
@@ -687,6 +753,9 @@ export default function CartScreen() {
       </View>
       <View style={styles.billSkeletonDivider} />
       <LoadingSkeleton width="70%" height={22} />
+      {isBillSlow ? (
+        <Text style={styles.billSlowNotice}>Slow internet — still getting your delivery charge…</Text>
+      ) : null}
     </View>
   );
 
@@ -1562,6 +1631,13 @@ const styles = StyleSheet.create({
     height: borderWidth.thin,
     backgroundColor: colors.divider,
     marginVertical: spacing.md,
+  },
+  billSlowNotice: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: spacing.md,
   },
   calcError: {
     paddingVertical: 0,

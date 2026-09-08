@@ -1,13 +1,15 @@
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
 const { roundMoney } = require('../utils/money');
-const { syncGlobalShopOpenState } = require('../utils/shops');
+const { syncAreaShopOpenState } = require('../utils/shops');
 const { emitToAllCustomers, emitToAdmins } = require('../realtime/socket');
+const { bustAreaCaches } = require('../utils/areaScope');
 const {
   listShopActiveOrders,
   confirmShopOrder,
   rejectShopOrder,
   readyShopOrder,
+  ackShopOrderAlert,
 } = require('../services/shopOrderActions');
 
 // Same fixed offset riders.js uses for "today" — the DB session time_zone
@@ -62,13 +64,13 @@ const toggleMyShop = async (req, res) => {
     }
   }
 
-  await pool.query('UPDATE shops SET is_open = ? WHERE id = ?', [isOpen ? 1 : 0, req.shop.id]);
+  await pool.query('UPDATE shops SET is_open = ? WHERE id = ? AND area_id = ?', [isOpen ? 1 : 0, req.shop.id, req.shop.area_id]);
   const [rows] = await pool.query('SELECT id, name, is_open, active, open_time, close_time FROM shops WHERE id = ?', [req.shop.id]);
-  emitToAllCustomers('shop.status.updated', { shopId: req.shop.id, isOpen: Boolean(isOpen) });
+  emitToAllCustomers(req.shop.area_id, 'shop.status.updated', { shopId: req.shop.id, isOpen: Boolean(isOpen) });
   // Admin dashboard's Shops table has no other way to learn a shop owner
   // toggled their own shop — keep it in sync the same way rider toggles do.
   try {
-    emitToAdmins('admin.shop.updated', {
+    emitToAdmins(req.shop.area_id, 'admin.shop.updated', {
       shopId: req.shop.id,
       id: req.shop.id,
       isOpen: Boolean(isOpen),
@@ -76,14 +78,13 @@ const toggleMyShop = async (req, res) => {
       active: Boolean(rows[0]?.active),
     });
   } catch (_) { /* best-effort */ }
-  // Keep the global "Shop Status" banner in sync — opening this shop can
+  // Keep this area's "Shop Status" banner in sync — opening this shop can
   // auto-turn it on (if delivery is available), closing it can auto-turn
-  // it off (if this was the last open shop). See syncGlobalShopOpenState.
-  await syncGlobalShopOpenState();
-  // Products from this shop appear/disappear on dashboard even when global
-  // shop_open is unchanged — bust micro-cache.
-  require('../utils/microCache').bust('dashboard');
-  require('../utils/microCache').bust('categories');
+  // it off (if this was the last open shop). See syncAreaShopOpenState.
+  await syncAreaShopOpenState(req.shop.area_id);
+  // Products from this shop appear/disappear on dashboard even when the
+  // area's shop_open is unchanged — bust its micro-cache.
+  await bustAreaCaches(req.shop.area_id);
   res.status(200).json({ message: 'Shop updated', shop: shopShape(rows[0]) });
 };
 
@@ -109,10 +110,10 @@ const updateMyShopSchedule = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Open and close time must be different.' });
   }
 
-  await pool.query('UPDATE shops SET open_time = ?, close_time = ? WHERE id = ?', [openTime, closeTime, req.shop.id]);
+  await pool.query('UPDATE shops SET open_time = ?, close_time = ? WHERE id = ? AND area_id = ?', [openTime, closeTime, req.shop.id, req.shop.area_id]);
   const [rows] = await pool.query(
-    'SELECT id, name, is_open, active, open_time, close_time FROM shops WHERE id = ?',
-    [req.shop.id],
+    'SELECT id, name, is_open, active, open_time, close_time FROM shops WHERE id = ? AND area_id = ?',
+    [req.shop.id, req.shop.area_id],
   );
   res.status(200).json({ message: 'Shop schedule updated', shop: shopShape(rows[0]) });
 };
@@ -181,7 +182,7 @@ const toggleMyProduct = async (req, res) => {
   }
   // Customers listening on dashboard/cart drop OOS lines live (and re-show when
   // the shop marks the item available again via silent catalog refresh).
-  emitToAllCustomers('product.availability.updated', {
+  emitToAllCustomers(req.shop.area_id, 'product.availability.updated', {
     productId,
     id: productId,
     available: isAvailable,
@@ -190,8 +191,7 @@ const toggleMyProduct = async (req, res) => {
   // Bust the server-side dashboard/categories cache too — otherwise the socket
   // event tells clients to refetch, but they'd get the same stale (30s TTL)
   // cached response back until it naturally expires.
-  require('../utils/microCache').bust('dashboard');
-  require('../utils/microCache').bust('categories');
+  await bustAreaCaches(req.shop.area_id);
   res.status(200).json({
     message: 'Product updated',
     productId, product_id: productId,
@@ -220,15 +220,14 @@ const toggleMyProductVariant = async (req, res) => {
   if (result.affectedRows === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Variant not found' });
   }
-  emitToAllCustomers('product.availability.updated', {
+  emitToAllCustomers(req.shop.area_id, 'product.availability.updated', {
     productId,
     id: productId,
     variantId,
     available: isAvailable,
     shopId: req.shop.id,
   });
-  require('../utils/microCache').bust('dashboard');
-  require('../utils/microCache').bust('categories');
+  await bustAreaCaches(req.shop.area_id);
   res.status(200).json({
     message: 'Variant updated',
     productId, product_id: productId,
@@ -394,6 +393,14 @@ const readyMyOrder = async (req, res) => {
   res.status(200).json({ message: result.message });
 };
 
+// POST /orders/:orderId/alert-ack — the shop app confirms it actually
+// displayed the new-order alarm. Fire-and-forget from the client's
+// perspective; always 200s, never a state transition.
+const ackMyOrderAlert = async (req, res) => {
+  const result = await ackShopOrderAlert(req.shop.id, req.params.orderId);
+  res.status(200).json({ acked: result.acked });
+};
+
 const groupShape = (g) => ({
   id: g.id,
   name: g.name,
@@ -409,22 +416,24 @@ const getMyGroups = async (req, res) => {
     `SELECT pg.id, pg.name, pg.active,
        (SELECT COUNT(*) FROM products p WHERE p.group_id = pg.id AND p.deleted = 0) AS product_count
      FROM product_groups pg
-     WHERE pg.shop_id = ?
+     WHERE pg.shop_id = ? AND pg.area_id = ?
      ORDER BY pg.name ASC`,
-    [req.shop.id]
+    [req.shop.id, req.shop.area_id]
   );
   res.status(200).json({ groups: rows.map(groupShape) });
 };
 
-// POST /groups — body { name }.
+// POST /groups — body { name }. area_id is stamped from the shop's own row
+// (shops isn't gated by an admin X-Area-Id session here — this is the
+// self-service shop-owner flow, TASK 15 covers shops.area_id itself).
 const createMyGroup = async (req, res) => {
   const { name } = req.body;
   if (!name || !String(name).trim()) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Group name is required' });
   }
   const [result] = await pool.query(
-    'INSERT INTO product_groups (shop_id, name) VALUES (?, ?)',
-    [req.shop.id, String(name).trim()]
+    'INSERT INTO product_groups (area_id, shop_id, name) VALUES (?, ?, ?)',
+    [req.shop.area_id, req.shop.id, String(name).trim()]
   );
   const [rows] = await pool.query(
     'SELECT id, name, active, 0 AS product_count FROM product_groups WHERE id = ?',
@@ -434,14 +443,14 @@ const createMyGroup = async (req, res) => {
 };
 
 // PATCH /groups/:id — body may contain name and/or active. Scoped to this
-// shop — a group id from another shop 404s, never trusted by id alone.
+// shop AND area — a group id from another shop 404s, never trusted by id alone.
 const updateMyGroup = async (req, res) => {
   const { id } = req.params;
   const { name, active } = req.body;
 
   const [existing] = await pool.query(
-    'SELECT id FROM product_groups WHERE id = ? AND shop_id = ?',
-    [id, req.shop.id]
+    'SELECT id FROM product_groups WHERE id = ? AND shop_id = ? AND area_id = ?',
+    [id, req.shop.id, req.shop.area_id]
   );
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Group not found' });
@@ -478,8 +487,8 @@ const updateMyGroup = async (req, res) => {
 const deleteMyGroup = async (req, res) => {
   const { id } = req.params;
   const [existing] = await pool.query(
-    'SELECT id FROM product_groups WHERE id = ? AND shop_id = ?',
-    [id, req.shop.id]
+    'SELECT id FROM product_groups WHERE id = ? AND shop_id = ? AND area_id = ?',
+    [id, req.shop.id, req.shop.area_id]
   );
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Group not found' });
@@ -497,8 +506,8 @@ const assignMyProductGroup = async (req, res) => {
 
   if (groupId !== null && groupId !== undefined) {
     const [groupRows] = await pool.query(
-      'SELECT id FROM product_groups WHERE id = ? AND shop_id = ?',
-      [groupId, req.shop.id]
+      'SELECT id FROM product_groups WHERE id = ? AND shop_id = ? AND area_id = ?',
+      [groupId, req.shop.id, req.shop.area_id]
     );
     if (groupRows.length === 0) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Unknown group_id' });
@@ -527,6 +536,7 @@ module.exports = {
   confirmMyOrder,
   rejectMyOrder,
   readyMyOrder,
+  ackMyOrderAlert,
   getMyGroups,
   createMyGroup,
   updateMyGroup,

@@ -1,6 +1,15 @@
 /**
  * Periodic sweeper for rider offer timeouts + boot rehydrate.
  * DB is source of truth (expires_at); works across multi-instance APIs.
+ *
+ * Deliberately NOT area-scoped (H2/15.5): expireDueOffers, remindPendingOffers
+ * and recoverStuckAssignments each operate on already-known offer_id/order_id
+ * rows pulled straight from the DB, and recoverStuckAssignments' own eligible-
+ * rider lookup is scoped per order's area_id (utils/riders.js, TASK 15) — so
+ * running this sweep globally across every area in one tick is safe, not a
+ * gap. Their admin.* socket emits (riderAssignment.js) key off each order's
+ * own area_id into emitToAdmins' per-area room (TASK 23), same as every
+ * other realtime emit in the codebase.
  */
 
 const config = require('../config/env');

@@ -66,12 +66,14 @@ describe('Race-safe order numbers (TASK 3)', () => {
       }),
     };
 
-    const num1 = await generateOrderNumber(mockConnection);
-    const num2 = await generateOrderNumber(mockConnection);
+    const num1 = await generateOrderNumber(mockConnection, 1, 'A1');
+    const num2 = await generateOrderNumber(mockConnection, 1, 'A1');
 
-    // Format must stay OD-YYYYMMDD-NNNN
-    expect(num1).toMatch(/^OD-\d{8}-\d{4}$/);
-    expect(num2).toMatch(/^OD-\d{8}-\d{4}$/);
+    // Format is OD-YYYYMMDD-AREACODE-NNNN (TASK 13, §6.3) — the extra
+    // segment makes collision with the legacy OD-YYYYMMDD-NNNN structurally
+    // impossible.
+    expect(num1).toMatch(/^OD-\d{8}-A1-\d{4}$/);
+    expect(num2).toMatch(/^OD-\d{8}-A1-\d{4}$/);
     expect(num1).not.toEqual(num2);
 
     // Sequence numbers must be consecutive
@@ -85,12 +87,44 @@ describe('Race-safe order numbers (TASK 3)', () => {
       query: jest.fn().mockResolvedValue([[{ seq: 1 }]]),
     };
 
-    await generateOrderNumber(mockConnection);
+    await generateOrderNumber(mockConnection, 1, 'A1');
 
     const calls = mockConnection.query.mock.calls.map(c => String(c[0]));
     expect(calls.some(sql => /INSERT INTO daily_order_counters.*ON DUPLICATE KEY UPDATE/i.test(sql))).toBe(true);
     expect(calls.some(sql => /SELECT LAST_INSERT_ID/i.test(sql))).toBe(true);
     // The old race-prone COUNT(*) ... FOR UPDATE query must be gone.
     expect(calls.some(sql => /COUNT\(\*\).*FOR UPDATE/i.test(sql))).toBe(false);
+  });
+
+  // Regression: a max-length (16 char, the ceiling areaController.js's
+  // createArea validates) area code combined with the usual 4-digit seq
+  // used to overflow orders.order_number's old VARCHAR(20) — every checkout
+  // in that area 500'd with ER_DATA_TOO_LONG mid-transaction. The column is
+  // now VARCHAR(40) (db/migrate.js); this asserts the generated value
+  // actually fits, so a future format change that eats the headroom again
+  // fails here instead of in production.
+  it('fits within orders.order_number (VARCHAR(40)) even with a max-length area code', async () => {
+    const maxCode = 'A'.repeat(16); // areaController.js caps areas.code at 16 chars
+    const mockConnection = {
+      query: jest.fn().mockResolvedValue([[{ seq: 1 }]]),
+    };
+
+    const orderNumber = await generateOrderNumber(mockConnection, 1, maxCode);
+
+    expect(orderNumber.length).toBeLessThanOrEqual(40);
+    expect(orderNumber).toMatch(new RegExp(`^OD-\\d{8}-${maxCode}-\\d{4}$`));
+  });
+
+  // A sequence that outgrows the usual 4-digit pad (padStart pads, it never
+  // truncates) must still fit the widened column, not just the common case.
+  it('fits within orders.order_number even when the daily sequence exceeds 4 digits', async () => {
+    const maxCode = 'A'.repeat(16);
+    const mockConnection = {
+      query: jest.fn().mockResolvedValue([[{ seq: 123456 }]]),
+    };
+
+    const orderNumber = await generateOrderNumber(mockConnection, 1, maxCode);
+
+    expect(orderNumber.length).toBeLessThanOrEqual(40);
   });
 });

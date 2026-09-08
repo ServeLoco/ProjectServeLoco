@@ -2,7 +2,9 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './components/ThemeProvider';
 import { AuthProvider } from './components/AuthProvider';
+import { AreaProvider } from './stores/useAreaStore';
 import ProtectedRoute from './routes/ProtectedRoute';
+import SuperAdminRoute from './routes/SuperAdminRoute';
 import AdminLayout from './layout/AdminLayout';
 
 import Login from './pages/Login';
@@ -28,6 +30,9 @@ import Health from './pages/Health';
 import BulkImport from './pages/BulkImport';
 import Analytics from './pages/Analytics';
 import AnalyticsUserDetail from './pages/AnalyticsUserDetail';
+import Areas from './pages/Areas';
+import Admins from './pages/Admins';
+import Library from './pages/Library';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -67,39 +72,46 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <ErrorBoundary>
-          <Router>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route element={<ProtectedRoute />}>
-                <Route element={<AdminLayout />}>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/orders" element={<Orders />} />
-                  <Route path="/products" element={<Products />} />
-                  <Route path="/combos" element={<Combos />} />
-                  <Route path="/categories" element={<Categories />} />
-                  <Route path="/store-modes" element={<StoreModes />} />
-                  <Route path="/shops" element={<Shops />} />
-                  <Route path="/riders" element={<Riders />} />
-                  <Route path="/mobile-admins" element={<MobileAdmins />} />
-                  <Route path="/offers" element={<Offers />} />
-                  <Route path="/coupons" element={<Coupons />} />
-                  <Route path="/mobile-dashboard" element={<MobileDashboard />} />
-                  <Route path="/customers" element={<Customers />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/delivery-zones" element={<DeliveryZones />} />
-                  <Route path="/images" element={<Images />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/health" element={<Health />} />
-                  <Route path="/bulk-import" element={<BulkImport />} />
-                  <Route path="/analytics" element={<Analytics />} />
-                  <Route path="/analytics/user/:id" element={<AnalyticsUserDetail />} />
+        <AreaProvider>
+          <ErrorBoundary>
+            <Router>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<AdminLayout />}>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/orders" element={<Orders />} />
+                    <Route path="/products" element={<Products />} />
+                    <Route path="/combos" element={<Combos />} />
+                    <Route path="/categories" element={<Categories />} />
+                    <Route path="/store-modes" element={<StoreModes />} />
+                    <Route path="/shops" element={<Shops />} />
+                    <Route path="/riders" element={<Riders />} />
+                    <Route path="/mobile-admins" element={<MobileAdmins />} />
+                    <Route path="/offers" element={<Offers />} />
+                    <Route path="/coupons" element={<Coupons />} />
+                    <Route path="/mobile-dashboard" element={<MobileDashboard />} />
+                    <Route path="/customers" element={<Customers />} />
+                    <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/delivery-zones" element={<DeliveryZones />} />
+                    <Route path="/images" element={<Images />} />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/health" element={<Health />} />
+                    <Route path="/bulk-import" element={<BulkImport />} />
+                    <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/analytics/user/:id" element={<AnalyticsUserDetail />} />
+                    <Route element={<SuperAdminRoute />}>
+                      <Route path="/areas" element={<Areas />} />
+                      <Route path="/admins" element={<Admins />} />
+                      <Route path="/library" element={<Library />} />
+                    </Route>
+                  </Route>
                 </Route>
-              </Route>
-            </Routes>
-          </Router>
-        </ErrorBoundary>
+              </Routes>
+            </Router>
+          </ErrorBoundary>
+        </AreaProvider>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -1,14 +1,32 @@
 const { pool } = require('../db/mysql');
 const { emitToAllCustomers, emitToAdmins } = require('../realtime/socket');
-const { syncGlobalShopOpenState } = require('../utils/shops');
+const { syncAreaShopOpenState } = require('../utils/shops');
 const { isActiveMobileAdminPhone } = require('../utils/mobileAdmins');
 const { validateCoordinates } = require('../validators');
+const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
 const {
   listShopActiveOrders,
   confirmShopOrder,
   rejectShopOrder,
   readyShopOrder,
+  resendShopOrder,
 } = require('../services/shopOrderActions');
+
+// Shops (TASK 15) and product groups (TASK 11) both carry a real area_id
+// column (TASK 3). Rejects null (super_admin, no X-Area-Id) and 'all' the
+// same way every other single-area write does.
+const requireOneArea = (req, res) => {
+  const areaId = requestAreaId(req);
+  if (areaId === null) {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'X-Area-Id is required for this action' });
+    return null;
+  }
+  if (areaId === 'all') {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: 'This action cannot target "all" areas at once — pick one area' });
+    return null;
+  }
+  return areaId;
+};
 
 // MySQL TIME columns come back as 'HH:MM:SS' — trim to 'HH:MM' for the API.
 const formatTime = (t) => (t ? String(t).slice(0, 5) : null);
@@ -50,15 +68,20 @@ const SHOP_ROW_SELECT = `SELECT s.id, s.name, s.is_open, s.active, s.latitude, s
      LEFT JOIN users u ON u.id = s.owner_user_id`;
 
 // Fetch a single shop in the admin row shape (joined with owner + product count).
-const fetchShopRow = async (shopId) => {
-  const [rows] = await pool.query(`${SHOP_ROW_SELECT} WHERE s.id = ?`, [shopId]);
+const fetchShopRow = async (shopId, areaId) => {
+  const [rows] = areaId !== undefined
+    ? await pool.query(`${SHOP_ROW_SELECT} WHERE s.id = ? AND s.area_id = ?`, [shopId, areaId])
+    : await pool.query(`${SHOP_ROW_SELECT} WHERE s.id = ?`, [shopId]);
   return rows.length > 0 ? mapShopRow(rows[0]) : null;
 };
 
 // GET /api/admin/shops — every shop (including active = 0), with owner info +
 // product count.
 const listShops = async (req, res) => {
-  const [rows] = await pool.query(`${SHOP_ROW_SELECT} ORDER BY s.id ASC`);
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
+  const [rows] = await pool.query(`${SHOP_ROW_SELECT} WHERE s.area_id = ? ORDER BY s.id ASC`, [areaId]);
   res.status(200).json({ shops: rows.map(mapShopRow) });
 };
 
@@ -66,6 +89,9 @@ const OWNER_NOT_FOUND_MSG = 'No user with that phone. Ask the shop owner to log 
 
 // POST /api/admin/shops — body { name, owner_phone? }. owner_phone optional.
 const createShop = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { name, owner_phone } = req.body;
   const latitude = req.body.latitude !== undefined ? req.body.latitude : req.body.lat;
   const longitude = req.body.longitude !== undefined ? req.body.longitude : req.body.lng;
@@ -123,23 +149,28 @@ const createShop = async (req, res) => {
   }
 
   const [result] = await pool.query(
-    'INSERT INTO shops (name, owner_user_id, latitude, longitude) VALUES (?, ?, ?, ?)',
-    [trimmedName, ownerUserId, latVal, lngVal]
+    'INSERT INTO shops (area_id, name, owner_user_id, latitude, longitude) VALUES (?, ?, ?, ?, ?)',
+    [areaId, trimmedName, ownerUserId, latVal, lngVal]
   );
 
-  const shop = await fetchShopRow(result.insertId);
+  const shop = await fetchShopRow(result.insertId, areaId);
   res.status(201).json({ shop });
 };
 
 // PATCH /api/admin/shops/:id — body may contain name, owner_phone (null clears
 // owner), active (bool), is_open (bool). Only provided fields update.
 const updateShop = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id } = req.params;
   const { name, owner_phone, active, is_open } = req.body;
   const latitude = req.body.latitude !== undefined ? req.body.latitude : req.body.lat;
   const longitude = req.body.longitude !== undefined ? req.body.longitude : req.body.lng;
 
-  const [existing] = await pool.query('SELECT id FROM shops WHERE id = ?', [id]);
+  // area_id in the WHERE, not just id: without this, an area_admin could
+  // PATCH another area's shop by guessing its numeric id.
+  const [existing] = await pool.query('SELECT id FROM shops WHERE id = ? AND area_id = ?', [id, areaId]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Shop not found' });
   }
@@ -202,8 +233,8 @@ const updateShop = async (req, res) => {
     if (!active) {
       // Capture owner so we can demote their live session to customer mode.
       const [ownerRows] = await pool.query(
-        'SELECT owner_user_id FROM shops WHERE id = ? LIMIT 1',
-        [id]
+        'SELECT owner_user_id FROM shops WHERE id = ? AND area_id = ? LIMIT 1',
+        [id, areaId]
       );
       deactivatedOwnerUserId = ownerRows[0]?.owner_user_id || null;
     }
@@ -237,25 +268,25 @@ const updateShop = async (req, res) => {
   }
 
   if (sets.length > 0) {
-    values.push(id);
-    await pool.query(`UPDATE shops SET ${sets.join(', ')} WHERE id = ?`, values);
+    values.push(id, areaId);
+    await pool.query(`UPDATE shops SET ${sets.join(', ')} WHERE id = ? AND area_id = ?`, values);
   }
 
-  const shop = await fetchShopRow(id);
+  const shop = await fetchShopRow(id, areaId);
 
   // Either flag flipping to closed/inactive hides the shop's products from
   // customers — notify connected clients so open carts/screens can react
   // immediately instead of waiting for a manual refresh.
   if (is_open !== undefined || active !== undefined) {
     const isOpen = Boolean(shop.is_open) && Boolean(shop.active);
-    emitToAllCustomers('shop.status.updated', {
+    emitToAllCustomers(areaId, 'shop.status.updated', {
       shopId: shop.id,
       isOpen,
     });
     // Other admin dashboards (or this same admin in another tab) need this
     // too — otherwise their Shops table goes stale until manual refresh.
     try {
-      emitToAdmins('admin.shop.updated', {
+      emitToAdmins(areaId, 'admin.shop.updated', {
         shopId: shop.id,
         id: shop.id,
         isOpen: Boolean(shop.is_open),
@@ -263,11 +294,10 @@ const updateShop = async (req, res) => {
         active: Boolean(shop.active),
       });
     } catch (_) { /* best-effort */ }
-    // Keep the global "Shop Status" banner in sync in both directions —
-    // see syncGlobalShopOpenState.
-    await syncGlobalShopOpenState();
-    require('../utils/microCache').bust('dashboard');
-    require('../utils/microCache').bust('categories');
+    // Keep this area's "Shop Status" banner in sync in both directions —
+    // see syncAreaShopOpenState.
+    await syncAreaShopOpenState(areaId);
+    await bustAreaCaches(areaId);
   }
 
   // Admin kill-switch (active=false) → owner phone becomes customer mode.
@@ -289,8 +319,11 @@ const updateShop = async (req, res) => {
 // own PATCH /shop/me/schedule (shopOwnerController.updateMyShopSchedule) —
 // this purely writes the schedule; shopScheduleSweeper is what flips is_open.
 const updateShopSchedule = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const shopId = Number(req.params.id);
-  const shop = await loadShopOr404(shopId);
+  const shop = await loadShopOr404(shopId, areaId);
   if (!shop) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Shop not found' });
   }
@@ -310,8 +343,8 @@ const updateShopSchedule = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Open and close time must be different.' });
   }
 
-  await pool.query('UPDATE shops SET open_time = ?, close_time = ? WHERE id = ?', [openTime, closeTime, shopId]);
-  const updated = await fetchShopRow(shopId);
+  await pool.query('UPDATE shops SET open_time = ?, close_time = ? WHERE id = ? AND area_id = ?', [openTime, closeTime, shopId, areaId]);
+  const updated = await fetchShopRow(shopId, areaId);
   res.status(200).json({ message: 'Shop schedule updated', shop: updated });
 };
 
@@ -322,15 +355,20 @@ const updateShopSchedule = async (req, res) => {
 // orders so riders/customers are not left mid-delivery.
 // Owner phone is freed → next /auth/me has shop=null → customer mode.
 const deleteShop = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const { id } = req.params;
   const shopId = Number(id);
   if (!Number.isFinite(shopId) || shopId <= 0) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Invalid shop id' });
   }
 
+  // area_id in the WHERE, not just id: without this, an area_admin could
+  // delete another area's shop by guessing its numeric id.
   const [existing] = await pool.query(
-    'SELECT id, name, owner_user_id FROM shops WHERE id = ?',
-    [shopId]
+    'SELECT id, name, owner_user_id FROM shops WHERE id = ? AND area_id = ?',
+    [shopId, areaId]
   );
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Shop not found' });
@@ -364,14 +402,14 @@ const deleteShop = async (req, res) => {
   const productsReassigned = Number(reassignResult?.affectedRows || 0);
 
   // product_groups.shop_id has ON DELETE CASCADE — groups go with the shop.
-  await pool.query('DELETE FROM shops WHERE id = ?', [shopId]);
+  await pool.query('DELETE FROM shops WHERE id = ? AND area_id = ?', [shopId, areaId]);
 
-  emitToAllCustomers('shop.status.updated', {
+  emitToAllCustomers(areaId, 'shop.status.updated', {
     shopId,
     isOpen: false,
   });
   try {
-    emitToAdmins('admin.shop.updated', { shopId, id: shopId, deleted: true });
+    emitToAdmins(areaId, 'admin.shop.updated', { shopId, id: shopId, deleted: true });
   } catch (_) { /* best-effort */ }
   // Owner phone is no longer a shop owner — open app switches to customer shell.
   if (ownerUserId) {
@@ -383,9 +421,8 @@ const deleteShop = async (req, res) => {
       });
     } catch (_) { /* best-effort */ }
   }
-  await syncGlobalShopOpenState();
-  require('../utils/microCache').bust('dashboard');
-  require('../utils/microCache').bust('categories');
+  await syncAreaShopOpenState(areaId);
+  await bustAreaCaches(areaId);
 
   res.status(200).json({
     message: 'Shop deleted',
@@ -403,8 +440,11 @@ const deleteShop = async (req, res) => {
 // GET /api/admin/shops/:id/orders — same active-order shape as shop owner
 // GET /api/shop/orders (Accepted/Preparing with this shop's items only).
 const listShopOrders = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const shopId = Number(req.params.id);
-  const [existing] = await pool.query('SELECT id, name FROM shops WHERE id = ?', [shopId]);
+  const [existing] = await pool.query('SELECT id, name FROM shops WHERE id = ? AND area_id = ?', [shopId, areaId]);
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Shop not found' });
   }
@@ -418,16 +458,22 @@ const listShopOrders = async (req, res) => {
   });
 };
 
-const loadShopOr404 = async (shopId) => {
-  const [rows] = await pool.query('SELECT id, name FROM shops WHERE id = ?', [shopId]);
+// area_id in the WHERE, not just id: without it, an area_admin could act on
+// another area's shop by guessing its numeric id. Callers pass the caller's
+// own resolved areaId.
+const loadShopOr404 = async (shopId, areaId) => {
+  const [rows] = await pool.query('SELECT id, name FROM shops WHERE id = ? AND area_id = ?', [shopId, areaId]);
   return rows[0] || null;
 };
 
 // PATCH /api/admin/shops/:id/orders/:orderId/confirm — same effect as shop owner Confirm.
 const adminConfirmShopOrder = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const shopId = Number(req.params.id);
   const { orderId } = req.params;
-  const shop = await loadShopOr404(shopId);
+  const shop = await loadShopOr404(shopId, areaId);
   if (!shop) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Shop not found' });
   }
@@ -440,9 +486,12 @@ const adminConfirmShopOrder = async (req, res) => {
 
 // PATCH /api/admin/shops/:id/orders/:orderId/reject — same as shop owner Reject/Cancel.
 const adminRejectShopOrder = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const shopId = Number(req.params.id);
   const { orderId } = req.params;
-  const shop = await loadShopOr404(shopId);
+  const shop = await loadShopOr404(shopId, areaId);
   if (!shop) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Shop not found' });
   }
@@ -455,13 +504,36 @@ const adminRejectShopOrder = async (req, res) => {
 
 // PATCH /api/admin/shops/:id/orders/:orderId/ready — same as shop owner Ready.
 const adminReadyShopOrder = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const shopId = Number(req.params.id);
   const { orderId } = req.params;
-  const shop = await loadShopOr404(shopId);
+  const shop = await loadShopOr404(shopId, areaId);
   if (!shop) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Shop not found' });
   }
   const result = await readyShopOrder(shopId, orderId, { shopName: shop.name });
+  if (!result.ok) {
+    return res.status(result.status).json({ code: result.code, message: result.message });
+  }
+  res.status(200).json({ message: result.message });
+};
+
+// PATCH /api/admin/shops/:id/orders/:orderId/resend — clears this shop's
+// rejection so the order reappears in their Accept/Reject queue, e.g.
+// after an admin swaps a rejected item for one the shop actually stocks.
+const adminResendShopOrder = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
+  const shopId = Number(req.params.id);
+  const { orderId } = req.params;
+  const shop = await loadShopOr404(shopId, areaId);
+  if (!shop) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Shop not found' });
+  }
+  const result = await resendShopOrder(shopId, orderId, { shopName: shop.name });
   if (!result.ok) {
     return res.status(result.status).json({ code: result.code, message: result.message });
   }
@@ -479,8 +551,11 @@ const groupShape = (g) => ({
 
 // GET /api/admin/shops/:id/groups — this shop's product groups with member counts.
 const listShopGroups = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const shopId = Number(req.params.id);
-  const shop = await loadShopOr404(shopId);
+  const shop = await loadShopOr404(shopId, areaId);
   if (!shop) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Shop not found' });
   }
@@ -488,17 +563,20 @@ const listShopGroups = async (req, res) => {
     `SELECT pg.id, pg.name, pg.active,
        (SELECT COUNT(*) FROM products p WHERE p.group_id = pg.id AND p.deleted = 0) AS product_count
      FROM product_groups pg
-     WHERE pg.shop_id = ?
+     WHERE pg.shop_id = ? AND pg.area_id = ?
      ORDER BY pg.name ASC`,
-    [shopId]
+    [shopId, areaId]
   );
   res.status(200).json({ groups: rows.map(groupShape) });
 };
 
 // POST /api/admin/shops/:id/groups — body { name }.
 const createShopGroup = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const shopId = Number(req.params.id);
-  const shop = await loadShopOr404(shopId);
+  const shop = await loadShopOr404(shopId, areaId);
   if (!shop) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Shop not found' });
   }
@@ -507,8 +585,8 @@ const createShopGroup = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Group name is required' });
   }
   const [result] = await pool.query(
-    'INSERT INTO product_groups (shop_id, name) VALUES (?, ?)',
-    [shopId, String(name).trim()]
+    'INSERT INTO product_groups (area_id, shop_id, name) VALUES (?, ?, ?)',
+    [areaId, shopId, String(name).trim()]
   );
   const [rows] = await pool.query(
     'SELECT id, name, active, 0 AS product_count FROM product_groups WHERE id = ?',
@@ -518,15 +596,19 @@ const createShopGroup = async (req, res) => {
 };
 
 // PATCH /api/admin/shops/:id/groups/:groupId — body may contain name and/or
-// active. Scoped to this shop — a group id from another shop 404s.
+// active. Scoped to this shop AND area — a group id from another shop or
+// area 404s.
 const updateShopGroup = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const shopId = Number(req.params.id);
   const { groupId } = req.params;
   const { name, active } = req.body;
 
   const [existing] = await pool.query(
-    'SELECT id FROM product_groups WHERE id = ? AND shop_id = ?',
-    [groupId, shopId]
+    'SELECT id FROM product_groups WHERE id = ? AND shop_id = ? AND area_id = ?',
+    [groupId, shopId, areaId]
   );
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Group not found' });
@@ -562,11 +644,14 @@ const updateShopGroup = async (req, res) => {
 // DELETE /api/admin/shops/:id/groups/:groupId — member products become
 // ungrouped, not deleted.
 const deleteShopGroup = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const shopId = Number(req.params.id);
   const { groupId } = req.params;
   const [existing] = await pool.query(
-    'SELECT id FROM product_groups WHERE id = ? AND shop_id = ?',
-    [groupId, shopId]
+    'SELECT id FROM product_groups WHERE id = ? AND shop_id = ? AND area_id = ?',
+    [groupId, shopId, areaId]
   );
   if (existing.length === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Group not found' });
@@ -579,14 +664,17 @@ const deleteShopGroup = async (req, res) => {
 // PATCH /api/admin/shops/:id/products/:productId/group — body { group_id }
 // (null clears it). Validates the group belongs to this shop when non-null.
 const assignShopProductGroup = async (req, res) => {
+  const areaId = requireOneArea(req, res);
+  if (areaId === null) return;
+
   const shopId = Number(req.params.id);
   const { productId } = req.params;
   const groupId = req.body.group_id !== undefined ? req.body.group_id : req.body.groupId;
 
   if (groupId !== null && groupId !== undefined) {
     const [groupRows] = await pool.query(
-      'SELECT id FROM product_groups WHERE id = ? AND shop_id = ?',
-      [groupId, shopId]
+      'SELECT id FROM product_groups WHERE id = ? AND shop_id = ? AND area_id = ?',
+      [groupId, shopId, areaId]
     );
     if (groupRows.length === 0) {
       return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Unknown group_id' });
@@ -594,8 +682,8 @@ const assignShopProductGroup = async (req, res) => {
   }
 
   const [result] = await pool.query(
-    'UPDATE products SET group_id = ? WHERE id = ? AND shop_id = ? AND deleted = 0',
-    [groupId || null, productId, shopId]
+    'UPDATE products SET group_id = ? WHERE id = ? AND shop_id = ? AND deleted = 0 AND area_id = ?',
+    [groupId || null, productId, shopId, areaId]
   );
   if (result.affectedRows === 0) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
@@ -613,6 +701,7 @@ module.exports = {
   adminConfirmShopOrder,
   adminRejectShopOrder,
   adminReadyShopOrder,
+  adminResendShopOrder,
   listShopGroups,
   createShopGroup,
   updateShopGroup,
