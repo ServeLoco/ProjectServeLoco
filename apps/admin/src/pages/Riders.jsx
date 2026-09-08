@@ -136,9 +136,22 @@ export default function Riders() {
 
   const saveMaxActiveOrders = async (rider) => {
     const draft = capacityDrafts[rider.id];
+    // Blur fires on every field exit, not just real edits (tab through
+    // unchanged rows, click elsewhere) — no draft, or a draft equal to what's
+    // already saved, means nothing to send.
+    if (draft === undefined) return;
+    const current = Number(rider.maxActiveOrders ?? rider.max_active_orders ?? 2);
     const value = Number(draft);
-    if (!Number.isInteger(value) || value < 1) {
-      setError('Max orders must be a whole number of 1 or more');
+    if (value === current) {
+      setCapacityDrafts((prev) => {
+        const next = { ...prev };
+        delete next[rider.id];
+        return next;
+      });
+      return;
+    }
+    if (!Number.isInteger(value) || value < 1 || value > 20) {
+      setError('Max orders must be a whole number between 1 and 20');
       return;
     }
     setCapacityBusyId(rider.id);
@@ -333,20 +346,15 @@ export default function Riders() {
                           step="1"
                           className="form-input"
                           style={{ width: 60, padding: '4px 6px' }}
+                          disabled={capacityBusyId === r.id}
                           value={capacityDrafts[r.id] ?? (r.maxActiveOrders ?? r.max_active_orders ?? 2)}
                           onChange={(e) => setCapacityDrafts((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                          onBlur={() => saveMaxActiveOrders(r)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.target.blur();
+                          }}
                         />
-                        {capacityDrafts[r.id] !== undefined
-                          && Number(capacityDrafts[r.id]) !== Number(r.maxActiveOrders ?? r.max_active_orders ?? 2) && (
-                          <button
-                            type="button"
-                            className="action-link"
-                            disabled={capacityBusyId === r.id}
-                            onClick={() => saveMaxActiveOrders(r)}
-                          >
-                            {capacityBusyId === r.id ? '…' : 'Save'}
-                          </button>
-                        )}
+                        {capacityBusyId === r.id && <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>…</span>}
                       </div>
                     </td>
                     <td className="shop-actions-cell">

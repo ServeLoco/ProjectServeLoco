@@ -2297,7 +2297,7 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
         onScrollBeginDrag={handleScrollBegin}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false }
+          { useNativeDriver: true }
         )}
         scrollEventThrottle={16}
         getItemLayout={(_, index) => ({
@@ -2390,9 +2390,9 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
               index * bannerWidth,
               (index + 1) * bannerWidth,
             ];
-            const dotWidth = scrollX.interpolate({
+            const dotScaleX = scrollX.interpolate({
               inputRange,
-              outputRange: [6, 22, 6],
+              outputRange: [6 / 22, 1, 6 / 22],
               extrapolate: 'clamp',
             });
             const opacity = scrollX.interpolate({
@@ -2407,7 +2407,7 @@ function OfferBannerCarousel({ offers = [], bannerWidth, onOfferPress }) {
                 style={[
                   styles.offerDot,
                   {
-                    width: dotWidth,
+                    transform: [{ scaleX: dotScaleX }],
                     opacity: activeIndex === index ? 1 : opacity,
                   },
                 ]}
@@ -3065,6 +3065,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   offerDot: {
+    width: 22,
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.saffronDark,
