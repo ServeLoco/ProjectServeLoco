@@ -2,7 +2,7 @@
   "expo": {
     "name": "VillKro",
     "slug": "villkro",
-    "version": "1.8.4",
+    "version": "1.9.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -102,7 +102,7 @@
       }
     },
     "owner": "yashsiwch",
-    "runtimeVersion": "1.8.4",
+    "runtimeVersion": "1.9.0",
     "updates": {
       "url": "https://u.expo.dev/1df5a9bf-de34-48ea-96f4-68f598d7d318"
     }

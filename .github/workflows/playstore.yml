@@ -95,10 +95,11 @@ jobs:
 
       - name: Decide bump type
         id: decide
+        env:
+          MSGS: ${{ steps.msgs.outputs.msgs }}
+          PKG_CHANGED: ${{ steps.pkg.outputs.pkg_changed }}
         run: |
           set -euo pipefail
-          MSGS='${{ steps.msgs.outputs.msgs }}'
-          PKG_CHANGED='${{ steps.pkg.outputs.pkg_changed }}'
 
           BUMP="minor"
           REASON="no native dep change detected"
@@ -227,8 +228,10 @@ jobs:
         env:
           EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
           EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN }}
+          BUMP_MESSAGE: ${{ needs.detect-bump.outputs.message }}
         run: |
-          MSG=$(printf '%s' '${{ needs.detect-bump.outputs.message }}' | head -1)
+          set -euo pipefail
+          MSG=$(printf '%s' "$BUMP_MESSAGE" | head -1)
           if [ -z "$MSG" ]; then MSG="auto-update from main"; fi
           eas update --branch production --message "$MSG" --non-interactive
 

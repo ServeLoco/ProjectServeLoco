@@ -98,10 +98,11 @@ jobs:
 
       - name: Decide bump type
         id: decide
+        env:
+          MSGS: ${{ steps.msgs.outputs.msgs }}
+          PKG_CHANGED: ${{ steps.pkg.outputs.pkg_changed }}
         run: |
           set -euo pipefail
-          MSGS='${{ steps.msgs.outputs.msgs }}'
-          PKG_CHANGED='${{ steps.pkg.outputs.pkg_changed }}'
 
           BUMP="minor"
           REASON="no native dep change detected"
