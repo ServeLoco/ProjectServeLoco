@@ -185,6 +185,10 @@ async function revalidateCartForZoneChange(lat, lng) {
 }
 
 let lastSyncAt = 0;
+// Holds the in-flight sync, so the throttle below can be released on failure
+// without letting repeated foregrounding stack concurrent syncs (each of which
+// would run its own GPS fetch + two network calls).
+let inFlightSync = null;
 // Flipped by the first live GPS fix actually stored in this JS process. Module
 // scope is the point: a full app close+reopen builds a fresh JS context, so
 // this resets exactly when a cold start happens and never on a warm resume.
@@ -238,9 +242,19 @@ function waitForHydration() {
  * that call bails early and the Home permission card / LocationPermissionGate
  * fires the sync that actually lands the fix.
  */
-async function syncDeliveryLocation() {
+async function runDeliveryLocationSync() {
+  // Held for the duration of the run so a concurrent caller can't start a
+  // second one; the finally below decides whether it stays held (this sync
+  // settled the location) or is released for an immediate retry.
   lastSyncAt = Date.now();
   const { markInitialSyncComplete } = useDeliveryLocationStore.getState();
+  // Whether this run actually settled where the customer is. False means it
+  // produced NO verdict — timed out, or the only fix available was too coarse
+  // to trust — which used to still burn the full MIN_REFRESH_INTERVAL_MS
+  // throttle, stranding a first-launch customer with no coords for five
+  // minutes while Cart quoted them as out of area. A run that produced no
+  // answer must not suppress the next attempt.
+  let resolvedLocation = false;
   // The outer Promise.race below only stops the CALLER from waiting past
   // INITIAL_SYNC_TIMEOUT_MS — it does not cancel `sync()`, which keeps
   // running for as long as the real GPS fetch takes (device GPS can hang
@@ -274,6 +288,7 @@ async function syncDeliveryLocation() {
       ]);
       if (abandoned) return;
       if (result !== null) {
+        resolvedLocation = true;
         setInsideZone(result.insideZone);
         setZone(result.zoneName, result.zoneId);
         if (result.zoneId !== previousZoneId) {
@@ -300,6 +315,9 @@ async function syncDeliveryLocation() {
 
     const perm = await Location.getForegroundPermissionsAsync();
     if (!perm?.granted) {
+      // A settled answer, not a failure: there is nothing to retry until the
+      // customer grants permission, and the grant fires its own sync.
+      resolvedLocation = true;
       useDeliveryLocationStore.getState().clearGpsLocation();
       return;
     }
@@ -356,6 +374,7 @@ async function syncDeliveryLocation() {
       result?.zoneId ?? null,
       { force: forceGps },
     );
+    resolvedLocation = true;
     // Only now — a fix was actually stored, so the cold-start override is
     // spent and every later sync this process respects the manual pin again.
     coldStartGpsApplied = true;
@@ -379,8 +398,27 @@ async function syncDeliveryLocation() {
     // Best-effort — banner/pricing just fall back to whatever was last saved.
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
+    // Released, not held, when this run produced no verdict — the next
+    // foreground resume is then free to try again immediately instead of
+    // waiting out MIN_REFRESH_INTERVAL_MS behind a sync that answered nothing.
+    if (!resolvedLocation) lastSyncAt = 0;
     markInitialSyncComplete();
   }
+}
+
+/**
+ * Dedupes concurrent runs. Releasing the throttle on an unresolved sync (see
+ * above) means a resume can now legitimately ask for a retry while an earlier,
+ * still-unfinished sync is running — and each run costs a GPS fetch plus two
+ * network calls. Callers share the in-flight run instead of starting a second.
+ */
+function syncDeliveryLocation() {
+  if (inFlightSync) return inFlightSync;
+  const run = runDeliveryLocationSync().finally(() => {
+    if (inFlightSync === run) inFlightSync = null;
+  });
+  inFlightSync = run;
+  return run;
 }
 
 /**

@@ -274,7 +274,7 @@ const calculateCart = async (req, res) => {
   // Exclusion squares block delivery regardless of zone/flat pricing mode,
   // so they're always loaded (small table) — not gated by radius_pricing_active.
   const exclusionZones = await loadActiveExclusionZones(pool, deliveryAreaId);
-  const pricing = resolveDeliveryPricing({
+  let pricing = resolveDeliveryPricing({
     customerLat,
     customerLng,
     deliveryType: deliveryTypeInput,
@@ -282,6 +282,34 @@ const calculateCart = async (req, res) => {
     zones,
     exclusionZones,
   });
+
+  // A valid pin that matched no zone in any area is not deliverable, and the
+  // charge for it must not exist. resolveDeliveryPricing cannot see this on
+  // its own: the catalog fallback above hands it the DEFAULT area's settings,
+  // and if that area runs flat pricing the resolver has no geography check at
+  // all — it returns outOfRange: false plus a full settings.delivery_charge
+  // quote for a pin nothing matched. Correcting the verdict here, at the one
+  // place pricing is produced, keeps every downstream consumer consistent:
+  // the charges, the coupon engine's free-delivery maths, and the outOfRange
+  // /codAllowed flags the customer app gates on all come from this object.
+  // Setting only deliveryWithinRange further down (as this used to) left a
+  // priced, apparently-fine bill in front of the customer.
+  if (pinMatchedNoZone) {
+    pricing = {
+      ...pricing,
+      outOfRange: true,
+      zone: null,
+      zoneExtentKm: null,
+      deliveryCharge: 0,
+      standardDeliveryCharge: 0,
+      fastDeliveryCharge: 0,
+      standardDeliveryMinutes: null,
+      fastDeliveryMinutes: null,
+      etaMinutes: null,
+      nightCharge: 0,
+      codAllowed: false,
+    };
+  }
 
   // Fast delivery is an ADD-ON, not a replacement: the standard delivery
   // charge always stays on the bill — with its coupon/free-delivery rules
