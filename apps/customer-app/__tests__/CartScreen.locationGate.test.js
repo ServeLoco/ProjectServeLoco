@@ -156,6 +156,56 @@ describe('CartScreen tells the customer the truth about their location', () => {
     expect(syncDeliveryLocation).toHaveBeenCalledTimes(1);
   });
 
+  // A bare skeleton past a couple of seconds reads as the app being stuck,
+  // and on a slow link the wait is doubled: the startup location sync has to
+  // land before the quote may even be sent.
+  describe('a slow bill fetch says so instead of just spinning', () => {
+    /**
+     * Two separate act()s on purpose: the 2500ms notice timer is only armed
+     * by the render that follows isCalculating flipping true, and that flip
+     * is itself behind the 300ms bill debounce. Advancing both in one act
+     * arms the timer at the far end of the window, so it never fires.
+     */
+    async function renderThenWait(ms) {
+      let tree;
+      await act(async () => { tree = ReactTestRenderer.create(<CartScreen />); });
+      await act(async () => { jest.advanceTimersByTime(400); }); // debounce -> isCalculating
+      await act(async () => { jest.advanceTimersByTime(ms); }); // the notice window
+      return tree;
+    }
+
+    it('says nothing for the first 2.5s — a normal fetch must stay quiet', async () => {
+      cartApi.calculate.mockResolvedValue(NO_COORDS_BILL); // sync still running
+
+      const tree = await renderThenWait(2000);
+
+      expect(visibleText(tree.root)).not.toContain('Slow internet');
+    });
+
+    it('names the connection once the wait passes 2.5s', async () => {
+      cartApi.calculate.mockResolvedValue(NO_COORDS_BILL);
+
+      const tree = await renderThenWait(3000);
+
+      expect(visibleText(tree.root)).toContain('Slow internet');
+      // Still a wait, never a verdict — the refusal copy must not appear.
+      expect(visibleText(tree.root)).not.toContain('Outside delivery area');
+    });
+
+    it('CONTROL: a bill that arrives never shows the notice, however long the screen stays open', async () => {
+      useDeliveryLocationStore.setState({
+        coords: { lat: 12.97, lng: 77.6 }, isInitialSyncComplete: true,
+      });
+      cartApi.calculate.mockResolvedValue(ZONE_BILL);
+
+      const tree = await renderThenWait(5000);
+      const text = visibleText(tree.root);
+
+      expect(text).not.toContain('Slow internet');
+      expect(text).toContain('₹55');
+    });
+  });
+
   it('REGRESSION: a pin genuinely outside every zone is still refused', async () => {
     useDeliveryLocationStore.setState({
       coords: { lat: 25.0, lng: 80.0 }, isInitialSyncComplete: true,

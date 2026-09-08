@@ -63,8 +63,23 @@ export default function CartScreen() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [bill, setBill] = useState(null);
   const [calcError, setCalcError] = useState(null);
+  // A bare skeleton past a couple of seconds reads as the app being stuck.
+  // Naming the connection is also the honest explanation for the longest
+  // wait here: the startup location sync has to land before we may quote at
+  // all (see calculateBill's gate), so a slow link stalls the bill twice
+  // over. Same 2500ms threshold and wording as HomeScreen's location notice.
+  const [isBillSlow, setIsBillSlow] = useState(false);
   // Bumped on screen focus so bill + unit prices re-pull even if qty unchanged.
   const [focusTick, setFocusTick] = useState(0);
+
+  useEffect(() => {
+    if (!isCalculating) {
+      setIsBillSlow(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setIsBillSlow(true), 2500);
+    return () => clearTimeout(timer);
+  }, [isCalculating]);
 
   const reducedMotion = useReducedMotion();
 
@@ -738,6 +753,9 @@ export default function CartScreen() {
       </View>
       <View style={styles.billSkeletonDivider} />
       <LoadingSkeleton width="70%" height={22} />
+      {isBillSlow ? (
+        <Text style={styles.billSlowNotice}>Slow internet — still getting your delivery charge…</Text>
+      ) : null}
     </View>
   );
 
@@ -1613,6 +1631,13 @@ const styles = StyleSheet.create({
     height: borderWidth.thin,
     backgroundColor: colors.divider,
     marginVertical: spacing.md,
+  },
+  billSlowNotice: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: spacing.md,
   },
   calcError: {
     paddingVertical: 0,
