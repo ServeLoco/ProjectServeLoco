@@ -126,7 +126,6 @@ export default function Library() {
   const openEdit = (row) => {
     setEditingRow(row);
     setUploadMessage(null);
-    const existingImageId = row.imageId || row.image_id || row.iconImageId || row.icon_image_id || '';
     const existingImageUrl = row.imageUrl || row.image_url || row.iconUrl || row.icon_url || '';
     if (tab === 'products') {
       setForm({
