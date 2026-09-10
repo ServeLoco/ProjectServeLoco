@@ -62,9 +62,21 @@ export default function Library() {
     try {
       setLoading(true);
       setError(null);
-      const res = await activeTab.api.list({ search });
-      if (requestId !== requestIdRef.current) return;
-      const nextRows = readList(res);
+      // The products tab paginates server-side (20/page, 100 max) — a single
+      // call only ever returned page 1, silently hiding every product past
+      // it (bug fix). Categories/store modes return everything in one shot
+      // (no `pagination` in the response), so this loop runs once for them.
+      let page = 1;
+      let nextRows = [];
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const res = await activeTab.api.list({ search, page, limit: 100 });
+        if (requestId !== requestIdRef.current) return;
+        nextRows = nextRows.concat(readList(res));
+        const totalPages = res?.pagination?.totalPages || 1;
+        if (page >= totalPages) break;
+        page += 1;
+      }
       setRows(nextRows);
       setSelectedIds((previous) => new Set(
         [...previous].filter((id) => nextRows.some((row) => row.id === id))
@@ -115,7 +127,7 @@ export default function Library() {
     setEditingRow(row);
     setUploadMessage(null);
     const existingImageId = row.imageId || row.image_id || row.iconImageId || row.icon_image_id || '';
-    const existingImageUrl = existingImageId ? `/api/images/${existingImageId}` : '';
+    const existingImageUrl = row.imageUrl || row.image_url || row.iconUrl || row.icon_url || '';
     if (tab === 'products') {
       setForm({
         name: row.name, description: row.description || '', imageId: row.imageId || row.image_id || '', imageUrl: existingImageUrl,
@@ -342,8 +354,8 @@ export default function Library() {
       ) : (
         <div className="library-grid">
           {rows.map((row) => {
-            const imageUrl = row.imageId || row.image_id ? normalizeImageUrl(`/api/images/${row.imageId || row.image_id}`) : null;
-            const iconUrl = row.iconImageId || row.icon_image_id ? normalizeImageUrl(`/api/images/${row.iconImageId || row.icon_image_id}`) : null;
+            const imageUrl = normalizeImageUrl(row.imageUrl || row.image_url) || null;
+            const iconUrl = normalizeImageUrl(row.iconUrl || row.icon_url) || null;
             const areaIds = row.areaIds || row.area_ids || [];
             return (
               <div key={row.id} className={`library-card ${row.archived ? 'archived' : ''}`}>

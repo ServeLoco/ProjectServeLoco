@@ -6,7 +6,7 @@
 const { pool } = require('../db/mysql');
 const { bustAreaCaches } = require('../utils/areaScope');
 const { materializeCategoryToArea, propagateCategoryLibraryEdit, LibraryError } = require('../utils/productLibrary');
-const { requireOneArea } = require('./libraryShared');
+const { requireOneArea, attachImageUrls } = require('./libraryShared');
 
 const shape = (row) => ({
   id: row.id,
@@ -50,13 +50,14 @@ const getCategoryLibrary = async (req, res) => {
     }
   }
 
-  res.status(200).json({
-    data: rows.map((row) => ({
-      ...shape(row),
-      areaIds: areasByLibraryId.get(row.id) || [],
-      area_ids: areasByLibraryId.get(row.id) || [],
-    })),
-  });
+  const data = rows.map((row) => ({
+    ...shape(row),
+    areaIds: areasByLibraryId.get(row.id) || [],
+    area_ids: areasByLibraryId.get(row.id) || [],
+  }));
+  await attachImageUrls(data, { idField: 'imageId', urlField: 'imageUrl', snakeUrlField: 'image_url' });
+
+  res.status(200).json({ data });
 };
 
 // POST /admin/category-library — requireSuperAdmin (route-level gate).

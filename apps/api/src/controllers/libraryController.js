@@ -7,6 +7,7 @@ const { validatePagination } = require('../validators');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
 const { materializeToArea, syncLibraryVariants, propagateLibraryEdit, promoteToLibrary, LibraryError } = require('../utils/productLibrary');
 const { decideSearchMode } = require('../utils/search');
+const { attachImageUrls } = require('./libraryShared');
 
 // add-to-area targets exactly one area — an area_admin's own (resolveAdminArea
 // already pins that), or a super_admin's explicit X-Area-Id. Never 'all': a
@@ -120,6 +121,7 @@ const getLibrary = async (req, res) => {
     area_ids: areasByLibraryId.get(row.id) || [],
     variants: variantsByLibraryId.get(row.id) || [],
   }));
+  await attachImageUrls(data, { idField: 'imageId', urlField: 'imageUrl', snakeUrlField: 'image_url' });
 
   res.status(200).json({
     data,
