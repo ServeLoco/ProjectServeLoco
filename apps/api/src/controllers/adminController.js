@@ -1103,24 +1103,16 @@ const getAdminOrders = async (req, res) => {
   }
 
   // o.created_at is written by CURRENT_TIMESTAMP and rendered on read in the
-  // MySQL server's session time_zone. Verified against the server: session
-  // time_zone = SYSTEM = IST, so created_at IS an IST wall-clock value and
-  // DATE(o.created_at) is already the IST calendar day — it must NOT be
-  // passed through CONVERT_TZ('+00:00', ...) as if it were UTC, which
-  // double-shifts it forward and pushes evening orders (18:30-23:59 IST)
-  // onto the next calendar day, hiding them from "today". Only
-  // UTC_TIMESTAMP() (a real UTC clock read) needs converting, to find
-  // today's IST boundary.
-  //
-  // NOTE: buildPeriodDateFilter above, riders.js and shopOwnerController.js
-  // still wrap created_at in CONVERT_TZ('+00:00', ...) and are therefore
-  // off by a day for evening orders on this configuration. Left alone
-  // deliberately — they must not be "fixed" without first confirming
-  // production's @@global.time_zone, since the correct form flips if that
-  // server runs UTC. See db/mysql.js's timezone option, which must agree.
+  // MySQL server's session time_zone. Confirmed against production
+  // (2026-09-10, SELECT @@session.time_zone): '+00:00' — created_at IS a
+  // UTC wall-clock value, matching buildPeriodDateFilter above, riders.js
+  // and shopOwnerController.js, which already convert it via
+  // CONVERT_TZ(created_at, '+00:00', tz). Must stay consistent with
+  // db/mysql.js's pool `timezone` option, which controls how mysql2 turns
+  // this same column into a JS Date for API responses.
   if (today) {
-    query += ' AND DATE(o.created_at) = DATE(CONVERT_TZ(UTC_TIMESTAMP(), ?, ?))';
-    params.push('+00:00', ADMIN_ORDERS_TZ);
+    query += " AND DATE(CONVERT_TZ(o.created_at, '+00:00', ?)) = DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', ?))";
+    params.push(ADMIN_ORDERS_TZ, ADMIN_ORDERS_TZ);
   } else {
     if (finalDateFrom) {
       query += ' AND DATE(o.created_at) >= ?';

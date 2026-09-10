@@ -39,6 +39,14 @@ const config = {
   MYSQL_PASSWORD: process.env.MYSQL_PASSWORD,
   MYSQL_SSL: process.env.MYSQL_SSL,
   MYSQL_SSL_CA_PATH: process.env.MYSQL_SSL_CA_PATH,
+  // How mysql2 must interpret DATETIME/TIMESTAMP columns to build a correct
+  // JS Date (must equal the MySQL server's own session time_zone, NOT the
+  // business display zone below). Confirmed 2026-09-10 via
+  // SELECT @@session.time_zone: prod is '+00:00' (UTC); local dev boxes are
+  // typically SYSTEM=IST, so dev overrides this in .env.development.
+  // Getting this wrong doesn't error — it silently mis-shifts every
+  // timestamp the API returns (this caused the Orders page IST/UTC bug).
+  MYSQL_SESSION_TZ: process.env.MYSQL_SESSION_TZ || 'Z',
 
   MONGODB_URI: process.env.MONGODB_URI,
   MONGODB_DATABASE: process.env.MONGODB_DATABASE,
