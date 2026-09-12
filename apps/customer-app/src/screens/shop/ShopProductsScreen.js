@@ -1,12 +1,12 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
-  ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput,
+  ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TextInput,
   TouchableOpacity, View, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
-import { colors, spacing, typography, radius, shadows } from '../../theme';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { colors, spacing, typography, radius, shadows, glass, glassRadius, glassShadow } from '../../theme';
 import { shopApi, subscribeRealtime } from '../../api';
 import AppIcon from '../../components/AppIcon';
 import ShopToggle from '../../components/shop/ShopToggle';
@@ -20,6 +20,8 @@ const UNGROUPED_KEY = '__ungrouped__';
  * and product reassignment.
  */
 export default function ShopProductsScreen() {
+  // Scoped to focus: the screen stays mounted behind the other tabs.
+  const isScreenFocused = useIsFocused();
   const [products, setProducts] = useState([]);
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -310,7 +312,7 @@ export default function ShopProductsScreen() {
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityLabel="Move to group"
           >
-            <AppIcon name="chevronRight" size={15} color={colors.saffronDark} />
+            <AppIcon name="chevronRight" size={15} color={colors.textInverse} />
           </TouchableOpacity>
           <ShopToggle
             value={isAvailable}
@@ -353,21 +355,22 @@ export default function ShopProductsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {isScreenFocused && <StatusBar barStyle="light-content" backgroundColor="transparent" />}
       <View style={styles.header}>
         <Text style={styles.title}>Products</Text>
         <TouchableOpacity style={styles.newGroupBtn} onPress={() => setNewGroupModalOpen(true)} activeOpacity={0.8}>
-          <AppIcon name="add" size={16} color={colors.saffronDark} />
+          <AppIcon name="add" size={16} color={colors.textInverse} />
           <Text style={styles.newGroupBtnText}>New Group</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.searchWrap}>
         <View style={styles.searchBox}>
-          <AppIcon name="search" size={18} color={colors.textSecondary} />
+          <AppIcon name="search" size={18} color={glass.textDim} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search products"
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={glass.textFaint}
             value={searchQuery}
             onChangeText={handleSearchChange}
             autoCapitalize="none"
@@ -376,7 +379,7 @@ export default function ShopProductsScreen() {
           />
           {isSearching && (
             <TouchableOpacity style={styles.searchClearBtn} onPress={() => handleSearchChange('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <AppIcon name="close" size={16} color={colors.textSecondary} />
+              <AppIcon name="close" size={16} color={glass.textDim} />
             </TouchableOpacity>
           )}
         </View>
@@ -388,7 +391,7 @@ export default function ShopProductsScreen() {
             <Text style={styles.summaryTextBold}>{totalCount}</Text> products
           </Text>
           <View style={styles.summaryPill}>
-            <AppIcon name="check" size={12} color={colors.successDark} />
+            <AppIcon name="check" size={12} color={glass.successText} />
             <Text style={styles.summaryPillText}>{availableCount} available</Text>
           </View>
         </View>
@@ -454,7 +457,7 @@ export default function ShopProductsScreen() {
                             {items.length} {items.length === 1 ? 'item' : 'items'}
                           </Text>
                         </View>
-                        <AppIcon name={expanded ? 'down' : 'chevronRight'} size={16} color={colors.textTertiary} />
+                        <AppIcon name={expanded ? 'down' : 'chevronRight'} size={16} color={glass.textDim} />
                       </TouchableOpacity>
                       <View style={styles.groupActions}>
                         <TouchableOpacity
@@ -462,7 +465,7 @@ export default function ShopProductsScreen() {
                           onPress={() => handleDeleteGroup(group)}
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         >
-                          <AppIcon name="delete" size={18} color={colors.textMuted} />
+                          <AppIcon name="delete" size={18} color={glass.errorText} />
                         </TouchableOpacity>
                         <ShopToggle
                           value={Boolean(group.active)}
@@ -476,7 +479,7 @@ export default function ShopProductsScreen() {
                       <View style={styles.groupCard}>
                         {items.length === 0 ? (
                           <View style={styles.emptyGroupWrap}>
-                            <AppIcon name="box" size={20} color={colors.textTertiary} />
+                            <AppIcon name="box" size={20} color={glass.textFaint} />
                             <Text style={styles.emptyGroup}>No products in this group.</Text>
                           </View>
                         ) : (
@@ -500,7 +503,7 @@ export default function ShopProductsScreen() {
                       activeOpacity={0.7}
                     >
                       <View style={[styles.groupIconWrap, styles.groupIconWrapMuted]}>
-                        <AppIcon name="box" size={18} color={colors.textTertiary} />
+                        <AppIcon name="box" size={18} color={glass.textFaint} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.groupName}>Ungrouped</Text>
@@ -511,7 +514,7 @@ export default function ShopProductsScreen() {
                       <AppIcon
                         name={isGroupExpanded(UNGROUPED_KEY) ? 'down' : 'chevronRight'}
                         size={16}
-                        color={colors.textTertiary}
+                        color={glass.textFaint}
                       />
                     </TouchableOpacity>
                   </View>
@@ -526,7 +529,7 @@ export default function ShopProductsScreen() {
               {products.length === 0 && (
                 <View style={styles.emptyState}>
                   <View style={styles.emptyIconWrap}>
-                    <AppIcon name="box" size={32} color={colors.saffronDark} />
+                    <AppIcon name="box" size={32} color={colors.saffron} />
                   </View>
                   <Text style={styles.emptyTitle}>{loadError ? 'Could not load products' : 'No products yet'}</Text>
                   <Text style={styles.emptyText}>
@@ -537,7 +540,7 @@ export default function ShopProductsScreen() {
               {products.length > 0 && isSearching && filteredProducts.length === 0 && (
                 <View style={styles.emptyState}>
                   <View style={styles.emptyIconWrap}>
-                    <AppIcon name="search" size={30} color={colors.saffronDark} />
+                    <AppIcon name="search" size={30} color={colors.saffron} />
                   </View>
                   <Text style={styles.emptyTitle}>No matches</Text>
                   <Text style={styles.emptyText}>No products match "{searchQuery.trim()}".</Text>
@@ -557,14 +560,14 @@ export default function ShopProductsScreen() {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setNewGroupModalOpen(false)}>
           <TouchableOpacity style={styles.modalCard} activeOpacity={1}>
             <View style={styles.modalIconWrap}>
-              <AppIcon name="add" size={22} color={colors.saffronDark} />
+              <AppIcon name="add" size={22} color={colors.saffron} />
             </View>
             <Text style={styles.modalTitle}>New group</Text>
             <Text style={styles.modalSubtitle}>Group products so customers browse them together.</Text>
             <TextInput
               style={styles.modalInput}
               placeholder="e.g. Starters"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={glass.textFaint}
               value={newGroupName}
               onChangeText={setNewGroupName}
               autoFocus
@@ -598,18 +601,18 @@ export default function ShopProductsScreen() {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPickerProduct(null)}>
           <TouchableOpacity style={styles.modalCard} activeOpacity={1}>
             <View style={styles.modalIconWrap}>
-              <AppIcon name="box" size={22} color={colors.saffronDark} />
+              <AppIcon name="box" size={22} color={colors.saffron} />
             </View>
             <Text style={styles.modalTitle}>Move product</Text>
             <Text style={styles.modalSubtitle}>Choose a group for "{pickerProduct?.name}".</Text>
             <TouchableOpacity style={styles.pickerRow} onPress={() => handleAssignGroup(null)} activeOpacity={0.7}>
               <Text style={styles.pickerRowText}>Ungrouped</Text>
-              <AppIcon name="chevronRight" size={18} color={colors.textMuted} />
+              <AppIcon name="chevronRight" size={18} color={glass.textDim} />
             </TouchableOpacity>
             {groups.map(g => (
               <TouchableOpacity key={g.id} style={styles.pickerRow} onPress={() => handleAssignGroup(g.id)} activeOpacity={0.7}>
                 <Text style={styles.pickerRowText}>{g.name}</Text>
-                <AppIcon name="chevronRight" size={18} color={colors.textMuted} />
+                <AppIcon name="chevronRight" size={18} color={glass.textDim} />
               </TouchableOpacity>
             ))}
             <TouchableOpacity style={styles.modalCancelBtnWide} onPress={() => setPickerProduct(null)}>
@@ -623,154 +626,175 @@ export default function ShopProductsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgApp },
+  container: { flex: 1, backgroundColor: glass.canvas },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
   },
-  title: { ...typography.display, fontSize: 26, color: colors.textPrimary },
+  title: { ...typography.display, fontSize: 26, color: glass.text },
   newGroupBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: colors.saffronLight, borderRadius: radius.pill,
-    paddingHorizontal: spacing.md, paddingVertical: 9, ...shadows.xs,
+    backgroundColor: colors.saffron, borderRadius: radius.pill,
+    paddingHorizontal: spacing.md + 2, paddingVertical: 10,
   },
-  newGroupBtnText: { color: colors.saffronDark, fontWeight: '800', fontSize: 13 },
+  newGroupBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 13 },
+
   searchWrap: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   searchBox: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border,
-    borderRadius: radius.input, paddingHorizontal: spacing.md, height: 48, ...shadows.sm,
+    backgroundColor: glass.fill, borderWidth: 1, borderColor: glass.border,
+    borderRadius: radius.pill, paddingHorizontal: spacing.md, height: 50, ...glassShadow,
   },
-  searchInput: { flex: 1, ...typography.bodyLarge, color: colors.textPrimary, paddingVertical: 0 },
+  searchInput: { flex: 1, ...typography.bodyLarge, color: glass.text, paddingVertical: 0 },
   searchClearBtn: { padding: 2 },
+
   summaryRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.lg + spacing.xs, marginBottom: spacing.sm,
   },
-  summaryText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
-  summaryTextBold: { color: colors.textPrimary, fontWeight: '800' },
+  summaryText: { ...typography.bodySmall, color: glass.textDim, fontWeight: '600' },
+  summaryTextBold: { color: glass.text, fontWeight: '800' },
   summaryPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: colors.successLight, borderRadius: radius.pill,
+    backgroundColor: glass.successFill, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: glass.successRim,
     paddingHorizontal: 10, paddingVertical: 4,
   },
-  summaryPillText: { color: colors.successDark, fontWeight: '800', fontSize: 12 },
+  summaryPillText: { color: glass.successText, fontWeight: '800', fontSize: 12 },
+
   tabsRow: { marginBottom: spacing.md, flexGrow: 0 },
   tabsRowContent: { paddingHorizontal: spacing.lg, gap: spacing.sm, alignItems: 'center' },
   tabChip: {
     flexDirection: 'row', alignItems: 'center', gap: 7,
-    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgSurface,
+    borderWidth: 1, borderColor: glass.border, backgroundColor: glass.fill,
     borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 9,
   },
-  tabChipActive: { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary },
-  tabChipText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
-  tabChipTextActive: { color: colors.textInverse },
+  tabChipActive: { backgroundColor: glass.tintStrong, borderColor: glass.borderWarm },
+  tabChipText: { fontSize: 13, fontWeight: '700', color: glass.textDim },
+  tabChipTextActive: { color: colors.saffron },
   tabDot: { width: 7, height: 7, borderRadius: radius.circle, backgroundColor: colors.success },
-  tabDotOff: { backgroundColor: colors.textTertiary },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+  tabDotOff: { backgroundColor: glass.textFaint },
+
+  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl + spacing.lg },
   groupBlock: { marginBottom: spacing.md },
   groupHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: colors.saffronLight, borderWidth: 1, borderColor: colors.saffron300,
-    borderRadius: radius.xl, paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    ...shadows.sm,
+    backgroundColor: glass.tint, borderWidth: 1, borderColor: glass.borderWarm,
+    borderRadius: glassRadius.card, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
+    ...glassShadow,
   },
   groupHeaderExpanded: {
     borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
   },
   groupTitleWrap: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: spacing.sm },
   groupIconWrap: {
-    width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.bgSurface,
+    width: 40, height: 40, borderRadius: glassRadius.inner - 4, backgroundColor: glass.fillStrong,
+    borderWidth: 1, borderColor: glass.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  groupIconWrapMuted: { backgroundColor: colors.surfaceMuted },
-  groupName: { ...typography.h4, color: colors.textPrimary },
-  groupCount: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 1, fontWeight: '500' },
+  groupIconWrapMuted: { backgroundColor: glass.fill },
+  groupName: { ...typography.h4, color: glass.text },
+  groupCount: { ...typography.bodySmall, color: glass.textDim, marginTop: 1, fontWeight: '500' },
   groupActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   groupDeleteBtn: { padding: 4 },
   groupCard: {
-    backgroundColor: colors.saffronLight, borderRadius: radius.xl, borderTopLeftRadius: 0, borderTopRightRadius: 0,
-    borderWidth: 1, borderTopWidth: 0, borderColor: colors.saffron300,
+    backgroundColor: glass.fill, borderRadius: glassRadius.card,
+    borderTopLeftRadius: 0, borderTopRightRadius: 0,
+    borderWidth: 1, borderTopWidth: 0, borderColor: glass.border,
     padding: 6,
   },
   emptyGroupWrap: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs,
     paddingVertical: spacing.lg,
   },
-  emptyGroup: { color: colors.textMuted, ...typography.bodySmall, fontWeight: '500' },
+  emptyGroup: { color: glass.textFaint, ...typography.bodySmall, fontWeight: '500' },
+
   row: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     paddingVertical: 10, paddingHorizontal: spacing.sm,
-    backgroundColor: colors.bgSurface, borderRadius: radius.lg, marginBottom: 6,
+    backgroundColor: glass.fillStrong, borderRadius: glassRadius.inner, marginBottom: 6,
+    borderWidth: 1, borderColor: glass.border,
   },
   rowLast: { marginBottom: 0 },
   rowAvatar: {
-    width: 34, height: 34, borderRadius: radius.md, backgroundColor: colors.saffronLight,
+    width: 34, height: 34, borderRadius: radius.lg, backgroundColor: glass.tint,
+    borderWidth: 1, borderColor: glass.borderWarm,
     alignItems: 'center', justifyContent: 'center',
   },
-  rowAvatarOff: { backgroundColor: colors.surfaceMuted },
-  rowAvatarText: { color: colors.saffronDark, fontWeight: '800', fontSize: 14 },
-  rowAvatarTextOff: { color: colors.textTertiary },
+  rowAvatarOff: { backgroundColor: glass.fill, borderColor: glass.border },
+  rowAvatarText: { color: colors.saffron, fontWeight: '800', fontSize: 14 },
+  rowAvatarTextOff: { color: glass.textFaint },
   rowNameWrap: { flex: 1 },
-  rowName: { ...typography.bodyLarge, color: colors.textPrimary, fontWeight: '600' },
-  rowNameOff: { color: colors.textTertiary },
-  rowMetaText: { ...typography.bodySmall, color: colors.textSecondary, fontSize: 12, marginTop: 1, fontWeight: '500' },
+  rowName: { ...typography.bodyLarge, color: glass.text, fontWeight: '600' },
+  rowNameOff: { color: glass.textFaint },
+  rowMetaText: { ...typography.bodySmall, color: glass.textDim, fontSize: 12, marginTop: 1, fontWeight: '500' },
+
   variantGroup: {
-    backgroundColor: colors.bgApp, paddingLeft: spacing.md + 34 + spacing.sm,
-    borderRadius: radius.lg, marginBottom: 6,
+    backgroundColor: 'rgba(255,255,255,0.04)', paddingLeft: spacing.md + 34 + spacing.sm,
+    borderRadius: glassRadius.inner, marginBottom: 6,
   },
   variantRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    paddingVertical: 8, paddingRight: spacing.md, borderTopWidth: 1, borderTopColor: colors.border,
+    paddingVertical: 8, paddingRight: spacing.md, borderTopWidth: 1, borderTopColor: glass.divider,
   },
   variantRowFirst: { borderTopWidth: 0 },
   variantRowLast: { paddingBottom: 10 },
-  variantDot: { width: 5, height: 5, borderRadius: radius.circle, backgroundColor: colors.saffronDark },
-  variantDotOff: { backgroundColor: colors.textTertiary },
-  variantName: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '500', flex: 1 },
-  variantPrice: { ...typography.bodySmall, color: colors.textTertiary, fontSize: 12, fontWeight: '600' },
+  variantDot: { width: 5, height: 5, borderRadius: radius.circle, backgroundColor: colors.saffron },
+  variantDotOff: { backgroundColor: glass.textFaint },
+  variantName: { ...typography.bodySmall, color: glass.textDim, fontWeight: '500', flex: 1 },
+  variantPrice: { ...typography.bodySmall, color: glass.textFaint, fontSize: 12, fontWeight: '600' },
   rowMoveBtn: {
-    width: 30, height: 30, borderRadius: radius.circle, backgroundColor: colors.saffronLight,
+    width: 32, height: 32, borderRadius: radius.circle, backgroundColor: colors.saffron,
     alignItems: 'center', justifyContent: 'center',
   },
-  emptyState: { alignItems: 'center', paddingHorizontal: spacing.xl, marginTop: spacing.xl },
+
+  emptyState: {
+    alignItems: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.xl,
+    marginTop: spacing.lg, backgroundColor: glass.fill, borderRadius: glassRadius.card,
+    borderWidth: 1, borderColor: glass.border, ...glassShadow,
+  },
   emptyIconWrap: {
-    width: 72, height: 72, borderRadius: radius.circle, backgroundColor: colors.saffronLight,
+    width: 76, height: 76, borderRadius: radius.circle, backgroundColor: glass.tint,
+    borderWidth: 1, borderColor: glass.borderWarm,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
   },
-  emptyTitle: { ...typography.h3, color: colors.textPrimary },
+  emptyTitle: { ...typography.h3, color: glass.text },
   emptyText: {
-    ...typography.body, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.xs,
+    ...typography.body, color: glass.textDim, textAlign: 'center', marginTop: spacing.xs,
     lineHeight: 20, maxWidth: 260,
   },
+
+  /* Modals — dark glass sheets */
   modalOverlay: {
-    flex: 1, backgroundColor: colors.overlayDark, justifyContent: 'center', padding: spacing.lg,
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', justifyContent: 'center', padding: spacing.lg,
   },
   modalCard: {
-    backgroundColor: colors.bgSurface, borderRadius: radius.xxl, padding: spacing.xl, ...shadows.lg,
+    backgroundColor: '#121212', borderRadius: glassRadius.hero, padding: spacing.xl,
+    borderWidth: 1, borderColor: glass.border, ...shadows.lg,
   },
   modalIconWrap: {
-    width: 48, height: 48, borderRadius: radius.md, backgroundColor: colors.saffronLight,
+    width: 48, height: 48, borderRadius: glassRadius.inner, backgroundColor: glass.tint,
+    borderWidth: 1, borderColor: glass.borderWarm,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
   },
-  modalTitle: { ...typography.h3, color: colors.textPrimary },
-  modalSubtitle: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 4, marginBottom: spacing.md, lineHeight: 18 },
+  modalTitle: { ...typography.h3, color: glass.text },
+  modalSubtitle: { ...typography.bodySmall, color: glass.textDim, marginTop: 4, marginBottom: spacing.md, lineHeight: 18 },
   modalInput: {
-    borderWidth: 1, borderColor: colors.border, borderRadius: radius.input,
-    paddingHorizontal: spacing.md, paddingVertical: 12, ...typography.bodyLarge, color: colors.textPrimary,
-    backgroundColor: colors.bgApp, marginBottom: spacing.md,
+    borderWidth: 1, borderColor: glass.border, borderRadius: glassRadius.inner,
+    paddingHorizontal: spacing.md, paddingVertical: 12, ...typography.bodyLarge, color: glass.text,
+    backgroundColor: glass.fill, marginBottom: spacing.md,
   },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm },
   modalCancelBtn: { paddingHorizontal: spacing.md, paddingVertical: 10, justifyContent: 'center' },
-  modalCancelText: { color: colors.textSecondary, fontWeight: '700', fontSize: 14 },
-  modalCreateBtn: { borderRadius: radius.button, overflow: 'hidden' },
+  modalCancelText: { color: glass.textDim, fontWeight: '700', fontSize: 14 },
+  modalCreateBtn: { borderRadius: radius.pill, overflow: 'hidden' },
   modalCreateDisabled: { opacity: 0.5 },
-  modalCreateGradient: { paddingHorizontal: spacing.lg, paddingVertical: 11, alignItems: 'center' },
+  modalCreateGradient: { paddingHorizontal: spacing.lg, paddingVertical: 12, alignItems: 'center' },
   modalCreateText: { color: colors.textInverse, fontWeight: '800', fontSize: 14 },
   pickerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 14, paddingHorizontal: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.border,
+    paddingVertical: 14, paddingHorizontal: spacing.xs, borderBottomWidth: 1, borderBottomColor: glass.divider,
   },
-  pickerRowText: { ...typography.bodyLarge, color: colors.textPrimary, fontWeight: '500' },
+  pickerRowText: { ...typography.bodyLarge, color: glass.text, fontWeight: '500' },
   modalCancelBtnWide: { alignItems: 'center', paddingVertical: spacing.md, marginTop: spacing.xs },
 });

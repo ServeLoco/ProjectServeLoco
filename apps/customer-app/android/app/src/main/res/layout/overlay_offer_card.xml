@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/overlay_card_bg"
+    android:elevation="12dp"
+    android:layout_margin="12dp"
+    android:padding="16dp">
+
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/overlay_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Delivery offer"
+        android:textColor="#E05A1A"
+        android:textStyle="bold"
+        android:textSize="12sp"
+        android:background="@drawable/overlay_badge_bg"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="4dp"/>
+
+    <TextView
+        android:id="@+id/overlay_timer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="end"
+        android:text=""
+        android:textColor="#666666"
+        android:textStyle="bold"
+        android:textSize="13sp"/>
+  </LinearLayout>
+
+  <TextView
+      android:id="@+id/overlay_total"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="10dp"
+      android:text=""
+      android:textColor="#111111"
+      android:textStyle="bold"
+      android:textSize="28sp"/>
+
+  <TextView
+      android:id="@+id/overlay_order_number"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="2dp"
+      android:text=""
+      android:textColor="#666666"
+      android:textSize="13sp"/>
+
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:layout_marginTop="14dp"
+      android:weightSum="2">
+
+    <TextView
+        android:id="@+id/overlay_reject"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/overlay_reject_bg"
+        android:gravity="center"
+        android:paddingVertical="12dp"
+        android:text="Reject"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:clickable="true"
+        android:focusable="true"/>
+
+    <TextView
+        android:id="@+id/overlay_accept"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/overlay_accept_bg"
+        android:gravity="center"
+        android:paddingVertical="12dp"
+        android:text="Accept"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:clickable="true"
+        android:focusable="true"/>
+  </LinearLayout>
+</LinearLayout>

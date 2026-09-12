@@ -9,6 +9,7 @@ import { authApi } from '../api/authApi';
 import * as notificationsApi from '../api/notificationsApi';
 import { useAuthStore } from '../stores';
 import { playNotificationChime } from '../utils/notificationChime';
+import { isAlarmPayload } from '../utils/orderAlarmNotifications';
 
 // Expo project ID from app.json — used to get a valid push token.
 const EXPO_PROJECT_ID =
@@ -81,10 +82,18 @@ Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const isRemotePush = notification?.request?.trigger?.type === 'push';
     const appActive = AppState.currentState === 'active';
-    const suppressRemote = isRemotePush && appActive;
+    // Rider/shop alarm pushes (Accept/Reject offer alerts) already have an
+    // in-app popup + ring while the app is open (useRiderOfferAlert) — an OS
+    // banner on top of that is redundant no matter which delivery path the
+    // push took (raw FCM data vs. this Expo-relayed fallback).
+    const isAlarm = isAlarmPayload(notification?.request?.content?.data);
+    const suppressRemote = (isRemotePush || isAlarm) && appActive;
     return {
+      // Silent while foreground: still lands in the notification area (pull
+      // down to see it) — just no heads-up banner/sound/vibrate on top of
+      // the in-app popup that's already showing.
       shouldShowBanner: !suppressRemote,
-      shouldShowList: !suppressRemote,
+      shouldShowList: true,
       shouldPlaySound: !suppressRemote,
       shouldSetBadge: true,
     };
@@ -186,6 +195,13 @@ export const RIDER_OFFER_CHANNEL_ID = 'serveloco-rider-offers';
 // v5: re-create after ColorOS muted v4; MAX importance + raw order_alarm sound.
 export const ORDER_ALARM_CHANNEL_ID = 'serveloco-orders-alarm-v5';
 export const RIDER_OFFER_ALARM_CHANNEL_ID = 'serveloco-rider-offers-alarm-v5';
+// Screen-on counterpart to the alarm channel above. An ongoing notification is
+// unavoidable while the offer rings (it is the foreground service's host), but
+// with the screen on the floating card is the alert — so this channel is LOW
+// and silent: tray entry only, no heads-up banner, no channel sound/vibration.
+// The ring itself comes from playAlarmSound()'s media stream either way, so
+// silencing the channel does not silence the offer.
+export const RIDER_OFFER_QUIET_CHANNEL_ID = 'serveloco-rider-offers-quiet-v1';
 
 // Strong pattern: pause, buzz, pause, buzz… (ms) — RN Vibration API allows a
 // leading 0 (initial delay). Used by foreground alert hooks.
@@ -323,6 +339,25 @@ export async function createNotifeeAlarmChannels() {
       enableVibrate: true,
       enableLights: true,
       showBadge: true,
+      audioAttributes: alarmAudio,
+    });
+
+    // DEFAULT, not LOW: DEFAULT still plays the channel sound but never pops a
+    // heads-up banner, which is the exact split we want with the screen on —
+    // the offer is audible, the floating card is the only thing that appears.
+    // LOW would silence it, and playAlarmSound() alone cannot be relied on here
+    // because it routes through the media stream, which riders often leave at 0.
+    await Notifications.setNotificationChannelAsync(RIDER_OFFER_QUIET_CHANNEL_ID, {
+      name: 'Rider Offers',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: 'rider_alarm',
+      // SECRET keeps it off the lock screen entirely: a locked phone rings and
+      // vibrates, and the offer card is shown once the rider unlocks.
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.SECRET,
+      vibrationPattern: NOTIFEE_RIDER_VIBRATION_PATTERN,
+      enableVibrate: true,
+      enableLights: false,
+      showBadge: false,
       audioAttributes: alarmAudio,
     });
 

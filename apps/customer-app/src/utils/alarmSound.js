@@ -7,10 +7,17 @@
  *  2) android.resource raw URI (headless / no Metro)
  *  3) require() module (last resort)
  */
-import { Platform, Vibration } from 'react-native';
+import { NativeModules, Platform, Vibration } from 'react-native';
 import { Asset } from 'expo-asset';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import Constants from 'expo-constants';
+
+// Native looping player on the ALARM stream. expo-audio can only play as
+// media, so on a phone with media volume down (common — riders mute media,
+// not alarms) the tone is inaudible. Prefer native; expo-audio stays as the
+// fallback for older binaries that predate the module.
+const { AlarmSound } = NativeModules;
+let nativeStopTimer = null;
 
 let orderPlayer = null;
 let riderPlayer = null;
@@ -97,14 +104,22 @@ async function getPlayer(kind) {
  * @param {{
  *   loopMs?: number,
  *   untilStopped?: boolean,
+ *   vibrate?: boolean,
+ *   alarmStream?: boolean,
  * }} [opts]
  *   - untilStopped: true → loop until stopAlarmSound() (accept/reject).
  *   - loopMs: finite ms cap (rider offer expiry). 0 = play once, no loop.
  *   - default loopMs 20000 if neither set.
+ *   - vibrate: false → tone only; the caller already runs its own buzz cadence.
+ *   - alarmStream: true → play natively on the ALARM stream instead of as
+ *     media. For the in-app popup, where no notification is posted and so
+ *     nothing else rings; the background paths post a notification whose own
+ *     channel sound is already on that stream, and would double up.
  */
 export async function playAlarmSound(kind = 'order', opts = {}) {
   if (Platform.OS !== 'android') return;
   const untilStopped = opts.untilStopped === true;
+  const shouldVibrate = opts.vibrate !== false;
   const loopMs = untilStopped
     ? Infinity
     : (opts.loopMs !== undefined ? opts.loopMs : 20_000);
@@ -116,13 +131,55 @@ export async function playAlarmSound(kind = 'order', opts = {}) {
   );
 
   // Always buzz — even if audio fails.
-  try {
-    Vibration.vibrate(
-      kind === 'rider'
-        ? [0, 600, 200, 600, 200, 600, 200, 600]
-        : [0, 500, 200, 500, 200, 500, 200, 500],
-    );
-  } catch { /* ignore */ }
+  if (shouldVibrate) {
+    try {
+      Vibration.vibrate(
+        kind === 'rider'
+          ? [0, 600, 200, 600, 200, 600, 200, 600]
+          : [0, 500, 200, 500, 200, 500, 200, 500],
+      );
+    } catch { /* ignore */ }
+  }
+
+  if (opts.alarmStream === true && AlarmSound?.start) {
+    try {
+      await AlarmSound.start(kind === 'rider' ? 'rider' : 'order');
+      if (nativeStopTimer) {
+        clearTimeout(nativeStopTimer);
+        nativeStopTimer = null;
+      }
+      // Native loops the tone itself; only a finite cap needs a timer, and
+      // the vibration pulse still rides the JS interval below.
+      if (Number.isFinite(loopMs)) {
+        if (loopMs === 0) {
+          // Single shot: let one pass of the tone play, then silence it.
+          nativeStopTimer = setTimeout(() => { stopAlarmSound(); }, 3000);
+        } else {
+          nativeStopTimer = setTimeout(() => { stopAlarmSound(); }, loopMs);
+        }
+      }
+      if (loopTimer) {
+        clearInterval(loopTimer);
+        loopTimer = null;
+      }
+      if (loopMs !== 0 && shouldVibrate) {
+        const startedAt = Date.now();
+        loopTimer = setInterval(() => {
+          if (Number.isFinite(loopMs) && Date.now() - startedAt >= loopMs) {
+            clearInterval(loopTimer);
+            loopTimer = null;
+            return;
+          }
+          try {
+            Vibration.vibrate(kind === 'rider' ? [0, 500] : [0, 400]);
+          } catch { /* ignore */ }
+        }, 1100);
+      }
+      return;
+    } catch (err) {
+      console.warn('[alarmSound] native alarm failed, falling back:', err?.message || err);
+    }
+  }
 
   try {
     await ensureAudioMode();
@@ -186,6 +243,11 @@ export async function playAlarmSound(kind = 'order', opts = {}) {
 }
 
 export function stopAlarmSound() {
+  if (nativeStopTimer) {
+    clearTimeout(nativeStopTimer);
+    nativeStopTimer = null;
+  }
+  try { AlarmSound?.stop?.(); } catch { /* ignore */ }
   if (loopTimer) {
     clearInterval(loopTimer);
     loopTimer = null;

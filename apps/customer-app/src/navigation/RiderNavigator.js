@@ -1,28 +1,94 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Easing, View, Pressable, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, shadows, radius } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, radius } from '../theme';
 import AppIcon from '../components/AppIcon';
 import { useRiderLocationPermission } from '../hooks/useRiderLocationPermission';
 import {
   RiderDashboardScreen,
   RiderHistoryScreen,
   RiderOrderScreen,
+  RiderProfileScreen,
 } from '../screens/rider';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-function TabIcon({ name, focused, size, color }) {
+function TabBarButton({
+  name,
+  label,
+  onPress,
+  onLongPress,
+  accessibilityState,
+  testID,
+  ...rest
+}) {
+  // v7 reports selection via aria-selected; older releases via accessibilityState.
+  const focused = Boolean(accessibilityState?.selected ?? rest['aria-selected']);
+  const anim = useRef(new Animated.Value(focused ? 1 : 0)).current;
+
+  useEffect(() => {
+    // Opacity/transform only, so this runs on the UI thread and a tab switch
+    // never waits on JS. Animating the pill's width instead would relayout
+    // every frame on the JS thread, which is what made switching feel laggy.
+    Animated.timing(anim, {
+      toValue: focused ? 1 : 0,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [anim, focused]);
+
+  const inverse = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+
   return (
-    <View style={styles.iconWrap}>
-      <View style={[styles.iconBubble, focused && styles.iconBubbleActive]}>
-        <AppIcon name={name} color={focused ? colors.saffronDark : color} size={size - 1} />
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityState={accessibilityState}
+      accessibilityLabel={label}
+      style={styles.tabButton}
+    >
+      <View style={styles.tabItem}>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: anim }]}>
+          <LinearGradient
+            colors={[colors.brandGradientStart, colors.brandGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+
+        <View style={styles.iconStack}>
+          <Animated.View style={[StyleSheet.absoluteFill, styles.iconLayer, { opacity: inverse }]}>
+            <AppIcon name={name} color={colors.navInactive} size={21} />
+          </Animated.View>
+          <Animated.View style={[StyleSheet.absoluteFill, styles.iconLayer, { opacity: anim }]}>
+            <AppIcon name={name} color={colors.textInverse} size={21} />
+          </Animated.View>
+        </View>
+
+        <View style={styles.labelSlot}>
+          <Animated.Text
+            style={[styles.tabLabel, styles.tabLabelIdle, { opacity: inverse }]}
+            numberOfLines={1}
+          >
+            {label}
+          </Animated.Text>
+          <Animated.Text
+            style={[styles.tabLabel, styles.tabLabelActive, { opacity: anim }]}
+            numberOfLines={1}
+          >
+            {label}
+          </Animated.Text>
+        </View>
       </View>
-      {focused ? <View style={styles.activeDot} /> : <View style={styles.activeDotSpacer} />}
-    </View>
+    </Pressable>
   );
 }
 
@@ -33,17 +99,17 @@ function RiderTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.saffronDark,
-        tabBarInactiveTintColor: colors.navInactive,
-        tabBarLabelStyle: { fontWeight: '700', fontSize: 11, marginTop: 2 },
+        tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: colors.navBg,
           borderTopWidth: 0,
-          height: 68 + insets.bottom,
-          paddingBottom: 10 + insets.bottom,
-          paddingTop: 8,
-          ...shadows.navBar,
+          borderTopLeftRadius: 26,
+          borderTopRightRadius: 26,
+          height: 66 + insets.bottom,
+          paddingBottom: insets.bottom,
+          paddingTop: 0,
         },
+        tabBarItemStyle: { height: 66, justifyContent: 'center' },
         sceneContainerStyle: { backgroundColor: colors.bgApp },
       }}
     >
@@ -52,8 +118,8 @@ function RiderTabs() {
         component={RiderDashboardScreen}
         options={{
           title: 'Ride',
-          tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="navigation" color={color} size={size} focused={focused} />
+          tabBarButton: (props) => (
+            <TabBarButton {...props} name="navigation" label="Ride" />
           ),
         }}
       />
@@ -62,8 +128,18 @@ function RiderTabs() {
         component={RiderHistoryScreen}
         options={{
           title: 'History',
-          tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="orders" color={color} size={size} focused={focused} />
+          tabBarButton: (props) => (
+            <TabBarButton {...props} name="orders" label="History" />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="RiderProfile"
+        component={RiderProfileScreen}
+        options={{
+          title: 'Profile',
+          tabBarButton: (props) => (
+            <TabBarButton {...props} name="profile" label="Profile" />
           ),
         }}
       />
@@ -90,31 +166,38 @@ export default function RiderNavigator() {
 }
 
 const styles = StyleSheet.create({
-  iconWrap: {
+  tabButton: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 30,
   },
-  iconBubble: {
-    width: 36,
-    height: 28,
+  tabItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 44,
+    paddingHorizontal: 15,
     borderRadius: radius.pill,
+    overflow: 'hidden',
+  },
+  iconStack: {
+    width: 24,
+    height: 24,
+  },
+  iconLayer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconBubbleActive: {
-    backgroundColor: colors.saffronLight,
+  labelSlot: {
+    height: 18,
+    marginLeft: 7,
+    justifyContent: 'center',
   },
-  activeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: radius.circle,
-    backgroundColor: colors.saffron,
-    marginTop: 2,
+  tabLabel: {
+    fontWeight: '800',
+    fontSize: 13,
   },
-  activeDotSpacer: {
-    width: 4,
-    height: 4,
-    marginTop: 2,
-  },
+  // Stacked so the two colours cross-fade without changing layout.
+  tabLabelIdle: { color: colors.navInactive },
+  tabLabelActive: { ...StyleSheet.absoluteFillObject, color: colors.textInverse },
 });

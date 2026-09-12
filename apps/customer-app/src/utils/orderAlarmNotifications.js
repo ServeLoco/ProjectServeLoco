@@ -5,7 +5,7 @@
  *
  * Foreground alerts remain on useNewOrderAlert / useRiderOfferAlert.
  */
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import notifee, {
   AndroidCategory,
   AndroidForegroundServiceType,
@@ -15,7 +15,7 @@ import notifee, {
 } from '@notifee/react-native';
 import {
   ORDER_ALARM_CHANNEL_ID,
-  RIDER_OFFER_ALARM_CHANNEL_ID,
+  RIDER_OFFER_QUIET_CHANNEL_ID,
   createNotifeeAlarmChannels,
 } from '../hooks/useLocalNotifications';
 import { shopApi } from '../api/shopApi';
@@ -24,6 +24,21 @@ import { setCustomerTokenProvider } from '../api/sessionTokens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../stores';
 import { playAlarmSound, stopAlarmSound } from './alarmSound';
+import {
+  canShowOverlay,
+  showOverlayOfferCard,
+  hideOverlayOfferCard,
+  isScreenLockedOrOff,
+  isAlarmScreenVisible,
+  closeAlarmScreen,
+  isAppOnScreen,
+} from './overlayOfferCard';
+
+// Rider offers only — launched from the alarm notification's press/full-screen
+// action instead of MainActivity so a cold, locked device boots straight into
+// the minimal Accept/Reject+total card (no nav stack, no Mapbox) instead of
+// the full app. See index.js's AppRegistry.registerComponent('alarm', ...).
+const ALARM_ACTIVITY = 'com.yashsiwach.villkro.AlarmActivity';
 
 // Stable notification ids so cancel-on-open can silence a still-ringing alarm.
 export const ORDER_ALARM_NOTIFICATION_ID = 'serveloco-order-alarm';
@@ -43,6 +58,88 @@ const ACTION_REJECT = 'reject';
 // like spam. Same offer/order within this window is a no-op (already ringing).
 const ALARM_DEDUPE_MS = 45_000;
 let activeAlarmKey = null;
+
+// Android routes a background FCM data message to a separate HEADLESS JS
+// instance for setBackgroundMessageHandler — that instance's own
+// AppState.currentState does not reliably reflect whether the real (main)
+// app instance is actually foregrounded, so a plain in-process check can
+// let the full-screen alarm slip through while the rider is already looking
+// at the in-app Accept/Reject popup. AsyncStorage is one disk-backed store
+// shared by every JS instance on the device, so a heartbeat the main
+// instance writes while active is a reliable cross-instance signal here.
+const APP_FOREGROUND_KEY = 'serveloco:appForegroundAt';
+const FOREGROUND_FRESH_MS = 8_000;
+
+/** Call from the main app instance while it's genuinely foregrounded. */
+export async function markAppForeground() {
+  try {
+    await AsyncStorage.setItem(APP_FOREGROUND_KEY, String(Date.now()));
+  } catch { /* ignore */ }
+}
+
+/**
+ * Call the moment the app leaves the foreground. Without this the last
+ * heartbeat keeps reading "fresh" for up to FOREGROUND_FRESH_MS after the
+ * rider locks the screen, and every alarm arriving in that window is skipped
+ * as "already covered by the in-app popup" — i.e. no ring at all.
+ */
+export async function markAppBackground() {
+  try {
+    await AsyncStorage.removeItem(APP_FOREGROUND_KEY);
+  } catch { /* ignore */ }
+}
+
+async function isAppForegroundRecent() {
+  try {
+    const raw = await AsyncStorage.getItem(APP_FOREGROUND_KEY);
+    const ts = raw ? Number(raw) : 0;
+    return Number.isFinite(ts) && Date.now() - ts < FOREGROUND_FRESH_MS;
+  } catch {
+    return false;
+  }
+}
+
+// Per-offer suppression: the socket path (main JS, fast) and the FCM path
+// (may land in a headless instance, slower) can both react to the same
+// offer. The heartbeat above only proves "the app was foregrounded recently"
+// — it can't stop a slow-arriving FCM alarm for an offer that was ALREADY
+// shown as the in-app popup moments earlier by the fast socket path. Marking
+// the specific offer id closes that race regardless of which path is slow.
+const OFFER_FOREGROUND_KEY_PREFIX = 'serveloco:offerFg:';
+const OFFER_FOREGROUND_FRESH_MS = 20_000;
+
+/** Call from the main app instance when an offer is shown as the in-app popup. */
+export async function markOfferHandledForeground(id) {
+  if (!id) return;
+  try {
+    await AsyncStorage.setItem(OFFER_FOREGROUND_KEY_PREFIX + id, String(Date.now()));
+  } catch { /* ignore */ }
+}
+
+/**
+ * Drop the per-offer suppression as soon as the app backgrounds — the flag
+ * only means "the in-app popup is covering this offer right now", which stops
+ * being true the instant the rider locks the screen. Leaving it to expire on
+ * its own silences the lock-screen alarm for the rest of the window.
+ */
+export async function clearOfferForegroundMarker(id) {
+  if (!id) return;
+  try {
+    await AsyncStorage.removeItem(OFFER_FOREGROUND_KEY_PREFIX + id);
+  } catch { /* ignore */ }
+}
+
+async function wasOfferHandledForeground(id) {
+  if (!id) return false;
+  try {
+    const raw = await AsyncStorage.getItem(OFFER_FOREGROUND_KEY_PREFIX + id);
+    const ts = raw ? Number(raw) : 0;
+    return Number.isFinite(ts) && Date.now() - ts < OFFER_FOREGROUND_FRESH_MS;
+  } catch {
+    return false;
+  }
+}
+
 let activeAlarmAt = 0;
 
 function isAlarmAlertType(alertType) {
@@ -197,6 +294,34 @@ function resolveRiderTimeoutMs(data) {
 export async function displayAlarmNotification(data) {
   if (Platform.OS !== 'android') return;
   if (!data || !isAlarmAlertType(data.alertType)) return;
+  // The dashboard's own Accept/Reject popup + vibrate/chime (useRiderOfferAlert)
+  // already cover this while the app is foregrounded — a full-screen alarm
+  // notification on top of it is redundant. RNFB's setBackgroundMessageHandler
+  // can fire even while active (the reason this guard lives here rather than
+  // only at each call site), so this is the one place that reliably blocks it.
+  if (AppState.currentState === 'active') return;
+  // AppState reads 'background' inside Android's headless background-message
+  // JS instance even while the rider is staring at the app, and the heartbeat
+  // below can lose a race with the socket path that opens the in-app popup.
+  // The activity lifecycle is the one source that is right in both cases.
+  if (await isAppOnScreen()) {
+    console.warn('[orderAlarm] skip: app is on screen');
+    return;
+  }
+  if (await isAppForegroundRecent()) return;
+  // Closes the race where the fast socket path already showed this exact
+  // offer/order as the in-app popup, but a slower-arriving FCM data message
+  // for the SAME offer reaches this function moments later (e.g. via a
+  // headless instance) after the heartbeat above has gone stale-looking.
+  const dedupeId = data.offerId || data.offer_id || data.orderId || data.order_id;
+  if (await wasOfferHandledForeground(dedupeId)) return;
+  // The full-screen card is already up for this offer. The server re-pushes
+  // every ~15s, and re-running this would cancel and re-post the ringing
+  // notification underneath the card the rider is looking at.
+  if (await isAlarmScreenVisible()) {
+    console.warn('[orderAlarm] skip: alarm screen already showing');
+    return;
+  }
 
   // Shop-owner + rider sessions only (rehydrate from disk if headless).
   const { shop, rider } = await ensureShopOrRiderSession();
@@ -235,14 +360,15 @@ export async function displayAlarmNotification(data) {
     const notificationId = isRider
       ? RIDER_OFFER_ALARM_NOTIFICATION_ID
       : ORDER_ALARM_NOTIFICATION_ID;
-    const channelId = isRider
-      ? RIDER_OFFER_ALARM_CHANNEL_ID
-      : ORDER_ALARM_CHANNEL_ID;
     const title = isRider ? 'Delivery offer waiting' : 'New order waiting';
+    // Rider: the alarm/overlay card is the sole Accept/Reject surface — this
+    // notification only exists to trigger the FGS + full-screen wake, so its
+    // copy must not imply it can act itself (was a duplicate "same work" UI
+    // alongside the card).
     const body = orderNumber
-      ? `Order ${orderNumber} — accept or reject now`
+      ? (isRider ? `Order ${orderNumber} waiting` : `Order ${orderNumber} — accept or reject now`)
       : (isRider
-        ? 'Accept or reject before this offer expires.'
+        ? 'Check the offer card to accept or reject.'
         : 'Accept or reject the order to keep the queue moving.');
     // Notifee requires even-length positive ms (no leading 0 delay).
     const vibrationPattern = isRider
@@ -257,7 +383,24 @@ export async function displayAlarmNotification(data) {
     } catch {
       canFullScreen = true;
     }
-    console.warn('[orderAlarm] canUseFullScreenIntent=', canFullScreen);
+    // Rider offers never take over the screen. A locked phone rings and
+    // vibrates only, and the offer card appears when the rider unlocks (the
+    // overlay module holds it until ACTION_USER_PRESENT) — no UI on the lock
+    // screen, which is both what riders asked for and the safer position under
+    // Play's full-screen-intent policy. Shop new-order alerts are unchanged.
+    const screenLockedOrOff = await isScreenLockedOrOff();
+    const useFullScreen = canFullScreen && !isRider;
+    // One channel for every rider offer now: audible and buzzing, but never a
+    // heads-up banner and never visible on the lock screen.
+    const quietRider = isRider;
+    const channelId = isRider
+      ? RIDER_OFFER_QUIET_CHANNEL_ID
+      : ORDER_ALARM_CHANNEL_ID;
+    console.warn(
+      '[orderAlarm] canUseFullScreenIntent=', canFullScreen,
+      'screenLockedOrOff=', screenLockedOrOff,
+      'useFullScreen=', useFullScreen,
+    );
 
     // Google Play FGS policy requires the alert to run only as long as
     // necessary — an indefinite ring is not "user perceptible, time-bounded"
@@ -270,20 +413,31 @@ export async function displayAlarmNotification(data) {
 
     const android = {
       channelId,
-      category: AndroidCategory.CALL,
-      importance: AndroidImportance.HIGH,
-      visibility: AndroidVisibility.PUBLIC,
-      pressAction: { id: 'default', launchActivity: 'default' },
-      actions: [
-        {
-          title: 'Accept',
-          pressAction: { id: ACTION_ACCEPT, launchActivity: 'default' },
-        },
-        {
-          title: 'Reject',
-          pressAction: { id: ACTION_REJECT },
-        },
-      ],
+      // CALL makes ColorOS treat this as an incoming call: it lights the
+      // display and dismisses an insecure keyguard, which is exactly the
+      // lock-screen takeover riders asked us to stop. Shop alarms keep CALL —
+      // they are still meant to wake the phone.
+      category: quietRider ? AndroidCategory.MESSAGE : AndroidCategory.CALL,
+      importance: quietRider ? AndroidImportance.DEFAULT : AndroidImportance.HIGH,
+      visibility: quietRider ? AndroidVisibility.SECRET : AndroidVisibility.PUBLIC,
+      // Rider offers open the lightweight alarm card (no nav/map), not the
+      // full app — shop new-order alerts are unchanged.
+      pressAction: { id: 'default', launchActivity: isRider ? ALARM_ACTIVITY : 'default' },
+      // Rider: no inline Accept/Reject here — AlarmActivity/overlay card is
+      // the one actionable surface, this notification is just the trigger.
+      // Shop new-order alerts keep inline actions (no card exists for those).
+      ...(isRider ? {} : {
+        actions: [
+          {
+            title: 'Accept',
+            pressAction: { id: ACTION_ACCEPT, launchActivity: 'default' },
+          },
+          {
+            title: 'Reject',
+            pressAction: { id: ACTION_REJECT },
+          },
+        ],
+      }),
       // Ongoing alarm-style notification so the sound can loop until action/timeout.
       asForegroundService: true,
       foregroundServiceTypes: [
@@ -291,19 +445,22 @@ export async function displayAlarmNotification(data) {
       ],
       ongoing: true,
       autoCancel: false,
+      // Keeps ringing until accept/reject in both cases. With the screen on we
+      // drop only the vibration and screen-wake — the buzzing and lighting up
+      // are what made the card feel like a second alert.
       loopSound: true,
-      vibrationPattern,
-      lightUpScreen: true,
+      ...(quietRider ? {} : { vibrationPattern, lightUpScreen: true }),
       // Hard cap so the FGS can't ring forever — required for Play policy
       // compliance (see ringTimeoutAt above). Android fires DISMISSED at this
       // time even if the user never touches the notification.
       timeoutAfter: ringTimeoutAt,
-      // Always attach fullScreenAction when OS allows — critical for lock screen.
-      ...(canFullScreen
+      // Attached only for the locked/screen-off case (see useFullScreen) —
+      // critical there, hijacking anywhere else.
+      ...(useFullScreen
         ? {
           fullScreenAction: {
             id: 'default',
-            launchActivity: 'default',
+            launchActivity: isRider ? ALARM_ACTIVITY : 'default',
           },
         }
         : {}),
@@ -319,6 +476,7 @@ export async function displayAlarmNotification(data) {
         orderNumber: String(orderNumber),
         offerId: String(data.offerId || data.offer_id || ''),
         expiresAt: String(data.expiresAt || data.expires_at || ''),
+        total: String(data.total ?? ''),
         type: String(data.type || ''),
       },
       android: {
@@ -329,9 +487,36 @@ export async function displayAlarmNotification(data) {
       },
     });
 
-    // OEM-safe audible path: ColorOS often mutes channel sounds; media stack works.
+    // OEM-safe audible path: ColorOS mutes the notification stream outright
+    // (channel sound included), and the media stream is whatever the rider left
+    // it at — usually down. The alarm stream is the one that is actually up on
+    // a phone being used for work, so the tone goes out there.
     // Shop + rider: loop until accept/reject (stop via cancel*Alarm).
-    await playAlarmSound(isRider ? 'rider' : 'order', { untilStopped: true });
+    await playAlarmSound(isRider ? 'rider' : 'order', {
+      untilStopped: true,
+      alarmStream: true,
+    });
+
+    // The floating card is now the only visual surface for a rider offer, in
+    // every state. Handed over unconditionally: the native module shows it
+    // straight away with the screen on, and holds it until the rider unlocks
+    // when the phone is locked or dark. No-ops when "draw over other apps" was
+    // never granted.
+    if (isRider) {
+      try {
+        const granted = await canShowOverlay();
+        if (granted) {
+          const expiresAt = data.expiresAt || data.expires_at;
+          showOverlayOfferCard({
+            orderId: String(data.orderId || data.order_id || ''),
+            offerId: String(data.offerId || data.offer_id || ''),
+            orderNumber: String(orderNumber),
+            total: String(data.total ?? ''),
+            expiresAtMs: expiresAt ? new Date(expiresAt).getTime() : 0,
+          });
+        }
+      } catch { /* ignore — cosmetic overlay failure must not fail the alarm */ }
+    }
 
     // Proof-of-delivery for the killed-app path: the notifee alarm above just
     // rang on THIS device, so tell the server — shopAlertSweeper eases off its
@@ -371,6 +556,11 @@ export async function cancelRiderOfferAlarm() {
   if (Platform.OS !== 'android') return;
   clearAlarmActive('rider');
   stopAlarmSound();
+  hideOverlayOfferCard();
+  // The offer is resolved — tear down every surface showing it, including the
+  // full-screen card, which otherwise survives and keeps offering Accept on an
+  // offer that is already gone.
+  closeAlarmScreen();
   try {
     await notifee.cancelNotification(RIDER_OFFER_ALARM_NOTIFICATION_ID);
   } catch { /* ignore */ }
@@ -393,6 +583,53 @@ async function silenceAlarmForAlertType(alertType) {
     await cancelOrderAlarm();
   } else {
     await cancelAllAlarmNotifications();
+  }
+}
+
+/**
+ * Accept/reject an alarm-type offer/order — the one code path shared by the
+ * notifee action buttons, the lock-screen alarm card, and the floating
+ * overlay card, regardless of which surface the tap came from.
+ * @param {string} alertType — ALERT_TYPE_NEW_ORDER | ALERT_TYPE_RIDER_OFFER
+ * @param {'accept'|'reject'} action
+ * @param {{ orderId?: string, offerId?: string }} data
+ */
+export async function performOfferAction(alertType, action, data) {
+  const token = await ensureBackgroundCustomerToken();
+  if (!token) {
+    // Cannot call API without auth — cancel ring and let user open the app.
+    await silenceAlarmForAlertType(alertType);
+    return;
+  }
+
+  try {
+    if (alertType === ALERT_TYPE_NEW_ORDER) {
+      const orderId = data.orderId || data.order_id;
+      if (orderId) {
+        if (action === ACTION_ACCEPT) {
+          await shopApi.confirmOrder(orderId);
+        } else {
+          await shopApi.rejectOrder(orderId);
+        }
+      }
+      await cancelOrderAlarm();
+    } else if (alertType === ALERT_TYPE_RIDER_OFFER) {
+      const offerId = data.offerId || data.offer_id;
+      if (offerId) {
+        if (action === ACTION_ACCEPT) {
+          await riderApi.acceptOffer(offerId);
+        } else {
+          await riderApi.rejectOffer(offerId);
+        }
+      }
+      await cancelRiderOfferAlarm();
+    } else {
+      await cancelAllAlarmNotifications();
+    }
+  } catch (err) {
+    console.warn('[orderAlarm] action failed:', err?.message || err);
+    // Still stop the ring so the user is not stuck with an endless alarm.
+    await silenceAlarmForAlertType(alertType);
   }
 }
 
@@ -422,42 +659,7 @@ export async function handleAlarmActionEvent({ type, detail }) {
 
   if (pressId !== ACTION_ACCEPT && pressId !== ACTION_REJECT) return;
 
-  const token = await ensureBackgroundCustomerToken();
-  if (!token) {
-    // Cannot call API without auth — cancel ring and let user open the app.
-    await silenceAlarmForAlertType(alertType);
-    return;
-  }
-
-  try {
-    if (alertType === ALERT_TYPE_NEW_ORDER) {
-      const orderId = data.orderId || data.order_id;
-      if (orderId) {
-        if (pressId === ACTION_ACCEPT) {
-          await shopApi.confirmOrder(orderId);
-        } else {
-          await shopApi.rejectOrder(orderId);
-        }
-      }
-      await cancelOrderAlarm();
-    } else if (alertType === ALERT_TYPE_RIDER_OFFER) {
-      const offerId = data.offerId || data.offer_id;
-      if (offerId) {
-        if (pressId === ACTION_ACCEPT) {
-          await riderApi.acceptOffer(offerId);
-        } else {
-          await riderApi.rejectOffer(offerId);
-        }
-      }
-      await cancelRiderOfferAlarm();
-    } else {
-      await cancelAllAlarmNotifications();
-    }
-  } catch (err) {
-    console.warn('[orderAlarm] action failed:', err?.message || err);
-    // Still stop the ring so the user is not stuck with an endless alarm.
-    await silenceAlarmForAlertType(alertType);
-  }
+  await performOfferAction(alertType, pressId, data);
 }
 
 /**
@@ -509,11 +711,19 @@ export async function handleBackgroundAlarmMessage(remoteMessage) {
   );
   try {
     if (hasOsBanner) {
+      // Same "already covered by the in-app popup" guard as
+      // displayAlarmNotification — without it this path plays the loud
+      // alarm media even while the rider is foregrounded looking at the
+      // Accept/Reject popup.
+      if (AppState.currentState === 'active' || await isAppForegroundRecent()) {
+        console.warn('[orderAlarm] OS banner present — foreground, skip sound', alertData.alertType);
+        return;
+      }
       console.warn('[orderAlarm] OS banner present — sound only', alertData.alertType);
       const { playAlarmSound } = require('./alarmSound');
       await playAlarmSound(
         alertData.alertType === ALERT_TYPE_RIDER_OFFER ? 'rider' : 'order',
-        { untilStopped: true },
+        { untilStopped: true, alarmStream: true },
       );
       return;
     }

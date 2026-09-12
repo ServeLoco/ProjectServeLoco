@@ -1,23 +1,24 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
-  ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View,
+  ActivityIndicator, FlatList, RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
-import { colors, spacing, typography, radius, shadows } from '../../theme';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { colors, spacing, typography, radius, glass, glassRadius, glassShadow } from '../../theme';
 import { shopApi, subscribeRealtime } from '../../api';
 import AppIcon from '../../components/AppIcon';
 import DayHistoryPicker from '../../components/DayHistoryPicker';
 import { todayDateStr } from '../../utils/dateStr';
 
-// Visual treatment per order status, using the app's existing color tokens.
+// Visual treatment per order status — translucent fills with a matching rim,
+// which is what stays legible on the black canvas.
 const STATUS_STYLE = {
-  Pending: { bg: colors.warningLight, text: colors.warning, dot: colors.warning },
-  Accepted: { bg: colors.saffronLight, text: colors.saffronDark, dot: colors.saffron },
-  Preparing: { bg: colors.saffronLight, text: colors.saffronDark, dot: colors.saffron },
-  'Out for Delivery': { bg: colors.infoLight, text: colors.info, dot: colors.info },
-  Delivered: { bg: colors.successLight, text: colors.successDark, dot: colors.success },
-  Cancelled: { bg: colors.errorLight, text: colors.error, dot: colors.error },
+  Pending: { bg: glass.warningFill, rim: glass.warningRim, text: glass.warningText, dot: colors.warning },
+  Accepted: { bg: glass.tint, rim: glass.borderWarm, text: colors.saffron, dot: colors.saffron },
+  Preparing: { bg: glass.tint, rim: glass.borderWarm, text: colors.saffron, dot: colors.saffron },
+  'Out for Delivery': { bg: glass.infoFill, rim: glass.infoRim, text: glass.infoText, dot: colors.info },
+  Delivered: { bg: glass.successFill, rim: glass.successRim, text: glass.successText, dot: colors.success },
+  Cancelled: { bg: glass.errorFill, rim: glass.errorRim, text: glass.errorText, dot: colors.error },
 };
 
 /**
@@ -28,6 +29,8 @@ const STATUS_STYLE = {
  * view, redesigned to match the premium partner app aesthetic.
  */
 export default function ShopOrdersScreen() {
+  // Scoped to focus: the screen stays mounted behind the other tabs.
+  const isScreenFocused = useIsFocused();
   const [orders, setOrders] = useState([]);
   // What VillKro owes this shop for the orders currently shown (excludes
   // rejected items and cancelled orders — see getMyOrderHistory on the API).
@@ -129,7 +132,8 @@ export default function ShopOrdersScreen() {
   }, [orders]);
 
   const renderOrder = ({ item }) => {
-    const statusStyle = STATUS_STYLE[item.status] || { bg: colors.bgSurface, text: colors.textSecondary, dot: colors.textTertiary };
+    const statusStyle = STATUS_STYLE[item.status]
+      || { bg: glass.fillStrong, rim: glass.border, text: glass.textDim, dot: glass.textFaint };
     return (
       <View style={styles.card}>
         <View style={[styles.cardAccent, { backgroundColor: statusStyle.dot }]} />
@@ -150,7 +154,7 @@ export default function ShopOrdersScreen() {
                   </Text>
                 </View>
               ) : null}
-              <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+              <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.rim }]}>
                 <View style={[styles.statusDot, { backgroundColor: statusStyle.dot }]} />
                 <Text style={[styles.statusText, { color: statusStyle.text }]}>{item.status}</Text>
               </View>
@@ -158,7 +162,6 @@ export default function ShopOrdersScreen() {
           </View>
           {(item.items || []).map((it, idx) => {
             const shopLineTotal = it.shopLineTotal ?? it.shop_line_total;
-            const variantLabel = it.variantLabel ?? it.variant_label;
             return (
               <View key={it.id ?? idx} style={styles.itemRow}>
                 <View style={styles.qtyChip}>
@@ -166,7 +169,6 @@ export default function ShopOrdersScreen() {
                 </View>
                 <Text style={styles.itemText}>
                   {it.productName || it.product_name}
-                  {variantLabel ? ` (${variantLabel})` : ''}
                 </Text>
                 {shopLineTotal !== null && shopLineTotal !== undefined ? (
                   <Text style={styles.itemAmount}>₹{shopLineTotal}</Text>
@@ -186,19 +188,19 @@ export default function ShopOrdersScreen() {
           )}
           {item.rejected && (
             <View style={styles.rejectedNote}>
-              <AppIcon name="close" size={12} color={colors.error} />
+              <AppIcon name="close" size={12} color={glass.errorText} />
               <Text style={styles.rejectedNoteText}>You rejected this order</Text>
             </View>
           )}
           {item.status === 'Cancelled' && !item.rejected && (
             <View style={styles.rejectedNote}>
-              <AppIcon name="close" size={12} color={colors.error} />
+              <AppIcon name="close" size={12} color={glass.errorText} />
               <Text style={styles.rejectedNoteText}>Order cancelled — not payable</Text>
             </View>
           )}
           {item.adminRemark ? (
             <View style={styles.remarkNote}>
-              <AppIcon name="pencil" size={12} color={colors.textSecondary} />
+              <AppIcon name="pencil" size={12} color={glass.textDim} />
               <Text style={styles.remarkNoteText}>{item.adminRemark}</Text>
             </View>
           ) : null}
@@ -209,6 +211,7 @@ export default function ShopOrdersScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {isScreenFocused && <StatusBar barStyle="light-content" backgroundColor="transparent" />}
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <View>
@@ -219,7 +222,7 @@ export default function ShopOrdersScreen() {
           </View>
           {isToday ? (
             <TouchableOpacity style={styles.historyBtn} onPress={() => setPickerVisible(true)}>
-              <AppIcon name="orders" size={14} color={colors.saffronDark} />
+              <AppIcon name="orders" size={14} color={colors.textInverse} />
               <Text style={styles.historyBtnText}>History</Text>
             </TouchableOpacity>
           ) : (
@@ -232,23 +235,23 @@ export default function ShopOrdersScreen() {
 
       {loadError && orders.length > 0 && (
         <View style={styles.staleBanner}>
-          <AppIcon name="close" size={12} color={colors.error} />
+          <AppIcon name="close" size={12} color={glass.errorText} />
           <Text style={styles.staleBannerText}>Could not refresh — numbers below may be out of date. Pull down to retry.</Text>
         </View>
       )}
 
       {orders.length > 0 && (
         <View style={styles.summaryRow}>
-          <SummaryPill label="Total" value={summary.total} color={colors.textPrimary} />
+          <SummaryPill label="Total" value={summary.total} color={glass.text} />
           <SummaryPill label="Active" value={summary.active} color={colors.saffron} />
           <SummaryPill label="Delivered" value={summary.delivered} color={colors.success} />
-          <SummaryPill label="Cancelled" value={summary.cancelled} color={colors.error} />
+          <SummaryPill label="Cancelled" value={summary.cancelled} color={glass.errorText} />
         </View>
       )}
 
       {orders.length > 0 && (
         <View style={styles.payablePill}>
-          <AppIcon name="rupee" size={14} color={colors.successDark} />
+          <AppIcon name="rupee" size={14} color={glass.successText} />
           <Text style={styles.payablePillText}>
             {isToday ? "Today's payout" : 'Payout for this day'}: <Text style={styles.payablePillValue}>₹{payableTotal}</Text>
           </Text>
@@ -266,7 +269,7 @@ export default function ShopOrdersScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <View style={styles.emptyIconWrap}>
-                <AppIcon name="orders" size={32} color={colors.saffronDark} />
+                <AppIcon name="orders" size={32} color={colors.saffron} />
               </View>
               <Text style={styles.emptyTitle}>{loadError ? 'Could not load orders' : 'No orders yet'}</Text>
               <Text style={styles.emptyText}>
@@ -306,106 +309,124 @@ function SummaryPill({ label, value, color }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgApp },
+  container: { flex: 1, backgroundColor: glass.canvas },
   header: {
     paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
   },
-  title: { ...typography.display, fontSize: 26, color: colors.textPrimary },
-  subtitle: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 2, fontWeight: '500' },
+  title: { ...typography.display, fontSize: 26, color: glass.text },
+  subtitle: { ...typography.bodySmall, color: glass.textDim, marginTop: 2, fontWeight: '500' },
   historyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: colors.saffronLight, borderRadius: radius.pill,
-    paddingHorizontal: 12, paddingVertical: 8,
+    backgroundColor: colors.saffron, borderRadius: radius.pill,
+    paddingHorizontal: 16, paddingVertical: 10,
   },
-  historyBtnText: { color: colors.saffronDark, fontWeight: '800', fontSize: 13 },
+  historyBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 13 },
+
   speedBadge: {
     borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3,
+    borderWidth: 1,
   },
-  speedBadgeFast: { backgroundColor: '#FEF3C7' },
-  speedBadgeStandard: { backgroundColor: colors.bgApp },
+  speedBadgeFast: { backgroundColor: glass.warningFill, borderColor: glass.warningRim },
+  speedBadgeStandard: { backgroundColor: glass.fillStrong, borderColor: glass.border },
   speedBadgeText: { fontSize: 11, fontWeight: '800' },
-  speedBadgeTextFast: { color: '#B45309' },
-  speedBadgeTextStandard: { color: colors.textSecondary },
+  speedBadgeTextFast: { color: glass.warningText },
+  speedBadgeTextStandard: { color: glass.textDim },
+
   summaryRow: {
     flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.md,
   },
   summaryPill: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.bgSurface, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.border, paddingVertical: spacing.sm,
-    ...shadows.xs,
+    backgroundColor: glass.fill, borderRadius: glassRadius.inner,
+    borderWidth: 1, borderColor: glass.border, paddingVertical: spacing.sm + 2,
+    ...glassShadow,
   },
   summaryValue: { ...typography.priceLarge, fontSize: 22, fontWeight: '800' },
-  summaryLabel: { ...typography.captionMedium, color: colors.textSecondary, marginTop: 2 },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+  summaryLabel: { ...typography.captionMedium, color: glass.textDim, marginTop: 2 },
+
+  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl + spacing.lg },
   card: {
-    flexDirection: 'row', backgroundColor: colors.bgSurface, borderRadius: radius.xl,
-    marginBottom: spacing.md, borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
-    ...shadows.sm,
+    flexDirection: 'row', backgroundColor: glass.fill, borderRadius: glassRadius.card,
+    marginBottom: spacing.md, borderWidth: 1, borderColor: glass.border, overflow: 'hidden',
+    ...glassShadow,
   },
-  cardAccent: {
-    width: 6, backgroundColor: colors.saffron,
-  },
-  cardBody: { flex: 1, padding: spacing.md },
+  cardAccent: { width: 6, backgroundColor: colors.saffron },
+  cardBody: { flex: 1, padding: spacing.md + 2 },
   cardHeader: {
     flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: spacing.sm, rowGap: 6,
   },
-  orderNumber: { ...typography.h3, color: colors.textPrimary, flexShrink: 1, marginRight: spacing.sm },
+  orderNumber: { ...typography.h3, color: glass.text, flexShrink: 1, marginRight: spacing.sm },
   statusBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1,
   },
   statusDot: { width: 6, height: 6, borderRadius: radius.circle },
   statusText: { fontWeight: '800', fontSize: 12 },
+
   itemRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs },
   qtyChip: {
-    backgroundColor: colors.saffronLight, borderRadius: radius.sm, paddingHorizontal: 8,
-    paddingVertical: 2, marginRight: spacing.sm, minWidth: 36, alignItems: 'center',
+    backgroundColor: glass.tint, borderRadius: radius.lg, paddingHorizontal: 8,
+    paddingVertical: 3, marginRight: spacing.sm, minWidth: 36, alignItems: 'center',
+    borderWidth: 1, borderColor: glass.borderWarm,
   },
-  qtyChipText: { color: colors.saffronDark, fontWeight: '800', fontSize: 13 },
-  itemText: { flex: 1, ...typography.body, color: colors.textSecondary, fontWeight: '500' },
-  itemAmount: { ...typography.captionMedium, color: colors.textTertiary, fontWeight: '700' },
-  itemAmountUnset: { ...typography.captionMedium, color: colors.textTertiary, fontStyle: 'italic' },
+  qtyChipText: { color: colors.saffron, fontWeight: '800', fontSize: 13 },
+  itemText: { flex: 1, ...typography.body, color: glass.text, fontWeight: '500' },
+  itemAmount: { ...typography.captionMedium, color: glass.textDim, fontWeight: '700' },
+  itemAmountUnset: { ...typography.captionMedium, color: glass.textFaint, fontStyle: 'italic' },
+
   cardTotalRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border,
+    marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: glass.divider,
   },
-  cardTotalLabel: { ...typography.captionMedium, color: colors.textSecondary },
-  cardTotalValue: { ...typography.label, color: colors.successDark, fontWeight: '800' },
+  cardTotalLabel: { ...typography.captionMedium, color: glass.textDim },
+  cardTotalValue: { ...typography.label, color: glass.successText, fontWeight: '800' },
+
   payablePill: {
     flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-    backgroundColor: colors.successLight, borderRadius: radius.pill,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
+    backgroundColor: glass.successFill, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: glass.successRim,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2,
     marginHorizontal: spacing.lg, marginBottom: spacing.md,
   },
-  payablePillText: { ...typography.captionMedium, color: colors.successDark },
+  payablePillText: { ...typography.captionMedium, color: glass.successText },
   payablePillValue: { fontWeight: '800' },
+
   staleBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-    backgroundColor: colors.errorLight, borderRadius: radius.pill,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
+    backgroundColor: glass.errorFill, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: glass.errorRim,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2,
     marginHorizontal: spacing.lg, marginBottom: spacing.md,
   },
-  staleBannerText: { ...typography.captionMedium, color: colors.error, flexShrink: 1 },
+  staleBannerText: { ...typography.captionMedium, color: glass.errorText, flexShrink: 1 },
+
   rejectedNote: {
     flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm,
-    paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border,
+    paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: glass.divider,
   },
-  rejectedNoteText: { color: colors.error, fontSize: 12, fontWeight: '700' },
+  rejectedNoteText: { color: glass.errorText, fontSize: 12, fontWeight: '700' },
   remarkNote: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: spacing.sm,
-    paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border,
+    paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: glass.divider,
   },
-  remarkNoteText: { flex: 1, color: colors.textSecondary, fontSize: 12, fontWeight: '600', lineHeight: 16 },
-  emptyState: { alignItems: 'center', paddingHorizontal: spacing.xl, marginTop: spacing.xl },
+  remarkNoteText: { flex: 1, color: glass.textDim, fontSize: 12, fontWeight: '600', lineHeight: 16 },
+
+  emptyState: {
+    alignItems: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.xl,
+    marginHorizontal: spacing.lg, marginTop: spacing.lg,
+    backgroundColor: glass.fill, borderRadius: glassRadius.card,
+    borderWidth: 1, borderColor: glass.border, ...glassShadow,
+  },
   emptyIconWrap: {
-    width: 72, height: 72, borderRadius: radius.circle, backgroundColor: colors.saffronLight,
+    width: 76, height: 76, borderRadius: radius.circle, backgroundColor: glass.tint,
+    borderWidth: 1, borderColor: glass.borderWarm,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
   },
-  emptyTitle: { ...typography.h3, color: colors.textPrimary },
+  emptyTitle: { ...typography.h3, color: glass.text },
   emptyText: {
-    ...typography.body, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.xs,
+    ...typography.body, color: glass.textDim, textAlign: 'center', marginTop: spacing.xs,
     lineHeight: 20, maxWidth: 260,
   },
 });

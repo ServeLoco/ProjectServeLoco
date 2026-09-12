@@ -1102,17 +1102,25 @@ const getAdminOrders = async (req, res) => {
     params.push(searchWildcard, searchWildcard, searchWildcard);
   }
 
-  // o.created_at is written by CURRENT_TIMESTAMP and rendered on read in the
-  // MySQL server's session time_zone. Confirmed against production
-  // (2026-09-10, SELECT @@session.time_zone): '+00:00' — created_at IS a
-  // UTC wall-clock value, matching buildPeriodDateFilter above, riders.js
-  // and shopOwnerController.js, which already convert it via
-  // CONVERT_TZ(created_at, '+00:00', tz). Must stay consistent with
-  // db/mysql.js's pool `timezone` option, which controls how mysql2 turns
-  // this same column into a JS Date for API responses.
+  // o.created_at is written by CURRENT_TIMESTAMP in the MySQL server's own
+  // session time_zone — that's config.MYSQL_SESSION_TZ (prod = '+00:00',
+  // dev boxes are typically SYSTEM = '+05:30', per db/mysql.js). The raw
+  // column value is in THAT zone, not necessarily UTC — hardcoding '+00:00'
+  // as CONVERT_TZ's source here double-shifted an already-IST dev value by
+  // another +5:30, rolling anything after ~18:30 IST into "tomorrow" and
+  // dropping it out of "today" (while a plain explicit date-range query,
+  // which never runs CONVERT_TZ on created_at at all, still found it fine —
+  // that mismatch is what made a fresh order vanish from this list but not
+  // the dashboard/by-id/date-range reads).
+  //
+  // "Today" itself comes from the API server's own clock (resolvePeriod,
+  // same helper the reports endpoints use) rather than MySQL's
+  // UTC_TIMESTAMP(), for the same reason: no guarantee the DB host's clock
+  // agrees with the app host's.
   if (today) {
-    query += " AND DATE(CONVERT_TZ(o.created_at, '+00:00', ?)) = DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', ?))";
-    params.push(ADMIN_ORDERS_TZ, ADMIN_ORDERS_TZ);
+    const { from: todayStr } = resolvePeriod({ period: 'today' });
+    query += ' AND DATE(CONVERT_TZ(o.created_at, ?, ?)) = ?';
+    params.push(config.MYSQL_SESSION_TZ, ADMIN_ORDERS_TZ, todayStr);
   } else {
     if (finalDateFrom) {
       query += ' AND DATE(o.created_at) >= ?';

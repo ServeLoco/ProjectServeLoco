@@ -1,37 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 /**
- * Flowing white “lightning” dash frames for the inner route highlight.
- * Short bright streaks advance along a longer gap — reads as light racing
- * along the blue path (no static speckles).
- * Period ~5.5 for stable width across frames.
+ * Blue track + white inner border styling (shared rider + customer maps).
+ * Widths sized so the chevron glyphs (~11px text) sit inside the track
+ * rather than poking out past its edges.
  */
-const LIGHTNING_DASH_SEQUENCE = [
-  [0.0, 3.8, 1.6, 0.0],
-  [0.35, 3.8, 1.6, 0.0],
-  [0.7, 3.8, 1.6, 0.0],
-  [1.05, 3.8, 1.6, 0.0],
-  [1.4, 3.8, 1.6, 0.0],
-  [1.75, 3.8, 1.6, 0.0],
-  [2.1, 3.8, 1.6, 0.0],
-  [2.45, 3.8, 1.6, 0.0],
-  [2.8, 3.8, 1.6, 0.0],
-  [3.15, 3.8, 1.6, 0.0],
-  [3.5, 3.8, 1.6, 0.0],
-  [0.0, 0.0, 1.6, 3.8],
-  [0.0, 0.35, 1.6, 3.45],
-  [0.0, 0.7, 1.6, 3.1],
-  [0.0, 1.05, 1.6, 2.75],
-  [0.0, 1.4, 1.6, 2.4],
-  [0.0, 1.75, 1.6, 2.05],
-  [0.0, 2.1, 1.6, 1.7],
-  [0.0, 2.45, 1.6, 1.35],
-  [0.0, 2.8, 1.6, 1.0],
-  [0.0, 3.15, 1.6, 0.65],
-  [0.0, 3.5, 1.6, 0.3],
-];
-
-/** Blue track + white inner lightning styling (shared rider + customer maps). */
 export const ROUTE_STYLE = {
   // Soft outer blue shadow (widest)
   shadow: '#1D4ED8',
@@ -39,40 +12,139 @@ export const ROUTE_STYLE = {
   shadowOpacity: 0.22,
   // Mid blue glow just outside the track
   glow: '#2563EB',
-  glowWidth: 12,
+  glowWidth: 14,
   glowOpacity: 0.38,
   track: '#2563EB',
-  trackWidth: 6,
+  trackWidth: 10,
   trackOpacity: 0.92,
   // Continuous white inner border (static edge)
   whiteBorder: '#FFFFFF',
-  whiteBorderWidth: 2.5,
+  whiteBorderWidth: 3,
   whiteBorderOpacity: 0.88,
-  // Moving lightning on top of the white border
-  lightning: '#FFFFFF',
-  lightningWidth: 2.2,
-  lightningOpacity: 1,
 };
 
 /**
- * Cycles dasharray for the white lightning layer along the route.
+ * Electric cyan → blue → violet gradient along the track's own length
+ * (line-progress: 0 at the route's start, 1 at its end). Requires the
+ * ShapeSource it's used on to set `lineMetrics`. Static (not frame-cycled) —
+ * gradients are pricier to recompute per-frame than the chevron opacity
+ * expression below, and the chevrons already carry the "in motion" read, so
+ * this only needs to set the mood once.
  */
-export function useFlowingDashOffset(active, intervalMs = 52) {
-  const [frame, setFrame] = useState(0);
-  const indexRef = useRef(0);
+export const ROUTE_GRADIENT = [
+  'interpolate',
+  ['linear'],
+  ['line-progress'],
+  0, '#00E5FF',
+  0.5, '#2979FF',
+  1, '#7C4DFF',
+];
+
+/** How many chevrons apart the "lit" ones are — bigger = more spread out. */
+export const CHEVRON_LIT_CYCLE = 4;
+
+function toRad(deg) { return (deg * Math.PI) / 180; }
+function toDeg(rad) { return (rad * 180) / Math.PI; }
+
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** Initial great-circle bearing from point 1 to point 2, in degrees from true north. */
+function bearingDeg(lat1, lng1, lat2, lng2) {
+  const φ1 = toRad(lat1);
+  const φ2 = toRad(lat2);
+  const Δλ = toRad(lng2 - lng1);
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+/**
+ * Walks a route's [lng, lat] coordinate list and drops a point (with the
+ * bearing to travel next) every `spacingMeters` — the anchor points for the
+ * directional chevron markers. Pure JS distance-walk (haversine), no turf
+ * dependency, since the coordinate list is already in hand from the
+ * Directions/Optimization response.
+ */
+export function sampleChevronPoints(coords, spacingMeters = 70) {
+  if (!Array.isArray(coords) || coords.length < 2) return [];
+  const points = [];
+  // Start half a spacing in so a chevron never sits right on the rider dot.
+  let carry = spacingMeters * 0.5;
+  for (let i = 0; i < coords.length - 1; i += 1) {
+    const [lng1, lat1] = coords[i];
+    const [lng2, lat2] = coords[i + 1];
+    const segLen = haversineMeters(lat1, lng1, lat2, lng2);
+    if (segLen <= 0) continue;
+    const bearing = bearingDeg(lat1, lng1, lat2, lng2);
+    let d = carry;
+    while (d < segLen) {
+      const t = d / segLen;
+      points.push({
+        longitude: lng1 + (lng2 - lng1) * t,
+        latitude: lat1 + (lat2 - lat1) * t,
+        bearing,
+      });
+      d += spacingMeters;
+    }
+    carry = d - segLen;
+  }
+  return points;
+}
+
+/**
+ * Cycles an integer phase 0..(CHEVRON_LIT_CYCLE - 1) — combined with each
+ * chevron's fixed `idx` in an `idx ≡ phase (mod CHEVRON_LIT_CYCLE)` style
+ * expression, this reads as a wave of bright chevrons flowing along the
+ * route toward the destination, without recomputing any geometry per frame.
+ */
+export function useFlowingChevronPhase(active, intervalMs = 180) {
+  const [phase, setPhase] = useState(0);
 
   useEffect(() => {
     if (!active) {
-      indexRef.current = 0;
-      setFrame(0);
+      setPhase(0);
       return undefined;
     }
     const id = setInterval(() => {
-      indexRef.current = (indexRef.current + 1) % LIGHTNING_DASH_SEQUENCE.length;
-      setFrame(indexRef.current);
+      setPhase((p) => (p + 1) % CHEVRON_LIT_CYCLE);
     }, intervalMs);
     return () => clearInterval(id);
   }, [active, intervalMs]);
 
-  return LIGHTNING_DASH_SEQUENCE[frame] || LIGHTNING_DASH_SEQUENCE[0];
+  return phase;
+}
+
+/** Builds the chevron marker FeatureCollection + its opacity expression for the given phase. */
+export function useChevronLayer(coords, phase, spacingMeters = 70) {
+  const points = useMemo(() => sampleChevronPoints(coords, spacingMeters), [coords, spacingMeters]);
+
+  const featureCollection = useMemo(() => ({
+    type: 'FeatureCollection',
+    features: points.map((p, idx) => ({
+      type: 'Feature',
+      properties: { idx, bearing: p.bearing },
+      geometry: { type: 'Point', coordinates: [p.longitude, p.latitude] },
+    })),
+  }), [points]);
+
+  // Lit when idx ≡ phase (mod CYCLE) — as phase counts up, the matching idx
+  // counts up too, so the bright wave advances toward higher idx (the route's
+  // end / the destination). +CHEVRON_LIT_CYCLE*1000 keeps the dividend
+  // positive since Mapbox's `%`, like JS's, can return a negative result.
+  const opacityExpression = useMemo(() => ([
+    'case',
+    ['==', ['%', ['+', ['-', ['get', 'idx'], phase], CHEVRON_LIT_CYCLE * 1000], CHEVRON_LIT_CYCLE], 0],
+    1,
+    0.3,
+  ]), [phase]);
+
+  return { hasChevrons: points.length > 0, featureCollection, opacityExpression };
 }

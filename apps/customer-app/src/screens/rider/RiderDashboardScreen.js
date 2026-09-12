@@ -6,6 +6,7 @@ import {
   AppState,
   Easing,
   Linking,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -13,8 +14,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius, shadows } from '../../theme';
 import { useAuthStore } from '../../stores';
 import { riderApi, subscribeRealtime } from '../../api';
@@ -32,22 +34,33 @@ import {
   mergeRiderOrder,
 } from '../../utils/riderOrderActions';
 import { elapsedSecondsFromStart, formatElapsed } from '../../utils/riderOfferTime';
+import {
+  markAppBackground,
+  markAppForeground,
+  markOfferHandledForeground,
+} from '../../utils/orderAlarmNotifications';
+import { canShowOverlay, requestOverlayPermission } from '../../utils/overlayOfferCard';
 import RiderOfferPopup from './RiderOfferPopup';
 
-const STEPS = [
-  { key: 'assigned', label: 'Assigned' },
-  { key: 'ofd', label: 'On the way' },
-  { key: 'done', label: 'Delivered' },
-];
+// Not re-nagged every load once dismissed — the rider can still grant it
+// later from the OS Settings screen `requestOverlayPermission()` opens.
+const OVERLAY_BANNER_DISMISSED_KEY = 'serveloco:overlayBannerDismissed';
 
-function stepIndex(status) {
-  if (status === 'Delivered') return 2;
-  if (isOutForDelivery(status)) return 1;
-  return 0;
-}
 
 function offerIdOf(o) {
   return o?.id ?? o?.offerId ?? null;
+}
+
+function assignedAtMs(job) {
+  const raw = job?.riderAssignedAt || job?.rider_assigned_at
+    || job?.createdAt || job?.created_at;
+  const ms = raw ? new Date(raw).getTime() : NaN;
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+// Oldest-accepted job first — the API doesn't guarantee this ordering itself.
+function sortAssignmentsOldestFirst(list) {
+  return [...list].sort((a, b) => assignedAtMs(a) - assignedAtMs(b));
 }
 
 /** Oldest-first unique queue; keep richer payload when merging. */
@@ -77,8 +90,8 @@ function upsertOfferInQueue(prev, incoming) {
 export default function RiderDashboardScreen({ navigation }) {
   const rider = useAuthStore((s) => s.rider);
   const setRider = useAuthStore((s) => s.setRider);
-  const logout = useAuthStore((s) => s.logout);
   const isFocused = useIsFocused();
+  const insets = useSafeAreaInsets();
 
   const [isOnline, setIsOnline] = useState(Boolean(rider?.isOnline || rider?.is_online));
   const [toggleBusy, setToggleBusy] = useState(false);
@@ -88,13 +101,18 @@ export default function RiderDashboardScreen({ navigation }) {
   const [offerQueue, setOfferQueue] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [error, setError] = useState(null);
-  const [actionBusy, setActionBusy] = useState(null);
+  const [selectedJobId, setSelectedJobId] = useState(null);
+  const [overlayBannerVisible, setOverlayBannerVisible] = useState(false);
   const activeOffer = offerQueue[0] || null;
-  // Latest/primary for map tracking + step rail helpers
-  const assignment = assignments[0] || null;
+  // Featured job card — whichever the rider picked from the queue chips,
+  // falling back to the first assignment (also covers the single-job case).
+  const assignment = (
+    assignments.find((a) => String(a.id) === String(selectedJobId)) || assignments[0] || null
+  );
   const mountedRef = useRef(true);
   const isOnlineRef = useRef(isOnline);
   const pulse = useRef(new Animated.Value(1)).current;
+  const fastPulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     isOnlineRef.current = isOnline;
@@ -103,6 +121,47 @@ export default function RiderDashboardScreen({ navigation }) {
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
+  }, []);
+
+  // Prompt (once, dismissible) to enable the floating offer card for when
+  // another app is open and the screen is on — the lock-screen alarm card
+  // doesn't need this permission, only this one scenario does.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    let cancelled = false;
+    (async () => {
+      const dismissed = await AsyncStorage.getItem(OVERLAY_BANNER_DISMISSED_KEY).catch(() => null);
+      if (dismissed || cancelled) return;
+      const granted = await canShowOverlay();
+      if (!cancelled && !granted) setOverlayBannerVisible(true);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const dismissOverlayBanner = useCallback(() => {
+    setOverlayBannerVisible(false);
+    AsyncStorage.setItem(OVERLAY_BANNER_DISMISSED_KEY, '1').catch(() => {});
+  }, []);
+
+  // Heartbeat so the alarm notifier (which may run in Android's separate
+  // headless background-message JS instance) can tell this real instance is
+  // actually on screen right now — see markAppForeground's own comment.
+  useEffect(() => {
+    markAppForeground();
+    const sub = AppState.addEventListener('change', (next) => {
+      // Clearing on the way out matters as much as beating while in: a stale
+      // heartbeat keeps reading fresh for FOREGROUND_FRESH_MS after the screen
+      // locks, and the alarm suppresses itself for that whole window.
+      if (next === 'active') markAppForeground();
+      else markAppBackground();
+    });
+    const interval = setInterval(() => {
+      if (AppState.currentState === 'active') markAppForeground();
+    }, 5000);
+    return () => {
+      sub.remove();
+      clearInterval(interval);
+    };
   }, []);
 
   // Live pulse when online
@@ -166,7 +225,7 @@ export default function RiderDashboardScreen({ navigation }) {
       setOfferQueue(normalizeOfferQueue(offers));
       const list = me?.currentAssignments || me?.current_assignments;
       if (Array.isArray(list) && list.length > 0) {
-        setAssignments(list);
+        setAssignments(sortAssignmentsOldestFirst(list));
       } else {
         const one = me?.currentAssignment || me?.current_assignment || null;
         setAssignments(one ? [one] : []);
@@ -202,6 +261,7 @@ export default function RiderDashboardScreen({ navigation }) {
           orderNumber: payload.orderNumber || payload.order_number,
           expiresAt: payload.expiresAt || payload.expires_at,
           expires_at: payload.expiresAt || payload.expires_at,
+          total: payload.total,
         };
         // Enqueue without dropping the offer currently on screen.
         setOfferQueue((prev) => upsertOfferInQueue(prev, incoming));
@@ -225,7 +285,22 @@ export default function RiderDashboardScreen({ navigation }) {
             orderId: String(incoming.orderId || ''),
             orderNumber: String(incoming.orderNumber || ''),
             expiresAt: String(incoming.expiresAt || ''),
+            total: String(incoming.total ?? ''),
           }).catch(() => {});
+        } else {
+          // Receiving this socket event on the LIVE main-JS instance is airtight
+          // proof the app is genuinely foregrounded — unlike AppState.currentState
+          // read from inside Android's headless setBackgroundMessageHandler JS
+          // context, which can misreport 'background' even while this screen is
+          // visibly on screen, letting the full-screen alarm slip through. The
+          // in-app popup + ring (useRiderOfferAlert) already covers foreground —
+          // cancel any alarm that headless path already fired for this offer.
+          const { cancelRiderOfferAlarm } = require('../../utils/orderAlarmNotifications');
+          cancelRiderOfferAlarm().catch(() => {});
+          // Also mark this exact offer as foreground-handled — a slower FCM
+          // data message for the SAME offer can still land after this cancel
+          // and re-trigger the alarm card/notification if not blocked by id.
+          markOfferHandledForeground(incoming.offerId).catch(() => {});
         }
       }),
       // Server reminder while offer still pending — rehydrate popup if needed.
@@ -237,9 +312,17 @@ export default function RiderDashboardScreen({ navigation }) {
           orderNumber: payload.orderNumber || payload.order_number,
           expiresAt: payload.expiresAt || payload.expires_at,
           expires_at: payload.expiresAt || payload.expires_at,
+          total: payload.total,
         };
         if (!incoming.id) return;
         setOfferQueue((prev) => upsertOfferInQueue(prev, incoming));
+        // Same headless-AppState race as 'rider.offer.created' — the server's
+        // ~15s FCM re-push can slip a full-screen alarm through even here.
+        const { cancelRiderOfferAlarm } = require('../../utils/orderAlarmNotifications');
+        cancelRiderOfferAlarm().catch(() => {});
+        if (AppState.currentState === 'active') {
+          markOfferHandledForeground(incoming.id).catch(() => {});
+        }
       }),
       subscribeRealtime('rider.offer.expired', (payload) => {
         const expiredId = payload.offerId || payload.offer_id;
@@ -328,43 +411,6 @@ export default function RiderDashboardScreen({ navigation }) {
     }
   }, [fetchAll, isOnline, setRider]);
 
-  const handleLogout = useCallback(() => {
-    const activeCount = assignments.length;
-    if (activeCount > 0) {
-      Alert.alert(
-        'Finish deliveries first',
-        activeCount === 1
-          ? 'You still have 1 active order. Deliver it before signing out.'
-          : `You still have ${activeCount} active orders. Deliver them all before signing out.`,
-        [{ text: 'OK' }],
-      );
-      return;
-    }
-    Alert.alert('Sign out', 'Go offline and sign out of rider mode?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign out',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            // Re-check server in case a job arrived after the local list loaded.
-            if (isOnlineRef.current) {
-              await riderApi.setOnline(false);
-            }
-          } catch (err) {
-            Alert.alert(
-              'Cannot sign out',
-              err?.message || 'Deliver all active orders before signing out.',
-            );
-            fetchAll();
-            return;
-          }
-          logout();
-        },
-      },
-    ]);
-  }, [assignments.length, fetchAll, logout]);
-
   const refreshOfferQueue = useCallback(async () => {
     try {
       const res = await riderApi.getActiveOffer();
@@ -395,7 +441,7 @@ export default function RiderDashboardScreen({ navigation }) {
   const handleAcceptOffer = useCallback(async (offer) => {
     silenceRiderAlarm();
     const id = offer.id || offer.offerId;
-    const res = await riderApi.acceptOffer(id);
+    await riderApi.acceptOffer(id);
     // Drop accepted offer from queue, then load any next pending offer.
     setOfferQueue((prev) => prev.filter((o) => {
       const oid = o.id || o.offerId;
@@ -403,15 +449,9 @@ export default function RiderDashboardScreen({ navigation }) {
     }));
     await fetchAll();
     await refreshOfferQueue();
-    // Open delivery map immediately after accept when we have the order id.
-    const orderId = res?.order?.id ?? offer.orderId ?? offer.order_id;
-    if (orderId) {
-      navigation.navigate('RiderOrder', {
-        orderId,
-        order: res?.order || undefined,
-      });
-    }
-  }, [fetchAll, navigation, refreshOfferQueue, silenceRiderAlarm]);
+    // Stay on dashboard — accepted job shows in the queue list, rider taps
+    // it to open the delivery map (see openDeliveryMap).
+  }, [fetchAll, refreshOfferQueue, silenceRiderAlarm]);
 
   const handleRejectOffer = useCallback(async (offer) => {
     silenceRiderAlarm();
@@ -426,58 +466,6 @@ export default function RiderDashboardScreen({ navigation }) {
     await refreshOfferQueue();
   }, [fetchAll, refreshOfferQueue, silenceRiderAlarm]);
 
-  const runAction = useCallback(async (key, fn) => {
-    setActionBusy(key);
-    try {
-      const res = await fn();
-      // Optimistic patch from API so buttons update before full list reload.
-      if (res?.order?.id) {
-        setAssignments((prev) => {
-          const id = res.order.id;
-          if (res.order.status === 'Delivered' || res.order.status === 'Cancelled') {
-            return prev.filter((a) => String(a.id) !== String(id));
-          }
-          return prev.map((a) => (
-            String(a.id) === String(id) ? mergeRiderOrder(a, res.order) : a
-          ));
-        });
-      }
-      await fetchAll();
-    } catch (err) {
-      Alert.alert('Action failed', err?.message || 'Try again');
-      await fetchAll();
-    } finally {
-      setActionBusy(null);
-    }
-  }, [fetchAll]);
-
-  const handleOutForDelivery = useCallback(() => {
-    if (!assignment?.id) return;
-    runAction('ofd', () => riderApi.updateStatus(assignment.id, 'Out for Delivery'));
-  }, [assignment, runAction]);
-
-  const handleDelivered = useCallback(() => {
-    if (!assignment?.id) return;
-    Alert.alert('Mark delivered?', 'Confirm this order was delivered to the customer.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delivered',
-        onPress: () => runAction('delivered', () => riderApi.updateStatus(assignment.id, 'Delivered')),
-      },
-    ]);
-  }, [assignment, runAction]);
-
-  const handleMarkPaid = useCallback(() => {
-    if (!assignment?.id) return;
-    Alert.alert('Mark payment received?', 'Confirm you have collected payment for this order.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Mark paid',
-        onPress: () => runAction('mark_paid', () => riderApi.markPaid(assignment.id)),
-      },
-    ]);
-  }, [assignment, runAction]);
-
   const openDeliveryMap = useCallback((job) => {
     if (!job?.id) return;
     // Pass snapshot so map sheet buttons match the card on first paint.
@@ -485,40 +473,89 @@ export default function RiderDashboardScreen({ navigation }) {
   }, [navigation]);
 
   const phone = assignment?.phone;
-  const actionFlags = assignment ? getRiderActionFlags(assignment) : null;
-  const pickedUp = actionFlags?.pickedUp || false;
-  const status = actionFlags?.status || assignment?.status;
-  const currentStep = stepIndex(status);
   const isFastDelivery = assignment?.deliveryType === 'fast' || assignment?.delivery_type === 'fast';
   const displayName = rider?.displayName || rider?.display_name || 'Rider';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  // Pulse the Fast badge to draw attention — Standard stays static
+  useEffect(() => {
+    if (!isFastDelivery) {
+      fastPulse.setValue(1);
+      return undefined;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(fastPulse, {
+          toValue: 0.55,
+          duration: 550,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(fastPulse, {
+          toValue: 1,
+          duration: 550,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [isFastDelivery, fastPulse]);
 
   // Timer starts the moment the rider accepts (rider_assigned_at) and keeps
   // ticking until the job reaches a terminal state.
   const [nowTick, setNowTick] = useState(Date.now());
-  const assignmentId = assignment?.id;
-  const terminal = actionFlags?.terminal;
+  const hasActiveJobs = assignments.length > 0;
   useEffect(() => {
-    if (!assignmentId || terminal) return undefined;
+    if (!hasActiveJobs || !isFocused) return undefined;
+    // Re-sync on focus so the label is never a stale second behind.
+    setNowTick(Date.now());
     const id = setInterval(() => setNowTick(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [assignmentId, terminal]);
+  }, [hasActiveJobs, isFocused]);
   const assignedAt = assignment?.riderAssignedAt || assignment?.rider_assigned_at;
   const elapsedLabel = assignedAt
     ? formatElapsed(elapsedSecondsFromStart(assignedAt, nowTick))
     : null;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>{displayName}</Text>
-          <Text style={styles.subtitle}>Rider delivery dashboard</Text>
+      <LinearGradient
+        colors={[colors.brandGradientStart, colors.brandGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + spacing.lg }]}
+      >
+        <View style={styles.headerRow}>
+          <Text style={styles.greeting} numberOfLines={1}>
+            {greeting}, <Text style={styles.greetingName}>{displayName}</Text>
+          </Text>
+          <View style={styles.headerStatusPill}>
+            <Animated.View
+              style={[
+                styles.headerStatusDot,
+                {
+                  opacity: isOnline ? pulse : 0.6,
+                  backgroundColor: isOnline ? colors.success100 : colors.textInverse,
+                },
+              ]}
+            />
+            <Text style={styles.headerStatusText}>
+              {isOnline ? 'Online' : 'Offline'}
+            </Text>
+          </View>
+          <ShopToggle
+            value={isOnline}
+            onValueChange={handleToggle}
+            activeColor="#00C853"
+            disabled={toggleBusy || loading || Boolean(assignment)}
+            size="md"
+          />
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn} activeOpacity={0.8}>
-          <AppIcon name="logout" size={20} color={colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.body}
@@ -532,84 +569,6 @@ export default function RiderDashboardScreen({ navigation }) {
           />
         )}
       >
-        {/* Hero online card */}
-        <LinearGradient
-          colors={isOnline
-            ? [colors.btnSuccessStart, colors.btnSuccessEnd]
-            : [colors.btnDarkStart, colors.btnDarkEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroCard}
-        >
-          <View style={styles.heroTopRow}>
-            <View style={styles.heroIconBubble}>
-              <AppIcon name="navigation" size={22} color={isOnline ? colors.successDark : colors.textInverse} />
-            </View>
-            <View style={styles.heroLive}>
-              <Animated.View
-                style={[
-                  styles.liveDot,
-                  {
-                    opacity: isOnline ? pulse : 0.5,
-                    backgroundColor: isOnline ? colors.success100 : 'rgba(255,255,255,0.7)',
-                  },
-                ]}
-              />
-              <Text style={styles.heroLiveText}>{isOnline ? 'LIVE' : 'OFF'}</Text>
-            </View>
-          </View>
-
-          <View style={styles.heroRow}>
-            <View style={{ flex: 1, paddingRight: spacing.md }}>
-              <Text style={styles.heroStatus}>{isOnline ? 'Online' : 'Offline'}</Text>
-              <Text style={styles.heroSub}>
-                {assignment
-                  ? 'On a delivery — finish this job first'
-                  : isOnline
-                    ? 'Ready for new delivery offers'
-                    : 'Go online to receive offers'}
-              </Text>
-            </View>
-            <ShopToggle
-              value={isOnline}
-              onValueChange={handleToggle}
-              activeColor={colors.success}
-              disabled={toggleBusy || loading || Boolean(assignment)}
-              size="lg"
-            />
-          </View>
-        </LinearGradient>
-
-        {/* Metrics */}
-        <View style={styles.metricsRow}>
-          <View style={styles.metricCard}>
-            <View style={[styles.metricIcon, { backgroundColor: colors.saffronLight }]}>
-              <AppIcon name="orders" size={18} color={colors.saffronDark} />
-            </View>
-            <Text style={styles.metricValue}>{assignments.length}</Text>
-            <Text style={styles.metricLabel}>
-              {assignments.length === 1 ? 'Active job' : 'Active jobs'}
-            </Text>
-          </View>
-          <View style={styles.metricCard}>
-            <View style={[styles.metricIcon, { backgroundColor: isOnline ? colors.successLight : colors.surfaceMuted }]}>
-              <AppIcon name="navigation" size={18} color={isOnline ? colors.success : colors.textTertiary} />
-            </View>
-            <Text style={[styles.metricValue, { color: isOnline ? colors.successDark : colors.textTertiary }]}>
-              {isOnline ? 'On' : 'Off'}
-            </Text>
-            <Text style={styles.metricLabel}>Availability</Text>
-          </View>
-          <View style={styles.metricCard}>
-            <View style={[styles.metricIcon, { backgroundColor: activeOffer ? colors.warningLight : colors.surfaceMuted }]}>
-              <AppIcon name="notification" size={18} color={activeOffer ? colors.warning : colors.textTertiary} />
-            </View>
-            <Text style={styles.metricValue}>{offerQueue.length}</Text>
-            <Text style={styles.metricLabel}>
-              {offerQueue.length === 1 ? 'Offer' : 'Offers'}
-            </Text>
-          </View>
-        </View>
 
         {error ? (
           <View style={styles.errorBanner}>
@@ -618,29 +577,113 @@ export default function RiderDashboardScreen({ navigation }) {
           </View>
         ) : null}
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {assignments.length > 1
-              ? 'Delivery queue'
-              : assignment
-                ? 'Current delivery'
-                : 'Job queue'}
-          </Text>
-          {assignments.length > 0 ? (
-            <View style={styles.countPill}>
-              <Text style={styles.countPillText}>
-                {assignments.length}
+        {overlayBannerVisible ? (
+          <View style={styles.overlayBanner}>
+            <AppIcon name="notification" size={18} color={colors.saffronDark} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.overlayBannerTitle}>See offers over other apps</Text>
+              <Text style={styles.overlayBannerText}>
+                Allow ServeLoco to show the accept/reject card even while
+                you&apos;re using another app.
               </Text>
             </View>
-          ) : null}
-        </View>
+            <TouchableOpacity onPress={requestOverlayPermission} style={styles.overlayBannerAllow}>
+              <Text style={styles.overlayBannerAllowText}>Allow</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={dismissOverlayBanner} hitSlop={8}>
+              <AppIcon name="close" size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
-        {assignments.length > 1 ? (
-          <View style={styles.queueHint}>
-            <AppIcon name="orders" size={14} color={colors.saffronDark} />
-            <Text style={styles.queueHintText}>
-              {assignments.length} active jobs · finish or advance each from its map
-            </Text>
+        {assignments.length > 0 ? (
+          <View style={styles.queueSection}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionAccent} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>
+                  {assignments.length > 1 ? 'Delivery queue' : 'Current delivery'}
+                </Text>
+                <Text style={styles.sectionSubtitle}>
+                  {assignments.length > 1
+                    ? `${assignments.length} jobs running — tap one to open`
+                    : 'In progress right now'}
+                </Text>
+              </View>
+              <View style={styles.countPill}>
+                <Text style={styles.countPillText}>
+                  {assignments.length}
+                </Text>
+              </View>
+            </View>
+
+            {assignments.length > 1 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.jobChipsRow}
+              >
+                {assignments.map((job) => {
+              const jobFlags = getRiderActionFlags(job);
+              const isSelected = assignment && String(job.id) === String(assignment.id);
+              const isFast = (job.deliveryType || job.delivery_type) === 'fast';
+              const jobCustomerName = job.customerName || job.customer_name || 'Customer';
+              const jobAssignedAt = job.riderAssignedAt || job.rider_assigned_at;
+              const jobElapsedLabel = jobAssignedAt
+                ? formatElapsed(elapsedSecondsFromStart(jobAssignedAt, nowTick))
+                : null;
+              return (
+                <TouchableOpacity
+                  key={job.id}
+                  style={[styles.jobChip, isSelected && styles.jobChipActive]}
+                  onPress={() => setSelectedJobId(job.id)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.jobChipTopRow}>
+                    <View
+                      style={[
+                        styles.jobChipDot,
+                        isOutForDelivery(jobFlags.status) && styles.jobChipDotHot,
+                      ]}
+                    />
+                    <Text
+                      style={[styles.jobChipText, isSelected && styles.jobChipTextActive]}
+                      numberOfLines={1}
+                    >
+                      {jobCustomerName}
+                    </Text>
+                  </View>
+                  <View style={styles.jobChipBottomRow}>
+                    <View style={[styles.jobChipBadge, isFast && styles.jobChipBadgeFast]}>
+                      <Text
+                        style={[
+                          styles.jobChipBadgeText,
+                          isFast && styles.jobChipBadgeTextFast,
+                        ]}
+                      >
+                        {isFast ? 'Fast' : 'Standard'}
+                      </Text>
+                    </View>
+                    {jobElapsedLabel ? (
+                      <View style={styles.jobChipTimer}>
+                        <AppIcon
+                          name="clock"
+                          size={10}
+                          color={isSelected ? colors.textInverse : colors.textSecondary}
+                        />
+                        <Text
+                          style={[styles.jobChipTimerText, isSelected && styles.jobChipTextActive]}
+                        >
+                          {jobElapsedLabel}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </TouchableOpacity>
+              );
+                })}
+              </ScrollView>
+            ) : null}
           </View>
         ) : null}
 
@@ -648,74 +691,32 @@ export default function RiderDashboardScreen({ navigation }) {
           <ActivityIndicator style={{ marginTop: spacing.xl }} color={colors.saffron} />
         ) : assignment ? (
           <View style={styles.jobCard}>
-            <View style={styles.jobAccent} />
             <View style={styles.jobBody}>
               <View style={styles.jobHeader}>
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  {assignments.length > 1 ? (
-                    <Text style={styles.jobQueuePos}>Job 1 of {assignments.length}</Text>
-                  ) : null}
-                  <Text style={styles.jobOrderNum}>
+                  <Text style={styles.jobOrderNum} numberOfLines={1}>
                     #{assignment.orderNumber || assignment.order_number}
                   </Text>
-                  <View style={[styles.deliveryTypeBadge, isFastDelivery && styles.deliveryTypeBadgeFast]}>
+                </View>
+                <View style={styles.jobHeaderRight}>
+                  <Animated.View
+                    style={[
+                      styles.deliveryTypeBadge,
+                      isFastDelivery && styles.deliveryTypeBadgeFast,
+                      isFastDelivery && { opacity: fastPulse },
+                    ]}
+                  >
                     <Text style={[styles.deliveryTypeBadgeText, isFastDelivery && styles.deliveryTypeBadgeTextFast]}>
                       {isFastDelivery ? 'Fast' : 'Standard'}
                     </Text>
-                  </View>
-                </View>
-                <View style={[
-                  styles.statusChip,
-                  isOutForDelivery(status) && styles.statusChipHot,
-                  pickedUp && !isOutForDelivery(status) && styles.statusChipOk,
-                ]}
-                >
-                  <Text style={[
-                    styles.statusChipText,
-                    isOutForDelivery(status) && styles.statusChipTextHot,
-                    pickedUp && !isOutForDelivery(status) && styles.statusChipTextOk,
-                  ]}
-                  >
-                    {status || 'Assigned'}
-                  </Text>
-                </View>
-              </View>
-
-              {elapsedLabel ? (
-                <View style={styles.timerRow}>
-                  <AppIcon name="clock" size={14} color={colors.textSecondary} />
-                  <Text style={styles.timerText}>{elapsedLabel} since accepted</Text>
-                </View>
-              ) : null}
-
-              {/* Step rail */}
-              <View style={styles.stepRail}>
-                {STEPS.map((step, i) => {
-                  const done = i <= currentStep;
-                  const active = i === currentStep;
-                  return (
-                    <View key={step.key} style={styles.stepItem}>
-                      <View style={styles.stepTrackRow}>
-                        <View style={[
-                          styles.stepDot,
-                          done && styles.stepDotDone,
-                          active && styles.stepDotActive,
-                        ]}
-                        >
-                          {done ? (
-                            <AppIcon name="check" size={10} color={colors.textInverse} />
-                          ) : null}
-                        </View>
-                        {i < STEPS.length - 1 ? (
-                          <View style={[styles.stepLine, i < currentStep && styles.stepLineDone]} />
-                        ) : null}
-                      </View>
-                      <Text style={[styles.stepLabel, done && styles.stepLabelDone]} numberOfLines={1}>
-                        {step.label}
-                      </Text>
+                  </Animated.View>
+                  {elapsedLabel ? (
+                    <View style={styles.timerChip}>
+                      <AppIcon name="clock" size={12} color={colors.textSecondary} />
+                      <Text style={styles.timerChipText}>{elapsedLabel}</Text>
                     </View>
-                  );
-                })}
+                  ) : null}
+                </View>
               </View>
 
               {assignment.address ? (
@@ -734,18 +735,14 @@ export default function RiderDashboardScreen({ navigation }) {
                 <View style={styles.itemsBlock}>
                   <Text style={styles.itemsLabel}>Order items</Text>
                   {assignment.items.map((it, idx) => {
-                    const variant = it.variantLabel || it.variant_label;
                     const shopName = it.shopName || it.shop_name;
                     return (
                       <View key={it.id ?? idx} style={styles.itemRow}>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.itemLine} numberOfLines={1}>
                             {it.quantity}x {it.productName || it.product_name}
-                            {variant ? ` (${variant})` : ''}
+                            {shopName ? <Text style={styles.itemShopName}> · {shopName}</Text> : null}
                           </Text>
-                          {shopName ? (
-                            <Text style={styles.itemShopName} numberOfLines={1}>{shopName}</Text>
-                          ) : null}
                         </View>
                       </View>
                     );
@@ -756,13 +753,6 @@ export default function RiderDashboardScreen({ navigation }) {
                       <Text style={styles.totalValue}>₹{Number(assignment.total).toFixed(0)}</Text>
                     </View>
                   ) : null}
-                </View>
-              ) : null}
-
-              {assignment.total != null ? (
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Order total</Text>
-                  <Text style={styles.totalValue}>₹{Number(assignment.total).toFixed(0)}</Text>
                 </View>
               ) : null}
 
@@ -792,45 +782,20 @@ export default function RiderDashboardScreen({ navigation }) {
               ) : null}
 
               <TouchableOpacity
-                style={styles.mapOpenBtn}
                 onPress={() => openDeliveryMap(assignment)}
-                activeOpacity={0.9}
+                activeOpacity={0.88}
               >
-                <AppIcon name="map" size={20} color={colors.saffronDark} />
-                <Text style={styles.mapOpenBtnText}>Open delivery map & route</Text>
-                <AppIcon name="chevronRight" size={16} color={colors.saffronDark} />
+                <LinearGradient
+                  colors={[colors.btnInfoStart, colors.btnInfoEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.mapOpenBtn}
+                >
+                  <AppIcon name="map" size={20} color={colors.textInverse} />
+                  <Text style={styles.mapOpenBtnText}>Start</Text>
+                  <AppIcon name="chevronRight" size={16} color={colors.textInverse} />
+                </LinearGradient>
               </TouchableOpacity>
-
-              {/* Primary action stack — same rules as map sheet (getRiderActionFlags) */}
-              <View style={styles.actionsCol}>
-                {actionFlags?.showOutForDelivery ? (
-                  <PrimaryBtn
-                    label="Out for delivery"
-                    icon="navigation"
-                    busy={actionBusy === 'ofd'}
-                    onPress={handleOutForDelivery}
-                    variant="success"
-                  />
-                ) : null}
-                {actionFlags?.showDelivered ? (
-                  <PrimaryBtn
-                    label="Mark delivered"
-                    icon="check"
-                    busy={actionBusy === 'delivered'}
-                    onPress={handleDelivered}
-                    variant="success"
-                  />
-                ) : null}
-                {actionFlags?.showMarkPaid ? (
-                  <PrimaryBtn
-                    label="Mark paid"
-                    icon="check"
-                    busy={actionBusy === 'mark_paid'}
-                    onPress={handleMarkPaid}
-                    variant="saffron"
-                  />
-                ) : null}
-              </View>
 
             </View>
           </View>
@@ -871,326 +836,171 @@ export default function RiderDashboardScreen({ navigation }) {
           </View>
         )}
 
-        {/* Jobs 2+ in the delivery queue */}
-        {assignments.length > 1
-          ? assignments.slice(1).map((job, idx) => {
-              const jobFlags = getRiderActionFlags(job);
-              return (
-                <TouchableOpacity
-                  key={job.id}
-                  style={styles.queueJobCard}
-                  onPress={() => openDeliveryMap(job)}
-                  activeOpacity={0.9}
-                >
-                  <View style={styles.queueJobAccent} />
-                  <View style={styles.queueJobBody}>
-                    <View style={styles.queueJobTop}>
-                      <Text style={styles.jobQueuePos}>
-                        Job {idx + 2} of {assignments.length}
-                      </Text>
-                      <View style={[
-                        styles.statusChip,
-                        isOutForDelivery(jobFlags.status) && styles.statusChipHot,
-                        jobFlags.pickedUp && !isOutForDelivery(jobFlags.status) && styles.statusChipOk,
-                      ]}
-                      >
-                        <Text style={[
-                          styles.statusChipText,
-                          isOutForDelivery(jobFlags.status) && styles.statusChipTextHot,
-                          jobFlags.pickedUp && !isOutForDelivery(jobFlags.status) && styles.statusChipTextOk,
-                        ]}
-                        >
-                          {jobFlags.status || 'Assigned'}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.queueJobNum}>
-                      #{job.orderNumber || job.order_number}
-                    </Text>
-                    {job.address ? (
-                      <Text style={styles.queueJobAddress} numberOfLines={2}>
-                        {job.address}
-                      </Text>
-                    ) : null}
-                    {(job.deliveryType || job.delivery_type || job.total != null) ? (
-                      <Text style={styles.queueJobMeta}>
-                        {(job.deliveryType || job.delivery_type) === 'fast' ? '⚡ Express' : 'Standard'}
-                        {job.total != null ? ` · ₹${Number(job.total).toFixed(0)}` : ''}
-                      </Text>
-                    ) : null}
-                    <View style={styles.queueJobFooter}>
-                      <Text style={styles.queueJobCta}>Open map & actions</Text>
-                      <AppIcon name="chevronRight" size={16} color={colors.saffronDark} />
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })
-          : null}
       </ScrollView>
 
-      {activeOffer ? (
-        <RiderOfferPopup
-          offer={activeOffer}
-          onAccept={handleAcceptOffer}
-          onReject={handleRejectOffer}
-          hasActiveJobs={assignments.length > 0}
-          activeJobCount={assignments.length}
-          queueIndex={0}
-          queueTotal={offerQueue.length}
-        />
-      ) : null}
+      {/* Always mounted: the popup plays its own slide-down when the offer
+          goes away, which an unmount here would cut off. It renders nothing
+          while there is no offer. */}
+      <RiderOfferPopup
+        offer={activeOffer}
+        onAccept={handleAcceptOffer}
+        onReject={handleRejectOffer}
+        hasActiveJobs={assignments.length > 0}
+        activeJobCount={assignments.length}
+        queueIndex={0}
+        queueTotal={offerQueue.length}
+      />
 
       <RiderBackgroundLocationDisclosure
         visible={bgLocationDisclosureVisible}
         onAllow={handleBgLocationDisclosureAllow}
         onDecline={handleBgLocationDisclosureDecline}
       />
-    </SafeAreaView>
-  );
-}
-
-function PrimaryBtn({ label, icon, onPress, busy, variant = 'saffron' }) {
-  const grad = variant === 'success'
-    ? [colors.btnSuccessStart, colors.btnSuccessEnd]
-    : [colors.btnHighlightStart, colors.btnHighlightEnd];
-  return (
-    <TouchableOpacity onPress={onPress} disabled={Boolean(busy)} activeOpacity={0.9}>
-      <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtn}>
-        {busy ? (
-          <ActivityIndicator color={colors.textInverse} />
-        ) : (
-          <>
-            <AppIcon name={icon} size={18} color={colors.textInverse} />
-            <Text style={styles.primaryBtnText}>{label}</Text>
-          </>
-        )}
-      </LinearGradient>
-    </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgApp },
   header: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing[3],
+    paddingBottom: spacing.lg,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    gap: spacing[3],
   },
-  title: { ...typography.display, fontSize: 26, color: colors.textPrimary },
-  subtitle: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 2, fontWeight: '500' },
-  logoutBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.circle,
-    backgroundColor: colors.bgSurface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.xs,
-  },
-  body: { flex: 1 },
-  scrollContent: { paddingBottom: spacing.xxl },
-
-  heroCard: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.xs,
-    marginBottom: spacing.md,
-    borderRadius: radius.xxl,
-    padding: spacing.xl,
-    ...shadows.cardRaised,
-  },
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  heroIconBubble: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.circle,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroLive: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  liveDot: {
-    width: 10,
-    height: 10,
-    borderRadius: radius.circle,
-  },
-  heroLiveText: {
-    color: 'rgba(255,255,255,0.95)',
-    fontWeight: '800',
-    fontSize: 11,
-    letterSpacing: 1.2,
-  },
-  heroRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heroStatus: {
-    color: colors.textInverse,
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-  },
-  heroSub: {
-    color: 'rgba(255,255,255,0.92)',
-    fontSize: 14,
-    marginTop: 4,
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-
-  metricsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  metricCard: {
+  greeting: {
     flex: 1,
-    backgroundColor: colors.bgSurface,
-    borderRadius: radius.xl,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  metricIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.circle,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  metricValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    lineHeight: 28,
-  },
-  metricLabel: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginTop: 2,
+    ...typography.display,
+    fontSize: 17,
+    lineHeight: 22,
     fontWeight: '600',
     letterSpacing: 0.2,
+    color: 'rgba(255,255,255,0.92)',
   },
+  greetingName: { color: colors.brandInk, fontWeight: '800' },
+  body: { flex: 1, backgroundColor: colors.bgApp },
+  scrollContent: { paddingTop: spacing.lg, paddingBottom: spacing.xxl },
 
+  headerStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.glassOverlay,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  headerStatusDot: { width: 7, height: 7, borderRadius: radius.circle },
+  headerStatusText: { fontSize: 11, fontWeight: '800', color: colors.textInverse },
+
+  queueSection: {
+    marginBottom: spacing.lg,
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
+    gap: spacing.sm,
+    paddingHorizontal: spacing[3],
+    marginBottom: spacing[3],
+  },
+  sectionAccent: {
+    width: 4,
+    height: 30,
+    borderRadius: radius.pill,
+    backgroundColor: colors.saffron,
   },
   sectionTitle: {
     ...typography.labelSmall,
-    fontSize: 13,
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: 0.2,
+  },
+  sectionSubtitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textTertiary,
+    marginTop: 2,
   },
   countPill: {
-    marginLeft: spacing.sm,
-    backgroundColor: colors.saffronLight,
+    backgroundColor: colors.saffron,
     borderRadius: radius.pill,
-    paddingHorizontal: 9,
-    paddingVertical: 2,
-    minWidth: 24,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    minWidth: 26,
     alignItems: 'center',
   },
-  countPillText: { color: colors.saffronDark, fontWeight: '800', fontSize: 12 },
-  queueHint: {
+  countPillText: { color: colors.textInverse, fontWeight: '800', fontSize: 12 },
+  jobChipsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
+    gap: spacing[3],
+    paddingHorizontal: spacing[3],
+    paddingVertical: 4,
+  },
+  jobChip: {
+    minWidth: 168,
+    maxWidth: 230,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.saffronLight,
-    borderRadius: radius.lg,
-  },
-  queueHintText: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.saffronDark,
-  },
-  jobQueuePos: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.saffronDark,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 2,
-  },
-  queueJobCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
+    paddingVertical: spacing[3],
+    borderRadius: 18,
     backgroundColor: colors.bgSurface,
-    borderRadius: radius.xxl,
-    overflow: 'hidden',
-    flexDirection: 'row',
     borderWidth: 1,
     borderColor: colors.border,
     ...shadows.sm,
   },
-  queueJobAccent: {
-    width: 5,
-    backgroundColor: colors.info || colors.saffron,
+  jobChipActive: {
+    backgroundColor: colors.textPrimary,
+    borderColor: colors.textPrimary,
   },
-  queueJobBody: {
-    flex: 1,
-    padding: spacing.md,
+  jobChipTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  queueJobTop: {
+  jobChipDot: {
+    width: 7,
+    height: 7,
+    borderRadius: radius.circle,
+    backgroundColor: colors.textTertiary,
+  },
+  jobChipDotHot: { backgroundColor: colors.saffron },
+  jobChipText: { flex: 1, fontSize: 13, fontWeight: '700', color: colors.textPrimary },
+  jobChipTextActive: { color: colors.textInverse },
+  jobChipBottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    gap: spacing.sm,
+    marginTop: 8,
   },
-  queueJobNum: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    marginBottom: 4,
+  jobChipBadge: {
+    backgroundColor: colors.infoLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
   },
-  queueJobAddress: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-    marginBottom: spacing.sm,
-  },
-  queueJobMeta: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '700',
-    marginBottom: spacing.sm,
-  },
-  queueJobFooter: {
+  jobChipBadgeFast: { backgroundColor: colors.saffron },
+  jobChipBadgeText: { fontSize: 10, fontWeight: '800', color: colors.info },
+  jobChipBadgeTextFast: { color: colors.textInverse },
+  jobChipTimer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 3,
   },
-  queueJobCta: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.saffronDark,
-  },
-
+  jobChipTimerText: { fontSize: 11, fontWeight: '600', color: colors.textSecondary },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginHorizontal: spacing.lg,
+    marginHorizontal: spacing[3],
     marginBottom: spacing.md,
     backgroundColor: colors.errorLight,
     borderRadius: radius.lg,
@@ -1198,95 +1008,74 @@ const styles = StyleSheet.create({
   },
   errorText: { flex: 1, color: colors.error, fontWeight: '600', fontSize: 13 },
 
+  overlayBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing[3],
+    marginBottom: spacing.md,
+    backgroundColor: colors.saffronLight,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  overlayBannerTitle: { fontWeight: '800', fontSize: 13, color: colors.textPrimary },
+  overlayBannerText: { fontSize: 12, color: colors.textSecondary, marginTop: 2, lineHeight: 16 },
+  overlayBannerAllow: {
+    backgroundColor: colors.saffronDark,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  overlayBannerAllowText: { color: colors.textInverse, fontWeight: '800', fontSize: 12 },
+
   jobCard: {
     flexDirection: 'row',
-    marginHorizontal: spacing.lg,
+    marginHorizontal: spacing[3],
     backgroundColor: colors.bgSurface,
     borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1.5,
+    borderColor: colors.textPrimary,
     overflow: 'hidden',
     ...shadows.cardRaised,
   },
-  jobAccent: { width: 6, backgroundColor: colors.saffron },
-  jobBody: { flex: 1, padding: spacing.lg },
+  jobBody: { flex: 1, padding: spacing.md },
   jobHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  jobOrderNum: { ...typography.h2, fontSize: 22, color: colors.textPrimary },
+  jobOrderNum: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    letterSpacing: 0.2,
+  },
+  jobHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   deliveryTypeBadge: {
     alignSelf: 'flex-start',
     backgroundColor: colors.infoLight,
     borderRadius: radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginTop: 4,
-  },
-  deliveryTypeBadgeFast: { backgroundColor: colors.saffron },
-  deliveryTypeBadgeText: { fontSize: 10, fontWeight: '800', color: colors.info },
-  deliveryTypeBadgeTextFast: { color: colors.textInverse },
-  statusChip: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radius.pill,
     paddingHorizontal: 12,
     paddingVertical: 5,
   },
-  statusChipHot: { backgroundColor: colors.badgeHotBg },
-  statusChipOk: { backgroundColor: colors.successLight },
-  statusChipText: { fontWeight: '800', fontSize: 12, color: colors.textSecondary },
-  statusChipTextHot: { color: colors.badgeHotText },
-  statusChipTextOk: { color: colors.successDark },
-  timerRow: {
+  deliveryTypeBadgeFast: { backgroundColor: colors.saffron },
+  deliveryTypeBadgeText: { fontSize: 13, fontWeight: '800', color: colors.info },
+  deliveryTypeBadgeTextFast: { color: colors.textInverse },
+  timerChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: spacing.sm,
+    gap: 4,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
-  timerText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
-  stepRail: {
-    flexDirection: 'row',
-    marginBottom: spacing.lg,
-    paddingTop: spacing.xs,
-  },
-  stepItem: { flex: 1 },
-  stepTrackRow: { flexDirection: 'row', alignItems: 'center' },
-  stepDot: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.circle,
-    backgroundColor: colors.grey100,
-    borderWidth: 2,
-    borderColor: colors.borderStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepDotDone: {
-    backgroundColor: colors.success,
-    borderColor: colors.success,
-  },
-  stepDotActive: {
-    backgroundColor: colors.saffron,
-    borderColor: colors.saffron,
-    ...shadows.sm,
-  },
-  stepLine: {
-    flex: 1,
-    height: 3,
-    backgroundColor: colors.grey100,
-    marginHorizontal: 2,
-    borderRadius: 2,
-  },
-  stepLineDone: { backgroundColor: colors.success },
-  stepLabel: {
-    fontSize: 10,
-    color: colors.textTertiary,
-    fontWeight: '600',
-    marginTop: 6,
-  },
-  stepLabelDone: { color: colors.textSecondary, fontWeight: '700' },
+  timerChipText: { fontSize: 11, fontWeight: '700', color: colors.textSecondary },
 
   addressBlock: {
     flexDirection: 'row',
@@ -1346,7 +1135,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
-  itemShopName: { fontSize: 11, fontWeight: '700', color: colors.saffronDark, marginTop: 1 },
+  itemShopName: { fontSize: 11, fontWeight: '700', color: colors.saffronDark },
   itemPrice: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
   totalRow: {
     flexDirection: 'row',
@@ -1382,7 +1171,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: radius.circle,
-    backgroundColor: colors.info,
+    backgroundColor: colors.saffron,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.sm,
@@ -1392,33 +1181,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.saffronLight,
-    borderRadius: radius.lg,
-    padding: spacing.md,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.saffron,
+    ...shadows.cardRaised,
   },
   mapOpenBtnText: {
     flex: 1,
     fontWeight: '800',
-    fontSize: 14,
-    color: colors.saffronDark,
-  },
-  actionsCol: { gap: spacing.sm },
-  primaryBtn: {
-    minHeight: 52,
-    borderRadius: radius.button,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    ...shadows.sm,
-  },
-  primaryBtnText: {
+    fontSize: 15,
     color: colors.textInverse,
-    fontWeight: '800',
-    fontSize: 16,
+    textAlign: 'center',
   },
   ghostDanger: {
     minHeight: 48,
@@ -1432,7 +1206,7 @@ const styles = StyleSheet.create({
   ghostDangerText: { color: colors.error, fontWeight: '800', fontSize: 14 },
 
   offerWaitingCard: {
-    marginHorizontal: spacing.lg,
+    marginHorizontal: spacing[3],
     borderRadius: radius.xl,
     overflow: 'hidden',
     ...shadows.cardRaised,

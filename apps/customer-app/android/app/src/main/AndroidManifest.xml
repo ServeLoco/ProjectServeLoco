@@ -44,6 +44,7 @@
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
     </activity>
+    <activity android:name=".AlarmActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:theme="@style/AppTheme" android:exported="false" android:launchMode="singleTask" android:taskAffinity="" android:excludeFromRecents="true" android:showWhenLocked="true" android:turnScreenOn="true"/>
     <receiver android:name="app.notifee.core.RebootBroadcastReceiver" tools:node="remove"/>
     <receiver android:name="app.notifee.core.NotificationAlarmReceiver" tools:node="remove"/>
   </application>

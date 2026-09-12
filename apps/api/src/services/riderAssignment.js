@@ -154,6 +154,7 @@ const pushRiderOffer = async (userId, order, offer, { reminder = false } = {}) =
     orderNumber: String(orderNumber),
     expiresAt: String(offer.expires_at || offer.expiresAt || ''),
     reminder: reminder ? '1' : '0',
+    total: String(order.total ?? ''),
   };
 
   // Prefer native FCM data-only for killed-app notifee full-screen.
@@ -191,6 +192,7 @@ const notifyRiderOffer = async (rider, order, offer) => {
       expires_at: offer.expires_at,
       riderId: rider.id,
       rider_id: rider.id,
+      total: order.total,
     };
     emitToCustomer(userId, 'rider.offer.created', payload);
 
@@ -231,7 +233,7 @@ const notifyRiderOffer = async (rider, order, offer) => {
 const remindPendingOffers = async () => {
   const [rows] = await pool.query(
     `SELECT o.id AS offer_id, o.order_id, o.rider_id, o.expires_at,
-            r.user_id, ord.order_number
+            r.user_id, ord.order_number, ord.total
      FROM rider_order_offers o
      JOIN riders r ON r.id = o.rider_id
      JOIN orders ord ON ord.id = o.order_id
@@ -254,7 +256,7 @@ const remindPendingOffers = async () => {
     try {
       await pushRiderOffer(
         row.user_id,
-        { id: row.order_id, order_number: row.order_number },
+        { id: row.order_id, order_number: row.order_number, total: row.total },
         { id: offerId, order_id: row.order_id, expires_at: row.expires_at },
         { reminder: Boolean(last) }
       );
@@ -268,6 +270,7 @@ const remindPendingOffers = async () => {
           order_number: row.order_number,
           expiresAt: row.expires_at,
           expires_at: row.expires_at,
+          total: row.total,
         });
       } catch (_) { /* best-effort */ }
     } catch (e) {

@@ -1,5 +1,5 @@
 import { registerRootComponent } from 'expo';
-import { AppState, Platform } from 'react-native';
+import { AppRegistry, AppState, Platform } from 'react-native';
 import notifee from '@notifee/react-native';
 // Modular RNFirebase messaging API (v22+) — same native behavior as the
 // old messaging() namespaced style, without deprecation warnings.
@@ -9,11 +9,21 @@ import {
   onMessage,
 } from '@react-native-firebase/messaging';
 import App from './App';
+import RiderAlarmScreen from './src/screens/rider/RiderAlarmScreen';
 import {
   handleBackgroundAlarmMessage,
   handleAlarmActionEvent,
+  performOfferAction,
   isAlarmPayload,
+  ALERT_TYPE_RIDER_OFFER,
 } from './src/utils/orderAlarmNotifications';
+import { subscribeOverlayAction, openMainApp } from './src/utils/overlayOfferCard';
+
+// Separate lightweight root rendered only by the native AlarmActivity (see
+// android AlarmActivity.kt) — a rider offer's lock-screen card, not the full
+// app. Registered here (not inside App.js) so it never pulls in the nav
+// stack/Mapbox for that cold, locked-device launch path.
+AppRegistry.registerComponent('alarm', () => RiderAlarmScreen);
 // Side-effect import: registers the TaskManager task at module scope so it
 // exists before startLocationUpdatesAsync is called, including on the
 // background-only JS relaunches Android/iOS use to deliver a location fix
@@ -70,6 +80,19 @@ if (Platform.OS === 'android') {
   // Accept/Reject action presses while app is in foreground.
   notifee.onForegroundEvent(async (event) => {
     await handleAlarmActionEvent(event);
+  });
+
+  // Accept/Reject tap on the floating "draw over other apps" overlay card
+  // (OverlayOfferModule.kt) — same shared action path as the notifee
+  // buttons and the lock-screen alarm card.
+  subscribeOverlayAction(async (action) => {
+    // Open the app on accept so the rider lands on the delivery they took;
+    // reject leaves them wherever they were. Launch first — the API call can
+    // take a moment and the tap should feel immediate.
+    if (action?.action === 'accept') {
+      openMainApp();
+    }
+    await performOfferAction(ALERT_TYPE_RIDER_OFFER, action?.action, action || {});
   });
 }
 

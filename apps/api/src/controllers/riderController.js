@@ -99,7 +99,8 @@ const loadAssignmentExtrasBatch = async (orderRows) => {
   const [itemRows] = await pool.query(
     `SELECT id, order_id, product_name, quantity, variant_label, shop_id, unit_price, line_total,
             shop_confirmed_at, shop_rejected_at
-     FROM order_items WHERE order_id IN (?)`,
+     FROM order_items WHERE order_id IN (?)
+     ORDER BY order_id, shop_id, id`,
     [orderIds]
   );
 
@@ -194,6 +195,10 @@ const shapeOffer = (row) => {
     // Address is needed for the accept/reject decision; customer phone is
     // withheld until the rider actually accepts (see shapeOrderSummary).
     address: row.address || null,
+    latitude: numOrNull(row.latitude),
+    longitude: numOrNull(row.longitude),
+    lat: numOrNull(row.latitude),
+    lng: numOrNull(row.longitude),
     customerName: row.customer_name || null,
     customer_name: row.customer_name || null,
   };
@@ -365,7 +370,7 @@ const updateLocation = async (req, res) => {
 // GET /api/rider/offers/active — primary offer + full pending queue
 const getActiveOffer = async (req, res) => {
   const [rows] = await pool.query(
-    `SELECT o.*, ord.order_number, ord.address, ord.phone, ord.customer_name, ord.note, ord.total, ord.delivery_type
+    `SELECT o.*, ord.order_number, ord.address, ord.latitude, ord.longitude, ord.phone, ord.customer_name, ord.note, ord.total, ord.delivery_type
      FROM rider_order_offers o
      JOIN orders ord ON ord.id = o.order_id
      WHERE o.rider_id = ? AND o.status = 'pending' AND o.expires_at > NOW()
@@ -392,7 +397,8 @@ const getActiveOffer = async (req, res) => {
     ),
     pool.query(
       `SELECT order_id, id, product_name, quantity, variant_label, shop_id, unit_price, line_total
-       FROM order_items WHERE order_id IN (?)`,
+       FROM order_items WHERE order_id IN (?)
+       ORDER BY order_id, shop_id, id`,
       [orderIds]
     ),
   ]);

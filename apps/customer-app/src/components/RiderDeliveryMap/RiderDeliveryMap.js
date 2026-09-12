@@ -2,12 +2,15 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Animated,
+  Dimensions,
   Easing,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import * as Location from 'expo-location';
+import * as Speech from 'expo-speech';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, radius, shadows } from '../../theme';
 import { riderApi } from '../../api';
@@ -21,9 +24,28 @@ import { RIDER_WATCH_OPTIONS, shouldSendPing } from '../../utils/riderTracking';
 
 const CUSTOMER_COLOR = '#FF7A3A';
 const OFF_ROUTE_METERS = 150;
+// Refetch the route after the rider has traveled this far since the last
+// fetch, even while staying right on the line — otherwise the already-ridden
+// portion just stays drawn behind them until they happen to drift off it.
+const REFETCH_DISTANCE_METERS = 100;
 // Min gap between Directions attempts — keeps a failing API from being re-hit
 // on every location ping (cost budget: ~1-3 calls per delivery).
 const DIRECTIONS_RETRY_COOLDOWN_MS = 30_000;
+// How close the rider needs to be to a maneuver point before we consider it
+// "reached" and advance the turn-by-turn banner to the next step.
+const STEP_ADVANCE_METERS = 35;
+// Camera tilt while following the rider — a driving-nav "POV" angle rather
+// than the flat top-down view used for context/overview framing (fitAll).
+const POV_PITCH = 55;
+// Close street-level zoom for POV/follow mode — deliberately tighter than
+// fitAll's wide overview framing. Safe to force on every follow tick: a
+// manual pinch already pauses follow via onRegionIsChanging, so this only
+// ever fights a gesture that just turned follow off anyway.
+const POV_ZOOM = 17;
+// A shop within this radius counts as "reached" — dropped from routing so
+// the map switches to routing the next nearest remaining shop instead of
+// still showing the leg to a shop already visited.
+const ARRIVAL_RADIUS_METERS = 50;
 
 function numOrNull(v) {
   if (v === undefined || v === null || v === '') return null;
@@ -43,6 +65,18 @@ function distanceMeters(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+/** Initial great-circle bearing from point 1 to point 2, degrees from true north. */
+function bearingDeg(lat1, lng1, lat2, lng2) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const toDeg = (r) => (r * 180) / Math.PI;
+  const φ1 = toRad(lat1);
+  const φ2 = toRad(lat2);
+  const Δλ = toRad(lng2 - lng1);
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
 function minDistanceToRouteMeters(lat, lng, routeCoords) {
   if (!routeCoords?.length) return Infinity;
   let min = Infinity;
@@ -52,6 +86,43 @@ function minDistanceToRouteMeters(lat, lng, routeCoords) {
     if (d < min) min = d;
   }
   return min;
+}
+
+/** The single closest point to `origin` — the route only ever targets one
+ * shop at a time (never a multi-stop route through several shops at once),
+ * so there's no order to compute, just which remaining shop is nearest. */
+function nearestPoint(origin, points) {
+  let best = points[0];
+  let bestDist = Infinity;
+  points.forEach((p) => {
+    const d = distanceMeters(origin.latitude, origin.longitude, p.latitude, p.longitude);
+    if (d < bestDist) {
+      bestDist = d;
+      best = p;
+    }
+  });
+  return best;
+}
+
+const MANEUVER_ARROW_DEG = {
+  straight: 0,
+  'slight right': 30,
+  right: 90,
+  'sharp right': 135,
+  uturn: 180,
+  'sharp left': -135,
+  left: -90,
+  'slight left': -30,
+};
+
+/** Icon + accent color for a turn-by-turn step, keyed off Mapbox's maneuver type/modifier. */
+function maneuverIcon(step) {
+  if (!step) return { emoji: '↑', deg: 0, accent: colors.btnInfoStart };
+  if (step.type === 'arrive') return { emoji: '🏁', deg: 0, accent: '#22C55E' };
+  if (['roundabout', 'rotary', 'roundabout turn', 'exit roundabout', 'exit rotary'].includes(step.type)) {
+    return { emoji: '🔄', deg: 0, accent: colors.btnInfoStart };
+  }
+  return { emoji: '↑', deg: MANEUVER_ARROW_DEG[step.modifier] ?? 0, accent: colors.btnInfoStart };
 }
 
 /** 🛵 scooty marker for the rider */
@@ -166,22 +237,61 @@ function CustomerMarker() {
  * Directions: one fetch on mount/waypoint change + re-fetch only when rider
  * drifts >150 m from the route polyline (MAP locked decision §4.7).
  */
-export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo }) {
+export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo, bottomInset = 0 }) {
   const insets = useSafeAreaInsets();
   // Edge-to-edge map: push overlays + Mapbox chrome below the status bar.
-  // Extra gap so legend/compass never sit under system icons (clock, battery).
+  // Extra gap so the turn banner/compass never sit under system icons (clock, battery).
   const topPad = Math.max(insets.top, 0) + spacing.md;
+  // This persistent padding drives every continuous follow/recenter camera
+  // move (fitAll's fitBounds passes its own separate, balanced padding, so
+  // it's unaffected by this). Deliberately NOT centered: a large top pad
+  // and small bottom pad pushes the optical center — where the rider dot
+  // actually renders — down into the lower part of the screen, leaving most
+  // of it to show the road ahead. That's what makes the rider visually
+  // "move toward the top of the phone" while riding, like a driving-nav
+  // app's camera, instead of sitting pinned dead-center.
+  const cameraPadding = useMemo(() => {
+    const windowHeight = Dimensions.get('window').height;
+    const visibleTop = topPad + 48;
+    const visibleBottom = bottomInset + 24;
+    const visibleHeight = Math.max(windowHeight - visibleTop - visibleBottom, 200);
+    return {
+      paddingLeft: 60,
+      paddingRight: 60,
+      paddingTop: visibleTop + visibleHeight * 0.45,
+      paddingBottom: visibleBottom,
+    };
+  }, [topPad, bottomInset]);
   const cameraRef = useRef(null);
   const routeCoordsRef = useRef([]);
   const waypointKeyRef = useRef('');
   const directionsInFlightRef = useRef(false);
   const directionsLastAttemptRef = useRef(0);
   const lastSentRef = useRef(null);
+  // Target shop id the CURRENT route was actually built for — lets a fresh
+  // nearest-shop computation (which runs every tick, cheaply) detect "the
+  // nearest remaining shop changed" and force a refetch even when the rider
+  // hasn't drifted off the existing (now stale-target) polyline.
+  const lastShopOrderKeyRef = useRef('');
+  // Rider position at the last successful fetch — once they've traveled
+  // REFETCH_DISTANCE_METERS from it, refetch so the line re-anchors to
+  // where they actually are now instead of leaving the already-ridden
+  // portion drawn behind them (only drifting *off* the line triggered a
+  // refetch before; riding straight along it never did).
+  const lastFetchRiderCoordRef = useRef(null);
   const [loading, setLoading] = useState(!order);
   const [riderCoord, setRiderCoord] = useState(null);
   const [routeGeoJson, setRouteGeoJson] = useState(null);
   const [routeInfo, setRouteInfo] = useState(null); // { distanceKm, etaMinutes }
   const pulse = useRef(new Animated.Value(0)).current;
+
+  // Turn-by-turn: DIY on top of the (free) Directions API's steps=true
+  // maneuver data — Mapbox's own turn-by-turn product is the Navigation SDK,
+  // which is metered per trip/MAU and has no React Native build, so it's not
+  // used here.
+  const [steps, setSteps] = useState([]); // flattened across all legs
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const spokenStepRef = useRef(-1);
 
   const customer = useMemo(() => {
     if (!order) return null;
@@ -203,13 +313,43 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo }
       .filter(Boolean);
   }, [order]);
 
+  // Shops the rider has physically arrived at (within ARRIVAL_RADIUS_METERS)
+  // — dropped from routing so the drawn route shrinks to just the remaining
+  // stop(s) instead of still showing the leg to a shop already reached.
+  // Markers stay visible for all shops regardless; only routing narrows.
+  const [visitedShopIds, setVisitedShopIds] = useState(() => new Set());
+  useEffect(() => {
+    setVisitedShopIds(new Set());
+  }, [order?.id]);
+  useEffect(() => {
+    if (!riderCoord || pickedUp || shops.length === 0) return;
+    setVisitedShopIds((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      shops.forEach((s) => {
+        if (next.has(s.id)) return;
+        const d = distanceMeters(riderCoord.latitude, riderCoord.longitude, s.latitude, s.longitude);
+        if (d <= ARRIVAL_RADIUS_METERS) {
+          next.add(s.id);
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [riderCoord, shops, pickedUp]);
+
+  const routingShops = useMemo(
+    () => shops.filter((s) => !visitedShopIds.has(s.id)),
+    [shops, visitedShopIds],
+  );
+
   const waypointKey = useMemo(() => {
-    const shopPart = shops.map((s) => `${s.id}:${s.latitude},${s.longitude}`).join('|');
+    const shopPart = routingShops.map((s) => `${s.id}:${s.latitude},${s.longitude}`).join('|');
     const custPart = customer
       ? `${customer.latitude},${customer.longitude}`
       : 'none';
     return `${pickedUp ? 'p1' : 'p0'}|${shopPart}|${custPart}`;
-  }, [shops, customer, pickedUp]);
+  }, [routingShops, customer, pickedUp]);
 
   useEffect(() => {
     if (order) setLoading(false);
@@ -291,18 +431,44 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo }
     if (!token) return;
     if (directionsInFlightRef.current) return;
 
+    // Pre-pickup: route rider -> ONE shop at a time — the single nearest
+    // remaining shop, never a multi-stop route through several at once.
+    // Once the rider gets within ARRIVAL_RADIUS_METERS of it (see the
+    // visitedShopIds effect), it drops out of routingShops and this picks
+    // whichever remaining shop is nearest next. Post-pickup: route straight
+    // to the customer (shops are no longer relevant to the drive).
     const stops = [];
     if (riderCoord) stops.push(riderCoord);
-    if (!pickedUp && shops.length > 0) {
-      shops.forEach((s) => stops.push(s));
+    let shopOrderKey = '';
+    if (pickedUp) {
+      stops.push(customer);
+    } else if (routingShops.length > 0) {
+      const nextShop = riderCoord ? nearestPoint(riderCoord, routingShops) : routingShops[0];
+      shopOrderKey = String(nextShop.id);
+      stops.push(nextShop);
+    } else {
+      // No shop location on file — fall back to a direct route so the map
+      // isn't left without any line at all.
+      stops.push(customer);
     }
-    stops.push(customer);
     if (stops.length < 2) return;
 
     const hasRoute = routeCoordsRef.current.length >= 2;
     const waypointsChanged = waypointKey !== waypointKeyRef.current;
+    // The rider ending up closer to a different remaining shop than the one
+    // currently targeted needs a refetch too — not just physically drifting
+    // off the drawn line, which is the only other thing that triggers one.
+    const shopOrderChanged = shopOrderKey !== '' && shopOrderKey !== lastShopOrderKeyRef.current;
+    const traveledFar = riderCoord && lastFetchRiderCoordRef.current
+      ? distanceMeters(
+        riderCoord.latitude,
+        riderCoord.longitude,
+        lastFetchRiderCoordRef.current.latitude,
+        lastFetchRiderCoordRef.current.longitude,
+      ) >= REFETCH_DISTANCE_METERS
+      : false;
 
-    if (!force && hasRoute && !waypointsChanged) {
+    if (!force && hasRoute && !waypointsChanged && !shopOrderChanged && !traveledFar) {
       // Only re-fetch when rider drifts >150 m from the polyline.
       if (riderCoord) {
         const drift = minDistanceToRouteMeters(
@@ -328,11 +494,15 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo }
     directionsLastAttemptRef.current = now;
     directionsInFlightRef.current = true;
 
+    // Directions API drives through waypoints in the exact order given — it
+    // never reorders them itself, which is exactly what we want here since
+    // `stops` is already nearest-neighbor ordered above.
     const coordStr = stops.map((p) => `${p.longitude},${p.latitude}`).join(';');
     try {
       const url =
         `https://api.mapbox.com/directions/v5/mapbox/driving/${coordStr}` +
-        `?geometries=geojson&overview=full&access_token=${encodeURIComponent(token)}`;
+        `?geometries=geojson&overview=full&steps=true&banner_instructions=true` +
+        `&voice_instructions=true&voice_units=metric&access_token=${encodeURIComponent(token)}`;
       const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
@@ -341,11 +511,34 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo }
       if (!Array.isArray(coords) || coords.length < 2) return;
       routeCoordsRef.current = coords;
       waypointKeyRef.current = waypointKey;
+      lastShopOrderKeyRef.current = shopOrderKey;
+      lastFetchRiderCoordRef.current = riderCoord;
       setRouteGeoJson({
         type: 'Feature',
         properties: {},
         geometry: { type: 'LineString', coordinates: coords },
       });
+
+      // Flatten every leg's steps into one ordered turn-by-turn list — each
+      // stop (shop, then eventually customer) is its own leg, and a fresh
+      // route always starts guidance over from its first maneuver.
+      const flatSteps = [];
+      (route?.legs || []).forEach((leg) => {
+        (leg?.steps || []).forEach((step) => {
+          const loc = step?.maneuver?.location;
+          if (!Array.isArray(loc) || loc.length < 2) return;
+          flatSteps.push({
+            instruction: step?.maneuver?.instruction || step?.name || 'Continue',
+            type: step?.maneuver?.type || 'turn',
+            modifier: step?.maneuver?.modifier || 'straight',
+            location: { longitude: loc[0], latitude: loc[1] },
+          });
+        });
+      });
+      setSteps(flatSteps);
+      setActiveStepIndex(0);
+      spokenStepRef.current = -1;
+
       if (Number.isFinite(route.distance) && Number.isFinite(route.duration)) {
         const info = {
           distanceKm: route.distance / 1000,
@@ -359,7 +552,7 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo }
     } finally {
       directionsInFlightRef.current = false;
     }
-  }, [riderCoord, customer, shops, pickedUp, waypointKey, onRouteInfo]);
+  }, [riderCoord, customer, routingShops, pickedUp, waypointKey, onRouteInfo]);
 
   // Fetch on mount / GPS / waypoint changes. fetchRoute itself decides whether
   // a Directions call is needed (first route, waypoint change, or >150 m drift).
@@ -369,25 +562,133 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo }
     fetchRoute({ force: needsForce });
   }, [fetchRoute, waypointKey, customer]);
 
+  // Turn-by-turn: advance the banner (and speak the new instruction) once
+  // the rider gets within STEP_ADVANCE_METERS of the current step's maneuver
+  // point. Re-derives from live GPS on every tick rather than the route's
+  // static per-step distance, since that's the rider's actual position.
+  useEffect(() => {
+    if (!riderCoord || steps.length === 0) return;
+    const step = steps[activeStepIndex];
+    if (!step) return;
+    const dist = distanceMeters(
+      riderCoord.latitude,
+      riderCoord.longitude,
+      step.location.latitude,
+      step.location.longitude,
+    );
+    if (dist <= STEP_ADVANCE_METERS && activeStepIndex < steps.length - 1) {
+      setActiveStepIndex((i) => i + 1);
+    }
+  }, [riderCoord, steps, activeStepIndex]);
+
+  // Speak the active step once (not on every GPS tick / re-render).
+  useEffect(() => {
+    const step = steps[activeStepIndex];
+    if (!step || spokenStepRef.current === activeStepIndex) return;
+    spokenStepRef.current = activeStepIndex;
+    Speech.speak(step.instruction, { language: 'en' });
+  }, [steps, activeStepIndex]);
+
+  useEffect(() => () => Speech.stop(), []);
+
+  // Follow mode: pan (never zoom) the camera onto the rider on every GPS
+  // tick. A real finger-drag on the map (isUserInteraction) turns it off so
+  // it doesn't fight a manual pan/zoom — the earlier reported bug — and a
+  // "Recenter" pill brings it back.
+  const followRef = useRef(true);
+  const [following, setFollowing] = useState(true);
+
+  const onRegionIsChanging = useCallback((feature) => {
+    if (feature?.properties?.isUserInteraction && followRef.current) {
+      followRef.current = false;
+      setFollowing(false);
+    }
+  }, []);
+
+  // Heading purely from the route/destination geometry — the bearing from
+  // the rider toward wherever they're actually headed — not the device
+  // compass or GPS course. Those track the phone's real-world orientation
+  // or real movement, neither of which lines up with a simulated/mocked
+  // test location, and isn't really "the route" anyway. This is: whichever
+  // way the route says to go is up on screen, always, deterministically.
+  // Falls back down from the precise upcoming turn (steps) to the straight
+  // line toward the current target so it's never left unset.
+  const routeHeadingTarget = steps[activeStepIndex]?.location
+    || (pickedUp ? customer : null)
+    || routingShops[0]
+    || null;
+  const routeHeading = riderCoord && routeHeadingTarget
+    ? bearingDeg(riderCoord.latitude, riderCoord.longitude, routeHeadingTarget.latitude, routeHeadingTarget.longitude)
+    : null;
+
+  // Shared POV camera apply — used by recenter(), the per-tick follow
+  // effect below, AND fitAll (so its wide context fitBounds doesn't become
+  // the camera's last word and leave the zoom stuck wide — see there).
+  const applyPovCamera = useCallback((animationDuration = 500) => {
+    if (!riderCoord || !cameraRef.current) return;
+    cameraRef.current.setCamera({
+      centerCoordinate: [riderCoord.longitude, riderCoord.latitude],
+      pitch: POV_PITCH,
+      zoomLevel: POV_ZOOM,
+      ...(routeHeading != null ? { heading: routeHeading } : null),
+      animationDuration,
+    });
+  }, [riderCoord, routeHeading]);
+
+  const recenter = useCallback(() => {
+    followRef.current = true;
+    setFollowing(true);
+    applyPovCamera(300);
+  }, [applyPovCamera]);
+
+  // Rider POV: tilted, zoomed in, rotated to the direction of travel — like
+  // a driving nav app — instead of the flat, wide overview fitAll frames for
+  // context changes. A manual pinch/pan pauses follow (onRegionIsChanging),
+  // so forcing zoom here never fights a still-active user gesture.
+  useEffect(() => {
+    if (!followRef.current) return;
+    applyPovCamera(500);
+  }, [applyPovCamera]);
+
   const fitAll = useCallback(() => {
     if (!cameraRef.current) return;
+    // A real context change (new job, pickup transition, reroute) resumes
+    // follow mode even if the rider had panned away earlier.
+    followRef.current = true;
+    setFollowing(true);
     const points = [];
     if (riderCoord) points.push(riderCoord);
     shops.forEach((s) => points.push(s));
     if (customer) points.push(customer);
     if (points.length === 0) return;
     try {
+      // Include the actual route polyline (not just the endpoint pins) so a
+      // curving road never bows outside the camera frame.
       const lngs = points.map((p) => p.longitude);
       const lats = points.map((p) => p.latitude);
-      // Padding: top / right / bottom / left — leave room for status bar + sheet.
+      routeCoordsRef.current.forEach(([lng, lat]) => {
+        lngs.push(lng);
+        lats.push(lat);
+      });
+      // Padding: top / right / bottom / left — leave room for status bar +
+      // the actual bottom sheet height (not a guess), so a curving route
+      // near the bottom of the screen never ends up hidden under it.
       cameraRef.current.fitBounds(
         [Math.max(...lngs), Math.max(...lats)],
         [Math.min(...lngs), Math.min(...lats)],
-        [topPad + 48, 40, 200, 40],
+        [topPad + 48, 40, bottomInset + 24, 40],
         500,
       );
+      // fitBounds has no zoom/pitch/heading of its own — without this, its
+      // wide context view was the camera's last word after every order
+      // change, pickup transition, or reroute, and the POV zoom only came
+      // back once another GPS tick happened to fire. Snap into POV right
+      // after the overview settles instead of waiting on that.
+      setTimeout(() => {
+        if (followRef.current) applyPovCamera(600);
+      }, 550);
     } catch (_) { /* ignore */ }
-  }, [riderCoord, shops, customer, topPad]);
+  }, [riderCoord, shops, customer, topPad, bottomInset, applyPovCamera]);
 
   // Auto-fit only on real context changes (new assignment, or the
   // shop/customer waypoint set changing — e.g. pickup happened). Deliberately
@@ -413,7 +714,23 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [riderCoord]);
 
+  // Re-fit once per waypoint set when the real driving route resolves — a
+  // curving road can bow outside the pin-only bounds computed above.
+  const routeFitKeyRef = useRef('');
+  useEffect(() => {
+    if (!routeGeoJson || routeFitKeyRef.current === waypointKey) return undefined;
+    routeFitKeyRef.current = waypointKey;
+    const t = setTimeout(fitAll, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeGeoJson, waypointKey]);
+
   const center = customer || shops[0] || riderCoord || DEFAULT_MAP_CENTER;
+  const activeStep = steps[activeStepIndex] || null;
+  const activeStepDistanceM = activeStep && riderCoord
+    ? distanceMeters(riderCoord.latitude, riderCoord.longitude, activeStep.location.latitude, activeStep.location.longitude)
+    : null;
+  const activeManeuver = maneuverIcon(activeStep);
 
   if (loading) {
     return (
@@ -440,12 +757,14 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo }
         // Margins are from the map edges; y must clear status bar + leave a gap.
         compassViewMargins={{ x: 12, y: topPad }}
         scaleBarEnabled={false}
+        onRegionIsChanging={onRegionIsChanging}
       >
         <Mapbox.Camera
           ref={cameraRef}
+          padding={cameraPadding}
           defaultSettings={{
             centerCoordinate: [center.longitude, center.latitude],
-            zoomLevel: 13,
+            zoomLevel: 17,
           }}
         />
 
@@ -490,23 +809,38 @@ export default function RiderDeliveryMap({ order, pickedUp, style, onRouteInfo }
         ) : null}
       </Mapbox.MapView>
 
-      <View style={[styles.legend, { top: topPad }]} pointerEvents="none">
-        <View style={styles.legendItem}>
-          <Text style={styles.legendEmoji}>🛵</Text>
-          <Text style={styles.legendText}>You</Text>
+      {activeStep ? (
+        <View style={[styles.turnBanner, { top: topPad }]} pointerEvents="none">
+          <View style={[styles.turnBannerIconWrap, { backgroundColor: activeManeuver.accent }]}>
+            <Text style={[styles.turnBannerIconText, { transform: [{ rotate: `${activeManeuver.deg}deg` }] }]}>
+              {activeManeuver.emoji}
+            </Text>
+          </View>
+          <View style={styles.turnBannerBody}>
+            <Text style={[styles.turnBannerDistance, { color: activeManeuver.accent }]}>
+              {activeStepDistanceM != null
+                ? (activeStepDistanceM >= 1000
+                  ? `${(activeStepDistanceM / 1000).toFixed(1)} km`
+                  : `${Math.round(activeStepDistanceM)} m`)
+                : ''}
+            </Text>
+            <Text style={styles.turnBannerText} numberOfLines={2}>{activeStep.instruction}</Text>
+          </View>
         </View>
-        <View style={styles.legendItem}>
-          <Text style={styles.legendEmoji}>🏠</Text>
-          <Text style={styles.legendText}>Shop</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <Text style={styles.legendEmoji}>🏠</Text>
-          <Text style={styles.legendText}>Customer</Text>
-        </View>
-      </View>
+      ) : null}
+
+      {!following ? (
+        <TouchableOpacity
+          style={[styles.recenterBtn, { bottom: bottomInset + spacing.sm }]}
+          onPress={recenter}
+          accessibilityLabel="Recenter on me"
+        >
+          <Text style={styles.recenterBtnText}>⌖ Recenter</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {routeInfo ? (
-        <View style={styles.routeInfoChip}>
+        <View style={[styles.routeInfoChip, { bottom: bottomInset + spacing.sm }]}>
           <Text style={styles.routeInfoText}>
             {routeInfo.distanceKm.toFixed(1)} km · {routeInfo.etaMinutes} min
           </Text>
@@ -627,25 +961,50 @@ const styles = StyleSheet.create({
   customerLabel: { backgroundColor: CUSTOMER_COLOR },
   pinLabelText: { color: '#fff', fontSize: 10, fontWeight: '800' },
 
-  legend: {
+  turnBanner: {
     position: 'absolute',
-    // top set at runtime via safe-area insets (status bar / notch)
     left: spacing.sm,
-    // content-sized only — do not stretch under the compass
-    maxWidth: '72%',
+    // Hugs its content (icon + text), never stretches to fill the row — the
+    // maxWidth is only a cap for a genuinely long instruction to wrap under.
+    alignSelf: 'flex-start',
+    maxWidth: '70%',
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    gap: 10,
+    backgroundColor: 'rgba(15, 17, 23, 0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    paddingLeft: 8,
+    paddingRight: 14,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    ...shadows.md,
+  },
+  turnBannerIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  turnBannerIconText: { fontSize: 18, color: '#fff', fontWeight: '900' },
+  turnBannerBody: { flexShrink: 1 },
+  turnBannerDistance: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
+  turnBannerText: { color: '#fff', fontSize: 14, fontWeight: '800', marginTop: 1 },
+
+  recenterBtn: {
+    position: 'absolute',
+    bottom: spacing.sm,
+    left: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(17, 24, 39, 0.92)',
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.lg,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
     ...shadows.sm,
   },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  legendEmoji: { fontSize: 14 },
-  legendText: { fontSize: 10, fontWeight: '700', color: colors.textSecondary },
+  recenterBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
   routeInfoChip: {
     position: 'absolute',

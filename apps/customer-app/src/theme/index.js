@@ -10,6 +10,7 @@ export { spacing } from './spacing';
 export { typography, fontSizes, fontWeights, lineHeights } from './typography';
 export { radius, borderWidth } from './borders';
 export { shadows } from './shadows';
+export { glass, glassRadius, glassShadow } from './glass';
 export {
   tapMs,
   smallMs,

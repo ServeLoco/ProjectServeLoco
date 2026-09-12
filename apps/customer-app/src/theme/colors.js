@@ -144,6 +144,8 @@ export const colors = {
   btnDarkEnd: '#0E1116',         // Ink/dark button base
   btnSuccessStart: '#3FE09D',    // Soft green top
   btnSuccessEnd: '#1FB574',      // Success green base
+  btnInfoStart: '#4F8DFF',       // Soft blue top
+  btnInfoEnd: '#1D5FE0',         // Bold blue base
   btnHighlightStart: '#FF9A66',  // Soft saffron top
   btnHighlightEnd: '#FF7A3A',    // Saffron highlight base
 

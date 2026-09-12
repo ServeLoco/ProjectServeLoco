@@ -4,17 +4,18 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  KeyboardAvoidingView,
   Platform,
   Animated,
   Easing,
   Keyboard,
   TouchableOpacity,
   Linking,
-  Dimensions,
   ActivityIndicator,
   TextInput,
+  ImageBackground,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   AppScreen,
@@ -25,14 +26,21 @@ import { colors, typography, spacing, radius } from '../../../theme';
 import { useAuthStore } from '../../../stores';
 import { authApi } from '../../../api';
 import { requestNotificationPermission } from '../../../hooks/useLocalNotifications';
-import { loginLogo } from '../../../assets';
+import { authBg } from '../../../assets';
 import { getIdToken, signInWithPhoneNumber } from '@react-native-firebase/auth';
 import { auth } from '../../../config/firebase';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-
 const COUNTRY_CODE = '+91';
 const OTP_LENGTH = 6;
+
+/* Background artwork metrics (Images/auth-bg.png). The VillKro logo + tagline
+ * are baked into the image, so we track where they land on screen and slide
+ * the whole background up just enough to keep them clear of the drawer. */
+const BG_SIZE = { width: 941, height: 1672 };
+const LOGO_TOP_RATIO = 0.26;
+const LOGO_BOTTOM_RATIO = 0.40;
+const LOGO_CLEARANCE = 14;
+const GLASS_PLACEHOLDER = 'rgba(255,255,255,0.55)';
 
 const POLICY_URLS = {
   privacy: 'https://api.serveloco.app/policies/privacy',
@@ -47,6 +55,7 @@ function useAnimatedValue(init) {
 
 export default function AuthScreen() {
   const setSession = useAuthStore((state) => state.setSession);
+  const insets = useSafeAreaInsets();
 
   /*
    * step: 'phone' | 'otp' | 'name'
@@ -65,6 +74,12 @@ export default function AuthScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
+  /* Layout metrics — background is pinned to the keyboard-free height so the
+   * IME resize never rescales the artwork under the drawer. */
+  const [layout, setLayout] = useState({ width: 0, fullHeight: 0 });
+  const [kbHeight, setKbHeight] = useState(0);
+  const [cardHeight, setCardHeight] = useState(0);
+
   /* Firebase state */
   const [confirmation, setConfirmation] = useState(null);
   const [firebaseIdToken, setFirebaseIdToken] = useState(null);
@@ -78,52 +93,34 @@ export default function AuthScreen() {
   const submittingRef = useRef(false);
 
   /* Animated values */
-  const heroFade = useAnimatedValue(0);
-  const heroSlide = useAnimatedValue(24);
-  const logoScale = useAnimatedValue(0.8);
-  const logoRotate = useAnimatedValue(-8);
-
   const cardFade = useAnimatedValue(0);
   const cardSlide = useAnimatedValue(40);
 
-  const blobA = useAnimatedValue(0);
-  const blobB = useAnimatedValue(0);
-  const blobC = useAnimatedValue(0);
-
+  const bgShift = useAnimatedValue(0);
   const shakeAnim = useAnimatedValue(0);
   const stepFade = useAnimatedValue(1);
   const stepSlide = useAnimatedValue(0);
 
   /* ── Entrance animations ── */
   useEffect(() => {
-    const t = 350;
     const common = { easing: Easing.out(Easing.cubic), useNativeDriver: true };
 
     Animated.parallel([
-      Animated.timing(blobA, { toValue: 1, duration: 900, ...common }),
-      Animated.timing(blobB, { toValue: 1, duration: 1000, delay: 120, ...common }),
-      Animated.timing(blobC, { toValue: 1, duration: 1100, delay: 240, ...common }),
-      Animated.stagger(t, [
-        Animated.parallel([
-          Animated.timing(logoScale, { toValue: 1, duration: 700, ...common }),
-          Animated.timing(logoRotate, { toValue: 0, duration: 700, ...common }),
-          Animated.timing(heroFade, { toValue: 1, duration: 700, ...common }),
-          Animated.timing(heroSlide, { toValue: 0, duration: 700, ...common }),
-        ]),
-        Animated.parallel([
-          Animated.timing(cardFade, { toValue: 1, duration: 700, ...common }),
-          Animated.timing(cardSlide, { toValue: 0, duration: 700, ...common }),
-        ]),
-      ]),
+      Animated.timing(cardFade, { toValue: 1, duration: 700, ...common }),
+      Animated.timing(cardSlide, { toValue: 0, duration: 700, ...common }),
     ]).start();
 
+    /* The app draws edge-to-edge, so the Android window is never resized by the
+     * IME and KeyboardAvoidingView cannot restore its own height cleanly (it
+     * came back short by the nav-bar inset, which is the dead space that was
+     * left behind after the keyboard closed). Drive the inset ourselves. */
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
-    const showListener = Keyboard.addListener(showEvent, () => {
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
+    const showListener = Keyboard.addListener(showEvent, (e) => {
+      setKbHeight(e?.endCoordinates?.height || 0);
     });
-    const hideListener = Keyboard.addListener(hideEvent, () => {});
+    const hideListener = Keyboard.addListener(hideEvent, () => setKbHeight(0));
 
     return () => {
       showListener.remove();
@@ -131,6 +128,47 @@ export default function AuthScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* ── Layout measurement ── */
+  const onRootLayout = useCallback((e) => {
+    const { width, height } = e.nativeEvent.layout;
+    setLayout((prev) =>
+      prev.width === width && prev.fullHeight >= height
+        ? prev
+        : { width, fullHeight: Math.max(prev.fullHeight, height) }
+    );
+  }, []);
+
+  const onCardLayout = useCallback((e) => {
+    const h = e.nativeEvent.layout.height;
+    setCardHeight((prev) => (Math.abs(prev - h) < 1 ? prev : h));
+  }, []);
+
+  /* ── Keep the background logo above the drawer ──
+   * When the keyboard resizes the window the drawer rises; without this the
+   * drawer swallows the logo baked into the background image. */
+  useEffect(() => {
+    const { width, fullHeight } = layout;
+    if (!width || !fullHeight || !cardHeight) return;
+
+    const scale = Math.max(width / BG_SIZE.width, fullHeight / BG_SIZE.height);
+    const drawnHeight = BG_SIZE.height * scale;
+    const offsetY = (fullHeight - drawnHeight) / 2;
+    const logoTop = offsetY + drawnHeight * LOGO_TOP_RATIO;
+    const logoBottom = offsetY + drawnHeight * LOGO_BOTTOM_RATIO;
+
+    const drawerTop = fullHeight - kbHeight - cardHeight;
+    const needed = logoBottom + LOGO_CLEARANCE - drawerTop;
+    const maxShift = Math.max(0, logoTop - insets.top - 8);
+    const shift = Math.max(0, Math.min(needed, maxShift));
+
+    Animated.timing(bgShift, {
+      toValue: -shift,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [layout, kbHeight, cardHeight, insets.top, bgShift]);
 
   /* ── Shake error ── */
   const triggerShake = useCallback(() => {
@@ -456,6 +494,10 @@ export default function AuthScreen() {
           onSubmitEditing={() => phoneRef.current?.focus()}
           autoCapitalize="words"
           containerStyle={styles.fieldGap}
+          labelStyle={styles.fieldLabel}
+          inputWrapStyle={styles.glassInputWrap}
+          inputStyle={styles.glassInputText}
+          placeholderTextColor={GLASS_PLACEHOLDER}
         />
       )}
       <View style={styles.phoneRow}>
@@ -475,6 +517,10 @@ export default function AuthScreen() {
             inputRef={phoneRef}
             containerStyle={styles.fieldGap}
             maxLength={10}
+            labelStyle={styles.fieldLabel}
+            inputWrapStyle={styles.glassInputWrap}
+            inputStyle={styles.glassInputText}
+            placeholderTextColor={GLASS_PLACEHOLDER}
           />
         </View>
       </View>
@@ -613,6 +659,10 @@ export default function AuthScreen() {
         onSubmitEditing={submitName}
         autoCapitalize="words"
         containerStyle={styles.fieldGap}
+        labelStyle={styles.fieldLabel}
+        inputWrapStyle={styles.glassInputWrap}
+        inputStyle={styles.glassInputText}
+        placeholderTextColor={GLASS_PLACEHOLDER}
       />
 
       {!!errorMsg && (
@@ -626,102 +676,44 @@ export default function AuthScreen() {
   );
 
   /* ── Animated interp values ── */
-  const logoRotateDeg = logoRotate.interpolate({
-    inputRange: [-8, 0],
-    outputRange: ['-8deg', '0deg'],
-  });
-
-  const blobAS = blobA.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
-  const blobAT = blobA.interpolate({ inputRange: [0, 1], outputRange: [60, 0] });
-  const blobBS = blobB.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
-  const blobBT = blobB.interpolate({ inputRange: [0, 1], outputRange: [80, 0] });
-  const blobCS = blobC.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] });
-  const blobCT = blobC.interpolate({ inputRange: [0, 1], outputRange: [90, 0] });
-
   const stepOpacity = stepFade.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
   const stepX = stepSlide.interpolate({ inputRange: [-16, 0, 16], outputRange: [-12, 0, 12] });
 
-  const heroTitle = step === 'phone'
-    ? 'Welcome'
-    : step === 'otp'
-    ? 'Verification'
-    : 'One more step';
-
-  const heroSub = step === 'phone'
-    ? 'Login or sign up with your phone number.'
-    : step === 'otp'
-    ? 'We sent a code to your phone.'
-    : 'Tell us your name.';
-
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
-    >
-      <AppScreen style={styles.screen} safeAreaTop safeAreaBottom noPadding>
-        <LinearGradient
-          colors={['#FFF8EF', '#FFF0D9', '#FFF6EF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientBg}
+    <AppScreen style={styles.screen} safeAreaTop={false} safeAreaBottom={false} noPadding statusBarStyle="light-content">
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <View style={styles.root} onLayout={onRootLayout}>
+        {/* Full-bleed background, pinned to the keyboard-free screen height.
+            The IME resize must not rescale the artwork, otherwise the logo
+            baked into it jumps around and slides under the drawer. */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.bgLayer,
+            layout.fullHeight ? { height: layout.fullHeight } : StyleSheet.absoluteFillObject,
+            { transform: [{ translateY: bgShift }] },
+          ]}
         >
-          {/* Floating blobs */}
-          <Animated.View
-            style={[
-              styles.blob,
-              { top: -SCREEN_H * 0.06, left: -SCREEN_W * 0.18, backgroundColor: 'rgba(255,180,130,0.22)' },
-              { opacity: blobA, transform: [{ scale: blobAS }, { translateY: blobAT }] },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.blob,
-              { top: SCREEN_H * 0.08, right: -SCREEN_W * 0.22, backgroundColor: 'rgba(255,120,50,0.14)' },
-              { opacity: blobB, transform: [{ scale: blobBS }, { translateY: blobBT }] },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.blob,
-              { bottom: -SCREEN_H * 0.04, left: SCREEN_W * 0.3, backgroundColor: 'rgba(255,150,80,0.18)' },
-              { opacity: blobC, transform: [{ scale: blobCS }, { translateY: blobCT }] },
-            ]}
-          />
+          <ImageBackground source={authBg} style={styles.flex} resizeMode="cover">
+            <View style={styles.bgScrim} />
+          </ImageBackground>
+        </Animated.View>
 
+        <View style={styles.flex}>
           <ScrollView
             ref={scrollRef}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: kbHeight }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             bounces={false}
           >
-            {/* ── Hero ── */}
+            {/* ── Glass Bottom Drawer ── */}
             <Animated.View
-              style={[
-                styles.heroWrap,
-                { opacity: heroFade, transform: [{ translateY: heroSlide }] },
-              ]}
-            >
-              <Animated.Image
-                source={loginLogo}
-                style={[
-                  styles.heroLogo,
-                  {
-                    transform: [{ scale: logoScale }, { rotate: logoRotateDeg }],
-                  },
-                ]}
-                resizeMode="contain"
-              />
-              <Text style={styles.heroTitle}>{heroTitle}</Text>
-              <Text style={styles.heroSub}>{heroSub}</Text>
-            </Animated.View>
-
-            {/* ── Auth Card ── */}
-            <Animated.View
+              onLayout={onCardLayout}
               style={[
                 styles.authCard,
                 {
+                  paddingBottom: spacing.lg + 4 + (kbHeight > 0 ? 0 : insets.bottom),
                   opacity: cardFade,
                   transform: [
                     { translateY: cardSlide },
@@ -730,6 +722,14 @@ export default function AuthScreen() {
                 },
               ]}
             >
+              <LinearGradient
+                colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0.6, y: 0.7 }}
+                style={styles.cardSheen}
+                pointerEvents="none"
+              />
+              <View style={styles.drawerHandle} />
               {/* Form area with animated transition */}
               <Animated.View
                 style={{
@@ -743,9 +743,9 @@ export default function AuthScreen() {
               </Animated.View>
             </Animated.View>
           </ScrollView>
-        </LinearGradient>
-      </AppScreen>
-    </KeyboardAvoidingView>
+        </View>
+      </View>
+    </AppScreen>
   );
 }
 
@@ -815,65 +815,60 @@ function AnimatedCheckbox({ checked }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: 'transparent' },
-  gradientBg: { flex: 1, position: 'relative' },
+  root: { flex: 1, backgroundColor: colors.palette.primary600 },
+  bgLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  bgScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10,8,6,0.18)',
+  },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg + 8,
-    paddingBottom: spacing.xxl,
+    justifyContent: 'flex-end',
   },
 
-  /* Decorative floating blobs */
-  blob: {
-    position: 'absolute',
-    width: 340,
-    height: 340,
-    borderRadius: 170,
-  },
-
-  /* Hero */
-  heroWrap: {
-    alignItems: 'center',
-    marginTop: spacing.lg,
-    marginBottom: spacing.xl + 4,
-  },
-  heroLogo: {
-    width: SCREEN_W * 0.52,
-    height: SCREEN_W * 0.36,
-    marginBottom: spacing.md - 2,
-  },
-  heroTitle: {
-    ...typography.display,
-    color: colors.textPrimary,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  heroSub: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: spacing.xs + 2,
-  },
-
-  /* Auth glass card */
+  /* Glass bottom drawer (glassmorphism: near-transparent fill + light border + sheen) */
   authCard: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 28,
-    padding: spacing.lg + 4,
+    backgroundColor: 'rgba(22,16,13,0.38)',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: spacing.sm,
     paddingHorizontal: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.55)',
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(255,255,255,0.32)',
+    overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: '#C8490F',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.12,
-        shadowRadius: 24,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 14 },
+        shadowOpacity: 0.22,
+        shadowRadius: 26,
       },
       android: {
-        elevation: 8,
+        elevation: 10,
       },
     }),
+  },
+  cardSheen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '55%',
+  },
+  drawerHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    marginBottom: spacing.md,
   },
 
   /* Forms */
@@ -892,8 +887,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: radius.input || 12,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bgApp,
+    borderColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -901,29 +896,44 @@ const styles = StyleSheet.create({
   countryCodeText: {
     ...typography.body,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textInverse,
   },
   phoneInputWrap: {
     flex: 1,
+  },
+  fieldLabel: {
+    color: 'rgba(255,255,255,0.85)',
+  },
+  /* Keeps the field see-through even while focused — the component's focus
+   * style otherwise swaps in a solid white surface. Border colour is left to
+   * the component so focus / error highlights still come through. */
+  glassInputWrap: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  glassInputText: {
+    color: colors.textInverse,
   },
 
   /* OTP */
   otpTitle: {
     ...typography.heading || { fontSize: 20, fontWeight: '700' },
-    color: colors.textPrimary,
+    color: colors.textInverse,
     textAlign: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xs / 2,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   otpSubtitle: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
-    marginBottom: spacing.md,
-    lineHeight: 22,
+    marginBottom: spacing.sm,
+    lineHeight: 20,
   },
   otpPhone: {
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textInverse,
   },
   otpRow: {
     flexDirection: 'row',
@@ -941,17 +951,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 3,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.bgApp,
+    borderColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     textAlign: 'center',
     fontSize: 22,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textInverse,
     paddingVertical: 0,
   },
   otpBoxFilled: {
     borderColor: colors.saffron || colors.primary,
-    backgroundColor: 'rgba(255,107,53,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.22)',
   },
   otpActions: {
     flexDirection: 'row',
@@ -966,7 +976,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   resendDisabled: {
-    color: colors.textTertiary,
+    color: 'rgba(255,255,255,0.5)',
   },
 
   /* Alerts */
@@ -1026,11 +1036,11 @@ const styles = StyleSheet.create({
   },
   navLink: {
     ...typography.bodySmall,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
     fontWeight: '600',
   },
   navLinkDisabled: {
-    color: colors.textDisabled,
+    color: 'rgba(255,255,255,0.4)',
   },
 
   /* Terms */
@@ -1046,8 +1056,8 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: radius.sm,
     borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.bgApp,
+    borderColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 1,
@@ -1059,11 +1069,11 @@ const styles = StyleSheet.create({
   },
   termsText: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.8)',
     lineHeight: 18,
   },
   termsLink: {
-    color: colors.saffronDark,
+    color: colors.saffronLight,
     fontWeight: '700',
   },
 });

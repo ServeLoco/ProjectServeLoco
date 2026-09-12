@@ -51,9 +51,12 @@ function TextInputField({
   style,
   containerStyle,
   inputStyle,
+  labelStyle,
   rightElement,
   editable,
   maxLength,
+  inputWrapStyle,
+  placeholderTextColor,
 }) {
   const [isSecure, setIsSecure] = useState(secureTextEntry);
   const [isFocused, setIsFocused] = useState(false);
@@ -68,7 +71,7 @@ function TextInputField({
   return (
     <View style={[styles.container, containerStyle, style]}>
       {label ? (
-        <Text style={styles.label} numberOfLines={1}>
+        <Text style={[styles.label, labelStyle]} numberOfLines={1}>
           {label}
         </Text>
       ) : null}
@@ -80,6 +83,7 @@ function TextInputField({
           isFocused && styles.focused,
           (!isEditable || disabled) && styles.disabledWrap,
           multiline && { height: 52 + (numberOfLines - 1) * 22 },
+          inputWrapStyle,
         ]}
       >
         <TextInput
@@ -87,7 +91,7 @@ function TextInputField({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={colors.textHint}
+          placeholderTextColor={placeholderTextColor || colors.textHint}
           secureTextEntry={isSecure}
           keyboardType={keyboardType}
           returnKeyType={returnKeyType}

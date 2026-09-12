@@ -1,12 +1,12 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   ActivityIndicator, Alert, Animated, AppState, Easing, FlatList, Platform,
-  RefreshControl, StyleSheet, Text, TouchableOpacity, View,
+  RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
-import { colors, spacing, typography, radius, shadows } from '../../theme';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { colors, spacing, typography, radius, shadows, glass, glassRadius, glassShadow } from '../../theme';
 import { useAuthStore } from '../../stores';
 import {
   shopApi,
@@ -54,6 +54,9 @@ const ACKED_ORDER_IDS_CAP = 200;
  * and a non-dismissible Accept/Reject popup for incoming orders.
  */
 export default function ShopDashboardScreen() {
+  // The screen stays mounted while other tabs are open, so the light status
+  // bar has to be scoped to focus or it leaks onto the light Orders/Products.
+  const isScreenFocused = useIsFocused();
   const shop = useAuthStore((s) => s.shop);
   const logout = useAuthStore((s) => s.logout);
 
@@ -499,12 +502,12 @@ export default function ShopDashboardScreen() {
         <View style={styles.activeCardHeader}>
           <Text style={styles.activeOrderNumber}>#{item.orderNumber || item.order_number}</Text>
           <View style={styles.activeBadge}>
-            <AppIcon name="check" size={12} color={colors.successDark} />
+            <AppIcon name="check" size={12} color={colors.success} />
             <Text style={styles.activeBadgeText}>Preparing</Text>
           </View>
         </View>
         <View style={styles.activeElapsedRow}>
-          <AppIcon name="clock" size={13} color={colors.textSecondary} />
+          <AppIcon name="clock" size={13} color={glass.textDim} />
           <Text style={styles.activeElapsedText}>
             {formatElapsed(item.createdAt || item.created_at, now)}
           </Text>
@@ -544,7 +547,7 @@ export default function ShopDashboardScreen() {
             activeOpacity={0.85}
           >
             {actionBusy[item.id] === 'cancel' ? (
-              <ActivityIndicator size="small" color={colors.error} />
+              <ActivityIndicator size="small" color={colors.textInverse} />
             ) : (
               <Text style={styles.cancelBtnText}>Cancel</Text>
             )}
@@ -575,7 +578,7 @@ export default function ShopDashboardScreen() {
         <View style={styles.scheduleHeader}>
           <View style={styles.scheduleHeaderLeft}>
             <View style={styles.scheduleIconWrap}>
-              <AppIcon name="clock" size={18} color={colors.saffronDark} />
+              <AppIcon name="clock" size={18} color={colors.saffron} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.scheduleTitle}>Auto schedule</Text>
@@ -605,7 +608,7 @@ export default function ShopDashboardScreen() {
               <Text style={styles.timeChipValue}>{formatDisplayTime(openTime)}</Text>
             </TouchableOpacity>
             <View style={styles.scheduleArrow}>
-              <AppIcon name="chevronRight" size={16} color={colors.textTertiary} />
+              <AppIcon name="chevronRight" size={16} color={glass.textFaint} />
             </View>
             <TouchableOpacity
               style={styles.timeChip}
@@ -628,8 +631,8 @@ export default function ShopDashboardScreen() {
           <Text style={styles.metricLabel}>Active orders</Text>
         </View>
         <View style={[styles.metricCard, { flex: 1 }]}>
-          <AppIcon name="home" size={22} color={isOpen ? colors.success : colors.textTertiary} />
-          <Text style={[styles.metricValue, { color: isOpen ? colors.successDark : colors.textTertiary }]}>
+          <AppIcon name="home" size={22} color={isOpen ? colors.success : glass.textFaint} />
+          <Text style={[styles.metricValue, { color: isOpen ? colors.success : glass.textFaint }]}>
             {isOpen ? 'On' : 'Off'}
           </Text>
           <Text style={styles.metricLabel}>Shop status</Text>
@@ -648,20 +651,23 @@ export default function ShopDashboardScreen() {
   ), [scheduleEnabled, handleScheduleToggle, scheduleBusy, openTime, closeTime, activeOrders.length, isOpen]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.root}>
+      {/* Black canvas — the default dark status-bar icons vanish on it */}
+      {isScreenFocused && <StatusBar barStyle="light-content" backgroundColor="transparent" />}
+      <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{shop?.name || 'My Shop'}</Text>
           <Text style={styles.subtitle}>Shop owner dashboard</Text>
         </View>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn} activeOpacity={0.8}>
-          <AppIcon name="logout" size={20} color={colors.textSecondary} />
+          <AppIcon name="logout" size={20} color={glass.text} />
         </TouchableOpacity>
       </View>
 
       {!socketConnected && (
         <View style={styles.offlineBanner}>
-          <AppIcon name="warning" size={16} color={'#8A5A00'} />
+          <AppIcon name="warning" size={16} color={colors.warning} />
           <Text style={styles.offlineBannerText}>
             Weak connection — checking for new orders every 15s
           </Text>
@@ -675,6 +681,13 @@ export default function ShopDashboardScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.heroCard}
       >
+        <LinearGradient
+          colors={['rgba(255,255,255,0.30)', 'rgba(255,255,255,0.06)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
+          style={styles.heroSheen}
+          pointerEvents="none"
+        />
         <View style={styles.heroRow}>
           <View style={{ flex: 1 }}>
             <View style={styles.heroStatusRow}>
@@ -724,7 +737,7 @@ export default function ShopDashboardScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <View style={styles.emptyIconWrap}>
-                <AppIcon name="orders" size={32} color={colors.saffronDark} />
+                <AppIcon name="orders" size={32} color={colors.saffron} />
               </View>
               <Text style={styles.emptyTitle}>{loadError ? 'Could not load orders' : 'No active orders'}</Text>
               <Text style={styles.emptyText}>
@@ -772,16 +785,20 @@ export default function ShopDashboardScreen() {
           </View>
         </View>
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgApp },
+  root: { flex: 1, backgroundColor: '#000000' },
+  container: { flex: 1, backgroundColor: 'transparent' },
+
+
   cancelledNotice: {
     position: 'absolute', top: spacing.md, left: spacing.lg, right: spacing.lg,
     flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
-    backgroundColor: colors.error, borderRadius: radius.lg,
+    backgroundColor: colors.error, borderRadius: glassRadius.inner,
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
     ...shadows.lg,
   },
@@ -791,28 +808,35 @@ const styles = StyleSheet.create({
   },
   cancelledNoticeTitle: { color: colors.white, fontWeight: '800', fontSize: 14 },
   cancelledNoticeItems: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '500', marginTop: 2 },
+
   offlineBanner: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
-    backgroundColor: colors.warningLight, marginHorizontal: spacing.lg,
-    borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs + 2,
-    marginBottom: spacing.xs,
+    backgroundColor: 'rgba(244,166,42,0.16)', marginHorizontal: spacing.lg,
+    borderRadius: glassRadius.inner, paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 3,
+    marginBottom: spacing.xs, borderWidth: 1, borderColor: 'rgba(244,166,42,0.35)',
   },
-  offlineBannerText: { color: '#8A5A00', fontSize: 12, fontWeight: '600', flexShrink: 1 },
+  offlineBannerText: { color: '#FFD79A', fontSize: 12, fontWeight: '600', flexShrink: 1 },
+
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
   },
-  title: { ...typography.display, fontSize: 26, color: colors.textPrimary },
-  subtitle: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 2, fontWeight: '500' },
+  title: { ...typography.display, fontSize: 26, color: glass.text },
+  subtitle: { ...typography.bodySmall, color: glass.textDim, marginTop: 2, fontWeight: '500' },
   logoutBtn: {
-    width: 42, height: 42, borderRadius: radius.circle, backgroundColor: colors.bgSurface,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border,
-    ...shadows.xs,
+    width: 44, height: 44, borderRadius: radius.circle, backgroundColor: glass.fillStrong,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: glass.border,
+    ...glassShadow,
   },
+
+  /* Hero open/closed — saffron brand block */
   heroCard: {
     marginHorizontal: spacing.lg, marginTop: spacing.xs, marginBottom: spacing.md,
-    borderRadius: radius.xxl, padding: spacing.xl, ...shadows.cardRaised,
+    borderRadius: glassRadius.hero, padding: spacing.xl, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.30)',
+    ...shadows.cardRaised,
   },
+  heroSheen: { ...StyleSheet.absoluteFillObject },
   heroRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   heroStatusRow: { flexDirection: 'row', alignItems: 'center' },
   liveDot: {
@@ -821,113 +845,125 @@ const styles = StyleSheet.create({
   },
   heroStatus: { color: colors.textInverse, fontSize: 28, fontWeight: '800', letterSpacing: -0.4 },
   heroSub: { color: 'rgba(255,255,255,0.92)', fontSize: 15, marginTop: 4, fontWeight: '500' },
+
+  /* Auto schedule — glass pane */
   scheduleCard: {
-    marginBottom: spacing.md, backgroundColor: colors.bgSurface,
-    borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border,
-    padding: spacing.md, ...shadows.sm,
+    marginBottom: spacing.md, backgroundColor: glass.fill,
+    borderRadius: glassRadius.card, borderWidth: 1, borderColor: glass.border,
+    padding: spacing.md + 2, ...glassShadow,
   },
   scheduleHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   scheduleHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
   scheduleIconWrap: {
-    width: 36, height: 36, borderRadius: radius.circle, backgroundColor: colors.saffronLight,
+    width: 38, height: 38, borderRadius: radius.circle, backgroundColor: glass.tint,
+    borderWidth: 1, borderColor: glass.borderWarm,
     alignItems: 'center', justifyContent: 'center',
   },
-  scheduleTitle: { ...typography.label, color: colors.textPrimary, fontWeight: '800' },
-  scheduleSub: { fontSize: 12, color: colors.textSecondary, marginTop: 1, fontWeight: '500' },
+  scheduleTitle: { ...typography.label, color: glass.text, fontWeight: '800' },
+  scheduleSub: { fontSize: 12, color: glass.textDim, marginTop: 1, fontWeight: '500' },
   scheduleTimesRow: {
     flexDirection: 'row', alignItems: 'center', marginTop: spacing.md,
-    paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border,
+    paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)',
   },
   timeChip: {
-    flex: 1, backgroundColor: colors.bgApp, borderRadius: radius.lg, borderWidth: 1,
-    borderColor: colors.border, paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
+    flex: 1, backgroundColor: glass.fillStrong, borderRadius: glassRadius.inner, borderWidth: 1,
+    borderColor: glass.border, paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
     alignItems: 'center',
   },
-  timeChipLabel: { fontSize: 11, color: colors.textSecondary, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
-  timeChipValue: { fontSize: 16, color: colors.textPrimary, fontWeight: '800', marginTop: 2 },
+  timeChipLabel: { fontSize: 11, color: glass.textDim, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
+  timeChipValue: { fontSize: 16, color: glass.text, fontWeight: '800', marginTop: 2 },
   scheduleArrow: { paddingHorizontal: spacing.xs },
-  metricsRow: {
-    flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg,
-  },
+
+  /* Metrics */
+  metricsRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
   metricCard: {
-    backgroundColor: colors.bgSurface, borderRadius: radius.xl, paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center', ...shadows.sm,
+    backgroundColor: glass.fill, borderRadius: glassRadius.card, paddingVertical: spacing.md + 2,
+    paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: glass.border,
+    alignItems: 'center', justifyContent: 'center', ...glassShadow,
   },
-  metricValue: { fontSize: 28, fontWeight: '800', color: colors.textPrimary, lineHeight: 34, marginTop: spacing.xs },
-  metricLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 2, fontWeight: '600', letterSpacing: 0.2 },
-  sectionHeader: {
-    flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm,
-  },
+  metricValue: { fontSize: 28, fontWeight: '800', color: glass.text, lineHeight: 34, marginTop: spacing.xs },
+  metricLabel: { fontSize: 12, color: glass.textDim, marginTop: 2, fontWeight: '600', letterSpacing: 0.2 },
+
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
   sectionTitle: {
-    ...typography.labelSmall, fontSize: 13, color: colors.textSecondary, textTransform: 'uppercase',
+    ...typography.labelSmall, fontSize: 13, color: glass.textDim, textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   countPill: {
-    marginLeft: spacing.sm, backgroundColor: colors.saffronLight, borderRadius: radius.pill,
+    marginLeft: spacing.sm, backgroundColor: glass.tintStrong, borderRadius: radius.pill,
     paddingHorizontal: 9, paddingVertical: 2, minWidth: 24, alignItems: 'center',
+    borderWidth: 1, borderColor: glass.borderWarm,
   },
-  countPillText: { color: colors.saffronDark, fontWeight: '800', fontSize: 12 },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+  countPillText: { color: colors.saffron, fontWeight: '800', fontSize: 12 },
+  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl + spacing.lg },
+
+  /* Active order — glass pane with saffron edge */
   activeCard: {
-    flexDirection: 'row', backgroundColor: colors.bgSurface, borderRadius: radius.xl,
-    marginBottom: spacing.md, borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
-    ...shadows.sm,
+    flexDirection: 'row', backgroundColor: glass.fill, borderRadius: glassRadius.card,
+    marginBottom: spacing.md, borderWidth: 1, borderColor: glass.border, overflow: 'hidden',
+    ...glassShadow,
   },
-  activeAccent: {
-    width: 6, backgroundColor: colors.saffron,
-  },
-  activeCardBody: { flex: 1, padding: spacing.md },
+  activeAccent: { width: 6, backgroundColor: colors.saffron },
+  activeCardBody: { flex: 1, padding: spacing.md + 2 },
   activeCardHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm,
   },
-  activeOrderNumber: { ...typography.h3, color: colors.textPrimary },
+  activeOrderNumber: { ...typography.h3, color: glass.text },
   activeBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: colors.successLight, borderRadius: radius.pill,
+    backgroundColor: 'rgba(31,181,116,0.18)', borderRadius: radius.pill,
     paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1, borderColor: 'rgba(31,181,116,0.38)',
   },
-  activeBadgeText: { color: colors.successDark, fontWeight: '700', fontSize: 12 },
+  activeBadgeText: { color: colors.success, fontWeight: '700', fontSize: 12 },
   activeElapsedRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: spacing.xs },
-  activeElapsedText: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
-  activeShopTotal: { color: colors.successDark, fontSize: 12, fontWeight: '800', marginLeft: 'auto' },
+  activeElapsedText: { color: glass.textDim, fontSize: 12, fontWeight: '600' },
+  activeShopTotal: { color: colors.success, fontSize: 12, fontWeight: '800', marginLeft: 'auto' },
   activeItemRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs },
   qtyChip: {
-    backgroundColor: colors.saffronLight, borderRadius: radius.sm, paddingHorizontal: 8,
-    paddingVertical: 2, marginRight: spacing.sm, minWidth: 36, alignItems: 'center',
+    backgroundColor: glass.tint, borderRadius: radius.lg, paddingHorizontal: 8,
+    paddingVertical: 3, marginRight: spacing.sm, minWidth: 36, alignItems: 'center',
+    borderWidth: 1, borderColor: glass.borderWarm,
   },
-  qtyChipText: { color: colors.saffronDark, fontWeight: '800', fontSize: 13 },
-  activeItemText: { flex: 1, ...typography.body, color: colors.textSecondary, fontWeight: '500' },
+  qtyChipText: { color: colors.saffron, fontWeight: '800', fontSize: 13 },
+  activeItemText: { flex: 1, ...typography.body, color: glass.text, fontWeight: '500' },
   activeItemPrice: {
-    ...typography.body, color: colors.textSecondary, fontWeight: '700',
+    ...typography.body, color: glass.textDim, fontWeight: '700',
     minWidth: 56, textAlign: 'right',
   },
   readyPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
-    backgroundColor: colors.infoLight, borderRadius: radius.pill,
+    backgroundColor: 'rgba(59,130,246,0.18)', borderRadius: radius.pill,
     paddingHorizontal: 10, paddingVertical: 4, marginTop: spacing.sm,
+    borderWidth: 1, borderColor: 'rgba(59,130,246,0.38)',
   },
-  readyPillText: { color: colors.info, fontWeight: '800', fontSize: 12 },
+  readyPillText: { color: '#8FB8FF', fontWeight: '800', fontSize: 12 },
   activeActionsRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   cancelBtn: {
-    flex: 1, borderRadius: radius.button, borderWidth: 1.5, borderColor: colors.error,
-    paddingVertical: 10, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.errorLight,
+    flex: 1, borderRadius: radius.pill,
+    paddingVertical: 12, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.error,
   },
-  cancelBtnText: { color: colors.error, fontWeight: '800', fontSize: 14 },
+  cancelBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 14 },
   readyBtn: {
-    flex: 1, borderRadius: radius.button, paddingVertical: 10,
+    flex: 1, borderRadius: radius.pill, paddingVertical: 12,
     alignItems: 'center', justifyContent: 'center', backgroundColor: colors.success,
   },
   readyBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 14 },
-  emptyState: { alignItems: 'center', paddingHorizontal: spacing.xl, marginTop: spacing.xl },
+
+  emptyState: {
+    alignItems: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.xl,
+    marginTop: spacing.sm, backgroundColor: glass.fill, borderRadius: glassRadius.card,
+    borderWidth: 1, borderColor: glass.border, ...glassShadow,
+  },
   emptyIconWrap: {
-    width: 72, height: 72, borderRadius: radius.circle, backgroundColor: colors.saffronLight,
+    width: 76, height: 76, borderRadius: radius.circle, backgroundColor: glass.tint,
+    borderWidth: 1, borderColor: glass.borderWarm,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
   },
-  emptyTitle: { ...typography.h3, color: colors.textPrimary },
+  emptyTitle: { ...typography.h3, color: glass.text },
   emptyText: {
-    ...typography.body, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.xs,
+    ...typography.body, color: glass.textDim, textAlign: 'center', marginTop: spacing.xs,
     lineHeight: 20, maxWidth: 260,
   },
 });

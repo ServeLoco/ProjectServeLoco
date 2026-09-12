@@ -1,8 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   Linking,
+  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,6 +24,7 @@ import {
   mergeRiderOrder,
 } from '../../utils/riderOrderActions';
 import { elapsedSecondsFromStart, formatElapsed } from '../../utils/riderOfferTime';
+import { openGoogleMapsDirections } from '../../utils/googleMapsNav';
 
 /**
  * Full-screen delivery map + status actions for one assigned order.
@@ -33,6 +37,10 @@ export default function RiderOrderScreen({ route, navigation }) {
   const [loading, setLoading] = useState(!route.params?.order);
   const [actionBusy, setActionBusy] = useState(null);
   const [error, setError] = useState(null);
+  // Actual rendered height of the bottom sheet (it grows/shrinks with its
+  // content), so the map can pad its camera by exactly what's covered
+  // instead of guessing.
+  const [sheetHeight, setSheetHeight] = useState(0);
 
   const fetchOrder = useCallback(async ({ silent = false } = {}) => {
     if (!orderId) return;
@@ -105,27 +113,7 @@ export default function RiderOrderScreen({ route, navigation }) {
   };
 
   const handleDelivered = () => {
-    Alert.alert('Mark delivered?', 'Confirm this order was delivered.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delivered',
-        onPress: () => runAction(
-          'delivered',
-          () => riderApi.updateStatus(orderId, 'Delivered'),
-          { goBackOnSuccess: true },
-        ),
-      },
-    ]);
-  };
-
-  const handleMarkPaid = () => {
-    Alert.alert('Mark payment received?', 'Confirm you have collected payment for this order.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Mark paid',
-        onPress: () => runAction('mark_paid', () => riderApi.markPaid(orderId)),
-      },
-    ]);
+    runAction('delivered', () => riderApi.updateStatus(orderId, 'Delivered'), { goBackOnSuccess: true });
   };
 
   const terminal = order ? getRiderActionFlags(order).terminal : true;
@@ -158,17 +146,47 @@ export default function RiderOrderScreen({ route, navigation }) {
   const flags = getRiderActionFlags(order);
   const phone = order?.phone;
   const pickedUp = flags.pickedUp;
-  const isFast = order?.deliveryType === 'fast' || order?.delivery_type === 'fast';
   const assignedAt = order?.riderAssignedAt || order?.rider_assigned_at;
   const elapsedLabel = assignedAt
     ? formatElapsed(elapsedSecondsFromStart(assignedAt, nowTick))
     : null;
 
+  const navShops = (Array.isArray(order?.shops) ? order.shops : [])
+    .map((s) => {
+      const lat = Number(s?.latitude ?? s?.lat);
+      const lng = Number(s?.longitude ?? s?.lng);
+      return Number.isFinite(lat) && Number.isFinite(lng) ? { latitude: lat, longitude: lng } : null;
+    })
+    .filter(Boolean);
+  const custLat = Number(order?.latitude ?? order?.lat);
+  const custLng = Number(order?.longitude ?? order?.lng);
+  const navCustomer = Number.isFinite(custLat) && Number.isFinite(custLng)
+    ? { latitude: custLat, longitude: custLng }
+    : null;
+
+  const handleNavigate = async () => {
+    // Same staging as the in-app map: shop(s) first, customer only once
+    // picked up (openGoogleMapsDirections omits origin, so Google Maps
+    // tracks/recenters the rider's live location on its own).
+    const args = pickedUp || navShops.length === 0
+      ? { destination: navCustomer }
+      : { destination: navShops[navShops.length - 1], waypoints: navShops.slice(0, -1) };
+    const ok = await openGoogleMapsDirections(args);
+    if (!ok) {
+      Alert.alert('Could not open Google Maps', 'Make sure Google Maps (or a browser) is installed.');
+    }
+  };
+  const canNavigate = pickedUp ? Boolean(navCustomer) : (navShops.length > 0 || Boolean(navCustomer));
+
   return (
     <View style={styles.root}>
-      <RiderDeliveryMap order={order} pickedUp={pickedUp} style={styles.map} />
+      <RiderDeliveryMap order={order} pickedUp={pickedUp} style={styles.map} bottomInset={sheetHeight} />
 
-      <SafeAreaView style={styles.sheet} edges={['bottom']}>
+      <SafeAreaView
+        style={styles.sheet}
+        edges={['bottom']}
+        onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
+      >
         <View style={styles.sheetHandle} />
         <ScrollView
           style={styles.sheetScroll}
@@ -179,23 +197,23 @@ export default function RiderOrderScreen({ route, navigation }) {
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
               <AppIcon name="back" size={22} color={colors.textPrimary} />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.orderNum}>#{order.orderNumber || order.order_number}</Text>
-              <View style={styles.statusRow}>
-                <Text style={styles.statusLine}>{flags.status || 'Assigned'}</Text>
-                <View style={[styles.deliveryTypeBadge, isFast && styles.deliveryTypeBadgeFast]}>
-                  <Text style={[styles.deliveryTypeBadgeText, isFast && styles.deliveryTypeBadgeTextFast]}>
-                    {isFast ? 'Fast' : 'Standard'}
-                  </Text>
-                </View>
+            {elapsedLabel ? (
+              <View style={styles.timerRowCenter}>
+                <AppIcon name="clock" size={16} color={colors.textPrimary} />
+                <Text style={styles.timerBig}>{elapsedLabel}</Text>
               </View>
-              {elapsedLabel ? (
-                <View style={styles.timerRow}>
-                  <AppIcon name="clock" size={13} color={colors.textSecondary} />
-                  <Text style={styles.timerText}>{elapsedLabel} since accepted</Text>
-                </View>
-              ) : null}
-            </View>
+            ) : (
+              <View style={{ flex: 1 }} />
+            )}
+            {canNavigate ? (
+              <TouchableOpacity
+                style={[styles.callBtn, styles.navBtn]}
+                onPress={handleNavigate}
+                accessibilityLabel="Navigate in Google Maps"
+              >
+                <AppIcon name="navigation" size={18} color={colors.textInverse} />
+              </TouchableOpacity>
+            ) : null}
             {phone ? (
               <TouchableOpacity
                 style={styles.callBtn}
@@ -207,8 +225,18 @@ export default function RiderOrderScreen({ route, navigation }) {
             ) : null}
           </View>
 
-          {order.address ? (
-            <Text style={styles.address} numberOfLines={2}>{order.address}</Text>
+          {/* Drop-off only matters once the rider actually has the order —
+              before pickup they need the shop, not the customer address. */}
+          {order.address && pickedUp ? (
+            <View style={styles.addressBlock}>
+              <View style={styles.addressIcon}>
+                <AppIcon name="map" size={16} color={colors.saffronDark} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addressLabel}>Drop-off</Text>
+                <Text style={styles.addressText} numberOfLines={2}>{order.address}</Text>
+              </View>
+            </View>
           ) : null}
 
           {Array.isArray(order.shops) && order.shops.length > 0 ? (
@@ -217,62 +245,32 @@ export default function RiderOrderScreen({ route, navigation }) {
             </Text>
           ) : null}
 
-          {Array.isArray(order.items) && order.items.length > 0 ? (
+          {order.total != null ? (
             <View style={styles.itemsBlock}>
-              <Text style={styles.itemsLabel}>Order items</Text>
-              {order.items.map((it, idx) => {
-                const variant = it.variantLabel || it.variant_label;
-                const shopName = it.shopName || it.shop_name;
-                return (
-                  <View key={it.id ?? idx} style={styles.itemRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.itemLine} numberOfLines={1}>
-                        {it.quantity}x {it.productName || it.product_name}
-                        {variant ? ` (${variant})` : ''}
-                      </Text>
-                      {shopName ? (
-                        <Text style={styles.itemShopName} numberOfLines={1}>{shopName}</Text>
-                      ) : null}
-                    </View>
-                  </View>
-                );
-              })}
-              {order.total != null ? (
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Order total</Text>
-                  <Text style={styles.totalValue}>₹{Number(order.total).toFixed(0)}</Text>
-                </View>
-              ) : null}
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Order total</Text>
+                <Text style={styles.totalValue}>₹{Number(order.total).toFixed(0)}</Text>
+              </View>
             </View>
           ) : null}
 
           {!flags.terminal ? (
             <View style={styles.actions}>
               {flags.showOutForDelivery ? (
-                <ActionBtn
-                  label="Out for delivery"
-                  icon="navigation"
-                  variant="success"
+                <SlideToConfirm
+                  label="Slide to send out for delivery"
                   busy={actionBusy === 'ofd'}
-                  onPress={handleOutForDelivery}
+                  onConfirm={handleOutForDelivery}
                 />
               ) : null}
               {flags.showDelivered ? (
-                <ActionBtn
-                  label="Mark delivered"
-                  icon="check"
-                  variant="success"
+                <SlideToConfirm
+                  label="Slide to mark delivered"
                   busy={actionBusy === 'delivered'}
-                  onPress={handleDelivered}
-                />
-              ) : null}
-              {flags.showMarkPaid ? (
-                <ActionBtn
-                  label="Mark paid"
-                  icon="check"
-                  variant="saffron"
-                  busy={actionBusy === 'mark_paid'}
-                  onPress={handleMarkPaid}
+                  onConfirm={handleDelivered}
+                  colorFrom={colors.btnSuccessStart}
+                  colorTo={colors.btnSuccessEnd}
+                  thumbColor={colors.success}
                 />
               ) : null}
             </View>
@@ -289,23 +287,117 @@ export default function RiderOrderScreen({ route, navigation }) {
   );
 }
 
-function ActionBtn({ label, icon, onPress, busy, variant }) {
-  const grad = variant === 'success'
-    ? [colors.btnSuccessStart, colors.btnSuccessEnd]
-    : [colors.btnHighlightStart, colors.btnHighlightEnd];
+const THUMB_SIZE = 52;
+const TRACK_PAD = 5;
+
+function SlideToConfirm({
+  label,
+  onConfirm,
+  busy,
+  colorFrom = colors.btnInfoStart,
+  colorTo = colors.btnInfoEnd,
+  thumbColor = colors.info,
+}) {
+  const [trackWidth, setTrackWidth] = useState(0);
+  const maxTranslate = Math.max(trackWidth - THUMB_SIZE - TRACK_PAD * 2, 1);
+  const maxTranslateRef = useRef(maxTranslate);
+  useEffect(() => { maxTranslateRef.current = maxTranslate; }, [maxTranslate]);
+
+  const translateX = useRef(new Animated.Value(0)).current;
+  const wasBusyRef = useRef(false);
+
+  useEffect(() => {
+    if (wasBusyRef.current && !busy) {
+      Animated.timing(translateX, { toValue: 0, duration: 200, useNativeDriver: false }).start();
+    }
+    wasBusyRef.current = busy;
+  }, [busy, translateX]);
+
+  // Chevrons nudge right inside the thumb — hints "keep sliding"
+  const arrowAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(arrowAnim, {
+          toValue: 1,
+          duration: 550,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(arrowAnim, {
+          toValue: 0,
+          duration: 550,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [arrowAnim]);
+  const chevronShift = arrowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 5] });
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (evt, gesture) => Math.abs(gesture.dx) > 4,
+      onPanResponderMove: (evt, gesture) => {
+        const x = Math.min(Math.max(gesture.dx, 0), maxTranslateRef.current);
+        translateX.setValue(x);
+      },
+      onPanResponderRelease: (evt, gesture) => {
+        if (gesture.dx >= maxTranslateRef.current * 0.7) {
+          Animated.timing(translateX, {
+            toValue: maxTranslateRef.current,
+            duration: 150,
+            useNativeDriver: false,
+          }).start();
+          onConfirm();
+        } else {
+          Animated.spring(translateX, { toValue: 0, useNativeDriver: false, friction: 6 }).start();
+        }
+      },
+    })
+  ).current;
+
+  const textOpacity = translateX.interpolate({
+    inputRange: [0, Math.max(maxTranslate * 0.6, 1)],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
   return (
-    <TouchableOpacity onPress={onPress} disabled={Boolean(busy)} activeOpacity={0.9}>
-      <LinearGradient colors={grad} style={styles.primaryBtn}>
+    <View
+      style={styles.slideTrack}
+      onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+    >
+      <LinearGradient
+        colors={[colorFrom, colorTo]}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+      />
+      <Animated.Text style={[styles.slideTrackText, { opacity: textOpacity }]}>
+        {label}
+      </Animated.Text>
+      <Animated.View
+        {...panResponder.panHandlers}
+        style={[styles.slideThumb, { transform: [{ translateX }] }]}
+      >
         {busy ? (
-          <ActivityIndicator color={colors.textInverse} />
+          <ActivityIndicator color={thumbColor} />
         ) : (
-          <>
-            <AppIcon name={icon} size={18} color={colors.textInverse} />
-            <Text style={styles.primaryBtnText}>{label}</Text>
-          </>
+          <View style={styles.slideThumbChevrons}>
+            <Animated.View style={{ transform: [{ translateX: chevronShift }] }}>
+              <AppIcon name="chevronRight" size={22} color={thumbColor} />
+            </Animated.View>
+            <Animated.View style={{ marginLeft: -14, transform: [{ translateX: chevronShift }] }}>
+              <AppIcon name="chevronRight" size={22} color={thumbColor} />
+            </Animated.View>
+          </View>
         )}
-      </LinearGradient>
-    </TouchableOpacity>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -349,20 +441,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  orderNum: { ...typography.h2, fontSize: 20 },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  statusLine: { ...typography.caption, color: colors.textSecondary, fontWeight: '700' },
-  timerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-  timerText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
-  deliveryTypeBadge: {
-    backgroundColor: colors.infoLight,
-    borderRadius: radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  deliveryTypeBadgeFast: { backgroundColor: colors.saffron },
-  deliveryTypeBadgeText: { fontSize: 10, fontWeight: '800', color: colors.info },
-  deliveryTypeBadgeTextFast: { color: colors.textInverse },
+  timerRowCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  timerBig: { ...typography.h2, fontSize: 20 },
   callBtn: {
     width: 44,
     height: 44,
@@ -371,68 +451,89 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  address: {
+  navBtn: {
+    marginRight: spacing.sm,
+    backgroundColor: colors.btnInfoStart,
+  },
+  addressBlock: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    backgroundColor: colors.saffronLight,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  addressIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: colors.bgSurface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.saffronDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  addressText: {
     ...typography.body,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
     fontWeight: '600',
+    lineHeight: 20,
   },
   shopsLine: {
     ...typography.caption,
     color: colors.textSecondary,
     fontWeight: '700',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   itemsBlock: {
     backgroundColor: colors.bgApp,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    marginBottom: spacing.sm,
   },
-  itemsLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.xs,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    marginBottom: 2,
-  },
-  itemLine: {
-    ...typography.body,
-    color: colors.textPrimary,
-    fontWeight: '600',
-    flex: 1,
-  },
-  itemShopName: { fontSize: 11, fontWeight: '700', color: colors.saffronDark, marginTop: 1 },
-  itemPrice: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
   totalRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: spacing.xs,
-    paddingTop: spacing.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
   },
-  totalLabel: { ...typography.body, color: colors.textSecondary, fontWeight: '600' },
-  totalValue: { ...typography.body, color: colors.textPrimary, fontWeight: '800' },
+  totalLabel: { ...typography.caption, color: colors.textSecondary, fontWeight: '600' },
+  totalValue: { ...typography.caption, color: colors.textPrimary, fontWeight: '800' },
   actions: { gap: spacing.sm },
-  primaryBtn: {
-    minHeight: 50,
-    borderRadius: radius.button,
-    flexDirection: 'row',
+  slideTrack: {
+    height: THUMB_SIZE + TRACK_PAD * 2,
+    borderRadius: radius.circle,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    padding: TRACK_PAD,
   },
-  primaryBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 15 },
+  slideTrackText: {
+    color: colors.textInverse,
+    fontWeight: '800',
+    fontSize: 16,
+    textAlign: 'center',
+    paddingLeft: THUMB_SIZE + TRACK_PAD * 2,
+  },
+  slideThumb: {
+    position: 'absolute',
+    left: TRACK_PAD,
+    top: TRACK_PAD,
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: radius.circle,
+    backgroundColor: colors.textInverse,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
+  },
+  slideThumbChevrons: { flexDirection: 'row', alignItems: 'center' },
   doneBanner: {
     backgroundColor: colors.successLight,
     padding: spacing.md,
