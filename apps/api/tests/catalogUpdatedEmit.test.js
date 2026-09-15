@@ -34,6 +34,29 @@ describe('catalog.updated emit', () => {
     expect(emitToAllCustomers).toHaveBeenCalledWith(1, 'catalog.updated', { areaId: 1 });
   });
 
+  it('waits for a slow bulk write to finish instead of firing mid-import', async () => {
+    // 500-row import, a row every 2s: trailing debounce, so nothing goes out
+    // while rows are still landing (a leading-edge one would broadcast every
+    // 5s for the whole import).
+    for (let i = 0; i < 10; i += 1) {
+      await bustAreaCaches(1);
+      jest.advanceTimersByTime(2000);
+    }
+    expect(emitToAllCustomers).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(5000);
+    expect(emitToAllCustomers).toHaveBeenCalledTimes(1);
+  });
+
+  it('caps the wait so a steady drip of edits cannot starve it', async () => {
+    // Same drip, but past the 30s cap — the emit stops being deferred.
+    for (let i = 0; i < 20; i += 1) {
+      await bustAreaCaches(1);
+      jest.advanceTimersByTime(2000);
+    }
+    expect(emitToAllCustomers).toHaveBeenCalledTimes(1);
+  });
+
   it('treats a string areaId as the same area (req.params gives strings)', async () => {
     await bustAreaCaches(1);
     await bustAreaCaches('1');

@@ -440,11 +440,13 @@ const emitToPlatformAdmins = (eventName, payload) =>
 // minute. Deliberately NOT product.availability.updated: the app patches the
 // card in place for available=false and does not always refetch, so treating
 // it as a refetch would swallow a price edit made in the same window.
+// catalog.updated is deliberately absent: this set answers "did some OTHER
+// push already cover this change", and recording our own emit would let one
+// price edit suppress the next one made seconds later.
 const CUSTOMER_REFETCH_EVENTS = new Set([
   'shop.status.updated',
   'settings.shop_open.updated',
   'delivery_zones.updated',
-  'catalog.updated',
 ]);
 const lastCustomerRefetchAt = new Map();
 

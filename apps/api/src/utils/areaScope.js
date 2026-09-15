@@ -333,11 +333,15 @@ function bustAreaCaches(areaId) {
 // pull-to-refresh or shop event. Emitting here covers every caller at once
 // instead of adding an emit to each controller.
 //
-// Debounced per area because bulk import / bulk price update call
-// bustAreaCaches once per row: 500 rows would otherwise be 500 broadcasts,
-// and each one makes every connected phone in the area refetch. One trailing
-// emit per area per window; clients add their own 0-3s jitter on top.
+// Trailing debounce, because bulk import and bulk price update call
+// bustAreaCaches once per row: the emit lands 5s after the LAST write of a
+// burst, so a 500-row import is one broadcast rather than one per row (or,
+// with a leading-edge debounce, one every 5s for as long as the import
+// runs). MAX_WAIT caps the wait so a steady drip of edits can't starve it
+// forever. Every broadcast makes every connected phone in the area refetch,
+// which is why this is worth the bookkeeping; clients jitter on top.
 const CATALOG_EMIT_DEBOUNCE_MS = 5_000;
+const CATALOG_EMIT_MAX_WAIT_MS = 30_000;
 const catalogEmitTimers = new Map();
 
 function scheduleCatalogUpdatedEmit(rawAreaId) {
@@ -346,7 +350,15 @@ function scheduleCatalogUpdatedEmit(rawAreaId) {
   // keying the Map on the raw value would run two timers for one area.
   const areaId = Number(rawAreaId);
   if (!Number.isFinite(areaId)) return;
-  if (catalogEmitTimers.has(areaId)) return;
+
+  const now = Date.now();
+  const pending = catalogEmitTimers.get(areaId);
+  const firstRequestedAt = pending ? pending.firstRequestedAt : now;
+  if (pending) clearTimeout(pending.timer);
+
+  const untilCap = firstRequestedAt + CATALOG_EMIT_MAX_WAIT_MS - now;
+  const delay = Math.max(0, Math.min(CATALOG_EMIT_DEBOUNCE_MS, untilCap));
+
   const timer = setTimeout(() => {
     catalogEmitTimers.delete(areaId);
     try {
@@ -354,16 +366,16 @@ function scheduleCatalogUpdatedEmit(rawAreaId) {
       // The caller already pushed something the app answers with a refetch
       // (a scheduled shop open emits shop.status.updated, then busts caches).
       // Firing here too would make every phone in the area refetch twice for
-      // one change. Window is the debounce plus a second of slack.
+      // one change. Window covers the debounce plus a second of slack.
       if (customerRefetchPushedSince(areaId, CATALOG_EMIT_DEBOUNCE_MS + 1_000)) return;
       emitToAllCustomers(areaId, 'catalog.updated', { areaId });
     } catch (_) {
       // Realtime is best-effort — the write is already persisted and the
       // server-side caches are already busted.
     }
-  }, CATALOG_EMIT_DEBOUNCE_MS);
+  }, delay);
   if (typeof timer.unref === 'function') timer.unref();
-  catalogEmitTimers.set(areaId, timer);
+  catalogEmitTimers.set(areaId, { timer, firstRequestedAt });
 }
 
 /**

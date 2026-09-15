@@ -492,6 +492,10 @@ export default function HomeScreen() {
         const sectionsData = dashboardResult.value?.data?.sections || [];
         sectionsCacheRef.current[currentApiStoreType] = sectionsData;
         setDashboardSections(sectionsData);
+        // Only a real paint counts. A cold start that failed must still get
+        // the full-screen skeleton on its retry — there is no header to keep
+        // on screen yet.
+        setHasLoadedOnce(true);
       } else if (sectionsCacheRef.current[currentApiStoreType]) {
         // Revalidation failed but we have cached content — keep showing it.
         setDashboardSections(sectionsCacheRef.current[currentApiStoreType]);
@@ -510,7 +514,6 @@ export default function HomeScreen() {
       }
 
       setIsLoading(false);
-      setHasLoadedOnce(true);
       setIsRefreshing(false);
 
       Animated.parallel([
