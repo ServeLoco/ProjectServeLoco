@@ -5,6 +5,16 @@ jest.mock('../src/db/mysql', () => ({
   },
 }));
 
+// The shop fan-out runs concurrently with the status update (it is started as
+// soon as the accept commits, so the owner's phone isn't waiting on queries it
+// doesn't need). It issues its own pool queries, which would otherwise consume
+// the mockResolvedValueOnce values queued for the controller here. These tests
+// are about the realtime emits, not the fan-out.
+jest.mock('../src/utils/shops', () => ({
+  ...jest.requireActual('../src/utils/shops'),
+  notifyShopsForOrder: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('../src/realtime/orderEvents', () => ({
   emitOrderCreated: jest.fn(),
   emitOrderCancelled: jest.fn(),

@@ -69,10 +69,11 @@ const createPresenceTracker = (deps, opts = {}) => {
     const entry = {
       userId: meta.userId,
       role: meta.role,
-      // Resolved by the caller (socket.js) at connect time — no pin exists
-      // at the socket layer (H7), so this is users.last_area_id → default
-      // area, same as the session doc opened below. May be null if even that
-      // fallback chain came up empty.
+      // null at connect: no pin exists at the socket layer (H7), and there
+      // is no default area to guess with — every area is an equal tenant.
+      // Filled in by setPresenceArea below once the app resolves its live
+      // pin and emits 'area:changed'. A session that never resolves one
+      // stays null and shows up only in the admin panel's "All areas" view.
       areaId: meta.areaId ?? null,
       platform: meta.platform || null,
       appVersion: meta.appVersion || null,
@@ -199,6 +200,13 @@ const createPresenceTracker = (deps, opts = {}) => {
     }
 
     return {
+      // Which area this snapshot describes (null = every area combined).
+      // emitLiveSnapshot pushes ONE snapshot per area, and a super admin's
+      // socket is in every admin:<areaId> room — so without this tag every
+      // tick delivered N indistinguishable payloads and the client had no way
+      // to tell them apart, keeping whichever landed last (usually an empty
+      // area) and showing 0 online.
+      areaId: areaId === undefined ? null : areaId,
       online,
       peakToday: scopedPeak,
       byScreen,
@@ -246,9 +254,24 @@ const createPresenceTracker = (deps, opts = {}) => {
     presence.clear();
   };
 
+  // The customer's live pin resolved (socket 'area:changed') — record the
+  // area this session ACTUALLY turned out to be in, on both the in-memory
+  // presence entry (live panel) and its analytics_sessions doc (historical
+  // rollups). Without this, dropping the connect-time guess would leave
+  // every session unattributed and per-area analytics permanently empty.
+  const setPresenceArea = (socketId, areaId) => {
+    const entry = presence.get(socketId);
+    if (!entry || !areaId || entry.areaId === areaId) return;
+    entry.areaId = areaId;
+    if (entry.sessionId) {
+      sessionStore.setSessionArea(entry.sessionId, areaId).catch(() => {});
+    }
+  };
+
   return {
     addPresence,
     updateScreen,
+    setPresenceArea,
     removePresence,
     reapDeadSockets,
     getLiveSnapshot,

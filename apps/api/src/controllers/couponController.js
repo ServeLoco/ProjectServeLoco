@@ -1,4 +1,5 @@
 const { pool } = require('../db/mysql');
+const { storedWallClock, istInstantFromWallClock } = require('../utils/businessTime');
 const { roundMoney } = require('../utils/money');
 const { getActiveStoreModeSlugs, isSystemModeSlug } = require('../utils/storeMode');
 const { requestAreaId, bustAreaCaches } = require('../utils/areaScope');
@@ -63,8 +64,12 @@ const validateDiscountValue = (discountType, discountValue) => {
 const computeStatus = (coupon, now = new Date()) => {
   if (!coupon.active) return 'Inactive';
   if (coupon.deleted) return 'Deleted';
-  if (coupon.starts_at && new Date(coupon.starts_at) > now) return 'Scheduled';
-  if (coupon.ends_at && new Date(coupon.ends_at) < now) return 'Expired';
+  // Same IST wall-clock reading the rule engine uses (utils/coupons.js) — the
+  // badge must never disagree with whether the coupon actually applies.
+  const start = istInstantFromWallClock(coupon.starts_at);
+  const end = istInstantFromWallClock(coupon.ends_at);
+  if (start && start > now) return 'Scheduled';
+  if (end && end < now) return 'Expired';
   return 'Active';
 };
 
@@ -78,6 +83,12 @@ const enrichCoupon = async (coupon) => {
   const stats = redeemRows[0] || {};
   return {
     ...coupon,
+    // Hand the admin form back the exact wall clock that was saved. Serialised
+    // as a Date these became UTC ISO strings, so the edit form re-displayed a
+    // coupon set to end 23:59 as 18:29 and silently saved that back on the next
+    // edit, walking the window earlier every time.
+    starts_at: storedWallClock(coupon.starts_at),
+    ends_at: storedWallClock(coupon.ends_at),
     status: computeStatus(coupon),
     totalRedemptions: Number(stats.total) || 0,
     uniqueUsers: Number(stats.unique_users) || 0,

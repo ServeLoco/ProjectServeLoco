@@ -1,5 +1,5 @@
 const { pool } = require('../db/mysql');
-const config = require('../config/env');
+const { istDateOf } = require('../utils/businessTime');
 const { roundMoney } = require('../utils/money');
 const { syncAreaShopOpenState } = require('../utils/shops');
 const { emitToAllCustomers, emitToAdmins } = require('../realtime/socket');
@@ -11,11 +11,6 @@ const {
   readyShopOrder,
   ackShopOrderAlert,
 } = require('../services/shopOrderActions');
-
-// Same fixed offset riders.js uses for "today" — the DB session time_zone
-// isn't guaranteed to be IST, so a plain DATE(created_at) comparison can put
-// late-night orders on the wrong calendar day for the ?date= filter below.
-const HISTORY_TODAY_TZ = config.RIDER_TODAY_TZ || '+05:30';
 
 // MySQL TIME columns come back as 'HH:MM:SS' — trim to 'HH:MM' for the API.
 const formatTime = (t) => (t ? String(t).slice(0, 5) : null);
@@ -123,7 +118,7 @@ const updateMyShopSchedule = async (req, res) => {
 // extra calls.
 const getMyProducts = async (req, res) => {
   const [rows] = await pool.query(
-    `SELECT p.id, p.name, p.price, p.unit, p.image_id, p.available, p.group_id, pg.name AS group_name
+    `SELECT p.id, p.name, p.price, p.shop_price, p.unit, p.image_id, p.available, p.group_id, pg.name AS group_name
      FROM products p
      LEFT JOIN product_groups pg ON pg.id = p.group_id
      WHERE p.shop_id = ? AND p.deleted = 0
@@ -134,7 +129,7 @@ const getMyProducts = async (req, res) => {
   const productIds = rows.map(p => p.id);
   const [variantRows] = productIds.length > 0
     ? await pool.query(
-        `SELECT id, product_id, label, price, available, is_default
+        `SELECT id, product_id, label, price, shop_price, available, is_default
          FROM product_variants
          WHERE product_id IN (?) AND deleted = 0
          ORDER BY display_order ASC`,
@@ -148,6 +143,10 @@ const getMyProducts = async (req, res) => {
       id: v.id,
       label: v.label,
       price: v.price,
+      // What the shop is paid for this option — the owner's screens show this,
+      // never the customer-facing price. NULL when admin hasn't set one.
+      shop_price: v.shop_price,
+      shopPrice: v.shop_price,
       available: Boolean(v.available),
       isDefault: Boolean(v.is_default),
     });
@@ -157,6 +156,7 @@ const getMyProducts = async (req, res) => {
   const products = rows.map(p => ({
     ...p,
     available: Boolean(p.available),
+    shopPrice: p.shop_price,
     groupId: p.group_id,
     groupName: p.group_name,
     variants: variantsByProduct[p.id] || [],
@@ -260,8 +260,8 @@ const getMyOrderHistory = async (req, res) => {
   const params = [req.shop.id];
   let where = 'WHERE oi.shop_id = ?';
   if (date) {
-    where += " AND DATE(CONVERT_TZ(o.created_at, '+00:00', ?)) = ?";
-    params.push(HISTORY_TODAY_TZ, date);
+    where += ` AND ${istDateOf('o.created_at')} = ?`;
+    params.push(date);
   }
 
   const [orders] = await pool.query(

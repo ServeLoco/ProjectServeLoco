@@ -3,6 +3,7 @@ jest.mock('../src/utils/areaScope', () => ({
 }));
 
 const { listAreas } = require('../src/utils/areaScope');
+const { istHour } = require('../src/utils/businessTime');
 const { computeDailyStats } = require('../src/services/analytics/rollup');
 
 // Helper to build a fake db whose collections return predetermined data.
@@ -137,9 +138,12 @@ describe('computeDailyStats', () => {
     const db = makeDb([], events);
     const [result] = await computeDailyStats('2026-07-08', db);
     expect(result.hourlyActive).toHaveLength(24);
-    // Use getHours() to match the implementation's local-timezone hour bucketing.
-    const h1 = new Date('2026-07-08T10:00:00Z').getHours();
-    const h2 = new Date('2026-07-08T14:00:00Z').getHours();
+    // Buckets are IST hours, not the host's — 10:00Z is 15:30 IST, 14:00Z is
+    // 19:30 IST. This used to call getHours(), which made the assertion (and
+    // the grid it describes) mean something different on every machine.
+    const h1 = istHour(new Date('2026-07-08T10:00:00Z'));
+    const h2 = istHour(new Date('2026-07-08T14:00:00Z'));
+    expect([h1, h2]).toEqual([15, 19]);
     expect(result.hourlyActive[h1]).toBe(2); // users 1 and 2
     expect(result.hourlyActive[h2]).toBe(1); // user 1
   });

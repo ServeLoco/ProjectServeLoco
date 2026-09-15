@@ -17,17 +17,81 @@ const getShopForUser = async (userId) => {
   return { id: shop.id, name: shop.name, is_open: Boolean(shop.is_open), isOpen: Boolean(shop.is_open) };
 };
 
+// What this shop is paid for this order — the same sum the dashboard shows as
+// "You'll receive" (shopOwnerController's shopTotal). Rides along on the alarm
+// push so the owner's floating offer card can show the amount without the app
+// being awake to look it up. Unpriced items carry a NULL shop_line_total and
+// simply don't count yet; '' (not '0') when there is nothing to show, so the
+// card renders no amount rather than "₹0".
+// Batch form of getShopPayableTotal: every shop on the order in ONE round trip.
+// notifyShopsForOrder used to run getShopPayableTotal per shop, serially, and
+// each of those is a full trip to the DB (which lives in another region in
+// production) sitting between the order and the owner's alarm.
+// Covers every shop on the order, so callers can fire it without first knowing
+// which shops those are — that lets it run alongside the shop lookup instead of
+// after it. Returns Map<shopId, string>, same '' -> "render no amount"
+// convention as getShopPayableTotal.
+const getShopPayableTotals = async (orderId) => {
+  const totals = new Map();
+  try {
+    const { roundMoney } = require('./money');
+    const [rows] = await pool.query(
+      `SELECT shop_id, COALESCE(SUM(shop_line_total), 0) AS total
+       FROM order_items
+       WHERE order_id = ? AND shop_id IS NOT NULL AND shop_rejected_at IS NULL
+       GROUP BY shop_id`,
+      [orderId]
+    );
+    for (const row of rows) {
+      const total = Number(row.total) || 0;
+      totals.set(row.shop_id, total > 0 ? String(roundMoney(total)) : '');
+    }
+  } catch (e) {
+    // Cosmetic — a missing amount must never cost the owner the alarm itself.
+  }
+  return totals;
+};
+
+const getShopPayableTotal = async (orderId, shopId) => {
+  try {
+    const { roundMoney } = require('./money');
+    const [rows] = await pool.query(
+      `SELECT COALESCE(SUM(shop_line_total), 0) AS total
+       FROM order_items
+       WHERE order_id = ? AND shop_id = ? AND shop_rejected_at IS NULL`,
+      [orderId, shopId]
+    );
+    const total = Number(rows[0]?.total) || 0;
+    return total > 0 ? String(roundMoney(total)) : '';
+  } catch (e) {
+    // Cosmetic — a missing amount must never cost the owner the alarm itself.
+    return '';
+  }
+};
+
 // Fire-and-forget fan-out to the owners of every shop with items in this
 // order. Never throws (callers are inside order-status paths that must not
 // fail because a push failed).
 const notifyShopsForOrder = async (order) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT DISTINCT s.id AS shop_id, s.name AS shop_name, s.owner_user_id
-       FROM order_items oi JOIN shops s ON s.id = oi.shop_id
-       WHERE oi.order_id = ? AND s.active = 1 AND s.owner_user_id IS NOT NULL`,
-      [order.id]
-    );
+    // Both queries only need order.id, so they go out together rather than one
+    // after the other — this is the accepted-order-to-ringing-phone path and
+    // the DB is a region away in production, so every serial round trip here is
+    // dead time the owner feels. The owner's fcm_token rides along on the shop
+    // lookup for the same reason: the alarm send would otherwise look it up
+    // itself, once per owner, with the push waiting on it.
+    const [[rows], totals] = await Promise.all([
+      pool.query(
+        `SELECT DISTINCT s.id AS shop_id, s.name AS shop_name, s.owner_user_id,
+                u.fcm_token AS owner_fcm_token
+         FROM order_items oi
+         JOIN shops s ON s.id = oi.shop_id
+         LEFT JOIN users u ON u.id = s.owner_user_id
+         WHERE oi.order_id = ? AND s.active = 1 AND s.owner_user_id IS NOT NULL`,
+        [order.id]
+      ),
+      getShopPayableTotals(order.id),
+    ]);
     if (rows.length === 0) return;
     const { emitToCustomer } = require('../realtime/socket');
     const expoPush = require('./expoPush');
@@ -36,37 +100,50 @@ const notifyShopsForOrder = async (order) => {
         orderId: order.id, orderNumber: order.order_number, shopId: row.shop_id,
       });
     }
+    // Prefer native FCM data-only (killed-app notifee alarm + offer card).
+    // Fallback to Expo title+body tray for owners without an fcm_token yet.
+    //
+    // Each owner gets their own message rather than one fan-out: every shop on
+    // the order is paid a different amount, and the alarm payload carries that
+    // shop's own total for its offer card. The sends run in parallel, and the
+    // per-shop totals come from one grouped query — this path is what stands
+    // between the order and the owner's phone ringing, so nothing in it waits
+    // on anything it doesn't have to.
+    const fcmAlarm = require('./fcmAlarmPush');
+    const shopIds = rows.map((r) => r.shop_id);
+    const pushes = Promise.all(rows.map(async (row) => {
+      const alarmData = {
+        type: 'shop_order',
+        alertType: 'new_order_alarm',
+        orderId: order.id,
+        orderNumber: order.order_number,
+        total: totals.get(row.shop_id) ?? '',
+      };
+      const res = await fcmAlarm
+        .sendFcmDataOnlyToUser(pool, row.owner_user_id, alarmData, { token: row.owner_fcm_token })
+        .catch(() => ({ sent: false }));
+      if (res?.sent) return;
+      await expoPush.sendPushToUser(pool, row.owner_user_id, {
+        title: 'New order to prepare',
+        body: `Order ${order.order_number} has items for your shop. Open the app to confirm.`,
+        channelId: 'serveloco-orders-alarm-v5',
+        sound: 'order_alarm',
+        tag: `shop_order_${order.id}`,
+        collapseId: `shop_order_${order.id}`,
+        data: alarmData,
+      }).catch(() => {});
+    })).catch(() => {});
+
     // Stamp the initial alert time so shopAlertSweeper's reminder throttle
     // (SHOP_ALERT_REMIND_MS) counts from this push, not from its own first tick.
+    // Started after the pushes are already in flight: it is bookkeeping for a
+    // sweeper that next ticks seconds from now, so it must not delay the alarm.
     await pool.query(
       `UPDATE order_items SET shop_last_notified_at = NOW(), shop_notify_count = shop_notify_count + 1
        WHERE order_id = ? AND shop_id IN (?) AND shop_confirmed_at IS NULL AND shop_rejected_at IS NULL`,
-      [order.id, rows.map((r) => r.shop_id)]
+      [order.id, shopIds]
     );
-    // Prefer native FCM data-only (killed-app notifee full-screen). Fallback to
-    // Expo title+body tray for owners without an fcm_token yet.
-    const ownerIds = rows.map((r) => r.owner_user_id);
-    const alarmData = {
-      type: 'shop_order',
-      alertType: 'new_order_alarm',
-      orderId: order.id,
-      orderNumber: order.order_number,
-    };
-    const fcmAlarm = require('./fcmAlarmPush');
-    fcmAlarm.sendFcmDataOnlyToMany(pool, ownerIds, alarmData)
-      .then((needExpo) => {
-        if (!needExpo.length) return null;
-        return expoPush.sendPushToMany(pool, needExpo, {
-          title: 'New order to prepare',
-          body: `Order ${order.order_number} has items for your shop. Open the app to confirm.`,
-          channelId: 'serveloco-orders-alarm-v5',
-          sound: 'order_alarm',
-          tag: `shop_order_${order.id}`,
-          collapseId: `shop_order_${order.id}`,
-          data: alarmData,
-        });
-      })
-      .catch(() => {});
+    await pushes;
   } catch (e) {
     console.error('[shops] notifyShopsForOrder failed for order', order?.id, e.message);
   }
@@ -130,7 +207,7 @@ const notifyShopsOrderCancelled = async (order) => {
 // to every shop on the order, only the one still waiting. Caller is
 // responsible for the shop_last_notified_at/shop_notify_count write (the
 // sweeper batches that across all reminded rows in one query).
-const remindShopOrderOwner = async (order, shopId, ownerUserId) => {
+const remindShopOrderOwner = async (order, shopId, ownerUserId, options = {}) => {
   try {
     const { emitToCustomer } = require('../realtime/socket');
     const expoPush = require('./expoPush');
@@ -143,10 +220,16 @@ const remindShopOrderOwner = async (order, shopId, ownerUserId) => {
       alertType: 'new_order_alarm',
       orderId: order.id,
       orderNumber: order.order_number,
+      total: await getShopPayableTotal(order.id, shopId),
     };
-    const needExpo = await fcmAlarm.sendFcmDataOnlyToMany(pool, [ownerUserId], alarmData);
-    if (needExpo.length) {
-      await expoPush.sendPushToMany(pool, needExpo, {
+    // options.fcmToken: the sweeper's own SELECT already carries the owner's
+    // token, so passing it here saves a second DB round trip (the pool talks to
+    // another region in production) on every single retry.
+    const fcmResult = await fcmAlarm.sendFcmDataOnlyToUser(pool, ownerUserId, alarmData, {
+      token: options.fcmToken || null,
+    });
+    if (!fcmResult.sent) {
+      await expoPush.sendPushToUser(pool, ownerUserId, {
         title: 'Order still waiting for you',
         body: `Order ${order.order_number} is still waiting for your shop to confirm. Please open the app.`,
         channelId: 'serveloco-orders-alarm-v5',
@@ -158,6 +241,52 @@ const remindShopOrderOwner = async (order, shopId, ownerUserId) => {
     }
   } catch (e) {
     console.error('[shops] remindShopOrderOwner failed for order', order?.id, 'shop', shopId, e.message);
+  }
+};
+
+// Re-emit the "you have an order waiting" event to a shop owner the instant
+// their socket connects, for every order of theirs still unconfirmed.
+//
+// Why this exists: notifyShopsForOrder fires once, when the order leaves
+// Pending. An owner whose phone had no signal at that moment misses both the
+// socket emit and (until the carrier flushes it) the FCM message, and the only
+// thing that would re-push is shopAlertSweeper on its next due tick. A socket
+// connecting IS the proof the phone is reachable again, so this hands them the
+// order immediately instead of leaving them waiting on that tick.
+//
+// Socket only, deliberately: the device is demonstrably online and the app is
+// running, so a push would just be a second ring for an order they can already
+// see. It also leaves shop_last_notified_at alone — that column throttles the
+// sweeper's *pushes*, and a free socket emit must not make the next real push
+// later than it would have been.
+//
+// Cheap enough to run on every customer connect: the shops join is on
+// idx_shop_owner and a non-owner matches no rows.
+const resendPendingShopAlerts = async (ownerUserId) => {
+  try {
+    if (!ownerUserId) return;
+    const [rows] = await pool.query(
+      `SELECT DISTINCT o.id AS order_id, o.order_number, oi.shop_id
+       FROM order_items oi
+       JOIN shops s ON s.id = oi.shop_id AND s.active = 1
+       JOIN orders o ON o.id = oi.order_id
+       WHERE s.owner_user_id = ?
+         AND o.status IN ('Accepted', 'Preparing')
+         AND oi.shop_confirmed_at IS NULL
+         AND oi.shop_rejected_at IS NULL`,
+      [ownerUserId]
+    );
+    if (rows.length === 0) return;
+    const { emitToCustomer } = require('../realtime/socket');
+    for (const row of rows) {
+      emitToCustomer(ownerUserId, 'shop.order.assigned', {
+        orderId: row.order_id,
+        orderNumber: row.order_number,
+        shopId: row.shop_id,
+      });
+    }
+  } catch (e) {
+    console.error('[shops] resendPendingShopAlerts failed for user', ownerUserId, e.message);
   }
 };
 
@@ -489,6 +618,7 @@ module.exports = {
   getShopForUser,
   notifyShopsForOrder,
   remindShopOrderOwner,
+  resendPendingShopAlerts,
   syncAreaShopOpenState,
   notifyShopsOrderCancelled,
   notifyShopsRiderAssigned,

@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, FlatList, StyleSheet, Pressable,
 } from 'react-native';
-import { colors, spacing, radius, shadows, typography } from '../../theme';
+import { colors, spacing, radius, shadows, typography, glass, glassRadius } from '../../theme';
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ROWS = 5;
@@ -151,38 +151,39 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: 'rgba(15, 15, 20, 0.5)', alignItems: 'center', justifyContent: 'center',
   },
   sheet: {
-    width: '86%', backgroundColor: colors.bgSurface, borderRadius: radius.xxl,
+    width: '86%', backgroundColor: glass.canvas, borderRadius: glassRadius.hero,
+    borderWidth: 1, borderColor: glass.border,
     padding: spacing.lg, ...shadows.cardRaised,
   },
-  title: { ...typography.h3, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.md },
+  title: { ...typography.h3, color: glass.text, textAlign: 'center', marginBottom: spacing.md },
   wheelsRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', position: 'relative',
   },
   selectionWindow: {
     position: 'absolute', left: 0, right: 0, top: SPACER_HEIGHT, height: ITEM_HEIGHT,
     borderTopWidth: 1.5, borderBottomWidth: 1.5, borderColor: colors.saffron,
-    backgroundColor: colors.saffronLight, borderRadius: radius.md,
+    backgroundColor: glass.tint, borderRadius: radius.lg,
   },
   wheelRow: { height: ITEM_HEIGHT, alignItems: 'center', justifyContent: 'center' },
-  wheelText: { fontSize: 20, color: colors.textTertiary, fontWeight: '600' },
-  wheelTextSelected: { color: colors.textPrimary, fontWeight: '800', fontSize: 22 },
-  colon: { fontSize: 22, fontWeight: '800', color: colors.textPrimary, marginHorizontal: 2 },
+  wheelText: { fontSize: 20, color: glass.textFaint, fontWeight: '600' },
+  wheelTextSelected: { color: glass.text, fontWeight: '800', fontSize: 22 },
+  colon: { fontSize: 22, fontWeight: '800', color: glass.text, marginHorizontal: 2 },
   meridiemCol: { marginLeft: spacing.md, gap: spacing.xs },
   meridiemBtn: {
-    paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgApp,
+    paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.lg,
+    borderWidth: 1, borderColor: glass.border, backgroundColor: glass.fill,
   },
   meridiemBtnActive: { backgroundColor: colors.saffron, borderColor: colors.saffron },
-  meridiemText: { fontWeight: '700', color: colors.textSecondary, fontSize: 13 },
+  meridiemText: { fontWeight: '700', color: glass.textDim, fontSize: 13 },
   meridiemTextActive: { color: colors.textInverse },
   actionsRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
   cancelBtn: {
-    flex: 1, borderRadius: radius.button, paddingVertical: 12, alignItems: 'center',
-    borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.bgApp,
+    flex: 1, borderRadius: radius.pill, paddingVertical: 13, alignItems: 'center',
+    backgroundColor: glass.fillStrong, borderWidth: 1, borderColor: glass.border,
   },
-  cancelBtnText: { color: colors.textSecondary, fontWeight: '800', fontSize: 14 },
+  cancelBtnText: { color: glass.text, fontWeight: '800', fontSize: 14 },
   confirmBtn: {
-    flex: 1, borderRadius: radius.button, paddingVertical: 12, alignItems: 'center',
+    flex: 1, borderRadius: radius.pill, paddingVertical: 13, alignItems: 'center',
     backgroundColor: colors.saffron,
   },
   confirmBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 14 },

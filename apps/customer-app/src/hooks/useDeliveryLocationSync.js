@@ -69,13 +69,18 @@ function buildAreaETag({ areaId, zoneId, catalogVersion }) {
 // (null -> id) has nothing assembled against the wrong area yet, and a pin
 // that leaves every zone (id -> null) is already covered by the existing
 // "we don't deliver here yet" gate (29.4) without needing a cart wipe.
-function invalidateForAreaChange(newAreaId) {
+//
+// "Two real areas" is measured against the store's lastAreaId, NOT its live
+// areaId: leaving every zone nulls areaId, so area 1 -> out of zone ->
+// area 2 used to read as a first-ever resolve and skip all of this, handing
+// checkout an area-1-priced cart under area 2's zones. lastAreaId survives
+// that interlude, and a process restart with it.
+function invalidateForAreaChange() {
   useCartStore.getState().clearCart();
   invalidate('products:');
   invalidate('product:');
   invalidate('categories:');
   invalidate('dashboard:');
-  emitAreaChanged(newAreaId);
 }
 
 // Fans a GET /bootstrap response out into the two stores it feeds. Shared
@@ -91,7 +96,7 @@ function applyBootstrapResult(result) {
     useSettingsStore.getState().markFetched();
     return;
   }
-  const previousAreaId = useDeliveryLocationStore.getState().areaId;
+  const previousAreaId = useDeliveryLocationStore.getState().lastAreaId;
   const nextAreaId = result.area?.id ?? null;
   useDeliveryLocationStore.getState().setAreaInfo({
     deliverable: Boolean(result.deliverable),
@@ -100,8 +105,18 @@ function applyBootstrapResult(result) {
     brandColor: result.area?.brandColor ?? result.area?.brand_color ?? null,
     catalogVersion: result.catalogVersion ?? null,
   });
-  if (previousAreaId != null && nextAreaId != null && previousAreaId !== nextAreaId) {
-    invalidateForAreaChange(nextAreaId);
+  if (nextAreaId != null && nextAreaId !== previousAreaId) {
+    // Room switch fires on EVERY resolve into a new area, the first one
+    // included. The socket joins customers:<area> at connect time from the
+    // server's own no-pin guess, so a customer who has never ordered sat in
+    // another area's broadcast room for the whole session — receiving that
+    // team's zone/settings/notification pushes — because the first resolve
+    // (null -> id) did not count as a "change". Cheap and idempotent.
+    emitAreaChanged(nextAreaId);
+    // The cart wipe and catalog drop stay restricted to a move between two
+    // REAL areas: on a first-ever resolve there is nothing assembled against
+    // the wrong area to throw away.
+    if (previousAreaId != null) invalidateForAreaChange();
   }
   // 28.6 — support_phone/whatsapp_number/UPI must reflect the resolved
   // area, not a stale globally-cached value. Same store, same normalizer
@@ -366,10 +381,20 @@ async function runDeliveryLocationSync() {
     // just as easily act during checkInsideZone/syncAreaInfo as during the
     // GPS fetch itself, and `abandoned` may have flipped while we awaited.
     if (abandoned) return;
+    // syncAreaInfo resolved in the same Promise.all above and has already
+    // written its own verdict (setAreaInfo settles insideZone: false on
+    // deliverable: false). Passing a bare null when checkInsideZone failed
+    // would overwrite that authoritative block with "unknown", which every
+    // gate reads as allowed. Same rule the manual branch below documents: a
+    // confirmed false is kept until a successful check lifts it; anything
+    // else degrades to null.
+    const checkedInsideZone = result
+      ? result.insideZone
+      : (useDeliveryLocationStore.getState().insideZone === false ? false : null);
     setGpsLocation(
       latitude,
       longitude,
-      result?.insideZone ?? null,
+      checkedInsideZone,
       result?.zoneName ?? null,
       result?.zoneId ?? null,
       { force: forceGps },
@@ -445,4 +470,12 @@ function useDeliveryLocationSync() {
 export {
   useDeliveryLocationSync, syncDeliveryLocation, __setColdStartGpsAppliedForTests,
   buildAreaETag, applyBootstrapResult,
+  // Manual pin path (Home's Change Location). Confirming a pin only ran
+  // cart/calculate, which knows about zones but nothing about AREAS — so the
+  // pin moved, the catalog followed (every catalog call carries the pin), and
+  // the store's areaId/settings/socket room stayed on the previous area. That
+  // left the cross-area cart wipe comparing against a stale lastAreaId, the
+  // area's own UPI/support details unrefreshed, and the socket in the old
+  // area's broadcast room. Same fan-out the GPS path gets, on the same pin.
+  syncAreaInfo,
 };

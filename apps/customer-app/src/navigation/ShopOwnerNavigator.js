@@ -1,58 +1,47 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, View, StyleSheet } from 'react-native';
+import React from 'react';
+import { Platform, View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, radius } from '../theme';
-import AppIcon from '../components/AppIcon';
+import { BlurView } from 'expo-blur';
+import { glass, glassRadius, spacing } from '../theme';
+import TabBarPillButton from '../components/navigation/TabBarPillButton';
 import { ShopDashboardScreen, ShopOrdersScreen, ShopProductsScreen } from '../screens/shop';
 
 const Tab = createBottomTabNavigator();
 
-/* Black + saffron glass bar, matching the shop dashboard. */
-const BAR = {
-  bg: '#0A0A0A',
-  rim: 'rgba(255,255,255,0.10)',
-  pill: 'rgba(255,122,58,0.18)',
-  pillRim: 'rgba(255,138,74,0.45)',
-  inactive: 'rgba(255,255,255,0.45)',
-};
-
 /**
- * ShopOwnerNavigator
- * Three-tab shop dashboard shown when an authenticated user owns a shop:
- * Dashboard (status + live queue), Orders (full history), and Products
- * (groups). Replaces the customer home for shop owners (see
- * RootNavigator branching).
+ * Frosted pane behind the tab bar — a real blur of the list scrolling under
+ * it, with a whitish glass fill on top.
+ *
+ * expo-blur only actually blurs on Android when experimentalBlurMethod is set;
+ * its default renders a flat tint, which lets bright content read straight
+ * through the labels instead of diffusing behind them.
  */
-function TabIcon({ name, focused, size, color }) {
-  // Saffron pill grows in behind the active tab's icon.
-  const anim = useRef(new Animated.Value(focused ? 1 : 0)).current;
-
-  useEffect(() => {
-    Animated.timing(anim, {
-      toValue: focused ? 1 : 0,
-      duration: 180,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [focused, anim]);
-
+function BarBackground() {
   return (
-    <View style={styles.iconWrap}>
-      <Animated.View
-        style={[
-          styles.activePill,
-          {
-            opacity: anim,
-            transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
-          },
-        ]}
-      />
-      <AppIcon name={name} color={color} size={size} />
+    <View style={styles.barWrap}>
+      <BlurView
+        intensity={40}
+        tint="dark"
+        experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+        style={StyleSheet.absoluteFill}
+      >
+        <View style={styles.barFill} />
+      </BlurView>
     </View>
   );
 }
 
+/**
+ * ShopOwnerNavigator
+ * Three-tab shop dashboard shown when an authenticated user owns a shop:
+ * Dashboard (status + live orders), Orders (full history), and Products
+ * (groups). Replaces the customer home for shop owners (see
+ * RootNavigator branching).
+ *
+ * Same bar as the rider shell (TabBarPillButton, docked, rounded top) — only
+ * the three tabs differ.
+ */
 export default function ShopOwnerNavigator() {
   const insets = useSafeAreaInsets();
 
@@ -60,75 +49,84 @@ export default function ShopOwnerNavigator() {
     /* Black canvas behind the bar — its rounded top corners would otherwise
      * expose the light default navigator background as two pale slivers. */
     <View style={styles.navRoot}>
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.saffron,
-        tabBarInactiveTintColor: BAR.inactive,
-        tabBarLabelStyle: { fontWeight: '700', fontSize: 11, letterSpacing: 0.2, marginTop: 2 },
-        tabBarItemStyle: { paddingTop: 6 },
-        tabBarStyle: {
-          backgroundColor: BAR.bg,
-          borderTopWidth: 1,
-          borderTopColor: BAR.rim,
-          borderTopLeftRadius: radius.xxl,
-          borderTopRightRadius: radius.xxl,
-          height: 70 + insets.bottom,
-          paddingBottom: 10 + insets.bottom,
-          paddingTop: 8,
-          elevation: 0,
-        },
-        sceneContainerStyle: { backgroundColor: '#000000' },
-      }}
-    >
-      <Tab.Screen
-        name="ShopDashboard"
-        component={ShopDashboardScreen}
-        options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="home" color={color} size={size} focused={focused} />
-          ),
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarShowLabel: false,
+          tabBarBackground: () => <BarBackground />,
+          // Absolute so the list passes UNDER the bar — a docked bar has only
+          // the black canvas behind it, and blurring that is indistinguishable
+          // from a flat fill. The screens pad their lists to clear it.
+          tabBarStyle: {
+            position: 'absolute',
+            left: spacing.md,
+            right: spacing.md,
+            bottom: insets.bottom + spacing.md,
+            backgroundColor: 'transparent',
+            borderRadius: glassRadius.card,
+            height: 66,
+            paddingBottom: 0,
+            paddingTop: 0,
+            overflow: 'hidden',
+            elevation: 0,
+            borderTopWidth: 0,
+            shadowOpacity: 0,
+          },
+          tabBarItemStyle: { height: 66, justifyContent: 'center' },
+          sceneContainerStyle: { backgroundColor: glass.screen },
         }}
-      />
-      <Tab.Screen
-        name="ShopOrders"
-        component={ShopOrdersScreen}
-        options={{
-          title: 'Orders',
-          tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="orders" color={color} size={size} focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="ShopProducts"
-        component={ShopProductsScreen}
-        options={{
-          title: 'Products',
-          tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="box" color={color} size={size} focused={focused} />
-          ),
-        }}
-      />
-    </Tab.Navigator>
+      >
+        <Tab.Screen
+          name="ShopDashboard"
+          component={ShopDashboardScreen}
+          options={{
+            title: 'Dashboard',
+            tabBarButton: (props) => (
+              <TabBarPillButton {...props} name="home" label="Dashboard" hideIcon />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="ShopOrders"
+          component={ShopOrdersScreen}
+          options={{
+            title: 'Orders',
+            tabBarButton: (props) => (
+              <TabBarPillButton {...props} name="orders" label="Orders" hideIcon />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="ShopProducts"
+          component={ShopProductsScreen}
+          options={{
+            title: 'Products',
+            tabBarButton: (props) => (
+              <TabBarPillButton {...props} name="box" label="Products" hideIcon />
+            ),
+          }}
+        />
+      </Tab.Navigator>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  navRoot: { flex: 1, backgroundColor: '#000000' },
-  iconWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 30,
-    paddingHorizontal: spacing.md,
-  },
-  activePill: {
+  navRoot: { flex: 1, backgroundColor: glass.screen },
+  // react-navigation renders tabBarBackground full-width, ignoring
+  // tabBarStyle's left/right inset — clip the blur to it ourselves.
+  barWrap: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: radius.pill,
-    backgroundColor: BAR.pill,
+    left: spacing.md,
+    right: spacing.md,
+    borderRadius: glassRadius.card,
+    overflow: 'hidden',
+  },
+  // Sits on top of the blur, inside the bar — the glass fill itself.
+  barFill: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(26,26,30,0.9)',
     borderWidth: 1,
-    borderColor: BAR.pillRim,
+    borderColor: 'rgba(255,255,255,0.10)',
   },
 });

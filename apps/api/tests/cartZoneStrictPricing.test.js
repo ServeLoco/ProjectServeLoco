@@ -126,6 +126,48 @@ describe('a delivery charge may only come from a matched zone', () => {
     expect(res.body.deliveryZone).toBeNull();
   });
 
+  // An unmatched pin borrows the DEFAULT area purely to have a settings row
+  // to read. Reporting that borrowed id as `areaId`, and the availability it
+  // implies as `unavailableItems`, told the customer app they had crossed into
+  // that area's catalog and that every line was out of stock — so Checkout
+  // wiped the cart and bounced them out with "Delivery area changed" when the
+  // pin was nudged past the zone edge (reproduced on-device). Outside every
+  // zone there is no area and no catalog verdict — only a refusal.
+  it('reports no area and drops no items for a pin outside every zone', async () => {
+    mockDb({ radiusPricingActive: 1 });
+    // What an area mismatch looks like: the cart's product belongs to the area
+    // the customer is actually in, so the fallback area's lookup finds nothing.
+    const base = pool.query.getMockImplementation();
+    pool.query.mockImplementation(async (sql) => (
+      String(sql).includes('FROM products') ? [[]] : base(sql)
+    ));
+
+    const res = await calculate({ latitude: 25.0, longitude: 80.0 });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.outOfRange).toEqual(true);
+    expect(res.body.areaId).toBeNull();
+    expect(res.body.area_id).toBeNull();
+    expect(res.body.unavailableItems).toEqual([]);
+    expect(res.body.unavailable_items).toEqual([]);
+    // "Move pin inside <zone>" picked from the fallback area's zones points at
+    // another team's territory — following it silently switches catalogs.
+    expect(res.body.nearestZoneName).toBeNull();
+  });
+
+  it('CONTROL: a matched pin still reports its area and its unavailable lines', async () => {
+    mockDb({ radiusPricingActive: 1 });
+    const base = pool.query.getMockImplementation();
+    pool.query.mockImplementation(async (sql) => (
+      String(sql).includes('FROM products') ? [[]] : base(sql)
+    ));
+
+    const res = await calculate({ latitude: 12.97, longitude: 77.6 });
+
+    expect(res.body.areaId).toEqual(1);
+    expect(res.body.unavailableItems).toHaveLength(1);
+  });
+
   it('zeroes the charge for an unmatched pin under zone pricing too', async () => {
     mockDb({ radiusPricingActive: 1 });
 

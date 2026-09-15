@@ -1028,15 +1028,25 @@ const recoverStuckAssignments = async () => {
 
   const results = [];
   for (const row of rows) {
-    if (onlineByArea.get(row.area_id)) {
-      log('recoverStuckAssignments — resuming/scanning', row.id);
-      results.push(await continueAssignment(row.id));
-      continue;
+    // Per-order guard. Without it one order that throws (a bad query, a row the
+    // selector chokes on) aborts the whole batch AND the sweeper tick, so every
+    // other order waiting for a rider silently stops being scanned too — the
+    // failure goes from "one order stuck" to "dispatch is dead". Same per-row
+    // catch shape as shopAlertSweeper's remind loop.
+    try {
+      if (onlineByArea.get(row.area_id)) {
+        log('recoverStuckAssignments — resuming/scanning', row.id);
+        results.push(await continueAssignment(row.id));
+        continue;
+      }
+      // Nobody online in this order's area — just check whether the window expired.
+      const excluded = await getExcludedRiderIdsForOrder(row.id);
+      const outcome = await waitOrFailNoEligible(row.id, excluded);
+      results.push({ continued: false, ...outcome });
+    } catch (e) {
+      console.error('[rider-assign] recoverStuckAssignments failed for order', row.id, e.message);
+      results.push({ continued: false, error: e.message });
     }
-    // Nobody online in this order's area — just check whether the window expired.
-    const excluded = await getExcludedRiderIdsForOrder(row.id);
-    const outcome = await waitOrFailNoEligible(row.id, excluded);
-    results.push({ continued: false, ...outcome });
   }
   return results;
 };

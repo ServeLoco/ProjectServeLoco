@@ -7,10 +7,12 @@
 
 const { pool } = require('../src/db/mysql');
 const config = require('../src/config/env');
+const { istIsToday } = require('../src/utils/businessTime');
 const {
   getRiderForUser,
   listEligibleRiders,
   countCompletedDeliveriesToday,
+  countCompletedDeliveriesTodayBatch,
   countActiveOrdersBatch,
   selectRiderByLeastOrders,
   selectRiderByRadiusTiers,
@@ -215,6 +217,55 @@ describe('countCompletedDeliveriesToday', () => {
   it('returns count from DB', async () => {
     pool.query.mockResolvedValueOnce([[{ cnt: 4 }]]);
     expect(await countCompletedDeliveriesToday(9)).toBe(4);
+  });
+});
+
+// Every placeholder in a query must have a bound param. A half-applied edit
+// (SQL gains a `?`, the params array doesn't) is invisible to a mocked pool —
+// mysql2 leaves the surplus `?` in the string and MySQL rejects it at runtime.
+// That exact mismatch in countCompletedDeliveriesTodayBatch took down rider
+// dispatch: selectEligibleRider calls it first, so the throw meant no offer was
+// ever created and no rider was ever notified, while every test still passed.
+const expectPlaceholdersMatchParams = (sql, params) => {
+  const placeholders = (sql.match(/\?/g) || []).length;
+  expect(placeholders).toBe(params.length);
+};
+
+describe('countCompletedDeliveriesTodayBatch', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns {} without ids and never queries', async () => {
+    expect(await countCompletedDeliveriesTodayBatch([])).toEqual({});
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+
+  it('binds one param per placeholder and scopes "today" to IST', async () => {
+    pool.query.mockResolvedValueOnce([[{ rider_id: 3, cnt: 2 }]]);
+
+    const result = await countCompletedDeliveriesTodayBatch([3, 7]);
+
+    const [sql, params] = pool.query.mock.calls[0];
+    expectPlaceholdersMatchParams(sql, params);
+    // Timezones are no longer bound params at all — businessTime inlines them,
+    // so the ids are the only thing left to get wrong.
+    expect(params).toEqual([3, 7]);
+    expect(sql).toContain(istIsToday('COALESCE(delivered_at, updated_at, created_at)'));
+    expect(result).toEqual({ 3: 2 });
+  });
+});
+
+describe('countCompletedDeliveriesToday', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('binds one param per placeholder and scopes "today" to IST', async () => {
+    pool.query.mockResolvedValueOnce([[{ cnt: 1 }]]);
+
+    await countCompletedDeliveriesToday(5);
+
+    const [sql, params] = pool.query.mock.calls[0];
+    expectPlaceholdersMatchParams(sql, params);
+    expect(params).toEqual([5]);
+    expect(sql).toContain(istIsToday('COALESCE(delivered_at, updated_at, created_at)'));
   });
 });
 

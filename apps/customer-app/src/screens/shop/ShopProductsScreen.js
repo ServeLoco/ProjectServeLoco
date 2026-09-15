@@ -4,10 +4,12 @@ import {
   TouchableOpacity, View, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { colors, spacing, typography, radius, shadows, glass, glassRadius, glassShadow } from '../../theme';
 import { shopApi, subscribeRealtime } from '../../api';
+import { useAuthStore } from '../../stores';
 import AppIcon from '../../components/AppIcon';
 import ShopToggle from '../../components/shop/ShopToggle';
 
@@ -22,6 +24,7 @@ const UNGROUPED_KEY = '__ungrouped__';
 export default function ShopProductsScreen() {
   // Scoped to focus: the screen stays mounted behind the other tabs.
   const isScreenFocused = useIsFocused();
+  const logout = useAuthStore((s) => s.logout);
   const [products, setProducts] = useState([]);
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +95,13 @@ export default function ShopProductsScreen() {
     setRefreshing(true);
     fetchAll();
   }, [fetchAll]);
+
+  const handleLogout = useCallback(() => {
+    Alert.alert('Sign out', 'Sign out of the shop dashboard?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign out', style: 'destructive', onPress: () => logout() },
+    ]);
+  }, [logout]);
 
   useFocusEffect(
     useCallback(() => {
@@ -289,7 +299,9 @@ export default function ShopProductsScreen() {
     const hasVariants = variants.length > 0;
     const isLast = index === arr.length - 1;
     const initial = (item.name || '?').trim().charAt(0).toUpperCase() || '?';
-    const meta = [item.price != null ? `₹${item.price}` : null, item.unit || null].filter(Boolean).join(' · ');
+    // Shop owners see what they are paid (shop_price), never the customer price.
+    const shopPrice = item.shopPrice ?? item.shop_price;
+    const meta = [shopPrice != null ? `₹${shopPrice}` : null, item.unit || null].filter(Boolean).join(' · ');
     return (
       <View key={item.id}>
         <View style={[styles.row, isLast && !hasVariants && styles.rowLast]}>
@@ -312,7 +324,7 @@ export default function ShopProductsScreen() {
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityLabel="Move to group"
           >
-            <AppIcon name="chevronRight" size={15} color={colors.textInverse} />
+            <AppIcon name="pencil" size={15} color="#FFFFFF" />
           </TouchableOpacity>
           <ShopToggle
             value={isAvailable}
@@ -323,7 +335,9 @@ export default function ShopProductsScreen() {
         </View>
         {hasVariants && (
           <View style={[styles.variantGroup, isLast && styles.rowLast]}>
-            {variants.map((v, vIdx) => (
+            {variants.map((v, vIdx) => {
+              const vShopPrice = v.shopPrice ?? v.shop_price;
+              return (
               <View
                 key={v.id}
                 style={[
@@ -336,8 +350,8 @@ export default function ShopProductsScreen() {
                 <Text style={[styles.variantName, !v.available && styles.rowNameOff]} numberOfLines={1}>
                   {v.label || 'Option'}
                 </Text>
-                {v.price != null && (
-                  <Text style={[styles.variantPrice, !v.available && styles.rowNameOff]}>₹{v.price}</Text>
+                {vShopPrice != null && (
+                  <Text style={[styles.variantPrice, !v.available && styles.rowNameOff]}>₹{vShopPrice}</Text>
                 )}
                 <ShopToggle
                   value={Boolean(v.available)}
@@ -346,7 +360,8 @@ export default function ShopProductsScreen() {
                   size="sm"
                 />
               </View>
-            ))}
+              );
+            })}
           </View>
         )}
       </View>
@@ -358,19 +373,24 @@ export default function ShopProductsScreen() {
       {isScreenFocused && <StatusBar barStyle="light-content" backgroundColor="transparent" />}
       <View style={styles.header}>
         <Text style={styles.title}>Products</Text>
-        <TouchableOpacity style={styles.newGroupBtn} onPress={() => setNewGroupModalOpen(true)} activeOpacity={0.8}>
-          <AppIcon name="add" size={16} color={colors.textInverse} />
-          <Text style={styles.newGroupBtnText}>New Group</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.newGroupBtn} onPress={() => setNewGroupModalOpen(true)} activeOpacity={0.8}>
+            <AppIcon name="add" size={16} color={colors.textInverse} />
+            <Text style={styles.newGroupBtnText}>New Group</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
+            <AppIcon name="logout" size={20} color={glass.text} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.searchWrap}>
-        <View style={styles.searchBox}>
-          <AppIcon name="search" size={18} color={glass.textDim} />
+        <BlurView intensity={28} tint="dark" style={styles.searchBox}>
+          <AppIcon name="search" size={18} color={colors.saffron} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search products"
-            placeholderTextColor={glass.textFaint}
+            placeholderTextColor="rgba(255,255,255,0.45)"
             value={searchQuery}
             onChangeText={handleSearchChange}
             autoCapitalize="none"
@@ -378,11 +398,11 @@ export default function ShopProductsScreen() {
             returnKeyType="search"
           />
           {isSearching && (
-            <TouchableOpacity style={styles.searchClearBtn} onPress={() => handleSearchChange('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <AppIcon name="close" size={16} color={glass.textDim} />
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.searchClearBtn} onPress={() => handleSearchChange('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <AppIcon name="close" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
           )}
-        </View>
+        </BlurView>
       </View>
 
       {products.length > 0 && (
@@ -391,7 +411,7 @@ export default function ShopProductsScreen() {
             <Text style={styles.summaryTextBold}>{totalCount}</Text> products
           </Text>
           <View style={styles.summaryPill}>
-            <AppIcon name="check" size={12} color={glass.successText} />
+            <AppIcon name="check" size={12} color="#FFFFFF" />
             <Text style={styles.summaryPillText}>{availableCount} available</Text>
           </View>
         </View>
@@ -439,8 +459,10 @@ export default function ShopProductsScreen() {
                 const expanded = isGroupExpanded(group.id);
                 return (
                   <View key={group.id} style={styles.groupBlock}>
-                    <View
+                    <BlurView
                       key={`header-${expanded}`}
+                      intensity={32}
+                      tint="dark"
                       style={[styles.groupHeader, expanded && styles.groupHeaderExpanded]}
                     >
                       <TouchableOpacity
@@ -449,7 +471,7 @@ export default function ShopProductsScreen() {
                         activeOpacity={0.7}
                       >
                         <View style={[styles.groupIconWrap, !group.active && styles.groupIconWrapMuted]}>
-                          <AppIcon name="box" size={18} color={group.active ? colors.saffronDark : colors.textTertiary} />
+                          <AppIcon name="shoppingBag" size={18} color={group.active ? '#FFFFFF' : 'rgba(255,255,255,0.5)'} />
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.groupName}>{group.name}</Text>
@@ -457,7 +479,7 @@ export default function ShopProductsScreen() {
                             {items.length} {items.length === 1 ? 'item' : 'items'}
                           </Text>
                         </View>
-                        <AppIcon name={expanded ? 'down' : 'chevronRight'} size={16} color={glass.textDim} />
+                        <AppIcon name={expanded ? 'down' : 'chevronRight'} size={16} color="#FFFFFF" />
                       </TouchableOpacity>
                       <View style={styles.groupActions}>
                         <TouchableOpacity
@@ -465,27 +487,27 @@ export default function ShopProductsScreen() {
                           onPress={() => handleDeleteGroup(group)}
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         >
-                          <AppIcon name="delete" size={18} color={glass.errorText} />
+                          <AppIcon name="delete" size={16} color="#FFFFFF" />
                         </TouchableOpacity>
                         <ShopToggle
                           value={Boolean(group.active)}
                           onValueChange={(v) => handleGroupToggle(group, v)}
-                          activeColor={colors.saffron}
+                          activeColor={colors.success}
                           size="md"
                         />
                       </View>
-                    </View>
+                    </BlurView>
                     {expanded && (
-                      <View style={styles.groupCard}>
+                      <BlurView intensity={22} tint="dark" style={styles.groupCard}>
                         {items.length === 0 ? (
                           <View style={styles.emptyGroupWrap}>
-                            <AppIcon name="box" size={20} color={glass.textFaint} />
+                            <AppIcon name="box" size={20} color="rgba(255,255,255,0.5)" />
                             <Text style={styles.emptyGroup}>No products in this group.</Text>
                           </View>
                         ) : (
                           items.map(renderProductRow)
                         )}
-                      </View>
+                      </BlurView>
                     )}
                   </View>
                 );
@@ -493,8 +515,10 @@ export default function ShopProductsScreen() {
 
               {sections.ungrouped.length > 0 && (
                 <View style={styles.groupBlock}>
-                  <View
+                  <BlurView
                     key={`header-${isGroupExpanded(UNGROUPED_KEY)}`}
+                    intensity={32}
+                    tint="dark"
                     style={[styles.groupHeader, isGroupExpanded(UNGROUPED_KEY) && styles.groupHeaderExpanded]}
                   >
                     <TouchableOpacity
@@ -503,7 +527,7 @@ export default function ShopProductsScreen() {
                       activeOpacity={0.7}
                     >
                       <View style={[styles.groupIconWrap, styles.groupIconWrapMuted]}>
-                        <AppIcon name="box" size={18} color={glass.textFaint} />
+                        <AppIcon name="box" size={18} color="#FFFFFF" />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.groupName}>Ungrouped</Text>
@@ -514,37 +538,37 @@ export default function ShopProductsScreen() {
                       <AppIcon
                         name={isGroupExpanded(UNGROUPED_KEY) ? 'down' : 'chevronRight'}
                         size={16}
-                        color={glass.textFaint}
+                        color="#FFFFFF"
                       />
                     </TouchableOpacity>
-                  </View>
+                  </BlurView>
                   {isGroupExpanded(UNGROUPED_KEY) && (
-                    <View style={styles.groupCard}>
+                    <BlurView intensity={22} tint="dark" style={styles.groupCard}>
                       {sections.ungrouped.map(renderProductRow)}
-                    </View>
+                    </BlurView>
                   )}
                 </View>
               )}
 
               {products.length === 0 && (
-                <View style={styles.emptyState}>
+                <BlurView intensity={30} tint="dark" style={styles.emptyState}>
                   <View style={styles.emptyIconWrap}>
-                    <AppIcon name="box" size={32} color={colors.saffron} />
+                    <AppIcon name="box" size={32} color="#FFFFFF" />
                   </View>
                   <Text style={styles.emptyTitle}>{loadError ? 'Could not load products' : 'No products yet'}</Text>
                   <Text style={styles.emptyText}>
                     {loadError ? 'Pull down to try again.' : 'Add items from your shop menu to manage them here.'}
                   </Text>
-                </View>
+                </BlurView>
               )}
               {products.length > 0 && isSearching && filteredProducts.length === 0 && (
-                <View style={styles.emptyState}>
+                <BlurView intensity={30} tint="dark" style={styles.emptyState}>
                   <View style={styles.emptyIconWrap}>
-                    <AppIcon name="search" size={30} color={colors.saffron} />
+                    <AppIcon name="search" size={30} color="#FFFFFF" />
                   </View>
                   <Text style={styles.emptyTitle}>No matches</Text>
                   <Text style={styles.emptyText}>No products match "{searchQuery.trim()}".</Text>
-                </View>
+                </BlurView>
               )}
             </>
           )}
@@ -560,7 +584,7 @@ export default function ShopProductsScreen() {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setNewGroupModalOpen(false)}>
           <TouchableOpacity style={styles.modalCard} activeOpacity={1}>
             <View style={styles.modalIconWrap}>
-              <AppIcon name="add" size={22} color={colors.saffron} />
+              <AppIcon name="add" size={22} color="#FFFFFF" />
             </View>
             <Text style={styles.modalTitle}>New group</Text>
             <Text style={styles.modalSubtitle}>Group products so customers browse them together.</Text>
@@ -601,7 +625,7 @@ export default function ShopProductsScreen() {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPickerProduct(null)}>
           <TouchableOpacity style={styles.modalCard} activeOpacity={1}>
             <View style={styles.modalIconWrap}>
-              <AppIcon name="box" size={22} color={colors.saffron} />
+              <AppIcon name="box" size={22} color="#FFFFFF" />
             </View>
             <Text style={styles.modalTitle}>Move product</Text>
             <Text style={styles.modalSubtitle}>Choose a group for "{pickerProduct?.name}".</Text>
@@ -626,10 +650,10 @@ export default function ShopProductsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: glass.canvas },
+  container: { flex: 1, backgroundColor: glass.screen },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm,
   },
   title: { ...typography.display, fontSize: 26, color: glass.text },
   newGroupBtn: {
@@ -638,129 +662,157 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md + 2, paddingVertical: 10,
   },
   newGroupBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 13 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  logoutBtn: {
+    width: 44, height: 44, borderRadius: radius.circle, backgroundColor: glass.fillStrong,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: glass.border,
+    ...glassShadow,
+  },
 
-  searchWrap: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
+  searchWrap: { paddingHorizontal: spacing.md, marginBottom: spacing.md },
   searchBox: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: glass.fill, borderWidth: 1, borderColor: glass.border,
-    borderRadius: radius.pill, paddingHorizontal: spacing.md, height: 50, ...glassShadow,
+    backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+    borderRadius: radius.pill, paddingHorizontal: spacing.md, height: 50,
+    overflow: 'hidden', ...glassShadow,
   },
-  searchInput: { flex: 1, ...typography.bodyLarge, color: glass.text, paddingVertical: 0 },
+  searchInput: { flex: 1, ...typography.bodyLarge, color: '#FFFFFF', paddingVertical: 0 },
   searchClearBtn: { padding: 2 },
 
   summaryRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg + spacing.xs, marginBottom: spacing.sm,
+    paddingHorizontal: spacing.md + spacing.xs, marginBottom: spacing.sm,
   },
   summaryText: { ...typography.bodySmall, color: glass.textDim, fontWeight: '600' },
   summaryTextBold: { color: glass.text, fontWeight: '800' },
   summaryPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: glass.successFill, borderRadius: radius.pill,
-    borderWidth: 1, borderColor: glass.successRim,
-    paddingHorizontal: 10, paddingVertical: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#0C6B43', borderRadius: radius.pill,
+    paddingHorizontal: 11, paddingVertical: 5,
   },
-  summaryPillText: { color: glass.successText, fontWeight: '800', fontSize: 12 },
+  summaryPillText: { color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
 
-  tabsRow: { marginBottom: spacing.md, flexGrow: 0 },
-  tabsRowContent: { paddingHorizontal: spacing.lg, gap: spacing.sm, alignItems: 'center' },
+  /* Fixed height: the horizontal ScrollView clips its content, and letting it
+   * self-measure sliced the descenders off the chip labels. */
+  /* Fixed height: the horizontal ScrollView clips its content, and letting it
+   * self-measure sliced the chip labels. Radius is exactly half that height so
+   * the chips are true stadiums — radius.pill (100) gets clamped by Android and
+   * came out as a rounded box. */
+  tabsRow: { marginBottom: spacing.md, flexGrow: 0, height: 50 },
+  tabsRowContent: { paddingHorizontal: spacing.md, gap: spacing.sm, alignItems: 'center' },
   tabChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 7,
-    borderWidth: 1, borderColor: glass.border, backgroundColor: glass.fill,
-    borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 9,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    height: 38, borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 19, paddingHorizontal: spacing.md,
   },
-  tabChipActive: { backgroundColor: glass.tintStrong, borderColor: glass.borderWarm },
-  tabChipText: { fontSize: 13, fontWeight: '700', color: glass.textDim },
-  tabChipTextActive: { color: colors.saffron },
-  tabDot: { width: 7, height: 7, borderRadius: radius.circle, backgroundColor: colors.success },
-  tabDotOff: { backgroundColor: glass.textFaint },
+  tabChipActive: { backgroundColor: colors.saffron, borderColor: colors.saffron },
+  tabChipText: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: 'rgba(255,255,255,0.72)' },
+  tabChipTextActive: { color: '#FFFFFF', fontWeight: '800' },
+  tabDot: { width: 7, height: 7, borderRadius: radius.circle, backgroundColor: '#2FD892' },
+  tabDotOff: { backgroundColor: 'rgba(255,255,255,0.45)' },
 
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl + spacing.lg },
+  listContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxxl + spacing.xxl },
   groupBlock: { marginBottom: spacing.md },
   groupHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: glass.tint, borderWidth: 1, borderColor: glass.borderWarm,
+    backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+    borderTopColor: 'rgba(255,255,255,0.34)',
     borderRadius: glassRadius.card, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
-    ...glassShadow,
+    overflow: 'hidden', ...glassShadow,
   },
   groupHeaderExpanded: {
     borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
   },
   groupTitleWrap: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: spacing.sm },
   groupIconWrap: {
-    width: 40, height: 40, borderRadius: glassRadius.inner - 4, backgroundColor: glass.fillStrong,
-    borderWidth: 1, borderColor: glass.border,
+    width: 40, height: 40, borderRadius: glassRadius.inner - 4, backgroundColor: colors.saffron,
     alignItems: 'center', justifyContent: 'center',
   },
-  groupIconWrapMuted: { backgroundColor: glass.fill },
-  groupName: { ...typography.h4, color: glass.text },
-  groupCount: { ...typography.bodySmall, color: glass.textDim, marginTop: 1, fontWeight: '500' },
+  groupIconWrapMuted: { backgroundColor: '#4A4A54' },
+  groupName: { ...typography.h4, color: '#FFFFFF' },
+  groupCount: { ...typography.bodySmall, color: 'rgba(255,255,255,0.70)', marginTop: 1, fontWeight: '600' },
   groupActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  groupDeleteBtn: { padding: 4 },
+  groupDeleteBtn: {
+    width: 30, height: 30, borderRadius: radius.circle, backgroundColor: '#B3211F',
+    alignItems: 'center', justifyContent: 'center',
+  },
   groupCard: {
-    backgroundColor: glass.fill, borderRadius: glassRadius.card,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: glassRadius.card,
     borderTopLeftRadius: 0, borderTopRightRadius: 0,
-    borderWidth: 1, borderTopWidth: 0, borderColor: glass.border,
-    padding: 6,
+    borderWidth: 1, borderTopWidth: 0, borderColor: 'rgba(255,255,255,0.22)',
+    padding: 6, overflow: 'hidden',
   },
   emptyGroupWrap: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs,
     paddingVertical: spacing.lg,
   },
-  emptyGroup: { color: glass.textFaint, ...typography.bodySmall, fontWeight: '500' },
+  emptyGroup: { color: 'rgba(255,255,255,0.55)', ...typography.bodySmall, fontWeight: '500' },
 
   row: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     paddingVertical: 10, paddingHorizontal: spacing.sm,
-    backgroundColor: glass.fillStrong, borderRadius: glassRadius.inner, marginBottom: 6,
-    borderWidth: 1, borderColor: glass.border,
+    backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: glassRadius.inner, marginBottom: 6,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+    borderTopColor: 'rgba(255,255,255,0.28)',
   },
   rowLast: { marginBottom: 0 },
   rowAvatar: {
-    width: 34, height: 34, borderRadius: radius.lg, backgroundColor: glass.tint,
-    borderWidth: 1, borderColor: glass.borderWarm,
+    width: 34, height: 34, borderRadius: radius.lg, backgroundColor: colors.saffron,
     alignItems: 'center', justifyContent: 'center',
   },
-  rowAvatarOff: { backgroundColor: glass.fill, borderColor: glass.border },
-  rowAvatarText: { color: colors.saffron, fontWeight: '800', fontSize: 14 },
-  rowAvatarTextOff: { color: glass.textFaint },
+  rowAvatarOff: { backgroundColor: '#4A4A54' },
+  rowAvatarText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
+  rowAvatarTextOff: { color: 'rgba(255,255,255,0.5)' },
   rowNameWrap: { flex: 1 },
-  rowName: { ...typography.bodyLarge, color: glass.text, fontWeight: '600' },
-  rowNameOff: { color: glass.textFaint },
-  rowMetaText: { ...typography.bodySmall, color: glass.textDim, fontSize: 12, marginTop: 1, fontWeight: '500' },
+  rowName: { ...typography.bodyLarge, color: '#FFFFFF', fontWeight: '600' },
+  rowNameOff: { color: 'rgba(255,255,255,0.42)' },
+  rowMetaText: {
+    ...typography.bodySmall, color: 'rgba(255,255,255,0.62)', fontSize: 12, marginTop: 1,
+    fontWeight: '600', fontVariant: ['tabular-nums'],
+  },
 
   variantGroup: {
-    backgroundColor: 'rgba(255,255,255,0.04)', paddingLeft: spacing.md + 34 + spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.26)', paddingLeft: spacing.md + 34 + spacing.sm,
     borderRadius: glassRadius.inner, marginBottom: 6,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
   variantRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    paddingVertical: 8, paddingRight: spacing.md, borderTopWidth: 1, borderTopColor: glass.divider,
+    paddingVertical: 8, paddingRight: spacing.md,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.10)',
   },
   variantRowFirst: { borderTopWidth: 0 },
   variantRowLast: { paddingBottom: 10 },
-  variantDot: { width: 5, height: 5, borderRadius: radius.circle, backgroundColor: colors.saffron },
-  variantDotOff: { backgroundColor: glass.textFaint },
-  variantName: { ...typography.bodySmall, color: glass.textDim, fontWeight: '500', flex: 1 },
-  variantPrice: { ...typography.bodySmall, color: glass.textFaint, fontSize: 12, fontWeight: '600' },
+  variantDot: { width: 6, height: 6, borderRadius: radius.circle, backgroundColor: colors.saffron },
+  variantDotOff: { backgroundColor: 'rgba(255,255,255,0.35)' },
+  variantName: { ...typography.bodySmall, color: 'rgba(255,255,255,0.88)', fontWeight: '600', flex: 1 },
+  variantPrice: {
+    ...typography.bodySmall, color: 'rgba(255,255,255,0.70)', fontSize: 12, fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
   rowMoveBtn: {
-    width: 32, height: 32, borderRadius: radius.circle, backgroundColor: colors.saffron,
+    width: 32, height: 32, borderRadius: radius.circle,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)',
     alignItems: 'center', justifyContent: 'center',
   },
 
   emptyState: {
     alignItems: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.xl,
-    marginTop: spacing.lg, backgroundColor: glass.fill, borderRadius: glassRadius.card,
-    borderWidth: 1, borderColor: glass.border, ...glassShadow,
+    marginTop: spacing.lg, borderRadius: glassRadius.card, overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+    borderTopColor: 'rgba(255,255,255,0.34)',
+    ...glassShadow,
   },
   emptyIconWrap: {
-    width: 76, height: 76, borderRadius: radius.circle, backgroundColor: glass.tint,
-    borderWidth: 1, borderColor: glass.borderWarm,
+    width: 76, height: 76, borderRadius: radius.circle, backgroundColor: colors.saffron,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
   },
   emptyTitle: { ...typography.h3, color: glass.text },
   emptyText: {
-    ...typography.body, color: glass.textDim, textAlign: 'center', marginTop: spacing.xs,
+    ...typography.body, color: 'rgba(255,255,255,0.75)', textAlign: 'center', marginTop: spacing.xs,
     lineHeight: 20, maxWidth: 260,
   },
 
@@ -773,8 +825,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: glass.border, ...shadows.lg,
   },
   modalIconWrap: {
-    width: 48, height: 48, borderRadius: glassRadius.inner, backgroundColor: glass.tint,
-    borderWidth: 1, borderColor: glass.borderWarm,
+    width: 48, height: 48, borderRadius: glassRadius.inner, backgroundColor: '#FF7A3A',
+    borderWidth: 1, borderColor: '#E05A1A',
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
   },
   modalTitle: { ...typography.h3, color: glass.text },

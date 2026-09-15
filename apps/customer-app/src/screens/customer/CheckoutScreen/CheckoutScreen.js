@@ -1443,13 +1443,27 @@ export default function CheckoutScreen() {
   const totalQuantity = items.reduce((total, item) => total + (Number(item.quantity) || 0), 0);
   const isModeSelectDisabled = isSubmitting || items.length === 0 || gpsStatus === 'loading';
   const gpsErrorCopy = gpsStatus === 'error' ? getGpsErrorCopy(gpsError) : null;
-  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || deliveryBlocked;
+  // Panning the map invalidates the previous Confirm (handlePinMoved nulls
+  // `coordinates`) but leaves previewCoordinates driving calculationPayload,
+  // so the BILL follows the dragged pin. handlePlaceOrder commits
+  // coordinatesRef || coordinates || savedDeliveryLocation and deliberately
+  // never the preview — so without this gate the customer could be shown the
+  // dragged zone's delivery charge and have the order placed at the saved pin
+  // instead: a different zone, a different price, decided server-side after
+  // they already tapped. The pre-submit re-verification cannot catch it
+  // either, because it re-prices calculationPayload — the preview pin again.
+  // handlePinMoved's own comment already says a moved pin needs re-confirming;
+  // this is that rule reaching the button.
+  const pinAwaitingConfirm = Boolean(previewCoordinates) && !coordinates;
+  const isPlaceOrderDisabled = isSubmitting || isCalculating || items.length === 0 || !bill || Boolean(calcError) || deliveryBlocked || pinAwaitingConfirm;
   const placeOrderLabel = isSubmitting
     ? 'Processing...'
     : isCalculating
     ? 'Calculating total...'
     : deliveryBlocked
     ? 'Delivery not available here'
+    : pinAwaitingConfirm
+    ? 'Confirm your pin to continue'
     : bill
     ? `Place Order • ₹${bill.grandTotal}`
     : 'Place Order';
@@ -1479,8 +1493,17 @@ export default function CheckoutScreen() {
             hideActions
             fullBleed
             // Checkout opens straight to live GPS so the pin lands on the
-            // user's current spot instantly, not the last saved manual pin.
-            autoLocateOnMount
+            // user's current spot instantly — but ONLY when the saved pin is
+            // itself a GPS fix. A MANUAL pin is the "deliver to someone else"
+            // choice: the customer searched for another address, and the whole
+            // catalog and bill behind this screen were built from it. Snapping
+            // the map back to the phone's own position re-priced the bill
+            // against a different area, which dropped every item as
+            // unavailable and bounced them out with "Delivery area changed"
+            // (reproduced on-device: pin set in area 9, phone in Mumbai, cart
+            // emptied the instant Checkout opened). Same rule
+            // ChangeLocationModal already uses.
+            autoLocateOnMount={savedDeliveryLocationSource !== 'manual'}
             initialCenter={savedDeliveryLocation
               ? { latitude: savedDeliveryLocation.lat, longitude: savedDeliveryLocation.lng }
               : undefined}

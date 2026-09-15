@@ -1,4 +1,5 @@
 const { pool } = require('../db/mysql');
+const { istDateOf } = require('../utils/businessTime');
 const { riderShape, syncDeliveryAvailabilityFromRiders } = require('../utils/riders');
 const assignment = require('../services/riderAssignment');
 const notificationService = require('../utils/notificationService');
@@ -507,7 +508,7 @@ const getAssignmentHistory = async (req, res) => {
   let where = `rider_id = ? AND status IN ('Delivered', 'Cancelled')`;
   const baseParams = [req.rider.id];
   if (date) {
-    where += ' AND DATE(updated_at) = ?';
+    where += ` AND ${istDateOf('updated_at')} = ?`;
     baseParams.push(date);
   }
 

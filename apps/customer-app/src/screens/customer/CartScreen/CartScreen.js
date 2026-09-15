@@ -91,15 +91,21 @@ export default function CartScreen() {
       setBill(null);
       setCalcError(null);
       setFocusTick((n) => n + 1);
-      // Opening the cart with no pin, after the startup sync already gave up,
-      // is the one moment the location actually has to be known — retry here
-      // rather than leaving the customer to wait out a foreground cycle. Read
-      // imperatively so this stays tied to the focus event (exactly one
-      // attempt per visit) instead of re-firing as the store settles;
-      // syncDeliveryLocation dedupes anyway. On success the store update
-      // re-runs the bill effect below with real coordinates.
-      const { coords, isInitialSyncComplete } = useDeliveryLocationStore.getState();
-      if (!coords && isInitialSyncComplete) syncDeliveryLocation();
+      // The cart is a billing surface and the delivery charge is derived from
+      // the zone the pin falls in, so opening it re-verifies the location
+      // every time — not only when coords are missing. A pin that is merely
+      // STALE is the dangerous case: the customer moved since the last sync
+      // (or the 5-minute resume throttle skipped one), and the cart would
+      // quote them a zone they are no longer standing in, silently.
+      //
+      // Safe for both sources: a gps pin gets a fresh fix, and a manual pin
+      // (an explicit "deliver to this address" choice) is re-validated
+      // against the current zones WITHOUT being moved — see the source ===
+      // 'manual' branch in syncDeliveryLocation. Called imperatively so this
+      // is exactly one attempt per visit rather than re-firing as the store
+      // settles; the function dedupes concurrent runs itself. On a change,
+      // the store update re-runs the bill effect below.
+      syncDeliveryLocation();
     }, []),
   );
 

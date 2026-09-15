@@ -6,10 +6,12 @@ const { getDb } = require('../../db/mongodb');
 
 /**
  * Insert a new session doc and return its _id (null if Mongo is unavailable).
- * areaId is resolved by the caller (socket.js, at connect time, via
- * users.last_area_id → default area — same §4.2 fallback chain as everywhere
- * else no pin exists) and passed straight through; this module stays a thin
- * Mongo-only wrapper with no MySQL dependency of its own.
+ * areaId is passed straight through by the caller (socket.js); this module
+ * stays a thin Mongo-only wrapper with no MySQL dependency of its own. It is
+ * null at connect — no pin exists at the socket layer, and there is no
+ * default area to guess with — and is filled in by setSessionArea below once
+ * the app resolves its live pin. A session that never resolves one stays
+ * null, which the admin analytics read as "All areas only".
  * @param {{userId:number, platform:string, appVersion:string, areaId?:number}} meta
  * @returns {Promise<string|null>}
  */
@@ -65,4 +67,24 @@ const closeSession = async (sessionId, screens, connectedAt) => {
   }
 };
 
-module.exports = { openSession, closeSession };
+/**
+ * Attach the area a session actually turned out to be in, once the app's own
+ * live pin resolves (socket 'area:changed'). Sessions used to be stamped at
+ * connect from users.last_area_id → default area, which is a guess: it filed
+ * a customer standing in area 2 under area 1 because that is where they last
+ * ordered, inflating that team's analytics with another team's customers.
+ * Best-effort, same as everything else in this module.
+ */
+const setSessionArea = async (sessionId, areaId) => {
+  if (!sessionId || !areaId) return;
+  try {
+    await getDb().collection('analytics_sessions').updateOne(
+      { _id: sessionId },
+      { $set: { areaId } },
+    );
+  } catch (e) {
+    console.error('[analytics] setSessionArea failed:', e.message);
+  }
+};
+
+module.exports = { openSession, closeSession, setSessionArea };

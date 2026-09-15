@@ -6,6 +6,7 @@ const makeDeps = () => ({
   sessionStore: {
     openSession: jest.fn().mockResolvedValue('sess-id-1'),
     closeSession: jest.fn().mockResolvedValue(),
+    setSessionArea: jest.fn().mockResolvedValue(),
   },
   emitToAdmins: jest.fn(),
 });
@@ -142,6 +143,7 @@ describe('createPresenceTracker', () => {
     const t = createPresenceTracker(deps);
     const snap = t.getLiveSnapshot();
     expect(snap).toEqual({
+      areaId: null,
       online: 0,
       peakToday: 0,
       byScreen: {},
@@ -226,5 +228,57 @@ describe('createPresenceTracker', () => {
     t.stop();
     await wait(35);
     expect(deps.emitToAdmins.mock.calls.length).toBe(callsBefore);
+  });
+});
+
+
+/**
+ * Area attribution. A socket connects with NO area — there is no pin at the
+ * socket layer, and the users.last_area_id -> default-area guess that used to
+ * fill it in filed a customer standing in area 2 under area 1, inflating that
+ * team's live-user panel (names and phone numbers included) with another
+ * team's customers. The real area arrives later, when the app's live pin
+ * resolves and it emits 'area:changed'.
+ */
+describe('setPresenceArea', () => {
+  it('starts a customer unattributed, then records the area the pin resolved to', async () => {
+    const deps = makeDeps();
+    const t = createPresenceTracker(deps);
+    await t.addPresence('sock1', { userId: 123, role: 'customer', platform: 'android' });
+
+    expect(t.getLiveSnapshot().users[0].areaId).toBeNull();
+
+    t.setPresenceArea('sock1', 2);
+
+    expect(t.getLiveSnapshot().users[0].areaId).toBe(2);
+    // The historical session doc has to move too, or the live panel and the
+    // rollups disagree about the same session.
+    expect(deps.sessionStore.setSessionArea).toHaveBeenCalledWith('sess-id-1', 2);
+  });
+
+  it('is a no-op for an unknown socket, a falsy area, or an unchanged area', async () => {
+    const deps = makeDeps();
+    const t = createPresenceTracker(deps);
+    await t.addPresence('sock1', { userId: 123, role: 'customer', platform: 'android' });
+
+    t.setPresenceArea('ghost', 2);
+    t.setPresenceArea('sock1', 0);
+    t.setPresenceArea('sock1', null);
+    expect(deps.sessionStore.setSessionArea).not.toHaveBeenCalled();
+
+    t.setPresenceArea('sock1', 3);
+    t.setPresenceArea('sock1', 3);
+    expect(deps.sessionStore.setSessionArea).toHaveBeenCalledTimes(1);
+  });
+
+  it('survives a session doc that never opened', async () => {
+    const deps = makeDeps();
+    deps.sessionStore.openSession.mockResolvedValue(null);
+    const t = createPresenceTracker(deps);
+    await t.addPresence('sock1', { userId: 123, role: 'customer', platform: 'android' });
+
+    expect(() => t.setPresenceArea('sock1', 2)).not.toThrow();
+    expect(t.getLiveSnapshot().users[0].areaId).toBe(2);
+    expect(deps.sessionStore.setSessionArea).not.toHaveBeenCalled();
   });
 });

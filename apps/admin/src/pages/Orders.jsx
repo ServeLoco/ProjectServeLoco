@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { OrdersApi, ShopsApi, RidersApi, subscribeAdminOrderEvents, subscribeRealtimeLifecycle } from '../api';
 import MessageBanner from '../components/MessageBanner';
 import LiveOrderMap from '../components/LiveOrderMap';
@@ -74,6 +74,49 @@ const formatDateTime = (value) => {
     hour: '2-digit',
     minute: '2-digit',
   });
+};
+
+// Gap between two consecutive timeline milestones. "How long did the shop sit
+// on it" / "how long before a rider picked it up" is the whole reason to put
+// these times side by side, so each row carries the delta from the one above.
+const formatGap = (ms) => {
+  const minutes = Math.round(ms / 60000);
+  if (minutes < 1) return '<1m';
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours}h ${rest}m` : `${hours}h`;
+};
+
+// Every lifecycle timestamp the order actually carries, oldest first. Steps
+// that never happened (no rider yet, shop hasn't confirmed) have a NULL column
+// and simply don't appear — the list is what DID happen, not a checklist with
+// blanks. Per-shop rows come from shopConfirmations, which the API has always
+// returned with confirmedAt/readyAt/rejectedAt; nothing rendered them before.
+const buildOrderTimeline = (order) => {
+  if (!order) return [];
+
+  const events = [
+    { label: 'Order placed', at: order.created_at },
+    { label: 'Accepted', at: order.accepted_at },
+    { label: 'Rider search started', at: order.rider_search_started_at },
+    { label: 'Rider assigned', at: order.rider_assigned_at },
+    { label: 'Picked up by rider', at: order.rider_picked_up_at },
+    { label: 'Delivered', at: order.delivered_at },
+  ];
+
+  (order.shopConfirmations || []).forEach((sc) => {
+    const shop = sc.shopName || sc.shop_name || `Shop #${sc.shopId ?? sc.shop_id}`;
+    events.push({ label: `${shop} confirmed`, at: sc.confirmedAt ?? sc.confirmed_at });
+    events.push({ label: `${shop} marked ready`, at: sc.readyAt ?? sc.ready_at });
+    events.push({ label: `${shop} rejected`, at: sc.rejectedAt ?? sc.rejected_at });
+  });
+
+  return events
+    .filter((e) => e.at)
+    .map((e) => ({ ...e, ms: new Date(e.at).getTime() }))
+    .filter((e) => Number.isFinite(e.ms))
+    .sort((a, b) => a.ms - b.ms);
 };
 const statusClassName = (status) => String(status || 'unknown').toLowerCase().replace(/\s+/g, '-');
 
@@ -347,6 +390,8 @@ export default function Orders() {
       setUpdating(false);
     }
   };
+
+  const orderTimeline = useMemo(() => buildOrderTimeline(selectedOrder), [selectedOrder]);
 
   const closeDrawer = () => setSelectedOrder(null);
 
@@ -1022,6 +1067,41 @@ export default function Orders() {
               {selectedOrder.status !== 'Cancelled' ? (
                 <LiveOrderMap order={selectedOrder} />
               ) : null}
+
+              {orderTimeline.length > 0 && (
+                <div className="detail-section">
+                  <h4>Timeline</h4>
+                  {orderTimeline.map((event, idx) => (
+                    <div className="detail-row" key={`${event.label}-${event.at}-${idx}`}>
+                      <span>{event.label}:</span>
+                      <strong>
+                        {formatDateTime(event.at)}
+                        {idx > 0 && (
+                          <span className="timeline-gap">
+                            +{formatGap(event.ms - orderTimeline[idx - 1].ms)}
+                          </span>
+                        )}
+                      </strong>
+                    </div>
+                  ))}
+                  {/* orders has no cancelled_at column — every cancel path
+                      (admin, customer, all-shops-rejected) only bumps
+                      updated_at. Say that plainly instead of passing
+                      updated_at off as the cancellation time. */}
+                  {selectedOrder.status === 'Cancelled' && (
+                    <>
+                      <div className="detail-row">
+                        <span>Cancelled:</span>
+                        <strong className="timeline-approx">time not recorded</strong>
+                      </div>
+                      <div className="detail-row">
+                        <span>Last updated:</span>
+                        <strong>{formatDateTime(selectedOrder.updated_at)}</strong>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
 
               <div className="detail-section">
                 <h4>Customer Details</h4>

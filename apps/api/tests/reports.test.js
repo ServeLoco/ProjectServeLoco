@@ -1,4 +1,5 @@
 const request = require('supertest');
+const { istIsToday } = require('../src/utils/businessTime');
 const express = require('express');
 const adminRoutes = require('../src/routes/adminRoutes');
 const { pool } = require('../src/db/mysql');
@@ -37,8 +38,10 @@ describe('Reports API', () => {
     expect(res.body.payment_breakdown.upi).toEqual(8);
     expect(res.body.payment_status.paid).toEqual(8);
     
-    // Check if period filter was applied
-    expect(pool.query.mock.calls[0][0]).toContain('CURDATE()');
+    // Check if period filter was applied. "today" is an IST calendar day, not
+    // the DB server's — CURDATE() reads in the session zone (UTC in prod), which
+    // filed every 00:00-05:30 IST order under the previous day.
+    expect(pool.query.mock.calls[0][0]).toContain(istIsToday('created_at'));
   });
 
   it('should return top products report with period filtering', async () => {
@@ -92,6 +95,6 @@ describe('Reports API', () => {
     expect(res.body.data[1].products[0].product_name).toEqual('Eggs');
 
     expect(pool.query.mock.calls[0][0]).toContain("status != 'Cancelled'");
-    expect(pool.query.mock.calls[0][0]).toContain('CURDATE()');
+    expect(pool.query.mock.calls[0][0]).toContain(istIsToday('o.created_at'));
   });
 });

@@ -1,5 +1,5 @@
 const { pool } = require('../db/mysql');
-const { emitToAdmins } = require('../realtime/socket');
+const { emitToAdmins, emitToPlatformAdmins } = require('../realtime/socket');
 const { sendPushToMany } = require('./expoPush');
 const { listAreas } = require('./areaScope');
 
@@ -31,15 +31,23 @@ const TYPES = {
  * writes are best-effort and must not break the caller (e.g. a customer
  * checkout).
  *
- * areaId is required — admin_notifications.area_id is NOT NULL (TASK 3) and
- * part of its composite unique key (uniq_admin_inbox_area_event). Every real
- * caller already has one on hand (an order's own area_id, a shop-owner
- * action's shop area, etc.); the one caller with no natural signal
- * (authController's new-signup notification, before any area is resolved)
- * passes getDefaultArea() explicitly rather than this function guessing —
- * see that call site for why. Omitting it entirely fails the INSERT's NOT
- * NULL constraint, caught below same as any other DB error (never throws to
- * the caller), but every real site must pass one.
+ * areaId must be passed explicitly — never guessed here. Every caller with a
+ * natural signal has one on hand (an order's own area_id, a shop-owner
+ * action's shop area, etc.).
+ *
+ * `null` is a deliberate, meaningful value: a PLATFORM-level event that
+ * belongs to no area. The only such caller today is authController's
+ * new-signup notification, which fires before any pin exists — and there is
+ * no default area to borrow, because every area is an equal tenant with its
+ * own team. A NULL row shows up in the admin inbox's "All areas" view (which
+ * runs with no area clause) and never in a single area's (which filters
+ * `area_id = ?`, and a NULL never matches). Its realtime/push fan-out is
+ * routed accordingly below.
+ *
+ * Note: MySQL treats NULLs as distinct in a unique index, so the
+ * uniq_admin_inbox_area_event dedupe does not apply to platform rows. Fine
+ * for new-signup (one per user id, behind an isNewUser branch); anything
+ * higher-volume added later needs its own guard.
  */
 const createAdminNotification = async ({ type, title, body, relatedUrl = null, relatedId = null, areaId }) => {
   try {
@@ -64,7 +72,11 @@ const createAdminNotification = async ({ type, title, body, relatedUrl = null, r
     );
     const notification = rows[0];
     if (notification) {
-      emitToAdmins(areaId, 'admin.notification.created', notification);
+      if (areaId === null) {
+        emitToPlatformAdmins('admin.notification.created', notification);
+      } else {
+        emitToAdmins(areaId, 'admin.notification.created', notification);
+      }
       // Fire-and-forget updated badge count so all open admin tabs refresh.
       broadcastUnreadCount(areaId);
       // Background push to mobile admin phones (D4 — foreground gets the
@@ -109,6 +121,14 @@ const getUnreadCount = async (areaId) => {
 // target — each area's own admin room needs its own area-scoped count, not
 // one global number broadcast everywhere, so fan out one emit per area.
 const broadcastUnreadCount = async (areaId) => {
+  // Platform-level: no area room owns this count, and a scoped count would
+  // be `area_id = NULL`, which matches nothing and would push a badge of 0
+  // to a room nobody is in. The super admin's "All areas" badge is the
+  // unscoped total, so send that to the platform room.
+  if (areaId === null) {
+    emitToPlatformAdmins('admin.notification.unread_count', { count: await getUnreadCount('all') });
+    return;
+  }
   if (areaId === 'all') {
     const areas = await listAreas();
     await Promise.all(areas.map(async (area) => {
@@ -131,6 +151,10 @@ const broadcastUnreadCount = async (areaId) => {
  */
 const notifyMobileAdminsPush = async ({ title, body, type, relatedId, areaId }) => {
   try {
+    // Every mobile_admins row is bound to one area, so a platform-level event
+    // has no audience here. Returning early rather than querying `area_id =
+    // NULL`, which matches nothing and would only look like a silent bug.
+    if (areaId === null) return;
     const [rows] = await pool.query(
       'SELECT user_id FROM mobile_admins WHERE active = 1 AND user_id IS NOT NULL AND area_id = ?',
       [areaId]

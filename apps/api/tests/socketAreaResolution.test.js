@@ -1,11 +1,19 @@
 /**
- * TASK 17 — resolveAreaIdForSocketUser (src/realtime/socket.js), the
- * users.last_area_id -> default-area fallback used to stamp a customer
- * socket's presence entry + analytics session with an areaId (H7: no pin
- * exists at the socket layer, same §4.2/§9.5 chain as everywhere else).
- * Its one real call site is guarded to skip in NODE_ENV=test (see
- * realtime.test.js, which exercises real socket.io connections without a
- * db/mysql mock) — this file tests the function directly instead.
+ * Area attribution at the socket layer.
+ *
+ * There used to be a resolveAreaIdForSocketUser here: a users.last_area_id ->
+ * default-area chain that stamped every customer socket at connect, because
+ * no pin exists at the socket layer (H7 - a cold-start connect races the
+ * app's own area resolution). It was a guess, and it was wrong in both
+ * directions: it put a customer standing in area 2 into area 1's broadcast
+ * room because that is where they last ordered, and it filed their analytics
+ * session under area 1 too, inflating that team's live-user panel with
+ * another team's customers - names and phone numbers included.
+ *
+ * It is gone. A customer socket now joins no area room at connect, and the
+ * app emits 'area:changed' the moment its live pin resolves (the FIRST
+ * resolve included), which is when the room join and the analytics
+ * attribution both happen - with a real area or not at all.
  */
 jest.mock('../src/db/mysql', () => ({
   pool: { query: jest.fn() },
@@ -19,50 +27,38 @@ jest.mock('../src/utils/areaScope', () => ({
 const { pool } = require('../src/db/mysql');
 const { bustUserState } = require('../src/utils/userState');
 const { getDefaultArea, listAreas, getAreaById } = require('../src/utils/areaScope');
-const { resolveAreaIdForSocketUser, joinAreaRoom, rejoinAreaRoom } = require('../src/realtime/socket');
+const socketModule = require('../src/realtime/socket');
+const { joinAreaRoom, rejoinAreaRoom } = socketModule;
 
 const fakeSocket = (auth) => ({ data: { auth }, join: jest.fn() });
 
-describe('resolveAreaIdForSocketUser', () => {
+describe('customer socket area attribution at connect', () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    // users.last_area_id is read through a 30s per-user cache
-    // (utils/userState.js) — clear it so one case's row can't answer the next.
     bustUserState();
   });
 
-  it("returns the user's last_area_id when set", async () => {
-    pool.query.mockResolvedValueOnce([[{ last_area_id: 2 }]]);
-    const areaId = await resolveAreaIdForSocketUser(42);
-    expect(areaId).toBe(2);
+  afterEach(() => {
+    process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  it('no longer exposes a last_area_id/default-area resolver', () => {
+    expect(socketModule.resolveAreaIdForSocketUser).toBeUndefined();
+  });
+
+  it('joins no customers room and reads no area, however the user last ordered', async () => {
+    process.env.NODE_ENV = 'production';
+    const socket = fakeSocket({ id: 42, role: 'customer' });
+
+    await joinAreaRoom(socket);
+
+    expect(socket.join).not.toHaveBeenCalled();
+    expect(socket.data.areaId).toBeUndefined();
+    // The guess cost a DB read per connect, too.
+    expect(pool.query).not.toHaveBeenCalled();
     expect(getDefaultArea).not.toHaveBeenCalled();
-  });
-
-  it('falls back to the default area when last_area_id is null', async () => {
-    pool.query.mockResolvedValueOnce([[{ last_area_id: null }]]);
-    getDefaultArea.mockResolvedValueOnce({ id: 1, code: 'A1', is_default: 1 });
-    const areaId = await resolveAreaIdForSocketUser(42);
-    expect(areaId).toBe(1);
-  });
-
-  it('falls back to the default area when the user row is missing', async () => {
-    pool.query.mockResolvedValueOnce([[]]);
-    getDefaultArea.mockResolvedValueOnce({ id: 1 });
-    const areaId = await resolveAreaIdForSocketUser(999);
-    expect(areaId).toBe(1);
-  });
-
-  it('returns null when even the default-area lookup fails', async () => {
-    pool.query.mockRejectedValueOnce(new Error('db down'));
-    getDefaultArea.mockResolvedValueOnce(null);
-    const areaId = await resolveAreaIdForSocketUser(42);
-    expect(areaId).toBeNull();
-  });
-
-  it('never throws when both lookups fail', async () => {
-    pool.query.mockRejectedValueOnce(new Error('db down'));
-    getDefaultArea.mockRejectedValueOnce(new Error('also down'));
-    await expect(resolveAreaIdForSocketUser(42)).resolves.toBeNull();
   });
 });
 
@@ -89,29 +85,6 @@ describe('joinAreaRoom', () => {
     process.env.NODE_ENV = originalNodeEnv;
   });
 
-  it("joins customers:<areaId> using the user's resolved area", async () => {
-    process.env.NODE_ENV = 'production';
-    pool.query.mockResolvedValueOnce([[{ last_area_id: 2 }]]);
-    const socket = fakeSocket({ id: 42, role: 'customer' });
-
-    await joinAreaRoom(socket);
-
-    expect(socket.join).toHaveBeenCalledWith('customers:2');
-    expect(socket.data.areaId).toBe(2);
-  });
-
-  it('joins no customers room when area resolution comes up empty (H7 cold start)', async () => {
-    process.env.NODE_ENV = 'production';
-    pool.query.mockResolvedValueOnce([[]]);
-    getDefaultArea.mockResolvedValueOnce(null);
-    const socket = fakeSocket({ id: 999, role: 'customer' });
-
-    await joinAreaRoom(socket);
-
-    expect(socket.join).not.toHaveBeenCalled();
-    expect(socket.data.areaId).toBeUndefined();
-  });
-
   it('joins admin:<areaId> directly for an area_admin using the JWT claim, no DB call', async () => {
     const socket = fakeSocket({ role: 'admin', adminRole: 'area_admin', areaId: 5 });
 
@@ -133,6 +106,22 @@ describe('joinAreaRoom', () => {
     expect(socket.join).toHaveBeenCalledWith('admin:2');
     expect(socket.join).toHaveBeenCalledWith('admin:3');
     expect(socket.data.allAdminAreas).toBe(true);
+  });
+
+  // Platform-level events (admin_notifications.area_id IS NULL — a signup,
+  // which happens before any pin exists) belong to no area, so no
+  // admin:<areaId> room can carry them. Only super admins join this one,
+  // which is what keeps them out of an area team's inbox.
+  it('joins the platform room for a super_admin, and never for an area_admin', async () => {
+    process.env.NODE_ENV = 'production';
+    listAreas.mockResolvedValueOnce([{ id: 1 }]);
+    const superAdmin = fakeSocket({ role: 'admin', adminRole: 'super_admin' });
+    await joinAreaRoom(superAdmin);
+    expect(superAdmin.join).toHaveBeenCalledWith(socketModule.PLATFORM_ADMIN_ROOM);
+
+    const areaAdmin = fakeSocket({ role: 'admin', adminRole: 'area_admin', areaId: 5 });
+    await joinAreaRoom(areaAdmin);
+    expect(areaAdmin.join).not.toHaveBeenCalledWith(socketModule.PLATFORM_ADMIN_ROOM);
   });
 
   it('is a no-op when the socket has no auth', async () => {

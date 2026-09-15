@@ -2312,22 +2312,56 @@ const migrate = async () => {
       'product_groups', 'store_modes', 'admin_notifications', 'notification_batches',
     ];
 
+    // admin_notifications is the one scoped table that also has to express
+    // "platform-level, owned by no area": a new-customer signup happens
+    // before any pin exists, so there is no area to attribute it to and
+    // there is no default area to borrow (every area is an equal tenant with
+    // its own team). area_id IS NULL carries that meaning, and the admin
+    // inbox reads it for free — "All areas" runs with no area clause so
+    // NULLs are included, while a specific area filters `area_id = ?` which
+    // a NULL never matches. So it must be skipped by the three steps below
+    // that exist to guarantee a concrete area:
+    //   - backfill, which would rewrite every NULL back to Area 1 on each boot
+    //   - the orphan assert, which reads a NULL as an unmigrated row
+    //   - the NOT NULL tightening
+    // The foreign key still applies (MySQL does not check a NULL child) and
+    // the composite unique index is unchanged.
+    const PLATFORM_NULLABLE_AREA_TABLES = new Set(['admin_notifications']);
+    const STRICT_AREA_TABLES = AREA_SCOPED_TABLES.filter(
+      (t) => !PLATFORM_NULLABLE_AREA_TABLES.has(t)
+    );
+
     for (const tableName of AREA_SCOPED_TABLES) {
       await ensureColumnAtEnd(tableName, 'area_id', 'area_id INT NULL');
     }
     console.log('[migrate] area_id column present (nullable) on all scoped tables.');
 
-    for (const tableName of AREA_SCOPED_TABLES) {
+    for (const tableName of STRICT_AREA_TABLES) {
       await backfillAreaIdToDefault(tableName, 'id');
     }
     console.log('[migrate] area_id backfilled to Area 1 on all scoped tables.');
 
-    for (const tableName of AREA_SCOPED_TABLES) {
+    for (const tableName of STRICT_AREA_TABLES) {
       await assertNoAreaOrphans(tableName);
     }
     console.log('[migrate] area_id orphan check passed on all scoped tables.');
 
-    for (const tableName of AREA_SCOPED_TABLES) {
+    // Re-widen on an already-migrated database (this column was set NOT NULL
+    // by an earlier run before platform-level rows existed). Widening only:
+    // it reads no rows, changes no values and drops nothing, and it is a
+    // no-op once the column is already nullable.
+    for (const tableName of PLATFORM_NULLABLE_AREA_TABLES) {
+      const [col] = await connection.query(`
+        SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = 'area_id'
+      `, [config.MYSQL_DATABASE, tableName]);
+      if (col[0] && col[0].IS_NULLABLE === 'NO') {
+        await connection.query(`ALTER TABLE ${tableName} MODIFY COLUMN area_id INT NULL`);
+      }
+    }
+    console.log('[migrate] area_id left nullable on platform-level tables.');
+
+    for (const tableName of STRICT_AREA_TABLES) {
       const [col] = await connection.query(`
         SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = 'area_id'

@@ -15,6 +15,7 @@
  */
 
 const { pool } = require('../db/mysql');
+const { istDayOfWeek, istInstantFromWallClock } = require('./businessTime');
 const { roundMoney, toMoney } = require('./money');
 const { getNowMinutesInZone, DEFAULT_TIMEZONE } = require('./nightDelivery');
 
@@ -27,14 +28,19 @@ const { getNowMinutesInZone, DEFAULT_TIMEZONE } = require('./nightDelivery');
  * NULL starts_at / ends_at mean open-ended on that side.
  */
 const isWithinDateWindow = (coupon, now = new Date()) => {
+  // starts_at/ends_at are DATETIME — a naive wall clock the admin typed in IST,
+  // stored verbatim. `new Date(value)` read it through whatever zone mysql2 was
+  // configured with (UTC in production), which pushed the whole window ~5h30m
+  // later than it was set. istInstantFromWallClock pins the interpretation to
+  // IST no matter what the driver or the host is doing.
   if (coupon.starts_at) {
-    const start = new Date(coupon.starts_at);
-    if (now < start) return false;
+    const start = istInstantFromWallClock(coupon.starts_at);
+    if (start && now < start) return false;
   }
   if (coupon.ends_at) {
-    const end = new Date(coupon.ends_at);
+    const end = istInstantFromWallClock(coupon.ends_at);
     // ends_at is inclusive — allow redemptions up to the end of that minute.
-    if (now > new Date(end.getTime() + 60_000)) return false;
+    if (end && now > new Date(end.getTime() + 60_000)) return false;
   }
   return true;
 };
@@ -46,7 +52,11 @@ const isWithinDateWindow = (coupon, now = new Date()) => {
  */
 const isWithinActiveDays = (coupon, now = new Date()) => {
   if (coupon.active_days_mask === null || coupon.active_days_mask === undefined) return true;
-  const dayBit = 1 << now.getDay();
+  // IST day, not the host's. isWithinActiveTime directly below already compares
+  // against the IST clock, so reading getDay() here meant a "Monday 00:00-06:00"
+  // coupon was checked with an IST time against a UTC weekday — between 00:00
+  // and 05:30 IST those disagree and the coupon silently refused.
+  const dayBit = 1 << istDayOfWeek(now);
   return (coupon.active_days_mask & dayBit) !== 0;
 };
 

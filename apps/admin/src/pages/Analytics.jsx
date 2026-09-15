@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AnalyticsApi, CustomersApi, subscribeRealtime, getRealtimeConnectionState, subscribeRealtimeLifecycle } from '../api';
+import { useAreaStore } from '../stores/useAreaStore';
 import './Analytics.css';
 
 const STUCK_CHECKOUT_MIN = 5;
@@ -24,7 +25,7 @@ const fmtAgo = (iso) => {
 };
 
 const heatColor = (val, max) => {
-  if (!max || val === 0) return 'var(--bg-secondary)';
+  if (!max || val === 0) return 'var(--surface-soft)';
   const ratio = Math.min(val / max, 1);
   const alpha = 0.15 + ratio * 0.85;
   return `rgba(59, 130, 246, ${alpha})`;
@@ -40,10 +41,53 @@ const WINDOW_PRESETS = [
   { label: '30d', minutes: 30 * 24 * 60 },
 ];
 
+// The server pushes ONE analytics.live snapshot per area every 5s, each into
+// its own admin:<areaId> room. An area_admin sits in exactly one of those
+// rooms, but a super_admin is in ALL of them — so it receives every area's
+// snapshot on every tick. Keeping only the newest payload (what this page used
+// to do) meant displaying whichever area happened to be emitted last, which is
+// almost always one with nobody online: the panel read 0 while customers were
+// clearly using the app. Snapshots are kept per area instead and combined here
+// to match the area the admin has actually selected in the switcher.
+//
+// peakToday across several areas is the sum of each area's own peak, not a
+// true simultaneous global peak (the server tracks the high-water mark per
+// area). Close enough for the header stat; `online` is exact.
+const combineLiveSnapshots = (snapshots) => {
+  if (snapshots.length === 0) return null;
+  if (snapshots.length === 1) return snapshots[0];
+
+  const merged = {
+    areaId: null,
+    online: 0,
+    peakToday: 0,
+    byScreen: {},
+    byPlatform: { android: 0, ios: 0 },
+    byArea: {},
+    users: [],
+  };
+  snapshots.forEach((snap) => {
+    merged.online += snap.online || 0;
+    merged.peakToday += snap.peakToday || 0;
+    Object.entries(snap.byScreen || {}).forEach(([screen, count]) => {
+      merged.byScreen[screen] = (merged.byScreen[screen] || 0) + count;
+    });
+    merged.byPlatform.android += snap.byPlatform?.android || 0;
+    merged.byPlatform.ios += snap.byPlatform?.ios || 0;
+    Object.entries(snap.byArea || {}).forEach(([key, count]) => {
+      merged.byArea[key] = (merged.byArea[key] || 0) + count;
+    });
+    if (snap.users) merged.users.push(...snap.users);
+  });
+  return merged;
+};
+
 export default function Analytics() {
   const navigate = useNavigate();
   const [days, setDays] = useState(7);
-  const [live, setLive] = useState(null);
+  const { areaId: selectedAreaId } = useAreaStore() || {};
+  // areaId (string) → that area's newest snapshot. See combineLiveSnapshots.
+  const [liveByArea, setLiveByArea] = useState({});
   const [socketConnected, setSocketConnected] = useState(false);
   const [summary, setSummary] = useState(null);
   const [products, setProducts] = useState(null);
@@ -88,7 +132,10 @@ export default function Analytics() {
 
   // Subscribe to analytics.live socket pushes.
   useEffect(() => {
-    const unsub = subscribeRealtime('analytics.live', (payload) => setLive(payload));
+    const unsub = subscribeRealtime('analytics.live', (payload) => {
+      const key = payload?.areaId == null ? 'unknown' : String(payload.areaId);
+      setLiveByArea((prev) => ({ ...prev, [key]: payload }));
+    });
     const unsubLife = subscribeRealtimeLifecycle(({ eventName }) => {
       if (eventName === 'connected' || eventName === 'reconnected') setSocketConnected(true);
       if (eventName === 'disconnected') setSocketConnected(false);
@@ -96,6 +143,19 @@ export default function Analytics() {
     setSocketConnected(getRealtimeConnectionState().connected);
     return () => { unsub(); unsubLife(); };
   }, []);
+
+  // What the header/table actually renders: the selected area's snapshot, or
+  // every area combined when the super admin is on "All areas". An area_admin
+  // has no selection at all (useAreaStore leaves areaId null for them) and only
+  // ever receives their own area, so the combined view is that one area.
+  const live = useMemo(() => {
+    const all = Object.values(liveByArea);
+    if (selectedAreaId && selectedAreaId !== 'all') {
+      const scoped = liveByArea[String(selectedAreaId)];
+      return scoped || null;
+    }
+    return combineLiveSnapshots(all);
+  }, [liveByArea, selectedAreaId]);
 
   // Fetch history data when days changes.
   const fetchData = useCallback(async (d) => {
@@ -216,20 +276,22 @@ export default function Analytics() {
         {findLoading ? (
           <div className="analytics-empty">Searching…</div>
         ) : (findResults && findResults.length > 0) ? (
-          <table className="analytics-table analytics-find-table">
-            <thead><tr><th>User</th><th>Phone</th><th>Sessions</th><th>Platform</th><th>Last active</th></tr></thead>
-            <tbody>
-              {findResults.map(u => (
-                <tr key={u.userId} onClick={() => navigate(`/analytics/user/${u.userId}`)} className="analytics-row-clickable">
-                  <td><span className="analytics-user-cell"><span className="analytics-avatar-sm">{(u.name || '?').charAt(0).toUpperCase()}</span>{u.name || `User ${u.userId}`}</span></td>
-                  <td>{u.phone || '—'}</td>
-                  <td>{u.sessions}</td>
-                  <td>{u.platform || '—'}</td>
-                  <td>{fmtAgo(u.lastActiveAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="analytics-table-wrap">
+            <table className="analytics-table analytics-find-table">
+              <thead><tr><th>User</th><th>Phone</th><th>Sessions</th><th>Platform</th><th>Last active</th></tr></thead>
+              <tbody>
+                {findResults.map(u => (
+                  <tr key={u.userId} onClick={() => navigate(`/analytics/user/${u.userId}`)} className="analytics-row-clickable">
+                    <td><span className="analytics-user-cell"><span className="analytics-avatar-sm">{(u.name || '?').charAt(0).toUpperCase()}</span>{u.name || `User ${u.userId}`}</span></td>
+                    <td>{u.phone || '—'}</td>
+                    <td>{u.sessions}</td>
+                    <td>{u.platform || '—'}</td>
+                    <td>{fmtAgo(u.lastActiveAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div className="analytics-empty">No users found for this window{findSearch ? ' and search' : ''}.</div>
         )}
@@ -256,23 +318,25 @@ export default function Analytics() {
           </span>
         </div>
         {live?.users?.length > 0 ? (
-          <table className="analytics-table">
-            <thead><tr><th>User</th><th>Screen</th><th>Platform</th><th>Connected</th></tr></thead>
-            <tbody>
-              {live.users.map(u => {
-                const stuck = u.screen === 'Checkout' && u.connectedMin >= STUCK_CHECKOUT_MIN;
-                const cached = nameCacheRef.current[u.userId];
-                return (
-                  <tr key={u.userId} className={stuck ? 'stuck-checkout' : ''}>
-                    <td><Link to={`/analytics/user/${u.userId}`}>{cached?.name || `User ${u.userId}`}</Link></td>
-                    <td>{u.screen || '—'}{stuck && <span className="stuck-badge"> STUCK</span>}</td>
-                    <td>{u.platform || '—'}</td>
-                    <td>{fmtMin(u.connectedMin * 60)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="analytics-table-wrap">
+            <table className="analytics-table">
+              <thead><tr><th>User</th><th>Screen</th><th>Platform</th><th>Connected</th></tr></thead>
+              <tbody>
+                {live.users.map(u => {
+                  const stuck = u.screen === 'Checkout' && u.connectedMin >= STUCK_CHECKOUT_MIN;
+                  const cached = nameCacheRef.current[u.userId];
+                  return (
+                    <tr key={u.userId} className={stuck ? 'stuck-checkout' : ''}>
+                      <td><Link to={`/analytics/user/${u.userId}`}>{cached?.name || `User ${u.userId}`}</Link></td>
+                      <td>{u.screen || '—'}{stuck && <span className="stuck-badge"> STUCK</span>}</td>
+                      <td>{u.platform || '—'}</td>
+                      <td>{fmtMin(u.connectedMin * 60)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : <div className="analytics-empty">{socketConnected ? 'No customers online right now.' : 'Connect to see live data.'}</div>}
       </div>
 
@@ -357,20 +421,22 @@ export default function Analytics() {
       <div className="analytics-card analytics-section">
         <h2>Window shoppers (added to cart, never ordered — 7d)</h2>
         {(windowShoppers?.data || []).length > 0 ? (
-          <table className="analytics-table">
-            <thead><tr><th>Name</th><th>Phone</th><th>Cart adds</th><th>Cart removes</th><th>Last active</th></tr></thead>
-            <tbody>
-              {windowShoppers.data.map(w => (
-                <tr key={w.userId}>
-                  <td><Link to={`/analytics/user/${w.userId}`}>{w.name || `User ${w.userId}`}</Link></td>
-                  <td>{w.phone || '—'}</td>
-                  <td>{w.cartAdds}</td>
-                  <td>{w.cartRemoves}</td>
-                  <td>{w.lastActiveAt ? new Date(w.lastActiveAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="analytics-table-wrap">
+            <table className="analytics-table">
+              <thead><tr><th>Name</th><th>Phone</th><th>Cart adds</th><th>Cart removes</th><th>Last active</th></tr></thead>
+              <tbody>
+                {windowShoppers.data.map(w => (
+                  <tr key={w.userId}>
+                    <td><Link to={`/analytics/user/${w.userId}`}>{w.name || `User ${w.userId}`}</Link></td>
+                    <td>{w.phone || '—'}</td>
+                    <td>{w.cartAdds}</td>
+                    <td>{w.cartRemoves}</td>
+                    <td>{w.lastActiveAt ? new Date(w.lastActiveAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : <div className="analytics-empty">No window shoppers in this period.</div>}
       </div>
     </div>

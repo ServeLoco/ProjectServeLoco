@@ -4,19 +4,17 @@
 // yesterday if its docs are missing.
 
 const { getDb } = require('../../db/mongodb');
+const { istDateKey, istHour, msUntilNextIst } = require('../../utils/businessTime');
 const { listAreas } = require('../../utils/areaScope');
 
 const ROLLOUT_HOUR = 0; // 00:xx
 const ROLLOUT_MINUTE = 5; // 00:05
 
-// Local-timezone YYYY-MM-DD. toISOString() would shift to UTC and, in
-// timezones ahead of UTC (e.g. IST), roll up the wrong calendar day at 00:05.
-const toLocalDateStr = (d) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
+// IST YYYY-MM-DD. This used to read the process's OWN local date, on the
+// assumption it ran in IST — the production container sets no TZ and runs on
+// UTC (see realtime/shopScheduleSweeper.js), so every daily rollup was keyed to
+// a UTC day and the 00:00-05:30 IST slice landed on the previous date.
+const toLocalDateStr = (d) => istDateKey(d);
 
 // A doc from before this task, or an event/session ingested through a code
 // path that hasn't picked up areaId yet, has no areaId field at all — §9.5/
@@ -43,7 +41,9 @@ const computeStatsForDocs = (sessions, events) => {
   const productCounts = { cart_add: {}, cart_remove: {}, product_view: {} };
 
   for (const e of events) {
-    const hour = new Date(e.createdAt).getHours();
+    // IST hour, not the container's — this is the bucket behind the admin
+    // Analytics "Active hours" grid, which was showing UTC hours.
+    const hour = istHour(new Date(e.createdAt));
     if (e.userId != null) hourlySet[hour].add(e.userId);
 
     if (e.type === 'order_placed') { orders++; usersWithOrder.add(e.userId); }
@@ -166,14 +166,10 @@ const computeDailyStats = async (dateStr, db) => {
 };
 
 /**
- * Milliseconds until the next 00:05 local time.
+ * Milliseconds until the next 00:05 IST — the rollup has to fire just after the
+ * IST day it summarises has actually ended, not after the container's day.
  */
-const msUntilNextRun = (now = new Date()) => {
-  const next = new Date(now);
-  next.setHours(ROLLOUT_HOUR, ROLLOUT_MINUTE, 0, 0);
-  if (next <= now) next.setDate(next.getDate() + 1);
-  return next - now;
-};
+const msUntilNextRun = (now = new Date()) => msUntilNextIst(ROLLOUT_HOUR, ROLLOUT_MINUTE, now);
 
 /**
  * Backfill yesterday if it's missing a doc for any currently-active area
@@ -185,9 +181,7 @@ const msUntilNextRun = (now = new Date()) => {
  */
 const backfillYesterday = async () => {
   try {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const dateStr = toLocalDateStr(yesterday);
+    const dateStr = toLocalDateStr(new Date(Date.now() - 24 * 60 * 60 * 1000));
     const db = getDb();
     const [existingCount, activeAreas] = await Promise.all([
       db.collection('analytics_daily').countDocuments({ date: dateStr }),
@@ -217,10 +211,8 @@ const startRollupScheduler = () => {
     const ms = msUntilNextRun();
     rollupTimer = setTimeout(async () => {
       try {
-        // Roll up yesterday (the day that just ended).
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const dateStr = toLocalDateStr(yesterday);
+        // Roll up yesterday in IST (the day that just ended).
+        const dateStr = toLocalDateStr(new Date(Date.now() - 24 * 60 * 60 * 1000));
         await computeDailyStats(dateStr);
         console.log(`[analytics-rollup] computed daily stats for ${dateStr}`);
       } catch (error) {

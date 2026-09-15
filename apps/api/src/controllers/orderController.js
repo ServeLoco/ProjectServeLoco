@@ -13,6 +13,7 @@ const { validateCoupon, validateCouponById, pickBestAutoApply } = require('../ut
 const { ACTIVE_ORDER_STATUSES } = require('../utils/riders');
 const { bustUserState } = require('../utils/userState');
 const config = require('../config/env');
+const { istDateOf } = require('../utils/businessTime');
 
 // Expected business failures → 400. clientCode lets specific failures carry a
 // distinct machine-readable code (e.g. OUT_OF_DELIVERY_RANGE) while everything
@@ -781,7 +782,7 @@ const getOrders = async (req, res) => {
   let where = 'o.customer_id = ?';
   const params = [userId];
   if (date) {
-    where += ' AND DATE(o.created_at) = ?';
+    where += ` AND ${istDateOf('o.created_at')} = ?`;
     params.push(date);
   }
 

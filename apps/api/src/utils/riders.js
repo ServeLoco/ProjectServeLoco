@@ -1,5 +1,6 @@
 const { pool } = require('../db/mysql');
 const config = require('../config/env');
+const { istIsToday } = require('./businessTime');
 const { calculateDistance } = require('./deliveryPricing');
 
 // Calendar day for "least orders completed today" (D8 = Asia/Kolkata).
@@ -192,8 +193,9 @@ const listEligibleRiders = async ({ excludeIds = [], areaId } = {}) => {
 };
 
 /**
- * Count Delivered orders completed by this rider on the calendar day in RIDER_TODAY_TZ.
- * Uses COALESCE(rider_assigned_at, updated_at) converted to that timezone for the day boundary.
+ * Count Delivered orders completed by this rider on the IST calendar day.
+ * Day boundary comes from businessTime (stored zone -> IST), the single
+ * definition of "today" shared with every report and dashboard figure.
  */
 const countCompletedDeliveriesToday = async (riderId) => {
   if (!riderId) return 0;
@@ -202,9 +204,8 @@ const countCompletedDeliveriesToday = async (riderId) => {
      FROM orders
      WHERE rider_id = ?
        AND status = 'Delivered'
-       AND DATE(CONVERT_TZ(COALESCE(delivered_at, updated_at, created_at), '+00:00', ?)) =
-           DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', ?))`,
-    [riderId, RIDER_TODAY_TZ, RIDER_TODAY_TZ]
+       AND ${istIsToday('COALESCE(delivered_at, updated_at, created_at)')}`,
+    [riderId]
   );
   return Number(rows[0]?.cnt) || 0;
 };
@@ -258,10 +259,9 @@ const countCompletedDeliveriesTodayBatch = async (riderIds) => {
      FROM orders
      WHERE rider_id IN (${ids.map(() => '?').join(',')})
        AND status = 'Delivered'
-       AND DATE(CONVERT_TZ(COALESCE(delivered_at, updated_at, created_at), '+00:00', ?)) =
-           DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', ?))
+       AND ${istIsToday('COALESCE(delivered_at, updated_at, created_at)')}
      GROUP BY rider_id`,
-    [...ids, RIDER_TODAY_TZ, RIDER_TODAY_TZ]
+    [...ids]
   );
   const map = {};
   for (const row of rows) map[row.rider_id] = Number(row.cnt) || 0;

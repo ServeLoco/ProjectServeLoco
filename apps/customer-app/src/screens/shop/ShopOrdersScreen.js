@@ -3,6 +3,7 @@ import {
   ActivityIndicator, FlatList, RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { colors, spacing, typography, radius, glass, glassRadius, glassShadow } from '../../theme';
 import { shopApi, subscribeRealtime } from '../../api';
@@ -13,12 +14,12 @@ import { todayDateStr } from '../../utils/dateStr';
 // Visual treatment per order status — translucent fills with a matching rim,
 // which is what stays legible on the black canvas.
 const STATUS_STYLE = {
-  Pending: { bg: glass.warningFill, rim: glass.warningRim, text: glass.warningText, dot: colors.warning },
-  Accepted: { bg: glass.tint, rim: glass.borderWarm, text: colors.saffron, dot: colors.saffron },
-  Preparing: { bg: glass.tint, rim: glass.borderWarm, text: colors.saffron, dot: colors.saffron },
-  'Out for Delivery': { bg: glass.infoFill, rim: glass.infoRim, text: glass.infoText, dot: colors.info },
-  Delivered: { bg: glass.successFill, rim: glass.successRim, text: glass.successText, dot: colors.success },
-  Cancelled: { bg: glass.errorFill, rim: glass.errorRim, text: glass.errorText, dot: colors.error },
+  Pending: { bg: '#9A5B00', dot: '#FFD59E' },
+  Accepted: { bg: '#C2560F', dot: '#FFC9A3' },
+  Preparing: { bg: '#C2560F', dot: '#FFC9A3' },
+  'Out for Delivery': { bg: '#2563EB', dot: '#BFD4FF' },
+  Delivered: { bg: '#128A55', dot: '#9EF0C8' },
+  Cancelled: { bg: '#B3211F', dot: '#FFB3B1' },
 };
 
 /**
@@ -132,11 +133,10 @@ export default function ShopOrdersScreen() {
   }, [orders]);
 
   const renderOrder = ({ item }) => {
-    const statusStyle = STATUS_STYLE[item.status]
-      || { bg: glass.fillStrong, rim: glass.border, text: glass.textDim, dot: glass.textFaint };
+    const statusStyle = STATUS_STYLE[item.status] || { bg: '#3A3A42', dot: '#FFFFFF' };
     return (
       <View style={styles.card}>
-        <View style={[styles.cardAccent, { backgroundColor: statusStyle.dot }]} />
+        <View style={[styles.cardAccent, { backgroundColor: statusStyle.bg }]} />
         <View style={styles.cardBody}>
           <View style={styles.cardHeader}>
             <Text style={styles.orderNumber} numberOfLines={1} ellipsizeMode="tail">#{item.orderNumber || item.order_number}</Text>
@@ -154,9 +154,9 @@ export default function ShopOrdersScreen() {
                   </Text>
                 </View>
               ) : null}
-              <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.rim }]}>
+              <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
                 <View style={[styles.statusDot, { backgroundColor: statusStyle.dot }]} />
-                <Text style={[styles.statusText, { color: statusStyle.text }]}>{item.status}</Text>
+                <Text style={styles.statusText}>{item.status}</Text>
               </View>
             </View>
           </View>
@@ -267,15 +267,21 @@ export default function ShopOrdersScreen() {
           renderItem={null}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.saffron} />}
           ListEmptyComponent={
-            <View style={styles.emptyState}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.02)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.emptyState}
+            >
+              <View style={styles.emptyTopLight} pointerEvents="none" />
               <View style={styles.emptyIconWrap}>
-                <AppIcon name="orders" size={32} color={colors.saffron} />
+                <AppIcon name="orders" size={32} color="#FFFFFF" />
               </View>
               <Text style={styles.emptyTitle}>{loadError ? 'Could not load orders' : 'No orders yet'}</Text>
               <Text style={styles.emptyText}>
                 {loadError ? 'Pull down to try again.' : 'Every order your shop has received will show up here.'}
               </Text>
-            </View>
+            </LinearGradient>
           }
         />
       ) : (
@@ -294,6 +300,7 @@ export default function ShopOrdersScreen() {
         onClose={() => setPickerVisible(false)}
         onSelectDate={handleSelectDate}
         selectedDate={selectedDate}
+        variant="dark"
       />
     </SafeAreaView>
   );
@@ -309,7 +316,7 @@ function SummaryPill({ label, value, color }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: glass.canvas },
+  container: { flex: 1, backgroundColor: glass.screen },
   header: {
     paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
   },
@@ -322,32 +329,29 @@ const styles = StyleSheet.create({
   },
   historyBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 13 },
 
-  speedBadge: {
-    borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3,
-    borderWidth: 1,
-  },
-  speedBadgeFast: { backgroundColor: glass.warningFill, borderColor: glass.warningRim },
-  speedBadgeStandard: { backgroundColor: glass.fillStrong, borderColor: glass.border },
-  speedBadgeText: { fontSize: 11, fontWeight: '800' },
-  speedBadgeTextFast: { color: glass.warningText },
-  speedBadgeTextStandard: { color: glass.textDim },
+  speedBadge: { borderRadius: radius.pill, paddingHorizontal: 9, paddingVertical: 3 },
+  speedBadgeFast: { backgroundColor: colors.saffron },
+  speedBadgeStandard: { backgroundColor: '#2563EB' },
+  speedBadgeText: { fontSize: 11, fontWeight: '800', color: '#FFFFFF' },
+  speedBadgeTextFast: { color: '#FFFFFF' },
+  speedBadgeTextStandard: { color: '#FFFFFF' },
 
   summaryRow: {
     flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.md,
   },
   summaryPill: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: glass.fill, borderRadius: glassRadius.inner,
-    borderWidth: 1, borderColor: glass.border, paddingVertical: spacing.sm + 2,
+    backgroundColor: '#3A3A42', borderRadius: glassRadius.inner,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', paddingVertical: spacing.sm + 2,
     ...glassShadow,
   },
   summaryValue: { ...typography.priceLarge, fontSize: 22, fontWeight: '800' },
-  summaryLabel: { ...typography.captionMedium, color: glass.textDim, marginTop: 2 },
+  summaryLabel: { ...typography.captionMedium, color: 'rgba(255,255,255,0.70)', marginTop: 2 },
 
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl + spacing.lg },
+  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl + spacing.xxl },
   card: {
-    flexDirection: 'row', backgroundColor: glass.fill, borderRadius: glassRadius.card,
-    marginBottom: spacing.md, borderWidth: 1, borderColor: glass.border, overflow: 'hidden',
+    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.26)', borderRadius: glassRadius.card,
+    marginBottom: spacing.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)', overflow: 'hidden',
     ...glassShadow,
   },
   cardAccent: { width: 6, backgroundColor: colors.saffron },
@@ -360,47 +364,45 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 1,
   },
   statusDot: { width: 6, height: 6, borderRadius: radius.circle },
-  statusText: { fontWeight: '800', fontSize: 12 },
+  statusText: { fontWeight: '800', fontSize: 12, color: '#FFFFFF' },
 
   itemRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs },
   qtyChip: {
-    backgroundColor: glass.tint, borderRadius: radius.lg, paddingHorizontal: 8,
-    paddingVertical: 3, marginRight: spacing.sm, minWidth: 36, alignItems: 'center',
-    borderWidth: 1, borderColor: glass.borderWarm,
+    backgroundColor: colors.saffron, borderRadius: radius.lg, paddingHorizontal: 8,
+    paddingVertical: 3, marginRight: spacing.sm, minWidth: 38, alignItems: 'center',
   },
-  qtyChipText: { color: colors.saffron, fontWeight: '800', fontSize: 13 },
+  qtyChipText: { color: '#FFFFFF', fontWeight: '800', fontSize: 13 },
   itemText: { flex: 1, ...typography.body, color: glass.text, fontWeight: '500' },
-  itemAmount: { ...typography.captionMedium, color: glass.textDim, fontWeight: '700' },
+  itemAmount: { ...typography.captionMedium, color: glass.text, fontWeight: '800' },
   itemAmountUnset: { ...typography.captionMedium, color: glass.textFaint, fontStyle: 'italic' },
 
   cardTotalRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: glass.divider,
+    marginTop: spacing.sm, marginHorizontal: -(spacing.md + 2), marginBottom: -(spacing.md + 2),
+    paddingHorizontal: spacing.md + 2, paddingVertical: spacing.sm + 2,
+    backgroundColor: '#0C6B43',
   },
-  cardTotalLabel: { ...typography.captionMedium, color: glass.textDim },
-  cardTotalValue: { ...typography.label, color: glass.successText, fontWeight: '800' },
+  cardTotalLabel: { ...typography.captionMedium, color: '#FFFFFF', fontWeight: '700' },
+  cardTotalValue: { ...typography.label, color: '#FFFFFF', fontWeight: '900' },
 
   payablePill: {
     flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-    backgroundColor: glass.successFill, borderRadius: radius.pill,
-    borderWidth: 1, borderColor: glass.successRim,
+    backgroundColor: '#0C6B43', borderRadius: radius.pill,
     paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2,
     marginHorizontal: spacing.lg, marginBottom: spacing.md,
   },
-  payablePillText: { ...typography.captionMedium, color: glass.successText },
+  payablePillText: { ...typography.captionMedium, color: '#FFFFFF', fontWeight: '700' },
   payablePillValue: { fontWeight: '800' },
 
   staleBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-    backgroundColor: glass.errorFill, borderRadius: radius.pill,
-    borderWidth: 1, borderColor: glass.errorRim,
+    backgroundColor: '#B3211F', borderRadius: radius.pill,
     paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2,
     marginHorizontal: spacing.lg, marginBottom: spacing.md,
   },
-  staleBannerText: { ...typography.captionMedium, color: glass.errorText, flexShrink: 1 },
+  staleBannerText: { ...typography.captionMedium, color: '#FFFFFF', fontWeight: '700', flexShrink: 1 },
 
   rejectedNote: {
     flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm,
@@ -416,12 +418,20 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.xl,
     marginHorizontal: spacing.lg, marginTop: spacing.lg,
-    backgroundColor: glass.fill, borderRadius: glassRadius.card,
-    borderWidth: 1, borderColor: glass.border, ...glassShadow,
+    borderRadius: glassRadius.card, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    borderTopColor: 'rgba(255,255,255,0.25)',
+    borderLeftColor: 'rgba(255,255,255,0.16)',
+    ...glassShadow,
+  },
+  emptyTopLight: {
+    position: 'absolute', top: 0, left: 26, right: 26, height: 1,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 1,
   },
   emptyIconWrap: {
-    width: 76, height: 76, borderRadius: radius.circle, backgroundColor: glass.tint,
-    borderWidth: 1, borderColor: glass.borderWarm,
+    width: 76, height: 76, borderRadius: radius.circle, backgroundColor: '#FF7A3A',
+    borderWidth: 1, borderColor: '#E05A1A',
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
   },
   emptyTitle: { ...typography.h3, color: glass.text },

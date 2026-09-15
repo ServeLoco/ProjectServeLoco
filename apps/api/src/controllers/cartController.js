@@ -300,6 +300,12 @@ const calculateCart = async (req, res) => {
       outOfRange: true,
       zone: null,
       zoneExtentKm: null,
+      // The resolver picked this from the FALLBACK area's zones, so the hint
+      // read "Move pin inside <a zone in someone else's area>" — advice that,
+      // if followed, drops the customer into another team's catalog and wipes
+      // the cart they were told to save. The client already has an
+      // area-neutral message for null.
+      nearestZoneName: null,
       deliveryCharge: 0,
       standardDeliveryCharge: 0,
       fastDeliveryCharge: 0,
@@ -631,8 +637,18 @@ const calculateCart = async (req, res) => {
     // Which area this pin priced against. Products are area-scoped, so the
     // client needs this to tell "you crossed into another area's catalog"
     // (cart legitimately cleared) apart from "this item went out of stock".
-    areaId: deliveryAreaId,
-    area_id: deliveryAreaId,
+    //
+    // null when the pin matched no zone anywhere: deliveryAreaId is the
+    // DEFAULT area there, borrowed purely to have some settings row to read,
+    // and reporting it as the resolved area told the client the customer had
+    // crossed into that area's catalog. Combined with the unavailableItems
+    // below — every line looks out of stock, because they belong to the area
+    // the customer actually IS in, not the fallback — checkout responded to a
+    // pin nudged a kilometre past the zone edge by wiping the whole cart and
+    // announcing "Delivery area changed" (reproduced on-device). Outside every
+    // zone there is no area and no catalog verdict to give: just a refusal.
+    areaId: pinMatchedNoZone ? null : deliveryAreaId,
+    area_id: pinMatchedNoZone ? null : deliveryAreaId,
     subtotal,
     deliveryCharge: standardDeliveryCharge,
     nightCharge,
@@ -645,8 +661,12 @@ const calculateCart = async (req, res) => {
     // Lines dropped because product/combo/variant is OOS or deleted (shop-closed
     // and group-inactive items hard-fail the whole request instead — see above).
     // Empty array when every requested line is orderable.
-    unavailableItems,
-    unavailable_items: unavailableItems,
+    // See areaId above — availability was resolved against the fallback area,
+    // so outside every zone it describes nothing real. The quote is already
+    // refused via isValid/outOfRange; dropping the customer's items on top of
+    // that is destroying a cart over geography.
+    unavailableItems: pinMatchedNoZone ? [] : unavailableItems,
+    unavailable_items: pinMatchedNoZone ? [] : unavailableItems,
     isValid: deliveryWithinRange,
     valid: deliveryWithinRange,
     message: !deliveryWithinRange ? deliveryMessage : '',

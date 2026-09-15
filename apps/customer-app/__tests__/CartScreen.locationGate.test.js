@@ -156,6 +156,40 @@ describe('CartScreen tells the customer the truth about their location', () => {
     expect(syncDeliveryLocation).toHaveBeenCalledTimes(1);
   });
 
+  // The cart is a billing surface and the delivery charge comes from whichever
+  // zone the pin falls in, so a pin that is merely STALE is the dangerous
+  // case, not just a missing one: the customer moved since the last sync (or
+  // the 5-minute resume throttle skipped one) and the cart would quote a zone
+  // they are no longer standing in, with nothing on screen saying so.
+  it('re-verifies the live location on every cart open, not only when the pin is missing', async () => {
+    useDeliveryLocationStore.setState({
+      coords: { lat: 12.97, lng: 77.6 }, source: 'gps', isInitialSyncComplete: true,
+    });
+    cartApi.calculate.mockResolvedValue(ZONE_BILL);
+
+    await renderCart();
+
+    expect(syncDeliveryLocation).toHaveBeenCalledTimes(1);
+  });
+
+  // A manual pin is an explicit "deliver to this address" choice (ordering for
+  // someone else), so the re-verify must not move it — syncDeliveryLocation's
+  // own manual branch re-checks the zone in place. Asserted here so a future
+  // change that makes the cart force-refresh GPS gets caught.
+  it('re-verifies a manual pin on open without replacing it', async () => {
+    useDeliveryLocationStore.setState({
+      coords: { lat: 12.97, lng: 77.6 }, source: 'manual', isInitialSyncComplete: true,
+    });
+    cartApi.calculate.mockResolvedValue(ZONE_BILL);
+
+    await renderCart();
+
+    expect(syncDeliveryLocation).toHaveBeenCalledTimes(1);
+    const after = useDeliveryLocationStore.getState();
+    expect(after.coords).toEqual({ lat: 12.97, lng: 77.6 });
+    expect(after.source).toBe('manual');
+  });
+
   // A bare skeleton past a couple of seconds reads as the app being stuck,
   // and on a slow link the wait is doubled: the startup location sync has to
   // land before the quote may even be sent.

@@ -37,6 +37,7 @@ const {
   timeoutRejectStaleShopOrders,
   SHOP_ALERT_REMIND_MS,
   SHOP_ALERT_REMIND_ACKED_MS,
+  SHOP_ALERT_FIRST_RETRY_MS,
   SHOP_RESPONSE_TIMEOUT_MS,
 } = require('../src/realtime/shopAlertSweeper');
 
@@ -63,7 +64,7 @@ describe('remindPendingShopOrders', () => {
   it('claims a row (compare-and-set) before pushing, then reminds it', async () => {
     pool.query.mockResolvedValueOnce([[{
       order_id: 10, shop_id: 1, order_number: 'ORD-10', owner_user_id: 501, shop_name: 'Burger Point',
-      last_notified_at: null,
+      owner_fcm_token: 'tok-501', last_notified_at: null,
     }]]);
     pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]); // claim UPDATE
 
@@ -79,10 +80,13 @@ describe('remindPendingShopOrders', () => {
     expect(pool.query.mock.invocationCallOrder[1]).toBeLessThan(
       remindShopOrderOwner.mock.invocationCallOrder[0]
     );
+    // The owner's fcm_token rides along on the SELECT — the push must reuse it
+    // rather than paying another round trip to look the same token up.
     expect(remindShopOrderOwner).toHaveBeenCalledWith(
       { id: 10, order_number: 'ORD-10' },
       1,
-      501
+      501,
+      { fcmToken: 'tok-501' }
     );
   });
 
@@ -138,13 +142,30 @@ describe('remindPendingShopOrders', () => {
     expect(sql).toMatch(/shop_confirmed_at IS NULL/);
     expect(sql).toMatch(/shop_rejected_at IS NULL/);
     expect(sql).toMatch(/o\.accepted_at > \(NOW\(\) - INTERVAL \? SECOND\)/);
-    expect(sql).toMatch(/HAVING MIN\(oi\.shop_last_notified_at\) IS NULL/);
-    expect(sql).toMatch(/CASE WHEN MIN\(oi\.shop_alert_acked_at\) IS NULL THEN \? ELSE \? END/);
+    // Due-time basis falls back to accepted_at, never "NULL means due now" —
+    // notifyShopsForOrder stamps shop_last_notified_at just *after* firing the
+    // initial push, and treating that gap as due re-rang the owner immediately.
+    expect(sql).toMatch(
+      /HAVING COALESCE\(MIN\(oi\.shop_last_notified_at\), o\.accepted_at\)/
+    );
+    expect(sql).not.toMatch(/HAVING MIN\(oi\.shop_last_notified_at\) IS NULL/);
+    // Reminder cadence escalates: acked rows go slow; an unacked row doubles
+    // its gap from SHOP_ALERT_FIRST_RETRY_MS up to the steady cadence.
+    expect(sql).toMatch(/WHEN MIN\(oi\.shop_alert_acked_at\) IS NOT NULL THEN \?/);
+    expect(sql).toMatch(
+      /LEAST\(\?, \? \* POW\(2, GREATEST\(MIN\(oi\.shop_notify_count\) - 1, 0\)\)\)/
+    );
     expect(params).toEqual([
       Math.ceil(SHOP_RESPONSE_TIMEOUT_MS / 1000),
-      Math.ceil(SHOP_ALERT_REMIND_MS / 1000),
       Math.ceil(SHOP_ALERT_REMIND_ACKED_MS / 1000),
+      Math.ceil(SHOP_ALERT_REMIND_MS / 1000),
+      Math.ceil(SHOP_ALERT_FIRST_RETRY_MS / 1000),
     ]);
+  });
+
+  it('escalates the retry cadence: first retry fastest, never slower than steady state', () => {
+    expect(SHOP_ALERT_FIRST_RETRY_MS).toBeLessThanOrEqual(SHOP_ALERT_REMIND_MS);
+    expect(SHOP_ALERT_FIRST_RETRY_MS).toBeGreaterThan(0);
   });
 
   it('reminds each shop independently on a multi-shop order', async () => {
@@ -157,8 +178,8 @@ describe('remindPendingShopOrders', () => {
     await remindPendingShopOrders();
 
     expect(remindShopOrderOwner).toHaveBeenCalledTimes(2);
-    expect(remindShopOrderOwner).toHaveBeenCalledWith(expect.anything(), 1, 601);
-    expect(remindShopOrderOwner).toHaveBeenCalledWith(expect.anything(), 2, 602);
+    expect(remindShopOrderOwner).toHaveBeenCalledWith(expect.anything(), 1, 601, expect.anything());
+    expect(remindShopOrderOwner).toHaveBeenCalledWith(expect.anything(), 2, 602, expect.anything());
   });
 
   it('continues to the next row when one claim throws and when one push fails', async () => {
@@ -177,7 +198,7 @@ describe('remindPendingShopOrders', () => {
     // Row 21 never reached remindShopOrderOwner (claim threw first); row 22
     // did but rejected; row 23 succeeded — net one successful reminder.
     expect(remindShopOrderOwner).toHaveBeenCalledTimes(2);
-    expect(remindShopOrderOwner).toHaveBeenCalledWith(expect.anything(), 3, 703);
+    expect(remindShopOrderOwner).toHaveBeenCalledWith(expect.anything(), 3, 703, expect.anything());
   });
 });
 

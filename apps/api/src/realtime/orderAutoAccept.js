@@ -3,7 +3,12 @@ const realtimeEvents = require('./orderEvents');
 const notificationService = require('../utils/notificationService');
 const { notifyShopsForOrder } = require('../utils/shops');
 
-const AUTO_ACCEPT_MS = 120_000;
+const config = require('../config/env');
+
+// Admin's veto window before an order auto-accepts — and the worst-case wait
+// before shop owners are told about it (notifyShopsForOrder only runs once the
+// order leaves Pending). Tunable via ORDER_AUTO_ACCEPT_MS.
+const AUTO_ACCEPT_MS = config.ORDER_AUTO_ACCEPT_MS;
 
 // In-memory map of orderId → Node Timeout handle. Cleared on cancel/completion.
 const timers = new Map();
@@ -32,12 +37,18 @@ const acceptPendingOrder = async (orderId, orderNumber, logTag = 'auto-accept') 
   );
   if (!result || result.affectedRows === 0) return null;
 
+  // Start the shop fan-out on the id/number we already have, BEFORE re-reading
+  // the order row. notifyShopsForOrder only needs those two fields, so making
+  // it wait on a SELECT * round trip just to hand it data it already has put
+  // pure latency between the accept and the owner's phone ringing.
+  const shopFanOut = notifyShopsForOrder({ id: orderId, order_number: orderNumber });
+
   const [updated] = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
   const order = updated[0];
   if (!order) return null;
 
   realtimeEvents.emitOrderAutoAccepted(order);
-  notifyShopsForOrder(order);
+  await shopFanOut;
 
   // House-only orders (no shop items) start rider assignment immediately.
   try {

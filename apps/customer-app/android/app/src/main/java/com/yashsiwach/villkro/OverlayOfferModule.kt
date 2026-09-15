@@ -68,7 +68,16 @@ class OverlayOfferModule(private val reactContext: ReactApplicationContext) :
     val offerId: String?,
     val orderNumber: String?,
     val total: String?,
-    val expiresAtMs: Long
+    val expiresAtMs: Long,
+    /** Card heading — "Delivery offer" for riders, "New order" for shops. */
+    val badge: String?,
+    /**
+     * Shop owners: no Accept/Reject here, one "Open app" button instead.
+     * Confirming an order needs the product list, delivery window and
+     * slide-to-accept that only the in-app bottom sheet has — a two-button
+     * card was acting on an order the owner could not actually see.
+     */
+    val openOnly: Boolean
   )
 
   private var pendingCard: PendingCard? = null
@@ -253,7 +262,9 @@ class OverlayOfferModule(private val reactContext: ReactApplicationContext) :
       offerId = if (data.hasKey("offerId")) data.getString("offerId") else null,
       orderNumber = if (data.hasKey("orderNumber")) data.getString("orderNumber") else null,
       total = if (data.hasKey("total")) data.getString("total") else null,
-      expiresAtMs = if (data.hasKey("expiresAtMs")) data.getDouble("expiresAtMs").toLong() else 0L
+      expiresAtMs = if (data.hasKey("expiresAtMs")) data.getDouble("expiresAtMs").toLong() else 0L,
+      badge = if (data.hasKey("badge")) data.getString("badge") else null,
+      openOnly = data.hasKey("openOnly") && data.getBoolean("openOnly")
     )
 
     // The same offer is announced by several paths (socket, FCM, a reminder
@@ -261,11 +272,22 @@ class OverlayOfferModule(private val reactContext: ReactApplicationContext) :
     // price must not blank out a price already on screen — the rider sees it
     // vanish and come back, which reads as a glitch on a card they are about
     // to accept money from.
+    // Identity is the offer for riders and the order for shops — every shop
+    // card carries an empty offerId, so matching on that alone would let one
+    // order inherit a different order's amount.
     val known = shownCard ?: pendingCard
-    if (card.total.isNullOrEmpty() && known != null && known.offerId == card.offerId) {
+    val sameCard = if (known == null) {
+      false
+    } else if (card.offerId.isNullOrEmpty()) {
+      !card.orderId.isNullOrEmpty() && known.orderId == card.orderId
+    } else {
+      known.offerId == card.offerId
+    }
+    if (card.total.isNullOrEmpty() && known != null && sameCard) {
       card = card.copy(
         total = known.total,
-        orderNumber = if (card.orderNumber.isNullOrEmpty()) known.orderNumber else card.orderNumber
+        orderNumber = if (card.orderNumber.isNullOrEmpty()) known.orderNumber else card.orderNumber,
+        badge = if (card.badge.isNullOrEmpty()) known.badge else card.badge
       )
     }
 
@@ -294,16 +316,37 @@ class OverlayOfferModule(private val reactContext: ReactApplicationContext) :
     val orderId = card.orderId
     val offerId = card.offerId
 
+    if (!card.badge.isNullOrEmpty()) {
+      view.findViewById<TextView>(R.id.overlay_badge).text = card.badge
+    }
     view.findViewById<TextView>(R.id.overlay_order_number).text =
       if (card.orderNumber != null) "#" + card.orderNumber else ""
-    view.findViewById<TextView>(R.id.overlay_total).text =
-      if (!card.total.isNullOrEmpty()) "₹" + card.total else ""
-
-    view.findViewById<TextView>(R.id.overlay_reject).setOnClickListener {
-      emitAction("reject", orderId, offerId)
+    val totalView = view.findViewById<TextView>(R.id.overlay_total)
+    if (card.total.isNullOrEmpty()) {
+      // A blank ₹ line reads as a broken card — drop the row instead. Some
+      // alert paths (a reminder push, a socket ring with no order loaded yet)
+      // genuinely have no amount to show.
+      totalView.visibility = View.GONE
+    } else {
+      totalView.visibility = View.VISIBLE
+      totalView.text = "₹" + card.total
     }
-    view.findViewById<TextView>(R.id.overlay_accept).setOnClickListener {
-      emitAction("accept", orderId, offerId)
+
+    if (card.openOnly) {
+      view.findViewById<View>(R.id.overlay_actions).visibility = View.GONE
+      val openView = view.findViewById<TextView>(R.id.overlay_open)
+      openView.visibility = View.VISIBLE
+      openView.setOnClickListener {
+        openMainApp()
+        hideInternal()
+      }
+    } else {
+      view.findViewById<TextView>(R.id.overlay_reject).setOnClickListener {
+        emitAction("reject", orderId, offerId)
+      }
+      view.findViewById<TextView>(R.id.overlay_accept).setOnClickListener {
+        emitAction("accept", orderId, offerId)
+      }
     }
 
     val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -374,6 +417,17 @@ class OverlayOfferModule(private val reactContext: ReactApplicationContext) :
     } catch (_: Exception) { /* already detached */ }
     cardView = null
     windowManager = null
+  }
+
+  /** Bring the app to the front, same as tapping the launcher icon. */
+  private fun openMainApp() {
+    try {
+      val intent = reactContext.packageManager
+        .getLaunchIntentForPackage(reactContext.packageName)
+        ?: return
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      reactContext.startActivity(intent)
+    } catch (_: Exception) { /* cosmetic — never crash the alarm path */ }
   }
 
   private fun emitAction(action: String, orderId: String?, offerId: String?) {

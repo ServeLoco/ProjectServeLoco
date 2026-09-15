@@ -63,6 +63,12 @@ jest.mock('@rnmapbox/maps', () => {
   const Mock = React.forwardRef((props, ref) => <View ref={ref} {...props} />);
   const api = {
     setAccessToken: jest.fn(),
+    // src/utils/mapbox.js installs a log filter at import time, so every
+    // module that transitively imports a map (LocationPicker -> components
+    // index -> CartScreen, RiderLiveMap, the navigators) threw
+    // "Cannot read properties of undefined (reading 'setLogCallback')" at
+    // require time and took its whole suite down with it.
+    Logger: { setLogCallback: jest.fn(), setLogLevel: jest.fn() },
     StyleURL: {
       Street: 'mapbox://styles/mapbox/streets-v12',
       SatelliteStreet: 'mapbox://styles/mapbox/satellite-streets-v12',

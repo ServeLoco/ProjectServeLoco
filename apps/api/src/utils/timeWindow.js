@@ -1,18 +1,14 @@
-const isWithinTimeWindow = (from, until) => {
-  // Both null/empty means always available in the time sense.
-  if (!from || !until) return true;
-  const now = new Date();
-  const cur = now.getHours() * 60 + now.getMinutes();
-  const [fh, fm] = String(from).split(':').map(Number);
-  const [uh, um] = String(until).split(':').map(Number);
-  const start = fh * 60 + (fm || 0);
-  const end = uh * 60 + (um || 0);
-  if (start === end) return true; // no real window
-  if (start < end) {
-    return cur >= start && cur < end;
-  }
-  // Window crosses midnight (e.g. 22:00 -> 02:00)
-  return cur >= start || cur < end;
-};
+const { isWithinIstWindow } = require('./businessTime');
+
+/**
+ * Is the current IST wall clock inside [from, until)? "HH:MM" / "HH:MM:SS".
+ *
+ * This used to read `new Date().getHours()` — the API process's own local
+ * clock. That is UTC in the production container, so every window an admin
+ * typed was evaluated 5h30m off. Delegates to businessTime so there is exactly
+ * one definition of "what time is it" in the codebase; the midnight-crossing
+ * and empty-bound behaviour is unchanged.
+ */
+const isWithinTimeWindow = (from, until) => isWithinIstWindow(from, until);
 
 module.exports = { isWithinTimeWindow };

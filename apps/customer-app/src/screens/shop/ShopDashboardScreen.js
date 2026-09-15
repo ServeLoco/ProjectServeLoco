@@ -4,6 +4,7 @@ import {
   RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { colors, spacing, typography, radius, shadows, glass, glassRadius, glassShadow } from '../../theme';
@@ -19,11 +20,16 @@ import { stopAlarmSound } from '../../utils/alarmSound';
 import {
   cancelOrderAlarm,
   displayAlarmNotification,
+  markAppBackground,
+  markAppForeground,
 } from '../../utils/orderAlarmNotifications';
+import { canShowOverlay, requestOverlayPermission } from '../../utils/overlayOfferCard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppIcon from '../../components/AppIcon';
 import ShopToggle from '../../components/shop/ShopToggle';
 import TimePickerModal from '../../components/shop/TimePickerModal';
 import NewOrderPopup from './NewOrderPopup';
+import SlideToConfirm from '../../components/shop/SlideToConfirm';
 
 function formatDisplayTime(hhmm) {
   if (!hhmm) return '--:--';
@@ -48,6 +54,10 @@ function formatElapsed(startTime, nowMs) {
 // entire shift on an always-on tablet.
 const ACKED_ORDER_IDS_CAP = 200;
 
+// Shown once, dismissible. Shared prompt copy with the rider dashboard — the
+// same OS permission backs both cards.
+const OVERLAY_BANNER_DISMISSED_KEY = 'serveloco:shopOverlayBannerDismissed';
+
 /**
  * ShopDashboardScreen
  * Premium shop-owner dashboard: live open/closed toggle, active-order queue,
@@ -58,7 +68,10 @@ export default function ShopDashboardScreen() {
   // bar has to be scoped to focus or it leaks onto the light Orders/Products.
   const isScreenFocused = useIsFocused();
   const shop = useAuthStore((s) => s.shop);
-  const logout = useAuthStore((s) => s.logout);
+
+  // Same greeting header as rider mode.
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   // ── Shop open/closed toggle ──────────────────────────────────────────
   const [isOpen, setIsOpen] = useState(Boolean(shop?.isOpen));
@@ -112,7 +125,7 @@ export default function ShopDashboardScreen() {
   // Only ticks while there is something to show — avoids re-rendering the
   // whole screen every second when the queue is empty.
   const [now, setNow] = useState(() => Date.now());
-  const hasActiveOrders = activeOrders.length > 0;
+  const hasActiveOrders = activeOrders.some((o) => !o.ready);
   useEffect(() => {
     if (!hasActiveOrders) return undefined;
     setNow(Date.now());
@@ -222,6 +235,9 @@ export default function ShopDashboardScreen() {
       type: 'shop_order',
       orderId: orderId != null ? String(orderId) : '',
       orderNumber: orderNumber != null ? String(orderNumber) : '',
+      // Lets the floating card draw the payout straight away instead of
+      // blank — the FCM path has no per-shop total to send.
+      total: String(head?.shopTotal ?? head?.shop_total ?? ''),
     }).catch((err) => {
       console.warn('[orderAlarm] socket/bg ring failed:', err?.message || err);
     });
@@ -278,18 +294,10 @@ export default function ShopDashboardScreen() {
     const unsubForeground = subscribeRealtime('lifecycle.foreground', () => fetchAll());
     const unsubReconnected = subscribeRealtime('lifecycle.reconnected', () => fetchAll());
 
-    // If owner backgrounds while a popup is already waiting, start notifee now
-    // (local 8s loop is paused for shop in background).
-    const appSub = AppState.addEventListener('change', (next) => {
-      if (next !== 'active' && pendingHeadRef.current) {
-        ringBackgroundShopAlarm({
-          orderId: pendingHeadRef.current.id,
-          orderNumber:
-            pendingHeadRef.current.orderNumber
-            || pendingHeadRef.current.order_number,
-        });
-      }
-    });
+    // Backgrounding with a popup already waiting is handled by useNewOrderAlert
+    // itself (same handoff the rider hook does) — it owns the foreground-marker
+    // clearing that the alarm gate needs, so duplicating it here would only
+    // race it.
 
     return () => {
       unsubAssigned();
@@ -299,9 +307,51 @@ export default function ShopDashboardScreen() {
       unsubRiderFailed();
       unsubForeground();
       unsubReconnected();
-      appSub.remove();
     };
   }, [fetchAll, ringBackgroundShopAlarm, showCancelledNotice]);
+
+  // Prompt (once, dismissible) to enable the floating order card for when
+  // another app is open and the screen is on — without it a backgrounded owner
+  // gets the ring with no visible Accept/Reject surface at all, since the alarm
+  // notification is deliberately silent/hidden now.
+  const [overlayBannerVisible, setOverlayBannerVisible] = useState(false);
+  useEffect(() => {
+    if (Platform.OS !== 'android') return undefined;
+    let cancelled = false;
+    (async () => {
+      const dismissed = await AsyncStorage.getItem(OVERLAY_BANNER_DISMISSED_KEY).catch(() => null);
+      if (dismissed || cancelled) return;
+      const granted = await canShowOverlay();
+      if (!cancelled && !granted) setOverlayBannerVisible(true);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const dismissOverlayBanner = useCallback(() => {
+    setOverlayBannerVisible(false);
+    AsyncStorage.setItem(OVERLAY_BANNER_DISMISSED_KEY, '1').catch(() => {});
+  }, []);
+
+  // Heartbeat so the alarm notifier (which may run in Android's separate
+  // headless background-message JS instance) can tell this real instance is
+  // actually on screen right now — see markAppForeground's own comment.
+  useEffect(() => {
+    markAppForeground();
+    const sub = AppState.addEventListener('change', (next) => {
+      // Clearing on the way out matters as much as beating while in: a stale
+      // heartbeat keeps reading fresh for FOREGROUND_FRESH_MS after the screen
+      // locks, and the alarm suppresses itself for that whole window.
+      if (next === 'active') markAppForeground();
+      else markAppBackground();
+    });
+    const interval = setInterval(() => {
+      if (AppState.currentState === 'active') markAppForeground();
+    }, 5000);
+    return () => {
+      sub.remove();
+      clearInterval(interval);
+    };
+  }, []);
 
   // ── Weak-network resilience: offline banner + HTTP polling fallback ────
   // A socket can sit "connected" for up to ~30s after the underlying network
@@ -309,6 +359,9 @@ export default function ShopDashboardScreen() {
   // window a new-order alarm emitted into it is silently dropped. Poll
   // GET /shop/orders on a plain interval whenever we know the socket is down
   // so a new order still surfaces without waiting on the realtime path at all.
+  // Interval is deliberately short — this is the ONLY path left for an owner
+  // whose socket is down, and a new order reaching them late is the single
+  // most expensive failure in the whole flow. It runs only while disconnected.
   const [socketConnected, setSocketConnected] = useState(
     () => getRealtimeConnectionState().connected
   );
@@ -321,14 +374,16 @@ export default function ShopDashboardScreen() {
 
   useEffect(() => {
     if (socketConnected) return undefined;
-    const id = setInterval(() => fetchAll(), 15000);
+    const id = setInterval(() => fetchAll(), 5000);
     return () => clearInterval(id);
   }, [socketConnected, fetchAll]);
 
   // ── Repeating alert while anything is waiting in the popup queue ────
-  // role: 'shop' — alarm tray clear + foreground 8s loop; background uses
-  // socket ringBackgroundShopAlarm + FCM (admin uses default quiet loop).
-  useNewOrderAlert(pendingQueue.length > 0, { role: 'shop' });
+  // role: 'shop' — foreground rings the alarm tone + vibrates with no OS
+  // notification (the popup below is the visible surface); backgrounding hands
+  // the ring to the notifee alarm + floating overlay card. Head order (not a
+  // bare boolean) so the hook can write the per-order foreground markers.
+  useNewOrderAlert(pendingQueue[0] || null, { role: 'shop' });
 
   const currentPopupOrder = pendingQueue[0] || null;
 
@@ -488,97 +543,135 @@ export default function ShopDashboardScreen() {
     }
   }, [pickerField, openTime, closeTime]);
 
-  const handleLogout = useCallback(() => {
-    Alert.alert('Sign out', 'Sign out of the shop dashboard?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: () => logout() },
-    ]);
-  }, [logout]);
-
-  const renderActiveOrder = ({ item }) => (
-    <View style={styles.activeCard}>
-      <View style={styles.activeAccent} />
-      <View style={styles.activeCardBody}>
+  const renderActiveOrder = ({ item }) => {
+    const busy = actionBusy[item.id];
+    const isFast = item.deliveryType === 'fast' || item.delivery_type === 'fast';
+    const payout = item.shopTotal ?? item.shop_total;
+    const lines = item.items || [];
+    return (
+      <BlurView intensity={30} tint="dark" style={styles.activeCard}>
+        {/* Row 1 — id + cancel. Row 2 — speed + elapsed. */}
         <View style={styles.activeCardHeader}>
-          <Text style={styles.activeOrderNumber}>#{item.orderNumber || item.order_number}</Text>
-          <View style={styles.activeBadge}>
-            <AppIcon name="check" size={12} color={colors.success} />
-            <Text style={styles.activeBadgeText}>Preparing</Text>
-          </View>
-        </View>
-        <View style={styles.activeElapsedRow}>
-          <AppIcon name="clock" size={13} color={glass.textDim} />
-          <Text style={styles.activeElapsedText}>
-            {formatElapsed(item.createdAt || item.created_at, now)}
+          <Text style={styles.activeOrderNumber} numberOfLines={1}>
+            #{item.orderNumber || item.order_number}
           </Text>
-          {(item.shopTotal ?? item.shop_total) > 0 ? (
-            <Text style={styles.activeShopTotal}>You'll receive ₹{item.shopTotal ?? item.shop_total}</Text>
-          ) : null}
-        </View>
-        {(item.items || []).map((it, idx) => {
-          const lineTotal = it.shopLineTotal ?? it.shop_line_total;
-          return (
-            <View key={idx} style={styles.activeItemRow}>
-              <View style={styles.qtyChip}>
-                <Text style={styles.qtyChipText}>{it.quantity}x</Text>
-              </View>
-              <Text style={styles.activeItemText} numberOfLines={1}>
-                {it.productName || it.product_name}
-              </Text>
-              <Text style={styles.activeItemPrice}>
-                {lineTotal != null ? `₹${lineTotal}` : ''}
-              </Text>
-            </View>
-          );
-        })}
-
-        {item.ready ? (
-          <View style={styles.readyPill}>
-            <AppIcon name="check" size={13} color={colors.info} />
-            <Text style={styles.readyPillText}>Ready for pickup</Text>
-          </View>
-        ) : null}
-
-        <View style={styles.activeActionsRow}>
-          <TouchableOpacity
-            style={styles.cancelBtn}
-            onPress={() => handleCancelOrder(item.id)}
-            disabled={!!actionBusy[item.id]}
-            activeOpacity={0.85}
-          >
-            {actionBusy[item.id] === 'cancel' ? (
-              <ActivityIndicator size="small" color={colors.textInverse} />
-            ) : (
-              <Text style={styles.cancelBtnText}>Cancel</Text>
-            )}
-          </TouchableOpacity>
           {!item.ready && (
             <TouchableOpacity
-              style={styles.readyBtn}
-              onPress={() => handleReadyOrder(item.id)}
-              disabled={!!actionBusy[item.id]}
+              style={styles.cancelBtn}
+              onPress={() => handleCancelOrder(item.id)}
+              disabled={!!busy}
               activeOpacity={0.85}
+              accessibilityLabel="Cancel order"
             >
-              {actionBusy[item.id] === 'ready' ? (
+              {busy === 'cancel' ? (
                 <ActivityIndicator size="small" color={colors.textInverse} />
               ) : (
-                <Text style={styles.readyBtnText}>Ready</Text>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
               )}
             </TouchableOpacity>
           )}
         </View>
-      </View>
-    </View>
-  );
+
+        <View style={styles.headerChips}>
+          {/* Same fast/standard badge the accept popup shows */}
+          <View style={[styles.speedBadge, isFast && styles.speedBadgeFast]}>
+            <AppIcon name="navigation" size={12} color="#FFFFFF" />
+            <Text style={styles.chipText}>{isFast ? 'Fast' : 'Standard'}</Text>
+          </View>
+          {item.ready ? (
+            <View style={styles.readyPill}>
+              <AppIcon name="check" size={12} color="#FFFFFF" />
+              <Text style={styles.chipText}>Ready</Text>
+            </View>
+          ) : (
+            <View style={styles.elapsedChip}>
+              <AppIcon name="clock" size={14} color={colors.saffron} />
+              <Text style={styles.elapsedChipText}>
+                {formatElapsed(item.createdAt || item.created_at, now)}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.itemsPanel}>
+          {lines.map((it, idx) => {
+            const lineTotal = it.shopLineTotal ?? it.shop_line_total;
+            const qty = Number(it.quantity) || 0;
+            // Packing a multi-unit line is easier when the per-unit price is
+            // visible — it is the number the owner checks against the shelf.
+            const eachPrice = qty > 1 && lineTotal != null
+              ? Math.round((Number(lineTotal) / qty) * 100) / 100
+              : null;
+            return (
+              <View key={idx} style={[styles.activeItemRow, idx > 0 && styles.activeItemRowDivided]}>
+                <View style={styles.qtyChip}>
+                  <Text style={styles.qtyChipText}>{it.quantity}</Text>
+                  <Text style={styles.qtyChipX}>×</Text>
+                </View>
+                <View style={styles.activeItemMain}>
+                  <Text style={styles.activeItemText} numberOfLines={2}>
+                    {it.productName || it.product_name}
+                  </Text>
+                  {eachPrice != null ? (
+                    <Text style={styles.activeItemEach}>₹{eachPrice} each</Text>
+                  ) : null}
+                </View>
+                <Text style={styles.activeItemPrice}>
+                  {lineTotal != null ? `₹${lineTotal}` : ''}
+                </Text>
+              </View>
+            );
+          })}
+          {payout > 0 ? (
+            <View style={styles.payoutRow}>
+              <Text style={styles.payoutLabel}>You&apos;ll receive</Text>
+              <Text style={styles.payoutValue}>₹{payout}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Slide, not tap — marking ready is one-way and a stray tap while
+            handing over bags would strand the order. */}
+        {/* Slide, not tap — marking ready is one-way and a stray tap while
+            handing over bags would strand the order. */}
+        {!item.ready && (
+          <View style={styles.activeActionsRow}>
+            <SlideToConfirm
+              label="Slide when ready"
+              busy={busy === 'ready'}
+              disabled={!!busy}
+              onConfirm={() => handleReadyOrder(item.id)}
+              height={48}
+            />
+          </View>
+        )}
+      </BlurView>
+    );
+  };
 
   const renderListHeader = useCallback(() => (
     <>
-      {/* Auto open/close schedule */}
-      <View style={styles.scheduleCard}>
+      {/* Auto open/close schedule — real frosted blur, not a faked overlay */}
+      <BlurView intensity={40} tint="dark" style={styles.scheduleCard}>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.06)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.01)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.7, y: 1 }}
+          style={styles.scheduleSheen}
+          pointerEvents="none"
+        />
+        <View style={styles.scheduleTopLight} pointerEvents="none" />
         <View style={styles.scheduleHeader}>
           <View style={styles.scheduleHeaderLeft}>
             <View style={styles.scheduleIconWrap}>
-              <AppIcon name="clock" size={18} color={colors.saffron} />
+              <AppIcon name="clock" size={20} color="#FFFFFF" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.scheduleTitle}>Auto schedule</Text>
@@ -621,23 +714,7 @@ export default function ShopDashboardScreen() {
             </TouchableOpacity>
           </View>
         )}
-      </View>
-
-      {/* Metric strip */}
-      <View style={styles.metricsRow}>
-        <View style={[styles.metricCard, { flex: 1 }]}>
-          <AppIcon name="orders" size={22} color={colors.saffron} />
-          <Text style={styles.metricValue}>{activeOrders.length}</Text>
-          <Text style={styles.metricLabel}>Active orders</Text>
-        </View>
-        <View style={[styles.metricCard, { flex: 1 }]}>
-          <AppIcon name="home" size={22} color={isOpen ? colors.success : glass.textFaint} />
-          <Text style={[styles.metricValue, { color: isOpen ? colors.success : glass.textFaint }]}>
-            {isOpen ? 'On' : 'Off'}
-          </Text>
-          <Text style={styles.metricLabel}>Shop status</Text>
-        </View>
-      </View>
+      </BlurView>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Active orders</Text>
@@ -647,23 +724,48 @@ export default function ShopDashboardScreen() {
           </View>
         )}
       </View>
+
     </>
-  ), [scheduleEnabled, handleScheduleToggle, scheduleBusy, openTime, closeTime, activeOrders.length, isOpen]);
+  ), [scheduleEnabled, handleScheduleToggle, scheduleBusy, openTime, closeTime, activeOrders.length]);
 
   return (
     <View style={styles.root}>
       {/* Black canvas — the default dark status-bar icons vanish on it */}
       {isScreenFocused && <StatusBar barStyle="light-content" backgroundColor="transparent" />}
       <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>{shop?.name || 'My Shop'}</Text>
-          <Text style={styles.subtitle}>Shop owner dashboard</Text>
+      {/* Floating capsule top bar — sits below the status bar, not merged into it */}
+      <LinearGradient
+        colors={[colors.brandGradientStart, colors.brandGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.greeting}>{greeting}</Text>
+            <Text style={styles.greetingName} numberOfLines={1}>{shop?.name || 'My Shop'}</Text>
+          </View>
+          <View style={styles.headerStatusPill}>
+            <Animated.View
+              style={[
+                styles.headerStatusDot,
+                {
+                  opacity: isOpen ? pulse : 0.6,
+                  backgroundColor: isOpen ? colors.success100 : 'rgba(255,255,255,0.85)',
+                },
+              ]}
+            />
+            <Text style={styles.headerStatusText}>{isOpen ? 'Open' : 'Closed'}</Text>
+          </View>
+          <ShopToggle
+            value={isOpen}
+            onValueChange={handleToggle}
+            activeColor="#00C853"
+            disabled={toggleBusy}
+            size="md"
+          />
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn} activeOpacity={0.8}>
-          <AppIcon name="logout" size={20} color={glass.text} />
-        </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {!socketConnected && (
         <View style={styles.offlineBanner}>
@@ -674,44 +776,24 @@ export default function ShopDashboardScreen() {
         </View>
       )}
 
-      {/* Hero open/closed card */}
-      <LinearGradient
-        colors={[colors.brandGradientStart, colors.brandGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroCard}
-      >
-        <LinearGradient
-          colors={['rgba(255,255,255,0.30)', 'rgba(255,255,255,0.06)', 'rgba(255,255,255,0)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0.85, y: 1 }}
-          style={styles.heroSheen}
-          pointerEvents="none"
-        />
-        <View style={styles.heroRow}>
+      {overlayBannerVisible && (
+        <View style={styles.overlayBanner}>
+          <AppIcon name="notification" size={18} color={colors.saffron} />
           <View style={{ flex: 1 }}>
-            <View style={styles.heroStatusRow}>
-              <Animated.View
-                style={[
-                  styles.liveDot,
-                  { opacity: isOpen ? pulse : 0.45, backgroundColor: isOpen ? colors.success100 : 'rgba(255,255,255,0.8)' },
-                ]}
-              />
-              <Text style={styles.heroStatus}>{isOpen ? 'Open' : 'Closed'}</Text>
-            </View>
-            <Text style={styles.heroSub}>
-              {isOpen ? 'Taking new orders now' : 'Not accepting orders right now'}
+            <Text style={styles.overlayBannerTitle}>See orders over other apps</Text>
+            <Text style={styles.overlayBannerText}>
+              Allow VillKro to show the accept/reject card even while
+              you&apos;re using another app.
             </Text>
           </View>
-          <ShopToggle
-            value={isOpen}
-            onValueChange={handleToggle}
-            activeColor={colors.success}
-            disabled={toggleBusy}
-            size="lg"
-          />
+          <TouchableOpacity onPress={requestOverlayPermission} style={styles.overlayBannerAllow}>
+            <Text style={styles.overlayBannerAllowText}>Allow</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={dismissOverlayBanner} hitSlop={8}>
+            <AppIcon name="close" size={16} color={glass.textFaint} />
+          </TouchableOpacity>
         </View>
-      </LinearGradient>
+      )}
 
       <TimePickerModal
         visible={!!pickerField}
@@ -735,15 +817,17 @@ export default function ShopDashboardScreen() {
           ListHeaderComponent={renderListHeader}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.saffron} />}
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconWrap}>
-                <AppIcon name="orders" size={32} color={colors.saffron} />
+            <BlurView intensity={30} tint="dark" style={styles.emptyState}>
+              <View style={styles.emptyIconGlow}>
+                <View style={styles.emptyIconWrap}>
+                  <AppIcon name="orders" size={32} color="#FFFFFF" />
+                </View>
               </View>
               <Text style={styles.emptyTitle}>{loadError ? 'Could not load orders' : 'No active orders'}</Text>
               <Text style={styles.emptyText}>
                 {loadError ? 'Pull down to try again.' : 'New orders appear here the moment a customer checks out.'}
               </Text>
-            </View>
+            </BlurView>
           }
         />
       ) : (
@@ -767,7 +851,7 @@ export default function ShopDashboardScreen() {
       />
 
       {cancelledNotice && (
-        <View style={styles.cancelledNotice} pointerEvents="none">
+        <View style={[styles.cancelledNotice, { top: 84 }]} pointerEvents="none">
           <View style={styles.cancelledNoticeIconWrap}>
             <AppIcon name="close" size={16} color={colors.white} />
           </View>
@@ -791,12 +875,12 @@ export default function ShopDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000000' },
+  root: { flex: 1, backgroundColor: glass.screen },
   container: { flex: 1, backgroundColor: 'transparent' },
 
 
   cancelledNotice: {
-    position: 'absolute', top: spacing.md, left: spacing.lg, right: spacing.lg,
+    position: 'absolute', top: spacing.md, left: spacing.md, right: spacing.md,
     flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
     backgroundColor: colors.error, borderRadius: glassRadius.inner,
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
@@ -811,52 +895,102 @@ const styles = StyleSheet.create({
 
   offlineBanner: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
-    backgroundColor: 'rgba(244,166,42,0.16)', marginHorizontal: spacing.lg,
+    backgroundColor: 'rgba(244,166,42,0.16)', marginHorizontal: spacing.md,
     borderRadius: glassRadius.inner, paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 3,
     marginBottom: spacing.xs, borderWidth: 1, borderColor: 'rgba(244,166,42,0.35)',
   },
   offlineBannerText: { color: '#FFD79A', fontSize: 12, fontWeight: '600', flexShrink: 1 },
 
+  overlayBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: glass.tint, marginHorizontal: spacing.md,
+    borderRadius: glassRadius.inner, paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    marginBottom: spacing.sm, borderWidth: 1, borderColor: glass.borderWarm,
+  },
+  overlayBannerTitle: { fontWeight: '800', fontSize: 13, color: glass.text },
+  overlayBannerText: { fontSize: 12, color: glass.textDim, marginTop: 2, lineHeight: 16 },
+  overlayBannerAllow: {
+    backgroundColor: colors.saffron, borderRadius: radius.pill,
+    paddingHorizontal: spacing.md, paddingVertical: 6,
+  },
+  overlayBannerAllowText: { color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
+
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
-  title: { ...typography.display, fontSize: 26, color: glass.text },
-  subtitle: { ...typography.bodySmall, color: glass.textDim, marginTop: 2, fontWeight: '500' },
-  logoutBtn: {
-    width: 44, height: 44, borderRadius: radius.circle, backgroundColor: glass.fillStrong,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: glass.border,
-    ...glassShadow,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
   },
+  greeting: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.8,
+    color: 'rgba(0,0,0,0.55)',
+  },
+  greetingName: {
+    ...typography.display,
+    color: '#000000',
+    fontWeight: '800',
+    fontSize: 24,
+    lineHeight: 29,
+    letterSpacing: -0.5,
+  },
+  headerStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: '#2A2A30',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.25)',
+  },
+  headerStatusDot: { width: 7, height: 7, borderRadius: radius.circle },
+  headerStatusText: { fontSize: 11, fontWeight: '800', color: colors.textInverse },
 
-  /* Hero open/closed — saffron brand block */
-  heroCard: {
-    marginHorizontal: spacing.lg, marginTop: spacing.xs, marginBottom: spacing.md,
-    borderRadius: glassRadius.hero, padding: spacing.xl, overflow: 'hidden',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.30)',
-    ...shadows.cardRaised,
-  },
-  heroSheen: { ...StyleSheet.absoluteFillObject },
-  heroRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heroStatusRow: { flexDirection: 'row', alignItems: 'center' },
-  liveDot: {
-    width: 12, height: 12, borderRadius: radius.circle, marginRight: spacing.sm,
-    backgroundColor: colors.success100,
-  },
-  heroStatus: { color: colors.textInverse, fontSize: 28, fontWeight: '800', letterSpacing: -0.4 },
-  heroSub: { color: 'rgba(255,255,255,0.92)', fontSize: 15, marginTop: 4, fontWeight: '500' },
-
-  /* Auto schedule — glass pane */
+  /* Auto schedule — frosted glass pane */
   scheduleCard: {
-    marginBottom: spacing.md, backgroundColor: glass.fill,
-    borderRadius: glassRadius.card, borderWidth: 1, borderColor: glass.border,
-    padding: spacing.md + 2, ...glassShadow,
+    marginBottom: spacing.md,
+    borderRadius: glassRadius.card,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    borderTopColor: 'rgba(255,255,255,0.25)',
+    borderLeftColor: 'rgba(255,255,255,0.16)',
+    padding: spacing.md + 2,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#FF7A3A', shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.28, shadowRadius: 24,
+      },
+      android: {},
+    }),
+  },
+  scheduleSheen: { ...StyleSheet.absoluteFillObject },
+  scheduleTopLight: {
+    position: 'absolute', top: 0, left: 26, right: 26, height: 1,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 1,
   },
   scheduleHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   scheduleHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
   scheduleIconWrap: {
-    width: 38, height: 38, borderRadius: radius.circle, backgroundColor: glass.tint,
-    borderWidth: 1, borderColor: glass.borderWarm,
+    width: 42, height: 42, borderRadius: radius.circle,
+    backgroundColor: '#FF7A3A',
+    borderWidth: 1, borderColor: '#E05A1A',
+    borderTopColor: 'rgba(255,255,255,0.45)',
     alignItems: 'center', justifyContent: 'center',
   },
   scheduleTitle: { ...typography.label, color: glass.text, fontWeight: '800' },
@@ -866,23 +1000,15 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)',
   },
   timeChip: {
-    flex: 1, backgroundColor: glass.fillStrong, borderRadius: glassRadius.inner, borderWidth: 1,
-    borderColor: glass.border, paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
+    flex: 1, backgroundColor: '#3A3A42',
+    borderRadius: glassRadius.inner, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
     alignItems: 'center',
   },
   timeChipLabel: { fontSize: 11, color: glass.textDim, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   timeChipValue: { fontSize: 16, color: glass.text, fontWeight: '800', marginTop: 2 },
   scheduleArrow: { paddingHorizontal: spacing.xs },
-
-  /* Metrics */
-  metricsRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
-  metricCard: {
-    backgroundColor: glass.fill, borderRadius: glassRadius.card, paddingVertical: spacing.md + 2,
-    paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: glass.border,
-    alignItems: 'center', justifyContent: 'center', ...glassShadow,
-  },
-  metricValue: { fontSize: 28, fontWeight: '800', color: glass.text, lineHeight: 34, marginTop: spacing.xs },
-  metricLabel: { fontSize: 12, color: glass.textDim, marginTop: 2, fontWeight: '600', letterSpacing: 0.2 },
 
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
   sectionTitle: {
@@ -890,76 +1016,109 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   countPill: {
-    marginLeft: spacing.sm, backgroundColor: glass.tintStrong, borderRadius: radius.pill,
+    marginLeft: spacing.sm, backgroundColor: colors.saffron, borderRadius: radius.pill,
     paddingHorizontal: 9, paddingVertical: 2, minWidth: 24, alignItems: 'center',
-    borderWidth: 1, borderColor: glass.borderWarm,
   },
-  countPillText: { color: colors.saffron, fontWeight: '800', fontSize: 12 },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl + spacing.lg },
+  countPillText: { color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
+  listContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxxl + spacing.xxl },
 
-  /* Active order — glass pane with saffron edge */
+  /* Active order — flat glass pane, three stacked blocks */
   activeCard: {
-    flexDirection: 'row', backgroundColor: glass.fill, borderRadius: glassRadius.card,
-    marginBottom: spacing.md, borderWidth: 1, borderColor: glass.border, overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.26)', borderRadius: glassRadius.card,
+    marginBottom: spacing.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
+    overflow: 'hidden', padding: spacing.md + 2,
     ...glassShadow,
   },
-  activeAccent: { width: 6, backgroundColor: colors.saffron },
-  activeCardBody: { flex: 1, padding: spacing.md + 2 },
   activeCardHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    gap: spacing.sm, minHeight: 30,
   },
-  activeOrderNumber: { ...typography.h3, color: glass.text },
-  activeBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(31,181,116,0.18)', borderRadius: radius.pill,
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 1, borderColor: 'rgba(31,181,116,0.38)',
+  activeOrderNumber: {
+    ...typography.h3, flexShrink: 1, minWidth: 0, fontSize: 16, lineHeight: 22, color: glass.text,
   },
-  activeBadgeText: { color: colors.success, fontWeight: '700', fontSize: 12 },
-  activeElapsedRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: spacing.xs },
-  activeElapsedText: { color: glass.textDim, fontSize: 12, fontWeight: '600' },
-  activeShopTotal: { color: colors.success, fontSize: 12, fontWeight: '800', marginLeft: 'auto' },
-  activeItemRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs },
-  qtyChip: {
-    backgroundColor: glass.tint, borderRadius: radius.lg, paddingHorizontal: 8,
-    paddingVertical: 3, marginRight: spacing.sm, minWidth: 36, alignItems: 'center',
-    borderWidth: 1, borderColor: glass.borderWarm,
+  headerChips: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    gap: spacing.xs, marginTop: spacing.sm, marginBottom: spacing.md,
   },
-  qtyChipText: { color: colors.saffron, fontWeight: '800', fontSize: 13 },
-  activeItemText: { flex: 1, ...typography.body, color: glass.text, fontWeight: '500' },
-  activeItemPrice: {
-    ...typography.body, color: glass.textDim, fontWeight: '700',
-    minWidth: 56, textAlign: 'right',
-  },
-  readyPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
-    backgroundColor: 'rgba(59,130,246,0.18)', borderRadius: radius.pill,
-    paddingHorizontal: 10, paddingVertical: 4, marginTop: spacing.sm,
-    borderWidth: 1, borderColor: 'rgba(59,130,246,0.38)',
-  },
-  readyPillText: { color: '#8FB8FF', fontWeight: '800', fontSize: 12 },
-  activeActionsRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   cancelBtn: {
-    flex: 1, borderRadius: radius.pill,
-    paddingVertical: 12, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.error,
+    height: 30, paddingHorizontal: 16, borderRadius: radius.pill, flexShrink: 0,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#B3211F',
   },
-  cancelBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 14 },
-  readyBtn: {
-    flex: 1, borderRadius: radius.pill, paddingVertical: 12,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: colors.success,
+  cancelBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 13 },
+
+  chipText: { color: '#FFFFFF', fontWeight: '800', fontSize: 11 },
+  elapsedChip: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+    height: 26, flexShrink: 0, minWidth: 86,
+    backgroundColor: '#1E1E24', borderRadius: radius.pill, paddingHorizontal: 8,
   },
-  readyBtnText: { color: colors.textInverse, fontWeight: '800', fontSize: 14 },
+  elapsedChipText: {
+    color: '#FFFFFF', fontSize: 13, fontWeight: '900', letterSpacing: 0.2,
+    fontVariant: ['tabular-nums'],
+  },
+  speedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, height: 26, flexShrink: 0,
+    backgroundColor: colors.info, borderRadius: radius.pill, paddingHorizontal: 8,
+  },
+  speedBadgeFast: { backgroundColor: colors.saffron },
+  readyPill: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+    height: 26, minWidth: 86,
+    backgroundColor: '#2563EB', borderRadius: radius.pill, paddingHorizontal: 8,
+  },
+
+  /* Items + payout share one panel — the money is the last line of the bill */
+  itemsPanel: {
+    backgroundColor: '#3A3A42', borderRadius: glassRadius.inner,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
+    paddingHorizontal: spacing.sm + 2, overflow: 'hidden',
+  },
+  activeItemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
+  activeItemRowDivided: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.14)' },
+  qtyChip: {
+    flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center',
+    backgroundColor: colors.saffron, borderRadius: radius.lg, paddingHorizontal: 8,
+    paddingVertical: 4, marginRight: spacing.sm, minWidth: 40,
+  },
+  qtyChipText: { color: '#FFFFFF', fontWeight: '900', fontSize: 14 },
+  qtyChipX: { color: 'rgba(255,255,255,0.85)', fontWeight: '800', fontSize: 11, marginLeft: 1 },
+  activeItemMain: { flex: 1, minWidth: 0 },
+  activeItemText: { ...typography.body, color: glass.text, fontWeight: '600', lineHeight: 20 },
+  activeItemEach: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.55)', marginTop: 1 },
+  activeItemPrice: {
+    ...typography.body, color: glass.text, fontWeight: '800',
+    minWidth: 64, textAlign: 'right', fontVariant: ['tabular-nums'], marginLeft: spacing.sm,
+  },
+  payoutRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginHorizontal: -(spacing.sm + 2),
+    paddingHorizontal: spacing.sm + 2, paddingVertical: spacing.sm + 2,
+    backgroundColor: '#0C6B43',
+  },
+  payoutLabel: {
+    fontSize: 11, fontWeight: '800', color: '#FFFFFF',
+    textTransform: 'uppercase', letterSpacing: 0.6,
+  },
+  payoutValue: {
+    fontSize: 18, fontWeight: '900', color: '#FFFFFF', fontVariant: ['tabular-nums'],
+  },
+
+  activeActionsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
 
   emptyState: {
     alignItems: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.xl,
-    marginTop: spacing.sm, backgroundColor: glass.fill, borderRadius: glassRadius.card,
-    borderWidth: 1, borderColor: glass.border, ...glassShadow,
+    marginTop: spacing.sm, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: glassRadius.card,
+    borderWidth: 1, borderColor: glass.border, overflow: 'hidden', ...glassShadow,
+  },
+  emptyIconGlow: {
+    width: 100, height: 100, borderRadius: radius.circle,
+    backgroundColor: 'rgba(255,122,58,0.14)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
   },
   emptyIconWrap: {
-    width: 76, height: 76, borderRadius: radius.circle, backgroundColor: glass.tint,
-    borderWidth: 1, borderColor: glass.borderWarm,
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+    width: 76, height: 76, borderRadius: radius.circle, backgroundColor: '#FF7A3A',
+    borderWidth: 1, borderColor: '#E05A1A',
+    alignItems: 'center', justifyContent: 'center',
   },
   emptyTitle: { ...typography.h3, color: glass.text },
   emptyText: {

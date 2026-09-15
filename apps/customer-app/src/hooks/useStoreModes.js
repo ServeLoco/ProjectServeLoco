@@ -14,9 +14,13 @@ const FALLBACK_MODES = [
 // Read via a ref rather than a `refetch` dependency: a raw GPS fix changes
 // on nearly every fix (sub-meter jitter), and re-fetching store modes on
 // every one of those would be a refetch storm. HomeScreen re-triggers
-// `refetchModes()` itself on an actual zone change (deliveryZoneId), the
-// same trigger it already uses for `refresh` — this hook only needs the
-// latest coordinate at the moment a fetch actually happens.
+// `refetchModes()` itself on an actual area/zone change (its
+// deliveryAreaId/deliveryZoneId effect) as well as on pull-to-refresh —
+// this hook only needs the latest coordinate at the moment a fetch happens.
+// That matters because an out-of-zone pin gets `[]` back (areaId is null
+// server-side) and the modes below stay on FALLBACK_MODES; without the
+// zone-change refetch the capsule keeps the hardcoded pair, icons and all,
+// until the user pulls to refresh.
 export function useStoreModes(coords) {
   const [modes, setModes] = useState(FALLBACK_MODES);
   const mountedRef = useRef(true);

@@ -36,9 +36,8 @@ const POLICY_URLS = {
   terms: 'https://api.serveloco.app/policies/terms',
 };
 
-// Brand-level contact links. Update these when social handles change.
+// Brand-level contact links. Update these when they change.
 const BRAND_LINKS = {
-  instagram: 'https://instagram.com/villkro',
   contactEmail: 'mailto:decodelabsofficial@gmail.com',
 };
 
@@ -331,9 +330,6 @@ export default function ProfileScreen() {
       case 'dataSafety':
         openLink(POLICY_URLS.privacy);
         break;
-      case 'instagram':
-        openLink(BRAND_LINKS.instagram);
-        break;
       case 'contact':
         openLink(BRAND_LINKS.contactEmail);
         break;
@@ -434,53 +430,6 @@ export default function ProfileScreen() {
             </View>
           </LinearGradient>
         </Animated.View>
-
-        {/* Instagram follow card */}
-        <TouchableOpacity
-          style={styles.igCard}
-          onPress={() => openLink(BRAND_LINKS.instagram)}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel="Follow us on Instagram"
-        >
-          <LinearGradient
-            colors={['#F58529', '#DD2A7B', '#8134AF', '#515BD4']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.igGradient}
-          >
-            {/* Decorative shapes */}
-            <View style={styles.igBlobA} pointerEvents="none" />
-            <View style={styles.igBlobB} pointerEvents="none" />
-            <View style={styles.igBlobC} pointerEvents="none" />
-
-            <View style={styles.igTopRow}>
-              <View style={styles.igIconBubble}>
-                <AppIcon name="atsign" size={20} color="#FFFFFF" strokeWidth={2.6} />
-              </View>
-              <View style={styles.igTag}>
-                <Text style={styles.igTagText}>SOCIAL</Text>
-              </View>
-            </View>
-
-            <View style={styles.igMiddle}>
-              <Text style={styles.igTitle}>Follow us on Instagram</Text>
-              <Text style={styles.igHandle}>@villkro</Text>
-              <Text style={styles.igSubtitle}>
-                Behind-the-scenes, offers and updates from your local shop
-              </Text>
-            </View>
-
-            <View style={styles.igBottomRow}>
-              <View style={styles.igFollowBtn}>
-                <Text style={styles.igFollowBtnText}>Follow</Text>
-              </View>
-              <View style={styles.igArrow}>
-                <AppIcon name="chevronRight" size={18} color="#FFFFFF" strokeWidth={2.6} />
-              </View>
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
 
         {/* Address / info panel */}
         <View style={styles.addressCard}>
@@ -590,7 +539,7 @@ export default function ProfileScreen() {
         <View style={styles.footer}>
           <View style={styles.footerDivider} />
           <View style={styles.footerLine}>
-            <Text style={styles.footerBrand}>Made in Gorakhpur with </Text>
+            <Text style={styles.footerBrand}>Developed in Gorakhpur with </Text>
             <Text style={styles.footerHeart}>❤️</Text>
             <Text style={styles.footerBrand}> (Haryana)</Text>
           </View>
@@ -879,134 +828,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontWeight: '800',
     color: colors.primary,
-  },
-
-  /* ----- Instagram follow card ----- */
-  igCard: {
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    borderRadius: radius.xxl,
-    overflow: 'hidden',
-    ...shadows.cardRaised,
-  },
-  igGradient: {
-    padding: spacing.md,
-    position: 'relative',
-    overflow: 'hidden',
-    minHeight: 156,
-    justifyContent: 'space-between',
-  },
-  igBlobA: {
-    position: 'absolute',
-    top: -40,
-    right: -30,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-  },
-  igBlobB: {
-    position: 'absolute',
-    bottom: -50,
-    left: -20,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-  },
-  igBlobC: {
-    position: 'absolute',
-    top: 40,
-    right: 80,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  igTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    zIndex: 1,
-  },
-  igIconBubble: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  igTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-  },
-  igTagText: {
-    ...typography.caption,
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 1.2,
-  },
-  igMiddle: {
-    zIndex: 1,
-    marginTop: 2,
-    marginBottom: 2,
-  },
-  igTitle: {
-    ...typography.labelLarge,
-    color: '#FFFFFF',
-    fontWeight: '900',
-    letterSpacing: -0.2,
-  },
-  igHandle: {
-    ...typography.h3,
-    color: '#FFFFFF',
-    fontWeight: '900',
-    letterSpacing: -0.3,
-    marginTop: 2,
-    marginBottom: 4,
-  },
-  igSubtitle: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.92)',
-    lineHeight: 15,
-    fontWeight: '500',
-  },
-  igBottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    zIndex: 1,
-  },
-  igFollowBtn: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-    backgroundColor: '#FFFFFF',
-    ...shadows.sm,
-  },
-  igFollowBtnText: {
-    ...typography.buttonSmall,
-    color: '#8134AF',
-    fontWeight: '900',
-    letterSpacing: 0.3,
-  },
-  igArrow: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.32)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   /* ----- Status banners ----- */

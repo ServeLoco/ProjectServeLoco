@@ -1,4 +1,5 @@
 const { pool } = require('../db/mysql');
+const { isWithinIstWindow } = require('../utils/businessTime');
 const { normalizeStoreType } = require('../utils/storeMode');
 const { validatePagination, isNumericAmount } = require('../validators');
 const { cleanupOrphanedImage } = require('./imageController');
@@ -21,22 +22,13 @@ const requireOneArea = (req, res) => {
   return areaId;
 };
 
-const isWithinTimeWindow = (from, until) => {
-  // Both null means always available in the time sense.
-  if (!from || !until) return true;
-  const now = new Date();
-  const cur = now.getHours() * 60 + now.getMinutes();
-  const [fh, fm] = String(from).split(':').map(Number);
-  const [uh, um] = String(until).split(':').map(Number);
-  const start = fh * 60 + (fm || 0);
-  const end = uh * 60 + (um || 0);
-  if (start === end) return true; // no real window
-  if (start < end) {
-    return cur >= start && cur < end;
-  }
-  // Window crosses midnight (e.g. 22:00 -> 02:00)
-  return cur >= start || cur < end;
-};
+// A product's available_from_time/available_until_time are wall-clock IST, the
+// same as every other window an admin types in. This used to compare them
+// against `new Date().getHours()` — the API process's own local clock, which is
+// UTC in the production container, so a 09:00-21:00 product was actually on
+// sale 14:30-02:30 IST. isWithinIstWindow reads the IST wall clock on every
+// machine; behaviour is otherwise identical, midnight-crossing windows included.
+const isWithinTimeWindow = (from, until) => isWithinIstWindow(from, until);
 
 const resolveImageUrls = async (rows) => {
   const imageIds = rows

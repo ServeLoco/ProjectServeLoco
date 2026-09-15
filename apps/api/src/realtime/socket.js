@@ -5,7 +5,12 @@ const { getLiveAdminState } = require('../middleware/authMiddleware');
 const { getRevokedBefore } = require('../utils/adminAuthState');
 const { createPresenceTracker } = require('./presence');
 const sessionStore = require('../services/analytics/sessionStore');
-const { getDefaultArea, listAreas, getAreaById } = require('../utils/areaScope');
+const { listAreas, getAreaById } = require('../utils/areaScope');
+
+// Room for events that belong to the platform rather than to any one area
+// (admin_notifications.area_id IS NULL). Super admins join it; area admins
+// never do.
+const PLATFORM_ADMIN_ROOM = 'admin:platform';
 
 let io = null;
 let presenceTracker = null;
@@ -105,27 +110,6 @@ const authenticateSocket = async (socket, next) => {
   return next();
 };
 
-// No pin exists at the socket layer (H7 — a cold-start connect races the
-// app's own area resolution), so this mirrors resolveCustomerArea's no-pin
-// fallback chain (§4.2/§9.5): users.last_area_id, then the default area.
-// One lookup per connect (not per event/row) — same acceptable one-time cost
-// as any other per-request user lookup elsewhere in this codebase.
-const resolveAreaIdForSocketUser = async (userId) => {
-  try {
-    const { getUserState } = require('../utils/userState');
-    const state = await getUserState(userId);
-    if (state?.lastAreaId) return state.lastAreaId;
-  } catch (_) {
-    // fall through to default area
-  }
-  try {
-    const defaultArea = await getDefaultArea();
-    return defaultArea ? defaultArea.id : null;
-  } catch (_) {
-    return null;
-  }
-};
-
 // Rooms are per-area (§3.5) so a zone/settings/order broadcast in area 2
 // never reaches an area 1 socket. `customer:<userId>` stays global — it's
 // identity-scoped, not area-scoped. A socket that hasn't resolved an area
@@ -136,13 +120,15 @@ const joinAreaRoom = async (socket) => {
   if (!auth) return;
 
   if (auth.role === 'customer') {
-    const areaId = process.env.NODE_ENV !== 'test'
-      ? await resolveAreaIdForSocketUser(auth.id)
-      : null;
-    if (areaId) {
-      socket.data.areaId = areaId;
-      socket.join(`customers:${areaId}`);
-    }
+    // A customer socket joins NO area room at connect. There is no pin at
+    // the socket layer (H7 — a cold-start connect races the app's own area
+    // resolution) and nothing else may stand in for one: the old
+    // users.last_area_id → default area chain filed a customer standing in
+    // area 2 under area 1 because that is where they last ordered, which put
+    // them in another team's broadcast room and inflated that team's
+    // analytics with another team's customers. The app emits 'area:changed'
+    // the moment its live pin resolves — including the very first resolve —
+    // and rejoinAreaRoom below does the join then, with a real area.
     return;
   }
 
@@ -151,6 +137,11 @@ const joinAreaRoom = async (socket) => {
       // Super admin sees every area's admin traffic (§3.5/23.5).
       const areas = process.env.NODE_ENV !== 'test' ? await listAreas() : [];
       areas.forEach((area) => socket.join(`admin:${area.id}`));
+      // Platform-level events belong to no area, so no admin:<areaId> room
+      // can carry them — a new-customer signup happens before any pin
+      // exists. Only super admins join this one, which is what keeps those
+      // events out of an area team's inbox while still reaching "All areas".
+      socket.join(PLATFORM_ADMIN_ROOM);
       socket.data.allAdminAreas = true;
       return;
     }
@@ -205,6 +196,14 @@ const rejoinAreaRoom = async (socket, newAreaId) => {
   }
   socket.data.areaId = newAreaId;
   socket.join(`customers:${newAreaId}`);
+
+  // This is also the only moment the session's area becomes KNOWN — the
+  // connect-time stamp is deliberately null (see joinAreaRoom). Record it on
+  // the live presence entry and its analytics_sessions doc so per-area
+  // analytics reflects where the customer actually was, not where they last
+  // ordered. A session whose pin never resolves stays unattributed and shows
+  // only under "All areas".
+  if (presenceTracker) presenceTracker.setPresenceArea(socket.id, newAreaId);
 };
 
 const joinRoleRoom = (socket) => {
@@ -269,6 +268,16 @@ const initRealtime = (server) => {
 
     // Analytics presence — customers only (admin sockets are never counted).
     const auth = socket.data.auth;
+
+    // A shop owner reconnecting is the first moment we know their phone is
+    // reachable again — hand them any order still waiting on them right now
+    // rather than leaving it to shopAlertSweeper's next due tick. No-ops for
+    // everyone who doesn't own a shop. Never blocks the connection.
+    if (auth && auth.role === 'customer' && process.env.NODE_ENV !== 'test') {
+      const { resendPendingShopAlerts } = require('../utils/shops');
+      resendPendingShopAlerts(auth.id).catch(() => {});
+    }
+
     if (auth && auth.role === 'customer') {
       const platform = socket.handshake.auth?.platform || null;
       const appVersion = socket.handshake.auth?.appVersion || null;
@@ -416,6 +425,13 @@ const emitToAdmins = (areaId, eventName, payload) => {
   return emitToRoom(`admin:${areaId}`, eventName, payload);
 };
 
+// Deliberately a separate function rather than letting a null areaId through
+// emitToAdmins: that guard catches real "forgot to pass an area" bugs and is
+// worth keeping strict. Platform-level is an explicit choice, so it gets an
+// explicit call.
+const emitToPlatformAdmins = (eventName, payload) =>
+  emitToRoom(PLATFORM_ADMIN_ROOM, eventName, payload);
+
 const emitToAllCustomers = (areaId, eventName, payload) => {
   if (areaId === undefined || areaId === null) {
     console.error(`emitToAllCustomers: missing areaId for event "${eventName}" — event dropped`);
@@ -432,14 +448,13 @@ const getRealtimeStatus = () => ({
 module.exports = {
   closeRealtime,
   emitToAdmins,
+  emitToPlatformAdmins,
+  PLATFORM_ADMIN_ROOM,
   emitToAllCustomers,
   emitToCustomer,
   getRealtimeStatus,
   initRealtime,
   joinNewAreaForConnectedSuperAdmins,
-  // Exported for unit testing only — the NODE_ENV guard around its one real
-  // call site (above) is what keeps the e2e socket tests DB-free.
-  resolveAreaIdForSocketUser,
   // Exported for unit testing only — joinAreaRoom's super_admin branch calls
   // areaScope.listAreas() (a real DB read), guarded the same way, for the
   // same reason (realtime.test.js runs real socket.io connections with no

@@ -28,6 +28,14 @@ export const useDeliveryLocationStore = create(
       // never resolved yet, or when the pin fell outside every zone (§2.4 —
       // "we don't deliver here", never a lingering stale area).
       areaId: null,
+      // The last area the customer was actually IN. `areaId` above goes null
+      // the moment a pin leaves every zone (§2.4), which destroys the only
+      // baseline "did the area change" has to compare against — see
+      // applyBootstrapResult. Persisted, because the cart it guards is
+      // persisted too: a launch that starts out of zone must still know which
+      // area the saved cart was priced under. Only ever overwritten by
+      // another real area, never cleared.
+      lastAreaId: null,
       areaName: null,
       brandColor: null,
       // area.catalog_version at the last successful (non-304) bootstrap
@@ -79,10 +87,29 @@ export const useDeliveryLocationStore = create(
       // `coords`. deliverable: false (pin outside every zone) clears the
       // area rather than leaving a stale one in place (§2.4). A 304 (no
       // change) is never routed here — the caller just keeps what's set.
+      // The out-of-zone branch deliberately omits lastAreaId — `set` merges,
+      // so the baseline survives the null interlude (see the field above).
+      //
+      // deliverable: false ALSO settles insideZone. Every "we don't deliver
+      // here yet" gate keys off insideZone === false, and that verdict used
+      // to come only from checkInsideZone's POST /cart/calculate — an
+      // authenticated, rate-limited call. Any failure of it (401 on an
+      // expired token, a 429, a dropped connection) left insideZone null,
+      // which every gate reads as "allowed", so a pin 1177km outside every
+      // zone showed the full dashboard (verified on-device: coords in
+      // Mumbai, areaId null, insideZone null, store-mode capsule rendering).
+      // GET /bootstrap is public, unauthenticated, and answered the same
+      // question correctly on that very request — deliverable: false IS
+      // "the pin matched no zone in any area", so stop throwing it away.
+      // Only the false direction: deliverable: true says nothing about
+      // exclusion squares, which only checkInsideZone knows about.
       setAreaInfo: ({ deliverable, areaId, areaName, brandColor, catalogVersion }) => set(
         deliverable
-          ? { areaId, areaName, brandColor, catalogVersion }
-          : { areaId: null, areaName: null, brandColor: null, catalogVersion: null },
+          ? { areaId, areaName, brandColor, catalogVersion, lastAreaId: areaId ?? get().lastAreaId }
+          : {
+            areaId: null, areaName: null, brandColor: null, catalogVersion: null,
+            insideZone: false, zoneName: null, zoneId: null,
+          },
       ),
 
       // GPS permission revoked (device Settings) after a prior fix already
@@ -116,10 +143,10 @@ export const useDeliveryLocationStore = create(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: ({
         coords, source, insideZone, zoneName, zoneId, recentLocations,
-        areaId, areaName, brandColor, catalogVersion,
+        areaId, lastAreaId, areaName, brandColor, catalogVersion,
       }) => ({
         coords, source, insideZone, zoneName, zoneId, recentLocations,
-        areaId, areaName, brandColor, catalogVersion,
+        areaId, lastAreaId, areaName, brandColor, catalogVersion,
       }),
       // Devices that persisted a longer history under the old
       // RECENT_LOCATION_LIMIT still have extra entries sitting in

@@ -15,6 +15,7 @@ import {
   handleAlarmActionEvent,
   performOfferAction,
   isAlarmPayload,
+  ALERT_TYPE_NEW_ORDER,
   ALERT_TYPE_RIDER_OFFER,
 } from './src/utils/orderAlarmNotifications';
 import { subscribeOverlayAction, openMainApp } from './src/utils/overlayOfferCard';
@@ -84,15 +85,17 @@ if (Platform.OS === 'android') {
 
   // Accept/Reject tap on the floating "draw over other apps" overlay card
   // (OverlayOfferModule.kt) — same shared action path as the notifee
-  // buttons and the lock-screen alarm card.
+  // buttons and the lock-screen alarm card. The card is shared by both roles;
+  // only a rider offer carries an offerId, so that is what tells them apart.
   subscribeOverlayAction(async (action) => {
-    // Open the app on accept so the rider lands on the delivery they took;
-    // reject leaves them wherever they were. Launch first — the API call can
-    // take a moment and the tap should feel immediate.
+    // Open the app on accept so they land on the job/order they took; reject
+    // leaves them wherever they were. Launch first — the API call can take a
+    // moment and the tap should feel immediate.
     if (action?.action === 'accept') {
       openMainApp();
     }
-    await performOfferAction(ALERT_TYPE_RIDER_OFFER, action?.action, action || {});
+    const alertType = action?.offerId ? ALERT_TYPE_RIDER_OFFER : ALERT_TYPE_NEW_ORDER;
+    await performOfferAction(alertType, action?.action, action || {});
   });
 }
 

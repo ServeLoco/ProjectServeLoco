@@ -14,7 +14,7 @@ import notifee, {
   EventType,
 } from '@notifee/react-native';
 import {
-  ORDER_ALARM_CHANNEL_ID,
+  ORDER_ALARM_QUIET_CHANNEL_ID,
   RIDER_OFFER_QUIET_CHANNEL_ID,
   createNotifeeAlarmChannels,
 } from '../hooks/useLocalNotifications';
@@ -361,45 +361,29 @@ export async function displayAlarmNotification(data) {
       ? RIDER_OFFER_ALARM_NOTIFICATION_ID
       : ORDER_ALARM_NOTIFICATION_ID;
     const title = isRider ? 'Delivery offer waiting' : 'New order waiting';
-    // Rider: the alarm/overlay card is the sole Accept/Reject surface — this
-    // notification only exists to trigger the FGS + full-screen wake, so its
-    // copy must not imply it can act itself (was a duplicate "same work" UI
-    // alongside the card).
+    // The overlay card is the sole Accept/Reject surface for both roles now —
+    // this notification only exists to trigger the FGS, so its copy must not
+    // imply it can act itself (was a duplicate "same work" UI alongside the card).
     const body = orderNumber
-      ? (isRider ? `Order ${orderNumber} waiting` : `Order ${orderNumber} — accept or reject now`)
+      ? `Order ${orderNumber} waiting`
       : (isRider
         ? 'Check the offer card to accept or reject.'
-        : 'Accept or reject the order to keep the queue moving.');
-    // Notifee requires even-length positive ms (no leading 0 delay).
-    const vibrationPattern = isRider
-      ? [600, 200, 600, 200, 600, 200]
-      : [500, 200, 500, 200, 500, 200];
-
-    let canFullScreen = true;
-    try {
-      if (typeof notifee.canUseFullScreenIntent === 'function') {
-        canFullScreen = await notifee.canUseFullScreenIntent();
-      }
-    } catch {
-      canFullScreen = true;
-    }
-    // Rider offers never take over the screen. A locked phone rings and
-    // vibrates only, and the offer card appears when the rider unlocks (the
-    // overlay module holds it until ACTION_USER_PRESENT) — no UI on the lock
-    // screen, which is both what riders asked for and the safer position under
-    // Play's full-screen-intent policy. Shop new-order alerts are unchanged.
-    const screenLockedOrOff = await isScreenLockedOrOff();
-    const useFullScreen = canFullScreen && !isRider;
-    // One channel for every rider offer now: audible and buzzing, but never a
-    // heads-up banner and never visible on the lock screen.
-    const quietRider = isRider;
+        : 'Check the order card to accept or reject.');
+    // Neither role ever takes over the screen: no fullScreenAction anywhere.
+    // A locked phone rings and vibrates only, and the offer/order card appears
+    // once unlocked (the overlay module holds it until then) — no UI on the
+    // lock screen, which is both what was asked for and the safer position
+    // under Play's full-screen-intent policy.
+    //
+    // One quiet channel per role: audible and buzzing, but never a heads-up
+    // banner and never visible on the lock screen.
     const channelId = isRider
       ? RIDER_OFFER_QUIET_CHANNEL_ID
-      : ORDER_ALARM_CHANNEL_ID;
+      : ORDER_ALARM_QUIET_CHANNEL_ID;
     console.warn(
-      '[orderAlarm] canUseFullScreenIntent=', canFullScreen,
-      'screenLockedOrOff=', screenLockedOrOff,
-      'useFullScreen=', useFullScreen,
+      '[orderAlarm] quiet alarm',
+      isRider ? 'rider' : 'order',
+      'screenLockedOrOff=', await isScreenLockedOrOff(),
     );
 
     // Google Play FGS policy requires the alert to run only as long as
@@ -413,31 +397,17 @@ export async function displayAlarmNotification(data) {
 
     const android = {
       channelId,
-      // CALL makes ColorOS treat this as an incoming call: it lights the
-      // display and dismisses an insecure keyguard, which is exactly the
-      // lock-screen takeover riders asked us to stop. Shop alarms keep CALL —
-      // they are still meant to wake the phone.
-      category: quietRider ? AndroidCategory.MESSAGE : AndroidCategory.CALL,
-      importance: quietRider ? AndroidImportance.DEFAULT : AndroidImportance.HIGH,
-      visibility: quietRider ? AndroidVisibility.SECRET : AndroidVisibility.PUBLIC,
-      // Rider offers open the lightweight alarm card (no nav/map), not the
-      // full app — shop new-order alerts are unchanged.
+      // MESSAGE, not CALL: CALL makes ColorOS treat this as an incoming call,
+      // lighting the display and dismissing an insecure keyguard — exactly the
+      // lock-screen takeover that was asked to stop, for both roles.
+      category: AndroidCategory.MESSAGE,
+      importance: AndroidImportance.DEFAULT,
+      visibility: AndroidVisibility.SECRET,
+      // Rider offers open the lightweight alarm card (no nav/map); shop orders
+      // open the app, where the dashboard's own popup is waiting.
       pressAction: { id: 'default', launchActivity: isRider ? ALARM_ACTIVITY : 'default' },
-      // Rider: no inline Accept/Reject here — AlarmActivity/overlay card is
-      // the one actionable surface, this notification is just the trigger.
-      // Shop new-order alerts keep inline actions (no card exists for those).
-      ...(isRider ? {} : {
-        actions: [
-          {
-            title: 'Accept',
-            pressAction: { id: ACTION_ACCEPT, launchActivity: 'default' },
-          },
-          {
-            title: 'Reject',
-            pressAction: { id: ACTION_REJECT },
-          },
-        ],
-      }),
+      // No inline Accept/Reject on either: the overlay card is the one
+      // actionable surface and this notification is just the ring's host.
       // Ongoing alarm-style notification so the sound can loop until action/timeout.
       asForegroundService: true,
       foregroundServiceTypes: [
@@ -445,25 +415,14 @@ export async function displayAlarmNotification(data) {
       ],
       ongoing: true,
       autoCancel: false,
-      // Keeps ringing until accept/reject in both cases. With the screen on we
-      // drop only the vibration and screen-wake — the buzzing and lighting up
-      // are what made the card feel like a second alert.
+      // Keeps ringing until accept/reject in both cases. Vibration and
+      // screen-wake are left to the channel — driving them here too is what
+      // made the card feel like a second, competing alert.
       loopSound: true,
-      ...(quietRider ? {} : { vibrationPattern, lightUpScreen: true }),
       // Hard cap so the FGS can't ring forever — required for Play policy
       // compliance (see ringTimeoutAt above). Android fires DISMISSED at this
       // time even if the user never touches the notification.
       timeoutAfter: ringTimeoutAt,
-      // Attached only for the locked/screen-off case (see useFullScreen) —
-      // critical there, hijacking anywhere else.
-      ...(useFullScreen
-        ? {
-          fullScreenAction: {
-            id: 'default',
-            launchActivity: isRider ? ALARM_ACTIVITY : 'default',
-          },
-        }
-        : {}),
     };
 
     await notifee.displayNotification({
@@ -497,26 +456,36 @@ export async function displayAlarmNotification(data) {
       alarmStream: true,
     });
 
-    // The floating card is now the only visual surface for a rider offer, in
+    // The floating card is now the only visual surface for both roles, in
     // every state. Handed over unconditionally: the native module shows it
-    // straight away with the screen on, and holds it until the rider unlocks
-    // when the phone is locked or dark. No-ops when "draw over other apps" was
+    // straight away with the screen on, and holds it until the phone is
+    // unlocked when locked or dark. No-ops when "draw over other apps" was
     // never granted.
-    if (isRider) {
-      try {
-        const granted = await canShowOverlay();
-        if (granted) {
-          const expiresAt = data.expiresAt || data.expires_at;
-          showOverlayOfferCard({
-            orderId: String(data.orderId || data.order_id || ''),
-            offerId: String(data.offerId || data.offer_id || ''),
-            orderNumber: String(orderNumber),
-            total: String(data.total ?? ''),
-            expiresAtMs: expiresAt ? new Date(expiresAt).getTime() : 0,
-          });
-        }
-      } catch { /* ignore — cosmetic overlay failure must not fail the alarm */ }
-    }
+    try {
+      const granted = await canShowOverlay();
+      if (granted) {
+        const expiresAt = data.expiresAt || data.expires_at;
+        // Shop orders have no server-side expiry — tie the card's own lifetime
+        // to the ring cap so it can't outlive the alarm that announced it.
+        const expiresAtMs = expiresAt
+          ? new Date(expiresAt).getTime()
+          : (isRider ? 0 : Date.now() + MAX_ORDER_ALARM_RING_MS);
+        showOverlayOfferCard({
+          orderId: String(data.orderId || data.order_id || ''),
+          offerId: String(data.offerId || data.offer_id || ''),
+          orderNumber: String(orderNumber),
+          total: String(data.total ?? ''),
+          expiresAtMs,
+          badge: isRider ? 'Delivery offer' : 'New order',
+          // Shop owners get one "Open app" button instead of Accept/Reject:
+          // confirming an order needs the product list, delivery window and
+          // slide-to-accept that only the in-app bottom sheet has. Riders
+          // keep acting straight from the card — their offer is just a price
+          // and a clock, and it expires.
+          openOnly: !isRider,
+        });
+      }
+    } catch { /* ignore — cosmetic overlay failure must not fail the alarm */ }
 
     // Proof-of-delivery for the killed-app path: the notifee alarm above just
     // rang on THIS device, so tell the server — shopAlertSweeper eases off its
@@ -544,6 +513,9 @@ export async function cancelOrderAlarm() {
   if (Platform.OS !== 'android') return;
   clearAlarmActive('order');
   stopAlarmSound();
+  // The order is resolved (or the app is open) — the floating card must go
+  // with the ring, or it keeps offering Accept on an order already handled.
+  hideOverlayOfferCard();
   try {
     await notifee.cancelNotification(ORDER_ALARM_NOTIFICATION_ID);
   } catch { /* ignore */ }

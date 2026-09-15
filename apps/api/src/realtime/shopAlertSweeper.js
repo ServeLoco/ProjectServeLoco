@@ -24,8 +24,16 @@ const { pool } = require('../db/mysql');
 const config = require('../config/env');
 const { remindShopOrderOwner } = require('../utils/shops');
 
-const SHOP_ALERT_SWEEP_MS = config.SHOP_ALERT_SWEEP_MS || 5000;
+const SHOP_ALERT_SWEEP_MS = config.SHOP_ALERT_SWEEP_MS || 2000;
 const SHOP_ALERT_REMIND_MS = config.SHOP_ALERT_REMIND_MS || 25000;
+// Escalating retry: the gap after each push doubles (FIRST, 2x, 4x, ...) until
+// it reaches the steady-state cadence and stays there. Clamped to
+// SHOP_ALERT_REMIND_MS so lowering that below the first-retry value can't
+// accidentally make the early retries slower than the late ones.
+const SHOP_ALERT_FIRST_RETRY_MS = Math.min(
+  config.SHOP_ALERT_FIRST_RETRY_MS || 2000,
+  SHOP_ALERT_REMIND_MS
+);
 const SHOP_ALERT_REMIND_ACKED_MS = config.SHOP_ALERT_REMIND_ACKED_MS || 60000;
 const SHOP_RESPONSE_TIMEOUT_MS = config.SHOP_RESPONSE_TIMEOUT_MS || 600000;
 
@@ -45,26 +53,46 @@ const remindPendingShopOrders = async () => {
   // JS Date and comparing against Date.now() — mixing a server clock with a driver-
   // parsed client clock is exactly the kind of thing a timezone/driver config
   // mismatch silently breaks, which is what made this pass never fire in practice.
+  //
+  // Due-time basis is COALESCE(last_notified_at, o.accepted_at), never "NULL means
+  // due now": notifyShopsForOrder stamps shop_last_notified_at *after* firing the
+  // initial push (deliberately — the stamp must not delay the alarm), so for a
+  // few hundred ms after an accept the row reads as never-notified. Treating that
+  // as due rang the owner a second time for an order they were already being rung
+  // for, and the faster this sweeper ticks the more often it happened. accepted_at
+  // is when that initial push went out, so it is the correct fallback.
   const [rows] = await pool.query(
     `SELECT oi.order_id, oi.shop_id, o.order_number,
-            s.owner_user_id, s.name AS shop_name,
+            s.owner_user_id, s.name AS shop_name, u.fcm_token AS owner_fcm_token,
             MIN(oi.shop_last_notified_at) AS last_notified_at
      FROM order_items oi
      JOIN orders o ON o.id = oi.order_id
      JOIN shops s ON s.id = oi.shop_id AND s.active = 1
+     LEFT JOIN users u ON u.id = s.owner_user_id
      WHERE o.status IN ('Accepted', 'Preparing')
        AND oi.shop_confirmed_at IS NULL
        AND oi.shop_rejected_at IS NULL
        AND s.owner_user_id IS NOT NULL
        AND o.accepted_at IS NOT NULL
        AND o.accepted_at > (NOW() - INTERVAL ? SECOND)
-     GROUP BY oi.order_id, oi.shop_id, o.order_number, s.owner_user_id, s.name
-     HAVING MIN(oi.shop_last_notified_at) IS NULL
-         OR MIN(oi.shop_last_notified_at) <= NOW() - INTERVAL (CASE WHEN MIN(oi.shop_alert_acked_at) IS NULL THEN ? ELSE ? END) SECOND`,
+     GROUP BY oi.order_id, oi.shop_id, o.order_number, o.accepted_at,
+              s.owner_user_id, s.name, u.fcm_token
+     HAVING COALESCE(MIN(oi.shop_last_notified_at), o.accepted_at)
+              <= NOW() - INTERVAL (CEIL(
+              CASE
+                WHEN MIN(oi.shop_alert_acked_at) IS NOT NULL THEN ?
+                ELSE LEAST(?, ? * POW(2, GREATEST(MIN(oi.shop_notify_count) - 1, 0)))
+              END
+            )) SECOND`,
     [
       Math.ceil(SHOP_RESPONSE_TIMEOUT_MS / 1000),
-      Math.ceil(SHOP_ALERT_REMIND_MS / 1000),
+      // Acked (the alarm provably displayed) — slow cadence, owner is aware.
       Math.ceil(SHOP_ALERT_REMIND_ACKED_MS / 1000),
+      // Unacked: steady-state ceiling the doubling backs off to...
+      Math.ceil(SHOP_ALERT_REMIND_MS / 1000),
+      // ...starting from this gap after the initial push. That first retry is
+      // the weak-signal miss we most need to catch, so it is the fastest one.
+      Math.ceil(SHOP_ALERT_FIRST_RETRY_MS / 1000),
     ]
   );
 
@@ -90,7 +118,8 @@ const remindPendingShopOrders = async () => {
       await remindShopOrderOwner(
         { id: row.order_id, order_number: row.order_number },
         row.shop_id,
-        row.owner_user_id
+        row.owner_user_id,
+        { fcmToken: row.owner_fcm_token }
       );
     } catch (e) {
       console.error('[shop-alert] remind failed for order', row.order_id, 'shop', row.shop_id, e.message);
@@ -218,5 +247,6 @@ module.exports = {
   SHOP_ALERT_SWEEP_MS,
   SHOP_ALERT_REMIND_MS,
   SHOP_ALERT_REMIND_ACKED_MS,
+  SHOP_ALERT_FIRST_RETRY_MS,
   SHOP_RESPONSE_TIMEOUT_MS,
 };

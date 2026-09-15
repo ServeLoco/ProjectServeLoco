@@ -72,19 +72,21 @@ export default function AnalyticsUserDetail() {
       <div className="analytics-section">
         <h2>Sessions (latest 50)</h2>
         {sessions?.length > 0 ? (
-          <table className="analytics-table">
-            <thead><tr><th>When</th><th>Duration</th><th>Platform</th><th>Screens</th></tr></thead>
-            <tbody>
-              {sessions.map((s, i) => (
-                <tr key={i}>
-                  <td>{s.connectedAt ? new Date(s.connectedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—'}</td>
-                  <td>{fmtDuration(s.durationSec)}</td>
-                  <td>{s.platform || '—'}</td>
-                  <td>{Object.entries(s.screens || {}).map(([k, v]) => `${k}(${v})`).join(', ') || '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="analytics-table-wrap">
+            <table className="analytics-table">
+              <thead><tr><th>When</th><th>Duration</th><th>Platform</th><th>Screens</th></tr></thead>
+              <tbody>
+                {sessions.map((s, i) => (
+                  <tr key={i}>
+                    <td>{s.connectedAt ? new Date(s.connectedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—'}</td>
+                    <td>{fmtDuration(s.durationSec)}</td>
+                    <td>{s.platform || '—'}</td>
+                    <td>{Object.entries(s.screens || {}).map(([k, v]) => `${k}(${v})`).join(', ') || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : <div className="analytics-empty">No sessions recorded.</div>}
       </div>
 

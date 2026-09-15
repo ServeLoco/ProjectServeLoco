@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, typography, spacing, radius, shadows } from '../../theme';
+import { colors, typography, spacing, radius, shadows, glass, glassRadius } from '../../theme';
 import AppIcon from '../AppIcon';
 import { todayDateStr } from '../../utils/dateStr';
 
@@ -44,6 +44,9 @@ function labelFor(dateStr, date, todayStr, yesterdayStr) {
  * Bottom-sheet list of the last `daysBack` days for "browse orders by day"
  * history flows (shop/rider/customer order lists). Selecting a day calls
  * onSelectDate(dateStr) with a local YYYY-MM-DD string.
+ *
+ * `variant="dark"` opts into the shop-owner black + saffron glass sheet; the
+ * default stays light for the rider history screen.
  */
 export default function DayHistoryPicker({
   visible = false,
@@ -51,7 +54,9 @@ export default function DayHistoryPicker({
   onSelectDate,
   selectedDate,
   daysBack = 60,
+  variant = 'light',
 }) {
+  const dark = variant === 'dark';
   const days = useMemo(() => buildDays(daysBack), [daysBack]);
   const todayStr = todayDateStr();
   const yesterdayStr = days[1]?.dateStr;
@@ -61,13 +66,13 @@ export default function DayHistoryPicker({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.backdrop}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, dark && styles.sheetDark]}>
               <SafeAreaView edges={['bottom']}>
-                <View style={styles.handle} />
+                <View style={[styles.handle, dark && styles.handleDark]} />
                 <View style={styles.header}>
                   <Text style={styles.title}>Order History</Text>
-                  <TouchableOpacity onPress={onClose} accessibilityLabel="Close" style={styles.closeBtn}>
-                    <AppIcon name="close" size={18} color={colors.textSecondary} />
+                  <TouchableOpacity onPress={onClose} accessibilityLabel="Close" style={[styles.closeBtn, dark && styles.closeBtnDark]}>
+                    <AppIcon name="close" size={18} color={dark ? glass.textDim : colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
                 <FlatList
@@ -79,14 +84,14 @@ export default function DayHistoryPicker({
                     const active = item.dateStr === selectedDate;
                     return (
                       <TouchableOpacity
-                        style={[styles.row, active && styles.rowActive]}
+                        style={[styles.row, dark && styles.rowDark, active && styles.rowActive]}
                         onPress={() => onSelectDate?.(item.dateStr)}
                         activeOpacity={0.75}
                       >
-                        <Text style={[styles.rowText, active && styles.rowTextActive]}>
+                        <Text style={[styles.rowText, dark && styles.rowTextDark, active && (dark ? styles.rowTextActiveDark : styles.rowTextActive)]}>
                           {labelFor(item.dateStr, item.date, todayStr, yesterdayStr)}
                         </Text>
-                        {active ? <AppIcon name="check" size={16} color={colors.saffronDark} /> : null}
+                        {active ? <AppIcon name="check" size={16} color={dark ? colors.saffron : colors.saffronDark} /> : null}
                       </TouchableOpacity>
                     );
                   }}
@@ -150,4 +155,25 @@ const styles = StyleSheet.create({
   rowActive: {},
   rowText: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
   rowTextActive: { color: colors.saffronDark, fontWeight: '800' },
+
+  /* Dark (shop owner) variant */
+  sheetDark: {
+    backgroundColor: glass.canvas,
+    borderTopLeftRadius: glassRadius.hero,
+    borderTopRightRadius: glassRadius.hero,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: glass.border,
+  },
+  handleDark: { backgroundColor: glass.border },
+  titleDark: { color: glass.text },
+  closeBtnDark: {
+    backgroundColor: glass.fillStrong,
+    borderWidth: 1,
+    borderColor: glass.border,
+  },
+  rowDark: { borderBottomColor: glass.divider },
+  rowTextDark: { color: glass.text },
+  rowTextActiveDark: { color: colors.saffron, fontWeight: '800' },
 });

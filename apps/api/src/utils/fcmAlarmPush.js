@@ -17,20 +17,28 @@ const isProd = config.NODE_ENV === 'production';
  * @param {import('mysql2/promise').Pool} pool
  * @param {number} userId
  * @param {Record<string, string|number|null|undefined>} data
+ * @param {{ token?: string|null }} [options] Pass `token` when the caller already
+ *   has the user's fcm_token in hand (e.g. it came back on the same query that
+ *   found the user). Skips the lookup below — that lookup is a full DB round
+ *   trip sitting on the critical path between an accepted order and the alarm
+ *   actually ringing, and callers who fan out to several users paid it per user.
  * @returns {Promise<{ sent: boolean, reason?: string }>}
  */
-const sendFcmDataOnlyToUser = async (pool, userId, data = {}) => {
+const sendFcmDataOnlyToUser = async (pool, userId, data = {}, options = {}) => {
   try {
     const app = initFirebase();
     if (!app) {
       return { sent: false, reason: 'firebase_uninitialized' };
     }
 
-    const [rows] = await pool.query(
-      'SELECT fcm_token FROM users WHERE id = ? AND fcm_token IS NOT NULL AND fcm_token != \'\' LIMIT 1',
-      [userId]
-    );
-    const token = rows[0]?.fcm_token;
+    let token = options.token || null;
+    if (!token) {
+      const [rows] = await pool.query(
+        'SELECT fcm_token FROM users WHERE id = ? AND fcm_token IS NOT NULL AND fcm_token != \'\' LIMIT 1',
+        [userId]
+      );
+      token = rows[0]?.fcm_token;
+    }
     if (!token) {
       return { sent: false, reason: 'no_fcm_token' };
     }

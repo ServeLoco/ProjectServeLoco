@@ -34,6 +34,13 @@ export const useSettingsStore = create(
       name: 'serveloco-settings',
       storage: createJSONStorage(() => AsyncStorage),
       version: 1,
+      // _lastFetched is a per-session freshness stamp and must NOT persist.
+      // These values are per-area (UPI target, support contact, night charge
+      // — §27.5), so a launch in area 2 hydrates area 1's and, with a stamp
+      // under the 5-minute TTL, isStale() reports fresh and suppresses the
+      // refetch that would correct them. Dropping the stamp makes every cold
+      // start re-resolve settings against the pin that actually wins.
+      partialize: ({ _lastFetched, ...rest }) => rest,
       // Force a re-fetch from the server on any shape change instead of
       // trusting stale persisted fields — this store is a cache, not a
       // source of truth, so dropping it on migrate is always safe.

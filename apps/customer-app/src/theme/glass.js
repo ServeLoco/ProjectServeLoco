@@ -1,7 +1,7 @@
 /**
  * Shop-owner "black + saffron glass" tokens.
  *
- * The shop surfaces (dashboard, orders, products) sit on a pure black canvas
+ * The shop surfaces (dashboard, orders, products) sit on a soft dark canvas
  * and every box on top of it is a translucent pane with a light rim. Keep the
  * values here rather than per screen so the three tabs stay identical.
  */
@@ -9,8 +9,11 @@ import { Platform } from 'react-native';
 import { shadows } from './shadows';
 
 export const glass = {
-  /* Canvas */
-  canvas: '#000000',
+  /* Page background — the shop tabs sit on this, a shade off pure black. */
+  screen: '#222227',
+  /* Raised surface: modals, bottom sheets, popups. Sits a shade above the
+   * page so a sheet reads as lifted off the black rather than merged into it. */
+  canvas: '#1B1B1F',
 
   /* Panes */
   fill: 'rgba(255,255,255,0.07)',

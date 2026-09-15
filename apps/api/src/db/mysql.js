@@ -22,8 +22,8 @@ const pool = mysql.createPool({
   //
   // This MUST match the MySQL server's own session time_zone (not the IST
   // business display zone — see config.RIDER_TODAY_TZ, used separately for
-  // CONVERT_TZ target in report/order queries). Confirmed 2026-09-10 via
-  // SELECT @@session.time_zone: prod = '+00:00' (UTC), dev boxes are
+  // CONVERT_TZ target in report/order queries). Re-confirmed 2026-09-15 via
+  // SELECT @@global.time_zone on the Azure server: '+00:00' (UTC), dev boxes are
   // typically SYSTEM = IST — hence the per-env override. If this value
   // disagrees with the real server, every timestamp the API returns is
   // silently shifted by the difference.

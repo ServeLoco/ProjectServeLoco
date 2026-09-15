@@ -20,6 +20,8 @@ import { playAlarmSound, stopAlarmSound } from '../src/utils/alarmSound';
 jest.mock('../src/hooks/useLocalNotifications', () => ({
   ORDER_ALARM_CHANNEL_ID: 'serveloco-orders-alarm-v5',
   RIDER_OFFER_ALARM_CHANNEL_ID: 'serveloco-rider-offers-alarm-v5',
+  ORDER_ALARM_QUIET_CHANNEL_ID: 'serveloco-orders-quiet-v1',
+  RIDER_OFFER_QUIET_CHANNEL_ID: 'serveloco-rider-offers-quiet-v1',
   createNotifeeAlarmChannels: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -108,7 +110,7 @@ describe('orderAlarmNotifications', () => {
       expect(notifee.displayNotification).not.toHaveBeenCalled();
     });
 
-    it('displays a full-screen alarm for a shop new-order alert', async () => {
+    it('displays a quiet ringing alarm for a shop new-order alert', async () => {
       useAuthStore.setState({ shop: { id: 1 }, rider: null });
 
       await displayAlarmNotification({
@@ -118,7 +120,12 @@ describe('orderAlarmNotifications', () => {
       expect(notifee.displayNotification).toHaveBeenCalledTimes(1);
       const [call] = notifee.displayNotification.mock.calls[0];
       expect(call.id).toBe(ORDER_ALARM_NOTIFICATION_ID);
-      expect(call.android.channelId).toBe('serveloco-orders-alarm-v5');
+      // Quiet channel + no full-screen takeover + no inline buttons: the
+      // floating overlay card is the only visible Accept/Reject surface,
+      // matching the rider offer flow.
+      expect(call.android.channelId).toBe('serveloco-orders-quiet-v1');
+      expect(call.android.fullScreenAction).toBeUndefined();
+      expect(call.android.actions).toBeUndefined();
       expect(call.android.sound).toBe('order_alarm');
       expect(playAlarmSound).toHaveBeenCalledWith('order', expect.any(Object));
       // Must be time-bounded (Play FGS policy: "runs only as long as necessary") —
@@ -130,7 +137,7 @@ describe('orderAlarmNotifications', () => {
       expect(shopApi.ackOrderAlert).toHaveBeenCalledWith('10');
     });
 
-    it('displays a full-screen alarm for a rider offer alert', async () => {
+    it('displays a quiet ringing alarm for a rider offer alert', async () => {
       useAuthStore.setState({ shop: null, rider: { id: 7 } });
 
       await displayAlarmNotification({
@@ -140,7 +147,9 @@ describe('orderAlarmNotifications', () => {
 
       const [call] = notifee.displayNotification.mock.calls[0];
       expect(call.id).toBe(RIDER_OFFER_ALARM_NOTIFICATION_ID);
-      expect(call.android.channelId).toBe('serveloco-rider-offers-alarm-v5');
+      expect(call.android.channelId).toBe('serveloco-rider-offers-quiet-v1');
+      expect(call.android.fullScreenAction).toBeUndefined();
+      expect(call.android.actions).toBeUndefined();
       expect(call.android.sound).toBe('rider_alarm');
       expect(playAlarmSound).toHaveBeenCalledWith('rider', expect.any(Object));
       // Bounded by the offer's own expiresAt (~120s out here), not left open-ended.

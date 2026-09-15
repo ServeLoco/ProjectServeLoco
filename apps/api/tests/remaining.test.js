@@ -13,6 +13,15 @@ jest.mock('../src/db/mysql', () => ({
   }
 }));
 
+// The shop fan-out is started the moment the accept commits (so the owner's
+// phone isn't waiting on the controller's remaining queries) and runs its own
+// pool queries concurrently — without this it would consume the
+// mockResolvedValueOnce values queued for the route under test.
+jest.mock('../src/utils/shops', () => ({
+  ...jest.requireActual('../src/utils/shops'),
+  notifyShopsForOrder: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('../src/db/mongodb', () => {
   const insertOne = jest.fn(() => Promise.resolve());
   return {

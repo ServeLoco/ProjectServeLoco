@@ -20,6 +20,13 @@ const getEnv = (key, fallback) => {
   return undefined;
 };
 
+// The business runs on IST. Every calendar day, open/close window and report
+// boundary the platform shows anyone is expressed in this zone, on every
+// machine — see utils/businessTime.js, which is the only thing that should
+// read it directly. Distinct from MYSQL_SESSION_TZ, which describes the
+// database server and is not a business choice.
+const BUSINESS_TZ = process.env.BUSINESS_TZ || '+05:30';
+
 const config = {
   APP_ENV: appEnv,
   NODE_ENV: ENV,
@@ -41,12 +48,22 @@ const config = {
   MYSQL_SSL_CA_PATH: process.env.MYSQL_SSL_CA_PATH,
   // How mysql2 must interpret DATETIME/TIMESTAMP columns to build a correct
   // JS Date (must equal the MySQL server's own session time_zone, NOT the
-  // business display zone below). Confirmed 2026-09-10 via
-  // SELECT @@session.time_zone: prod is '+00:00' (UTC); local dev boxes are
+  // business display zone below). Re-confirmed 2026-09-15 against
+  // servelocoserver.mysql.database.azure.com (MySQL 8.4.8-azure):
+  // SELECT @@global.time_zone -> '+00:00'. mysql2 never issues SET time_zone,
+  // so the session inherits that global. Prod is UTC; local dev boxes are
   // typically SYSTEM=IST, so dev overrides this in .env.development.
   // Getting this wrong doesn't error — it silently mis-shifts every
   // timestamp the API returns (this caused the Orders page IST/UTC bug).
   MYSQL_SESSION_TZ: process.env.MYSQL_SESSION_TZ || 'Z',
+  // Same zone in a form CONVERT_TZ() accepts: it understands '+00:00' and named
+  // zones (when the tz tables are loaded) but returns NULL for 'Z'. Use this,
+  // never MYSQL_SESSION_TZ, as the SOURCE zone of a CONVERT_TZ on a stored
+  // column — the column holds whatever the MySQL session zone was when it was
+  // written, which is UTC in prod and IST on dev boxes.
+  MYSQL_SESSION_TZ_SQL: (process.env.MYSQL_SESSION_TZ || 'Z') === 'Z'
+    ? '+00:00'
+    : (process.env.MYSQL_SESSION_TZ || 'Z'),
 
   MONGODB_URI: process.env.MONGODB_URI,
   MONGODB_DATABASE: process.env.MONGODB_DATABASE,
@@ -90,7 +107,7 @@ const config = {
   // 30s against the 150s offer timer is ~5 alarms per offer, not 10 — still
   // frequent enough that a rider can't miss it, less relentless than every 15s.
   RIDER_OFFER_REMIND_SEC: Number(process.env.RIDER_OFFER_REMIND_SEC) || 30,
-  RIDER_TODAY_TZ: process.env.RIDER_TODAY_TZ || '+05:30',
+  RIDER_TODAY_TZ: process.env.RIDER_TODAY_TZ || BUSINESS_TZ,
   // A rider carrying this many undelivered orders is excluded from new offers
   // until one of them is Delivered/Cancelled.
   RIDER_MAX_ACTIVE_ORDERS: Number(process.env.RIDER_MAX_ACTIVE_ORDERS) || 2,
@@ -115,15 +132,22 @@ const config = {
   // rather than read server local time — an IANA name (not a fixed offset)
   // because this is a wall-clock comparison, same as nightDelivery.js.
   SHOP_SCHEDULE_TZ: process.env.SHOP_SCHEDULE_TZ || 'Asia/Kolkata',
+  BUSINESS_TZ,
   SHOP_SCHEDULE_SWEEP_MS: Number(process.env.SHOP_SCHEDULE_SWEEP_MS) || 30000,
 
   // Shop-owner alert reliability (weak-network retries + no-response timeout).
   // Tick cadence for the sweeper that re-pushes unanswered shop alerts and
   // auto-rejects ones stuck past the response window.
-  SHOP_ALERT_SWEEP_MS: Number(process.env.SHOP_ALERT_SWEEP_MS) || 5000,
+  SHOP_ALERT_SWEEP_MS: Number(process.env.SHOP_ALERT_SWEEP_MS) || 2000,
   // Re-push (socket + FCM/Expo alarm) an unconfirmed shop order this often
   // until the shop confirms, rejects, or the response window elapses.
   SHOP_ALERT_REMIND_MS: Number(process.env.SHOP_ALERT_REMIND_MS) || 25000,
+  // The retry right after the very first push is the one that matters: it
+  // covers the owner whose phone had no signal at the exact moment the order
+  // was accepted. Waiting a full SHOP_ALERT_REMIND_MS to find that out is the
+  // "order reached me late" complaint. Retry fast twice (this, then double
+  // this), then settle into SHOP_ALERT_REMIND_MS.
+  SHOP_ALERT_FIRST_RETRY_MS: Number(process.env.SHOP_ALERT_FIRST_RETRY_MS) || 2000,
   // Once the shop app has ack'd that the alarm actually displayed
   // (POST /shop/orders/:id/alert-ack — proof the push reached the device),
   // ease off to this slower cadence instead of SHOP_ALERT_REMIND_MS — the
@@ -133,6 +157,14 @@ const config = {
   // being Accepted, auto-reject that shop's items on its behalf (same
   // effect as the owner pressing Reject) so the order stops stalling.
   SHOP_RESPONSE_TIMEOUT_MS: Number(process.env.SHOP_RESPONSE_TIMEOUT_MS) || 600000,
+
+  // How long a new order sits at Pending before it auto-accepts. This is the
+  // admin's veto window — and, because shops are only told about an order once
+  // it leaves Pending (utils/shops.js notifyShopsForOrder), it is also the
+  // worst-case delay before a shop owner's phone rings on an order no admin
+  // touched. Lower it to shorten that delay; every other hop in the chain is
+  // sub-second.
+  ORDER_AUTO_ACCEPT_MS: Number(process.env.ORDER_AUTO_ACCEPT_MS) || 120000,
 };
 
 // Validation

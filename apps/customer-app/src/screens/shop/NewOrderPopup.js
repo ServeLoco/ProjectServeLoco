@@ -1,24 +1,30 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  Modal, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Animated, ScrollView,
+  Modal, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Animated,
+  Easing, ScrollView, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, typography, radius, shadows, motion, motionConfig } from '../../theme';
+import { colors, spacing, typography, radius, shadows, glass, glassRadius } from '../../theme';
 import AppIcon from '../../components/AppIcon';
+import SlideToConfirm from '../../components/shop/SlideToConfirm';
 
 /**
  * NewOrderPopup
- * Full-screen, non-dismissible modal for one new order at a time. When multiple
- * orders arrive they queue; only the head is shown until Accept/Reject, then
- * the next advances. Shows product names/quantities + delivery-time badge —
- * no prices/customer info. Outside-tap / back dismiss is a no-op.
+ * Bottom-sheet, non-dismissible modal for one new order at a time — same
+ * slide-up-from-bottom shape as the rider offer sheet. When multiple orders
+ * arrive they queue; only the head is shown until Accept/Reject, then the
+ * next advances. Shows product names/quantities + delivery-time badge — no
+ * prices/customer info (shop orders never carry that). Outside-tap / back
+ * dismiss is a no-op.
  *
  * @param {object|null} order - front-of-queue order
  * @param {number} [queueIndex=0]
  * @param {number} [queueTotal=1]
  */
 const RESPONSE_WINDOW_SEC = 600; // 10 minutes
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function NewOrderPopup({
   order,
@@ -31,18 +37,24 @@ export default function NewOrderPopup({
   const [error, setError] = useState(null);
   const [secondsLeft, setSecondsLeft] = useState(RESPONSE_WINDOW_SEC);
 
-  // Entrance animation (scale + fade) — runs whenever an order arrives.
   const enter = useRef(new Animated.Value(0)).current;
+  // Drives the slide-to-accept track's own countdown fill.
+  const progressAnim = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     if (!order) return;
     enter.setValue(0);
-    Animated.timing(enter, {
+    const anim = Animated.spring(enter, {
       toValue: 1,
-      duration: motion.screenMs,
-      easing: motion.easingModal,
+      damping: 24,
+      stiffness: 210,
+      mass: 0.9,
+      overshootClamping: true,
       useNativeDriver: true,
-    }).start();
-  }, [order, enter]);
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [order?.id, enter]);
 
   // Reset busy/error state for each new order — otherwise a spinner or stale
   // error from the previous order carries over and permanently disables the
@@ -52,15 +64,26 @@ export default function NewOrderPopup({
     setError(null);
   }, [order?.id]);
 
-  // 2-minute response countdown, restarts for each new order in the queue.
+  // 10-minute response countdown, restarts for each new order in the queue.
   useEffect(() => {
     if (!order) return undefined;
     setSecondsLeft(RESPONSE_WINDOW_SEC);
+    progressAnim.setValue(1);
+    const anim = Animated.timing(progressAnim, {
+      toValue: 0,
+      duration: RESPONSE_WINDOW_SEC * 1000,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    });
+    anim.start();
     const id = setInterval(() => {
       setSecondsLeft(s => Math.max(0, s - 1));
     }, 1000);
-    return () => clearInterval(id);
-  }, [order?.id]);
+    return () => {
+      anim.stop();
+      clearInterval(id);
+    };
+  }, [order?.id, progressAnim]);
 
   const handleAccept = useCallback(async () => {
     setError(null);
@@ -89,7 +112,16 @@ export default function NewOrderPopup({
   const isFast = order.deliveryType === 'fast' || order.delivery_type === 'fast';
   const minutes = order.expectedMinutes ?? order.expected_minutes;
 
-  const scale = enter.interpolate({ inputRange: [0, 1], outputRange: [motion.modalScaleStart, 1] });
+  const translateY = enter.interpolate({
+    inputRange: [0, 1],
+    outputRange: [SCREEN_HEIGHT, 0],
+    extrapolate: 'clamp',
+  });
+  const backdropOpacity = enter.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   const countdownMin = Math.floor(secondsLeft / 60);
   const countdownSec = secondsLeft % 60;
@@ -98,58 +130,66 @@ export default function NewOrderPopup({
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={() => {}}>
-      <View style={styles.overlay}>
-        <SafeAreaView style={styles.wrap}>
-          <Animated.View style={[styles.sheet, { opacity: enter, transform: [{ scale }] }]}>
-            <View style={styles.topAccent} />
+      <View style={styles.overlayRoot}>
+        <Animated.View pointerEvents="none" style={[styles.backdrop, { opacity: backdropOpacity }]} />
+        <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
+          <View style={styles.grabber} />
 
-            <View style={styles.badgeRow}>
-              <View style={styles.newBadge}>
-                <AppIcon name="notification" size={14} color={colors.textInverse} />
-                <Text style={styles.newBadgeText}>New order</Text>
-              </View>
+          <View style={styles.badgeRow}>
+            <View style={[styles.timerChip, countdownUrgent && styles.timerChipUrgent]}>
+              <AppIcon name="clock" size={13} color={countdownUrgent ? glass.errorText : colors.saffron} />
+              <Text style={[styles.timerChipText, countdownUrgent && styles.timerChipTextUrgent]}>
+                {countdownLabel}
+              </Text>
             </View>
+            <View style={[styles.deliveryTypeBadge, isFast && styles.deliveryTypeBadgeFast]}>
+              <AppIcon name="navigation" size={12} color="#FFFFFF" />
+              <Text style={styles.deliveryTypeBadgeText}>{isFast ? 'Fast' : 'Standard'}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.rejectPill}
+              activeOpacity={0.8}
+              onPress={handleReject}
+              disabled={busy !== null}
+            >
+              {busy === 'reject' ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.rejectPillText}>Reject</Text>
+              )}
+            </TouchableOpacity>
+          </View>
 
-            {queueTotal > 1 ? (
-              <View style={styles.queueBanner}>
-                <AppIcon name="orders" size={14} color={colors.saffronDark} />
-                <Text style={styles.queueBannerText}>
-                  Order {Math.min(queueIndex + 1, queueTotal)} of {queueTotal}
-                  {queueTotal - queueIndex - 1 > 0
-                    ? ` · ${queueTotal - queueIndex - 1} more waiting`
-                    : ''}
-                </Text>
-              </View>
-            ) : null}
+          {queueTotal > 1 ? (
+            <View style={styles.queueBanner}>
+              <AppIcon name="orders" size={14} color={colors.saffron} />
+              <Text style={styles.queueBannerText}>
+                Order {Math.min(queueIndex + 1, queueTotal)} of {queueTotal}
+                {queueTotal - queueIndex - 1 > 0
+                  ? ` · ${queueTotal - queueIndex - 1} more waiting`
+                  : ''}
+              </Text>
+            </View>
+          ) : null}
 
+          <ScrollView style={styles.scrollBody} showsVerticalScrollIndicator={false}>
             <Text
               style={styles.orderNumber}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.6}
             >
-              #{order.orderNumber || order.order_number}
+              Order #{order.orderNumber || order.order_number}
             </Text>
-
-            <View style={[styles.countdownPill, countdownUrgent && styles.countdownPillUrgent]}>
-              <AppIcon name="clock" size={14} color={countdownUrgent ? colors.error : colors.textSecondary} />
-              <Text style={[styles.countdownText, countdownUrgent && styles.countdownTextUrgent]}>
-                Respond within {countdownLabel}
-              </Text>
-            </View>
 
             {minutes != null && (
               <LinearGradient
-                colors={isFast ? [colors.btnHighlightStart, colors.btnHighlightEnd] : [colors.infoLight, colors.infoLight]}
+                colors={isFast ? [colors.btnHighlightStart, colors.btnHighlightEnd] : [glass.infoFill, glass.infoFill]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={[styles.timeBadge, isFast && styles.timeBadgeFast]}
               >
-                <AppIcon
-                  name="navigation"
-                  size={18}
-                  color={isFast ? colors.textInverse : colors.info}
-                />
+                <AppIcon name="navigation" size={18} color={isFast ? '#FFFFFF' : glass.infoText} />
                 <Text style={[styles.timeBadgeText, isFast && styles.timeBadgeTextFast]}>
                   {isFast ? 'Fast delivery' : 'Standard delivery'} · {minutes} min
                 </Text>
@@ -157,11 +197,14 @@ export default function NewOrderPopup({
             )}
 
             <Text style={styles.itemsLabel}>Items</Text>
-            <ScrollView style={styles.itemsCard} showsVerticalScrollIndicator={false}>
+            <View style={styles.itemsCard}>
               {(order.items || []).map((it, idx) => {
                 const lineTotal = it.shopLineTotal ?? it.shop_line_total;
                 return (
-                  <View key={idx} style={styles.itemRow}>
+                  <View
+                    key={idx}
+                    style={[styles.itemRow, idx === (order.items || []).length - 1 && styles.itemRowLast]}
+                  >
                     <View style={styles.qtyChip}>
                       <Text style={styles.qtyChipText}>{it.quantity}x</Text>
                     </View>
@@ -174,199 +217,136 @@ export default function NewOrderPopup({
                   </View>
                 );
               })}
-            </ScrollView>
+              {(order.shopTotal ?? order.shop_total) > 0 ? (
+                <View style={[styles.itemRow, styles.itemRowLast, styles.totalRow]}>
+                  <Text style={styles.totalLabel}>You'll receive</Text>
+                  <Text style={styles.totalValue}>₹{order.shopTotal ?? order.shop_total}</Text>
+                </View>
+              ) : null}
+            </View>
 
-            {(order.shopTotal ?? order.shop_total) > 0 && (
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>You'll receive</Text>
-                <Text style={styles.totalValue}>₹{order.shopTotal ?? order.shop_total}</Text>
-              </View>
-            )}
-
-            {error && (
+            {error ? (
               <View style={styles.errorPill}>
-                <AppIcon name="close" size={14} color={colors.error} />
+                <AppIcon name="close" size={14} color={glass.errorText} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
-            )}
+            ) : null}
+          </ScrollView>
 
-            <View style={styles.actionRow}>
-              <PressButton
-                label="Reject"
-                variant="reject"
-                busy={busy === 'reject'}
-                disabled={busy !== null}
-                onPress={handleReject}
-              />
-              <PressButton
-                label="Accept"
-                variant="accept"
-                busy={busy === 'accept'}
-                disabled={busy !== null}
-                onPress={handleAccept}
-              />
-            </View>
-          </Animated.View>
-        </SafeAreaView>
+          <SafeAreaView edges={['bottom']} style={styles.actionRow}>
+            <SlideToConfirm
+              label="Slide to accept order"
+              busy={busy === 'accept'}
+              disabled={busy !== null || secondsLeft <= 0}
+              onConfirm={handleAccept}
+              progressAnim={progressAnim}
+            />
+          </SafeAreaView>
+        </Animated.View>
       </View>
     </Modal>
   );
 }
 
-/** Large Accept/Reject button with gradient or outline fill + press scale. */
-function PressButton({ label, variant, busy, disabled, onPress }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const isAccept = variant === 'accept';
-  const handleIn = () => Animated.timing(scale, { toValue: 0.96, ...motionConfig.tap }).start();
-  const handleOut = () => Animated.timing(scale, { toValue: 1, ...motionConfig.tap }).start();
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPressIn={handleIn}
-      onPressOut={handleOut}
-      onPress={onPress}
-      disabled={disabled}
-      style={[styles.actionBtn, { transform: [{ scale }], opacity: disabled ? 0.75 : 1 }]}
-    >
-      {isAccept ? (
-        <LinearGradient
-          colors={[colors.btnSuccessStart, colors.btnSuccessEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientFill}
-        >
-          <ButtonInner label={label} busy={busy} color={colors.textInverse} icon="check" />
-        </LinearGradient>
-      ) : (
-        <View style={[styles.gradientFill, styles.rejectFill]}>
-          <ButtonInner label={label} busy={busy} color={colors.error} icon="close" />
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-}
-
-function ButtonInner({ label, busy, color, icon }) {
-  if (busy) return <ActivityIndicator color={color} />;
-  return (
-    <View style={styles.btnInner}>
-      <AppIcon name={icon} size={18} color={color} />
-      <Text style={[styles.actionBtnText, { color }]}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlayDark,
-    justifyContent: 'center',
-  },
-  wrap: { flex: 1, justifyContent: 'center', padding: spacing.lg },
+  overlayRoot: { flex: 1, justifyContent: 'flex-end' },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlayDark },
   sheet: {
-    backgroundColor: colors.bgSurface,
-    borderRadius: radius.xxl,
-    padding: spacing.xl,
+    maxHeight: '88%',
+    backgroundColor: glass.canvas,
+    borderTopLeftRadius: glassRadius.hero,
+    borderTopRightRadius: glassRadius.hero,
+    borderWidth: 1,
+    borderColor: glass.border,
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.md,
     overflow: 'hidden',
     ...shadows.modal,
   },
-  topAccent: {
-    position: 'absolute', top: 0, left: 0, right: 0, height: 6,
-    backgroundColor: colors.saffron,
+  grabber: {
+    alignSelf: 'center', width: 40, height: 4, borderRadius: radius.pill,
+    backgroundColor: glass.border, marginBottom: spacing.md,
   },
-  badgeRow: {
-    flexDirection: 'row', alignItems: 'center',
-    marginTop: spacing.sm, marginBottom: spacing.xs,
+
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
+  timerChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: glass.tint, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: glass.borderWarm,
+    paddingHorizontal: 12, paddingVertical: 6,
   },
-  countdownPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-    marginBottom: spacing.md,
+  timerChipUrgent: { backgroundColor: glass.errorFill, borderColor: glass.errorRim },
+  timerChipText: { fontWeight: '800', fontSize: 14, color: colors.saffron, fontVariant: ['tabular-nums'] },
+  timerChipTextUrgent: { color: glass.errorText },
+  deliveryTypeBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: colors.info, borderRadius: radius.pill,
+    paddingHorizontal: 10, paddingVertical: 5,
   },
-  countdownPillUrgent: {},
-  countdownText: {
-    color: colors.textSecondary, fontWeight: '700', fontSize: 13,
+  deliveryTypeBadgeFast: { backgroundColor: colors.saffron },
+  deliveryTypeBadgeText: { fontWeight: '800', fontSize: 12, color: '#FFFFFF' },
+
+  rejectPill: {
+    marginLeft: 'auto', minWidth: 74, alignItems: 'center', justifyContent: 'center',
+    borderRadius: radius.pill, backgroundColor: colors.error,
+    paddingHorizontal: spacing.md, paddingVertical: 6,
   },
-  countdownTextUrgent: {
-    color: colors.error,
-  },
-  newBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: colors.saffron, borderRadius: radius.pill,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
-  },
-  newBadgeText: {
-    color: colors.textInverse, fontWeight: '800', fontSize: 13, letterSpacing: 0.3,
-  },
+  rejectPillText: { color: '#FFFFFF', fontWeight: '800', fontSize: 13 },
+
   queueBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    alignSelf: 'flex-start',
-    backgroundColor: colors.warningLight || colors.saffronLight,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    marginBottom: spacing.sm,
+    flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
+    backgroundColor: glass.tint, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: glass.borderWarm,
+    paddingHorizontal: spacing.md, paddingVertical: 6, marginBottom: spacing.sm,
   },
-  queueBannerText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.saffronDark || colors.warning,
-  },
-  orderNumber: {
-    ...typography.h2, color: colors.textPrimary, marginBottom: spacing.sm,
-  },
+  queueBannerText: { fontSize: 12, fontWeight: '800', color: colors.saffron },
+
+  scrollBody: { flexGrow: 0 },
+
+  orderNumber: { ...typography.h3, color: glass.text, marginBottom: spacing.sm },
+
   timeBadge: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     alignSelf: 'stretch', borderRadius: radius.button,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.md, marginBottom: spacing.lg,
-    borderWidth: 1, borderColor: colors.info,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md, marginBottom: spacing.md,
+    borderWidth: 1, borderColor: glass.infoRim,
   },
   timeBadgeFast: { borderWidth: 0 },
-  timeBadgeText: { color: colors.info, fontWeight: '700', fontSize: 15 },
-  timeBadgeTextFast: { color: colors.textInverse },
+  timeBadgeText: { color: glass.infoText, fontWeight: '700', fontSize: 15 },
+  timeBadgeTextFast: { color: '#FFFFFF' },
+
   itemsLabel: {
-    ...typography.labelSmall, color: colors.textSecondary, textTransform: 'uppercase',
+    ...typography.labelSmall, color: glass.textDim, textTransform: 'uppercase',
     letterSpacing: 0.6, marginBottom: spacing.sm,
   },
   itemsCard: {
-    backgroundColor: colors.bgApp, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginBottom: spacing.sm,
-    maxHeight: 220,
+    backgroundColor: glass.fill, borderRadius: glassRadius.inner,
+    borderWidth: 1, borderColor: glass.border, paddingHorizontal: spacing.md, marginBottom: spacing.md,
   },
   itemRow: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xs,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: glass.divider,
   },
+  itemRowLast: { borderBottomWidth: 0 },
   qtyChip: {
-    backgroundColor: colors.saffronLight, borderRadius: radius.sm, paddingHorizontal: 8,
-    paddingVertical: 2, minWidth: 36, alignItems: 'center',
+    backgroundColor: glass.tint, borderRadius: radius.lg, paddingHorizontal: 8,
+    paddingVertical: 3, minWidth: 36, alignItems: 'center',
+    borderWidth: 1, borderColor: glass.borderWarm,
   },
-  qtyChipText: { color: colors.saffronDark, fontWeight: '800', fontSize: 13 },
-  itemName: { flex: 1, ...typography.bodyLarge, color: colors.textPrimary, fontWeight: '500' },
-  itemPrice: {
-    ...typography.bodyLarge, color: colors.textSecondary, fontWeight: '700',
-    minWidth: 64, textAlign: 'right',
-  },
-  totalRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.xs, marginBottom: spacing.lg,
-  },
-  totalLabel: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '700' },
-  totalValue: { ...typography.h4, color: colors.successDark, fontWeight: '800' },
+  qtyChipText: { color: colors.saffron, fontWeight: '800', fontSize: 13 },
+  itemName: { flex: 1, ...typography.body, color: glass.text, fontWeight: '500' },
+  itemPrice: { ...typography.body, color: glass.textDim, fontWeight: '700', minWidth: 56, textAlign: 'right' },
+  totalRow: { justifyContent: 'space-between' },
+  totalLabel: { ...typography.bodySmall, color: glass.textDim, fontWeight: '700' },
+  totalValue: { ...typography.h4, color: glass.successText, fontWeight: '800' },
+
   errorPill: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs,
-    backgroundColor: colors.errorLight, borderRadius: radius.pill,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.xs, marginBottom: spacing.md,
+    backgroundColor: glass.errorFill, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: glass.errorRim,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2, marginBottom: spacing.md,
   },
-  errorText: {
-    color: colors.error, fontSize: 13, fontWeight: '600', textAlign: 'center',
-  },
-  actionRow: { flexDirection: 'row', gap: spacing.md },
-  actionBtn: { flex: 1, borderRadius: radius.button, minHeight: 58, ...shadows.md },
-  gradientFill: { flex: 1, borderRadius: radius.button, alignItems: 'center', justifyContent: 'center' },
-  rejectFill: {
-    backgroundColor: colors.errorLight, borderWidth: 2, borderColor: colors.error,
-  },
-  btnInner: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  actionBtnText: { ...typography.buttonLarge, fontWeight: '800' },
+  errorText: { color: glass.errorText, fontSize: 13, fontWeight: '600', textAlign: 'center' },
+
+  actionRow: { flexDirection: 'row', gap: spacing.md, paddingTop: spacing.xs, paddingBottom: spacing.lg },
 });

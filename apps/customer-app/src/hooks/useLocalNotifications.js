@@ -202,6 +202,10 @@ export const RIDER_OFFER_ALARM_CHANNEL_ID = 'serveloco-rider-offers-alarm-v5';
 // The ring itself comes from playAlarmSound()'s media stream either way, so
 // silencing the channel does not silence the offer.
 export const RIDER_OFFER_QUIET_CHANNEL_ID = 'serveloco-rider-offers-quiet-v1';
+// Shop-owner counterpart to the rider quiet channel — same reasoning: the
+// floating offer card is the alert, this channel only hosts the ringing
+// foreground service.
+export const ORDER_ALARM_QUIET_CHANNEL_ID = 'serveloco-orders-quiet-v1';
 
 // Strong pattern: pause, buzz, pause, buzz… (ms) — RN Vibration API allows a
 // leading 0 (initial delay). Used by foreground alert hooks.
@@ -355,6 +359,18 @@ export async function createNotifeeAlarmChannels() {
       // vibrates, and the offer card is shown once the rider unlocks.
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.SECRET,
       vibrationPattern: NOTIFEE_RIDER_VIBRATION_PATTERN,
+      enableVibrate: true,
+      enableLights: false,
+      showBadge: false,
+      audioAttributes: alarmAudio,
+    });
+
+    await Notifications.setNotificationChannelAsync(ORDER_ALARM_QUIET_CHANNEL_ID, {
+      name: 'Shop Orders',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: 'order_alarm',
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.SECRET,
+      vibrationPattern: NOTIFEE_SHOP_VIBRATION_PATTERN,
       enableVibrate: true,
       enableLights: false,
       showBadge: false,

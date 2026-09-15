@@ -1,4 +1,5 @@
 const config = require('../config/env');
+const { istIsToday, istIsThisWeek, istIsThisMonth, istDateOf } = require('../utils/businessTime');
 const { signAdminToken } = require('../utils/auth');
 const { pool } = require('../db/mysql');
 const { validatePagination } = require('../validators');
@@ -401,13 +402,13 @@ const getDashboard = async (req, res) => {
 
   const [metricsRow = {}] = await queryRows(`
     SELECT
-      COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) as today_orders,
-      COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() AND status != 'Cancelled' THEN total ELSE 0 END), 0) as today_sales,
+      COUNT(CASE WHEN ${istIsToday('created_at')} THEN 1 END) as today_orders,
+      COALESCE(SUM(CASE WHEN ${istIsToday('created_at')} AND status != 'Cancelled' THEN total ELSE 0 END), 0) as today_sales,
       COUNT(CASE WHEN status = 'Pending' THEN 1 END) as pending_orders,
       COUNT(CASE WHEN status = 'Delivered' THEN 1 END) as delivered_orders,
       COALESCE(SUM(CASE WHEN payment_method = 'Cash' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as cash_total,
       COALESCE(SUM(CASE WHEN payment_method = 'UPI' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as upi_total,
-      COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() AND payment_status = 'Pending' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as pending_payment_total
+      COALESCE(SUM(CASE WHEN ${istIsToday('created_at')} AND payment_status = 'Pending' AND status != 'Cancelled' THEN total ELSE 0 END), 0) as pending_payment_total
     FROM orders
     WHERE area_id = ?
   `, [areaId]);
@@ -469,11 +470,11 @@ const getSalesReport = async (req, res) => {
 
   let dateFilter = '1=1';
   if (period === 'today') {
-    dateFilter = 'DATE(created_at) = CURDATE()';
+    dateFilter = istIsToday('created_at');
   } else if (period === 'week') {
-    dateFilter = 'YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    dateFilter = istIsThisWeek('created_at');
   } else if (period === 'month') {
-    dateFilter = 'YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())';
+    dateFilter = istIsThisMonth('created_at');
   }
   // areaId === 'all' (super_admin, §2.10) intentionally leaves this at '1=1'
   // — every query below sums/groups across every area, a real cross-area
@@ -509,9 +510,9 @@ const getSalesReport = async (req, res) => {
   const legacyAreaParams = areaId === 'all' ? [] : [areaId];
   const [[legacySalesRow]] = await pool.query(`
     SELECT
-      COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN total ELSE 0 END), 0) as today_sales,
-      COALESCE(SUM(CASE WHEN YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1) THEN total ELSE 0 END), 0) as week_sales,
-      COALESCE(SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN total ELSE 0 END), 0) as month_sales
+      COALESCE(SUM(CASE WHEN ${istIsToday('created_at')} THEN total ELSE 0 END), 0) as today_sales,
+      COALESCE(SUM(CASE WHEN ${istIsThisWeek('created_at')} THEN total ELSE 0 END), 0) as week_sales,
+      COALESCE(SUM(CASE WHEN ${istIsThisMonth('created_at')} THEN total ELSE 0 END), 0) as month_sales
     FROM orders
     WHERE status != 'Cancelled'${legacyAreaClause}
   `, legacyAreaParams);
@@ -575,11 +576,11 @@ const getTopProductsReport = async (req, res) => {
 
   let dateFilter = '1=1';
   if (period === 'today') {
-    dateFilter = 'DATE(o.created_at) = CURDATE()';
+    dateFilter = istIsToday('o.created_at');
   } else if (period === 'week') {
-    dateFilter = 'YEARWEEK(o.created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    dateFilter = istIsThisWeek('o.created_at');
   } else if (period === 'month') {
-    dateFilter = 'YEAR(o.created_at) = YEAR(CURDATE()) AND MONTH(o.created_at) = MONTH(CURDATE())';
+    dateFilter = istIsThisMonth('o.created_at');
   }
 
   // 'all' mode groups by area too — products aren't shared across areas yet
@@ -619,11 +620,11 @@ const getCustomersReport = async (req, res) => {
 
   let dateFilter = '1=1';
   if (period === 'today') {
-    dateFilter = 'DATE(created_at) = CURDATE()';
+    dateFilter = istIsToday('created_at');
   } else if (period === 'week') {
-    dateFilter = 'YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    dateFilter = istIsThisWeek('created_at');
   } else if (period === 'month') {
-    dateFilter = 'YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())';
+    dateFilter = istIsThisMonth('created_at');
   }
 
   const [[metrics]] = await pool.query(`
@@ -649,11 +650,11 @@ const getShopsReport = async (req, res) => {
 
   let dateFilter = '1=1';
   if (period === 'today') {
-    dateFilter = 'DATE(o.created_at) = CURDATE()';
+    dateFilter = istIsToday('o.created_at');
   } else if (period === 'week') {
-    dateFilter = 'YEARWEEK(o.created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    dateFilter = istIsThisWeek('o.created_at');
   } else if (period === 'month') {
-    dateFilter = 'YEAR(o.created_at) = YEAR(CURDATE()) AND MONTH(o.created_at) = MONTH(CURDATE())';
+    dateFilter = istIsThisMonth('o.created_at');
   }
   if (areaId !== 'all') {
     dateFilter += ' AND o.area_id = ?';
@@ -729,8 +730,8 @@ const buildPeriodDateFilter = (resolved, areaId, column = 'o.created_at') => {
   const parts = [];
   const params = [];
   if (resolved.key !== 'all') {
-    parts.push(`DATE(CONVERT_TZ(${column}, '+00:00', ?)) BETWEEN ? AND ?`);
-    params.push(resolved.timezone, resolved.from, resolved.to);
+    parts.push(`DATE(CONVERT_TZ(${column}, ?, ?)) BETWEEN ? AND ?`);
+    params.push(config.MYSQL_SESSION_TZ_SQL, resolved.timezone, resolved.from, resolved.to);
   }
   if (areaId !== undefined && areaId !== 'all') {
     parts.push('o.area_id = ?');
@@ -1120,15 +1121,15 @@ const getAdminOrders = async (req, res) => {
   if (today) {
     const { from: todayStr } = resolvePeriod({ period: 'today' });
     query += ' AND DATE(CONVERT_TZ(o.created_at, ?, ?)) = ?';
-    params.push(config.MYSQL_SESSION_TZ, ADMIN_ORDERS_TZ, todayStr);
+    params.push(config.MYSQL_SESSION_TZ_SQL, ADMIN_ORDERS_TZ, todayStr);
   } else {
     if (finalDateFrom) {
-      query += ' AND DATE(o.created_at) >= ?';
+      query += ` AND ${istDateOf('o.created_at')} >= ?`;
       params.push(finalDateFrom);
     }
 
     if (finalDateTo) {
-      query += ' AND DATE(o.created_at) <= ?';
+      query += ` AND ${istDateOf('o.created_at')} <= ?`;
       params.push(finalDateTo);
     }
   }
@@ -1209,6 +1210,16 @@ const getAdminOrderById = async (req, res) => {
       o.coupon_id, o.coupon_code, o.coupon_title, o.discount_amount, o.free_delivery_waiver_amount,
       o.payment_method, o.payment_status, o.status, o.note, o.admin_remark, o.cancel_reason, o.created_at, o.updated_at,
       o.rider_id, o.rider_assigned_at, o.rider_picked_up_at, o.rider_assignment_status,
+      -- Order lifecycle timestamps, for the drawer's Timeline section. Every
+      -- one of these was already being written by the status/assignment paths;
+      -- only this SELECT was leaving them out, so the drawer had no way to show
+      -- when anything actually happened.
+      o.accepted_at, o.rider_search_started_at, o.delivered_at,
+      -- Delivery Pricing snapshots. The drawer has rendered these four since it
+      -- was written, but they were never selected — the section showed
+      -- "Not captured" for every order regardless of what was stored.
+      o.delivery_distance_km, o.delivery_radius_km_snapshot,
+      o.delivery_cost_per_km_snapshot, o.free_delivery_offer_snapshot,
       r.display_name AS rider_name, u.trusted AS customer_trusted
      FROM orders o
      LEFT JOIN riders r ON r.id = o.rider_id
@@ -1396,6 +1407,9 @@ const updateOrderStatus = async (req, res) => {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Cannot move order from '${currentStatus}' back to '${status}'` });
   }
 
+  // Set when the accept path below starts the shop fan-out early (see there).
+  let shopFanOut = null;
+
   if (status === 'Cancelled') {
     const cancelledPaymentStatus = getCancelledPaymentStatus(orderRows[0].payment_method);
     const { resolveCancelReason } = require('../utils/cancelReasons');
@@ -1507,6 +1521,13 @@ const updateOrderStatus = async (req, res) => {
       const [freshRows] = await pool.query(`SELECT * FROM orders WHERE id = ?${scope.clause}`, [id, ...scope.params]);
       return res.status(409).json({ code: 'CONCURRENCY_CONFLICT', message: 'Order was updated by someone else.', order: freshRows[0] });
     }
+    // The accept has committed and the fan-out needs nothing but the id and
+    // order number, both already in hand — start ringing the shops now instead
+    // of after the SELECT * below. Same call the block further down would make;
+    // it just no longer waits on a round trip for data it doesn't use.
+    if (currentStatus === 'Pending' && (status === 'Accepted' || status === 'Preparing')) {
+      shopFanOut = notifyShopsForOrder({ id: Number(id), order_number: orderRows[0].order_number });
+    }
   }
   const [updatedRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
   const updatedOrder = updatedRows[0];
@@ -1532,7 +1553,10 @@ const updateOrderStatus = async (req, res) => {
     // an admin can jump straight from Pending to Preparing (skipping
     // Accepted), which would otherwise never fire the fan-out.
     if (currentStatus === 'Pending' && (status === 'Accepted' || status === 'Preparing')) {
-      notifyShopsForOrder(updatedOrder); // fire-and-forget; owners get socket + push
+      // Already started right after the UPDATE committed (above) so it didn't
+      // wait on the SELECT *; fall back to starting it here if that path was
+      // skipped. Fire-and-forget either way — owners get socket + push.
+      if (!shopFanOut) notifyShopsForOrder(updatedOrder);
       // House-only orders (no shop items) start rider assignment immediately.
       const { startAssignmentIfHouseOnly } = require('../services/riderAssignment');
       startAssignmentIfHouseOnly(updatedOrder.id).catch((e) =>

@@ -4,6 +4,7 @@
 // empty/default data rather than 500.
 
 const { getDb } = require('../db/mongodb');
+const { istDateKey } = require('../utils/businessTime');
 const { pool } = require('../db/mysql');
 const { insertEvents } = require('../services/analytics/eventStore');
 const { requestAreaId, listAreas } = require('../utils/areaScope');
@@ -23,14 +24,10 @@ const dateRange = (days) => {
   return { start, end };
 };
 
-// Local-timezone YYYY-MM-DD, matching how analytics_daily.date is written by
-// the rollup job (toISOString() would shift to UTC and mis-align the range).
-const toLocalDateStr = (d) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
+// IST YYYY-MM-DD, matching how analytics_daily.date is written by the rollup
+// job. Both sides read IST explicitly now rather than trusting the process's
+// own zone, which is UTC in the production container.
+const toLocalDateStr = (d) => istDateKey(d);
 
 // Safely get a Mongo collection — returns null if Mongo isn't connected so
 // callers can short-circuit to empty data without throwing.
