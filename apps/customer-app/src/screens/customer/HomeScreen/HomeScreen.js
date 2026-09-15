@@ -402,6 +402,7 @@ export default function HomeScreen() {
   // instantly (no skeleton) while a fresh fetch revalidates in the background.
   const sectionsCacheRef = useRef({});
   const prefetchedModesRef = useRef(new Set());
+  const [cacheGeneration, setCacheGeneration] = useState(0);
 
   // Both caches above are keyed by store type only, so moving the pin into a
   // different delivery zone would keep repainting the previous zone's
@@ -602,11 +603,18 @@ export default function HomeScreen() {
   // closed. Drop them instead of trying to patch every cached mode; the
   // prefetch effect re-warms them within 2s.
   const dropOtherModeCaches = React.useCallback(() => {
+    let dropped = false;
     for (const slug of Object.keys(sectionsCacheRef.current)) {
       if (slug === currentApiStoreType) continue;
       delete sectionsCacheRef.current[slug];
       prefetchedModesRef.current.delete(slug);
+      dropped = true;
     }
+    // Both containers above are refs, so emptying them changes no state and
+    // the prefetch effect below would not re-run — the dropped modes would
+    // stay cold until the next switch (a skeleton, exactly what the prefetch
+    // exists to avoid). This counter is the effect's re-run signal.
+    if (dropped) setCacheGeneration(gen => gen + 1);
   }, [currentApiStoreType]);
 
   // Live OOS: when shop/admin marks a product unavailable, grey it out on
@@ -838,7 +846,7 @@ export default function HomeScreen() {
       }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [isLoading, modes, currentApiStoreType, prefetchSectionImages]);
+  }, [isLoading, modes, currentApiStoreType, prefetchSectionImages, cacheGeneration]);
 
   useEffect(() => {
     // 1. Badge pulse/glow loop animation (1.0 to 2.0 scale)
