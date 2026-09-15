@@ -41,7 +41,7 @@ import {
 import { showToast } from '../../../components/Toast';
 import { colors, typography, spacing, radius, layout } from '../../../theme';
 import { useCartStore, useSettingsStore, useDeliveryLocationStore, useDeliveryZonesStore } from '../../../stores';
-import { useAuthGate, useStoreModes, useHomeLocationPermission, buildAreaETag, applyBootstrapResult } from '../../../hooks';
+import { useAuthGate, useStoreModes, useHomeLocationPermission, buildAreaETag, applyBootstrapResult, syncDeliveryLocation, syncAreaInfo } from '../../../hooks';
 import { subscribeProductAvailabilityEvents } from '../../../api/realtimeClient';
 
 
@@ -108,6 +108,10 @@ export default function HomeScreen() {
   // change (deliveryZoneId, already a dependency below) does.
   const deliveryCoordsRef = useRef(deliveryCoords);
   deliveryCoordsRef.current = deliveryCoords;
+  // Boolean, not the coords object: this gates the first dashboard fetch
+  // (see the load effect), and a raw GPS fix changes object identity on
+  // nearly every fix, which as a dependency would be a refetch storm.
+  const hasDeliveryPin = Boolean(deliveryCoords);
   // Read (not written) by loadHomeData to build bootstrap's If-None-Match.
   // Refs, not dependencies — loadHomeData's own success path is what writes
   // these (applyBootstrapResult), so depending on them directly would rebuild
@@ -132,13 +136,26 @@ export default function HomeScreen() {
   // unchanged, so returning users with a saved location never see it.
   const { status: locationPermStatus, requestAllow: requestLocationAllow, openSettings: openLocationSettings } = useHomeLocationPermission();
   const [requestingLocationAllow, setRequestingLocationAllow] = useState(false);
-  const needsLocationPermission = !deliveryCoords
+  const needsLocationPermission = !hasDeliveryPin
     && (locationPermStatus === 'denied' || locationPermStatus === 'blocked');
+  // Permission granted but the sync still produced no usable fix — GPS timed
+  // out, or iOS returned a reduced-accuracy fix that useDeliveryLocationSync
+  // rejects (Precise Location off fuzzes to kilometres, far coarser than a
+  // ~2km zone). This state used to fall straight through to the dashboard,
+  // which then fetched with no pin; the server answers a pinless request from
+  // another area entirely, so there is no "show something" option here. Every
+  // route to the catalog runs through a resolved live pin or shows a card.
+  // Waits for the permission read to settle too: a denied-permission sync
+  // bails and marks itself complete almost immediately, which could beat
+  // locationPermStatus out of 'checking' and flash this card for an instant
+  // before the Allow card it should have shown.
+  const locationUnresolved = !hasDeliveryPin && isInitialLocationSyncComplete
+    && locationPermStatus !== 'checking' && !needsLocationPermission;
   // Same gate the dashboard body below uses (needsLocationPermission /
   // out-of-zone EmptyState) — the inline dashboard search dropdown hits the
   // same ungated catalog endpoint and was showing results with no location
   // and to customers confirmed outside every zone.
-  const isLocationGated = needsLocationPermission
+  const isLocationGated = needsLocationPermission || locationUnresolved
     || (isInitialLocationSyncComplete && insideDeliveryZone === false);
   const handleAllowLocation = useCallback(async () => {
     setRequestingLocationAllow(true);
@@ -149,6 +166,18 @@ export default function HomeScreen() {
     }
   }, [requestLocationAllow]);
   const [isLocationSlow, setIsLocationSlow] = useState(false);
+  const [retryingLocation, setRetryingLocation] = useState(false);
+  // syncDeliveryLocation dedupes concurrent runs itself and releases its
+  // throttle when a run settles nothing, so a retry here always gets a real
+  // attempt rather than being swallowed by the 5-minute resume throttle.
+  const handleRetryLocation = useCallback(async () => {
+    setRetryingLocation(true);
+    try {
+      await syncDeliveryLocation();
+    } finally {
+      setRetryingLocation(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (isInitialLocationSyncComplete) {
@@ -186,6 +215,16 @@ export default function HomeScreen() {
         setDeliveryLocationLabel(selectedLabel);
       }
       setShowLocationPicker(false);
+      // cart/calculate above resolves the ZONE. It says nothing about which
+      // AREA that zone belongs to, so without this the store keeps the
+      // previous area's id, settings (UPI, support number) and socket room
+      // while the catalog silently follows the new pin — and the cross-area
+      // cart wipe compares against a stale lastAreaId and never fires.
+      // Runs for an undeliverable pin too, which is how the stale area gets
+      // cleared rather than lingering behind the out-of-zone screen. Awaited
+      // so the dashboard behind the picker re-renders against the area it is
+      // about to load from.
+      await syncAreaInfo(lat, lng);
       if (deliverable) {
         showToast('Delivery location updated', { type: 'success' });
       } else {
@@ -270,9 +309,16 @@ export default function HomeScreen() {
   const [storeType, setStoreType] = useState('fast_food');
   const userChangedStoreTypeRef = useRef(false);
   const appliedDefaultModeRef = useRef(false);
+  // Also re-applies when the current slug isn't in the loaded modes at all —
+  // moving the pin to an area whose admin configured different modes would
+  // otherwise keep fetching the dashboard for a slug that area doesn't have,
+  // so the sections come back empty until the user taps another tab.
   useEffect(() => {
-    if (appliedDefaultModeRef.current || userChangedStoreTypeRef.current) return;
-    const defaultMode = modes.find(m => m.is_default || m.isDefault);
+    if (modes.length === 0) return;
+    const hasCurrent = modes.some(m => m.slug === storeType);
+    if (hasCurrent && (appliedDefaultModeRef.current || userChangedStoreTypeRef.current)) return;
+    const defaultMode = modes.find(m => m.is_default || m.isDefault)
+      || (hasCurrent ? null : modes[0]);
     if (!defaultMode) return;
     appliedDefaultModeRef.current = true;
     if (defaultMode.slug !== storeType) {
@@ -280,7 +326,27 @@ export default function HomeScreen() {
     }
   }, [modes, storeType]);
   const [isLoading, setIsLoading] = useState(true);
-  const isHomeLoading = isLoading || !isInitialLocationSyncComplete;
+  // Cold start only. Once the screen has painted real sections once, a later
+  // load (mode switch with nothing prefetched, area change) keeps the header
+  // and the mode capsule on screen and skeletons just the sections block —
+  // swapping the whole tree for the full-screen skeleton made the capsule the
+  // user just tapped disappear under their finger.
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const isHomeLoading = (isLoading && !hasLoadedOnce) || !isInitialLocationSyncComplete;
+  const isSectionsLoading = isLoading && hasLoadedOnce;
+
+  // Same 2.5s rule for the catalog fetch itself. The location notice only
+  // covers the pin resolve; on a weak link the dashboard request is the part
+  // that keeps the skeleton up, with nothing on screen saying why.
+  const [isDataSlow, setIsDataSlow] = useState(false);
+  useEffect(() => {
+    if (!isLoading) {
+      setIsDataSlow(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setIsDataSlow(true), 2500);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dashboardSections, setDashboardSections] = useState([]);
   const [homeError, setHomeError] = useState('');
@@ -318,6 +384,11 @@ export default function HomeScreen() {
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+  // Crossfade for the sections block only when switching store mode. fadeAnim
+  // sits at 1 after the first load, so loadHomeData's entry animation is a
+  // no-op on a switch, and it wraps the mode capsule too (fading the control
+  // the user just tapped looks broken).
+  const sectionsFade = useRef(new Animated.Value(1)).current;
 
   // Notification badge pulse
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -349,13 +420,25 @@ export default function HomeScreen() {
     if (!zoneChanged && !areaChanged) return;
     lastZoneIdRef.current = deliveryZoneId;
     lastAreaIdRef.current = deliveryAreaId;
-    const hadResolvedLocation = (previousZoneId !== null && previousZoneId !== undefined)
-      || (previousAreaId !== null && previousAreaId !== undefined);
-    if (!hadResolvedLocation) return;
+    // Store modes are area-scoped: a pin outside every zone resolves to
+    // areaId null server-side and /store-modes returns [], so the capsule
+    // sits on useStoreModes' FALLBACK_MODES (hardcoded Packed Items /
+    // Fast Food, no icon URL, no is_default). Refetch on ANY area/zone
+    // change — including the first null -> id resolve, which is exactly the
+    // out-of-zone -> in-zone move — not only on pull-to-refresh.
+    refetchModes();
+    // Cleared unconditionally, including on the first null -> id resolve.
+    // That case used to be skipped ("nothing is cached yet"), which stopped
+    // being true the moment anything populated the cache while the pin was
+    // unresolved or outside every zone — the entry is then another area's
+    // sections, and loadHomeData's `else if (sectionsCacheRef...)` branch
+    // repaints it instead of showing a skeleton. Clearing throws nothing
+    // away: an in-flight fetch writes its result here when it resolves, and
+    // invalidate('dashboard:') only drops a 15s freshness stamp.
     sectionsCacheRef.current = {};
     prefetchedModesRef.current = new Set();
     invalidate('dashboard:');
-  }, [deliveryAreaId, deliveryZoneId]);
+  }, [deliveryAreaId, deliveryZoneId, refetchModes]);
 
   // Staggered entry for cards
   const staggerCatAnims = useRef(Array.from({ length: 12 }, () => new Animated.Value(0))).current;
@@ -426,6 +509,7 @@ export default function HomeScreen() {
       }
 
       setIsLoading(false);
+      setHasLoadedOnce(true);
       setIsRefreshing(false);
 
       Animated.parallel([
@@ -462,7 +546,14 @@ export default function HomeScreen() {
     // an infinite loop.
   }, [currentApiStoreType, deliveryZoneId, fadeAnim, markSettingsFetched, isSettingsStale, slideAnim, staggerCatAnims, staggerComboAnims, refetchModes]);
 
+  // No pin, no fetch — ever. A pinless dashboard/bootstrap request makes the
+  // server resolve the area from something other than where the customer is
+  // standing, and areas are run by separate teams: serving area 1's sections,
+  // settings and UPI to someone in area 2 is a cross-team leak, not a
+  // degraded-but-useful fallback. The states with no pin render a card (see
+  // needsLocationPermission / locationUnresolved) instead of a catalog.
   useEffect(() => {
+    if (!hasDeliveryPin) return undefined;
     let cleanupLoad;
     const loadTimer = setTimeout(() => {
       cleanupLoad = loadHomeData(false);
@@ -472,7 +563,7 @@ export default function HomeScreen() {
       clearTimeout(loadTimer);
       cleanupLoad?.();
     };
-  }, [loadHomeData]);
+  }, [loadHomeData, hasDeliveryPin]);
 
   // Quiet background re-fetch of the dashboard sections AND settings — no
   // loading skeleton, no re-triggered entry animation. Used to catch a shop
@@ -504,6 +595,20 @@ export default function HomeScreen() {
       .catch(() => {});
   }, [currentApiStoreType, setSettings, markSettingsFetched]);
 
+  // The live patches below (shop open/close, product availability) only fix
+  // the sections currently on screen. The prefetched blobs for the OTHER
+  // modes are plain snapshots, and selectStoreType paints them instantly —
+  // so a mode switch after such an event would show a shop as open that just
+  // closed. Drop them instead of trying to patch every cached mode; the
+  // prefetch effect re-warms them within 2s.
+  const dropOtherModeCaches = React.useCallback(() => {
+    for (const slug of Object.keys(sectionsCacheRef.current)) {
+      if (slug === currentApiStoreType) continue;
+      delete sectionsCacheRef.current[slug];
+      prefetchedModesRef.current.delete(slug);
+    }
+  }, [currentApiStoreType]);
+
   // Live OOS: when shop/admin marks a product unavailable, grey it out on
   // every product rail immediately (no pull-to-refresh) instead of removing
   // it — ProductCard renders the greyed-out "Item Unavailable" state
@@ -514,6 +619,8 @@ export default function HomeScreen() {
       const productId = payload?.productId ?? payload?.id;
       if (productId == null || productId === '') return;
       const available = payload?.available;
+
+      dropOtherModeCaches();
 
       if (available === false || available === 0 || available === '0') {
         // Product-only event — products/combos are separate tables with
@@ -541,7 +648,7 @@ export default function HomeScreen() {
 
       refreshDashboardSilently();
     });
-  }, [refreshDashboardSilently]);
+  }, [refreshDashboardSilently, dropOtherModeCaches]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -656,6 +763,8 @@ export default function HomeScreen() {
         }
       }
 
+      dropOtherModeCaches();
+
       if (shopRefetchTimer) clearTimeout(shopRefetchTimer);
       shopRefetchTimer = setTimeout(() => {
         shopRefetchTimer = null;
@@ -672,7 +781,7 @@ export default function HomeScreen() {
         clearTimeout(unreadRefreshTimer.current);
       }
     };
-  }, [queueUnreadRefresh, refreshDashboardSilently]);
+  }, [queueUnreadRefresh, refreshDashboardSilently, dropOtherModeCaches]);
 
   const prefetchSectionImages = React.useCallback((sections) => {
     // Pre-warm expo-image's disk cache for every image that will render on the
@@ -791,14 +900,21 @@ export default function HomeScreen() {
     if (!val || val === storeType) return;
     userChangedStoreTypeRef.current = true;
     const cached = sectionsCacheRef.current[val];
-    if (cached) {
-      setDashboardSections(cached);
-    } else {
-      setDashboardSections([]);
-      setIsLoading(true);
-    }
-    setStoreType(val);
-  }, [storeType]);
+    Animated.timing(sectionsFade, { toValue: 0, duration: 110, useNativeDriver: true }).start(({ finished }) => {
+      // Interrupted by a second tap — that tap's own animation owns the swap
+      // and the fade back in. Running this one too would apply the mode the
+      // user already moved past.
+      if (!finished) return;
+      if (cached) {
+        setDashboardSections(cached);
+      } else {
+        setDashboardSections([]);
+        setIsLoading(true);
+      }
+      setStoreType(val);
+      Animated.timing(sectionsFade, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+    });
+  }, [storeType, sectionsFade]);
 
   const handleProductPress = (product) => {
     const isCombo = product.isCombo || product.is_combo || product.comboItems?.length;
@@ -951,6 +1067,17 @@ export default function HomeScreen() {
           onOpenSettings={openLocationSettings}
           onPickManually={() => setShowLocationPicker(true)}
         />
+      ) : locationUnresolved ? (
+        <EmptyState
+          icon={<AppIcon name="location" size={56} color={colors.textTertiary} />}
+          title="Couldn't pin your location"
+          subtitle={locationPermStatus === 'granted'
+            ? 'We need an exact location to show what we deliver here. On iPhone, check Precise Location is on for VillKro in Settings, or set your delivery spot on the map.'
+            : 'We need your location to show what we deliver here. Try again, or set your delivery spot on the map.'}
+          actionLabel={retryingLocation ? 'Locating…' : 'Try again'}
+          onAction={handleRetryLocation}
+          style={styles.emptyState}
+        />
       ) : isInitialLocationSyncComplete && insideDeliveryZone === false ? (
         <EmptyState
           icon={<AppIcon name="location" size={56} color={colors.textTertiary} />}
@@ -993,6 +1120,8 @@ export default function HomeScreen() {
            <LoadingSkeleton style={{ height: 120, borderRadius: radius.lg, marginBottom: spacing.xl }} />
            {isLocationSlow ? (
              <Text style={styles.locationLoadingNotice}>Slow internet — setting your delivery location…</Text>
+           ) : isDataSlow ? (
+             <Text style={styles.locationLoadingNotice}>Slow internet — still loading items…</Text>
            ) : null}
 
             <View style={styles.skeletonCategoryRow}>
@@ -1041,6 +1170,23 @@ export default function HomeScreen() {
           </View>
 
           {/* Dynamic Sections */}
+          <Animated.View style={{ opacity: sectionsFade }}>
+          {isSectionsLoading ? (
+            <View>
+              {isDataSlow ? (
+                <Text style={styles.locationLoadingNotice}>Slow internet — still loading items…</Text>
+              ) : null}
+              <View style={styles.skeletonCategoryRow}>
+                <LoadingSkeleton style={[styles.skeletonCategoryCard, { width: categoryCardWidth }]} />
+                <LoadingSkeleton style={[styles.skeletonCategoryCard, { width: categoryCardWidth, marginLeft: spacing.md }]} />
+                <LoadingSkeleton style={[styles.skeletonCategoryCard, { width: categoryCardWidth, marginLeft: spacing.md }]} />
+              </View>
+              <View style={styles.skeletonProductRow}>
+                <LoadingSkeleton style={[styles.skeletonProductCard, { width: windowWidth * 0.4 - spacing.md, height: (windowWidth * 0.4 - spacing.md) / 0.78 }]} />
+                <LoadingSkeleton style={[styles.skeletonProductCard, { width: windowWidth * 0.4 - spacing.md, height: (windowWidth * 0.4 - spacing.md) / 0.78, marginLeft: spacing.md }]} />
+              </View>
+            </View>
+          ) : null}
           {dashboardSections.map(section => {
             if (section.sectionType === 'offer_banner') {
               return (
@@ -1279,6 +1425,7 @@ export default function HomeScreen() {
 
             return null;
           })}
+          </Animated.View>
         </Animated.ScrollView>
           )}
         </>

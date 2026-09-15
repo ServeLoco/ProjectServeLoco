@@ -323,7 +323,42 @@ function bustAreaCaches(areaId) {
     invalidateStoreModeCache(areaId);
   } catch (_) { /* storeMode not loaded in this context */ }
 
+  scheduleCatalogUpdatedEmit(areaId);
   return bumpCatalogVersion(areaId);
+}
+
+// Admin catalog writes (product/combo/category/price edits, coupons, zones,
+// settings) all funnel through bustAreaCaches, but nothing ever reached the
+// phones — a price change only showed up on the customer's next focus,
+// pull-to-refresh or shop event. Emitting here covers every caller at once
+// instead of adding an emit to each controller.
+//
+// Debounced per area because bulk import / bulk price update call
+// bustAreaCaches once per row: 500 rows would otherwise be 500 broadcasts,
+// and each one makes every connected phone in the area refetch. One trailing
+// emit per area per window; clients add their own 0-3s jitter on top.
+const CATALOG_EMIT_DEBOUNCE_MS = 5_000;
+const catalogEmitTimers = new Map();
+
+function scheduleCatalogUpdatedEmit(rawAreaId) {
+  if (rawAreaId === undefined || rawAreaId === null) return;
+  // Callers pass the id as both a number and a string ('1' from req.params);
+  // keying the Map on the raw value would run two timers for one area.
+  const areaId = Number(rawAreaId);
+  if (!Number.isFinite(areaId)) return;
+  if (catalogEmitTimers.has(areaId)) return;
+  const timer = setTimeout(() => {
+    catalogEmitTimers.delete(areaId);
+    try {
+      const { emitToAllCustomers } = require('../realtime/socket');
+      emitToAllCustomers(areaId, 'catalog.updated', { areaId });
+    } catch (_) {
+      // Realtime is best-effort — the write is already persisted and the
+      // server-side caches are already busted.
+    }
+  }, CATALOG_EMIT_DEBOUNCE_MS);
+  if (typeof timer.unref === 'function') timer.unref();
+  catalogEmitTimers.set(areaId, timer);
 }
 
 /**

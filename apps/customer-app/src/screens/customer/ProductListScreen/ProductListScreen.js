@@ -151,11 +151,29 @@ export default function ProductListScreen() {
     });
   }, []);
 
+  // Always points at the latest fetchProducts — the subscription below is
+  // mounted once (empty deps) and fetchProducts is rebuilt every render.
+  const fetchProductsRef = useRef(null);
+
   // Live shop-closed: same instant grey-out as OOS above, patched by shopId
   // — shop-closed and out-of-stock render as one unavailable card, so both
   // must flip in the same tick instead of waiting on a refetch.
   useEffect(() => {
-    return subscribeShopEvents(({ eventName, payload }) => {
+    let catalogRefetchTimer = null;
+    const unsubscribe = subscribeShopEvents(({ eventName, payload }) => {
+      // Admin edited something area-scoped (price, product, category). No
+      // payload to patch with, so revalidate page 0 in place — otherwise a
+      // customer sitting on this list keeps the old price until they
+      // navigate away and back. Jittered so an area's phones don't all hit
+      // the API in the same tick.
+      if (eventName === 'catalog.updated') {
+        if (catalogRefetchTimer) clearTimeout(catalogRefetchTimer);
+        catalogRefetchTimer = setTimeout(() => {
+          catalogRefetchTimer = null;
+          fetchProductsRef.current?.({ silent: true });
+        }, Math.random() * 3000);
+        return;
+      }
       if (eventName !== 'shop.status.updated') return;
       const shopId = payload?.shopId;
       const isOpen = payload?.isOpen;
@@ -168,6 +186,11 @@ export default function ProductListScreen() {
         ),
       );
     });
+
+    return () => {
+      unsubscribe();
+      if (catalogRefetchTimer) clearTimeout(catalogRefetchTimer);
+    };
   }, []);
 
   /**
@@ -377,6 +400,7 @@ export default function ProductListScreen() {
       }
     }
   };
+  fetchProductsRef.current = fetchProducts;
 
   const handleRefresh = () => {
     nextOffsetRef.current = 0;

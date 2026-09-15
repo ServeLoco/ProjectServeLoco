@@ -35,9 +35,16 @@ const NOTIFICATION_EVENTS = [
   'notification.unread_count.updated',
 ];
 
+// "The catalog you're looking at may be stale" events. Two are shop-open
+// flips; 'catalog.updated' is the admin panel writing anything area-scoped
+// (price, product, category, coupon, settings) — debounced server-side in
+// areaScope.bustAreaCaches. Subscribers treat it the same way: bust the SWR
+// caches and do a jittered silent refetch. It carries no shopId/isOpen, so
+// the instant card patches skip it and only the refetch runs.
 const SHOP_EVENTS = [
   'shop.status.updated',
   'settings.shop_open.updated',
+  'catalog.updated',
 ];
 
 // Area riders became fully booked (or freed up) — checkout enables/disables
@@ -195,6 +202,9 @@ SHOP_EVENTS.forEach(eventName => {
     invalidate('products:');
     invalidate('product:');
     invalidate('categories:');
+    // Also the dashboard freshness stamp — otherwise a price edit landing
+    // within 15s of the last revalidation is skipped by the focus throttle.
+    invalidate('dashboard:');
   });
 });
 
