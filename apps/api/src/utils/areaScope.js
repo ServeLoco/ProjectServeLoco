@@ -350,7 +350,12 @@ function scheduleCatalogUpdatedEmit(rawAreaId) {
   const timer = setTimeout(() => {
     catalogEmitTimers.delete(areaId);
     try {
-      const { emitToAllCustomers } = require('../realtime/socket');
+      const { emitToAllCustomers, customerRefetchPushedSince } = require('../realtime/socket');
+      // The caller already pushed something the app answers with a refetch
+      // (a scheduled shop open emits shop.status.updated, then busts caches).
+      // Firing here too would make every phone in the area refetch twice for
+      // one change. Window is the debounce plus a second of slack.
+      if (customerRefetchPushedSince(areaId, CATALOG_EMIT_DEBOUNCE_MS + 1_000)) return;
       emitToAllCustomers(areaId, 'catalog.updated', { areaId });
     } catch (_) {
       // Realtime is best-effort — the write is already persisted and the

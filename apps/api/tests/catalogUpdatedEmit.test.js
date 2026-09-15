@@ -9,15 +9,19 @@ jest.mock('../src/db/mysql', () => ({
   pool: { query: jest.fn().mockResolvedValue([[]]) },
 }));
 
-jest.mock('../src/realtime/socket', () => ({ emitToAllCustomers: jest.fn() }));
+jest.mock('../src/realtime/socket', () => ({
+  emitToAllCustomers: jest.fn(),
+  customerRefetchPushedSince: jest.fn(() => false),
+}));
 
-const { emitToAllCustomers } = require('../src/realtime/socket');
+const { emitToAllCustomers, customerRefetchPushedSince } = require('../src/realtime/socket');
 const { bustAreaCaches } = require('../src/utils/areaScope');
 
 describe('catalog.updated emit', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     emitToAllCustomers.mockClear();
+    customerRefetchPushedSince.mockReset().mockReturnValue(false);
   });
   afterEach(() => jest.useRealTimers());
 
@@ -43,6 +47,15 @@ describe('catalog.updated emit', () => {
     jest.advanceTimersByTime(5000);
     expect(emitToAllCustomers).toHaveBeenCalledTimes(2);
     expect(emitToAllCustomers).toHaveBeenCalledWith(2, 'catalog.updated', { areaId: 2 });
+  });
+
+  it('stays quiet when the caller already pushed a refetch event', async () => {
+    // A scheduled shop open emits shop.status.updated and then busts the
+    // caches — one change must not cost every phone two refetches.
+    customerRefetchPushedSince.mockReturnValue(true);
+    await bustAreaCaches(1);
+    jest.advanceTimersByTime(5000);
+    expect(emitToAllCustomers).not.toHaveBeenCalled();
   });
 
   it('emits again after the window closes', async () => {

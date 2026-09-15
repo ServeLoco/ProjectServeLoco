@@ -432,10 +432,34 @@ const emitToAdmins = (areaId, eventName, payload) => {
 const emitToPlatformAdmins = (eventName, payload) =>
   emitToRoom(PLATFORM_ADMIN_ROOM, eventName, payload);
 
+// Events the customer app answers with a full silent refetch of the catalog
+// (see realtimeClient's SHOP_EVENTS). areaScope's debounced `catalog.updated`
+// checks this before firing: a scheduled shop open already pushed one of
+// these AND ran bustAreaCaches, and without the check every phone in the area
+// would refetch twice for one change — at open/close time, its busiest
+// minute. Deliberately NOT product.availability.updated: the app patches the
+// card in place for available=false and does not always refetch, so treating
+// it as a refetch would swallow a price edit made in the same window.
+const CUSTOMER_REFETCH_EVENTS = new Set([
+  'shop.status.updated',
+  'settings.shop_open.updated',
+  'delivery_zones.updated',
+  'catalog.updated',
+]);
+const lastCustomerRefetchAt = new Map();
+
+const customerRefetchPushedSince = (areaId, sinceMs) => {
+  const at = lastCustomerRefetchAt.get(Number(areaId));
+  return at !== undefined && Date.now() - at < sinceMs;
+};
+
 const emitToAllCustomers = (areaId, eventName, payload) => {
   if (areaId === undefined || areaId === null) {
     console.error(`emitToAllCustomers: missing areaId for event "${eventName}" — event dropped`);
     return false;
+  }
+  if (CUSTOMER_REFETCH_EVENTS.has(eventName)) {
+    lastCustomerRefetchAt.set(Number(areaId), Date.now());
   }
   return emitToRoom(`customers:${areaId}`, eventName, payload);
 };
@@ -447,6 +471,7 @@ const getRealtimeStatus = () => ({
 
 module.exports = {
   closeRealtime,
+  customerRefetchPushedSince,
   emitToAdmins,
   emitToPlatformAdmins,
   PLATFORM_ADMIN_ROOM,
