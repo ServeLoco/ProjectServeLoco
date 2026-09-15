@@ -777,7 +777,13 @@ export default function HomeScreen() {
       shopRefetchTimer = setTimeout(() => {
         shopRefetchTimer = null;
         refreshDashboardSilently();
-      }, Math.random() * 3000);
+        // Wider window for catalog.updated than for a shop opening: the
+        // dashboard micro-cache has just been busted server-side and has no
+        // single-flight, so every phone that misses it builds the response
+        // against MySQL. ponytail: jitter is the cheap spreader — add
+        // in-flight coalescing to utils/microCache if an area ever has
+        // thousands of foregrounded phones at once.
+      }, Math.random() * (eventName === 'catalog.updated' ? 15000 : 3000));
     });
 
     return () => {

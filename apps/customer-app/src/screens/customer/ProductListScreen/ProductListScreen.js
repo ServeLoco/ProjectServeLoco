@@ -171,7 +171,9 @@ export default function ProductListScreen() {
         catalogRefetchTimer = setTimeout(() => {
           catalogRefetchTimer = null;
           fetchProductsRef.current?.({ silent: true });
-        }, Math.random() * 3000);
+          // Wide window on purpose — see HomeScreen's matching handler: the
+          // server-side micro-cache was just busted and has no single-flight.
+        }, Math.random() * 15000);
         return;
       }
       if (eventName !== 'shop.status.updated') return;
